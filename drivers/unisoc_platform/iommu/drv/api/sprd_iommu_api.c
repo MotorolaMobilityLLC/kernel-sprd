@@ -25,7 +25,8 @@ u32 sprd_iommudrv_init(struct sprd_iommu_init_param *p_init_param,
 		func_tbl = (&iommuex_func_tbl);
 	} else if (p_init_param->iommu_type == SPRD_IOMMUVAU_SHARKL5P ||
 		   p_init_param->iommu_type == SPRD_IOMMUVAU_SHARKL6 ||
-		   p_init_param->iommu_type == SPRD_IOMMUVAU_SHARKL6P) {
+		   p_init_param->iommu_type == SPRD_IOMMUVAU_SHARKL6P ||
+		   p_init_param->iommu_type == SPRD_IOMMUVAU_QOGIRN6L) {
 		func_tbl = (&iommuvau_func_tbl);
 	} else {
 		sprd_free(p_iommu_data);

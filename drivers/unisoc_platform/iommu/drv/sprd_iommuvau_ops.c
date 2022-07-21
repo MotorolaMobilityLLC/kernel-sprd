@@ -65,6 +65,11 @@ static int get_iommuvau_type(int revision, int *pchip)
 		type = SPRD_IOMMUVAU_SHARKL6P;
 		break;
 	}
+	case 15:
+	{
+		type = SPRD_IOMMUVAU_QOGIRN6L;
+		break;
+	}
 	default:
 	{
 		type  = SPRD_IOMMU_NOT_SUPPORT;

@@ -351,6 +351,61 @@ static const struct of_device_id sprd_iommu_ids[] = {
 	{ .compatible = "unisoc,iommuvaul6p-vdma",
 	  .data = (void *)(IOMMU_VAUL6P_VDMA)},
 
+	/* QogirN6Lite */
+	{ .compatible = "unisoc,iommuvaun6l-gsp",
+	  .data = (void *)(IOMMU_VAUN6L_GSP)},
+
+	{ .compatible = "unisoc,iommuvaun6l-gsp1",
+	  .data = (void *)(IOMMU_VAUN6L_GSP1)},
+
+	{ .compatible = "unisoc,iommuvaun6l-dispc",
+	  .data = (void *)(IOMMU_VAUN6L_DISP)},
+
+	{ .compatible = "unisoc,iommuvaun6l-dispc1",
+	  .data = (void *)(IOMMU_VAUN6L_DISP1)},
+
+	{ .compatible = "unisoc,iommuvaun6l-vsp",
+	  .data = (void *)(IOMMU_VAUN6L_VSP)},
+
+	{ .compatible = "unisoc,iommuvaun6l-vsp1",
+	  .data = (void *)(IOMMU_VAUN6L_VSP1)},
+
+	{ .compatible = "unisoc,iommuvaun6l-vsp2",
+	  .data = (void *)(IOMMU_VAUN6L_VSP2)},
+
+	{ .compatible = "unisoc,iommuvaun6l-dcam",
+	  .data = (void *)(IOMMU_VAUN6L_DCAM)},
+
+	{ .compatible = "unisoc,iommuvaun6l-dcam1",
+	  .data = (void *)(IOMMU_VAUN6L_DCAM1)},
+
+	{ .compatible = "unisoc,iommuvaun6l-isp",
+	  .data = (void *)(IOMMU_VAUN6L_ISP)},
+
+	{ .compatible = "unisoc,iommuvaun6l-cpp",
+	  .data = (void *)(IOMMU_VAUN6L_CPP)},
+
+	{ .compatible = "unisoc,iommuvaun6l-jpg",
+	  .data = (void *)(IOMMU_VAUN6L_JPG)},
+
+	{ .compatible = "unisoc,iommuvaun6l-fd",
+	  .data = (void *)(IOMMU_VAUN6L_FD)},
+
+	{ .compatible = "unisoc,iommuvaun6l-ai",
+	  .data = (void *)(IOMMU_VAUN6L_AI)},
+
+	{ .compatible = "unisoc,iommuvaun6l-epp",
+	  .data = (void *)(IOMMU_VAUN6L_EPP)},
+
+	{ .compatible = "unisoc,iommuvaun6l-edp",
+	  .data = (void *)(IOMMU_VAUN6L_EDP)},
+
+	{ .compatible = "unisoc,iommuvaun6l-idma",
+	  .data = (void *)(IOMMU_VAUN6L_IDMA)},
+
+	{ .compatible = "unisoc,iommuvaun6l-vdma",
+	  .data = (void *)(IOMMU_VAUN6L_VDMA)},
+
 	{},
 };
 
@@ -1857,6 +1912,66 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 		else if (pdata->id == IOMMU_VAUL6P_IDMA)
 			pdata->id = IOMMU_EX_IDMA;
 		else if (pdata->id == IOMMU_VAUL6P_VDMA)
+			pdata->id = IOMMU_EX_VDMA;
+		break;
+	}
+	/* QogirN6Lite */
+	case IOMMU_VAUN6L_GSP:
+	case IOMMU_VAUN6L_GSP1:
+	case IOMMU_VAUN6L_VSP:
+	case IOMMU_VAUN6L_VSP1:
+	case IOMMU_VAUN6L_VSP2:
+	case IOMMU_VAUN6L_DCAM:
+	case IOMMU_VAUN6L_DCAM1:
+	case IOMMU_VAUN6L_CPP:
+	case IOMMU_VAUN6L_JPG:
+	case IOMMU_VAUN6L_DISP:
+	case IOMMU_VAUN6L_DISP1:
+	case IOMMU_VAUN6L_ISP:
+	case IOMMU_VAUN6L_FD:
+	case IOMMU_VAUN6L_AI:
+	case IOMMU_VAUN6L_EPP:
+	case IOMMU_VAUN6L_EDP:
+	case IOMMU_VAUN6L_IDMA:
+	case IOMMU_VAUN6L_VDMA:
+	{
+		pdata->iommuex_rev = 15;
+		iommu_dev->ops = &sprd_iommuvau_hw_ops;
+		if (pdata->id == IOMMU_VAUN6L_GSP)
+			pdata->id = IOMMU_EX_GSP;
+		else if (pdata->id == IOMMU_VAUN6L_GSP1)
+			pdata->id = IOMMU_EX_GSP1;
+		else if (pdata->id == IOMMU_VAUN6L_DISP)
+			pdata->id = IOMMU_EX_DISP;
+		else if (pdata->id == IOMMU_VAUN6L_DISP1)
+			pdata->id = IOMMU_EX_DISP1;
+		else if (pdata->id == IOMMU_VAUN6L_VSP)
+			pdata->id = IOMMU_EX_VSP;
+		else if (pdata->id == IOMMU_VAUN6L_VSP1)
+			pdata->id = IOMMU_EX_VSP1;
+		else if (pdata->id == IOMMU_VAUN6L_VSP2)
+			pdata->id = IOMMU_EX_VSP2;
+		else if (pdata->id == IOMMU_VAUN6L_DCAM)
+			pdata->id = IOMMU_EX_DCAM;
+		else if (pdata->id == IOMMU_VAUN6L_DCAM1)
+			pdata->id = IOMMU_EX_DCAM1;
+		else if (pdata->id == IOMMU_VAUN6L_ISP)
+			pdata->id = IOMMU_EX_NEWISP;
+		else if (pdata->id == IOMMU_VAUN6L_CPP)
+			pdata->id = IOMMU_EX_CPP;
+		else if (pdata->id == IOMMU_VAUN6L_JPG)
+			pdata->id = IOMMU_EX_JPG;
+		else if (pdata->id == IOMMU_VAUN6L_FD)
+			pdata->id = IOMMU_EX_FD;
+		else if (pdata->id == IOMMU_VAUN6L_AI)
+			pdata->id = IOMMU_EX_AI;
+		else if (pdata->id == IOMMU_VAUN6L_EPP)
+			pdata->id = IOMMU_EX_EPP;
+		else if (pdata->id == IOMMU_VAUN6L_EDP)
+			pdata->id = IOMMU_EX_EDP;
+		else if (pdata->id == IOMMU_VAUN6L_IDMA)
+			pdata->id = IOMMU_EX_IDMA;
+		else if (pdata->id == IOMMU_VAUN6L_VDMA)
 			pdata->id = IOMMU_EX_VDMA;
 		break;
 	}
