@@ -412,6 +412,7 @@
 #include "modem.dtsi"
 #include "pin-controller.dtsi"
 #include "power.dtsi"
+#include "ptm.dtsi"
 #include "sensorhub.dtsi"
 #include "spi.dtsi"
 #include "thermal.dtsi"
