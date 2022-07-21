@@ -113,6 +113,43 @@ int sprd_atomic_wait_for_fences(struct drm_device *dev,
 	return 0;
 }
 
+static int sprd_atomic_wait_last_cleanup_done(struct drm_device *drm,
+						struct drm_atomic_state *state)
+{
+	struct drm_crtc *crtc;
+	struct drm_crtc_commit *commit, *last_commit = NULL;
+	int i, ret;
+
+	drm_for_each_crtc(crtc, drm) {
+		i = 0;
+		last_commit = NULL;
+		spin_lock(&crtc->commit_lock);
+		list_for_each_entry(commit, &crtc->commit_list, commit_entry) {
+			if (i == 1) {
+				last_commit = drm_crtc_commit_get(commit);
+				break;
+			}
+
+			i++;
+		}
+
+		spin_unlock(&crtc->commit_lock);
+		if (!last_commit)
+			continue;
+
+		ret = wait_for_completion_interruptible(&last_commit->cleanup_done);
+
+		drm_crtc_commit_put(last_commit);
+		if (ret) {
+			DRM_ERROR("[CRTC:%d:%s] wait last commit cleanup_done timed out\n",
+				   crtc->base.id, crtc->name);
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
 static void sprd_commit_tail(struct drm_atomic_state *old_state)
 {
 	struct drm_device *dev = old_state->dev;
@@ -173,6 +210,20 @@ int sprd_atomic_helper_commit(struct drm_device *dev,
 		return ret;
 
 	ret = drm_atomic_helper_swap_state(state, true);
+	if (ret)
+		goto err;
+
+	/*
+	 * FIXME:
+	 * Because of system heave loads or other performance issues, the procedure which after
+	 * swap state the most recent commit may running ahead of the last commit.
+	 * When the most recent commit finish drm atomic commit procedure, it will free last time's
+	 * commit state which stored as old state in the most recent commit's drm_atomic_state.
+	 * If last commit has not finished yet, calling on variable may causing stability problem.
+	 * So we add this restriction to force the most recent commit waiting for the last on clean
+	 * up done completed to avoid the problem declared above.
+	 */
+	ret = sprd_atomic_wait_last_cleanup_done(dev, state);
 	if (ret)
 		goto err;
 
