@@ -211,6 +211,7 @@ thermal:sprd:
 time:
 trace:
 trusty:
+tty:sysrq:
 
 unisoc:*
 usb:core:
