@@ -15,59 +15,58 @@
 #include <linux/sort.h>
 
 /* ADC controller registers definition */
-#define SC27XX_ADC_CTL			0x0
-#define SC27XX_ADC_CH_CFG		0x4
-#define SC27XX_ADC_DATA			0x4c
-#define SC27XX_ADC_INT_EN		0x50
-#define SC27XX_ADC_INT_CLR		0x54
-#define SC27XX_ADC_INT_STS		0x58
-#define SC27XX_ADC_INT_RAW		0x5c
+#define SPRD_ADC_CTL			0x0
+#define SPRD_ADC_CH_CFG			0x4
+#define SPRD_ADC_DATA			0x4c
+#define SPRD_ADC_INT_EN			0x50
+#define SPRD_ADC_INT_CLR		0x54
+#define SPRD_ADC_INT_STS		0x58
+#define SPRD_ADC_INT_RAW		0x5c
 
-/* Bits and mask definition for SC27XX_ADC_CTL register */
-#define SC27XX_ADC_EN			BIT(0)
-#define SC27XX_ADC_CHN_RUN		BIT(1)
-#define SC27XX_ADC_12BIT_MODE		BIT(2)
-#define SC27XX_ADC_RUN_NUM_MASK		GENMASK(7, 4)
-#define SC27XX_ADC_RUN_NUM_SHIFT	4
-#define SC27XX_ADC_AVERAGE_SHIFT	8
-#define SC27XX_ADC_AVERAGE_MASK		GENMASK(10, 8)
+/* Bits and mask definition for SPRD_ADC_CTL register */
+#define SPRD_ADC_EN			BIT(0)
+#define SPRD_ADC_CHN_RUN		BIT(1)
+#define SPRD_ADC_12BIT_MODE		BIT(2)
+#define SPRD_ADC_RUN_NUM_MASK		GENMASK(7, 4)
+#define SPRD_ADC_RUN_NUM_SHIFT		4
+#define SPRD_ADC_AVERAGE_SHIFT		8
+#define SPRD_ADC_AVERAGE_MASK		GENMASK(10, 8)
 
-/* Bits and mask definition for SC27XX_ADC_CH_CFG register */
-#define SC27XX_ADC_CHN_ID_MASK		GENMASK(4, 0)
+/* Bits and mask definition for SPRD_ADC_CH_CFG register */
+#define SPRD_ADC_CHN_ID_MASK		GENMASK(4, 0)
 
-/* Bits definitions for SC27XX_ADC_INT_EN registers */
-#define SC27XX_ADC_IRQ_EN		BIT(0)
+/* Bits definitions for SPRD_ADC_INT_EN registers */
+#define SPRD_ADC_IRQ_EN			BIT(0)
 
-/* Bits definitions for SC27XX_ADC_INT_CLR registers */
-#define SC27XX_ADC_IRQ_CLR		BIT(0)
+/* Bits definitions for SPRD_ADC_INT_CLR registers */
+#define SPRD_ADC_IRQ_CLR		BIT(0)
 
-/* Bits definitions for SC27XX_ADC_INT_RAW registers */
-#define SC27XX_ADC_IRQ_RAW		BIT(0)
+/* Bits definitions for SPRD_ADC_INT_RAW registers */
+#define SPRD_ADC_IRQ_RAW		BIT(0)
 
-/* Mask definition for SC27XX_ADC_DATA register */
-#define SC27XX_ADC_DATA_MASK		GENMASK(11, 0)
+/* Mask definition for SPRD_ADC_DATA register */
+#define SPRD_ADC_DATA_MASK		GENMASK(11, 0)
 
 /* Timeout (ms) for the trylock of hardware spinlocks */
-#define SC27XX_ADC_HWLOCK_TIMEOUT	5000
+#define SPRD_ADC_HWLOCK_TIMEOUT		5000
 
 /* Maximum ADC channel number */
-#define SC27XX_ADC_CHANNEL_MAX		32
+#define SPRD_ADC_CHANNEL_MAX		32
 
 /* Timeout (us) for ADC data conversion according to ADC datasheet */
-#define SC27XX_ADC_RDY_TIMEOUT		1000000
-#define SC27XX_ADC_POLL_RAW_STATUS	500
+#define SPRD_ADC_RDY_TIMEOUT		1000000
+#define SPRD_ADC_POLL_RAW_STATUS	500
 
 /* ADC voltage ratio definition */
-#define RATIO(n, d)		\
-	(((n) << SC27XX_RATIO_NUMERATOR_OFFSET) | (d))
-#define SC27XX_RATIO_NUMERATOR_OFFSET	16
-#define SC27XX_RATIO_DENOMINATOR_MASK	GENMASK(15, 0)
+#define SPRD_RATIO_NUMERATOR_OFFSET	16
+#define SPRD_RATIO_DENOMINATOR_MASK	GENMASK(15, 0)
+#define RATIO(n, d)			(((n) << SPRD_RATIO_NUMERATOR_OFFSET) | (d))
 
 /* ADC specific channel reference voltage 3.5V */
-#define SC27XX_ADC_REFVOL_VDD35		3500000
+#define SPRD_ADC_REFVOL_VDD35		3500000
 
 /* ADC default channel reference voltage is 2.8V */
-#define SC27XX_ADC_REFVOL_VDD28		2800000
+#define SPRD_ADC_REFVOL_VDD28		2800000
 
 #define SPRD_ADC_CELL_MAX		(2)
 #define SPRD_ADC_INVALID_DATA		(0XFFFFFFFF)
@@ -104,7 +103,7 @@ do {									\
 } while (0)
 
 
-#define SC27XX_ADC_CHANNEL(index, mask) {			\
+#define SPRD_ADC_CHANNEL(index, mask) {			\
 	.type = IIO_VOLTAGE,					\
 	.channel = index,					\
 	.info_mask_separate = mask | BIT(IIO_CHAN_INFO_SCALE),	\
@@ -112,70 +111,16 @@ do {									\
 	.indexed = 1,						\
 }
 
-enum sc27xx_pmic_type {
-	SC2720_ADC,
-	SC2721_ADC,
-	SC2730_ADC,
-	SC2731_ADC,
-	UMP9620_ADC,
-};
-
-enum SPRD_ADC_GRAPH_TYPE {
-	ONE_CELL_BIG_GRAPH,
-	ONE_CELL_SMALL_GRAPH,
-	TWO_CELL_BIG_GRAPH,
-	TWO_CELL_SMALL_GRAPH,
-	TWO_CELL_VBAT_DET_GRAPH,
-	SPRD_ADC_GRAPH_TYPE_MAX
-};
-
-enum SPRD_ADC_REG_TYPE {
-	REG_MODULE_EN,
-	REG_CLK_EN,
-	REG_SCALE,
-	REG_ISEN0 = 12,/* CURRENT MODE */
-	REG_ISEN1,
-	REG_ISEN2,
-	REG_ISEN3,
-	SPRD_ADC_REG_TYPE_MAX
-};
-
-enum SPRD_ADC_REG_BASE {
-	BASE_GLB,
-	BASE_ANA
-};
-
-struct sprd_adc_pm_data {
-	struct regmap *pm_regmap;
-	u32 clk26m_vote_reg;/* adc clk26 votre reg */
-	u32 clk26m_vote_reg_mask;/* adc clk26 votre reg mask */
-	bool pm_ctl_support;
-	bool dev_suspended;
-};
-
-
 #define CH_DATA_INIT(sl, graph, filter, isen, r0, r1, r2, r3)	\
-{									\
-	.scale = sl,							\
-	.graph_index = graph,						\
-	.isen_info = isen,						\
-	.filter_info = filter,						\
-	.inited = SPRD_ADC_INIT_MAGIC,					\
-	.ratio = {r0, r1, r2, r3},					\
+{								\
+	.scale = sl,						\
+	.graph_index = graph,					\
+	.isen_info = isen,					\
+	.filter_info = filter,					\
+	.inited = SPRD_ADC_INIT_MAGIC,				\
+	.ratio = {r0, r1, r2, r3},				\
+	.volreq = 0,						\
 }
-/*bit[0-7]: scale
- *bit[7-15]: graph_index
- *bit[16-23]: filter_info(bit16: sw filter support, bit[17-23]: hw filter val(2<<n))
- *bit[24-31]: isen_info (bit24: isen support, bit[25-32]: isen val)
- */
-struct sprd_adc_channel_data {
-	int scale;
-	int graph_index;
-	int ratio[SPRD_ADC_SCALE_MAX];
-	int inited;
-	int filter_info;
-	int isen_info;
-};
 
 #define REG_BIT_INIT(b_base, reg_address, b_mask, b_offset, func, verse)	\
 {										\
@@ -188,6 +133,66 @@ struct sprd_adc_channel_data {
 	.reverse = verse							\
 }
 
+enum SPRD_PMIC_TYPE {
+	SC2720_ADC,
+	SC2721_ADC,
+	SC2730_ADC,
+	SC2731_ADC,
+	UMP9620_ADC,
+};
+
+enum SPRD_ADC_GRAPH_TYPE {
+	ONE_CELL_BIG_GRAPH0,
+	ONE_CELL_SMALL_GRAPH0,
+	ONE_CELL_BIG_GRAPH1,
+	ONE_CELL_SMALL_GRAPH1,
+	TWO_CELL_BIG_GRAPH,
+	TWO_CELL_SMALL_GRAPH,
+	TWO_CELL_VBAT_DET_GRAPH,
+	SPRD_ADC_GRAPH_TYPE_MAX
+};
+
+enum SPRD_ADC_REG_TYPE {
+	REG_MODULE_EN,
+	REG_CLK_EN,
+	REG_SCALE,
+	REG_ISEN_ST = 12,/* CURRENT MODE START */
+	REG_ISEN0,
+	REG_ISEN1,
+	REG_ISEN2,
+	REG_ISEN3,
+	REG_ISEN_END,/* CURRENT MODE END */
+	SPRD_ADC_REG_TYPE_MAX
+};
+
+enum SPRD_ADC_REG_BASE {
+	BASE_GLB,
+	BASE_ANA
+};
+
+struct sprd_adc_pm_data {
+	struct regmap *clk_regmap;
+	struct regulator *volref;
+	u32 clk_reg;/* adc clk26 vote reg */
+	u32 clk_reg_mask;/* adc clk26 vote reg mask */
+	bool dev_suspended;
+};
+
+/*bit[0-7]: scale
+ *bit[7-15]: graph_index
+ *bit[16-23]: filter_info(bit16: sw filter support, bit[17-23]: hw filter val(2<<n))
+ *bit[24-31]: isen_info (bit24: isen support, bit[25-32]: isen val)
+ */
+struct sprd_adc_channel_data {
+	int scale;
+	int graph_index;
+	int isen_info;
+	int filter_info;
+	int inited;
+	int ratio[SPRD_ADC_SCALE_MAX];
+	int volreq; /* use volreq to customerize adc volref, def 2.8v */
+};
+
 struct reg_bit {
 	u32 base;
 	u32 reg_addr;
@@ -198,10 +203,9 @@ struct reg_bit {
 	u32 (*get_setval)(void *pri, int ch, bool set);
 };
 
-struct sc27xx_adc_data {
+struct sprd_adc_data {
 	struct iio_dev *indio_dev;
 	struct device *dev;
-	struct regulator *volref;
 	struct regmap *regmap;
 	/*
 	 * One hardware spinlock to synchronize between the multiple
@@ -210,39 +214,34 @@ struct sc27xx_adc_data {
 	struct hwspinlock *hwlock;
 	u32 base;
 	int irq;
-	struct sprd_adc_channel_data ch_data[SC27XX_ADC_CHANNEL_MAX];
-	const struct sc27xx_adc_variant_data *var_data;
+	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX];
+	const struct sprd_adc_variant_data *var_data;
 	struct sprd_adc_pm_data pm_data;
 };
 
-/*
- * Since different PMICs of SC27xx series can have different
- * address and ratio, we should save ratio config and base
- * in the device data structure.
- */
-struct sc27xx_adc_variant_data {
-	const enum sc27xx_pmic_type pmic_type;
+struct sprd_adc_variant_data {
+	const int pmic_type;
 	const struct reg_bit *const reg_list;
 	const u32 glb_reg_base;
 	const u32 adc_reg_base_offset;
 	const u32 calib_graphs_index[SPRD_ADC_GRAPH_TYPE_MAX];
-	void (*const ch_data_init)(struct sc27xx_adc_data *data);
+	void (*const ch_data_init)(struct sprd_adc_data *data);
 };
 
-struct sc27xx_adc_linear_graph {
+struct sprd_adc_linear_graph {
 	const char *cell_names[SPRD_ADC_CELL_MAX+1];/* must end with NULL point */
 	int cell_value[SPRD_ADC_CELL_MAX+1];
-	void (*const calibrate)(struct sc27xx_adc_linear_graph *graph);
+	void (*const calibrate)(struct sprd_adc_linear_graph *graph);
 	const int volt0;
 	int adc0;
 	const int volt1;
 	int adc1;
 };
 
-static void sprd_adc_calib_with_one_cell(struct sc27xx_adc_linear_graph *graph);
-static void sprd_adc_calib_with_two_cell(struct sc27xx_adc_linear_graph *graph);
+static void sprd_adc_calib_with_one_cell(struct sprd_adc_linear_graph *graph);
+static void sprd_adc_calib_with_two_cell(struct sprd_adc_linear_graph *graph);
 static u32 sprd_adc_get_isen(void *pri, int ch, bool enable);
-static inline u32 GET_REG_ADDR(struct sc27xx_adc_data *data, int index)
+static inline u32 GET_REG_ADDR(struct sprd_adc_data *data, int index)
 {
 	u32 base = ((data->var_data->reg_list[index].base == BASE_GLB)
 		    ? (data->var_data->glb_reg_base)
@@ -255,8 +254,8 @@ static inline u32 GET_REG_ADDR(struct sc27xx_adc_data *data, int index)
  * should use the small-scale graph, and if more than 1.2v, we should use the
  * big-scale graph.
  */
-static struct sc27xx_adc_linear_graph sprd_adc_linear_graphs[] = {
-	[ONE_CELL_BIG_GRAPH] = {
+static struct sprd_adc_linear_graph sprd_adc_linear_graphs[] = {
+	[ONE_CELL_BIG_GRAPH0] = {/* SC2721_2731 */
 		.cell_names = {"big_scale_calib", NULL},
 		.calibrate = sprd_adc_calib_with_one_cell,
 		.volt0 =  4200,
@@ -264,13 +263,29 @@ static struct sc27xx_adc_linear_graph sprd_adc_linear_graphs[] = {
 		.volt1 =  3600,
 		.adc1  =  728,
 	},
-	[ONE_CELL_SMALL_GRAPH] = {
+	[ONE_CELL_SMALL_GRAPH0] = {/* SC2721_2731 */
 		.cell_names = {"small_scale_calib", NULL},
 		.calibrate = sprd_adc_calib_with_one_cell,
 		.volt0 =  1000,
 		.adc0  =  838,
 		.volt1 =  100,
 		.adc1  =  84,
+	},
+	[ONE_CELL_BIG_GRAPH1] = {/* SC2720_2730 */
+		.cell_names = {"big_scale_calib", NULL},
+		.calibrate = sprd_adc_calib_with_one_cell,
+		.volt0 =  4200,
+		.adc0  =  856,
+		.volt1 =  3600,
+		.adc1  =  733,
+	},
+	[ONE_CELL_SMALL_GRAPH1] = {/* SC2720_2730 */
+		.cell_names = {"small_scale_calib", NULL},
+		.calibrate = sprd_adc_calib_with_one_cell,
+		.volt0 =  1000,
+		.adc0  =  833,
+		.volt1 =  100,
+		.adc1  =  80,
 	},
 	[TWO_CELL_BIG_GRAPH] = {
 		.cell_names = {"big_scale_calib1", "big_scale_calib2", NULL},
@@ -347,42 +362,42 @@ static const struct reg_bit regs_ump9620[] = {
 };
 
 
-static const struct iio_chan_spec sc27xx_channels[] = {
-	SC27XX_ADC_CHANNEL(0, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(1, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(2, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(3, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(4, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(5, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(6, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(7, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(8, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(9, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(10, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(11, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(12, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(13, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(14, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(15, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(16, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(17, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(18, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(19, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(20, BIT(IIO_CHAN_INFO_RAW)),
-	SC27XX_ADC_CHANNEL(21, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(22, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(23, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(24, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(25, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(26, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(27, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(28, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(29, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(30, BIT(IIO_CHAN_INFO_PROCESSED)),
-	SC27XX_ADC_CHANNEL(31, BIT(IIO_CHAN_INFO_PROCESSED)),
+static const struct iio_chan_spec sprd_channels[] = {
+	SPRD_ADC_CHANNEL(0, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(1, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(2, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(3, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(4, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(5, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(6, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(7, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(8, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(9, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(10, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(11, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(12, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(13, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(14, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(15, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(16, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(17, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(18, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(19, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(20, BIT(IIO_CHAN_INFO_RAW)),
+	SPRD_ADC_CHANNEL(21, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(22, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(23, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(24, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(25, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(26, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(27, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(28, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(29, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(30, BIT(IIO_CHAN_INFO_PROCESSED)),
+	SPRD_ADC_CHANNEL(31, BIT(IIO_CHAN_INFO_PROCESSED)),
 };
 
-static void sprd_adc_calib_with_one_cell(struct sc27xx_adc_linear_graph *graph)
+static void sprd_adc_calib_with_one_cell(struct sprd_adc_linear_graph *graph)
 {
 	int calib_data = graph->cell_value[0];
 
@@ -396,7 +411,7 @@ static void sprd_adc_calib_with_one_cell(struct sc27xx_adc_linear_graph *graph)
 		     graph->adc0, graph->adc1, calib_data);
 }
 
-static void sprd_adc_calib_with_two_cell(struct sc27xx_adc_linear_graph *graph)
+static void sprd_adc_calib_with_two_cell(struct sprd_adc_linear_graph *graph)
 {
 	int adc_calib_data0 = graph->cell_value[0];
 	int adc_calib_data1 = graph->cell_value[1];
@@ -411,7 +426,7 @@ static void sprd_adc_calib_with_two_cell(struct sc27xx_adc_linear_graph *graph)
 		     graph->adc0, graph->adc1, adc_calib_data0, adc_calib_data1);
 }
 
-static int adc_nvmem_cell_calib_data(struct sc27xx_adc_data *data, const char *cell_name)
+static int adc_nvmem_cell_calib_data(struct sprd_adc_data *data, const char *cell_name)
 {
 	struct nvmem_cell *cell;
 	void *buf;
@@ -440,10 +455,10 @@ static int adc_nvmem_cell_calib_data(struct sc27xx_adc_data *data, const char *c
 	return calib_data;
 }
 
-static int sprd_adc_graphs_calibrate(struct sc27xx_adc_data *data)
+static int sprd_adc_graphs_calibrate(struct sprd_adc_data *data)
 {
 	int i, j, index = 0;
-	struct sc27xx_adc_linear_graph *graphs = sprd_adc_linear_graphs;
+	struct sprd_adc_linear_graph *graphs = sprd_adc_linear_graphs;
 
 	for (i = 0; data->var_data->calib_graphs_index[i] != SPRD_ADC_INVALID_DATA; i++) {
 		index = data->var_data->calib_graphs_index[i];
@@ -466,166 +481,168 @@ static int sprd_adc_graphs_calibrate(struct sc27xx_adc_data *data)
 	return 0;
 }
 
-static void sc2720_ch_data_init(struct sc27xx_adc_data *data)
+static void sc2720_ch_data_init(struct sprd_adc_data *data)
 {
 	int ch;
 	struct sprd_adc_channel_data ch_data_def =
-		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0,
+		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0,
 			     RATIO(1, 1), RATIO(1000, 1955), RATIO(1000, 2586), RATIO(100, 406));
 
-	struct sprd_adc_channel_data ch_data[SC27XX_ADC_CHANNEL_MAX] = {
-		[1] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0,
+	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
+		[1] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0,
 				   RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[5] = CH_DATA_INIT(3, ONE_CELL_BIG_GRAPH, 0, 0,
+		[5] = CH_DATA_INIT(3, ONE_CELL_BIG_GRAPH1, 0, 0,
 				   RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[7] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[7] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				   RATIO(1000, 2586), RATIO(100, 406)),
-		[9] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[9] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				   RATIO(1000, 2586), RATIO(100, 406)),
-		[13] = CH_DATA_INIT(1, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[13] = CH_DATA_INIT(1, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				    RATIO(1000, 2586), RATIO(100, 406)),
-		[14] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(68, 900), RATIO(68, 1760),
-				    RATIO(68, 2327), RATIO(68, 3654)),
-		[16] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(48, 100), RATIO(480, 1955),
-				    RATIO(480, 2586), RATIO(48, 406)),
-		[19] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[14] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(68, 900),
+				    RATIO(68, 1760), RATIO(68, 2327), RATIO(68, 3654)),
+		[16] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(48, 100),
+				    RATIO(480, 1955), RATIO(480, 2586), RATIO(48, 406)),
+		[19] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				    RATIO(1000, 2586), RATIO(100, 406)),
-		[21] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(3, 8), RATIO(375, 1955),
+		[21] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
 				    RATIO(375, 2586), RATIO(300, 3248)),
-		[22] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(3, 8), RATIO(375, 1955),
+		[22] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
 				    RATIO(375, 2586), RATIO(300, 3248)),
-		[23] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(3, 8), RATIO(375, 1955),
+		[23] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
 				    RATIO(375, 2586), RATIO(300, 3248)),
-		[30] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[30] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				    RATIO(1000, 2586), RATIO(100, 406)),
-		[31] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[31] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				    RATIO(1000, 2586), RATIO(100, 406)),
 	};
 
-	for (ch = 0; ch < SC27XX_ADC_CHANNEL_MAX; ch++)
+	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++)
 		data->ch_data[ch] = ((ch_data[ch].inited == SPRD_ADC_INIT_MAGIC)
 				     ? ch_data[ch] : ch_data_def);
 }
 
-static void sc2721_ch_data_init(struct sc27xx_adc_data *data)
+static void sc2721_ch_data_init(struct sprd_adc_data *data)
 {
 	int ch;
 	struct sprd_adc_channel_data ch_data_def =
-		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0,
+		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0,
 			     RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1));
 
-	struct sprd_adc_channel_data ch_data[SC27XX_ADC_CHANNEL_MAX] = {
-		[2] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(400, 1025),
+	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
+		[2] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
 				   RATIO(400, 1025), RATIO(400, 1025)),
-		[3] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(400, 1025),
+		[3] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
 				   RATIO(400, 1025), RATIO(400, 1025)),
-		[4] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(400, 1025),
+		[4] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
 				   RATIO(400, 1025), RATIO(400, 1025)),
-		[5] = CH_DATA_INIT(1, ONE_CELL_BIG_GRAPH, 0, 0, RATIO(1, 1), RATIO(1, 1),
+		[5] = CH_DATA_INIT(1, ONE_CELL_BIG_GRAPH0, 0, 0, RATIO(1, 1), RATIO(1, 1),
 				   RATIO(1, 1), RATIO(1, 1)),
-		[7] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(100, 125),
+		[7] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(100, 125),
 				   RATIO(100, 125), RATIO(100, 125)),
-		[9] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(100, 125),
+		[9] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(100, 125),
 				   RATIO(100, 125), RATIO(100, 125)),
-		[14] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(68, 900), RATIO(68, 900),
+		[14] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(68, 900), RATIO(68, 900),
 				    RATIO(68, 900), RATIO(68, 900)),
-		[16] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(48, 100), RATIO(48, 100),
+		[16] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(48, 100), RATIO(48, 100),
 				   RATIO(48, 100), RATIO(48, 100)),
-		[19] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 3), RATIO(1, 3),
+		[19] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 3), RATIO(1, 3),
 				    RATIO(1, 3), RATIO(1, 3)),
 	};
 
-	for (ch = 0; ch < SC27XX_ADC_CHANNEL_MAX; ch++)
+	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++)
 		data->ch_data[ch] = ((ch_data[ch].inited == SPRD_ADC_INIT_MAGIC)
 				     ? ch_data[ch] : ch_data_def);
+
+	data->ch_data[30].volreq = data->ch_data[31].volreq = SPRD_ADC_REFVOL_VDD35;
 }
 
-static void sc2730_ch_data_init(struct sc27xx_adc_data *data)
+static void sc2730_ch_data_init(struct sprd_adc_data *data)
 {
 	int ch;
 	struct sprd_adc_channel_data ch_data_def =
-		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0,
+		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0,
 			     RATIO(1, 1), RATIO(1000, 1955), RATIO(1000, 2586), RATIO(1000, 4060));
 
-	struct sprd_adc_channel_data ch_data[SC27XX_ADC_CHANNEL_MAX] = {
-		[1] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0,
+	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
+		[1] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0,
 				   RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[3] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0x9, RATIO(1, 1), RATIO(1000, 1955),
-				   RATIO(1000, 2586), RATIO(1000, 4060)),
-		[5] = CH_DATA_INIT(3, ONE_CELL_BIG_GRAPH, 0, 0, RATIO(1, 1), RATIO(1, 1),
+		[3] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0x9, RATIO(1, 1),
+				   RATIO(1000, 1955), RATIO(1000, 2586), RATIO(1000, 4060)),
+		[5] = CH_DATA_INIT(3, ONE_CELL_BIG_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1, 1),
 				   RATIO(1, 1), RATIO(1, 1)),
-		[7] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[7] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				   RATIO(1000, 2586), RATIO(1000, 4060)),
-		[9] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[9] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				   RATIO(1000, 2586), RATIO(1000, 4060)),
-		[10] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[10] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				    RATIO(1000, 2586), RATIO(1000, 4060)),
-		[13] = CH_DATA_INIT(1, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[13] = CH_DATA_INIT(1, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				    RATIO(1000, 2586), RATIO(1000, 4060)),
-		[14] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(68, 900), RATIO(68, 1760),
-				    RATIO(68, 2327), RATIO(68, 3654)),
-		[15] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 3), RATIO(1000, 5865),
+		[14] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(68, 900),
+				    RATIO(68, 1760), RATIO(68, 2327), RATIO(68, 3654)),
+		[15] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 3), RATIO(1000, 5865),
 				    RATIO(500, 3879), RATIO(500, 6090)),
-		[16] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(48, 100), RATIO(480, 1955),
-				    RATIO(480, 2586), RATIO(48, 406)),
-		[19] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[16] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(48, 100),
+				    RATIO(480, 1955), RATIO(480, 2586), RATIO(48, 406)),
+		[19] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				    RATIO(1000, 2586), RATIO(1000, 4060)),
-		[21] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(3, 8), RATIO(375, 1955),
+		[21] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
 				    RATIO(375, 2586), RATIO(300, 3248)),
-		[22] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(3, 8), RATIO(375, 1955),
+		[22] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
 				    RATIO(375, 2586), RATIO(300, 3248)),
-		[23] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(3, 8), RATIO(375, 1955),
+		[23] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
 				    RATIO(375, 2586), RATIO(300, 3248)),
-		[30] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[30] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				    RATIO(1000, 2586), RATIO(1000, 4060)),
-		[31] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
+		[31] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
 				    RATIO(1000, 2586), RATIO(1000, 4060)),
 	};
 
-	for (ch = 0; ch < SC27XX_ADC_CHANNEL_MAX; ch++)
+	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++)
 		data->ch_data[ch] = ((ch_data[ch].inited == SPRD_ADC_INIT_MAGIC)
 				     ? ch_data[ch] : ch_data_def);
 }
 
-static void sc2731_ch_data_init(struct sc27xx_adc_data *data)
+static void sc2731_ch_data_init(struct sprd_adc_data *data)
 {
 	int ch;
 	struct sprd_adc_channel_data ch_data_def =
-		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0,
+		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0,
 			     RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1));
 
-	struct sprd_adc_channel_data ch_data[SC27XX_ADC_CHANNEL_MAX] = {
-		[2] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(400, 1025),
+	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
+		[2] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
 				   RATIO(400, 1025), RATIO(400, 1025)),
-		[3] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(400, 1025),
+		[3] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
 				   RATIO(400, 1025), RATIO(400, 1025)),
-		[4] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(400, 1025),
+		[4] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
 				   RATIO(400, 1025), RATIO(400, 1025)),
-		[5] = CH_DATA_INIT(1, ONE_CELL_BIG_GRAPH, 0, 0, RATIO(1, 1), RATIO(1, 1),
+		[5] = CH_DATA_INIT(1, ONE_CELL_BIG_GRAPH0, 0, 0, RATIO(1, 1), RATIO(1, 1),
 				   RATIO(1, 1), RATIO(1, 1)),
-		[6] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(375, 9000),
+		[6] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(375, 9000),
 				   RATIO(375, 9000), RATIO(375, 9000), RATIO(375, 9000)),
-		[7] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(100, 125),
+		[7] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(100, 125),
 				   RATIO(100, 125), RATIO(100, 125)),
-		[8] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1), RATIO(100, 125),
+		[8] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(100, 125),
 				   RATIO(100, 125), RATIO(100, 125)),
-		[19] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 3), RATIO(1, 3),
+		[19] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 3), RATIO(1, 3),
 				    RATIO(1, 3), RATIO(1, 3)),
 	};
 
-	for (ch = 0; ch < SC27XX_ADC_CHANNEL_MAX; ch++)
+	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++)
 		data->ch_data[ch] = ((ch_data[ch].inited == SPRD_ADC_INIT_MAGIC)
 				     ? ch_data[ch] : ch_data_def);
 }
 
-static void ump9620_ch_data_init(struct sc27xx_adc_data *data)
+static void ump9620_ch_data_init(struct sprd_adc_data *data)
 {
 	int ch;
 	struct sprd_adc_channel_data ch_data_def =
 		CH_DATA_INIT(0, TWO_CELL_SMALL_GRAPH, 0, 0,
 			     RATIO(1, 1), RATIO(1000, 1955), RATIO(1000, 2600), RATIO(1000, 4060));
 
-	struct sprd_adc_channel_data ch_data[SC27XX_ADC_CHANNEL_MAX] = {
+	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
 		[0] = CH_DATA_INIT(1, TWO_CELL_VBAT_DET_GRAPH, 0, 0,
 				   RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
 		[5] = CH_DATA_INIT(0, TWO_CELL_SMALL_GRAPH, 0, 0x9, RATIO(1, 1),
@@ -658,22 +675,22 @@ static void ump9620_ch_data_init(struct sc27xx_adc_data *data)
 				    RATIO(1000, 1955), RATIO(1000, 2600), RATIO(1000, 4060)),
 	};
 
-	for (ch = 0; ch < SC27XX_ADC_CHANNEL_MAX; ch++)
+	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++)
 		data->ch_data[ch] = ((ch_data[ch].inited == SPRD_ADC_INIT_MAGIC)
 				     ? ch_data[ch] : ch_data_def);
 }
 
-static void sc27xx_adc_regs_dump(struct sc27xx_adc_data *data, int channel, int scale)
+static void sprd_adc_regs_dump(struct sprd_adc_data *data, int channel, int scale)
 {
 	static u64 count;
 	u32 module_en, adc_clk_en, adc_int_ctl, adc_int_raw, adc_ctl, adc_ch_cfg;
 
 	regmap_read(data->regmap, GET_REG_ADDR(data, REG_MODULE_EN), &module_en);
 	regmap_read(data->regmap, GET_REG_ADDR(data, REG_CLK_EN), &adc_clk_en);
-	regmap_read(data->regmap, data->base + SC27XX_ADC_INT_CLR, &adc_int_ctl);
-	regmap_read(data->regmap, data->base + SC27XX_ADC_INT_RAW, &adc_int_raw);
-	regmap_read(data->regmap, data->base + SC27XX_ADC_CTL, &adc_ctl);
-	regmap_read(data->regmap, data->base + SC27XX_ADC_CH_CFG, &adc_ch_cfg);
+	regmap_read(data->regmap, data->base + SPRD_ADC_INT_CLR, &adc_int_ctl);
+	regmap_read(data->regmap, data->base + SPRD_ADC_INT_RAW, &adc_int_raw);
+	regmap_read(data->regmap, data->base + SPRD_ADC_CTL, &adc_ctl);
+	regmap_read(data->regmap, data->base + SPRD_ADC_CH_CFG, &adc_ch_cfg);
 
 	SPRD_ADC_ERR("regs_dump[%llu]->channel: %d, scale: %d, module_en: 0x%x, adc_clk_en: 0x%x,"
 		     " adc_int_ctl: 0x%x, adc_int_raw: 0x%x, adc_ctl: 0x%x, adc_ch_cfg: 0x%x\n",
@@ -683,7 +700,7 @@ static void sc27xx_adc_regs_dump(struct sc27xx_adc_data *data, int channel, int 
 
 static u32 sprd_adc_get_isen(void *pri, int ch, bool enable)
 {
-	struct sc27xx_adc_data *data = (struct sc27xx_adc_data *)pri;
+	struct sprd_adc_data *data = (struct sprd_adc_data *)pri;
 
 	if (!enable)
 		return 0;
@@ -691,7 +708,7 @@ static u32 sprd_adc_get_isen(void *pri, int ch, bool enable)
 	return (data->ch_data[ch].isen_info >> 1);
 }
 
-static int sprd_adc_isen_enable(struct sc27xx_adc_data *data, int channel)
+static int sprd_adc_isen_enable(struct sprd_adc_data *data, int channel)
 {
 	int i, ret;
 	u32 reg_addr, mask, val, read_val, offset;
@@ -700,7 +717,7 @@ static int sprd_adc_isen_enable(struct sc27xx_adc_data *data, int channel)
 	if (!isen_support)
 		return 0;
 
-	for (i = REG_ISEN0; i <= REG_ISEN3; i++) {
+	for (i = REG_ISEN_ST + 1; i < REG_ISEN_END; i++) {
 		if (data->var_data->reg_list[i].inited != SPRD_ADC_INIT_MAGIC)
 			continue;
 
@@ -712,7 +729,7 @@ static int sprd_adc_isen_enable(struct sc27xx_adc_data *data, int channel)
 		       : data->var_data->reg_list[i].mask);
 		val = (data->var_data->reg_list[i].reverse ? 0 : val);
 		ret = regmap_update_bits(data->regmap, reg_addr, mask, val);
-		ret = regmap_read(data->regmap, reg_addr, &read_val);
+		ret |= regmap_read(data->regmap, reg_addr, &read_val);
 		SPRD_ADC_DBG("isen_enable: reg 0x%x, mask: 0x%x, val: 0x%x, read_val: 0x%x\n",
 			     reg_addr, mask, val, read_val);
 		if (ret) {
@@ -725,7 +742,7 @@ static int sprd_adc_isen_enable(struct sc27xx_adc_data *data, int channel)
 	return 0;
 }
 
-static int sprd_adc_isen_diable(struct sc27xx_adc_data *data, int channel)
+static int sprd_adc_isen_disable(struct sprd_adc_data *data, int channel)
 {
 	int i, ret;
 	u32 reg_addr, mask, val, read_val;
@@ -734,7 +751,7 @@ static int sprd_adc_isen_diable(struct sc27xx_adc_data *data, int channel)
 	if (!isen_support)
 		return 0;
 
-	for (i = REG_ISEN3; i >= REG_ISEN0; i--) {
+	for (i = REG_ISEN_END - 1; i > REG_ISEN_ST; i--) {
 		if (data->var_data->reg_list[i].inited != SPRD_ADC_INIT_MAGIC)
 			continue;
 
@@ -744,7 +761,7 @@ static int sprd_adc_isen_diable(struct sc27xx_adc_data *data, int channel)
 		       ? data->var_data->reg_list[i].get_setval(data, channel, false) : 0);
 		val = (data->var_data->reg_list[i].reverse ? mask : val);
 		ret = regmap_update_bits(data->regmap, reg_addr, mask, val);
-		ret = regmap_read(data->regmap, reg_addr, &read_val);
+		ret |= regmap_read(data->regmap, reg_addr, &read_val);
 		SPRD_ADC_DBG("isen_diable: reg 0x%x, mask: 0x%x, val: 0x%x, read_val: 0x%x\n",
 			     reg_addr, mask, val, read_val);
 		if (ret) {
@@ -772,15 +789,15 @@ static int compare_val(const void *a, const void *b)
 	return *(int *)a - *(int *)b;
 }
 
-static int sprd_adc_get_val_with_sw_filter(struct sc27xx_adc_data *data, int ch)
+static int sprd_adc_get_val_with_sw_filter(struct sprd_adc_data *data, int ch)
 {
 	int data_buf[ADC_MESURE_NUMBER_SW] = { 0 }, ret = 0, num = ADC_MESURE_NUMBER_SW;
 	int count, result;
 	unsigned int  rawdata;
 
 	for (count = 0; count < ADC_MESURE_NUMBER_SW; count++) {
-		ret |= regmap_read(data->regmap, data->base + SC27XX_ADC_DATA, &rawdata);
-		rawdata &= SC27XX_ADC_DATA_MASK;
+		ret |= regmap_read(data->regmap, data->base + SPRD_ADC_DATA, &rawdata);
+		rawdata &= SPRD_ADC_DATA_MASK;
 		data_buf[count] = rawdata;
 		udelay(10);
 		if (ret)
@@ -797,28 +814,81 @@ static int sprd_adc_get_val_with_sw_filter(struct sc27xx_adc_data *data, int ch)
 	return result;
 }
 
-static int sc27xx_adc_read(struct sc27xx_adc_data *data, int channel,
-			   int scale, int *val)
+static int sprd_adc_enable(struct sprd_adc_data *data, int channel)
 {
-	int ret = 0, ret_volref = 0, sample_num_sw;
-	u32 rawdata = 0, tmp, status, scale_shift, scale_mask;
-	bool filter_sw = data->ch_data[channel].filter_info & 0x1;
-	int sample_num_hw = data->ch_data[channel].filter_info >> 1;
-
-	if (data->pm_data.pm_ctl_support && data->pm_data.dev_suspended) {
-		SPRD_ADC_ERR("adc_exp: adc clk26 bas been closed, ignore.\n");
-		return -EBUSY;
+	int ret = 0, volreq = data->ch_data[channel].volreq;
+	u32 reg_read;
+	/*
+	 * According to the sc2721 chip data sheet, the reference voltage of
+	 * specific channel 30 and channel 31 in ADC module needs to be set from
+	 * the default 2.8v to 3.5v.
+	 */
+	if (data->pm_data.volref && volreq > 0) {
+		volreq = ((volreq > SPRD_ADC_REFVOL_VDD28) ? volreq : SPRD_ADC_REFVOL_VDD28);
+		ret = regulator_set_voltage(data->pm_data.volref, volreq, volreq);
+		SPRD_ADC_DBG("set volref %d to ch%d\n", volreq, channel);
+		if (ret) {
+			SPRD_ADC_ERR("failed to set the volref for ch%d, volreq %d\n",
+				     channel, volreq);
+			return ret;
+		}
 	}
 
-	SPRD_ADC_DBG("ch_data[%d]: scale %d, graph %d, filter_info 0x%x, isen_info 0x%x\n",
-		     channel, data->ch_data[channel].scale, data->ch_data[channel].graph_index,
-		     data->ch_data[channel].filter_info,
-		     data->ch_data[channel].isen_info);
+	if (data->pm_data.clk_regmap) {
+		ret = regmap_update_bits(data->pm_data.clk_regmap, data->pm_data.clk_reg,
+					 data->pm_data.clk_reg_mask,
+					 data->pm_data.clk_reg_mask);
+		ret |= regmap_read(data->pm_data.clk_regmap, data->pm_data.clk_reg, &reg_read);
+		SPRD_ADC_DBG("enable clk26m: channel %d, reg_read 0x%x\n", channel, reg_read);
+		if (ret) {
+			SPRD_ADC_ERR("failed to enable clk26m, channel %d\n", channel);
+			return ret;
+		}
+	}
 
-	ret = hwspin_lock_timeout_raw(data->hwlock, SC27XX_ADC_HWLOCK_TIMEOUT);
+	ret = sprd_adc_isen_enable(data, channel);
 	if (ret) {
-		SPRD_ADC_ERR("timeout to get the hwspinlock\n");
+		SPRD_ADC_ERR("failed to enable isen\n");
 		return ret;
+	}
+
+	ret = regmap_update_bits(data->regmap, data->base + SPRD_ADC_CTL,
+				 SPRD_ADC_EN, SPRD_ADC_EN);
+	if (ret) {
+		SPRD_ADC_ERR("failed to set SPRD_ADC_EN\n");
+		return ret;
+	}
+
+	return ret;
+}
+
+
+static int sprd_adc_disable(struct sprd_adc_data *data, int channel)
+{
+	int ret = 0, volreq = data->ch_data[channel].volreq;
+	u32 reg_read;
+
+	ret = regmap_update_bits(data->regmap, data->base + SPRD_ADC_CTL, SPRD_ADC_EN, 0);
+	if (ret) {
+		SPRD_ADC_ERR("failed to reset SPRD_ADC_EN\n");
+		return ret;
+	}
+
+	ret = sprd_adc_isen_disable(data, channel);
+	if (ret) {
+		SPRD_ADC_ERR("failed to disable isen\n");
+		return ret;
+	}
+
+	if (data->pm_data.clk_regmap) {
+		ret = regmap_update_bits(data->pm_data.clk_regmap, data->pm_data.clk_reg,
+					 data->pm_data.clk_reg_mask, 0);
+		ret |= regmap_read(data->pm_data.clk_regmap, data->pm_data.clk_reg, &reg_read);
+		SPRD_ADC_DBG("disable clk26m: channel %d, reg_read 0x%x\n", channel, reg_read);
+		if (ret) {
+			SPRD_ADC_ERR("failed to disable clk26m, channel %d\n", channel);
+			return ret;
+		}
 	}
 
 	/*
@@ -826,29 +896,49 @@ static int sc27xx_adc_read(struct sc27xx_adc_data *data, int channel,
 	 * specific channel 30 and channel 31 in ADC module needs to be set from
 	 * the default 2.8v to 3.5v.
 	 */
-	if (data->var_data->pmic_type == SC2721_ADC) {
-		if ((channel == 30) || (channel == 31)) {
-			ret = regulator_set_voltage(data->volref, SC27XX_ADC_REFVOL_VDD35,
-						    SC27XX_ADC_REFVOL_VDD35);
-			if (ret) {
-				SPRD_ADC_ERR("failed to set the volref 3.5V\n");
-				hwspin_unlock_raw(data->hwlock);
-				return ret;
-			}
+	if (data->pm_data.volref && volreq > 0) {
+		volreq = SPRD_ADC_REFVOL_VDD28;
+		ret = regulator_set_voltage(data->pm_data.volref, volreq, volreq);
+		SPRD_ADC_DBG("reset volref %d to ch%d\n", volreq, channel);
+		if (ret) {
+			SPRD_ADC_ERR("failed to reset the volref for ch%d, volreq %d\n",
+				     channel, volreq);
+			return ret;
 		}
 	}
 
-	ret = sprd_adc_isen_enable(data, channel);
-	if (ret)
-		goto unlock_adc;
+	return ret;
+}
 
-	ret = regmap_update_bits(data->regmap, data->base + SC27XX_ADC_CTL,
-				 SC27XX_ADC_EN, SC27XX_ADC_EN);
-	if (ret)
-		goto unlock_adc;
 
-	ret = regmap_update_bits(data->regmap, data->base + SC27XX_ADC_INT_CLR,
-				 SC27XX_ADC_IRQ_CLR, SC27XX_ADC_IRQ_CLR);
+static int sprd_adc_read(struct sprd_adc_data *data, int channel, int scale, int *val)
+{
+	int ret = 0, sample_num_sw;
+	u32 rawdata = 0, tmp, status, scale_shift, scale_mask;
+	bool filter_sw = data->ch_data[channel].filter_info & 0x1;
+	int sample_num_hw = data->ch_data[channel].filter_info >> 1;
+
+	if (data->pm_data.dev_suspended) {
+		SPRD_ADC_ERR("adc_exp: adc bas been suspended, ignore.\n");
+		return -EBUSY;
+	}
+
+	SPRD_ADC_DBG("ch_data[%d]: scale %d, graph %d, filter_info 0x%x, isen_info 0x%x\n",
+		     channel, data->ch_data[channel].scale, data->ch_data[channel].graph_index,
+		     data->ch_data[channel].filter_info, data->ch_data[channel].isen_info);
+
+	ret = hwspin_lock_timeout_raw(data->hwlock, SPRD_ADC_HWLOCK_TIMEOUT);
+	if (ret) {
+		SPRD_ADC_ERR("timeout to get the hwspinlock\n");
+		return ret;
+	}
+
+	ret = sprd_adc_enable(data, channel);
+	if (ret)
+		goto disable_adc;
+
+	ret = regmap_update_bits(data->regmap, data->base + SPRD_ADC_INT_CLR,
+				 SPRD_ADC_IRQ_CLR, SPRD_ADC_IRQ_CLR);
 	if (ret)
 		goto disable_adc;
 
@@ -856,66 +946,46 @@ static int sc27xx_adc_read(struct sc27xx_adc_data *data, int channel,
 	scale_shift = data->var_data->reg_list[REG_SCALE].offset;
 	scale_mask = data->var_data->reg_list[REG_SCALE].mask;
 	tmp = (scale << scale_shift) & scale_mask;
-	tmp |= channel & SC27XX_ADC_CHN_ID_MASK;
-	ret = regmap_update_bits(data->regmap, data->base + SC27XX_ADC_CH_CFG,
-				 SC27XX_ADC_CHN_ID_MASK |
-				 scale_mask,
-				 tmp);
+	tmp |= channel & SPRD_ADC_CHN_ID_MASK;
+	ret = regmap_update_bits(data->regmap, data->base + SPRD_ADC_CH_CFG,
+				 SPRD_ADC_CHN_ID_MASK | scale_mask, tmp);
 	if (ret)
 		goto disable_adc;
 
 	/* Select 12bit conversion mode, and only sample 1 time */
-	tmp = SC27XX_ADC_12BIT_MODE;
+	tmp = SPRD_ADC_12BIT_MODE;
 	sample_num_sw = (filter_sw ? ADC_MESURE_NUMBER_SW - 1 : 0);
 	sample_num_hw = ((sample_num_hw > 0) ? sample_num_hw : ADC_MESURE_NUMBER_HW_DEF);
-	tmp |= (sample_num_sw << SC27XX_ADC_RUN_NUM_SHIFT) & SC27XX_ADC_RUN_NUM_MASK;
-	tmp |= (sample_num_hw << SC27XX_ADC_AVERAGE_SHIFT) & SC27XX_ADC_AVERAGE_MASK;
-	ret = regmap_update_bits(data->regmap, data->base + SC27XX_ADC_CTL,
-				 SC27XX_ADC_RUN_NUM_MASK | SC27XX_ADC_12BIT_MODE |
-				 SC27XX_ADC_AVERAGE_MASK,
-				 tmp);
+	tmp |= (sample_num_sw << SPRD_ADC_RUN_NUM_SHIFT) & SPRD_ADC_RUN_NUM_MASK;
+	tmp |= (sample_num_hw << SPRD_ADC_AVERAGE_SHIFT) & SPRD_ADC_AVERAGE_MASK;
+	ret = regmap_update_bits(data->regmap, data->base + SPRD_ADC_CTL,
+				 SPRD_ADC_RUN_NUM_MASK | SPRD_ADC_12BIT_MODE |
+				 SPRD_ADC_AVERAGE_MASK, tmp);
 	if (ret)
 		goto disable_adc;
 
-	ret = regmap_update_bits(data->regmap, data->base + SC27XX_ADC_CTL,
-				 SC27XX_ADC_CHN_RUN, SC27XX_ADC_CHN_RUN);
+	ret = regmap_update_bits(data->regmap, data->base + SPRD_ADC_CTL,
+				 SPRD_ADC_CHN_RUN, SPRD_ADC_CHN_RUN);
 	if (ret)
 		goto disable_adc;
 
-	ret = regmap_read_poll_timeout(data->regmap,
-				       data->base + SC27XX_ADC_INT_RAW,
-				       status, (status & SC27XX_ADC_IRQ_RAW),
-				       SC27XX_ADC_POLL_RAW_STATUS,
-				       SC27XX_ADC_RDY_TIMEOUT);
+	ret = regmap_read_poll_timeout(data->regmap, data->base + SPRD_ADC_INT_RAW, status,
+				       (status & SPRD_ADC_IRQ_RAW), SPRD_ADC_POLL_RAW_STATUS,
+				       SPRD_ADC_RDY_TIMEOUT);
 	if (ret) {
 		SPRD_ADC_ERR("read adc timeout 0x%x\n", status);
-		sc27xx_adc_regs_dump(data, channel, scale);
+		sprd_adc_regs_dump(data, channel, scale);
 		goto disable_adc;
 	}
 
 	if (filter_sw) {
 		rawdata = sprd_adc_get_val_with_sw_filter(data, channel);
 	} else {
-		ret = regmap_read(data->regmap, data->base + SC27XX_ADC_DATA, &rawdata);
-		rawdata &= SC27XX_ADC_DATA_MASK;
+		ret = regmap_read(data->regmap, data->base + SPRD_ADC_DATA, &rawdata);
+		rawdata &= SPRD_ADC_DATA_MASK;
 	}
 disable_adc:
-	regmap_update_bits(data->regmap, data->base + SC27XX_ADC_CTL,
-			   SC27XX_ADC_EN, 0);
-unlock_adc:
-	if (data->var_data->pmic_type == SC2721_ADC) {
-		if ((channel == 30) || (channel == 31)) {
-			ret_volref = regulator_set_voltage(data->volref,
-							   SC27XX_ADC_REFVOL_VDD28,
-							   SC27XX_ADC_REFVOL_VDD28);
-			if (ret_volref) {
-				SPRD_ADC_ERR("failed to set the volref 2.8V, ret_volref = 0x%x\n",
-					     ret_volref);
-				ret = ret || ret_volref;
-			}
-		}
-	}
-	ret = sprd_adc_isen_diable(data, channel);
+	ret = sprd_adc_disable(data, channel);
 
 	hwspin_unlock_raw(data->hwlock);
 
@@ -925,12 +995,12 @@ unlock_adc:
 	return ret;
 }
 
-static int sprd_adc_calculate_volt_by_graph(struct sc27xx_adc_data *data, int channel,
+static int sprd_adc_calculate_volt_by_graph(struct sprd_adc_data *data, int channel,
 					    int scale, int raw_adc)
 {
 	int tmp;
 	int graph_index = data->ch_data[channel].graph_index;
-	struct sc27xx_adc_linear_graph *graph = &sprd_adc_linear_graphs[graph_index];
+	struct sprd_adc_linear_graph *graph = &sprd_adc_linear_graphs[graph_index];
 
 	tmp = (graph->volt0 - graph->volt1) * (raw_adc - graph->adc1);
 	tmp /= (graph->adc0 - graph->adc1);
@@ -943,14 +1013,14 @@ static int sprd_adc_calculate_volt_by_graph(struct sc27xx_adc_data *data, int ch
 	return tmp;
 }
 
-static int sprd_adc_calculate_volt_by_ratio(struct sc27xx_adc_data *data, int channel,
+static int sprd_adc_calculate_volt_by_ratio(struct sprd_adc_data *data, int channel,
 					    int scale, int vol_graph)
 {
 	u32 numerator, denominator, ratio, vol_final;
 
 	ratio = data->ch_data[channel].ratio[scale];
-	numerator = ratio >> SC27XX_RATIO_NUMERATOR_OFFSET;
-	denominator = ratio & SC27XX_RATIO_DENOMINATOR_MASK;
+	numerator = ratio >> SPRD_RATIO_NUMERATOR_OFFSET;
+	denominator = ratio & SPRD_RATIO_DENOMINATOR_MASK;
 	vol_final = ((vol_graph * denominator + numerator / 2) / numerator);
 
 	SPRD_ADC_DBG("by_ratio_c%d: type %d, scale %d, nmrtr %d, dmrtr %d, vol_final %d\n",
@@ -959,12 +1029,11 @@ static int sprd_adc_calculate_volt_by_ratio(struct sc27xx_adc_data *data, int ch
 	return vol_final;
 }
 
-static int sc27xx_adc_read_processed(struct sc27xx_adc_data *data,
-				     int channel, int scale, int *val)
+static int sprd_adc_read_processed(struct sprd_adc_data *data, int channel, int scale, int *val)
 {
 	int ret, raw_adc, vol_graph;
 
-	ret = sc27xx_adc_read(data, channel, scale, &raw_adc);
+	ret = sprd_adc_read(data, channel, scale, &raw_adc);
 
 	if (ret)
 		return ret;
@@ -975,7 +1044,7 @@ static int sc27xx_adc_read_processed(struct sc27xx_adc_data *data,
 	return 0;
 }
 
-static int sprd_adc_ch_data_encode(struct sc27xx_adc_data *data, int ch)
+static int sprd_adc_ch_data_encode(struct sprd_adc_data *data, int ch)
 {
 	int scale = data->ch_data[ch].scale & 0xff;
 	int graph_index = data->ch_data[ch].graph_index & 0xff;
@@ -985,7 +1054,7 @@ static int sprd_adc_ch_data_encode(struct sc27xx_adc_data *data, int ch)
 	return (scale | (graph_index << 8) | (filter_info << 16) | (isen_info << 24));
 }
 
-static void sprd_adc_ch_data_decode(struct sc27xx_adc_data *data, int ch, int val)
+static void sprd_adc_ch_data_decode(struct sprd_adc_data *data, int ch, int val)
 {
 	data->ch_data[ch].scale = (val & 0xff);
 	data->ch_data[ch].graph_index = ((val >> 8) & 0xff);
@@ -993,18 +1062,17 @@ static void sprd_adc_ch_data_decode(struct sc27xx_adc_data *data, int ch, int va
 	data->ch_data[ch].isen_info = ((val >> 24) & 0xff);
 }
 
-static int sc27xx_adc_read_raw(struct iio_dev *indio_dev,
-			       struct iio_chan_spec const *chan,
-			       int *val, int *val2, long mask)
+static int sprd_adc_read_raw(struct iio_dev *indio_dev, struct iio_chan_spec const *chan,
+			     int *val, int *val2, long mask)
 {
-	struct sc27xx_adc_data *data = iio_priv(indio_dev);
+	struct sprd_adc_data *data = iio_priv(indio_dev);
 	int scale = data->ch_data[chan->channel].scale;
 	int ret, tmp;
 
 	switch (mask) {
 	case IIO_CHAN_INFO_RAW:
 		mutex_lock(&indio_dev->mlock);
-		ret = sc27xx_adc_read(data, chan->channel, scale, &tmp);
+		ret = sprd_adc_read(data, chan->channel, scale, &tmp);
 		mutex_unlock(&indio_dev->mlock);
 
 		if (ret)
@@ -1015,8 +1083,7 @@ static int sc27xx_adc_read_raw(struct iio_dev *indio_dev,
 
 	case IIO_CHAN_INFO_PROCESSED:
 		mutex_lock(&indio_dev->mlock);
-		ret = sc27xx_adc_read_processed(data, chan->channel, scale,
-						&tmp);
+		ret = sprd_adc_read_processed(data, chan->channel, scale, &tmp);
 		mutex_unlock(&indio_dev->mlock);
 
 		if (ret)
@@ -1034,11 +1101,10 @@ static int sc27xx_adc_read_raw(struct iio_dev *indio_dev,
 	}
 }
 
-static int sc27xx_adc_write_raw(struct iio_dev *indio_dev,
-				struct iio_chan_spec const *chan,
-				int val, int val2, long mask)
+static int sprd_adc_write_raw(struct iio_dev *indio_dev, struct iio_chan_spec const *chan,
+			      int val, int val2, long mask)
 {
-	struct sc27xx_adc_data *data = iio_priv(indio_dev);
+	struct sprd_adc_data *data = iio_priv(indio_dev);
 
 	switch (mask) {
 	case IIO_CHAN_INFO_SCALE:
@@ -1050,16 +1116,7 @@ static int sc27xx_adc_write_raw(struct iio_dev *indio_dev,
 	}
 }
 
-static int sprd_adc_pm_handle(struct sc27xx_adc_data *sc27xx_data, bool enable)
-{
-
-	return regmap_update_bits(sc27xx_data->pm_data.pm_regmap,
-				 sc27xx_data->pm_data.clk26m_vote_reg,
-				 sc27xx_data->pm_data.clk26m_vote_reg_mask,
-				 enable ? sc27xx_data->pm_data.clk26m_vote_reg_mask : 0);
-}
-
-static int sc27xx_adc_enable(struct sc27xx_adc_data *data)
+static int sprd_adc_hw_enable(struct sprd_adc_data *data)
 {
 	int ret;
 	u32 reg_addr, mask;
@@ -1087,9 +1144,9 @@ disable_adc:
 	return ret;
 }
 
-static void sc27xx_adc_disable(void *_data)
+static void sprd_adc_hw_disable(void *_data)
 {
-	struct sc27xx_adc_data *data = _data;
+	struct sprd_adc_data *data = _data;
 	u32 reg_addr, mask;
 
 	/* Disable ADC work clock and controller clock */
@@ -1102,42 +1159,14 @@ static void sc27xx_adc_disable(void *_data)
 	regmap_update_bits(data->regmap, reg_addr, mask, 0);
 }
 
-static void sc27xx_adc_free_hwlock(void *_data)
+static void sprd_adc_free_hwlock(void *_data)
 {
 	struct hwspinlock *hwlock = _data;
 
 	hwspin_lock_free(hwlock);
 }
 
-static int sc27xx_adc_pm_init(struct sc27xx_adc_data *sc27xx_data)
-{
-	int ret;
-	unsigned int pm_args[2];
-	struct device_node *np = sc27xx_data->dev->of_node;
-
-	sc27xx_data->pm_data.pm_ctl_support = false;
-	sc27xx_data->pm_data.pm_regmap =
-		syscon_regmap_lookup_by_phandle_args(np, "sprd_adc_pm_reg", 2, pm_args);
-	if (!IS_ERR_OR_NULL(sc27xx_data->pm_data.pm_regmap)) {
-		sc27xx_data->pm_data.pm_ctl_support = true;
-		sc27xx_data->pm_data.clk26m_vote_reg = pm_args[0];
-		sc27xx_data->pm_data.clk26m_vote_reg_mask = pm_args[1];
-		SPRD_ADC_DBG("sprd_adc_rpm_reg reg 0x%x, mask 0x%x\n", pm_args[0], pm_args[1]);
-
-		ret = sprd_adc_pm_handle(sc27xx_data, true);
-		if (ret) {
-			SPRD_ADC_ERR("failed to set the ADC clk26m bit8 on IP\n");
-			return -EBUSY;
-		}
-
-		sc27xx_data->pm_data.dev_suspended = false;
-	}
-
-	return 0;
-
-}
-
-static int sprd_adc_ch_data_init(struct sc27xx_adc_data *data)
+static int sprd_adc_ch_data_init(struct sprd_adc_data *data)
 {
 	struct device_node *np = data->dev->of_node;
 	int size, ret, ch, ch_data_val, i;
@@ -1175,16 +1204,40 @@ static int sprd_adc_ch_data_init(struct sc27xx_adc_data *data)
 	return 0;
 }
 
-static const struct iio_info sc27xx_info = {
-	.read_raw = &sc27xx_adc_read_raw,
-	.write_raw = &sc27xx_adc_write_raw,
+static int sprd_adc_pm_init(struct sprd_adc_data *data)
+{
+	unsigned int pm_args[2];
+	u32 reg, mask;
+	struct device_node *np = data->dev->of_node;
+
+	data->pm_data.volref = devm_regulator_get_optional(data->dev, "vref");
+	if (IS_ERR_OR_NULL(data->pm_data.volref))
+		data->pm_data.volref = NULL;
+
+	data->pm_data.clk_regmap =
+		syscon_regmap_lookup_by_phandle_args(np, "sprd_adc_pm_reg", 2, pm_args);
+	if (!IS_ERR_OR_NULL(data->pm_data.clk_regmap)) {
+		data->pm_data.clk_reg = reg = pm_args[0];
+		data->pm_data.clk_reg_mask = mask = pm_args[1];
+	} else {
+		data->pm_data.clk_regmap = NULL;
+	}
+
+	data->pm_data.dev_suspended = false;
+
+	return 0;
+}
+
+static const struct iio_info sprd_info = {
+	.read_raw = &sprd_adc_read_raw,
+	.write_raw = &sprd_adc_write_raw,
 };
 
-static int sc27xx_adc_probe(struct platform_device *pdev)
+static int sprd_adc_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
-	struct sc27xx_adc_data *sc27xx_data;
-	const struct sc27xx_adc_variant_data *pdata;
+	struct sprd_adc_data *sprd_data;
+	const struct sprd_adc_variant_data *pdata;
 	struct iio_dev *indio_dev;
 	int ret;
 
@@ -1194,28 +1247,28 @@ static int sc27xx_adc_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
-	indio_dev = devm_iio_device_alloc(&pdev->dev, sizeof(*sc27xx_data));
+	indio_dev = devm_iio_device_alloc(&pdev->dev, sizeof(*sprd_data));
 	if (!indio_dev)
 		return -ENOMEM;
 
-	sc27xx_data = iio_priv(indio_dev);
+	sprd_data = iio_priv(indio_dev);
 
-	sc27xx_data->regmap = dev_get_regmap(pdev->dev.parent, NULL);
-	if (!sc27xx_data->regmap) {
+	sprd_data->regmap = dev_get_regmap(pdev->dev.parent, NULL);
+	if (!sprd_data->regmap) {
 		SPRD_ADC_ERR("failed to get ADC regmap\n");
 		return -ENODEV;
 	}
 
-	ret = of_property_read_u32(np, "reg", &sc27xx_data->base);
+	ret = of_property_read_u32(np, "reg", &sprd_data->base);
 	if (ret) {
 		SPRD_ADC_ERR("failed to get ADC base address\n");
 		return ret;
 	}
 
-	sc27xx_data->irq = platform_get_irq(pdev, 0);
-	if (sc27xx_data->irq < 0) {
+	sprd_data->irq = platform_get_irq(pdev, 0);
+	if (sprd_data->irq < 0) {
 		SPRD_ADC_ERR("failed to get ADC irq number\n");
-		return sc27xx_data->irq;
+		return sprd_data->irq;
 	}
 
 	ret = of_hwspin_lock_get_id(np, 0);
@@ -1224,60 +1277,51 @@ static int sc27xx_adc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	sc27xx_data->hwlock = hwspin_lock_request_specific(ret);
-	if (!sc27xx_data->hwlock) {
+	sprd_data->hwlock = hwspin_lock_request_specific(ret);
+	if (!sprd_data->hwlock) {
 		SPRD_ADC_ERR("failed to request hwspinlock\n");
 		return -ENXIO;
 	}
 
-	ret = devm_add_action(&pdev->dev, sc27xx_adc_free_hwlock, sc27xx_data->hwlock);
+	ret = devm_add_action(&pdev->dev, sprd_adc_free_hwlock, sprd_data->hwlock);
 	if (ret) {
-		sc27xx_adc_free_hwlock(sc27xx_data->hwlock);
+		sprd_adc_free_hwlock(sprd_data->hwlock);
 		SPRD_ADC_ERR("failed to add hwspinlock action\n");
 		return ret;
 	}
 
-	if (pdata->pmic_type == SC2721_ADC) {
-		sc27xx_data->volref = devm_regulator_get_optional(&pdev->dev, "vref");
-		if (IS_ERR_OR_NULL(sc27xx_data->volref)) {
-			ret = PTR_ERR(sc27xx_data->volref);
-			SPRD_ADC_ERR("err! ADC volref, err: %d\n", ret);
-			return ret;
-		}
-	}
-
-	sc27xx_data->dev = &pdev->dev;
-	sc27xx_data->var_data = pdata;
-	sc27xx_data->indio_dev = indio_dev;
+	sprd_data->dev = &pdev->dev;
+	sprd_data->var_data = pdata;
+	sprd_data->indio_dev = indio_dev;
 
 	/* ADC channel scales calibration from nvmem device */
-	ret = sprd_adc_graphs_calibrate(sc27xx_data);
+	ret = sprd_adc_graphs_calibrate(sprd_data);
 	if (ret) {
 		SPRD_ADC_ERR("failed to calib graphs from nvmem\n");
 		return ret;
 	}
 
-	ret = sprd_adc_ch_data_init(sc27xx_data);
-	if (ret) {
-		SPRD_ADC_ERR("ch data init err.\n");
-		return ret;
-	}
-
-	ret = sc27xx_adc_pm_init(sc27xx_data);
+	ret = sprd_adc_pm_init(sprd_data);
 	if (ret) {
 		SPRD_ADC_ERR("adc pm init err.\n");
 		return ret;
 	}
 
-	ret = sc27xx_adc_enable(sc27xx_data);
+	ret = sprd_adc_ch_data_init(sprd_data);
+	if (ret) {
+		SPRD_ADC_ERR("ch data init err.\n");
+		return ret;
+	}
+
+	ret = sprd_adc_hw_enable(sprd_data);
 	if (ret) {
 		SPRD_ADC_ERR("failed to enable ADC module\n");
 		return ret;
 	}
 
-	ret = devm_add_action(&pdev->dev, sc27xx_adc_disable, sc27xx_data);
+	ret = devm_add_action(&pdev->dev, sprd_adc_hw_disable, sprd_data);
 	if (ret) {
-		sc27xx_adc_disable(sc27xx_data);
+		sprd_adc_hw_disable(sprd_data);
 		SPRD_ADC_ERR("failed to add ADC disable action\n");
 		return ret;
 	}
@@ -1285,9 +1329,9 @@ static int sc27xx_adc_probe(struct platform_device *pdev)
 	indio_dev->dev.parent = &pdev->dev;
 	indio_dev->name = dev_name(&pdev->dev);
 	indio_dev->modes = INDIO_DIRECT_MODE;
-	indio_dev->info = &sc27xx_info;
-	indio_dev->channels = sc27xx_channels;
-	indio_dev->num_channels = ARRAY_SIZE(sc27xx_channels);
+	indio_dev->info = &sprd_info;
+	indio_dev->channels = sprd_channels;
+	indio_dev->num_channels = ARRAY_SIZE(sprd_channels);
 	ret = devm_iio_device_register(&pdev->dev, indio_dev);
 	if (ret)
 		SPRD_ADC_ERR("could not register iio (ADC)");
@@ -1297,105 +1341,65 @@ static int sc27xx_adc_probe(struct platform_device *pdev)
 	return ret;
 }
 
-static int sc27xx_adc_remove(struct platform_device *pdev)
+static int sprd_adc_pm_suspend(struct device *dev)
 {
-	struct iio_dev *indio_dev = platform_get_drvdata(pdev);
-	struct sc27xx_adc_data *sc27xx_data = iio_priv(indio_dev);
-	int ret;
+	struct sprd_adc_data *sprd_data = iio_priv(dev_get_drvdata(dev));
 
-	if (sc27xx_data->pm_data.pm_ctl_support) {
-		ret = sprd_adc_pm_handle(sc27xx_data, false);
-		if (ret)
-			SPRD_ADC_ERR("clean clk26m_sinout_pmic failed\n");
-	}
+	mutex_lock(&sprd_data->indio_dev->mlock);
+	sprd_data->pm_data.dev_suspended = true;
+	mutex_unlock(&sprd_data->indio_dev->mlock);
 
 	return 0;
 }
 
-static int sc27xx_adc_pm_suspend(struct device *dev)
+static int sprd_adc_pm_resume(struct device *dev)
 {
-	struct sc27xx_adc_data *sc27xx_data = iio_priv(dev_get_drvdata(dev));
-	int ret;
+	struct sprd_adc_data *sprd_data = iio_priv(dev_get_drvdata(dev));
 
-
-	if (!sc27xx_data->pm_data.pm_ctl_support)
-		return 0;
-
-	mutex_lock(&sc27xx_data->indio_dev->mlock);
-
-	ret = sprd_adc_pm_handle(sc27xx_data, false);
-	if (ret) {
-		SPRD_ADC_ERR("clean clk26m_sinout_pmic failed\n");
-		mutex_unlock(&sc27xx_data->indio_dev->mlock);
-		return 0;
-	}
-	sc27xx_data->pm_data.dev_suspended = true;
-
-	mutex_unlock(&sc27xx_data->indio_dev->mlock);
+	mutex_lock(&sprd_data->indio_dev->mlock);
+	sprd_data->pm_data.dev_suspended = false;
+	mutex_unlock(&sprd_data->indio_dev->mlock);
 
 	return 0;
 }
 
-static int sc27xx_adc_pm_resume(struct device *dev)
-{
-	int ret;
-	struct sc27xx_adc_data *sc27xx_data = iio_priv(dev_get_drvdata(dev));
-
-	if (!sc27xx_data->pm_data.pm_ctl_support)
-		return 0;
-
-	mutex_lock(&sc27xx_data->indio_dev->mlock);
-
-	ret = sprd_adc_pm_handle(sc27xx_data, true);
-	if (ret) {
-		SPRD_ADC_ERR("failed to set the UMP9620 ADC clk26m bit8 on IP\n");
-		mutex_unlock(&sc27xx_data->indio_dev->mlock);
-		return 0;
-	}
-	sc27xx_data->pm_data.dev_suspended = false;
-
-	mutex_unlock(&sc27xx_data->indio_dev->mlock);
-
-	return 0;
-}
-
-static const struct sc27xx_adc_variant_data sc2720_data = {
+static const struct sprd_adc_variant_data sc2720_data = {
 	.pmic_type = SC2720_ADC,
 	.glb_reg_base = 0xc00,
 	.adc_reg_base_offset = 0x4,
 	.reg_list = regs_sc2720,
-	.calib_graphs_index = {ONE_CELL_BIG_GRAPH, ONE_CELL_SMALL_GRAPH, SPRD_ADC_INVALID_DATA},
+	.calib_graphs_index = {ONE_CELL_BIG_GRAPH1, ONE_CELL_SMALL_GRAPH1, SPRD_ADC_INVALID_DATA},
 	.ch_data_init = sc2720_ch_data_init,
 };
 
-static const struct sc27xx_adc_variant_data sc2721_data = {
+static const struct sprd_adc_variant_data sc2721_data = {
 	.pmic_type = SC2721_ADC,
 	.glb_reg_base = 0xc00,
 	.adc_reg_base_offset = 0x0,
 	.reg_list = regs_sc2721,
-	.calib_graphs_index = {ONE_CELL_BIG_GRAPH, ONE_CELL_SMALL_GRAPH, SPRD_ADC_INVALID_DATA},
+	.calib_graphs_index = {ONE_CELL_BIG_GRAPH0, ONE_CELL_SMALL_GRAPH0, SPRD_ADC_INVALID_DATA},
 	.ch_data_init = sc2721_ch_data_init,
 };
 
-static const struct sc27xx_adc_variant_data sc2730_data = {
+static const struct sprd_adc_variant_data sc2730_data = {
 	.pmic_type = SC2730_ADC,
 	.glb_reg_base = 0x1800,
 	.adc_reg_base_offset = 0x4,
 	.reg_list = regs_sc2730,
-	.calib_graphs_index = {ONE_CELL_BIG_GRAPH, ONE_CELL_SMALL_GRAPH, SPRD_ADC_INVALID_DATA},
+	.calib_graphs_index = {ONE_CELL_BIG_GRAPH1, ONE_CELL_SMALL_GRAPH1, SPRD_ADC_INVALID_DATA},
 	.ch_data_init = sc2730_ch_data_init,
 };
 
-static const struct sc27xx_adc_variant_data sc2731_data = {
+static const struct sprd_adc_variant_data sc2731_data = {
 	.pmic_type = SC2731_ADC,
 	.glb_reg_base = 0xc00,
 	.adc_reg_base_offset = 0x0,
 	.reg_list = regs_sc2731,
-	.calib_graphs_index = {ONE_CELL_BIG_GRAPH, ONE_CELL_SMALL_GRAPH, SPRD_ADC_INVALID_DATA},
+	.calib_graphs_index = {ONE_CELL_BIG_GRAPH0, ONE_CELL_SMALL_GRAPH0, SPRD_ADC_INVALID_DATA},
 	.ch_data_init = sc2731_ch_data_init,
 };
 
-static const struct sc27xx_adc_variant_data ump9620_data = {
+static const struct sprd_adc_variant_data ump9620_data = {
 	.pmic_type = UMP9620_ADC,
 	.glb_reg_base = 0x2000,
 	.adc_reg_base_offset = 0x4,
@@ -1405,7 +1409,7 @@ static const struct sc27xx_adc_variant_data ump9620_data = {
 	.ch_data_init = ump9620_ch_data_init,
 };
 
-static const struct of_device_id sc27xx_adc_of_match[] = {
+static const struct of_device_id sprd_adc_of_match[] = {
 	{ .compatible = "sprd,sc2731-adc", .data = &sc2731_data},
 	{ .compatible = "sprd,sc2730-adc", .data = &sc2730_data},
 	{ .compatible = "sprd,sc2721-adc", .data = &sc2721_data},
@@ -1414,23 +1418,20 @@ static const struct of_device_id sc27xx_adc_of_match[] = {
 	{ }
 };
 
-static const struct dev_pm_ops sc27xx_adc_pm_ops = {
-	.suspend_noirq = sc27xx_adc_pm_suspend,
-	.resume_noirq = sc27xx_adc_pm_resume,
+static const struct dev_pm_ops sprd_adc_pm_ops = {
+	.suspend_noirq = sprd_adc_pm_suspend,
+	.resume_noirq = sprd_adc_pm_resume,
 };
 
-static struct platform_driver sc27xx_adc_driver = {
-	.probe = sc27xx_adc_probe,
-	.remove = sc27xx_adc_remove,
+static struct platform_driver sprd_adc_driver = {
+	.probe = sprd_adc_probe,
 	.driver = {
-		.name = "sc27xx-adc",
-		.of_match_table = sc27xx_adc_of_match,
-		.pm	= &sc27xx_adc_pm_ops,
+		.name = "sprd-adc",
+		.of_match_table = sprd_adc_of_match,
+		.pm	= &sprd_adc_pm_ops,
 	},
 };
 
-module_platform_driver(sc27xx_adc_driver);
-
-MODULE_AUTHOR("Freeman Liu <freeman.liu@spreadtrum.com>");
-MODULE_DESCRIPTION("Spreadtrum SC27XX ADC Driver");
+module_platform_driver(sprd_adc_driver);
+MODULE_DESCRIPTION("Spreadtrum ADC Driver");
 MODULE_LICENSE("GPL v2");
