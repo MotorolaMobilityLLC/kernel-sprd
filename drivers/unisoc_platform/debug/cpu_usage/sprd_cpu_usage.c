@@ -687,12 +687,12 @@ static int show_cpu_usage(struct seq_file *m, void *v)
 
 	unused(v);
 
+	if (!p)
+		return 0;
+
 	spin_lock_irqsave(&p->lock, flags);
 	p->cating++;
 	spin_unlock_irqrestore(&p->lock, flags);
-
-	if (!p)
-		return 0;
 
 	_get_a_record(p, false);
 	id = p->idx;
