@@ -20,8 +20,11 @@
 #include <linux/types.h>
 #include <linux/slab.h>
 #include <linux/io.h>
+#include <linux/usb.h>
+#include <linux/usb/hcd.h>
 #include <linux/notifier.h>
 #include <linux/usb/sprd_usbm.h>
+#include <trace/hooks/usb.h>
 
 struct sprd_usbm_event {
 	int max_supported;
@@ -110,6 +113,54 @@ int register_sprd_usbm_notifier(struct notifier_block *nb, unsigned int id)
 }
 EXPORT_SYMBOL(register_sprd_usbm_notifier);
 
+static void usb_new_device_added(void *data, struct usb_device *udev, int *ret)
+{
+	struct usb_interface_descriptor *intf_desc;
+	struct usb_config_descriptor	*config_desc;
+	const char		*driver_name;
+	int i;
+	bool audio_flag = false;
+
+	*ret = 0;
+
+	intf_desc = &udev->config->intf_cache[0]->altsetting[0].desc;
+	config_desc = &udev->config->desc;
+
+	if (udev->bus->controller->driver)
+		driver_name = udev->bus->controller->driver->name;
+	else
+		driver_name = udev->bus->sysdev->driver->name;
+
+	/* There may be couple of intf_cache due to config, loopup all
+	 * of the intf for usb audio
+	 */
+	for (i = 0; i < config_desc->bNumInterfaces; i++) {
+		intf_desc = &udev->config->intf_cache[i]->altsetting[0].desc;
+		if (intf_desc->bInterfaceClass == USB_CLASS_AUDIO) {
+			audio_flag = true;
+			break;
+		}
+	}
+
+	dev_dbg(&udev->dev,
+		"config_desc: bNumInterfaces=%d, intf_desc: bInterfaceNumber=%d bInterfaceClass=%d \
+		bInterfaceSubClass=%d bInterfaceProtocol=%d\n",
+		config_desc->bNumInterfaces,
+		intf_desc->bInterfaceNumber,
+		intf_desc->bInterfaceClass,
+		intf_desc->bInterfaceSubClass,
+		intf_desc->bInterfaceProtocol);
+
+	/* If the usb device is an audio device, and current usb controller is
+	 * not "musb-hdrc", need to switch to musb
+	 */
+	if (audio_flag && !strncmp(driver_name, "xhci-hcd", 8)) {
+		dev_info(&udev->dev, "Do usb3 -> usb2 switch for usb audio \n");
+		call_sprd_usbm_event_notifiers(SPRD_USBM_EVENT_HOST_DWC3, false, NULL);
+		*ret = 1;
+	}
+}
+
 static int __init sprd_usbm_event_driver_init(void)
 {
 	int index;
@@ -129,6 +180,7 @@ static int __init sprd_usbm_event_driver_init(void)
 		RAW_INIT_NOTIFIER_HEAD(&usb_event->nh[index]);
 	usb_event_sprd = usb_event;
 
+	register_trace_android_vh_usb_new_device_added(usb_new_device_added, NULL);
 	return 0;
 }
 
