@@ -346,6 +346,25 @@
 		#size-cells = <0>;
 	};
 
+	dpu_dvfs: dpu-dvfs {
+		compatible = "sprd,hwdvfs-dpu-qogirn6pro";
+		sprd,hw-dfs-en = <4>;
+		sprd,work-index-def = <6>;
+		sprd,idle-index-def = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+
+		operating-points = <
+			/* kHz    uV */
+			256000    650000
+			307200    650000
+			384000    700000
+			409600    700000
+			512000    750000
+			614400    750000
+		>;
+	};
+
 	vdsp_dvfs: vdsp-dvfs {
 		compatible = "sprd,hwdvfs-vdsp";
 		operating-points = <
