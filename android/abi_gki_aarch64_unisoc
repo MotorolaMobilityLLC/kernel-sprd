@@ -862,6 +862,7 @@
   remap_pfn_range
   remove_cpu
   remove_proc_entry
+  remove_proc_subtree
   remove_wait_queue
   __request_module
   request_threaded_irq
