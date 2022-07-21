@@ -17,6 +17,7 @@
 #include "ufs-sprd.h"
 #include "ufs-sprd-ioctl.h"
 #include "ufs-sprd-rpmb.h"
+#include "ufs-sprd-bootdevice.h"
 
 static int ufs_sprd_plat_parse_dt(struct device *dev, struct ufs_hba *hba,
 				  struct ufs_sprd_host *host)
@@ -313,6 +314,12 @@ void ufs_sprd_setup_xfer_req(struct ufs_hba *hba, int task_tag, bool scsi_cmd)
 	}
 }
 
+static void ufs_sprd_fixup_dev_quirks(struct ufs_hba *hba)
+{
+	/* vendor UFS UID info decode. */
+	ufshcd_decode_ufs_uid(hba);
+}
+
 static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.name = "sprd",
 	.init = ufs_sprd_init,
@@ -324,6 +331,7 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.hibern8_notify = ufs_sprd_hibern8_notify,
 	.setup_xfer_req = ufs_sprd_setup_xfer_req,
 	.apply_dev_quirks = ufs_sprd_apply_dev_quirks,
+	.fixup_dev_quirks = ufs_sprd_fixup_dev_quirks,
 	.suspend = ufs_sprd_suspend,
 	.device_reset = ufs_sprd_device_reset,
 };
@@ -358,6 +366,7 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 
 	hba = platform_get_drvdata(pdev);
 	ufs_sprd_rpmb_add(hba);
+	sprd_ufs_proc_init(hba);
 out:
 	return err;
 }
@@ -366,6 +375,7 @@ static void ufs_sprd_shutdown(struct platform_device *pdev)
 {
 	struct ufs_hba *hba =  platform_get_drvdata(pdev);
 
+	sprd_ufs_proc_exit();
 	ufs_sprd_rpmb_remove(hba);
 	ufshcd_pltfrm_shutdown(pdev);
 }
@@ -375,6 +385,7 @@ static int ufs_sprd_remove(struct platform_device *pdev)
 	struct ufs_hba *hba =  platform_get_drvdata(pdev);
 
 	pm_runtime_get_sync(&(pdev)->dev);
+	sprd_ufs_proc_exit();
 	ufs_sprd_rpmb_remove(hba);
 	ufshcd_remove(hba);
 	return 0;

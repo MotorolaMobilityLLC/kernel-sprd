@@ -231,3 +231,9 @@ config SCSI_UFS_SPRD_QOGIRN6PRO
 
           Select this if you have UFS controller on SPRD QOGIRN6PRO chipset.
           If unsure, say N.
+
+config SPRD_UFS_PROC_FS
+	bool "PROC bootdevice for extend UFS INFO"
+	depends on SCSI_UFS_SPRD
+	help
+	  Enable PROC bootdevice for extend UFS INFO.
