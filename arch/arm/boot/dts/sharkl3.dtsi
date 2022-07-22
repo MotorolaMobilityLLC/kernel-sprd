@@ -1311,6 +1311,22 @@
 			#size-cells = <1>;
 			ranges;
 
+			ptm_trace: ptm@30010000 {
+				compatible = "sprd,sharkl3-ptm";
+				reg = <0x30010000 0x10000>,
+					<0x10001000 0x1000>,
+					<0x10003000 0x1000>,
+					<0x10004000 0x1000>;
+				interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "clk_cs", "cs_src";
+				clocks = <&aon_clk CLK_CSSYS>, <&pll CLK_TWPLL_153M6>;
+				sprd,funnel-port = <2>;
+				sprd,ddr-chn = <8>;
+				sprd,chn-name = "MM", "GPU", "DPU",
+					"CPU", "AP/PUBCP", "WTLCP",
+					"WCN/AON/ETR", "VSP";
+			};
+
 			dmc_mpu: dmc-mpu@300e0000 {
 				compatible = "sprd,sharkl3-dmc-mpu";
 				reg = <0x300e0000 0x10000>;
