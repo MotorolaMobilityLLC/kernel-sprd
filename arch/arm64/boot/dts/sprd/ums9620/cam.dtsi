@@ -117,7 +117,7 @@
 		compatible = "unisoc,iommuvaul6p-isp";
 		reg = <0x0 0x3a000000 0x0 0xff000>,
 			<0x0 0x3a0ff000 0x0 0xb0>;
-		iova-base = <0x40000000>;
+		iova-base = <0x10000000>;
 		iova-size = <0xc0000000>;
 		reg_name = "mmu_interrupt_reg","mmu_reg";
 		#iommu-cells = <0>;
