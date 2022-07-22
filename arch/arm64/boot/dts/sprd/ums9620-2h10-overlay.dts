@@ -371,3 +371,73 @@
 	status = "okay";
 };
 
+&pin_controller {
+	pinctrl-names =
+	/* IM1_CLK ,SIM1_DA ,SIM1_RST ,keyin0 */
+	 "gpio_4", "gpio_5", "gpio_6", "gpio_7",
+	/* keyin1 ,sd0_clk, emmc_cmd */
+	"gpio_8", "gpio_22", "gpio_24",
+	/* emmc_d6, emmc_d7, emmc_d7 */
+	"gpio_25", "gpio_26", "gpio_124";
+
+	pinctrl-0 = <&gpio_4>;
+	pinctrl-1 = <&gpio_5>;
+	pinctrl-2 = <&gpio_6>;
+	pinctrl-3 = <&gpio_7>;
+	pinctrl-4 = <&gpio_8>;
+	pinctrl-5 = <&gpio_22>;
+	pinctrl-6 = <&gpio_24>;
+	pinctrl-7 = <&gpio_25>;
+	pinctrl-8 = <&gpio_26>;
+	pinctrl-9 = <&gpio_124>;
+
+	gpio_4: simclk1 {
+		pins = "QOGIRN6PRO_SIMCLK1";
+		function = "func4";
+	};
+
+	gpio_5: simda1 {
+		pins = "QOGIRN6PRO_SIMDA1";
+		function = "func4";
+	};
+
+	gpio_6: simrst1 {
+		pins = "QOGIRN6PRO_SIMRST1";
+		function = "func4";
+	};
+
+	gpio_7: keyin0 {
+		pins = "QOGIRN6PRO_KEYIN0";
+		function = "func4";
+	};
+
+	gpio_8: keyin1 {
+		pins = "QOGIRN6PRO_KEYIN1";
+		function = "func4";
+	};
+
+	gpio_22: sd0_clk {
+		pins = "QOGIRN6PRO_SD0_CLK";
+		function = "func4";
+	};
+
+	gpio_24: emmc_cmd {
+		pins = "QOGIRN6PRO_EMMC_CMD";
+		function = "func4";
+	};
+
+	gpio_25: emmc_d6 {
+		pins = "QOGIRN6PRO_EMMC_D6";
+		function = "func4";
+	};
+
+	gpio_26: emmc_d7 {
+		pins = "QOGIRN6PRO_EMMC_D7";
+		function = "func4";
+	};
+
+	gpio_124: keyout1 {
+		pins = "QOGIRN6PRO_KEYOUT1";
+		function = "func4";
+	};
+};
