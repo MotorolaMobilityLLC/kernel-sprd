@@ -16,30 +16,36 @@
 #define SC2730_PWR_PD_HW	0x1820
 #define SC2730_SLP_CTRL		0x1a48
 #define SC2730_LDO_XTL_EN	BIT(2)
+#define SC2730_SLP_LDO_PD_EN    BIT(0)
 #define SC2731_PWR_PD_HW	0xc2c
 #define SC2731_SLP_CTRL		0xdf0
 #define SC2731_LDO_XTL_EN	BIT(3)
+#define SC2731_SLP_LDO_PD_EN    BIT(0)
 #define UMP9620_PWR_PD_HW	0x2020
 #define UMP9620_SLP_CTRL	0x2248
 #define UMP9620_LDO_XTL_EN	BIT(2)
+#define UMP9620_SLP_LDO_PD_EN    BIT(0)
 #define SC27XX_PWR_OFF_EN	BIT(0)
 
 struct sc27xx_poweroff_data {
 	u32 poweroff_reg;
 	u32 slp_ctrl_reg;
 	u32 ldo_xtl_en;
+	u32 slp_ldo_pd_en;
 };
 
 static const struct sc27xx_poweroff_data sc2730_data = {
 	.poweroff_reg = SC2730_PWR_PD_HW,
 	.slp_ctrl_reg = SC2730_SLP_CTRL,
 	.ldo_xtl_en = SC2730_LDO_XTL_EN,
+	.slp_ldo_pd_en = SC2730_SLP_LDO_PD_EN,
 };
 
 static const struct sc27xx_poweroff_data ump9620_data = {
 	.poweroff_reg = UMP9620_PWR_PD_HW,
 	.slp_ctrl_reg = UMP9620_SLP_CTRL,
 	.ldo_xtl_en = UMP9620_LDO_XTL_EN,
+	.slp_ldo_pd_en = UMP9620_SLP_LDO_PD_EN,
 };
 
 static struct regmap *regmap;
@@ -94,6 +100,7 @@ static void sc27xx_poweroff_do_poweroff(void)
 {
 	/* Disable the external subsys connection's power firstly */
 	regmap_update_bits(regmap, pdata->slp_ctrl_reg, pdata->ldo_xtl_en, 0);
+	regmap_update_bits(regmap, pdata->slp_ctrl_reg, pdata->slp_ldo_pd_en, 0);
 
 	regmap_write(regmap, pdata->poweroff_reg, SC27XX_PWR_OFF_EN);
 }
