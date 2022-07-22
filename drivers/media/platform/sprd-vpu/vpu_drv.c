@@ -434,13 +434,13 @@ int get_iova(void *inst_ptr, struct vpu_platform_data *data,
 		 struct iommu_map_data *mapdata, void __user *arg)
 {
 	int ret = 0;
-	struct sprd_iommu_map_data iommu_map_data;
-	struct sprd_iommu_unmap_data iommu_ummap_data;
+	struct sprd_iommu_map_data iommu_map_data = {0};
+	struct sprd_iommu_unmap_data iommu_ummap_data = {0};
 	struct device *dev = data->dev;
-	struct dma_buf *dmabuf;
+	struct dma_buf *dmabuf = NULL;
 	struct dma_buf_attachment *attachment = NULL;
 	struct sg_table *table = NULL;
-	struct vpu_iommu_map_entry *entry;
+	struct vpu_iommu_map_entry *entry = NULL;
 
 	clock_enable(data);
 	vpu_check_pw_status(data);
@@ -543,7 +543,7 @@ int free_iova(void *inst_ptr, struct vpu_platform_data *data,
 {
 	int ret = 0;
 	struct vpu_iommu_map_entry *entry = NULL;
-	struct sprd_iommu_unmap_data iommu_ummap_data;
+	struct sprd_iommu_unmap_data iommu_ummap_data = {0};
 	int b_find = 0;
 
 	clock_enable(data);
