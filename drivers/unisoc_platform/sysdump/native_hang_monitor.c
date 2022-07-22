@@ -795,13 +795,14 @@ static const struct proc_ops monitor_enable_fops = {
 static int monitor_hang_init(void)
 {
 	int err = 0;
+	int ret = 0;
 	struct proc_dir_entry *monitor_enable_proc;
 
 
 	/*	create /dev/native_hang_monitor */
 	err = misc_register(&native_hang_monitor_dev);
 	if (err) {
-		pr_err("failed to register native_hang_monitor_dev device!\n");
+                pr_err("failed to register native_hang_monitor_dev device!\n");
 		return err;
 	}
 	/*	create /proc/monitor_enable */
@@ -816,7 +817,10 @@ static int monitor_hang_init(void)
 	if (hang_info != NULL) {
 		SetPageReserved(virt_to_page(hang_info));
 		memset(hang_info, 0, HANG_INFO_MAX);
-		minidump_save_extend_information("nhang", __pa(hang_info), __pa(hang_info + HANG_INFO_MAX));
+		ret = minidump_save_extend_information("nhang", __pa(hang_info), __pa(hang_info + HANG_INFO_MAX));
+
+                if(ret)
+                        pr_err("nhang added to minidump section failed!!\n");
 	} else {
 		pr_err("kzalloc hang info failed, required size:%d\n", HANG_INFO_MAX);
 		return -1;

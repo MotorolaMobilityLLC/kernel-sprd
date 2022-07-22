@@ -174,7 +174,8 @@ static void minidump_add_current_stack(void)
 #else
 	for_each_possible_cpu(cpu) {
 		scnprintf(name, MAX_NAME_LEN, "cpustack%d", cpu);
-		minidump_save_extend_information(name, 0, THREAD_SIZE);
+                if(minidump_save_extend_information(name, 0, THREAD_SIZE))
+			return;
 	}
 #endif
 	currstack_inited = 1;

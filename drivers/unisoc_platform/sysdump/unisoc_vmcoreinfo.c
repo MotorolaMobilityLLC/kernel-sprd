@@ -110,6 +110,7 @@ int crash_save_vmcoreinfo_init(void)
 {
 	unsigned long note_size = VMCOREINFO_NOTE_SIZE;
 	void *vmcoreinfo_note_end;
+	int ret = 0;
 	vmcoreinfo_data = (unsigned char *)get_zeroed_page(GFP_KERNEL);
 	if (!vmcoreinfo_data) {
 		pr_warn("Memory allocation for vmcoreinfo_data failed\n");
@@ -217,8 +218,10 @@ int crash_save_vmcoreinfo_init(void)
 
 //	arch_crash_save_vmcoreinfo();
 	update_vmcoreinfo_note();
-	minidump_save_extend_information("vmcore_info", (unsigned long)__pa(vmcoreinfo_note),
+	ret = minidump_save_extend_information("vmcore_info", (unsigned long)__pa(vmcoreinfo_note),
 			(unsigned long)__pa(vmcoreinfo_note_end));
+	if(ret)
+		pr_err("vmcore_info added to minidump section failed!!\n");
 //	pr_info("the VMCOREINFO_NOTE_SIZE is 0x%lx\n", VMCOREINFO_NOTE_SIZE);
 
 	return 0;

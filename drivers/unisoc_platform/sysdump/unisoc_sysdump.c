@@ -1354,8 +1354,8 @@ static void section_info_ylog_buf(void)
 	ret = minidump_save_extend_information("ylog_buf",
 			unisoc_virt_to_phys(vaddr),
 			unisoc_virt_to_phys(vaddr + YLOG_BUF_SIZE));
-//	if (!ret)
-//		pr_info("ylog_buf added to minidump section ok!!\n");
+	if (ret)
+		pr_err("ylog_buf added to minidump section failed!!\n");
 }
 
 #if 0
@@ -1374,8 +1374,8 @@ static void section_info_pt(void)
 		len = 0x1000;
 #endif
 	ret = minidump_save_extend_information("kernel_pt", __pa(vaddr), __pa(vaddr + len));
-	if (!ret)
-		pr_info("kernel pt added to minidump section ok!!\n");
+	if (ret)
+		pr_err("kernel pt added to minidump section failed!!\n");
 #ifdef CONFIG_ARM
 	pr_info("pgd vaddr start: 0x%lx  paddr start: 0x%x  len :0x%x\n",
 							vaddr, __pa(vaddr), len);
@@ -1728,8 +1728,8 @@ static void section_info_per_cpu(void)
 	if (sysdump_reflag)
 		sprd_sysdump_info->sprd_coreregs_info.pcpu_start_paddr = __pa(vaddr);
 	ret = minidump_save_extend_information("per_cpu", __pa(vaddr), __pa(vaddr + len));
-	if (!ret)
-		pr_info("per_cpu added to minidump section ok!!\n");
+	if (ret)
+		pr_err("per_cpu added to minidump section failed!!\n");
 }
 #endif
 #if 0
@@ -1743,8 +1743,8 @@ static void section_info_log_buf(void)
 	pr_info("%s in. vaddr : 0x%lx  len :0x%x\n",
 		__func__, vaddr, len);
 	ret = minidump_save_extend_information("log_buf", __pa(vaddr), __pa(vaddr + len));
-	if (!ret)
-		pr_info("add log_buf to minidump section ok!!\n");
+	if (ret)
+		pr_err("add log_buf to minidump section failed!!\n");
 }
 #endif
 static void update_vmcoreinfo_data(void)

@@ -52,8 +52,8 @@ static int minidump_add_section(const char *name, long vaddr, int size)
 	pr_info("%s in. vaddr : 0x%lx  len :0x%x\n", __func__, vaddr, size);
 	ret = minidump_save_extend_information(name, __pa(vaddr),
 						 __pa(vaddr + size));
-	if (!ret)
-		pr_info("%s added to minidump section ok!!\n", name);
+	if (ret)
+		pr_err("%s added to minidump section failed!!\n", name);
 
 	return ret;
 }
