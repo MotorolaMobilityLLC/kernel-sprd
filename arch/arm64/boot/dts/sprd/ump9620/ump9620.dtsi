@@ -47,6 +47,11 @@
 			};
 		};
 
+		led-controller@1b88 {
+			compatible = "sprd,ump9620-keypad-led";
+			reg = <0x1b88>, <0x1b8c>;
+		};
+
 		rtc@200 {
 			compatible = "sprd,ump96xx-rtc", "sprd,sc27xx-rtc";
 			reg = <0x200>;
