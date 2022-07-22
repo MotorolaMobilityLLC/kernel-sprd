@@ -11,3 +11,4 @@ obj-$(CONFIG_UNISOC_HW_DEVICE_DVFS_AGCP) 		+= audiodvfs/
 obj-$(CONFIG_UNISOC_AUDIO_CPBOOT)			+= audiocpboot/
 obj-$(CONFIG_UNISOC_AUDIO_SAUDIO)			+= saudio/
 obj-$(CONFIG_UNISOC_AUDIO_VOICE_TRIGGER)	+= voice_trigger/
+obj-$(CONFIG_UNISOC_AUDIO_VOICE_TRIGGER_IRQ)	+= voice_trigger/
