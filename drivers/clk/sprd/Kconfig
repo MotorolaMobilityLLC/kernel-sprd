@@ -38,4 +38,11 @@ config SPRD_UMS9620_CLK
 	  Support for the global clock controller on ums9620 devices.
 	  Say Y if you want to use peripheral devices on ums9620 SoC.
 
+config SPRD_UMS9610_CLK
+	tristate "Support for the Unisoc UMS9610 clocks"
+	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
+	default ARM64 && ARCH_SPRD
+	help
+	  Support for the global clock controller on ums9610 devices.
+	  Say Y if you want to use peripheral devices on ums9610 SoC.
 endif
