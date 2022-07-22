@@ -2058,8 +2058,6 @@ err:
 static int musb_gadget_stop(struct usb_gadget *g)
 {
 	struct musb	*musb = gadget_to_musb(g);
-	struct musb_ep    *ep;
-	struct musb_request	*req = NULL;
 	unsigned long	flags;
 
 	if (is_host_active(musb))
@@ -2082,12 +2080,8 @@ static int musb_gadget_stop(struct usb_gadget *g)
 	musb_stop(musb);
 	otg_set_peripheral(musb->xceiv->otg, NULL);
 
-	/* if musb_g_giveback ep0's request, will crash */
-	ep = &musb->endpoints[0].ep_in;
-	while (!list_empty(&ep->req_list)) {
-		req = list_first_entry(&ep->req_list, struct musb_request, list);
-		musb_g_giveback(ep, &req->request, -ESHUTDOWN);
-	}
+	if (!list_empty(&musb->endpoints[0].ep_in.req_list))
+		INIT_LIST_HEAD(&musb->endpoints[0].ep_in.req_list);
 
 	if (!list_empty(&musb->endpoints[0].ep_out.req_list))
 		INIT_LIST_HEAD(&musb->endpoints[0].ep_out.req_list);
