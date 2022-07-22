@@ -1784,6 +1784,7 @@ CONFIG_UID_IO_DEBUG=y
 # CONFIG_MISC_RTSX_PCI is not set
 # CONFIG_MISC_RTSX_USB is not set
 # CONFIG_HABANA_AI is not set
+# CONFIG_LEDS_SC27XX_VIBRA is not set
 # end of Misc devices
 
 #
