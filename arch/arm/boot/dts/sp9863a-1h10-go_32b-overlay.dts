@@ -301,8 +301,8 @@
 
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
-		"camhigh", "camveryhigh","top";
-	sprd-freq = <933 400 233 622 622 933 933>;
+		"camhigh", "camveryhigh", "top", "boot-opt";
+	sprd-freq = <933 400 233 622 622 933 933 933>;
 };
 
 &panel {
