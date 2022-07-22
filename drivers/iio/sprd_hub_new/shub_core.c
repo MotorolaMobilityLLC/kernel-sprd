@@ -887,7 +887,7 @@ static ssize_t cm4_operate_show(struct device *dev,
 		 "\top: 1:read 2:write 3:check_reg 4:set_delay 5:set_gpio "
 		 "6:algo_log_control\n"
 		 "\tintf(i2c interface): 0:i2c0 1:i2c1\n"
-		 "\taddr: IC write address.\n"
+		 "\taddr: IC slave address.\n"
 		 "\treg: IC reg or set_gpio reg\n"
 		 "\tvalue: i2c writen value or set_gpio value "
 		 "or control algo log(0 or 1)\n"
