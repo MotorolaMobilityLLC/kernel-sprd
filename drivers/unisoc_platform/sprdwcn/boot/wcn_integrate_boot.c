@@ -3577,6 +3577,7 @@ int stop_integrate_wcn_module(u32 subsys)
 	struct wcn_device *wcn_dev;
 	u32 subsys_bit = 1 << subsys;
 	int ret;
+	u32 reg_val = 0;
 
 	WCN_INFO("stop subsys:%d\n", subsys);
 	/* Check Parameter whether valid */
@@ -3618,6 +3619,14 @@ int stop_integrate_wcn_module(u32 subsys)
 			btwf_force_deepsleep_aontop(wcn_dev);
 	} else {
 		if (gnss_sys_polling_deepsleep(wcn_dev) == false) {
+
+			wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+						0x00c8, &reg_val);
+			WCN_INFO("before assert : REG 0x4080c0c8:val=0x%x!\n", reg_val);
+			wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
+						0x00d8, &reg_val);
+			WCN_INFO("before assert : REG 0x4080c0d8:val=0x%x!\n", reg_val);
+
 			wcn_assert_interface(WCN_SOURCE_GNSS,
 						"gnss shutdown isn't at deepsleep");
 			mutex_unlock(&wcn_dev->power_lock);
