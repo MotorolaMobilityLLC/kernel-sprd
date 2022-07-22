@@ -5,8 +5,8 @@
  * Copyright (C) 2020, Unisoc Inc.
  */
 
-#include <dt-bindings/clock/sprd,ums9620-clk.h>
-#include <dt-bindings/reset/sprd,ums9620-reset.h>
+#include <dt-bindings/clock/sprd,ums9610-clk.h>
+#include <dt-bindings/reset/sprd,ums9610-reset.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/mfd/sprd,ump9620-regs.h>
 #include <dt-bindings/mfd/sprd,ump9620-mask.h>

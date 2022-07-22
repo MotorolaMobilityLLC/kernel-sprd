@@ -1,6 +1,6 @@
 &soc {
 	ap_clk: clock-controller@20010000 {
-		compatible = "sprd,ums9620-ap-clk";
+		compatible = "sprd,ums9610-ap-clk";
 		reg = <0 0x20010000 0 0x3000>;
 		clocks = <&ext_26m>;
 		clock-names = "ext-26m";
@@ -8,48 +8,15 @@
 	};
 
 	gpu_clk: clock-controller@23010000 {
-		compatible = "sprd,ums9620-gpu-clk";
+		compatible = "sprd,ums9610-gpu-clk";
 		reg = <0 0x23010000 0 0x3000>;
 		clocks = <&ext_26m>;
 		clock-names = "ext-26m";
 		#clock-cells = <1>;
 	};
 
-	ipa_clk: clock-controller@25010000 {
-		compatible = "sprd,ums9620-ipa-clk";
-		reg = <0 0x25010000 0 0x3000>;
-		clocks = <&ext_26m>;
-		clock-names = "ext-26m";
-		#clock-cells = <1>;
-	};
-
-	pcie_clk: clock-controller@26004000 {
-		compatible = "sprd,ums9620-pcie-clk";
-		reg = <0 0x26004000 0 0x3000>;
-		clocks = <&ext_26m>;
-		clock-names = "ext-26m";
-		#clock-cells = <1>;
-		status = "disable";
-	};
-
-	ai_clk: clock-controller@27004000 {
-		compatible = "sprd,ums9620-ai-clk";
-		reg = <0 0x27004000 0 0x3000>;
-		clocks = <&ext_26m>;
-		clock-names = "ext-26m";
-		#clock-cells = <1>;
-	};
-
-	ai_dvfs_clk: clock-controller@27008000 {
-		compatible = "sprd,ums9620-ai-dvfs-clk";
-		reg = <0 0x27008000 0 0x3000>;
-		clocks = <&ext_26m>;
-		clock-names = "ext-26m";
-		#clock-cells = <1>;
-	};
-
 	mm_clk: clock-controller@30010000 {
-		compatible = "sprd,ums9620-mm-clk";
+		compatible = "sprd,ums9610-mm-clk";
 		reg = <0 0x30010000 0 0x3000>;
 		clocks = <&ext_26m>;
 		clock-names = "ext-26m";
@@ -57,7 +24,7 @@
 	};
 
 	dpu_vsp_clk: clock-controller@30110000 {
-		compatible = "sprd,ums9620-dpu-vsp-clk";
+		compatible = "sprd,ums9610-dpu-vsp-clk";
 		reg = <0 0x30110000 0 0x3000>;
 		clocks = <&ext_26m>, <&dphy_312m5>, <&dphy_416m7>;
 		clock-names = "ext-26m", "dphy-312m5", "dphy-416m7";
@@ -65,15 +32,17 @@
 	};
 
 	aonapb_clk: clock-controller@64920000 {
-		compatible = "sprd,ums9620-aonapb-clk";
+		compatible = "sprd,ums9610-aonapb-clk";
 		reg = <0 0x64920000 0 0x3000>;
-		clocks = <&ext_26m>;
-		clock-names = "ext-26m";
+		clocks = <&ext_26m>, <&ext_32k>, <&ext_4m>,
+			<&rco_100m>, <&ext_52m>;
+		clock-names = "ext-26m", "ext-32k", "ext-4m",
+			 "rco-100m", "ext-52m";
 		#clock-cells = <1>;
 	};
 
 	topdvfs_clk: clock-controller@64940000 {
-		compatible = "sprd,ums9620-topdvfs-clk";
+		compatible = "sprd,ums9610-topdvfs-clk";
 		reg = <0 0x64940000 0 0x3000>;
 		clocks = <&ext_26m>;
 		clock-names = "ext-26m";
@@ -87,6 +56,13 @@
 		#clock-cells = <0>;
 		clock-frequency = <26000000>;
 		clock-output-names = "ext-26m";
+	};
+
+	ext_52m: ext-52m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <52000000>;
+		clock-output-names = "ext-52m";
 	};
 
 	ext_32k: ext-32k {
