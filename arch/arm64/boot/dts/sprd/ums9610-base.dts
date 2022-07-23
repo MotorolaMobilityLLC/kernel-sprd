@@ -332,7 +332,7 @@
 &dphy {
 	status = "okay";
 };
-
+/*
 &vpu_pd_top {
 	status = "okay";
 };
@@ -392,7 +392,7 @@
 &vdsp {
 	status = "okay";
 };
-
+*/
 &dsp_mem_dump {
 	/* for cmd para addr, fix bug 1740522*/
 	sprd,dspdumpmem = <0x56200000 0x3000
