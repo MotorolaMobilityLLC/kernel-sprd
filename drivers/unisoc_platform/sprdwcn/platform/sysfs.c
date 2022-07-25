@@ -16,6 +16,8 @@
 #include "wcn_dbg.h"
 #include "wcn_glb.h"
 
+extern int is_wcn_shutdown;
+
 struct wcn_sysfs_info {
 	void *p;
 	unsigned char len;
@@ -604,6 +606,37 @@ static DEVICE_ATTR(atcmd, 0644,
 		   wcn_sysfs_show_atcmd,
 		   wcn_sysfs_store_atcmd);
 
+static ssize_t wcn_sysfs_show_shutting_down(struct device *dev,
+					 struct device_attribute *attr,
+					 char *buf)
+{
+	ssize_t len = PAGE_SIZE;
+
+	len = snprintf(buf, len, "%d\n", is_wcn_shutdown);
+
+	return len;
+}
+
+static ssize_t wcn_sysfs_store_shutting_down(struct device *dev,
+					  struct device_attribute *attr,
+					  const char *buf, size_t count)
+{
+	WCN_INFO("%s: buf=%s, count=%lu\n", __func__, buf, count);
+
+	if (strncmp(buf, "shutting", strlen("shutting")) == 0) {
+		WCN_INFO("%s:Ready to shutdown\n", __func__);
+		is_wcn_shutdown = 1;
+	} else {
+		WCN_INFO("%s:Clear WCN shutdown flag\n", __func__);
+		is_wcn_shutdown = 0;
+	}
+
+	return count;
+}
+static DEVICE_ATTR(shutting_down, 0644,
+		   wcn_sysfs_show_shutting_down,
+		   wcn_sysfs_store_shutting_down);
+
 /*
  * ud710_3h10:/sys/devices/platform/sprd-marlin3 # ls
  * sleep_state driver driver_override fwlog hw_pg_ver modalias of_node power
@@ -778,6 +811,7 @@ static struct attribute *wcn_attrs[] = {
 	&dev_attr_loglevel.attr,
 	&dev_attr_reset_dump.attr,
 	&dev_attr_atcmd.attr,
+	&dev_attr_shutting_down.attr,
 	NULL,
 };
 
