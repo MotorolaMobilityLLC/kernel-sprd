@@ -5212,60 +5212,6 @@ CONFIG_DRM_RCAR_WRITEBACK
 	[must]
 	[missing plat description] none
 	[function]
-CONFIG_DRM_SPRD
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make
-	[subsys] drm
-	[must] home
-	[missing plat description] none
-	[function] CONFIG_DRM_SPRD is used to enable compile drm module.
-CONFIG_DRM_SPRD_DPU0
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
-CONFIG_DRM_SPRD_DSI
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
-CONFIG_DRM_SPRD_GSP
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make,code
-	[subsys] drm
-	[must] home
-	[missing plat description] none
-	[function] DRM_SPRD_GSP is used for enable gsp.
-CONFIG_DRM_SPRD_GSP_IPC_TRUSTY
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
-	[field] make,code
-	[subsys] drm
-	[must] home
-	[missing plat description] support after l5pro SoC,now only enable it on qogirn6pro.
-	[function] DRM_SPRD_GSP_IPC_TRUSTY is used for enable gsp widevine.
-CONFIG_DRM_SPRD_WB_DEBUG
-	[arch] arm64
-	[plat] sharkl5Pro
-	[missing plat] sharkl3
-	[field]
-	[subsys]
-	[must]
-	[missing plat description]
-	[function]
 CONFIG_DRM_TTM
 	[arch] all
 	[plat] all
