@@ -84,6 +84,7 @@ static char GNSS_FIRMWARE_PATH[255];
 static struct wifi_calibration wifi_data;
 struct completion ge2_completion;
 static int first_call_flag = 1;
+static bool is_boot_ufs;
 static struct marlin_device *marlin_dev;
 struct sprdwcn_gnss_ops *gnss_ops;
 static struct completion find_tsx_completion;
@@ -146,6 +147,31 @@ unsigned int marlin_get_wcn_chipid(void)
 	pr_info("marlin: chipid=%x, %s\n", chip_id, __func__);
 
 	return chip_id;
+}
+
+static int get_boot_device(void)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line;
+	int ret;
+
+	is_boot_ufs = 0;
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+	if (ret) {
+		pr_err("Can not get bootargs \r\n");
+		return ret;
+	}
+
+	if (strstr(cmd_line, "ufs")) {
+		is_boot_ufs = 1;
+		pr_info("boot from ufs \n");
+		return 0;
+	}
+
+	pr_info("boot from emmc \n");
+
+	return 0;
 }
 
 static int get_boot_hardware(void)
@@ -1119,7 +1145,14 @@ static int wcn_pmic_do_bound(struct wcn_pmic_config *pmic, bool bound)
 
 static inline int wcn_avdd12_parent_bound_chip(bool enable)
 {
-	return wcn_pmic_do_bound(&marlin_dev->avdd12_parent_bound_chip, enable);
+	if (is_ums9620) {
+		pr_info("is_boot_ufs=%d enable=%d", is_boot_ufs, enable);
+		if (!is_boot_ufs)
+			return wcn_pmic_do_bound(&marlin_dev->avdd12_parent_bound_chip, enable);
+		return 0;
+	} else {
+		return wcn_pmic_do_bound(&marlin_dev->avdd12_parent_bound_chip, enable);
+	}
 }
 
 static inline int wcn_avdd12_bound_xtl(bool enable)
@@ -2952,6 +2985,7 @@ int marlin_probe(struct platform_device *pdev)
 	get_boot_hardware();
 	/* register ops */
 	wcn_bus_init();
+	get_boot_device();
 	bus_ops = get_wcn_bus_ops();
 	bus_ops->start_wcn = start_marlin;
 	bus_ops->stop_wcn = stop_marlin;
