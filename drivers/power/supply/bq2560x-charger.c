@@ -189,6 +189,8 @@ static void power_path_control(struct bq2560x_charger_info *info)
 	struct device_node *cmdline_node;
 	const char *cmd_line;
 	int ret;
+	char *match;
+	char result[5];
 
 	cmdline_node = of_find_node_by_path("/chosen");
 	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
@@ -197,8 +199,16 @@ static void power_path_control(struct bq2560x_charger_info *info)
 		return;
 	}
 
-	if (!strncmp(cmd_line, "charger", strlen("charger")))
+	if (strncmp(cmd_line, "charger", strlen("charger")) == 0)
 		info->disable_power_path = true;
+
+	match = strstr(cmd_line, "sprdboot.mode=");
+	if (match) {
+		memcpy(result, (match + strlen("sprdboot.mode=")),
+			sizeof(result) - 1);
+		if ((!strcmp(result, "cali")) || (!strcmp(result, "auto")))
+			info->disable_power_path = true;
+	}
 }
 
 static int

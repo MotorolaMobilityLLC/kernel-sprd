@@ -6837,10 +6837,10 @@ static int get_boot_mode(void)
 	if (ret)
 		return ret;
 
-	if (strstr(cmd_line, "androidboot.mode=cali") ||
-	    strstr(cmd_line, "androidboot.mode=autotest"))
+	if (strstr(cmd_line, "sprdboot.mode=cali") ||
+	    strstr(cmd_line, "sprdboot.mode=autotest"))
 		allow_charger_enable = true;
-	else if (strstr(cmd_line, "androidboot.mode=charger"))
+	else if (strstr(cmd_line, "sprdboot.mode=charger"))
 		is_charger_mode =  true;
 
 	return 0;

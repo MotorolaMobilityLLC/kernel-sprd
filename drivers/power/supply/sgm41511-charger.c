@@ -130,9 +130,9 @@ static void power_path_control(struct sgm41511_charger_info *info)
 	if (strncmp(cmd_line, "charger", strlen("charger")) == 0)
 		info->disable_power_path = true;
 
-	match = strstr(cmd_line, "androidboot.mode=");
+	match = strstr(cmd_line, "sprdboot.mode=");
 	if (match) {
-		memcpy(result, (match + strlen("androidboot.mode=")),
+		memcpy(result, (match + strlen("sprdboot.mode=")),
 			sizeof(result) - 1);
 		if ((!strcmp(result, "cali")) || (!strcmp(result, "auto")))
 			info->disable_power_path = true;
