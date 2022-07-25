@@ -12,6 +12,7 @@
 	fast-charge-threshold-microvolt = <4100000>;
 	fullbatt-voltage = <4300000>;
 	fullbatt-current = <120000>;
+	first-fullbatt-current = <150000>;
 	fullbatt-track-end-vol = <4295000>;
 	fullbatt-track-end-cur = <130000>;
 	first-calib-voltage = <3580000>;
