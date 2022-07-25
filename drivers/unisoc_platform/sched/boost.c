@@ -30,7 +30,7 @@ void walt_init_tg(struct task_group *tg)
 	wtg = (struct walt_task_group *) tg->android_vendor_data1;
 
 	wtg->boost = 0;
-	wtg->account_wait_time= 0;
+	wtg->account_wait_time= 1;
 	wtg->init_task_load_pct = 0;
 	wtg->prefer_active = 0;
 }

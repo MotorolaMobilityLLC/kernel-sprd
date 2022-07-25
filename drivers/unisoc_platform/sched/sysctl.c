@@ -168,15 +168,6 @@ struct ctl_table walt_table[] = {
 		.extra2		= SYSCTL_ONE,
 	},
 	{
-		.procname       = "sched_walt_account_wait_time",
-		.data           = &sysctl_walt_account_wait_time,
-		.maxlen         = sizeof(unsigned int),
-		.mode           = 0644,
-		.proc_handler   = proc_dointvec_minmax,
-		.extra1		= SYSCTL_ZERO,
-		.extra2		= SYSCTL_ONE,
-	},
-	{
 		.procname       = "sched_walt_io_is_busy",
 		.data           = &sysctl_walt_io_is_busy,
 		.maxlen         = sizeof(unsigned int),

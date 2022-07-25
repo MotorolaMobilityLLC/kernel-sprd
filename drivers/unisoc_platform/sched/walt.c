@@ -24,10 +24,10 @@
 #define WINDOW_STATS_INVALID_POLICY	4
 
 #define WALT_FREQ_ACCOUNT_WAIT_TIME	0
+#define SCHED_ACCOUNT_WAIT_TIME		1
 
 static __read_mostly unsigned int walt_ravg_hist_size = 6;
 static __read_mostly unsigned int walt_window_stats_policy = WINDOW_STATS_MAX;
-__read_mostly unsigned int sysctl_walt_account_wait_time;
 __read_mostly unsigned int sysctl_walt_io_is_busy;
 __read_mostly unsigned int sysctl_sched_walt_cpu_high_irqload =
 							(10 * NSEC_PER_MSEC);
@@ -474,8 +474,6 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 
 static int account_busy_for_task_demand(struct task_struct *p, int event)
 {
-	unsigned int account_wait_time = 0;
-
 	/*
 	 * No need to bother updating task demand for exiting tasks
 	 * or the idle task.
@@ -483,17 +481,14 @@ static int account_busy_for_task_demand(struct task_struct *p, int event)
 	if (exiting_task(p) || is_idle_task(p))
 		return 0;
 
-	if (tg_account_wait_time(p) || sysctl_walt_account_wait_time)
-		account_wait_time = 1;
-
 	/*
 	 * When a task is waking up it is completing a segment of non-busy
 	 * time. Likewise, if wait time is not treated as busy time, then
 	 * when a task begins to run or is migrated, it is not running and
 	 * is completing a segment of non-busy time.
 	 */
-	if (event == TASK_WAKE || (!account_wait_time &&
-			 (event == PICK_NEXT_TASK || event == TASK_MIGRATE)))
+	if (event == TASK_WAKE || (!SCHED_ACCOUNT_WAIT_TIME &&
+			(event == PICK_NEXT_TASK || event == TASK_MIGRATE)))
 		return 0;
 
 	return 1;

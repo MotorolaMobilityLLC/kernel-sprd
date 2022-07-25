@@ -114,7 +114,6 @@ struct pd_cache {
 
 extern struct ctl_table walt_base_table[];
 extern unsigned int sysctl_sched_walt_cross_window_util;
-extern unsigned int sysctl_walt_account_wait_time;
 extern unsigned int sysctl_walt_io_is_busy;
 extern unsigned int sysctl_walt_busy_threshold;
 extern unsigned int sysctl_sched_walt_init_task_load_pct;
