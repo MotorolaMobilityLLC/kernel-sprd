@@ -34,7 +34,7 @@
 
 static int num_heaps;
 static struct dma_heap *carve_heap;
-static struct gen_pool *carve_mm_pool, *carve_fd_pool;
+static struct gen_pool *carve_mm_pool, *carve_fd_pool, *carve_oem_pool;
 static struct dma_heap *carve_uncached_heap;
 //static struct dma_heap **heaps;
 
@@ -472,6 +472,8 @@ static void carveout_free(struct dma_heap *heap, phys_addr_t addr, unsigned long
 		free_pool = carve_mm_pool;
 	if (!strcmp(heap_name, "carveout_fd"))
 		free_pool = carve_fd_pool;
+	if (!strcmp(heap_name, "uncached_carveout_oem"))
+		free_pool = carve_oem_pool;
 
 	if (addr == DMABUF_CARVEOUT_ALLOCATE_FAIL)
 		return;
@@ -529,6 +531,8 @@ static phys_addr_t dmabuf_carveout_allocate(struct dma_heap *heap, unsigned long
 		alloc_pool = carve_mm_pool;
 	if (!strcmp(heap_name, "carveout_fd"))
 		alloc_pool = carve_fd_pool;
+	if (!strcmp(heap_name, "uncached_carveout_oem"))
+		alloc_pool = carve_oem_pool;
 
 	offset = gen_pool_alloc(alloc_pool, size);
 
@@ -665,7 +669,7 @@ static struct dma_buf *carveout_heap_do_allocate(struct dma_heap *heap, unsigned
 		ret = -ENOMEM;
 		goto err_free_table;
 	}
-	pr_debug("%s: heap name: %s, paddr: 0x%llx, size: %lu\n",
+	pr_info("%s: heap name: %s, paddr: 0x%llx, size: %lu\n",
 		__func__, dma_heap_get_name(heap), (u64)paddr, size);
 	sg_set_page(table->sgl, pfn_to_page(PFN_DOWN(paddr)), size, 0);
 	buffer->sg_table = table;
@@ -755,6 +759,7 @@ static int carveout_heap_create(struct dmabuf_platform_heap *heap_data)
 	struct carveout_heap_buffer *carveout_heap;
 	struct dma_heap_export_info exp_info;
 	struct page *page;
+	struct gen_pool *carve_tmp_pool;
 	size_t size;
 	int ret;
 
@@ -802,21 +807,27 @@ static int carveout_heap_create(struct dmabuf_platform_heap *heap_data)
 		if (IS_ERR(carve_uncached_heap))
 			return PTR_ERR(carve_uncached_heap);
 
-		carve_mm_pool = gen_pool_create(PAGE_SHIFT, -1);
-		if (!carve_mm_pool) {
+		carve_tmp_pool = gen_pool_create(PAGE_SHIFT, -1);
+		if (!carve_tmp_pool) {
 			kfree(carveout_heap);
 			return -ENOMEM;
 		}
 
 		carveout_heap->base = heap_data->base;
-		ret = gen_pool_add(carve_mm_pool, carveout_heap->base, heap_data->size,
+		ret = gen_pool_add(carve_tmp_pool, carveout_heap->base, heap_data->size,
 						-1);
 		if (ret) {
-			gen_pool_destroy(carve_mm_pool);
+			gen_pool_destroy(carve_tmp_pool);
 			return ret;
 		}
-		pr_info("%s: create carveout heap_name:%s, carve_uncached_heap_name: %s\n", __func__,
-				heap_data->name, dma_heap_get_name(carve_uncached_heap));
+
+		if (!strcmp(heap_data->name, "uncached_carveout_mm"))
+			carve_mm_pool = carve_tmp_pool;
+		else
+			carve_oem_pool = carve_tmp_pool;
+
+		pr_info("%s: carve_tmp_pool: %p, carve_uncached_heap_name: %s\n", __func__,
+				carve_tmp_pool, dma_heap_get_name(carve_uncached_heap));
 	}
 	if (!IS_ERR_OR_NULL(carve_uncached_heap)) {
 		dma_coerce_mask_and_coherent(dma_heap_get_dev(carve_uncached_heap), DMA_BIT_MASK(64));
