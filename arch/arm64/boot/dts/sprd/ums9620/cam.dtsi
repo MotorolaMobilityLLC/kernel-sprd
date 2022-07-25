@@ -258,6 +258,14 @@
 			<&mm_gate CLK_ISP_BLK_CFG_EN>,
 			<&mm_clk CLK_CPP>,
 			<&g5l_pll CLK_TGPLL_384M>;
+		cpp_ahb_reset = <&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
+				MASK_MM_AHB_CPP_SOFT_RST>;
+		cpp_path0_reset = <&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
+				MASK_MM_AHB_CPP_PATH0_RST>;
+		cpp_path1_reset = <&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
+				MASK_MM_AHB_CPP_PATH1_RST>;
+		cpp_dma_soft_set = <&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
+				MASK_MM_AHB_CPP_DMA_RST>;
 		sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 		iommus = <&iommu_cpp>;
 		/*cpp_qos = <&cpp_qos>;*/
