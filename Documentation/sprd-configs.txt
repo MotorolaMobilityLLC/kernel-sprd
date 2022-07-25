@@ -9278,8 +9278,8 @@ CONFIG_ION
 	[function] An memory allocator for android.
 CONFIG_ION_CMA_HEAP
 	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
-	[missing plat] none
+	[plat] sharkl3
+	[missing plat] sharkl5Pro
 	[field]
 	[subsys]
 	[must]
