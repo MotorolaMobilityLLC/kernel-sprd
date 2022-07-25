@@ -24,7 +24,6 @@
 #define SCHED_WORK(x) queue_work(system_unbound_wq, x)
 #define SCHED_PUMP_WORK(x, t) queue_delayed_work(system_unbound_wq, x, t)
 
-
 #define SWCQ_NUM_SLOTS	64
 #define SWCQ_INVALID_TAG	SWCQ_NUM_SLOTS
 /* Sleep when polling cmd13' for over 1ms */
@@ -2167,18 +2166,24 @@ int sprd_create_swcq_proc_init(void)
 	return 0;
 }
 
+static bool queue_flag;
 static void mmc_swcq_status(void *data, const struct blk_mq_queue_data *bd, int *ret)
 {
 	struct request *req = bd->rq;
 	struct request_queue *q = req->q;
 	struct mmc_queue *mq = q->queuedata;
 	struct mmc_card *card = mq->card;
-	struct mmc_host *host = card->host;
+	struct mmc_host *mmc = card->host;
 
-	if (host->cqe_ops->cqe_timeout)
-		*ret = mmc_swcq_is_busy(host);
+	if (mmc->cqe_ops->cqe_timeout)
+		*ret = mmc_swcq_is_busy(mmc);
 	else
 		*ret = 0;
+
+	if (!queue_flag) {
+		blk_queue_flag_set(QUEUE_FLAG_SAME_FORCE, q);
+		queue_flag = true;
+	}
 }
 
 static struct mmc_cqe_ops mmc_swcq_ops = {
@@ -2205,6 +2210,8 @@ int mmc_swcq_init(struct mmc_swcq *swcq, struct mmc_host *mmc)
 	swcq->next_tag = SWCQ_INVALID_TAG;
 
 	register_trace_android_vh_mmc_check_status(mmc_swcq_status, NULL);
+
+	queue_flag = false;
 
 	swcq->cmd_node_array = kzalloc(sizeof(struct swcq_node) *
 	SWCQ_NUM_SLOTS, GFP_KERNEL);
