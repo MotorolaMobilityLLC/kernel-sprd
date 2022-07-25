@@ -92,6 +92,7 @@ noinline void start_preemptoff_timing(void *a, unsigned long ip, unsigned long p
 
 	info->start_ts = timing_clock();
 	info->task = current;
+	info->pid = current->pid;
 	info->ncsw = current->nvcsw + current->nivcsw;
 	for (i = 0; i < 5; i++)
 		info->callback[i] = return_address(i+1);
@@ -111,7 +112,7 @@ noinline void stop_preemptoff_timing(void *a, unsigned long ip, unsigned long pa
 		goto skip;
 
 	/* Skip if return from ilde */
-	if (info->ncsw != current->nvcsw + current->nivcsw)
+	if (info->pid != current->pid || info->ncsw != current->nvcsw + current->nivcsw)
 		goto skip;
 
 	preemptoff_ns = timing_clock() - info->start_ts;

@@ -4,12 +4,13 @@
 #include <linux/sched/clock.h>
 
 struct preemptirq_info {
-	u64 start_ts;
-	u64 extra_start_ts;
-	u64 extra_time;
+	u64	start_ts;
+	u64	extra_start_ts;
+	u64	extra_time;
 	struct task_struct *task;
-	unsigned long   ncsw;
-	void *callback[5];
+	int	pid;
+	unsigned long	ncsw;
+	void*	callback[5];
 };
 
 static inline void timing_reset(struct preemptirq_info *info)
