@@ -434,9 +434,7 @@
 	};
 
 	widevine_reserved: widevine@e1800000 {
-		compatible = "shared-dma-pool";
-		reg = <0x0 0xe1800000 0x0 0x0e800000>;
-		reusable;
+		reg = <0x0 0xe1800000 0x0 0x0b400000>;
 	};
 
 	fd_reserved: faceid-mem@ffa70000 {
@@ -954,6 +952,13 @@
 &ion {
 	#address-cells = <1>;
 	#size-cells = <0>;
+
+	heap@1 {
+		reg = <1>;
+		label = "carveout_mm";
+		type = <2>;
+		memory-region = <&widevine_reserved>;
+	};
 
 	heap@4 {
 		reg = <4>;

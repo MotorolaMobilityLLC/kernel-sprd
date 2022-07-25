@@ -334,6 +334,13 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
+	heap@1 {
+		reg = <1>;
+		label = "carveout_mm";
+		type = <2>;
+		memory-region = <&widevine_reserved>;
+	};
+
 	heap@2 {
 		reg = <2>;
 		label = "carveout_fd";
@@ -556,9 +563,7 @@
 	};
 
 	widevine_reserved: widevine@e3800000 {
-		compatible = "shared-dma-pool";
-		reg = <0x0 0xe3800000 0x0 0x0c800000>;
-		reusable;
+		reg = <0x0 0xe3800000 0x0 0x0b400000>;
 	};
 	/* Encrypt and decrypt widevine video */
 	oemcrypto_reserved: oemcrypto@b6100000 {
