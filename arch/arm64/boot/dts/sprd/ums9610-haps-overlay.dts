@@ -332,3 +332,31 @@
 		interrupts = <169 IRQ_TYPE_LEVEL_LOW>;
 	};
 };
+
+/*
+ * Because LK define CONFIG_FPGA in HAPS Board and not perform subsys enable.
+ * Disable clk subsys node:mm,gpu,dpu_vsp.
+ */
+&mm_gate {
+	status = "disabled";
+};
+
+&gpuapb_gate {
+	status = "disabled";
+};
+
+&dpu_vsp_gate {
+	status = "disabled";
+};
+
+&mm_clk {
+	status = "disabled";
+};
+
+&gpu_clk {
+	status = "disabled";
+};
+
+&dpu_vsp_clk {
+	status = "disabled";
+};
