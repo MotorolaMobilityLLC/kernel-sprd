@@ -186,7 +186,6 @@ int sprd_atomic_helper_commit(struct drm_device *dev,
 			struct drm_atomic_state *state, bool nonblock)
 {
 	int ret;
-	struct sprd_drm *sprd = dev->dev_private;
 
 	/*
 	 * FIXME:
@@ -228,7 +227,6 @@ int sprd_atomic_helper_commit(struct drm_device *dev,
 		goto err;
 
 	drm_atomic_state_get(state);
-	sprd->state = state;
 	if (nonblock)
 		queue_work(system_unbound_wq, &state->commit_work);
 	else

@@ -326,8 +326,11 @@ static int sprd_panel_esd_check(struct sprd_panel *panel)
 	u8 read_val = 0;
 
 	if (!panel->base.connector ||
-		!panel->base.connector->encoder ||
-		!panel->base.connector->encoder->crtc) {
+	    !panel->base.connector->encoder ||
+	    !panel->base.connector->encoder->crtc ||
+	    (panel->base.connector->encoder->crtc->state &&
+	    !panel->base.connector->encoder->crtc->state->active)) {
+		DRM_INFO("skip esd during panel suspend\n");
 		return 0;
 	}
 
@@ -359,12 +362,22 @@ static int sprd_panel_te_check(struct sprd_panel *panel)
 {
 	struct sprd_dpu *dpu;
 	struct sprd_crtc *crtc;
+	struct sprd_dsi *dsi;
 	int ret;
 	bool irq_occur = false;
 
 	if (!panel->base.connector ||
 	    !panel->base.connector->encoder ||
-	    !panel->base.connector->encoder->crtc) {
+	    !panel->base.connector->encoder->crtc ||
+	    (panel->base.connector->encoder->crtc->state &&
+	    !panel->base.connector->encoder->crtc->state->active)) {
+		DRM_INFO("skip esd during panel suspend\n");
+		return 0;
+	}
+
+	dsi = container_of(panel->base.connector, struct sprd_dsi, connector);
+	if (!dsi->ctx.enabled) {
+		DRM_WARN("dsi is not initialized，skip esd check\n");
 		return 0;
 	}
 
