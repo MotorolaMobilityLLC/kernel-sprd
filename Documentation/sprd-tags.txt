@@ -132,6 +132,7 @@ misc:sprd_camera:
 misc:sprd_gnss:
 misc:sprd_uid:
 misc:sprdwcn:
+misc:vibrator:
 mm:
 mmc:core:
 mmc:host:
