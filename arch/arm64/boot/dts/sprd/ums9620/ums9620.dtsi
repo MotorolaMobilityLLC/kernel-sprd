@@ -341,11 +341,6 @@
 			sprd,aon_apb_regs_syscon = <&aon_apb_regs>;
 		};
 	};
-	ddr_dfs: scene-frequency {
-		compatible = "sprd,dfs";
-		freq-num = <8>;
-		backdoor = <2133>;
-	};
 
 	sipc: sipc-virt {
 		compatible = "unisoc,sipc-virt-bus";
