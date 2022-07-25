@@ -788,7 +788,7 @@ static int sprd_oled_set_brightness(struct backlight_device *bdev)
         if (level < 256)
         {
             g_last_level = level;
-            level = ((level * 81) + 30)/ 100;
+            level = ((level * 73) + 30)/ 100;
         }
     }
 
