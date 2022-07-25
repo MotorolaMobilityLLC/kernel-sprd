@@ -17489,12 +17489,12 @@ CONFIG_SPRD_USB_U_ETHER
 	[function]
 CONFIG_SPRD_USERLOG
 	[arch] arm64
-	[plat] sharkl3
-	[missing plat] sharkl5Pro
+	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
 	[field] code,make
 	[subsys] debug
 	[must] user
-	[missing plat description] supply userlog dev feature for sharkl3
+	[missing plat description] none
 	[function] Create userlog dev driver
 CONFIG_SPRD_VSP
 	[arch] all
