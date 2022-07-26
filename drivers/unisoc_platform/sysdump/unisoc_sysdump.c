@@ -330,7 +330,7 @@ void sprd_debug_check_crash_key(unsigned int code, int value)
 		}
 	}
 }
-int is_vmalloc_or_module_addr(const void *x)
+int sprd_vmalloc_or_module_addr(const void *x)
 {
 	unsigned long addr = (unsigned long)kasan_reset_tag(x);
 #if defined(CONFIG_MODULES) && defined(MODULES_VADDR)
@@ -350,7 +350,7 @@ unsigned long unisoc_virt_to_phys(const void *kaddr)
 	if (!sprd_virt_addr_valid(kaddr))
 		return -1;
 	/* module and vmalloc vmap area */
-	if (is_vmalloc_or_module_addr(kaddr)) {
+	if (sprd_vmalloc_or_module_addr(kaddr)) {
 		vmalloc_page = vmalloc_to_page(kaddr);
 		page_phys = page_to_phys(vmalloc_page);
 		paddr = (unsigned long)(page_phys + PAGEOFFSET(kaddr));
@@ -1934,12 +1934,23 @@ static int sysdump_early_init(void)
 	int ret;
 	/* register sysdump panic notifier */
 	sysdump_panic_event_init();
+	/* sysdump_ipi for each cpu */
+	register_trace_android_vh_ipi_stop(sysdump_ipi, NULL);
+	/* bug-on event */
+	register_trace_android_rvh_report_bug(get_file_line_info, NULL);
 	/* init kaslr_offset if need */
 	ret = sysdump_info_init();
 	if (ret)
 		pr_emerg("sysdump_info init failed!!!\n");
 
 	minidump_info_init();
+
+	/* last kmsg init */
+	last_kmsg_init();
+	/* vmcoreinfo init */
+	crash_save_vmcoreinfo_init();
+	/* add percpu info to vmcoreinfo data, behind init */
+	update_vmcoreinfo_data();
 
 	return 0;
 }
@@ -1961,19 +1972,15 @@ static int per_cpu_funcs_init(void)
 static int sysdump_sysctl_init(void)
 {
 	struct proc_dir_entry *sysdump_proc;
-//	void (*sysdump_ipi_p)(void*, struct pt_regs *) = sysdump_ipi;
-//	void (*get_file_line_p)(void *,const char *, unsigned int, unsigned long) = get_file_line_info;
 	sysdump_sysctl_hdr =
 	    register_sysctl_table((struct ctl_table *)sysdump_sysctl_root);
 	if (!sysdump_sysctl_hdr)
 		return -ENOMEM;
+#if !IS_ENABLED(CONFIG_SPRD_SYSDUMP_DEBUG)
 	/* panic notifer, mindump_info, ...*/
 	sysdump_early_init();
+#endif
 
-	/* sysdump_ipi for each cpu */
-	register_trace_android_vh_ipi_stop(sysdump_ipi, NULL);
-	/* bug-on event */
-	register_trace_android_rvh_report_bug(get_file_line_info, NULL);
 	/* per cpu data */
 	per_cpu_funcs_init();
 	if (input_register_handler(&sysdump_handler))
@@ -1995,13 +2002,6 @@ static int sysdump_sysctl_init(void)
 #ifdef CONFIG_SPRD_MINI_SYSDUMP
 	minidump_init();
 #endif
-	/* last kmsg init*/
-	last_kmsg_init();
-	/* vmcoreinfo init */
-	crash_save_vmcoreinfo_init();
-	/* add percpu info to vmcoreinfo data, behind init */
-	update_vmcoreinfo_data();
-//	pr_info("note buf size is %ld\n", SYSDUMP_NOTE_BYTES);
 
 	return 0;
 }
@@ -2029,9 +2029,14 @@ void sysdump_sysctl_exit(void)
 	crash_save_vmcoreinfo_exit();
 	unregister_trace_android_vh_ipi_stop(sysdump_ipi, NULL);
 }
-
+/* built-in for debug version */
+#if IS_ENABLED(CONFIG_SPRD_SYSDUMP_DEBUG)
+early_initcall(sysdump_early_init);
+late_initcall_sync(sysdump_sysctl_init);
+#else
 module_init(sysdump_sysctl_init);
 module_exit(sysdump_sysctl_exit);
+#endif
 
 MODULE_IMPORT_NS(MINIDUMP);
 /*MODULE_AUTHOR("Jianjun.He <jianjun.he@spreadtrum.com>");*/
