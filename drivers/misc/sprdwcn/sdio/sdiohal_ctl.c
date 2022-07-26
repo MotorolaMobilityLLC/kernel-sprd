@@ -7,6 +7,7 @@
 #include <linux/slab.h>
 #include <linux/uaccess.h>
 #include <linux/vmalloc.h>
+#include <linux/mutex.h>
 #include <misc/wcn_bus.h>
 
 #include "sdiohal.h"
@@ -105,6 +106,9 @@ static int tp_tx_buf_cnt = TP_TX_BUF_CNT;
 static int tp_tx_buf_len = TP_TX_BUF_LEN;
 long int sdiohal_log_level;
 
+struct mutex test_buf_mux;
+struct mutex tp_tx_buf_mux;
+
 #if TCP_TEST_RX
 struct completion tp_rx_completed;
 int rx_pop_cnt;
@@ -166,6 +170,7 @@ static int sdiohal_simple_test_tx(size_t count)
 	int tx_debug_num = 4;
 	int i;
 
+	mutex_lock(&test_buf_mux);
 	test_buf = kzalloc(1024, GFP_KERNEL);
 	if (!test_buf) {
 		WCN_ERR("test_buf kzalloc memory fail");
@@ -195,7 +200,8 @@ static int sdiohal_simple_test_tx(size_t count)
 			WCN_INFO("%s tx_debug_num=%d < 5\n",
 				 __func__, tx_debug_num);
 	}
-	kfree(test_buf);
+	//kfree(test_buf);
+	mutex_unlock(&test_buf_mux);
 
 	return 0;
 }
@@ -233,6 +239,8 @@ static int sdiohal_throughput_tx(void)
 	int buf_len = tp_tx_buf_len;
 	int ret = 0;
 
+	mutex_lock(&tp_tx_buf_mux);
+
 	if (!sprdwcn_bus_list_alloc(AT_TX_CHANNEL,
 				    &head, &tail, &tx_debug_num)) {
 		if (tx_debug_num >= tp_tx_buf_cnt) {
@@ -260,6 +268,8 @@ static int sdiohal_throughput_tx(void)
 
 		return -ENOMEM;
 	}
+
+	mutex_unlock(&tp_tx_buf_mux);
 
 	return -ENOMEM;
 }
@@ -1072,6 +1082,8 @@ void sdiohal_debug_init(void)
 	}
 
 	at_cmd_init();
+	mutex_init(&test_buf_mux);
+	mutex_init(&tp_tx_buf_mux);
 }
 
 void sdiohal_debug_deinit(void)
