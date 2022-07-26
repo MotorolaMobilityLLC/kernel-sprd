@@ -253,6 +253,13 @@
 					<&gpu THERMAL_NO_LIMIT \
 					THERMAL_NO_LIMIT>;
 				};
+				map7 {
+					trip = <&soc_target>;
+					contribution = <1024>;
+					cooling-device =
+					<&npu_img THERMAL_NO_LIMIT \
+					THERMAL_NO_LIMIT>;
+				};
 			};
 		};
 
