@@ -535,6 +535,7 @@ static int gs_start_io(struct gs_port *port)
 {
 	struct list_head	*head = &port->read_pool;
 	struct usb_ep		*ep = port->port_usb->out;
+	struct usb_ep		*epin = port->port_usb->in;
 	int			status;
 	unsigned		started;
 
@@ -549,7 +550,7 @@ static int gs_start_io(struct gs_port *port)
 	if (status)
 		return status;
 
-	status = gs_alloc_requests(port->port_usb->in, &port->write_pool,
+	status = gs_alloc_requests(epin, &port->write_pool,
 			gs_write_complete, &port->write_allocated);
 	if (status) {
 		gs_free_requests(ep, head, &port->read_allocated);
@@ -567,7 +568,7 @@ static int gs_start_io(struct gs_port *port)
 		tty_wakeup(port->port.tty);
 	} else {
 		gs_free_requests(ep, head, &port->read_allocated);
-		gs_free_requests(port->port_usb->in, &port->write_pool,
+		gs_free_requests(epin, &port->write_pool,
 			&port->write_allocated);
 		status = -EIO;
 	}
