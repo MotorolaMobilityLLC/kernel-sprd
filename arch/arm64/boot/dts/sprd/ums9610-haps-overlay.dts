@@ -2,7 +2,7 @@
 /plugin/;
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
-#include <dt-bindings/clock/sprd,ums9620-clk.h>
+#include <dt-bindings/clock/sprd,ums9610-clk.h>
 #include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
@@ -13,7 +13,6 @@
 #include <dt-bindings/mfd/sprd,ump9620-regs.h>
 #include <dt-bindings/mfd/sprd,ump9620-mask.h>
 #include <dt-bindings/input/input.h>
-#include <dt-bindings/clock/sprd,ums9620-clk.h>
 
 / {
 
@@ -281,7 +280,7 @@
 		//csi = <&csi2>;
 		power-domains = <&mm_domain>;
 	};
-
+/*
 	sensor_sub3: sensor-sensor_sub3@2e {
 		compatible = "sprd,sensor-sub3";
 		reg = <0x2e>;
@@ -300,6 +299,7 @@
 		//csi = <&csi3>;
 		power-domains = <&mm_domain>;
 	};
+*/
 };
 
 &i2c6 {
