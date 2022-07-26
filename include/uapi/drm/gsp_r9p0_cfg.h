@@ -292,7 +292,6 @@ struct gsp_r9p0_hdr10_cfg {
 };
 
 struct gsp_r9p0_misc_cfg_user {
-	__u8 gsp_id;
 	__u8 gsp_gap;
 	__u8 core_num;
 	__u8 co_work0;
@@ -317,6 +316,7 @@ struct gsp_r9p0_cfg_user {
 };
 
 struct drm_gsp_r9p0_cfg_user {
+	__u8 gsp_id;
 	bool async;
 	__u32 size;
 	__u32 num;
