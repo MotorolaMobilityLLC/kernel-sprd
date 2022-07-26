@@ -30,6 +30,7 @@ EXT_MODULES="
 ../modules/kernel5.15/display/dispc
 ../modules/kernel5.15/video/sprd-vsp
 ../modules/kernel5.15/video/sprd-vsp-power
+../modules/kernel5.15/video/sprd-jpg
 "
 
 #camera module version config
