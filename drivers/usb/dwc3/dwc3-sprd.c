@@ -305,8 +305,13 @@ static int dwc3_sprd_charger_mode(void)
 
 	if (mode)
 		return 1;
-	else
-		return 0;
+	else {
+		mode = strstr(cmdline, "sprdboot.mode=charger");
+		if (mode)
+			return 1;
+		else
+			return 0;
+	}
 
 }
 
@@ -332,8 +337,18 @@ static int dwc3_sprd_calibration_mode(void)
 		mode = strstr(cmdline, "androidboot.mode=autotest");
 		if (mode)
 			return 1;
-		else
-			return 0;
+		else {
+			mode = strstr(cmdline, "sprdboot.mode=cali");
+			if (mode)
+				return 1;
+			else {
+				mode = strstr(cmdline, "sprdboot.mode=autotest");
+				if (mode)
+					return 1;
+				else
+					return 0;
+			}
+		}
 	}
 }
 
