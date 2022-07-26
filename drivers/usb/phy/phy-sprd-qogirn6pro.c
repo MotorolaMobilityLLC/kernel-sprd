@@ -126,16 +126,32 @@ struct sprd_hsphy {
 #define SC27XX_CHG_REDET_DELAY_MS			960
 
 static int boot_cali;
-static __init int __maybe_unused sprd_hsphy_cali_mode(char *str)
+static int sprd_hsphy_cali_mode(void)
 {
-	if (strcmp(str, "cali"))
-		boot_cali = 0;
-	else
-		boot_cali = 1;
+	struct device_node *cmdline_node;
+	const char *cmdline, *mode;
+	int ret;
 
-	return 0;
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
+
+	if (ret) {
+		pr_err("Can't not parse bootargs\n");
+		return 0;
+	}
+
+	mode = strstr(cmdline, "androidboot.mode=cali");
+
+	if (mode)
+		return 1;
+	else {
+		mode = strstr(cmdline, "sprdboot.mode=cali");
+		if (mode)
+			return 1;
+		else
+			return 0;
+	}
 }
-__setup("androidboot.mode=", sprd_hsphy_cali_mode);
 
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
 {
@@ -584,6 +600,8 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		dev_err(dev, "unable to read hsphy vdd voltage\n");
 		return ret;
 	}
+
+	boot_cali = sprd_hsphy_cali_mode();
 
 	if (boot_cali) {
 		phy->vdd_vol = FULLSPEED_USB33_TUNE;
