@@ -10,6 +10,7 @@ ${KERNEL_DIR}/arch/arm64/configs/sprd_gki_qogirn6pro.fragment ${ROOT_DIR}/${FRAG
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
 
 EXT_MODULES="
+../modules/kernel5.15/input/fingerprint/microarray
 ../modules/kernel5.15/wcn/wlan/wlan_combo
 ../modules/kernel5.15/sample
 ../modules/kernel5.15/gpu/natt
