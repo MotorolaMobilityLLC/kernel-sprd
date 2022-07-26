@@ -858,8 +858,13 @@ static void musb_sprd_charger_mode(void)
 	s = strstr(cmd_line, "androidboot.mode=charger");
 	if (s != NULL)
 		boot_charging = 1;
-	else
-		boot_charging = 0;
+	else {
+		s = strstr(cmd_line, "sprdboot.mode=charger");
+		if (s != NULL)
+			boot_charging = 1;
+		else
+			boot_charging = 0;
+	}
 }
 
 static void sprd_musb_reset_context(struct musb *musb)
