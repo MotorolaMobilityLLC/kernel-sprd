@@ -218,20 +218,6 @@ config SCSI_UFS_SPRD
           Select this if you have UFS controller on SPRD chipset.
           If unsure, say N.
 
-config SCSI_UFS_SPRD_QOGIRN6PRO
-        tristate "SPRD QOGIRN6PRO UFS Host Controller Driver"
-        depends on SCSI_UFSHCD_PLATFORM
-        select SCSI_UFS_SPRD
-        help
-          This selects the SPRD QOGIRN6PRO chipset specific additions to UFSHCD
-          platform driver.
-          UFS host on SPRD needs some vendor specific configuration before
-          accessing the hardware which includes PHY configuration and vendor
-          specific registers.
-
-          Select this if you have UFS controller on SPRD QOGIRN6PRO chipset.
-          If unsure, say N.
-
 config SPRD_UFS_PROC_FS
 	bool "PROC bootdevice for extend UFS INFO"
 	depends on SCSI_UFS_SPRD

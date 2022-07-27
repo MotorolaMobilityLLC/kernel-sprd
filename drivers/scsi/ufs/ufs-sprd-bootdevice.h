@@ -34,14 +34,8 @@ struct ufs_device_identification {
 	u16 manufacturer_id;
 };
 
-#ifndef CONFIG_SPRD_UFS_PROC_FS
-static int sprd_ufs_proc_init(struct ufs_hba *hba) { return 0; }
-static void sprd_ufs_proc_exit(void) {}
-static int ufshcd_decode_ufs_uid(struct ufs_hba *hba) { return 0; }
-#else
 int sprd_ufs_proc_init(struct ufs_hba *hba);
 void sprd_ufs_proc_exit(void);
 int ufshcd_decode_ufs_uid(struct ufs_hba *hba);
-#endif
 
 #endif

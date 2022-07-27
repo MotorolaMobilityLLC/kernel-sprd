@@ -19,6 +19,11 @@
 #include "ufshcd-pltfrm.h"
 #include "ufs-sprd.h"
 #include "ufs-sprd-qogirn6pro.h"
+#include "ufs-sprd-ioctl.h"
+#include "ufs-sprd-rpmb.h"
+#ifdef CONFIG_SPRD_UFS_PROC_FS
+#include "ufs-sprd-bootdevice.h"
+#endif
 
 static int ufs_efuse_calib_data(struct platform_device *pdev,
 				const char *cell_name)
@@ -53,8 +58,8 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 				  struct ufs_sprd_host *host)
 {
 	struct platform_device *pdev = to_platform_device(dev);
-	struct ufs_sprd_priv_data *priv =
-		(struct ufs_sprd_priv_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9620_data *priv =
+		(struct ufs_sprd_ums9620_data *) host->ufs_priv_data;
 	int ret = 0;
 
 	priv->ufs_lane_calib_data1 = ufs_efuse_calib_data(pdev,
@@ -156,8 +161,8 @@ static int ufs_sprd_priv_pre_init(struct device *dev,
 	int ret = 0;
 
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
-	struct ufs_sprd_priv_data *priv =
-		(struct ufs_sprd_priv_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9620_data *priv =
+		(struct ufs_sprd_ums9620_data *) host->ufs_priv_data;
 	struct sprd_sip_svc_handle *svc_handle;
 
 	regmap_update_bits(priv->ap_ahb_ufs_rst.regmap,
@@ -189,12 +194,54 @@ static int ufs_sprd_priv_pre_init(struct device *dev,
 	return ret;
 }
 
-static void ufs_sprd_priv_exit(struct device *dev,
-			       struct ufs_hba *hba, struct ufs_sprd_host *host)
+static int ufs_sprd_init(struct ufs_hba *hba)
 {
-	struct ufs_sprd_priv_data *priv =
-		(struct ufs_sprd_priv_data *) host->ufs_priv_data;
+	struct device *dev = hba->dev;
+	struct ufs_sprd_host *host;
+	int ret = 0;
+
+	host = devm_kzalloc(dev, sizeof(*host), GFP_KERNEL);
+	if (!host)
+		return -ENOMEM;
+
+	host->ufs_priv_data = devm_kzalloc(dev,
+				 sizeof(struct ufs_sprd_ums9620_data),
+				 GFP_KERNEL);
+	if (!host->ufs_priv_data)
+		return -ENOMEM;
+
+	host->hba = hba;
+	ufshcd_set_variant(hba, host);
+
+	hba->caps |= UFSHCD_CAP_CLK_GATING |
+		UFSHCD_CAP_CRYPTO |
+		UFSHCD_CAP_WB_EN;
+	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
+		UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
+
+	ret = ufs_sprd_priv_parse_dt(dev, hba, host);
+	if (ret < 0)
+		return ret;
+
+	ret = ufs_sprd_priv_pre_init(dev, hba, host);
+	if (ret < 0)
+		return ret;
+
+	hba->host->hostt->ioctl = ufshcd_sprd_ioctl;
+#ifdef CONFIG_COMPAT
+	hba->host->hostt->compat_ioctl = ufshcd_sprd_ioctl;
+#endif
+
+	return 0;
+}
+
+static void ufs_sprd_exit(struct ufs_hba *hba)
+{
 	int err = 0;
+	struct device *dev = hba->dev;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9620_data *priv =
+		(struct ufs_sprd_ums9620_data *) host->ufs_priv_data;
 
 	regmap_update_bits(priv->aon_apb_ufs_clk_en.regmap,
 			   priv->aon_apb_ufs_clk_en.reg,
@@ -206,9 +253,11 @@ static void ufs_sprd_priv_exit(struct device *dev,
 		pr_err("disable vdd_mphy failed ret =0x%x!\n", err);
 
 	devm_kfree(dev, host->ufs_priv_data);
+	devm_kfree(dev, host);
+	hba->priv = NULL;
 }
 
-static u32 ufs_sprd_priv_get_hci_version(struct ufs_hba *hba)
+static u32 ufs_sprd_get_ufs_hci_version(struct ufs_hba *hba)
 {
 	return UFSHCI_VERSION_30;
 }
@@ -216,8 +265,8 @@ static u32 ufs_sprd_priv_get_hci_version(struct ufs_hba *hba)
 static void ufs_sprd_hw_init(struct ufs_hba *hba)
 {
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_priv_data *priv =
-		(struct ufs_sprd_priv_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9620_data *priv =
+		(struct ufs_sprd_ums9620_data *) host->ufs_priv_data;
 
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 
@@ -260,8 +309,8 @@ static int ufs_sprd_phy_sram_init_done(struct ufs_hba *hba)
 	uint32_t val = 0;
 	uint32_t retry = 10;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_priv_data *priv =
-		(struct ufs_sprd_priv_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9620_data *priv =
+		(struct ufs_sprd_ums9620_data *) host->ufs_priv_data;
 
 	do {
 		ret = regmap_read(priv->phy_sram_init_done.regmap,
@@ -296,8 +345,8 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 {
 	int ret = 0;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_priv_data *priv =
-		(struct ufs_sprd_priv_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9620_data *priv =
+		(struct ufs_sprd_ums9620_data *) host->ufs_priv_data;
 
 	ufshcd_dme_set(hba, UIC_ARG_MIB(CBREFCLKCTRL2), 0x90);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(CBCRCTRL), 0x01);
@@ -500,128 +549,188 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	return ret;
 }
 
-static int ufs_sprd_priv_hce_enable_pre(struct ufs_hba *hba)
-{
-#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
-	int ret = 0;
-	struct sprd_sip_svc_handle *svc_handle;
-#endif
-
-	/* Do hardware reset before host controller enable. */
-	ufs_sprd_hw_init(hba);
-
-#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
-	ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
-	svc_handle = sprd_sip_svc_get_handle();
-	if (!svc_handle) {
-		pr_err("%s: failed to get svc handle\n", __func__);
-		return -ENODEV;
-	}
-
-	ret = svc_handle->storage_ops.ufs_crypto_enable();
-	pr_err("smc: enable cfg, ret:0x%x", ret);
-#endif
-
-	return 0;
-}
-
-static int ufs_sprd_priv_hce_enable_post(struct ufs_hba *hba)
+static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
+				      enum ufs_notify_change_status status)
 {
 	int err = 0;
+	int ret = 0;
+	struct sprd_sip_svc_handle *svc_handle;
 
-	err = ufs_sprd_phy_init(hba);
-	if (err)
-		dev_err(hba->dev, "Phy setup failed (%d)\n", err);
+	switch (status) {
+	case PRE_CHANGE:
+		/* Do hardware reset before host controller enable. */
+		ufs_sprd_hw_init(hba);
+
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+		ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
+		svc_handle = sprd_sip_svc_get_handle();
+		if (!svc_handle) {
+			pr_err("%s: failed to get svc handle\n", __func__);
+			return -ENODEV;
+		}
+
+		ret = svc_handle->storage_ops.ufs_crypto_enable();
+		pr_err("smc: enable cfg, ret:0x%x", ret);
+#endif
+		break;
+	case POST_CHANGE:
+		err = ufs_sprd_phy_init(hba);
+		if (err)
+			dev_err(hba->dev, "Phy setup failed (%d)\n", err);
+		break;
+	default:
+		dev_err(hba->dev, "%s: invalid status %d\n", __func__, status);
+		err = -EINVAL;
+		break;
+	}
 
 	return err;
 }
 
-static void ufs_sprd_priv_h8_pre(struct ufs_hba *hba, enum uic_cmd_dme cmd)
+static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
+				      enum ufs_notify_change_status status,
+				      struct ufs_pa_layer_attr *dev_max_params,
+				      struct ufs_pa_layer_attr *dev_req_params)
+{
+	int err = 0;
+
+	if (!dev_req_params) {
+		pr_err("%s: incoming dev_req_params is NULL\n", __func__);
+		err = -EINVAL;
+		goto out;
+	}
+
+	switch (status) {
+	case PRE_CHANGE:
+		memcpy(dev_req_params, dev_max_params,
+		       sizeof(struct ufs_pa_layer_attr));
+		break;
+	case POST_CHANGE:
+		if (ufshcd_is_auto_hibern8_supported(hba))
+			hba->ahit = AUTO_H8_IDLE_TIME_10MS;
+		break;
+	default:
+		err = -EINVAL;
+		break;
+	}
+
+out:
+	return err;
+}
+
+static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
+				    enum uic_cmd_dme cmd,
+				    enum ufs_notify_change_status status)
 {
 	u32 set;
 	unsigned long flags;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_priv_data *priv =
-		(struct ufs_sprd_priv_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9620_data *priv =
+		(struct ufs_sprd_ums9620_data *) host->ufs_priv_data;
 
-	if (cmd == UIC_CMD_DME_HIBER_ENTER) {
-		spin_lock_irqsave(hba->host->host_lock, flags);
-		set = ufshcd_readl(hba, REG_INTERRUPT_ENABLE);
-		set &= ~UIC_COMMAND_COMPL;
-		ufshcd_writel(hba, set, REG_INTERRUPT_ENABLE);
-		spin_unlock_irqrestore(hba->host->host_lock, flags);
-	}
+	switch (status) {
+	case PRE_CHANGE:
+		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
+			if (ufshcd_is_auto_hibern8_supported(hba)) {
+				spin_lock_irqsave(hba->host->host_lock, flags);
+				ufshcd_writel(hba, 0, REG_AUTO_HIBERNATE_IDLE_TIMER);
+				spin_unlock_irqrestore(hba->host->host_lock, flags);
+			}
 
-	if (cmd == UIC_CMD_DME_HIBER_EXIT) {
-		regmap_update_bits(priv->ufsdev_refclk_en.regmap,
+			spin_lock_irqsave(hba->host->host_lock, flags);
+			set = ufshcd_readl(hba, REG_INTERRUPT_ENABLE);
+			set &= ~UIC_COMMAND_COMPL;
+			ufshcd_writel(hba, set, REG_INTERRUPT_ENABLE);
+			spin_unlock_irqrestore(hba->host->host_lock, flags);
+		}
+
+		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
+			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
 				   priv->ufsdev_refclk_en.reg,
 				   priv->ufsdev_refclk_en.mask,
 				   priv->ufsdev_refclk_en.mask);
 
-		regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
+			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
 				   priv->usb31pllv_ref2mphy_en.reg,
 				   priv->usb31pllv_ref2mphy_en.mask,
 				   priv->usb31pllv_ref2mphy_en.mask);
+		}
+		break;
+	case POST_CHANGE:
+		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
+			spin_lock_irqsave(hba->host->host_lock, flags);
+			set = ufshcd_readl(hba, REG_INTERRUPT_ENABLE);
+			set |= UIC_COMMAND_COMPL;
+			ufshcd_writel(hba, set, REG_INTERRUPT_ENABLE);
+			spin_unlock_irqrestore(hba->host->host_lock, flags);
+
+			if (ufshcd_is_auto_hibern8_supported(hba)) {
+				spin_lock_irqsave(hba->host->host_lock, flags);
+				ufshcd_writel(hba, AUTO_H8_IDLE_TIME_10MS,
+					REG_AUTO_HIBERNATE_IDLE_TIMER);
+				spin_unlock_irqrestore(hba->host->host_lock, flags);
+			}
+		}
+
+		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
+			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
+					   priv->ufsdev_refclk_en.reg,
+					   priv->ufsdev_refclk_en.mask,
+					   0);
+
+			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
+					   priv->usb31pllv_ref2mphy_en.reg,
+					   priv->usb31pllv_ref2mphy_en.mask,
+					   0);
+		}
+		break;
+	default:
+		break;
 	}
 }
 
-static void ufs_sprd_priv_h8_post(struct ufs_hba *hba, enum uic_cmd_dme cmd)
+/* FOR writebooster */
+static int ufs_sprd_device_reset(struct ufs_hba *hba)
 {
-	u32 set;
-	unsigned long flags;
-	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_priv_data *priv =
-		(struct ufs_sprd_priv_data *) host->ufs_priv_data;
-
-	if (cmd == UIC_CMD_DME_HIBER_EXIT) {
-		spin_lock_irqsave(hba->host->host_lock, flags);
-		set = ufshcd_readl(hba, REG_INTERRUPT_ENABLE);
-		set |= UIC_COMMAND_COMPL;
-		ufshcd_writel(hba, set, REG_INTERRUPT_ENABLE);
-		spin_unlock_irqrestore(hba->host->host_lock, flags);
-	}
-
-	if (cmd == UIC_CMD_DME_HIBER_ENTER) {
-		regmap_update_bits(priv->ufsdev_refclk_en.regmap,
-				   priv->ufsdev_refclk_en.reg,
-				   priv->ufsdev_refclk_en.mask,
-				   0);
-
-		regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
-				   priv->usb31pllv_ref2mphy_en.reg,
-				   priv->usb31pllv_ref2mphy_en.mask,
-				   0);
-	}
-}
-
-static struct sprd_ufs_comm_vops ufs_sprd_data = {
-	.name = "sprd,qogirn6pro-ufs",
-	.caps = UFSHCD_CAP_CLK_GATING |
-		UFSHCD_CAP_CRYPTO |
-		UFSHCD_CAP_WB_EN,
-	.quirks = UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
-		  UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS,
-
-	.parse_dt = ufs_sprd_priv_parse_dt,
-	.pre_init = ufs_sprd_priv_pre_init,
-	.exit_notify = ufs_sprd_priv_exit,
-	.get_ufs_hci_ver = ufs_sprd_priv_get_hci_version,
-	.hce_enable_pre_notify = ufs_sprd_priv_hce_enable_pre,
-	.hce_enable_post_notify = ufs_sprd_priv_hce_enable_post,
-	.hibern8_pre_notify = ufs_sprd_priv_h8_pre,
-	.hibern8_post_notify = ufs_sprd_priv_h8_post,
-};
-
-int ufs_sprd_plat_priv_data_init(struct device *dev,
-				 struct ufs_hba *hba, struct ufs_sprd_host *host)
-{
-	host->ufs_priv_data = devm_kzalloc(dev,
-					   sizeof(struct ufs_sprd_priv_data),
-					   GFP_KERNEL);
-	if (!host->ufs_priv_data)
-		return -ENOMEM;
-
-	host->comm_vops = &ufs_sprd_data;
-
 	return 0;
 }
+
+static void ufs_sprd_setup_xfer_req(struct ufs_hba *hba, int task_tag, bool scsi_cmd)
+{
+	struct ufshcd_lrb *lrbp;
+	struct utp_transfer_req_desc *req_desc;
+	u32 data_direction;
+	u32 dword_0, crypto;
+
+	lrbp = &hba->lrb[task_tag];
+	req_desc = lrbp->utr_descriptor_ptr;
+	dword_0 = le32_to_cpu(req_desc->header.dword_0);
+	data_direction = dword_0 & (UTP_DEVICE_TO_HOST | UTP_HOST_TO_DEVICE);
+	crypto = dword_0 & UTP_REQ_DESC_CRYPTO_ENABLE_CMD;
+	if (!data_direction && crypto) {
+		dword_0 &= ~(UTP_REQ_DESC_CRYPTO_ENABLE_CMD);
+		req_desc->header.dword_0 = cpu_to_le32(dword_0);
+	}
+}
+
+static void ufs_sprd_fixup_dev_quirks(struct ufs_hba *hba)
+{
+#ifdef CONFIG_SPRD_UFS_PROC_FS
+	/* vendor UFS UID info decode. */
+	ufshcd_decode_ufs_uid(hba);
+#endif
+}
+
+const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops = {
+	.name = "sprd,ufshc-ums9620",
+	.init = ufs_sprd_init,
+	.exit = ufs_sprd_exit,
+	.get_ufs_hci_version = ufs_sprd_get_ufs_hci_version,
+	.hce_enable_notify = ufs_sprd_hce_enable_notify,
+	.pwr_change_notify = ufs_sprd_pwr_change_notify,
+	.hibern8_notify = ufs_sprd_hibern8_notify,
+	.setup_xfer_req = ufs_sprd_setup_xfer_req,
+	.fixup_dev_quirks = ufs_sprd_fixup_dev_quirks,
+	.device_reset = ufs_sprd_device_reset,
+};
+EXPORT_SYMBOL(ufs_hba_sprd_ums9620_vops);
