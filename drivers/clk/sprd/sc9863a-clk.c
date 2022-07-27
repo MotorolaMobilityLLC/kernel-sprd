@@ -1268,8 +1268,9 @@ static SPRD_SC_GATE_CLK_HW(ap_tmr1_eb,	"ap-tmr1-eb",	&aon_apb.common.hw,
 			   0x4, 0x1000, BIT(9), 0, 0);
 static SPRD_SC_GATE_CLK_HW(ap_tmr2_eb,	"ap-tmr2-eb",	&aon_apb.common.hw,
 			   0x4, 0x1000, BIT(10), 0, 0);
+//The display module need to use IGNORE_UNUSED
 static SPRD_SC_GATE_CLK_HW(disp_emc_eb,	"disp-emc-eb",	&aon_apb.common.hw,
-			   0x4, 0x1000, BIT(11), 0, 0);
+			   0x4, 0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(zip_emc_eb,	"zip-emc-eb",	&aon_apb.common.hw,
 			   0x4, 0x1000, BIT(12), 0, 0);
 static SPRD_SC_GATE_CLK_HW(gsp_emc_eb,	"gsp-emc-eb",	&aon_apb.common.hw,
@@ -1340,8 +1341,9 @@ static SPRD_SC_GATE_CLK_HW(bb_cal_rtc_eb, "bb-cal-rtc-eb", &aon_apb.common.hw,
 			   0x10, 0x1000, BIT(18), 0, 0);
 static SPRD_SC_GATE_CLK_HW(gpu_eb, "gpu-eb", &aon_apb.common.hw, 0x50,
 			   0x1000, BIT(0), 0, 0);
+//The display module need to use IGNORE_UNUSED
 static SPRD_SC_GATE_CLK_HW(disp_eb, "disp-eb", &aon_apb.common.hw, 0x50,
-			   0x1000, BIT(2), 0, 0);
+			   0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(mm_emc_eb, "mm-emc-eb", &aon_apb.common.hw, 0x50,
 			   0x1000, BIT(3), 0, 0);
 static SPRD_SC_GATE_CLK_HW(power_cpu_eb, "power-cpu-eb", &aon_apb.common.hw, 0x50,
