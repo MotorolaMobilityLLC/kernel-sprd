@@ -21,6 +21,7 @@
 
 #include <linux/usb/ch9.h>
 #include <linux/usb/gadget.h>
+#include <linux/usb/pam.h>
 
 #include "debug.h"
 #include "core.h"
@@ -635,6 +636,17 @@ static int dwc3_gadget_set_ep_config(struct dwc3_ep *dep, unsigned int action)
 		params.param1 |= DWC3_DEPCFG_BINTERVAL_M1(bInterval_m1);
 	}
 
+#ifdef CONFIG_USB_PAM
+	/* Workaround for SPRD PAMU3 ep intnum mapping */
+	if (dep->endpoint.android_kabi_reserved1 == 0xff) {
+		if (dep->direction)
+			params.param1 |= DWC3_DEPCFG_INT_NUM(1);
+		else
+			params.param1 |= DWC3_DEPCFG_INT_NUM(2);
+		params.param1 |= DWC3_DEPCFG_XFER_COMPLETE_EN;
+	}
+#endif
+
 	return dwc3_send_gadget_ep_cmd(dep, DWC3_DEPCMD_SETEPCONFIG, &params);
 }
 
@@ -886,6 +898,12 @@ static int __dwc3_gadget_ep_enable(struct dwc3_ep *dep, unsigned int action)
 		trb_link->ctrl |= DWC3_TRB_CTRL_HWO;
 	}
 
+#ifdef CONFIG_USB_PAM
+	if (dep->endpoint.android_kabi_reserved1 == 0xff) {
+		usb_phy_init(dwc->pam);
+		goto out;
+	}
+#endif
 	/*
 	 * Issue StartTransfer here with no-op TRB so we can always rely on No
 	 * Response Update Transfer command.
@@ -1077,6 +1095,10 @@ static int dwc3_gadget_ep_disable(struct usb_ep *ep)
 	dep = to_dwc3_ep(ep);
 	dwc = dep->dwc;
 
+#ifdef CONFIG_USB_PAM
+	if (ep->android_kabi_reserved1 == 0xff)
+		usb_phy_set_suspend(dwc->pam, 1);
+#endif
 	if (dev_WARN_ONCE(dwc->dev, !(dep->flags & DWC3_EP_ENABLED),
 					"%s is already disabled\n",
 					dep->name))
