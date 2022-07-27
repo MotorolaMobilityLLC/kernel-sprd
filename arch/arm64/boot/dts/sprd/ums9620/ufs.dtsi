@@ -7,7 +7,7 @@
  */
 &apahb {
 	ufs: ufs@2000000 {
-		compatible  = "sprd,ufshc";
+		compatible  = "sprd,ufshc-ums9620";
 		reg = <0x2000000 0x10000>;
 		interrupts = <GIC_SPI 159 IRQ_TYPE_LEVEL_HIGH>;
 		vcc-supply = <&vddemmccore>;
