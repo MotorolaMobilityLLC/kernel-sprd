@@ -357,6 +357,11 @@ static void dpu_glb_enable(struct dpu_context *ctx)
 
 static void dpu_glb_disable(struct dpu_context *ctx)
 {
+	regmap_update_bits(ctx_reset.regmap,
+			ctx_reset.enable_reg,
+			ctx_reset.mask_bit,
+			ctx_reset.mask_bit);
+	udelay(10);
 	clk_disable_unprepare(clk_dpuvsp_disp_eb);
 	clk_disable_unprepare(clk_dpuvsp_eb);
 }
