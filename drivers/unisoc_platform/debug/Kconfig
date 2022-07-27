@@ -17,3 +17,4 @@ config SPRD_LOOK_AT
 source "drivers/unisoc_platform/debug/busmonitor/Kconfig"
 source "drivers/unisoc_platform/debug/djtag/Kconfig"
 source "drivers/unisoc_platform/debug/dmc_mpu/Kconfig"
+source "drivers/unisoc_platform/debug/userspace_debug/Kconfig"
