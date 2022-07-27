@@ -68,7 +68,7 @@
 			interrupts = <GIC_SPI 142 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "irq";
 			usb-phy = <&ssphy>, <&ssphy>;
-			#usb-pam = <&pamu3>;
+			usb-pam = <&pamu3>;
 			phy_type = "utmi";
 			usb-role-switch;
 			linux,sysdev_is_parent;
