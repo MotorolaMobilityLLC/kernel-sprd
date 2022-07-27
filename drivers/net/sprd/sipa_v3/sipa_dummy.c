@@ -762,7 +762,7 @@ void sipa_dummy_unreg_netdev_notifier(void)
 	unregister_netdevice_notifier(&sipa_dummy_netdev_notifier);
 }
 
-static void __init sipa_dummy_debugfs_init(void)
+static void sipa_dummy_debugfs_init(void)
 {
 	dummy_debugfs_root = debugfs_create_dir("sipa_dummy", NULL);
 	if (!dummy_debugfs_root)
