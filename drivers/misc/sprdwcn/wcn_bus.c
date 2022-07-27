@@ -220,6 +220,10 @@ int bus_chn_init(struct mchn_ops_t *ops, int hif_type)
 	struct chn_info_t *chn_inf = chn_info();
 
 	WCN_INFO("[+]%s(%d, %d)\n", __func__, ops->channel, ops->hif_type);
+
+	if (ops->channel >= CHN_MAX_NUM || ops->channel < 0)
+		return -1;
+
 	if (chn_inf->ops[ops->channel] != NULL) {
 		WCN_ERR("%s err, hif_type %d\n", __func__, ops->hif_type);
 		WARN_ON(1);
