@@ -1415,6 +1415,11 @@ spi_transfer_is_last(struct spi_controller *ctlr, struct spi_transfer *xfer)
 	return list_is_last(&xfer->transfer_list, &ctlr->cur_msg->transfers);
 }
 
+#if IS_ENABLED(CONFIG_SPRD_SIPC)
+void spi_callback_register(int (*callback)(u8 dst));
+void spi_callback_unregister(void);
+#endif
+
 /* OF support code */
 #if IS_ENABLED(CONFIG_OF)
 

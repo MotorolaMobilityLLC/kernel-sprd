@@ -632,6 +632,8 @@ int smsg_senddie(u8 dst)
 		SIPC_WRITEL(SIPC_READL(ipc->txbuf_wrptr) + 1, ipc->txbuf_wrptr);
 
 	}
+	/* k5.4 send die msg in spi, sp soc dump need time, so here add delay */
+	mdelay(1000);
 
 send_failed:
 	sprd_pms_release_resource(ipc->sipc_pms);
