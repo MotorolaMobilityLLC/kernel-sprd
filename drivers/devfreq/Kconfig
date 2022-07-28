@@ -175,6 +175,12 @@ config DVFS_APSYS_SPRD
 	help
 	  This function is to support the apsys dvfs function.
 
+config DRM_SPRD_GSP_DVFS
+	bool "SPRD DRM GSP dvfs driver"
+	depends on DVFS_APSYS_SPRD
+	help
+	  This function is to support the dvfs function.
+
 source "drivers/devfreq/event/Kconfig"
 
 endif # PM_DEVFREQ
