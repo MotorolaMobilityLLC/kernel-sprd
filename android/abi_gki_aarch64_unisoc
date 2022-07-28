@@ -1585,6 +1585,10 @@
   iio_buffer_put
   __kfifo_to_user
 
+# required by kprobe_block.ko
+  register_kprobe
+  unregister_kprobe
+
 # required by leds-sc27xx-bltc.ko
   devm_led_classdev_register_ext
 
@@ -1664,6 +1668,11 @@
   vmalloc_user
   ww_mutex_lock
   ww_mutex_unlock
+
+# required by mali_kbase.ko
+  dev_pm_qos_read_value
+  __find_vma
+  __traceiter_gpu_mem_total
 
 # required by microarray_fp.ko
   cdev_alloc
@@ -2461,15 +2470,28 @@
   bsearch
   devm_kstrdup
   __memcpy_toio
+  __mmap_lock_do_trace_acquire_returned
+  __mmap_lock_do_trace_released
+  __mmap_lock_do_trace_start_locking
   of_match_device
   of_n_addr_cells
   of_n_size_cells
   of_translate_address
   sort
+  __traceiter_mmap_lock_acquire_returned
+  __traceiter_mmap_lock_released
+  __traceiter_mmap_lock_start_locking
+  __tracepoint_mmap_lock_acquire_returned
+  __tracepoint_mmap_lock_released
+  __tracepoint_mmap_lock_start_locking
 
 # required by sprd_wdt.ko
   devm_watchdog_register_device
   watchdog_init_timeout
+
+# required by sprd_wlan_combo.ko
+  __netdev_alloc_frag_align
+  printk_timed_ratelimit
 
 # required by sprdbt_sipc_tty.ko
   tty_schedule_flip
@@ -2953,8 +2975,12 @@
   of_iomap
 
 # required by sprd_camera.ko
+  dma_heap_buffer_alloc
+  dma_heap_buffer_free
+  dma_heap_find
   ktime_get_ts64
   of_irq_to_resource
+  _raw_read_trylock
   _raw_spin_trylock
   regulator_get_linear_step
 
