@@ -193,7 +193,7 @@ static int sprd_time_sync_ch_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	unsigned int syscon_args[2];
 	unsigned long flags;
-	int ret = 0;
+	struct regmap *regmap;
 
 	sprd_time_sync_ch_addr_base = of_iomap(np, 0);
 	if (!sprd_time_sync_ch_addr_base) {
@@ -201,19 +201,21 @@ static int sprd_time_sync_ch_probe(struct platform_device *pdev)
 		return -EFAULT;
 	}
 
-	ch_cfg_bus.regmap = syscon_regmap_lookup_by_name(np, "ch_cfg_bus");
+	/*ch_cfg_bus.regmap = syscon_regmap_lookup_by_name(np,"ch_cfg_bus");*/
+	/*ch_cfg_bus.regmap = syscon_regmap_lookup_by_phandle(np, "ch_cfg_bus");
 	if (IS_ERR(ch_cfg_bus.regmap)) {
 		pr_err("failed to map ch_cfg_bus reg.\n");
 		return PTR_ERR(ch_cfg_bus.regmap);
-	}
+	}*/
 
-	ret = syscon_get_args_by_name(np, "ch_cfg_bus", 2, syscon_args);
-	if (ret == 2) {
-		ch_cfg_bus.ctrl_reg = syscon_args[0];
-		ch_cfg_bus.ctrl_mask = syscon_args[1];
-	} else {
+	/*ret = syscon_get_args_by_name(np, "ch_cfg_bus", 2, syscon_args);*/
+	regmap = syscon_regmap_lookup_by_phandle_args(np, "syscons", 2, syscon_args);
+	if (IS_ERR(regmap)) {
 		pr_err("failed to parse ch_cfg_bus reg.\n");
 		return -EFAULT;
+	} else {
+		ch_cfg_bus.ctrl_reg = syscon_args[0];
+		ch_cfg_bus.ctrl_mask = syscon_args[1];
 	}
 
 	register_syscore_ops(&sprd_time_sync_ch_syscore_ops);
