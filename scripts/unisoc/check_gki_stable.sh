@@ -110,6 +110,9 @@ fi
 # User build_abi.sh for GKI check
 if [[ $mode != "bsp" ]]; then
 	LTO=${state} BUILD_CONFIG=${KERNEL_DIR}/build.config.gki.aarch64.ums512 build/build_abi.sh
+	if [ $? -ne 0 ];then
+		echo "ERROR: build kernel error when exec the build_abi.sh" >&2
+	fi
 fi
 
 echo "========================================================" >&1
