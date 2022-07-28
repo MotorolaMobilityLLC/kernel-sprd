@@ -448,6 +448,10 @@
 			reg = <0x60e00000 0x1000>; /* 0x60e00000 */
 			clock-names = "ext-26m";
 			clocks = <&ext_26m>;
+			syscons = <&aon_apb_regs REG_AON_APB_APB_EB0
+					MASK_AON_APB_MM_EB>,
+				  <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG
+					MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>;
 			#clock-cells = <1>;
 		};
 
