@@ -79,8 +79,6 @@
   cdev_device_add
   cdev_device_del
   cdev_init
-  cfg80211_register_netdevice
-  cfg80211_rx_mgmt_khz
   __cfi_slowpath_diag
   __check_object_size
   check_preempt_curr
