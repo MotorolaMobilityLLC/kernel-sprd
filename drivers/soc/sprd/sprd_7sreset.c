@@ -101,8 +101,7 @@ static int sprd_por_wr_7s_control_unlock(struct device *dev, int enable)
 	if (ret)
 		return ret;
 
-	r_val = r_val & BIT_POR_WR_PROT;
-	if (!!r_val != enable)
+	if (((r_val & BIT_POR_WR_PROT) == BIT_POR_WR_PROT) != enable)
 		return -EINVAL;
 
 	return 0;
