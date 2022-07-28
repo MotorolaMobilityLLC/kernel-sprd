@@ -411,6 +411,7 @@
 #include "spi.dtsi"
 #include "thermal.dtsi"
 #include "uart.dtsi"
+#include "trng.dtsi"
 #include "ufs.dtsi"
 #include "sdio.dtsi"
 #include "socid.dtsi"
