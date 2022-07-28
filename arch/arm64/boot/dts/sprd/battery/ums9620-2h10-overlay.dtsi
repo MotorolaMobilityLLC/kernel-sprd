@@ -128,7 +128,7 @@
 
 	phys = <&hsphy>;
 	pd-extcon-enable;
-	extcon = <&extcon_gpio>, <&pmic_pd>;
+	extcon = <&pmic_typec>, <&pmic_pd>;
 
 	regulator@0 {
 		cm-regulator-name = "vddgen0";
