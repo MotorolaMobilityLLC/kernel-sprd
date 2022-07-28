@@ -29,6 +29,7 @@
 #include "audio-smsg.h"
 //#include <linux/sprd_mailbox.h>
 #include "sprd-string.h"
+#include "agdsp_access.h"
 
 #define sp_asoc_pr_dbg pr_debug
 #define sp_asoc_pr_info pr_info
@@ -135,6 +136,7 @@ int aud_smsg_irq_handler(void *ptr, void *dev_id)
 			aud_smsg_all_ch_notify(ipc, msg);
 			writel_relaxed(readl_relaxed((void *)ipc->rxbuf_rdptr) +
 				       1, (void *)ipc->rxbuf_rdptr);
+			agdsp_access_dumpreg();
 			aud_smsg_dump_func(is_timeout);
 			aud_smsg_reset(ipc);
 			continue;
@@ -731,6 +733,7 @@ int aud_smsg_recv(u8 dst, struct aud_smsg *msg, int timeout)
 
 			sp_asoc_pr_info("warning %s wait timeout!\n", __func__);
 			rval = -ETIME;
+			agdsp_access_dumpreg();
 			pr_err("audio_smsg.c: timeout and reset dsp\n");
 			spin_lock_irqsave(&(ipc->txpinlock), flags_tx);
 			spin_lock_irqsave(&(ipc->rxpinlock), flags_rx);

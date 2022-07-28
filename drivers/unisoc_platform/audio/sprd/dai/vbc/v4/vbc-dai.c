@@ -3898,14 +3898,15 @@ static int vbc_put_agdsp_aud_access(struct snd_kcontrol *kcontrol,
 
 	enable = ucontrol->value.enumerated.item[0];
 
-	pr_info("%s agcp_access_aud_cnt = %d, agcp_access_a2dp_cnt = %d\n",
-		__func__, vbc_codec->agcp_access_aud_cnt,
-		vbc_codec->agcp_access_a2dp_cnt);
+	pr_info("%s agcp_access_aud_cnt = %d, agcp_access_a2dp_cnt = %d, en = %s\n",
+		__func__, vbc_codec->agcp_access_aud_cnt, vbc_codec->agcp_access_a2dp_cnt,
+		enable ? "enable" : "disable");
 	mutex_lock(&vbc_codec->agcp_access_mutex);
 	if (enable) {
 		if (vbc_codec->agcp_access_aud_cnt == 0 &&
 		    vbc_codec->agcp_access_a2dp_cnt == 0) {
 			vbc_codec->agcp_access_aud_cnt++;
+			pr_info("audio hal agdsp_access_enable\n");
 			ret = agdsp_access_enable();
 			if (ret)
 				pr_err("agdsp_access_enable error:%d\n", ret);

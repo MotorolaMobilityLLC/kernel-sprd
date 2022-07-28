@@ -449,6 +449,12 @@ int agdsp_access_enable(void)
 		 * send a mail to AGDSP to wake up it,
 		 * 100 is an invalid command
 		 */
+		ret = regmap_read(dsp_ac->agcp_ahb, dsp_ac->ap_access_ena_reg, &val);
+		if (ret != 0)
+			pr_err("%s, regmap_read ap_access_ena_reg error!\n", __func__);
+		else
+			pr_info("%s, ap_access_ena_reg (wake up dsp) val = 0x%x\n",
+				__func__, val);
 		msg_val[msg_index] = 100;
 		ret = mbox_send_message(g_agdsp_mboxchan, (void *)&msg_val[msg_index]);
 		if (ret < 0) {
@@ -490,6 +496,12 @@ int agdsp_access_enable(void)
 			ret = -EBUSY;
 			goto exit;
 		}
+		ret = regmap_read(dsp_ac->agcp_ahb, dsp_ac->ap_access_ena_reg, &val);
+		if (ret != 0)
+			pr_err("%s, regmap_read ap_access_ena_reg error!\n", __func__);
+		else
+			pr_info("%s, ap_access_ena_reg (wake up done) val = 0x%x\n",
+				__func__, val);
 	}
 
 	AGCP_WRITEL(AGCP_READL(&dsp_ac->state->ap_enable_cnt) + 1,
@@ -544,6 +556,57 @@ int agdsp_access_disable(void)
 	return 0;
 }
 EXPORT_SYMBOL(agdsp_access_disable);
+
+void agdsp_access_dumpreg(void)
+{
+	int val;
+	int ret;
+	struct agdsp_access *dsp_ac = g_agdsp_access;
+
+	pr_info("%s, ap_enable_cnt = %d\n", __func__,
+		AGCP_READL(&dsp_ac->state->ap_enable_cnt));
+
+	/* reg: ap_access_ena_reg */
+	ret = regmap_read(dsp_ac->agcp_ahb, dsp_ac->ap_access_ena_reg, &val);
+	if (ret != 0)
+		pr_err("%s, regmap_read ap_access_ena_reg error!\n", __func__);
+	else
+		pr_info("%s, ap_access_ena_reg (dsp assert) val = 0x%x\n",
+			__func__, val);
+
+	/* reg: audcp_pmu_sleep_ctrl_reg */
+	ret = regmap_read(dsp_ac->pmu_apb, dsp_ac->audcp_pmu_sleep_ctrl_reg, &val);
+	if (ret != 0)
+		pr_err("%s, regmap_read audcp_pmu_sleep_ctrl_reg error!\n", __func__);
+	else
+		pr_info("%s, audcp_pmu_sleep_ctrl_reg (dsp assert) val = 0x%x\n",
+			__func__, val);
+
+	/* reg: audcp_pmu_slp_status_reg */
+	ret = regmap_read(dsp_ac->pmu_apb, dsp_ac->audcp_pmu_slp_status_reg, &val);
+	if (ret != 0)
+		pr_err("%s, regmap_read audcp_pmu_slp_status_reg error!\n", __func__);
+	else
+		pr_info("%s, audcp_pmu_slp_status_reg (dsp assert) val = 0x%x\n",
+			__func__, val);
+
+	/* reg: audcp_pmu_pwr_status3_reg */
+	ret = regmap_read(dsp_ac->pmu_apb, dsp_ac->audcp_pmu_pwr_status3_reg, &val);
+	if (ret != 0)
+		pr_err("%s, regmap_read audcp_pmu_pwr_status3_reg error!\n", __func__);
+	else
+		pr_info("%s, audcp_pmu_pwr_status3_reg (dsp assert) val = 0x%x\n",
+			__func__, val);
+
+	/* reg: audcp_pmu_pwr_status4_reg */
+	ret = regmap_read(dsp_ac->pmu_apb, dsp_ac->audcp_pmu_pwr_status4_reg, &val);
+	if (ret != 0)
+		pr_err("%s, regmap_read audcp_pmu_pwr_status4_reg error!\n", __func__);
+	else
+		pr_info("%s, audcp_pmu_pwr_status4_reg (dsp assert) val = 0x%x\n",
+			__func__, val);
+}
+EXPORT_SYMBOL(agdsp_access_dumpreg);
 
 static int restore_auto_access(void)
 {
