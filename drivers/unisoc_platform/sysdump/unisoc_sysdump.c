@@ -42,7 +42,7 @@
 #include <linux/vmalloc.h>
 #include <linux/regmap.h>
 #include <linux/panic_notifier.h>
-#ifdef CONFIG_SPRD_SIPC
+#if IS_ENABLED(CONFIG_UNISOC_SIPC)
 #include <linux/sipc.h>
 #endif
 /* sysdump */
@@ -116,6 +116,10 @@ static unsigned int pmic_reg;
 
 #define MINIDUMP_INFO_BYTES	(ALIGN(sizeof(struct minidump_info), 4))
 struct minidump_info *sprd_minidump_info;
+
+#if IS_ENABLED(CONFIG_UNISOC_SIPC)
+int (*senddie_callback)(u8 dst) = NULL;
+#endif
 
 extern void stext(void);
 struct pt_regs pregs_die_g;
@@ -273,6 +277,19 @@ int sysdump_status;
 struct regmap *regmap;
 static int set_sysdump_enable(int on);
 
+#if IS_ENABLED(CONFIG_UNISOC_SIPC)
+void sysdump_callback_register(int (*callback)(u8 dst))
+{
+	senddie_callback = callback;
+}
+EXPORT_SYMBOL(sysdump_callback_register);
+
+void sysdump_callback_unregister(void)
+{
+	senddie_callback = NULL;
+}
+EXPORT_SYMBOL(sysdump_callback_unregister);
+#endif
 
 void sprd_debug_check_crash_key(unsigned int code, int value)
 {
@@ -878,10 +895,12 @@ static int sysdump_panic_event(struct notifier_block *self,
 	crash_note_save_cpu(pregs, sprd_sysdump_extra.enter_cpu);
 	sprd_debug_save_context();
 
-#ifdef CONFIG_SPRD_SIPC
+#if IS_ENABLED(CONFIG_UNISOC_SIPC)
 	if (!(reason != NULL && strstr(reason, "cpcrash"))) {
-		smsg_senddie(SIPC_ID_LTE);
-		smsg_senddie(SIPC_ID_PM_SYS);
+		if (senddie_callback) {
+			senddie_callback(SIPC_ID_LTE);
+			senddie_callback(SIPC_ID_PM_SYS);
+		}
 	}
 #endif
 

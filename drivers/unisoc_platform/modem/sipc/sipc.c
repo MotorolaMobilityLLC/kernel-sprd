@@ -27,7 +27,9 @@
 #include <linux/sipc.h>
 #include <linux/sizes.h>
 #include "sipc_priv.h"
-
+#if IS_ENABLED(CONFIG_UNISOC_SIPC)
+#include "../drivers/unisoc_platform/sysdump/sysdump.h"
+#endif
 
 #if defined(CONFIG_DEBUG_FS)
 void sipc_debug_putline(struct seq_file *m, char c, int n)
@@ -301,12 +303,18 @@ static int __init sprd_ipc_init(void)
 {
 	smsg_init_wakeup();
 	smsg_init_channel2index();
+#if IS_ENABLED(CONFIG_UNISOC_SIPC)
+	sysdump_callback_register(smsg_senddie);
+#endif
 	return platform_driver_register(&sprd_ipc_driver);
 }
 
 static void __exit sprd_ipc_exit(void)
 {
 	smsg_remove_wakeup();
+#if IS_ENABLED(CONFIG_UNISOC_SIPC)
+	sysdump_callback_unregister();
+#endif
 	platform_driver_unregister(&sprd_ipc_driver);
 }
 

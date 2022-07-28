@@ -27,6 +27,11 @@ enum sysdump_type {
 	SYSDUMP_IOMEM,
 };
 
+#if IS_ENABLED(CONFIG_UNISOC_SIPC)
+void sysdump_callback_register(int (*callback)(u8 dst));
+void sysdump_callback_unregister(void);
+#endif
+
 #ifdef CONFIG_ARM
 #include "sysdump32.h"
 
