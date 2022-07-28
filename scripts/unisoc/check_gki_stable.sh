@@ -113,6 +113,9 @@ if [[ $mode != "bsp" ]]; then
 	if [ $? -ne 0 ];then
 		echo "ERROR: build kernel error when exec the build_abi.sh" >&2
 	fi
+	if [ "$state" != "full" ];then
+		echo "WARNING: the abi may not correct when using LTO $status" >&2
+	fi
 fi
 
 echo "========================================================" >&1
