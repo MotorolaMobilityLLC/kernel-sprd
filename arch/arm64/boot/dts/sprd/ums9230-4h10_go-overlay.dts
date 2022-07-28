@@ -10,7 +10,7 @@
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
-#include "tp/ums9230-tp.dtsi"
+#include "tp/ums9230-spi3-gpio144-145-tp.dtsi"
 
 / {
 
