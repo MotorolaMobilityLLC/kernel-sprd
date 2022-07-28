@@ -41,6 +41,7 @@
 
 struct temp_node {
 	int temp;
+	struct cpufreq_frequency_table *temp_table;
 	struct list_head list;
 };
 

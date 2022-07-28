@@ -201,9 +201,9 @@ static void sprd_cluster_get_supply_mode(char *dcdc_supply)
 	strcat(dcdc_supply, ver_str);
 }
 
-static int sprd_policy_table_update(struct cpufreq_policy *policy, int temp)
+static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_node *node)
 {
-	struct cpufreq_frequency_table *new_table, *old_table;
+	struct cpufreq_frequency_table *old_table, *new_table __maybe_unused;
 	struct cluster_info *cluster;
 	struct device *cpu;
 	struct dev_pm_opp *opp;
@@ -223,11 +223,11 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, int temp)
 		return -EINVAL;
 	}
 
-	dev_info(dev, "%s: update cluster %u temp %d dvfs table\n", __func__, cluster->id, temp);
+	dev_info(dev, "%s: update cluster %u temp %d dvfs table\n", __func__, cluster->id, node->temp);
 
-	ret = cluster->table_update(cluster->id, temp, &cluster->table_entry_num);
+	ret = cluster->table_update(cluster->id, node->temp, &cluster->table_entry_num);
 	if (ret) {
-		dev_err(dev, "%s: update cluster %u temp %d table error\n", __func__, cluster->id, temp);
+		dev_err(dev, "%s: update cluster %u temp %d table error\n", __func__, cluster->id, node->temp);
 		return -EINVAL;
 	}
 
@@ -260,17 +260,20 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, int temp)
 		}
 	}
 
-	ret = dev_pm_opp_init_cpufreq_table(cpu, &new_table);
-	if (ret) {
-		dev_err(dev, "%s: init cluster %u freq table error(%d)\n", __func__, cluster->id, ret);
-		return -EINVAL;
+	if (node->temp_table) {
+		policy->freq_table = node->temp_table;
+	} else {
+		ret = dev_pm_opp_init_cpufreq_table(cpu, &new_table);
+		if (ret) {
+			dev_err(dev, "%s: init cluster %u freq table error(%d)\n", __func__, cluster->id, ret);
+			return -EINVAL;
+		}
+
+		policy->freq_table = new_table;
+		node->temp_table = new_table;
 	}
 
-	policy->freq_table = new_table;
-	policy->suspend_freq = new_table[0].frequency;
-
-	if (old_table)
-		dev_pm_opp_free_cpufreq_table(cpu, &old_table);
+	policy->suspend_freq = policy->freq_table[0].frequency;
 
 	return 0;
 }
@@ -297,7 +300,7 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 				   &cpumask);
 	if (ret) {
 		dev_err(dev, "%s: cpufreq cluster cpumask read fail", __func__);
-		return ret;
+		goto unlock_ret;
 	}
 
 	cluster_cpumask.bits[0] = (unsigned long)cpumask;
@@ -310,7 +313,7 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 	policy->driver_data = cluster;
 
 	/* init dvfs table use current temp */
-	ret = sprd_policy_table_update(policy, cluster->temp_currt_node->temp);
+	ret = sprd_policy_table_update(policy, cluster->temp_currt_node);
 	if (ret) {
 		dev_err(dev, "%s: update cluster %u table error\n", __func__, cluster->id);
 		goto unlock_ret;
@@ -845,7 +848,7 @@ unsigned int sprd_cpufreq_update_opp_v2(int cpu, int now_temp)
 
 	dev_info(dev, "%s: update cluster %u table to %d(%d) degrees celsius\n", __func__, cluster->id, temp, cluster->temp_level_node->temp);
 
-	ret = sprd_policy_table_update(policy, cluster->temp_level_node->temp);
+	ret = sprd_policy_table_update(policy, cluster->temp_level_node);
 	if (ret) {
 		dev_err(dev, "%s: update cluster %u table error\n", __func__, cluster->id);
 		goto ret_error;
