@@ -41,10 +41,14 @@
 				core5 {
 					cpu = <&CPU5>;
 				};
-				core6 {
+			};
+			cluster1 {
+				core0 {
 					cpu = <&CPU6>;
 				};
-				core7 {
+			};
+			cluster2 {
+				core0 {
 					cpu = <&CPU7>;
 				};
 			};
@@ -126,7 +130,7 @@
 			compatible = "arm,cortex-a76","arm,armv8";
 			reg = <0x0 0x700>;
 			enable-method = "psci";
-			cpu-idle-states = <&BIG_CORE_PD &CLUSTER_PD>;
+			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <673>;
 			cpufreq-data-v1 = <&cpufreq_cluster2>;
@@ -178,14 +182,6 @@
 			arm,psci-suspend-param = <0x00010000>;
 		};
 		MID_CORE_PD: core-sleep-mid {
-			compatible = "arm,idle-state";
-			entry-latency-us = <4000>;
-			exit-latency-us = <4000>;
-			min-residency-us = <10000>;
-			local-timer-stop;
-			arm,psci-suspend-param = <0x00010000>;
-		};
-		BIG_CORE_PD: core-sleep-big {
 			compatible = "arm,idle-state";
 			entry-latency-us = <4000>;
 			exit-latency-us = <4000>;
