@@ -67,6 +67,7 @@ base:
 block:zram:
 build.config:
 
+char:hw_random:
 clk:sprd:
 clocksource:sprd:
 coresight:
