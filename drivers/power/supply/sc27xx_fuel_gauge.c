@@ -834,9 +834,10 @@ static void sc27xx_fgu_capacity_loss_by_temperature(struct sc27xx_fgu_data *data
 
 		*cap = DIV_ROUND_CLOSEST((*cap + temp_cap - 1000) * 1000, temp_cap);
 		if (*cap < 0) {
+			dev_info(data->dev, "%s Capacity_temp < 0, adjust !!!\n", __func__);
 			*cap = 0;
 		} else if (*cap > SC27XX_FGU_FCC_PERCENT) {
-			dev_info(data->dev, "Capacity_temp > 1000, adjust !!!\n");
+			dev_info(data->dev, "%s Capacity_temp > 1000, adjust !!!\n", __func__);
 			*cap = SC27XX_FGU_FCC_PERCENT;
 		}
 	}
@@ -1190,8 +1191,10 @@ static int sc27xx_fgu_save_boot_mode(struct sc27xx_fgu_data *data,
 				 data->base + SC27XX_FGU_USER_AREA_CLEAR,
 				 SC27XX_FGU_MODE_AREA_MASK,
 				 SC27XX_FGU_MODE_AREA_MASK);
-	if (ret)
+	if (ret) {
+		dev_err(data->dev, "%d Failed to write mode user clr, ret = %d\n", __LINE__, ret);
 		return ret;
+	}
 
 	/*
 	 * Since the user area registers are put on power always-on region,
@@ -1205,8 +1208,10 @@ static int sc27xx_fgu_save_boot_mode(struct sc27xx_fgu_data *data,
 				 data->base + SC27XX_FGU_USER_AREA_SET,
 				 SC27XX_FGU_MODE_AREA_MASK,
 				 boot_mode << SC27XX_FGU_MODE_AREA_SHIFT);
-	if (ret)
+	if (ret) {
+		dev_err(data->dev, "Failed to write mode user set, ret = %d\n", ret);
 		return ret;
+	};
 
 	/*
 	 * Since the user area registers are put on power always-on region,
@@ -1221,9 +1226,24 @@ static int sc27xx_fgu_save_boot_mode(struct sc27xx_fgu_data *data,
 	 * make the user area data available, otherwise we can not save the user
 	 * area data.
 	 */
-	return regmap_update_bits(data->regmap,
+	ret = regmap_update_bits(data->regmap,
 				  data->base + SC27XX_FGU_USER_AREA_CLEAR,
 				  SC27XX_FGU_MODE_AREA_MASK, 0);
+	if (ret) {
+		dev_err(data->dev, "%d Failed to write mode user clr, ret = %d\n", __LINE__, ret);
+		return ret;
+	}
+
+	/*
+	 * Since the user area registers are put on power always-on region,
+	 * then these registers changing time will be a little long. Thus
+	 * here we should delay 200us to wait until values are updated
+	 * successfully.
+	 */
+	usleep_range(200, 210);
+
+	return ret;
+
 }
 
 static int sc27xx_fgu_save_last_cap(struct sc27xx_fgu_data *data, int cap)
@@ -1235,8 +1255,10 @@ static int sc27xx_fgu_save_last_cap(struct sc27xx_fgu_data *data, int cap)
 				 data->base + SC27XX_FGU_USER_AREA_CLEAR,
 				 SC27XX_FGU_CAP_AREA_MASK,
 				 SC27XX_FGU_CAP_AREA_MASK);
-	if (ret)
+	if (ret) {
+		dev_err(data->dev, "%d Failed to write user clr, ret = %d\n", __LINE__, ret);
 		return ret;
+	}
 
 	/*
 	 * Since the user area registers are put on power always-on region,
@@ -1252,8 +1274,10 @@ static int sc27xx_fgu_save_last_cap(struct sc27xx_fgu_data *data, int cap)
 	ret = regmap_update_bits(data->regmap,
 				 data->base + SC27XX_FGU_USER_AREA_SET,
 				 SC27XX_FGU_CAP_AREA_MASK, value);
-	if (ret)
+	if (ret) {
+		dev_err(data->dev, "Failed to write user set, ret = %d\n", ret);
 		return ret;
+	}
 
 	/*
 	 * Since the user area registers are put on power always-on region,
@@ -1268,9 +1292,23 @@ static int sc27xx_fgu_save_last_cap(struct sc27xx_fgu_data *data, int cap)
 	 * make the user area data available, otherwise we can not save the user
 	 * area data.
 	 */
-	return regmap_update_bits(data->regmap,
-				  data->base + SC27XX_FGU_USER_AREA_CLEAR,
-				  SC27XX_FGU_CAP_AREA_MASK, 0);
+	ret = regmap_update_bits(data->regmap,
+				 data->base + SC27XX_FGU_USER_AREA_CLEAR,
+				 SC27XX_FGU_CAP_AREA_MASK, 0);
+	if (ret) {
+		dev_err(data->dev, "%d Failed to write user clr, ret = %d\n", __LINE__, ret);
+		return ret;
+	}
+
+	/*
+	 * Since the user area registers are put on power always-on region,
+	 * then these registers changing time will be a little long. Thus
+	 * here we should delay 200us to wait until values are updated
+	 * successfully.
+	 */
+	usleep_range(200, 210);
+
+	return ret;
 }
 
 /*
@@ -1280,16 +1318,22 @@ static int sc27xx_fgu_save_last_cap(struct sc27xx_fgu_data *data, int cap)
  */
 static int sc27xx_fgu_save_normal_temperature_cap(struct sc27xx_fgu_data *data, int cap)
 {
-	int ret;
+	int ret = 0;
 	u32 value;
+
+	if (data->normal_temp_cap == SC27XX_FGU_MAGIC_NUMBER) {
+		dev_info(data->dev, "normal_cap = %#x\n", data->normal_temp_cap);
+		return ret;
+	}
 
 	ret = regmap_update_bits(data->regmap,
 				 data->base + SC27XX_FGU_USER_AREA_CLEAR1,
 				 SC27XX_FGU_CAP_AREA_MASK,
 				 SC27XX_FGU_CAP_AREA_MASK);
-	if (ret)
+	if (ret) {
+		dev_err(data->dev, "%d Failed to write user clr1, ret = %d\n", __LINE__, ret);
 		return ret;
-
+	}
 	/*
 	 * Since the user area registers are put on power always-on region,
 	 * then these registers changing time will be a little long. Thus
@@ -1304,8 +1348,10 @@ static int sc27xx_fgu_save_normal_temperature_cap(struct sc27xx_fgu_data *data, 
 	ret = regmap_update_bits(data->regmap,
 				 data->base + SC27XX_FGU_USER_AREA_SET1,
 				 SC27XX_FGU_CAP_AREA_MASK, value);
-	if (ret)
+	if (ret) {
+		dev_err(data->dev, "Failed to write user set1, ret = %d\n", ret);
 		return ret;
+	}
 
 	/*
 	 * Since the user area registers are put on power always-on region,
@@ -1315,9 +1361,23 @@ static int sc27xx_fgu_save_normal_temperature_cap(struct sc27xx_fgu_data *data, 
 	 */
 	usleep_range(200, 210);
 
-	return regmap_update_bits(data->regmap,
-				  data->base + SC27XX_FGU_USER_AREA_CLEAR1,
-				  SC27XX_FGU_CAP_AREA_MASK, 0);
+	ret = regmap_update_bits(data->regmap,
+				 data->base + SC27XX_FGU_USER_AREA_CLEAR1,
+				 SC27XX_FGU_CAP_AREA_MASK, 0);
+	if (ret) {
+		dev_err(data->dev, "%d Failed to write user clr1, ret = %d\n", __LINE__, ret);
+		return ret;
+	}
+
+	/*
+	 * Since the user area registers are put on power always-on region,
+	 * then these registers changing time will be a little long. Thus
+	 * here we should delay 200us to wait until values are updated
+	 * successfully.
+	 */
+	usleep_range(200, 210);
+
+	return ret;
 }
 
 static int sc27xx_fgu_read_normal_temperature_cap(struct sc27xx_fgu_data *data, int *cap)
@@ -1530,6 +1590,14 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		} else {
 			sc27xx_fgu_boot_cap_calibration(data, pocv_cap, pocv_uv, cap);
 		}
+
+		data->normal_temp_cap = *cap;
+		ret = sc27xx_fgu_save_normal_temperature_cap(data, data->normal_temp_cap);
+		if (ret) {
+			dev_err(data->dev, "Failed to save normal temperature capacity, ret = %d\n", ret);
+			return ret;
+		}
+
 		dev_info(data->dev, "init: boot_cap = %d, normal_cap = %d\n", data->boot_cap, *cap);
 
 		return sc27xx_fgu_save_boot_mode(data, SC27XX_FGU_NORMAIL_POWERTON);
@@ -1677,6 +1745,7 @@ capacity_calibration:
 
 	*cap -= data->uusoc_vbat;
 	if (*cap < 0) {
+		dev_info(data->dev, "Capacity_temp < 0, adjust !!!\n");
 		*cap = 0;
 	} else if (*cap > SC27XX_FGU_FCC_PERCENT) {
 		dev_info(data->dev, "Capacity_temp > 1000, adjust !!!\n");
@@ -2514,10 +2583,8 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CAPACITY:
 		ret = sc27xx_fgu_save_last_cap(data, val->intval);
-		if (ret < 0) {
+		if (ret < 0)
 			dev_err(data->dev, "failed to save battery capacity\n");
-			goto error;
-		}
 
 		ret = sc27xx_fgu_save_normal_temperature_cap(data, data->normal_temp_cap);
 		if (ret < 0)
@@ -2687,7 +2754,6 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 		ret = -EINVAL;
 	}
 
-error:
 	mutex_unlock(&data->lock);
 	return ret;
 }
@@ -4430,6 +4496,8 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
+
+	data->normal_temp_cap = SC27XX_FGU_MAGIC_NUMBER;
 
 	data->dev = &pdev->dev;
 	platform_set_drvdata(pdev, data);
