@@ -267,9 +267,6 @@
 		core-cnt = <1>;
 		io-cnt = <7>;
 		cores = <&gsp1_core0>;
-
-		#power-domain-cells = <0>;
-		power-domains = <&vpu_pd_top>;
 	};
 
 	soc {
