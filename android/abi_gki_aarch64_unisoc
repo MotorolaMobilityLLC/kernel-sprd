@@ -246,6 +246,7 @@
   __devm_regmap_init_i2c
   __devm_regmap_init_mmio_clk
   __devm_rtc_register_device
+  devm_hwrng_register
   devm_regulator_get
   devm_regulator_register
   devm_request_threaded_irq
