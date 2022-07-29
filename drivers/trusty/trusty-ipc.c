@@ -637,6 +637,12 @@ int tipc_chan_queue_msg_list(struct tipc_chan *chan,
 	mutex_lock(&chan->lock);
 	switch (chan->state) {
 	case TIPC_CONNECTED:
+		if (list_empty(msg_buf_list)) {
+			err = -EINVAL;
+			pr_err("%s: msg_buf_list is empty (%d)\n",
+			       __func__, err);
+			break;
+		}
 		mb = list_first_entry(msg_buf_list,
 				      struct tipc_msg_buf, node);
 		fill_msg_hdr(mb, chan->local, chan->remote);
