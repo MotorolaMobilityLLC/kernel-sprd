@@ -474,6 +474,9 @@ void sipa_rm_set_usb_eth_down(void);
 
 void sipa_rm_enable_usb_tether(void);
 
+bool sipa_rm_check_dependency(enum sipa_rm_res_id cons,
+			      enum sipa_rm_res_id prod);
+
 /*
  * SIPA and CP status synchronization.
  */

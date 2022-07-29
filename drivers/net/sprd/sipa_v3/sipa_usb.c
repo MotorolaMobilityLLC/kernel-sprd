@@ -130,7 +130,14 @@ static int sipa_usb_open(struct net_device *dev)
 	usb->state = DEV_ON;
 
 	sipa_rm_enable_usb_tether();
-	sipa_rm_set_usb_eth_up();
+	ret = sipa_rm_set_usb_eth_up();
+	if (ret == -EAGAIN) {
+		sipa_rm_set_usb_eth_down();
+		sipa_nic_close(usb->nic_id);
+		usb->state = DEV_OFF;
+		pr_err("fail to open, rm request timeout!\n");
+		return ret;
+	}
 
 	if (!netif_carrier_ok(usb->ndev)) {
 		pr_info("set netif_carrier_on\n");

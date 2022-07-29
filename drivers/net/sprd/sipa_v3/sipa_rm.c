@@ -396,6 +396,7 @@ int sipa_rm_add_dependency_sync(enum sipa_rm_res_id cons,
 	unsigned long time;
 	unsigned long flags;
 	struct sipa_rm_dep_graph *dep_graph;
+	int ret;
 
 	if (unlikely(!sipa_rm_ctx)) {
 		pr_err("SIPA RM was not initialized\n");
@@ -414,9 +415,12 @@ int sipa_rm_add_dependency_sync(enum sipa_rm_res_id cons,
 	spin_unlock_irqrestore(&sipa_rm_ctx->sipa_rm_lock, flags);
 
 	if (result == -EINPROGRESS) {
-		sipa_rm_dep_graph_get_resource(sipa_rm_ctx->dep_graph,
-					       prod,
-					       &producer);
+		ret = sipa_rm_dep_graph_get_resource(sipa_rm_ctx->dep_graph,
+						     prod,
+						     &producer);
+		if (!ret)
+			return -EINVAL;
+
 		pr_info("%s waits for GRANT of %s.\n",
 			sipa_rm_res_str(cons),
 			sipa_rm_res_str(prod));
@@ -473,6 +477,36 @@ int sipa_rm_delete_dependency(enum sipa_rm_res_id cons,
 	return result;
 }
 EXPORT_SYMBOL(sipa_rm_delete_dependency);
+
+/**
+ * sipa_rm_check_dependency() - check if consumer and producer has dependency for
+ *                              each other.
+ * @cons: consumer id for checking dependency.
+ * @prod: producer id for checking dependency.
+ *
+ * return true if consumer and producer has dependency for each other
+ */
+bool sipa_rm_check_dependency(enum sipa_rm_res_id cons,
+			      enum sipa_rm_res_id prod)
+{
+	bool result, user_dep;
+	struct sipa_rm_resource *producer, *consumer;
+
+	if (!sipa_rm_dep_graph_get_resource(sipa_rm_ctx->dep_graph,
+					    cons,
+					    &consumer) &&
+	    !sipa_rm_dep_graph_get_resource(sipa_rm_ctx->dep_graph,
+					    prod,
+					    &producer)) {
+		result = sipa_rm_peers_list_check_dependency(producer->peers_list,
+							     cons,
+							     consumer->peers_list,
+							     prod, &user_dep);
+		return result;
+	} else
+		return false;
+}
+EXPORT_SYMBOL(sipa_rm_check_dependency);
 
 /**
  * sipa_rm_request_resource() - request resource

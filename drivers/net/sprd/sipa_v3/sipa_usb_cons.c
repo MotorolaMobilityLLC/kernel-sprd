@@ -93,7 +93,22 @@ int sipa_rm_set_usb_eth_up(void)
 	if (ret) {
 		if (ret != -EINPROGRESS)
 			return ret;
-		wait_for_completion(&ipa->usb_rm_comp);
+
+		ret = wait_for_completion_timeout(&ipa->usb_rm_comp, SIPA_RM_REQUEST_TIMEOUT);
+		if (!ret) {
+			ret = sipa_rm_check_dependency(SIPA_RM_RES_CONS_USB,
+						       SIPA_RM_RES_PROD_CP);
+			if (ret) {
+				pr_warn("error! modem maybe assert! delete USB dependency for CP!\n");
+
+				/*we do not care delegator status, because modem already assert*/
+				sipa_rm_delete_dependency(SIPA_RM_RES_CONS_USB,
+							  SIPA_RM_RES_PROD_CP);
+			} else
+				pr_warn("error! sipa resume maybe fail! please check it!\n");
+
+			ret = -EAGAIN;
+		}
 	}
 
 	return ret;

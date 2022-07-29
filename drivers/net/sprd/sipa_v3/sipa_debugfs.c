@@ -30,6 +30,8 @@
 #include "sipa_priv.h"
 #include "sipa_hal.h"
 
+#define RM_PRINT_SIZE	512
+
 static int sipa_flow_ctrl_show(struct seq_file *s, void *unused)
 {
 	struct sipa_plat_drv_cfg *ipa = s->private;
@@ -184,6 +186,7 @@ static int sipa_rm_res_debug_show(struct seq_file *s, void *unused)
 {
 	int i;
 	struct sipa_rm_resource **res = sipa_rm_get_all_resource();
+	char *buff = kzalloc(RM_PRINT_SIZE, GFP_KERNEL);
 
 	seq_puts(s, "/********************************************\n");
 	seq_puts(s, "type: 0 -> producer  1 -> consumer\n");
@@ -199,6 +202,11 @@ static int sipa_rm_res_debug_show(struct seq_file *s, void *unused)
 			   sipa_rm_res_str(res[i]->name), res[i]->type,
 			   res[i]->ref_count, res[i]->state);
 	}
+
+	seq_puts(s, "\n");
+	sipa_rm_stat(buff, RM_PRINT_SIZE);
+	seq_printf(s, "%s\n", buff);
+	kfree(buff);
 
 	return 0;
 }
