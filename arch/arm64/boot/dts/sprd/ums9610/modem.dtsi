@@ -116,7 +116,7 @@
 			reg = <6>;
 			label = "sctl_pm";
 			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x40>;
+			sprd,size-rxbuf = <0x80>;
 			sprd,size-txbuf = <0x20>;
 		};
 	};
@@ -153,7 +153,7 @@
 			reg = <6>;
 			label = "sctl_ch";
 			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x40>;
+			sprd,size-rxbuf = <0x80>;
 			sprd,size-txbuf = <0x20>;
 		};
 
