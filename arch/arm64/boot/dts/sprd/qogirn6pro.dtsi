@@ -3081,6 +3081,7 @@
 					<&aiapb_gate CLK_AXI_PMON_EB>,
 					<&aiapb_gate CLK_AON_TO_OCM_EB>;
 				sprd,npu_freq_default = <307200>;
+				npu-supply = <&vddai>;
 			};
 		};
 	};
