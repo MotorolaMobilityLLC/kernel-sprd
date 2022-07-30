@@ -341,7 +341,10 @@ static int vib_remove(struct platform_device *pdev)
 
 	cancel_work_sync(&info->vibr_work);
 	hrtimer_cancel(&info->vibr_timer);
-	devm_led_classdev_unregister(&pdev->dev, &led_vibr);
+	/*
+	 * Temporarily comment out the code due to GKI whitelist.
+	 */
+//	devm_led_classdev_unregister(&pdev->dev, &led_vibr);
 
 	return 0;
 }
