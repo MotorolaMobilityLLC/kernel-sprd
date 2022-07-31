@@ -1439,6 +1439,7 @@ static void bq2560x_charger_otg_work(struct work_struct *work)
 	do {
 		otg_fault = bq2560x_charger_check_otg_fault(info);
 		if (!otg_fault) {
+			dev_dbg(info->dev, "%s:line%d:restart charger otg\n", __func__, __LINE__);
 			ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 						  BQ2560X_REG_OTG_MASK,
 						  BQ2560X_REG_OTG_MASK);
@@ -1455,6 +1456,7 @@ static void bq2560x_charger_otg_work(struct work_struct *work)
 	}
 
 out:
+	dev_dbg(info->dev, "%s:line%d:schedule_work\n", __func__, __LINE__);
 	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(1500));
 }
 
@@ -1498,6 +1500,8 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 			      msecs_to_jiffies(BQ2560X_OTG_VALID_MS));
 out:
 	mutex_unlock(&info->lock);
+	dev_dbg(info->dev, "%s:line%d:enable_otg\n", __func__, __LINE__);
+
 	return ret;
 }
 
@@ -1531,6 +1535,8 @@ static int bq2560x_charger_disable_otg(struct regulator_dev *dev)
 
 out:
 	mutex_unlock(&info->lock);
+	dev_dbg(info->dev, "%s:line%d:disable_otg\n", __func__, __LINE__);
+
 	return ret;
 
 
@@ -1559,6 +1565,8 @@ static int bq2560x_charger_vbus_is_enabled(struct regulator_dev *dev)
 	val &= BQ2560X_REG_OTG_MASK;
 
 	mutex_unlock(&info->lock);
+	dev_dbg(info->dev, "%s:line%d:vbus_is_enabled\n", __func__, __LINE__);
+
 	return val;
 }
 

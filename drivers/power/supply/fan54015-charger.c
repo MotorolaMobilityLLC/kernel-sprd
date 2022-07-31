@@ -748,6 +748,7 @@ static void fan54015_charger_otg_work(struct work_struct *work)
 	}
 
 	if (!extcon_get_state(info->edev, EXTCON_USB)) {
+		dev_dbg(info->dev, "%s:line%d:restart charger otg\n", __func__, __LINE__);
 		ret = fan54015_update_bits(info, FAN54015_REG_1,
 					   FAN54015_REG_HZ_MODE_MASK |
 					   FAN54015_REG_OPA_MODE_MASK,
@@ -756,6 +757,7 @@ static void fan54015_charger_otg_work(struct work_struct *work)
 			dev_err(info->dev, "restart fan54015 charger otg failed\n");
 	}
 
+	dev_dbg(info->dev, "%s:line%d:schedule_work\n", __func__, __LINE__);
 	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(500));
 }
 
@@ -800,6 +802,7 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
+	dev_dbg(info->dev, "%s:line%d:enable_otg\n", __func__, __LINE__);
 	info->otg_enable = true;
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(FAN54015_FEED_WATCHDOG_VALID_MS));
@@ -847,6 +850,8 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 	if (ret)
 		dev_err(info->dev, "enable BC1.2 failed\n");
 
+	dev_dbg(info->dev, "%s:line%d:disable_otg\n", __func__, __LINE__);
+
 	return ret;
 }
 
@@ -876,6 +881,7 @@ static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
 	}
 
 	val &= FAN54015_REG_OPA_MODE_MASK;
+	dev_dbg(info->dev, "%s:line%d:vbus_is_enabled\n", __func__, __LINE__);
 
 	return val;
 }
