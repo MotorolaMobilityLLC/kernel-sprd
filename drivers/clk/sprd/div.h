@@ -85,6 +85,11 @@ int sprd_div_helper_set_rate(const struct sprd_clk_common *common,
 			     unsigned long rate,
 			     unsigned long parent_rate);
 
+int sprd_sc_div_helper_set_rate(const struct sprd_clk_common *common,
+				const struct sprd_div_internal *div,
+				unsigned long rate,
+				unsigned long parent_rate);
+
 extern const struct clk_ops sprd_div_ops;
 
 #endif /* _SPRD_DIV_H_ */

@@ -1382,15 +1382,15 @@ static const struct clk_parent_data aux_parents[] = {
 	{ .hw = &audpll_12m28.hw },
 	{ .hw = &audpll_24m57.hw },
 };
-static SPRD_COMP_CLK_DATA(aux0_clk, "aux0-clk", aux_parents, 0x240,
+static SPRD_SC_COMP_CLK_DATA(aux0_clk, "aux0-clk", aux_parents, 0x240,
 		    6, 6, 0, 6, 0);
-static SPRD_COMP_CLK_DATA(aux1_clk, "aux1-clk", aux_parents, 0x244,
+static SPRD_SC_COMP_CLK_DATA(aux1_clk, "aux1-clk", aux_parents, 0x244,
 		    6, 6, 0, 6, 0);
-static SPRD_COMP_CLK_DATA(aux2_clk, "aux2-clk", aux_parents, 0x248,
+static SPRD_SC_COMP_CLK_DATA(aux2_clk, "aux2-clk", aux_parents, 0x248,
 		    6, 6, 0, 6, 0);
-static SPRD_COMP_CLK_DATA(probe_clk, "probe-clk", aux_parents, 0x24c,
+static SPRD_SC_COMP_CLK_DATA(probe_clk, "probe-clk", aux_parents, 0x24c,
 		    6, 6, 0, 6, 0);
-static SPRD_COMP_CLK_DATA(aux3_clk, "aux3-clk", aux_parents, 0xd20,
+static SPRD_SC_COMP_CLK_DATA(aux3_clk, "aux3-clk", aux_parents, 0xd20,
 		    6, 6, 0, 6, 0);
 
 static struct sprd_clk_common *ums9620_aon_gate[] = {

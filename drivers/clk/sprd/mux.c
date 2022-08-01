@@ -68,6 +68,24 @@ static int sprd_mux_set_parent(struct clk_hw *hw, u8 index)
 	return sprd_mux_helper_set_parent(&cm->common, &cm->mux, index);
 }
 
+//Used only for registers that support set/clear,Fixed bug1960127
+int sprd_sc_mux_helper_set_parent(const struct sprd_clk_common *common,
+				  const struct sprd_mux_ssel *mux,
+				  u8 index)
+{
+	unsigned int mask;
+
+	if (mux->table)
+		index = mux->table[index];
+
+	mask = GENMASK(mux->width + mux->shift - 1, mux->shift);
+	regmap_update_bits(common->regmap, common->reg,
+			  mask, index << mux->shift);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(sprd_sc_mux_helper_set_parent);
+
 const struct clk_ops sprd_mux_ops = {
 	.get_parent = sprd_mux_get_parent,
 	.set_parent = sprd_mux_set_parent,
