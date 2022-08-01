@@ -84,6 +84,10 @@ void page_counter_charge(struct page_counter *counter, unsigned long nr_pages)
 		 */
 		if (new > c->watermark)
 			c->watermark = new;
+#ifdef CONFIG_MEMCGV2_DECAYED_WATERMARK
+		if (new > c->decayed_watermark)
+			c->decayed_watermark = new;
+#endif
 	}
 }
 
@@ -137,6 +141,10 @@ bool page_counter_try_charge(struct page_counter *counter,
 		 */
 		if (new > c->watermark)
 			c->watermark = new;
+#ifdef CONFIG_MEMCGV2_DECAYED_WATERMARK
+		if (new > c->decayed_watermark)
+			c->decayed_watermark = new;
+#endif
 	}
 	return true;
 

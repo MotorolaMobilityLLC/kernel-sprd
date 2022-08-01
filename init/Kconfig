@@ -867,6 +867,13 @@ config MEMCG
 	help
 	  Provides control over the memory footprint of tasks in a cgroup.
 
+config MEMCGV2_DECAYED_WATERMARK
+        bool "Memcgv2: introduce decayed memory.low"
+        depends on MEMCG
+        default n
+        help
+          Introduce percentage protection.
+
 config MEMCG_SWAP
 	bool "Swap controller"
 	depends on MEMCG && SWAP

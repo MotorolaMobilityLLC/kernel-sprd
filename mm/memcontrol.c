@@ -5164,6 +5164,14 @@ static struct mem_cgroup *mem_cgroup_alloc(void)
 	INIT_LIST_HEAD(&memcg->event_list);
 	spin_lock_init(&memcg->event_list_lock);
 	memcg->socket_pressure = jiffies;
+
+#ifdef CONFIG_MEMCGV2_DECAYED_WATERMARK
+	memcg->time_decay_fact = 0;
+	memcg->some_prop = 30;
+	memcg->full_prop = 40;
+	memcg->boost_prop = 70;
+#endif
+
 #ifdef CONFIG_MEMCG_KMEM
 	memcg->kmemcg_id = -1;
 #endif
@@ -6236,6 +6244,76 @@ static ssize_t memory_max_write(struct kernfs_open_file *of,
 	return nbytes;
 }
 
+#ifdef CONFIG_MEMCGV2_DECAYED_WATERMARK
+static int memory_wm_df_show(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%llu\n", (u64)READ_ONCE(mem_cgroup_from_seq(m)->time_decay_fact));
+	return 0;
+}
+
+static ssize_t memory_wm_df_write(struct kernfs_open_file *of,
+				char *buf, size_t nbytes, loff_t off)
+{
+	struct mem_cgroup *memcg = mem_cgroup_from_css(of_css(of));
+
+	buf = strstrip(buf);
+	memcg->time_decay_fact = simple_strtoull(buf, NULL, 10);
+
+	return nbytes;
+}
+
+static int memory_some_prop_show(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%llu\n", (u64)READ_ONCE(mem_cgroup_from_seq(m)->some_prop));
+	return 0;
+}
+
+static ssize_t memory_some_prop_write(struct kernfs_open_file *of,
+				char *buf, size_t nbytes, loff_t off)
+{
+	struct mem_cgroup *memcg = mem_cgroup_from_css(of_css(of));
+
+	buf = strstrip(buf);
+	memcg->some_prop = simple_strtoull(buf, NULL, 10);
+
+	return nbytes;
+}
+
+static int memory_full_prop_show(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%llu\n", (u64)READ_ONCE(mem_cgroup_from_seq(m)->full_prop));
+	return 0;
+}
+
+static ssize_t memory_full_prop_write(struct kernfs_open_file *of,
+				char *buf, size_t nbytes, loff_t off)
+{
+	struct mem_cgroup *memcg = mem_cgroup_from_css(of_css(of));
+
+	buf = strstrip(buf);
+	memcg->full_prop = simple_strtoull(buf, NULL, 10);
+
+	return nbytes;
+}
+
+static int memory_boost_prop_show(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%llu\n", (u64)READ_ONCE(mem_cgroup_from_seq(m)->boost_prop));
+	return 0;
+}
+
+static ssize_t memory_boost_prop_write(struct kernfs_open_file *of,
+				char *buf, size_t nbytes, loff_t off)
+{
+	struct mem_cgroup *memcg = mem_cgroup_from_css(of_css(of));
+
+	buf = strstrip(buf);
+	memcg->boost_prop = simple_strtoull(buf, NULL, 10);
+
+	return nbytes;
+}
+#endif
+
 static void __memory_events_show(struct seq_file *m, atomic_long_t *events)
 {
 	seq_printf(m, "low %lu\n", atomic_long_read(&events[MEMCG_LOW]));
@@ -6359,6 +6437,32 @@ static struct cftype memory_files[] = {
 		.seq_show = memory_oom_group_show,
 		.write = memory_oom_group_write,
 	},
+#ifdef CONFIG_MEMCGV2_DECAYED_WATERMARK
+	{
+		.name = "time_decay_factor",
+		.flags = CFTYPE_NOT_ON_ROOT,
+		.seq_show = memory_wm_df_show,
+		.write = memory_wm_df_write,
+	},
+	{
+		.name = "some_prop",
+		.flags = CFTYPE_NOT_ON_ROOT,
+		.seq_show = memory_some_prop_show,
+		.write = memory_some_prop_write,
+	},
+	{
+		.name = "full_prop",
+		.flags = CFTYPE_NOT_ON_ROOT,
+		.seq_show = memory_full_prop_show,
+		.write = memory_full_prop_write,
+	},
+	{
+		.name = "boost_prop",
+		.flags = CFTYPE_NOT_ON_ROOT,
+		.seq_show = memory_boost_prop_show,
+		.write = memory_boost_prop_write,
+	},
+#endif
 	{ }	/* terminate */
 };
 
@@ -6377,6 +6481,48 @@ struct cgroup_subsys memory_cgrp_subsys = {
 	.legacy_cftypes = mem_cgroup_legacy_files,
 	.early_init = 0,
 };
+
+#ifdef CONFIG_MEMCGV2_DECAYED_WATERMARK
+extern unsigned long psi_mem_get(struct mem_cgroup *memcg, unsigned long time_ns);
+static unsigned long calc_decayed_watermark(struct mem_cgroup *group)
+{
+	u64 now, decay_factor, decayed_watermark;
+	u64 delta_time;
+
+	now = sched_clock();
+
+	if (!group->avg_next_update) {
+		group->avg_next_update = now + jiffies_to_nsecs(5*HZ);
+		return 0;
+	}
+
+	if (time_before((unsigned long)now, (unsigned long)group->avg_next_update))
+		return 0;
+
+	delta_time = group->avg_last_update ? now - group->avg_last_update : 0;
+	/*
+	 * we take 2048 as "1" and 68s decay 1/2(36bit) and can get the
+	 * decay_factor = 1024 * delta_time / 68s(0x1000000000)
+	 * 0.5(1024)/68s = decay_factor/delta_time ==> decay_factor = delta_time >> 26
+	 */
+	decay_factor = (2048 - min(2048ULL, delta_time >> (group->time_decay_fact - 10)));
+	decayed_watermark = group->memory.decayed_watermark * decay_factor / 2048;
+	/*
+	 * decay_factor: based on memory pressure over elapsed time
+	 * decayed_watermark: decayed watermark
+	 * memory.low: protected value based on decayed_watermark and memory pressure
+	 */
+	decay_factor = psi_mem_get(group, delta_time);
+	group->memory.low = div_u64(decayed_watermark * (100 - decay_factor), 100);
+	/*
+	 * avg_next_update: expected expire time according to current status
+	 */
+	group->memory.decayed_watermark = decayed_watermark;
+	group->avg_last_update = now;
+	group->avg_next_update = now + jiffies_to_nsecs(2*HZ);
+	return 0;
+}
+#endif
 
 /**
  * mem_cgroup_protected - check if memory consumption is in the normal range
@@ -6483,7 +6629,12 @@ enum mem_cgroup_protection mem_cgroup_protected(struct mem_cgroup *root,
 	/* No parent means a non-hierarchical mode on v1 memcg */
 	if (!parent)
 		return MEMCG_PROT_NONE;
-
+#ifdef CONFIG_MEMCGV2_DECAYED_WATERMARK
+	if (memcg->time_decay_fact)
+		calc_decayed_watermark(memcg);
+	emin = memcg->memory.min;
+	elow = memcg->memory.low;
+#endif
 	if (parent == root)
 		goto exit;
 

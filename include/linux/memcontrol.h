@@ -334,6 +334,16 @@ struct mem_cgroup {
 	struct deferred_split deferred_split_queue;
 #endif
 
+#ifdef CONFIG_MEMCGV2_DECAYED_WATERMARK
+	/* protect the usage via percentage on watermark*/
+	u64 time_decay_fact;
+	u64 some_prop;
+	u64 full_prop;
+	u64 boost_prop;
+	u64 avg_next_update;
+	u64 avg_last_update;
+#endif
+
 	struct mem_cgroup_per_node *nodeinfo[0];
 	/* WARNING: nodeinfo must be the last member here */
 };

@@ -286,6 +286,33 @@ static void get_recent_times(struct psi_group *group, int cpu,
 	}
 }
 
+#ifdef CONFIG_MEMCGV2_DECAYED_WATERMARK
+unsigned long psi_mem_get(struct mem_cgroup *memcg, unsigned long time_ns)
+{
+	unsigned long time_sec = time_ns / (1000 * 1000 * 1000);
+	unsigned long some, full;
+	if (time_sec < 10) {
+		some = LOAD_INT(psi_system.avg[PSI_MEM * 2][0]);
+		full = LOAD_INT(psi_system.avg[PSI_MEM * 2 + 1][0]);
+	} else if (time_sec < 60) {
+		some = LOAD_INT(psi_system.avg[PSI_MEM * 2][1]);
+		full = LOAD_INT(psi_system.avg[PSI_MEM * 2 + 1][1]);
+	} else {
+		some = LOAD_INT(psi_system.avg[PSI_MEM * 2][2]);
+		full = LOAD_INT(psi_system.avg[PSI_MEM * 2 + 1][2]);
+	}
+	if (some + full*2 >= memcg->boost_prop) {
+		return 99;
+	} else if (some + full*2 >= memcg->full_prop && some + full*2 < memcg->full_prop + 10) {
+		some = 10; full = 5;
+	} else if (some + full*2 > memcg->some_prop && some + full*2 < memcg->full_prop) {
+		some = 8; full = 3;
+	}
+
+	return min(100UL, some + full * 2);
+}
+#endif
+
 static void calc_avgs(unsigned long avg[3], int missed_periods,
 		      u64 time, u64 period)
 {

@@ -25,6 +25,10 @@ struct page_counter {
 
 	/* legacy */
 	unsigned long watermark;
+
+#ifdef CONFIG_MEMCGV2_DECAYED_WATERMARK
+	unsigned long decayed_watermark;
+#endif
 	unsigned long failcnt;
 };
 
