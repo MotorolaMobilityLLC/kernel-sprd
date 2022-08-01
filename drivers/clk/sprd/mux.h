@@ -85,4 +85,8 @@ int sprd_mux_helper_set_parent(const struct sprd_clk_common *common,
 			       const struct sprd_mux_ssel *mux,
 			       u8 index);
 
+int sprd_sc_mux_helper_set_parent(const struct sprd_clk_common *common,
+				  const struct sprd_mux_ssel *mux,
+				  u8 index);
+
 #endif /* _SPRD_MUX_H_ */
