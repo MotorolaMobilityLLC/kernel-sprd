@@ -1727,8 +1727,12 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 						 SPRD_VOTE_CMD_MIN,
 						 cm->desc->thm_info.thm_adjust_cur, cm);
 	}
-	if (cmd & CM_CHARGE_INFO_JEITA_LIMIT)
+
+	if (cmd & CM_CHARGE_INFO_JEITA_LIMIT) {
 		cm_update_current_jeita_status(cm);
+		if (cm->charging_status & (CM_CHARGE_TEMP_OVERHEAT | CM_CHARGE_TEMP_COLD))
+			mod_delayed_work(cm_wq, &cm_monitor_work, 0);
+	}
 }
 
 static void cm_vote_property(struct charger_manager *cm, int target_val,
@@ -3966,7 +3970,6 @@ static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_stat
 	if (jeita_status == 0 || jeita_status == desc->jeita_tab_size) {
 		dev_warn(cm->dev,
 			 "stop charging due to battery overheat or cold\n");
-		try_charger_enable(cm, false);
 
 		if (jeita_status == 0) {
 			cm->charging_status &= ~CM_CHARGE_TEMP_OVERHEAT;
