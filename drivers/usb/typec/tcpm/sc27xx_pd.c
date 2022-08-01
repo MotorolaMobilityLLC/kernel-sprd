@@ -618,7 +618,7 @@ unlock:
 	return ret;
 }
 
-#if IS_ENABLED(CONFIG_TYPEC_DP_ALTMODE)
+#if IS_ENABLED(CONFIG_SPRD_TYPEC_DP_ALTMODE)
 static int sc27xx_pd_dp_altmode_notify(struct tcpc_dev *tcpc, u32 vdo)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
@@ -1562,7 +1562,7 @@ static int sc27xx_pd_extcon_event(struct notifier_block *nb,
 				  unsigned long event, void *param)
 {
 	struct sc27xx_pd *pd = container_of(nb, struct sc27xx_pd, extcon_nb);
-#if IS_ENABLED(CONFIG_TYPEC_DP_ALTMODE)
+#if IS_ENABLED(CONFIG_SPRD_TYPEC_DP_ALTMODE)
 	union extcon_property_value hpd_status;
 
 	hpd_status.intval = SC27XX_DP_TYPE_DISCONNECT;
@@ -1716,7 +1716,7 @@ static void sc27xx_pd_detect_typec_work(struct work_struct *work)
 	    extcon_get_state(pd->extcon, EXTCON_USB_HOST))
 		sc27xx_pd_check_vbus_cc_status(pd);
 
-#if IS_ENABLED(CONFIG_TYPEC_DP_ALTMODE)
+#if IS_ENABLED(CONFIG_SPRD_TYPEC_DP_ALTMODE)
 	extcon_set_property_capability(pd->edev, EXTCON_DISP_DP, EXTCON_PROP_DISP_HPD);
 #endif
 
@@ -1724,7 +1724,7 @@ static void sc27xx_pd_detect_typec_work(struct work_struct *work)
 }
 
 static const u32 sc27xx_pd_hardreset[] = {
-#if IS_ENABLED(CONFIG_TYPEC_DP_ALTMODE)
+#if IS_ENABLED(CONFIG_SPRD_TYPEC_DP_ALTMODE)
 	EXTCON_DISP_DP,
 #endif
 	EXTCON_CHG_USB_PD,
