@@ -288,6 +288,19 @@ int dwc3_core_soft_reset(struct dwc3 *dwc)
 {
 	u32		reg;
 	int		retries = 1000;
+	int		ret;
+
+	usb_phy_init(dwc->usb2_phy);
+	usb_phy_init(dwc->usb3_phy);
+	ret = phy_init(dwc->usb2_generic_phy);
+	if (ret < 0)
+		return ret;
+
+	ret = phy_init(dwc->usb3_generic_phy);
+	if (ret < 0) {
+		phy_exit(dwc->usb2_generic_phy);
+		return ret;
+	}
 
 	/*
 	 * We're resetting only the device side because, if we're in host mode,
@@ -299,17 +312,16 @@ int dwc3_core_soft_reset(struct dwc3 *dwc)
 
 	reg = dwc3_readl(dwc->regs, DWC3_DCTL);
 	reg |= DWC3_DCTL_CSFTRST;
-	reg &= ~DWC3_DCTL_RUN_STOP;
 	dwc3_gadget_dctl_write_safe(dwc, reg);
 
 	/*
 	 * For DWC_usb31 controller 1.90a and later, the DCTL.CSFRST bit
 	 * is cleared only after all the clocks are synchronized. This can
 	 * take a little more than 50ms. Set the polling rate at 20ms
-	 * for 10 times instead.
+	 * for 100 times instead.
 	 */
 	if (DWC3_VER_IS_WITHIN(DWC31, 190A, ANY) || DWC3_IP_IS(DWC32))
-		retries = 10;
+		retries = 100;
 
 	do {
 		reg = dwc3_readl(dwc->regs, DWC3_DCTL);
@@ -322,6 +334,10 @@ int dwc3_core_soft_reset(struct dwc3 *dwc)
 			udelay(1);
 	} while (--retries);
 
+	phy_exit(dwc->usb3_generic_phy);
+	phy_exit(dwc->usb2_generic_phy);
+
+	dev_info(dwc->dev, "%s EINTIMEDOUT \n", __func__);
 	return -ETIMEDOUT;
 
 done:
@@ -1041,18 +1057,6 @@ static int dwc3_core_init(struct dwc3 *dwc)
 			goto err0a;
 #endif
 		dwc->phys_ready = true;
-	}
-
-	usb_phy_init(dwc->usb2_phy);
-	usb_phy_init(dwc->usb3_phy);
-	ret = phy_init(dwc->usb2_generic_phy);
-	if (ret < 0)
-		goto err0a;
-
-	ret = phy_init(dwc->usb3_generic_phy);
-	if (ret < 0) {
-		phy_exit(dwc->usb2_generic_phy);
-		goto err0a;
 	}
 
 	ret = dwc3_core_soft_reset(dwc);

@@ -2504,11 +2504,9 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 	 * suspended state during gadget disconnect.  DWC3 gadget was already
 	 * halted/stopped during runtime suspend.
 	 */
-	if (!is_on) {
-		if (pm_runtime_suspended(dwc->dev)) {
-			dev_info(dwc->dev, " %s suspended return \n", __func__);
-			return 0;
-		}
+	if (pm_runtime_suspended(dwc->dev)) {
+		dev_info(dwc->dev, " %s suspended is_on: %d \n", __func__, is_on);
+		return 0;
 	}
 	/*
 	 * Check the return value for successful resume, or error.  For a
