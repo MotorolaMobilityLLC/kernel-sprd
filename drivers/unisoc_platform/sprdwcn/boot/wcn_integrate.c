@@ -771,6 +771,20 @@ u32 wcn_subsys_active_num(void)
 	WCN_INFO("%s, %d", __func__, count);
 	return count;
 }
+
+bool wcn_subsys_active_is_gnss_only(void)
+{
+	if (s_wcn_device.btwf_device &&
+	    s_wcn_device.btwf_device->wcn_open_status & WCN_MARLIN_MASK)
+		return false;
+
+	if (s_wcn_device.gnss_device &&
+	    s_wcn_device.gnss_device->wcn_open_status & WCN_GNSS_ALL_MASK)
+		return true;
+
+	return false;
+}
+
 /*
  * WCN SYS shutdown, ret: 1 is shutdown, else is not
  * If WCN is at shutdown status, it can't access WCN REGs.

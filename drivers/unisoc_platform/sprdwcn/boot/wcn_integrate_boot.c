@@ -2135,6 +2135,17 @@ int wcn_poweron_device(struct wcn_device *wcn_dev)
 
 	/* wcn sys has poweron, just power on self sys */
 	if (wcn_subsys_active_num() != 0) {
+		if (is_marlin && wcn_subsys_active_is_gnss_only()) {
+			/* Enable vddwifipa(see wcn_power_clock_support)*/
+			WCN_INFO("[-]%s: Enable VDDWIFIPA when GNSS is turned on\n", __func__);
+			usleep_range(VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME,
+				VDDWIFIPA_VDDCON_MAX_INTERVAL_TIME);
+			ret = wcn_marlin_power_enable_vddwifipa(true);
+			if (ret) {
+				WCN_ERR("wcn_marlin_power_enable_vddwifipa:%d", ret);
+				return -1;
+			}
+		}
 		if (is_marlin) {
 			/* btwf power on */
 			ret = btwf_sys_poweron(wcn_dev);

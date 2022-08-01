@@ -221,6 +221,7 @@ u32 wcn_deep_sleep_status(struct wcn_device *wcn_dev);
 int btwf_force_deepsleep(void);
 int gnss_force_deepsleep(void);
 u32 wcn_subsys_active_num(void);
+bool wcn_subsys_active_is_gnss_only(void);
 void wcn_set_auto_shutdown(struct wcn_device *wcn_dev);
 void wcn_power_domain_set(struct wcn_device *wcn_dev, u32 set_type);
 void wcn_xtl_auto_sel(bool enable);
