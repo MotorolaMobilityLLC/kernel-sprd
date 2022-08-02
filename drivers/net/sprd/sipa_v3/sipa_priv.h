@@ -315,7 +315,9 @@ struct sipa_skb_dma_addr_pair {
 struct sipa_skb_array {
 	struct sipa_skb_dma_addr_pair *array;
 	u32 rp;
+	u32 rp_old;
 	u32 wp;
+	u32 wp_old;
 	u32 depth;
 	atomic_t need_fill_cnt;
 	struct list_head mem_list;

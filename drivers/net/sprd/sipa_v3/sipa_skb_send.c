@@ -185,7 +185,7 @@ check_again:
 			dev_kfree_skb_any(iter->skb);
 			success_cnt++;
 			status = false;
-		} else if (!status && retry_cnt--) {
+		} else if (!status && --retry_cnt) {
 			udelay(1);
 			goto check_again;
 		}
