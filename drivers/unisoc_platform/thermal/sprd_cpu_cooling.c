@@ -186,12 +186,13 @@ static int cpu_get_static_power(struct cpu_cooling_device *cpu_cdev,
 	struct cpumask cpus_mask;
 	struct device *dev;
 	int temp;
+	int ret = 0;
 	unsigned int i, cpu;
 	unsigned int passive_delay;
 
 	if (!cpu_cdev->power_ops || !cpus) {
 		*power = 0;
-		return 0;
+		return -EINVAL;
 	}
 
 	cpu = cpumask_any(&cpu_cdev->allowed_cpus);
@@ -221,10 +222,12 @@ static int cpu_get_static_power(struct cpu_cooling_device *cpu_cdev,
 	temp = cpu_tz->temperature;
 	passive_delay = jiffies_to_msecs(cpu_tz->passive_delay_jiffies);
 
-	cpu_cdev->power_ops->get_core_static_power_p(&cpus_mask, passive_delay,
+	ret = cpu_cdev->power_ops->get_core_static_power_p(&cpus_mask, passive_delay,
 							voltage, power, temp);
+	if (ret < 0)
+		dev_err_ratelimited(dev, "Failed to get static power\n");
 
-	return 0;
+	return ret;
 }
 
 static int cpu_get_max_state(struct thermal_cooling_device *cdev,
@@ -571,7 +574,13 @@ cpu_cooling_register(struct device_node *np,
 		cpu_cdev->power_ops = plat_power_ops;
 
 	cpu_cdev->cycle = 0;
+
 	id = get_cluster_id(cpumask_any(&cpu_cdev->allowed_cpus));
+	if (id < 0) {
+		cdev = ERR_PTR(-EINVAL);
+		goto remove_ida;
+	}
+
 	if (cpu_cdev->power_ops->get_cluster_cycle_p != NULL)
 		cpu_cdev->cycle = cpu_cdev->power_ops->get_cluster_cycle_p(id);
 
@@ -737,6 +746,9 @@ static ssize_t sprd_cpu_show_min_freq(struct device *dev,
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 	int id = get_cluster_id(cpumask_any(&cpu_cdev->allowed_cpus));
 
+	if (id < 0)
+		return -EINVAL;
+
 	return sprintf(buf, "%u\n", cluster_data[id].min_cpufreq);
 }
 
@@ -749,7 +761,7 @@ static ssize_t sprd_cpu_store_min_freq(struct device *dev,
 	int id = get_cluster_id(cpumask_any(&cpu_cdev->allowed_cpus));
 	unsigned long val;
 
-	if (kstrtoul(buf, 10, &val))
+	if (id < 0 || kstrtoul(buf, 10, &val))
 		return -EINVAL;
 
 	cluster_data[id].min_cpufreq = val;
@@ -765,6 +777,9 @@ static ssize_t sprd_cpu_show_min_core_num(struct device *dev,
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 	int id = get_cluster_id(cpumask_any(&cpu_cdev->allowed_cpus));
 
+	if (id < 0)
+		return -EINVAL;
+
 	return sprintf(buf, "%u\n", cluster_data[id].min_cpunum);
 }
 
@@ -777,7 +792,7 @@ static ssize_t sprd_cpu_store_min_core_num(struct device *dev,
 	int id = get_cluster_id(cpumask_any(&cpu_cdev->allowed_cpus));
 	unsigned long val;
 
-	if (kstrtoul(buf, 10, &val))
+	if (id < 0 || kstrtoul(buf, 10, &val))
 		return -EINVAL;
 
 	cluster_data[id].min_cpunum = val;
@@ -792,6 +807,9 @@ static ssize_t sprd_cpu_show_max_ctrl_temp(struct device *dev,
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 	int id = get_cluster_id(cpumask_any(&cpu_cdev->allowed_cpus));
 
+	if (id < 0)
+		return -EINVAL;
+
 	return sprintf(buf, "%u\n", cluster_data[id].max_temp);
 }
 
@@ -804,7 +822,7 @@ static ssize_t sprd_cpu_store_max_ctrl_temp(struct device *dev,
 	int id = get_cluster_id(cpumask_any(&cpu_cdev->allowed_cpus));
 	unsigned long val;
 
-	if (kstrtoul(buf, 10, &val))
+	if (id < 0 || kstrtoul(buf, 10, &val))
 		return -EINVAL;
 
 	cluster_data[id].max_temp = val;
@@ -1027,8 +1045,10 @@ static int get_static_power(cpumask_t *cpumask, unsigned int interval,
 	u32 tmp_power = 0;
 	int nr_cpus = cpumask_weight(cpumask);
 	int cache_coeff = 0;
-	int cluster_id =
-		get_cluster_id(cpumask_any(cpumask));
+	int cluster_id = get_cluster_id(cpumask_any(cpumask));
+
+	if (cluster_id < 0)
+		return -EINVAL;
 
 	/* get coeff * 100 */
 	cpu_coeff = get_cpu_static_power_coeff(cluster_id);
@@ -1085,8 +1105,10 @@ static int get_core_static_power(cpumask_t *cpumask, unsigned int interval,
 	u32 cpu_coeff;
 	u32 tmp_power = 0;
 	int nr_cpus = cpumask_weight(cpumask);
-	int cluster_id =
-		get_cluster_id(cpumask_any(cpumask));
+	int cluster_id = get_cluster_id(cpumask_any(cpumask));
+
+	if (cluster_id < 0)
+		return -EINVAL;
 
 	/* get coeff * 100 */
 	cpu_coeff = get_cpu_static_power_coeff(cluster_id);
