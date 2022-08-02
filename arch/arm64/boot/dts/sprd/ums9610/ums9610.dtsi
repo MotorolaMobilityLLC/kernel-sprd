@@ -414,4 +414,4 @@
 //#include "vpu.dtsi"
 #include "vdsp.dtsi"
 //#include "sipa-sys.dtsi"
-//#include "sipa.dtsi"
+#include "sipa.dtsi"

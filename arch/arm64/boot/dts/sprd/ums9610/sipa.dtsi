@@ -158,8 +158,7 @@
 			MASK_IPA_GLB_APB_TFT_EB>;
 
 		sprd,sipa-bypass-mode = <1>;
-
-		power-domains = <&pd_ipa_sys>;
+		sprd,sipa-sys-eb = <0>;
 
 		fifo-names = "sprd,map0-out", "sprd,map1-out",
 			"sprd,map2-out", "sprd,map3-out",
@@ -176,7 +175,5 @@
 
 		sprd,ul-fifo-depth = <4096>;
 		sprd,dl-fifo-depth = <4096>;
-
-		power-domains = <&pd_ipa_sys>;
 	};
 };

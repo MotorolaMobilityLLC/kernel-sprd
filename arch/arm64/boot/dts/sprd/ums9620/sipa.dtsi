@@ -158,6 +158,7 @@
 			MASK_IPA_GLB_APB_TFT_EB>;
 
 		sprd,sipa-bypass-mode = <1>;
+		sprd,sipa-sys-eb = <1>;
 
 		power-domains = <&pd_ipa_sys>;
 
