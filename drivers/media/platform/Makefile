@@ -86,9 +86,3 @@ obj-$(CONFIG_VIDEO_QCOM_VENUS)		+= qcom/venus/
 obj-y					+= sunxi/
 
 obj-$(CONFIG_VIDEO_MESON_GE2D)		+= meson/ge2d/
-
-obj-y					+= sprd-vsp/
-
-obj-y					+= sprd-jpg/
-
-obj-y					+= sprd-vpu/

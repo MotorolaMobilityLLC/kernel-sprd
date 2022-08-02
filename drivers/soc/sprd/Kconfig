@@ -1,8 +1,0 @@
-#
-# SPRD SOC drivers
-#
-menu "Unisoc SOC drivers"
-
-source "drivers/soc/sprd/domain/Kconfig"
-
-endmenu
