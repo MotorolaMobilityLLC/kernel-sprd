@@ -409,7 +409,7 @@ u32 sprd_iommuex_cll_enable(sprd_iommu_hdl p_iommu_hdl)
 	mmu_ex_default_ppn(p_iommu_priv->mmu_reg_addr, iommu_id, fault_page);
 
 	if (iommu_id != IOMMU_EX_ISP) {
-		if (iommu_id == IOMMU_EX_DISP)
+		if (iommu_id == IOMMU_EX_DISP || iommu_id == IOMMU_EX_NEWISP)
 			mmu_ex_vpn_range(p_iommu_priv->mmu_reg_addr,
 			    iommu_id, (p_iommu_priv->vpn_range >> 12) - 1);
 
