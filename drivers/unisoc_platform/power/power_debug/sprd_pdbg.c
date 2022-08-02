@@ -46,7 +46,7 @@ MODULE_PARM_DESC(sprd_pdbg_log_force, "sprd pdbg log force out (default: 0)");
 #define SPRD_PDBG_WARN(fmt, ...) pr_warn("[%s]"pr_fmt(fmt), "SPRD_PDBG", ##__VA_ARGS__)
 #define SPRD_PDBG_INFO(fmt, ...)							\
 	do {										\
-		if (!!sprd_pdbg_log_force)						\
+		if (!sprd_pdbg_log_force)						\
 			pr_info("[%s] "pr_fmt(fmt), "SPRD_PDBG", ##__VA_ARGS__);	\
 		else									\
 			pr_err("[%s] "pr_fmt(fmt), "SPRD_PDBG", ##__VA_ARGS__);		\
@@ -352,10 +352,9 @@ static void sprd_pdbg_kernel_active_ws_show(void)
 	SPRD_PDBG_INFO("%s\n", active_ws);
 }
 
-static int sprd_pdbg_irq_domain_release(void)
+static int sprd_pdbg_irq_domain_release(struct power_debug *pdbg)
 {
 	struct ws_irq_domain *pos, *tmp;
-	struct power_debug *pdbg = sprd_pdbg_get_instance();
 
 	write_lock(&pdbg->rw_lock);
 	list_for_each_entry_safe(pos, tmp, &pdbg->ws_irq_domain_list, list) {
@@ -551,6 +550,7 @@ static int sprd_pdbg_thread(void *data)
 static int sprd_pdbg_start_monitor(struct power_debug *pdbg)
 {
 	struct task_struct *ptask;
+	int err;
 
 	if (!pdbg)
 		return -EINVAL;
@@ -564,8 +564,17 @@ static int sprd_pdbg_start_monitor(struct power_debug *pdbg)
 		pdbg->task = ptask;
 		wake_up_process(ptask);
 
-		cpu_pm_register_notifier(&pdbg->cpu_pm_notifier_block);
-		register_pm_notifier(&pdbg->pm_notifier_block);
+		err = cpu_pm_register_notifier(&pdbg->cpu_pm_notifier_block);
+		if (err) {
+			SPRD_PDBG_ERR("cpu_pm_notifier_block register failed!!!\n");
+			return err;
+		}
+
+		err = register_pm_notifier(&pdbg->pm_notifier_block);
+		if (err) {
+			SPRD_PDBG_ERR("pm_notifier_block register failed!!!\n");
+			return err;
+		}
 	}
 
 	return 0;
@@ -587,13 +596,6 @@ static void sprd_pdbg_stop_monitor(struct power_debug *pdbg)
 		cpu_pm_unregister_notifier(&pdbg->cpu_pm_notifier_block);
 		unregister_pm_notifier(&pdbg->pm_notifier_block);
 	}
-}
-
-static void sprd_pdbg_release(struct power_debug *pdbg)
-{
-	sprd_pdbg_stop_monitor(pdbg);
-	kfree(pdbg);
-	pdbg = NULL;
 }
 
 void sprd_pdbg_msg_print(const char *format, ...)
@@ -651,22 +653,43 @@ static int sprd_pdbg_proc_init(void)
 	fle = proc_create("regs_info", 0444, dir, &sprd_pdbg_proc_fops);
 	if (!fle) {
 		SPRD_PDBG_ERR("Proc file create failed\n");
-		remove_proc_entry("sprd-pdbg", NULL);
 		return -EINVAL;
 	}
 
 	return 0;
 }
 
+
+static void sprd_pdbg_release(struct power_debug *pdbg)
+{
+	sprd_pdbg_irq_domain_release(pdbg);
+	remove_proc_entry("sprd-pdbg", NULL);
+	sprd_pdbg_stop_monitor(pdbg);
+	kfree(pdbg);
+}
+
+static void sprd_pdbg_devm_action(void *_data)
+{
+	struct power_debug *pdbg = _data;
+
+	sprd_pdbg_release(pdbg);
+}
+
 static int sprd_pdbg_probe(struct platform_device *pdev)
 {
-	int result;
+	int ret;
 	struct sprd_sip_svc_handle *sip;
 	struct power_debug *pdbg = sprd_pdbg_get_instance();
 
 	if (!pdbg) {
 		SPRD_PDBG_ERR("fail to get pdbg instance.\n");
 		return -ENODEV;
+	}
+
+	ret = devm_add_action(&pdev->dev, sprd_pdbg_devm_action, pdbg);
+	if (ret) {
+		SPRD_PDBG_ERR("failed to add pdbg devm action\n");
+		return ret;
 	}
 
 	pdbg->scan_interval = 30;
@@ -684,12 +707,16 @@ static int sprd_pdbg_probe(struct platform_device *pdev)
 	/* must init after irq domain driver modules load. so should care about modules.load*/
 	sprd_pdbg_irq_domain_init();
 
-	sprd_pdbg_proc_init();
+	ret = sprd_pdbg_proc_init();
+	if (ret) {
+		SPRD_PDBG_ERR("failed to init pdbg proc\n");
+		return ret;
+	}
 
-	result = sprd_pdbg_start_monitor(pdbg);
-	if (result) {
-		kfree(pdbg);
-		return -ENODEV;
+	ret = sprd_pdbg_start_monitor(pdbg);
+	if (ret) {
+		SPRD_PDBG_ERR("failed to start pdbg monitor\n");
+		return ret;
 	}
 
 	return 0;
@@ -702,7 +729,6 @@ static int sprd_pdbg_remove(struct platform_device *pdev)
 {
 	struct power_debug *pdbg = sprd_pdbg_get_instance();
 
-	sprd_pdbg_irq_domain_release();
 	sprd_pdbg_release(pdbg);
 
 	return 0;

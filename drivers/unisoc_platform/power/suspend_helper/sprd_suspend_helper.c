@@ -127,22 +127,23 @@ static int sprd_sys_sync_pm_notifier(struct notifier_block *notifier,
 static int __init sprd_sys_sync_init(void)
 {
 	struct sprd_sys_sync_data *sync_data_ptr = sprd_sys_sync_get_instance();
+	int ret;
 
 	if (!sync_data_ptr)
 		return -ENOMEM;
 
 	sync_data_ptr->sys_sync_check_ws = wakeup_source_register(NULL, "sys_sync_ws");
 	if (!sync_data_ptr->sys_sync_check_ws) {
-		kfree(sync_data_ptr);
 		pr_err("sync_queue_init: wakeup_source_register err!");
-		return -ENOMEM;
+		ret = -EBUSY;
+		goto err_ws;
 	}
 
 	sync_data_ptr->suspend_sys_sync_work_queue = create_singlethread_workqueue("sys_sync_wq");
 	if (!sync_data_ptr->suspend_sys_sync_work_queue) {
-		kfree(sync_data_ptr);
 		pr_err("sync_queue_init: create_singlethread_workqueue err!");
-		return -ENOMEM;
+		ret = -EBUSY;
+		goto err_wq;
 	}
 
 	INIT_WORK(&sync_data_ptr->suspend_sys_sync_work, sprd_sys_sync_work_handler);
@@ -150,9 +151,22 @@ static int __init sprd_sys_sync_init(void)
 	mutex_init(&sync_data_ptr->sync_mtx);
 	sync_data_ptr->pm_notifier_block.notifier_call = sprd_sys_sync_pm_notifier;
 	sync_data_ptr->pm_notifier_block.priority = S32_MAX;
-	register_pm_notifier(&sync_data_ptr->pm_notifier_block);
+	ret = register_pm_notifier(&sync_data_ptr->pm_notifier_block);
+	if (ret) {
+		pr_err("sys sync nb register err!");
+		goto err_nb;
+	}
 
 	return 0;
+
+err_nb:
+	destroy_workqueue(sync_data_ptr->suspend_sys_sync_work_queue);
+err_wq:
+	wakeup_source_unregister(sync_data_ptr->sys_sync_check_ws);
+err_ws:
+	kfree(sync_data_ptr);
+
+	return ret;
 }
 
 static void  __exit sprd_sys_sync_exit(void)
@@ -165,6 +179,7 @@ static void  __exit sprd_sys_sync_exit(void)
 	flush_work(&sync_data->suspend_sys_sync_work);
 	destroy_workqueue(sync_data->suspend_sys_sync_work_queue);
 	wakeup_source_unregister(sync_data->sys_sync_check_ws);
+	unregister_pm_notifier(&sync_data->pm_notifier_block);
 	kfree(sync_data);
 }
 
