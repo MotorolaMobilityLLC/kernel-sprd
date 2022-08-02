@@ -75,6 +75,7 @@ static int sprd_dp_altmode_configure(struct sprd_dp_altmode *dp, u8 con)
 {
 	u32 conf = DP_CONF_SIGNALING_DP; /* Only DP signaling supported */
 	u8 pin_assign = 0;
+	bool receptacle = dp->alt->vdo & DP_CAP_RECEPTACLE;
 
 	switch (con) {
 	case DP_STATUS_CON_DISABLED:
@@ -87,8 +88,12 @@ static int sprd_dp_altmode_configure(struct sprd_dp_altmode *dp, u8 con)
 	case DP_STATUS_CON_UFP_D:
 	case DP_STATUS_CON_BOTH: /* NOTE: First acting as DP source */
 		conf |= DP_CONF_UFP_U_AS_UFP_D;
-		pin_assign = DP_CAP_DFP_D_PIN_ASSIGN(dp->alt->vdo) &
-			     DP_CAP_UFP_D_PIN_ASSIGN(dp->port->vdo);
+		if (receptacle)
+			pin_assign = DP_CAP_UFP_D_PIN_ASSIGN(dp->alt->vdo) &
+				DP_CAP_DFP_D_PIN_ASSIGN(dp->port->vdo);
+		else
+			pin_assign = DP_CAP_DFP_D_PIN_ASSIGN(dp->alt->vdo) &
+				DP_CAP_UFP_D_PIN_ASSIGN(dp->port->vdo);
 		break;
 	default:
 		break;
