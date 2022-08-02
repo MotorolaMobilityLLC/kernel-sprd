@@ -44,7 +44,7 @@ struct sprd_vchg_info {
 	bool pd_extcon_enable;
 	bool pd_hard_reset;
 	bool typec_online;
-	u32 limit;
+	bool chgr_online;
 };
 
 struct sprd_vchg_ops {

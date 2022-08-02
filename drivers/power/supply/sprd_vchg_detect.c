@@ -55,10 +55,7 @@ static bool sprd_vchg_is_charger_online(struct sprd_vchg_info *info)
 		return false;
 	}
 
-	if (info->limit)
-		return true;
-
-	return false;
+	return info->chgr_online;
 }
 
 static void sprd_vchg_work(struct work_struct *data)
@@ -66,8 +63,8 @@ static void sprd_vchg_work(struct work_struct *data)
 	struct sprd_vchg_info *info = container_of(data, struct sprd_vchg_info,
 						   sprd_vchg_work);
 
-	dev_info(info->dev, "%s: charger type = %d, limit = %d\n",
-		 SPRD_VCHG_TAG, info->usb_phy->chg_type, info->limit);
+	dev_info(info->dev, "%s: charger type = %d, charger online = %d\n",
+		 SPRD_VCHG_TAG, info->usb_phy->chg_type, info->chgr_online);
 
 	cm_notify_event(info->psy, CM_EVENT_CHG_START_STOP, NULL);
 }
@@ -75,14 +72,18 @@ static void sprd_vchg_work(struct work_struct *data)
 static int sprd_vchg_change(struct notifier_block *nb, unsigned long limit, void *data)
 {
 	struct sprd_vchg_info *info = container_of(nb, struct sprd_vchg_info, usb_notify);
+	bool chgr_online = false;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", SPRD_VCHG_TAG, __LINE__);
 		return NOTIFY_OK;
 	}
 
+	if (info->usb_phy->chg_state == USB_CHARGER_PRESENT)
+		chgr_online = true;
+
 	if (!info->pd_hard_reset) {
-		info->limit = limit;
+		info->chgr_online = chgr_online;
 		if (info->typec_online) {
 			info->typec_online = false;
 			dev_info(info->dev, "%s, typec not disconnect while pd hard reset.\n",
@@ -95,12 +96,12 @@ static int sprd_vchg_change(struct notifier_block *nb, unsigned long limit, void
 		info->pd_hard_reset = false;
 		if (info->usb_phy->chg_state == USB_CHARGER_PRESENT) {
 			dev_err(info->dev, "%s: The adapter is not PD adapter.\n", SPRD_VCHG_TAG);
-			info->limit = limit;
+			info->chgr_online = chgr_online;
 			__pm_wakeup_event(info->sprd_vchg_ws, SPRD_VCHG_WAKE_UP_MS);
 			schedule_work(&info->sprd_vchg_work);
 		} else if (!extcon_get_state(info->typec_extcon, EXTCON_USB)) {
 			dev_err(info->dev, "%s: typec disconnect before pd hard reset.\n", SPRD_VCHG_TAG);
-			info->limit = 0;
+			info->chgr_online = false;
 			__pm_wakeup_event(info->sprd_vchg_ws, SPRD_VCHG_WAKE_UP_MS);
 			schedule_work(&info->sprd_vchg_work);
 		} else {
@@ -115,8 +116,6 @@ static int sprd_vchg_change(struct notifier_block *nb, unsigned long limit, void
 
 static void sprd_vchg_detect_status(struct sprd_vchg_info *info)
 {
-	unsigned int min, max;
-
 	/*
 	 * If the USB charger status has been USB_CHARGER_PRESENT before
 	 * registering the notifier, we should start to charge with getting
@@ -125,9 +124,7 @@ static void sprd_vchg_detect_status(struct sprd_vchg_info *info)
 	if (info->usb_phy->chg_state != USB_CHARGER_PRESENT)
 		return;
 
-	usb_phy_get_charger_current(info->usb_phy, &min, &max);
-	info->limit = min;
-
+	info->chgr_online = true;
 	schedule_work(&info->sprd_vchg_work);
 }
 
@@ -175,7 +172,7 @@ static void sprd_vchg_pd_hard_reset_work(struct work_struct *work)
 
 		dev_info(info->dev, "%s: Not USB PD hard reset, charger out\n", SPRD_VCHG_TAG);
 
-		info->limit = 0;
+		info->chgr_online = false;
 		schedule_work(&info->sprd_vchg_work);
 	}
 
@@ -189,7 +186,7 @@ static void sprd_vchg_typec_extcon_work(struct work_struct *work)
 						   typec_extcon_work);
 
 	if (!extcon_get_state(info->typec_extcon, EXTCON_USB)) {
-		info->limit = 0;
+		info->chgr_online = false;
 		info->typec_online = false;
 		__pm_wakeup_event(info->sprd_vchg_ws, SPRD_VCHG_WAKE_UP_MS);
 		dev_info(info->dev, "%s: typec disconnect while pd hard reset.\n", SPRD_VCHG_TAG);
