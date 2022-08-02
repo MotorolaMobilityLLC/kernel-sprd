@@ -128,7 +128,7 @@
 		reg = <9>;
 		label = "sipc-chsys";
 		mboxes = <&mailbox 2 0>,<&mailbox 6 1>;
-		sprd,smem-info = <0x6500d000 0x6500d000 0x2000>,
+		sprd,smem-info = <0x6500cc00 0x6500cc00 0x2000>,
 				 <0xae600000 0x80000000 0x40000>;
 		spipe_ch: channel@4 {
 			compatible = "sprd,spipe";
