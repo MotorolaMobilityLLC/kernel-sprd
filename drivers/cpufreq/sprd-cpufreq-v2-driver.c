@@ -284,7 +284,7 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 	struct cluster_info *cluster;
 	unsigned int cpumask;
 	cpumask_t cluster_cpumask;
-	u64 freq;
+	u64 freq = 0;
 	int ret;
 
 	cluster = sprd_cluster_info(policy->cpu);
@@ -801,7 +801,7 @@ unsigned int sprd_cpufreq_update_opp_v2(int cpu, int now_temp)
 	struct cluster_info *cluster;
 	int temp = now_temp / 1000;
 	struct temp_node *node;
-	u64 freq;
+	u64 freq = 0;
 	int ret;
 
 	policy = cpufreq_cpu_get(cpu);
