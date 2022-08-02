@@ -49,6 +49,7 @@
 #include "wcn_gnss_dump.h"
 
 #define SUFFIX "androidboot.slot_suffix="
+#define SUFFIXS "sprdboot.slot_suffix="
 
 struct wcn_device_manage s_wcn_device;
 
@@ -932,6 +933,15 @@ static int wcn_parse_dt(struct platform_device *pdev,
 					wcn_dev->fstab = 'a';
 				else if (strncmp(fstab_ab + strlen(SUFFIX), "_b", 2) == 0)
 					wcn_dev->fstab = 'b';
+			} else {
+				fstab_ab = strstr(cmd_line, SUFFIXS);
+				if (fstab_ab) {
+					WCN_INFO("fstab_sprdboot: %s.\n", fstab_ab);
+					if (strncmp(fstab_ab + strlen(SUFFIXS), "_a", 2) == 0)
+						wcn_dev->fstab = 'a';
+					else if (strncmp(fstab_ab + strlen(SUFFIXS), "_b", 2) == 0)
+						wcn_dev->fstab = 'b';
+				}
 			}
 		}
 	}

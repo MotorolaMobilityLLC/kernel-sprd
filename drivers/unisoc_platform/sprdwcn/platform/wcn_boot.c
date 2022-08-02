@@ -69,6 +69,7 @@ module_param(slot_suffix, charp, 0444);
 
 #ifndef SUFFIX
 #define SUFFIX "androidboot.slot_suffix="
+#define SUFFIXS "sprdboot.slot_suffix="
 #endif
 
 #ifndef WCN_CLKTYPE
@@ -1273,6 +1274,18 @@ static int marlin_parse_dt(struct platform_device *pdev)
 				} else if (!strncmp(parse_cmdline + strlen(SUFFIX), "_b", 2)) {
 					strcat(BTWF_FIRMWARE_PATH, "_b");
 					//strcat(GNSS_FIRMWARE_PATH, "_b");
+				}
+			} else {
+				parse_cmdline = strstr(cmd_line, SUFFIXS);
+				if (parse_cmdline) {
+					pr_debug("fstab_sprdboot: %s\n", parse_cmdline);
+					if (!strncmp(parse_cmdline + strlen(SUFFIXS), "_a", 2)) {
+						strcat(BTWF_FIRMWARE_PATH, "_a");
+						//strcat(GNSS_FIRMWARE_PATH, "_a");
+					} else if (!strncmp(parse_cmdline + strlen(SUFFIXS), "_b", 2)) {
+						strcat(BTWF_FIRMWARE_PATH, "_b");
+						//strcat(GNSS_FIRMWARE_PATH, "_b");
+					}
 				}
 			}
 		}
