@@ -20,6 +20,7 @@
 #include "ufs-sprd-bootdevice.h"
 
 extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops;
+extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9610_vops;
 
 int ufs_sprd_get_syscon_reg(struct device_node *np, struct syscon_ufs *reg,
 			    const char *name)
@@ -57,6 +58,7 @@ static void ufs_sprd_vh_prepare_command(void *data, struct ufs_hba *hba,
 
 static const struct of_device_id ufs_sprd_of_match[] = {
 	{ .compatible = "sprd,ufshc-ums9620", .data = &ufs_hba_sprd_ums9620_vops },
+	{ .compatible = "sprd,ufshc-ums9610", .data = &ufs_hba_sprd_ums9610_vops },
 	{},
 };
 
