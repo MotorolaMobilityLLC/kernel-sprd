@@ -261,7 +261,7 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 
 static void sprd_cpufreq_temp_work_func(struct work_struct *work)
 {
-	int temp;
+	int temp = 0, ret;
 	unsigned int freq, cpu;
 	struct cpumask cluster_online_mask;
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -285,7 +285,11 @@ static void sprd_cpufreq_temp_work_func(struct work_struct *work)
 		pr_info("get cluster %u thmzone successfully\n", cluster->id);
 	}
 
-	thermal_zone_get_temp(cluster->cpu_tz, &temp);
+	ret = thermal_zone_get_temp(cluster->cpu_tz, &temp);
+	if (ret) {
+		pr_warn("failed to get the temp of cpu thmzone\n");
+		return;
+	}
 
 	cpumask_and(&cluster_online_mask, &cluster->cpus, cpu_online_mask);
 	cpu = cpumask_first(&cluster_online_mask);
@@ -303,7 +307,7 @@ static void sprd_cpufreq_temp_work_func(struct work_struct *work)
 static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 {
 	struct cluster_info *cluster;
-	u64 freq;
+	u64 freq = 0;
 	int ret;
 
 	cluster = pclusters + sprd_cluster_info(policy->cpu);
