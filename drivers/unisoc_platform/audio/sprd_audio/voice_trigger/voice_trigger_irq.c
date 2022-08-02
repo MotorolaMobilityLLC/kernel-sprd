@@ -63,8 +63,8 @@ static irqreturn_t sprd_eic_vts_handler(int irq, void *dev)
 	pr_info("%s:reg_val is %d\n", __func__, reg_val);
 
 exit:
-		pm_runtime_mark_last_busy(voice_trigger_irq->dev);
-		pm_runtime_put_autosuspend(voice_trigger_irq->dev);
+	pm_runtime_mark_last_busy(voice_trigger_irq->dev);
+	pm_runtime_put_autosuspend(voice_trigger_irq->dev);
 
 	return IRQ_HANDLED;
 }
@@ -78,7 +78,7 @@ static int voice_trigger_irq_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	int irq, ret = -1;
 
-	voice_trigger_irq = kzalloc(sizeof(struct voice_trigger_irq_t), GFP_KERNEL);
+	voice_trigger_irq = devm_kzalloc(dev, sizeof(struct voice_trigger_irq_t), GFP_KERNEL);
 	if (voice_trigger_irq == NULL) {
 		pr_err("%s:Failed to allocate\n", __func__);
 		return -ENOMEM;
@@ -106,6 +106,7 @@ static int voice_trigger_irq_probe(struct platform_device *pdev)
 
 	voice_trigger_irq->dev = dev;
 
+	platform_set_drvdata(pdev, voice_trigger_irq);
 	irq = platform_get_irq(pdev, 0);
 	voice_trigger_irq->irq = irq;
 	pr_info("vts:irq:%d\n", irq);
@@ -124,6 +125,7 @@ static int voice_trigger_irq_probe(struct platform_device *pdev)
 			pr_err("failed to request IRQ_%d\n", irq);
 			if (voice_trigger_irq->wake_lock)
 				wakeup_source_unregister(voice_trigger_irq->wake_lock);
+			return ret;
 		}
 	}
 
@@ -134,6 +136,15 @@ static int voice_trigger_irq_probe(struct platform_device *pdev)
 	return ret;
 }
 
+static int voice_trigger_irq_remove(struct platform_device *pdev)
+{
+	struct voice_trigger_irq_t *voice_trigger_irq = platform_get_drvdata(pdev);
+
+	devm_kfree(&pdev->dev, voice_trigger_irq);
+	platform_set_drvdata(pdev, NULL);
+	return 0;
+}
+
 static const struct of_device_id voice_trigger_irq_of_match[] = {
 	{ .compatible = "sprd,voice_trigger_irq" },
 	{ },
@@ -141,6 +152,7 @@ static const struct of_device_id voice_trigger_irq_of_match[] = {
 
 static struct platform_driver voice_trigger_irq_driver = {
 	.probe = voice_trigger_irq_probe,
+	.remove = voice_trigger_irq_remove,
 	.driver = {
 		.name   = "voice-triggrt-irq",
 		.of_match_table = voice_trigger_irq_of_match,
