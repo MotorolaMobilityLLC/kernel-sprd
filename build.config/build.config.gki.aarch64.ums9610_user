@@ -33,6 +33,7 @@ FILES="${FILES}
 arch/arm64/boot/dts/sprd/ums9610-base.dtb
 arch/arm64/boot/dts/sprd/ums9610-haps-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9610-zebu-overlay.dtbo
+arch/arm64/boot/dts/sprd/ums9610-zebu-flash-overlay.dtbo
 vmlinux
 "
 #KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc
