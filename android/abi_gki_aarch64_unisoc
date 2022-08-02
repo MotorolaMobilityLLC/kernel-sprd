@@ -2276,6 +2276,10 @@
   drm_dp_dpcd_read
   drm_dp_dpcd_read_link_status
   drm_dp_dpcd_write
+  drm_dp_get_adjust_request_pre_emphasis
+  drm_dp_get_adjust_request_voltage
+  drm_dp_link_train_channel_eq_delay
+  drm_hdmi_infoframe_set_hdr_metadata
   drm_encoder_cleanup
   drm_encoder_init
   drm_format_info
@@ -2331,6 +2335,8 @@
   drm_put_dev
   drm_universal_plane_init
   drm_vblank_init
+  extcon_get_property
+  hdmi_drm_infoframe_pack_only
   gpiod_direction_output
   kstrtou8
   mipi_dsi_attach
