@@ -338,6 +338,7 @@ static int sipa_eth_probe(struct platform_device *pdev)
 	 * So set the sipa_eth net_device's type to ARPHRD_RAWIP here.
 	 */
 	netdev->type = ARPHRD_RAWIP;
+	netdev->flags |= IFF_NOARP;
 
 	sipa_eth = netdev_priv(netdev);
 	sipa_eth->netdev = netdev;

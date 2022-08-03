@@ -887,6 +887,7 @@ static int seth_probe(struct platform_device *pdev)
 	 * net_device's type to ARPHRD_RAWIP here.
 	 */
 	netdev->type = ARPHRD_RAWIP;
+	netdev->flags |= IFF_NOARP;
 
 	seth = netdev_priv(netdev);
 	seth->pdata = pdata;
