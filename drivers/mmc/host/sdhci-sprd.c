@@ -28,6 +28,8 @@
 #include "sdhci-sprd-swcq.h"
 #include "sdhci-sprd-swcq.c"
 
+#include "cqhci.h"
+
 #if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
 #include "sdhci-sprd-powp.h"
 #include "sdhci-sprd-powp.c"
@@ -129,6 +131,7 @@ struct register_hotplug {
 };
 
 struct sdhci_sprd_host {
+	struct platform_device *pdev;
 	u32 version;
 	struct clk *clk_sdio;
 	struct clk *clk_enable;
@@ -153,6 +156,10 @@ struct sdhci_sprd_host {
 	unsigned char	power_mode;
 	u32 int_status;
 	bool support_swcq;
+	bool support_cqe;
+	bool support_ice;
+	void __iomem *cqe_mem;	/* SPRD CQE mapped address (if available) */
+	void __iomem *ice_mem;	/* SPRD ICE mapped address (if available) */
 };
 
 struct sdhci_sprd_phy_cfg {
@@ -199,10 +206,20 @@ static void sdhci_sprd_init_config(struct sdhci_host *host)
 
 static inline u32 sdhci_sprd_readl(struct sdhci_host *host, int reg)
 {
+	u32 sts = 0;
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+
 	if (unlikely(reg == SDHCI_MAX_CURRENT))
 		return SDHCI_SPRD_MAX_CUR;
 
-	return readl_relaxed(host->ioaddr + reg);
+	sts = readl_relaxed(host->ioaddr + reg);
+
+	if (likely(reg == SDHCI_INT_STATUS) &&
+	    sprd_host->support_cqe &&
+	    readl(sprd_host->cqe_mem + CQHCI_IS))
+		sts |= SDHCI_INT_CQE;
+
+	return sts;
 }
 
 static inline void sdhci_sprd_writel(struct sdhci_host *host, u32 val, int reg)
@@ -523,6 +540,9 @@ static void sdhci_sprd_request_done(struct sdhci_host *host,
 	/* Validate if the request was from software queue firstly. */
 	if (HOST_IS_EMMC_TYPE(host->mmc) && sprd_host->support_swcq) {
 		if (mmc_swcq_finalize_request(host->mmc, mrq))
+			return;
+	} else if (sprd_host->support_cqe) {
+		mmc_request_done(host->mmc, mrq);
 			return;
 	} else {
 		if (mmc_hsq_finalize_request(host->mmc, mrq))
@@ -900,16 +920,27 @@ static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
 			16, 4, host->ioaddr + 0x250, 32, 0);
 }
 
-static u32 sdhci_sprd_int_status(struct sdhci_host *host, u32 intmask)
+static u32 sdhci_sprd_cqe_irq(struct sdhci_host *host, u32 intmask)
 {
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
-
+	int cmd_error = 0;
+	int data_error = 0;
+	struct mmc_command cmd;
 	sprd_host->int_status = intmask;
 
 	if (intmask & SDHCI_INT_ERROR_MASK)
 		sdhci_sprd_dump_vendor_regs(host);
 
-	return intmask;
+	/* when data crc, host->cmd = null in sdhci_cqe_irq() */
+	if (host->cqe_on && sprd_host->support_cqe && (intmask & SDHCI_INT_ERROR_MASK) && !host->cmd)
+		host->cmd = &cmd;
+
+	if (!sdhci_cqe_irq(host, intmask, &cmd_error, &data_error))
+		return intmask;
+
+	cqhci_irq(host->mmc, intmask, cmd_error, data_error);
+
+	return 0;
 }
 
 static struct sdhci_ops sdhci_sprd_ops = {
@@ -929,7 +960,7 @@ static struct sdhci_ops sdhci_sprd_ops = {
 	.get_ro = sdhci_sprd_get_ro,
 	.request_done = sdhci_sprd_request_done,
 	.dump_vendor_regs = sdhci_sprd_dumpregs,
-	.irq = sdhci_sprd_int_status,
+	.irq = sdhci_sprd_cqe_irq,
 };
 
 static void sdhci_sprd_check_auto_cmd23(struct mmc_host *mmc,
@@ -1144,6 +1175,230 @@ static void sdhci_sprd_get_fast_hotplug_info(struct device_node *np,
 		"sd-hotplug-rmldo-en-syscon");
 }
 
+static int sdhci_sprd_ice_init(struct sdhci_host *host,
+				  struct cqhci_host *cq_host)
+{
+	struct mmc_host *mmc = host->mmc;
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	struct device *dev = mmc_dev(mmc);
+	struct resource *res;
+
+	if (!(cqhci_readl(cq_host, CQHCI_CAP) & CQHCI_CAP_CS)) {
+		dev_warn(dev, "CQE no supprots ICE\n");
+		return 0;
+	}
+
+	if (!sprd_host->support_ice)
+		goto disable;
+
+	res = platform_get_resource_byname(sprd_host->pdev, IORESOURCE_MEM, "ice");
+	if (!res) {
+		dev_warn(dev, "ICE registers not found\n");
+		goto disable;
+	}
+
+	sprd_host->ice_mem = devm_ioremap_resource(dev, res);
+	if (IS_ERR(sprd_host->ice_mem))
+		return PTR_ERR(sprd_host->ice_mem);
+
+	mmc->caps2 |= MMC_CAP2_CRYPTO;
+
+	return 0;
+
+disable:
+	dev_warn(dev, "Disabling inline encryption support\n");
+
+	return 0;
+}
+
+static void sdhci_sprd_cqe_write_l(struct cqhci_host *host, u32 val, int reg)
+{
+	struct mmc_host *mmc = host->mmc;
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(mmc_priv(mmc));
+
+	if (reg >= CQHCI_CCAP) {
+		writel(val, sprd_host->ice_mem + reg);
+	} else {
+		/* Prevent TCL int storms. */
+		if ((reg == CQHCI_ISGE) && (val & CQHCI_IS_TCL))
+			val &= ~CQHCI_IS_TCL;
+		writel(val, host->mmio + reg);
+	}
+
+	/* Ensure all writes are done before interrupts are enabled */
+	wmb();
+}
+
+static u32 sdhci_sprd_cqe_read_l(struct cqhci_host *host, int reg)
+{
+	struct mmc_host *mmc = host->mmc;
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(mmc_priv(mmc));
+
+	if (reg >= CQHCI_CCAP)
+		return readl(sprd_host->ice_mem + reg);
+
+	return readl(host->mmio + reg);
+}
+
+static void sdhci_sprd_cqe_enable(struct mmc_host *mmc)
+{
+	struct sdhci_host *host = mmc_priv(mmc);
+	unsigned long flags;
+	u8 ctrl;
+
+	sdhci_cqe_enable(mmc);
+
+	spin_lock_irqsave(&host->lock, flags);
+
+	/* Make sure that controller DMA is SDMA mode when using CQE */
+	ctrl = sdhci_readb(host, SDHCI_HOST_CONTROL);
+	ctrl &= ~SDHCI_CTRL_DMA_MASK;
+	sdhci_writeb(host, ctrl, SDHCI_HOST_CONTROL);
+
+	spin_unlock_irqrestore(&host->lock, flags);
+}
+
+static void sdhci_sprd_cqe_disable(struct mmc_host *mmc, bool recovery)
+{
+	struct sdhci_host *host = mmc_priv(mmc);
+	unsigned long flags;
+	u32 ctrl;
+
+	/*
+	 * When CQE is halted, the legacy SDHCI path operates only
+	 * on 16-byte descriptors in 64bit mode.
+	 */
+	if (host->flags & SDHCI_USE_64_BIT_DMA)
+		host->desc_sz = 16;
+
+	spin_lock_irqsave(&host->lock, flags);
+
+	/*
+	 * During CQE command transfers, command complete bit gets latched.
+	 * So s/w should clear command complete interrupt status when CQE is
+	 * either halted or disabled. Otherwise unexpected SDCHI legacy
+	 * interrupt gets triggered when CQE is halted/disabled.
+	 */
+	ctrl = sdhci_readl(host, SDHCI_INT_ENABLE);
+	ctrl |= SDHCI_INT_RESPONSE;
+	sdhci_writel(host,  ctrl, SDHCI_INT_ENABLE);
+	sdhci_writel(host, SDHCI_INT_RESPONSE, SDHCI_INT_STATUS);
+
+	spin_unlock_irqrestore(&host->lock, flags);
+
+	sdhci_cqe_disable(mmc, recovery);
+}
+
+static void sdhci_sprd_cqe_dump_vendor_regs(struct mmc_host *mmc)
+{
+	struct sdhci_host *host = mmc_priv(mmc);
+
+	sdhci_sprd_dump_vendor_regs(host);
+}
+
+static void sdhci_sprd_cqe_pre_enable(struct mmc_host *mmc)
+{
+	struct cqhci_host *cq_host = mmc->cqe_private;
+	u32 reg;
+
+	reg = cqhci_readl(cq_host, CQHCI_CFG);
+	reg |= CQHCI_ENABLE;
+	cqhci_writel(cq_host, reg, CQHCI_CFG);
+}
+
+static void sdhci_sprd_cqe_post_disable(struct mmc_host *mmc)
+{
+	struct cqhci_host *cq_host = mmc->cqe_private;
+	u32 reg;
+
+	reg = cqhci_readl(cq_host, CQHCI_CFG);
+	reg &= ~CQHCI_ENABLE;
+	cqhci_writel(cq_host, reg, CQHCI_CFG);
+}
+
+static const struct cqhci_host_ops sdhci_sprd_cqhci_ops = {
+	.write_l = sdhci_sprd_cqe_write_l,
+	.read_l = sdhci_sprd_cqe_read_l,
+	.enable = sdhci_sprd_cqe_enable,
+	.disable = sdhci_sprd_cqe_disable,
+	.dumpregs = sdhci_sprd_cqe_dump_vendor_regs,
+	.pre_enable = sdhci_sprd_cqe_pre_enable,
+	.post_disable = sdhci_sprd_cqe_post_disable,
+};
+
+static int sdhci_sprd_cqe_add_host(struct sdhci_host *host,
+				struct platform_device *pdev)
+{
+	struct cqhci_host *cq_host;
+	bool dma64;
+	int ret;
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+
+	cq_host = cqhci_pltfm_init(pdev);
+	if (IS_ERR(cq_host)) {
+		ret = PTR_ERR(cq_host);
+		dev_err(&pdev->dev, "cqhci-pltfm init: failed: %d\n", ret);
+		goto cleanup;
+	}
+
+	sprd_host->cqe_mem = cq_host->mmio;
+	host->mmc->caps2 |= MMC_CAP2_CQE | MMC_CAP2_CQE_DCMD;
+	cq_host->ops = &sdhci_sprd_cqhci_ops;
+
+	dma64 = host->flags & SDHCI_USE_64_BIT_DMA;
+
+	ret = sdhci_sprd_ice_init(host, cq_host);
+	if (ret) {
+		dev_err(&pdev->dev, "%s: ICE init: failed (%d)\n",
+				mmc_hostname(host->mmc), ret);
+		goto cleanup;
+	}
+
+	ret = cqhci_init(cq_host, host->mmc, dma64);
+	if (ret) {
+		dev_err(&pdev->dev, "%s: CQE init: failed (%d)\n",
+				mmc_hostname(host->mmc), ret);
+		goto cleanup;
+	}
+
+	/* Enable force hw reset during cqe recovery */
+	host->mmc->cqe_recovery_reset_always = true;
+
+	dev_info(&pdev->dev, "%s: CQE init: success\n", mmc_hostname(host->mmc));
+
+cleanup:
+	return ret;
+}
+
+#if !IS_MODULE(CONFIG_MMC_CQHCI)
+int cqhci_resume(struct mmc_host *mmc)
+{
+	return -EINVAL;
+}
+
+int cqhci_deactivate(struct mmc_host *mmc)
+{
+	return -EINVAL;
+}
+
+int cqhci_init(struct cqhci_host *cq_host, struct mmc_host *mmc,
+	      bool dma64)
+{
+	return -EINVAL;
+}
+
+struct cqhci_host *cqhci_pltfm_init(struct platform_device *pdev)
+{
+	return ERR_PTR(-EINVAL);
+}
+
+irqreturn_t cqhci_irq(struct mmc_host *mmc, u32 intmask, int cmd_error,
+		      int data_error)
+{
+	return IRQ_HANDLED;
+}
+#endif
+
 static int sdhci_sprd_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -1192,6 +1447,8 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	sprd_host = TO_SPRD_HOST(host);
 	sdhci_sprd_phy_param_parse(sprd_host, pdev->dev.of_node);
 
+	sprd_host->pdev = pdev;
+
 	sprd_host->pinctrl = devm_pinctrl_get(&pdev->dev);
 	if (!IS_ERR(sprd_host->pinctrl)) {
 		sprd_host->pins_uhs =
@@ -1230,10 +1487,21 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			mmc_hostname(host->mmc));
 	}
 
-	if (of_property_read_bool(node, "supports-swcq"))
+	if (of_property_read_bool(node, "supports-swcq")) {
 		sprd_host->support_swcq = true;
-	else
+	} else {
 		sprd_host->support_swcq = false;
+		if (of_property_read_bool(node, "supports-cqe")) {
+			sprd_host->support_cqe = true;
+			if (of_property_read_bool(node, "supports-ice"))
+				sprd_host->support_ice = true;
+			else
+				sprd_host->support_ice = false;
+		} else {
+			sprd_host->support_cqe = false;
+			sprd_host->support_ice = false;
+		}
+	}
 
 	clk = devm_clk_get(&pdev->dev, "enable");
 	if (IS_ERR(clk)) {
@@ -1309,17 +1577,23 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	if (sprd_host->support_swcq) {
 		ret = mmc_hsq_swcq_init(host, pdev);
+		if (ret)
+			goto err_cleanup_host;
+	} else if (sprd_host->support_cqe) {
+		ret = sdhci_sprd_cqe_add_host(host, pdev);
+		if (ret)
+			goto err_cleanup_host;
 	} else {
 		hsq = devm_kzalloc(&pdev->dev, sizeof(*hsq), GFP_KERNEL);
 		if (!hsq) {
 			ret = -ENOMEM;
 			goto err_cleanup_host;
 		}
-		ret = mmc_hsq_init(hsq, host->mmc);
-	}
 
-	if (ret)
-		goto err_cleanup_host;
+		ret = mmc_hsq_init(hsq, host->mmc);
+		if (ret)
+			goto err_cleanup_host;
+	}
 
 	ret = __sdhci_add_host(host);
 	if (ret)
@@ -1397,6 +1671,8 @@ static int sdhci_sprd_runtime_suspend(struct device *dev)
 
 	if (HOST_IS_EMMC_TYPE(host->mmc) && sprd_host->support_swcq)
 		mmc_swcq_suspend(host->mmc);
+	else if (sprd_host->support_cqe)
+		cqhci_suspend(host->mmc);
 	else
 		mmc_hsq_suspend(host->mmc);
 
@@ -1436,6 +1712,8 @@ static int sdhci_sprd_runtime_resume(struct device *dev)
 
 	if (HOST_IS_EMMC_TYPE(host->mmc) && sprd_host->support_swcq)
 		mmc_swcq_resume(host->mmc);
+	else if (sprd_host->support_cqe)
+		cqhci_resume(host->mmc);
 	else
 		mmc_hsq_resume(host->mmc);
 
