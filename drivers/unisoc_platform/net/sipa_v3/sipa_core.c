@@ -330,13 +330,15 @@ static int sipa_resume_work(struct device *dev)
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
 
 	if (ipa->suspend_stage & SIPA_FORCE_SUSPEND) {
-		ret = pm_runtime_get_sync(dev);
-		if (ret) {
-			pm_runtime_put(dev);
-			dev_warn(dev, "pm runtime get err ret = %d\n", ret);
-			return ret;
+		if (ipa->sipa_sys_eb) {
+			ret = pm_runtime_get_sync(dev);
+			if (ret) {
+				pm_runtime_put(dev);
+				dev_warn(dev, "pm runtime get err ret = %d\n",
+					 ret);
+				return ret;
+			}
 		}
-
 		ipa->suspend_stage &= ~SIPA_FORCE_SUSPEND;
 	}
 
@@ -482,7 +484,8 @@ static int sipa_prepare_suspend(struct device *dev)
 	}
 
 	if (!(ipa->suspend_stage & SIPA_FORCE_SUSPEND)) {
-		pm_runtime_put(dev);
+		if (ipa->sipa_sys_eb)
+			pm_runtime_put(dev);
 		ipa->suspend_stage |= SIPA_FORCE_SUSPEND;
 	}
 
@@ -877,6 +880,15 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 		dev_info(&pdev->dev, "use normal mode = %d\n", ipa->is_bypass);
 	else
 		dev_info(&pdev->dev, "use bypass mode by default\n");
+
+	/* get sipa-sys eb */
+	ret = of_property_read_u32(pdev->dev.of_node, "sprd,sipa-sys-eb",
+				   &ipa->sipa_sys_eb);
+	if (ret)
+		dev_info(&pdev->dev, "sipa_sys eb = %d\n", ipa->sipa_sys_eb);
+	else
+		dev_info(&pdev->dev, "success read sipa_sys_eb = %d\n",
+			 ipa->sipa_sys_eb);
 
 	/* get through pcie flag */
 	ipa->need_through_pcie =
@@ -1399,7 +1411,8 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 		return ret;
 	}
 
-	pm_runtime_enable(dev);
+	if (ipa->sipa_sys_eb)
+		pm_runtime_enable(dev);
 	sipa_init_debugfs(ipa);
 
 	return ret;

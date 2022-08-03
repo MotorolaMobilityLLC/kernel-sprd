@@ -33,7 +33,7 @@ static struct cp_delegator *s_cp_delegator;
 
 static int sipa_dele_enable_work(struct sipa_delegator *delegator)
 {
-	int ret;
+	int ret = 0;
 
 	if (delegator->pd_eb_flag && delegator->pd_get_flag) {
 		sipa_dele_start_done_work(delegator,
@@ -46,6 +46,9 @@ static int sipa_dele_enable_work(struct sipa_delegator *delegator)
 	if (!delegator->pd_eb_flag || delegator->pd_get_flag)
 		return 0;
 
+	if (!s_cp_delegator->delegator.cfg->sipa_sys_eb)
+		goto sipa_eb;
+
 	ret = pm_runtime_get_sync(delegator->pdev);
 	if (ret) {
 		pm_runtime_put(delegator->pdev);
@@ -53,6 +56,7 @@ static int sipa_dele_enable_work(struct sipa_delegator *delegator)
 				      msecs_to_jiffies(10));
 		pr_warn("sipa_dele get pd fail ret = %d\n", ret);
 	} else {
+sipa_eb:
 		delegator->pd_get_flag = true;
 		sipa_set_enabled(true);
 		sipa_dele_start_done_work(delegator,
@@ -70,7 +74,8 @@ static int sipa_dele_disable_work(struct sipa_delegator *delegator)
 		return 0;
 
 	sipa_set_enabled(false);
-	pm_runtime_put(delegator->pdev);
+	if (s_cp_delegator->delegator.cfg->sipa_sys_eb)
+		pm_runtime_put(delegator->pdev);
 	delegator->pd_get_flag = false;
 
 	return 0;
@@ -127,7 +132,8 @@ static int cp_dele_restart_handler(struct sipa_delegator *delegator)
 	if (delegator->pd_eb_flag && delegator->pd_get_flag) {
 		pr_info("sipa will power off\n");
 		sipa_set_enabled(false);
-		pm_runtime_put(delegator->pdev);
+		if (s_cp_delegator->delegator.cfg->sipa_sys_eb)
+			pm_runtime_put(delegator->pdev);
 		delegator->pd_eb_flag = false;
 		delegator->pd_get_flag = false;
 	}
@@ -216,7 +222,8 @@ int cp_delegator_init(struct sipa_delegator_create_params *params)
 	INIT_DELAYED_WORK(&s_cp_delegator->delegator.pd_work,
 			  sipa_dele_pd_handler);
 	sipa_delegator_start(&s_cp_delegator->delegator);
-	pm_runtime_enable(s_cp_delegator->delegator.pdev);
+	if (s_cp_delegator->delegator.cfg->sipa_sys_eb)
+		pm_runtime_enable(s_cp_delegator->delegator.pdev);
 
 	ret = sipa_rm_add_dependency(SIPA_RM_RES_CONS_WIFI_UL,
 				     s_cp_delegator->delegator.prod_id);

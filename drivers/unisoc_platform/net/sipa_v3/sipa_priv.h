@@ -783,6 +783,7 @@ struct sipa_plat_drv_cfg {
 	/* protect ipa and tft eb bit */
 	spinlock_t enable_lock;
 	struct sipa_eb_register eb_regs[SIPA_EB_NUM];
+	u32 sipa_sys_eb;
 
 	/* avoid pam connect and power_wq race */
 	struct mutex resume_lock;

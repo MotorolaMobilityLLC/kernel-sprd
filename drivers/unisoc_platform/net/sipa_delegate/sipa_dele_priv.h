@@ -36,6 +36,7 @@ struct sipa_delegate_plat_drv_cfg {
 	phys_addr_t reg_end;
 	u32 ul_fifo_depth;
 	u32 dl_fifo_depth;
+	u32 sipa_sys_eb;
 };
 
 enum sipa_dele_state {

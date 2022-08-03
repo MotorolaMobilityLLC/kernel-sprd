@@ -82,6 +82,15 @@ static int sipa_dele_parse_dts_cfg(struct platform_device *pdev,
 		return ret;
 	}
 
+	/* get sipa-sys eb */
+	ret = of_property_read_u32(pdev->dev.of_node, "sprd,sipa-sys-eb",
+				   &cfg->sipa_sys_eb);
+	if (ret)
+		dev_info(&pdev->dev, "sipa_sys eb = %d\n", cfg->sipa_sys_eb);
+	else
+		dev_info(&pdev->dev, "success read sipa_sys_eb = %d\n",
+			 cfg->sipa_sys_eb);
+
 	return 0;
 }
 
