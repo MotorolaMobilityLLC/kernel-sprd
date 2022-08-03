@@ -209,7 +209,7 @@ static int sprd_time_sync_ch_probe(struct platform_device *pdev)
 	}*/
 
 	/*ret = syscon_get_args_by_name(np, "ch_cfg_bus", 2, syscon_args);*/
-	regmap = syscon_regmap_lookup_by_phandle_args(np, "syscons", 2, syscon_args);
+	regmap = syscon_regmap_lookup_by_phandle_args(np, "ch-syscons", 2, syscon_args);
 	if (IS_ERR(regmap)) {
 		pr_err("failed to parse ch_cfg_bus reg.\n");
 		return -EFAULT;
