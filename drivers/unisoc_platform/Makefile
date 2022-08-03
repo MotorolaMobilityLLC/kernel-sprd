@@ -8,7 +8,6 @@ obj-$(CONFIG_IRQSOFF_WARN)	+= preemptirq_warn/
 obj-$(CONFIG_IRQ_MONITOR)	+= irq_monitor/
 obj-$(CONFIG_PREEMPT_WARN) 	+= preemptirq_warn/
 obj-$(CONFIG_PRINTK_CPUID)	+= printk_cpuid/
-obj-$(CONFIG_SND_SOC)		+= audio/
 obj-$(CONFIG_SPRD_DEBUG)	+= debug/
 obj-$(CONFIG_SPRD_MODEM_DEBUG)	+= debug_log/
 obj-$(CONFIG_SPRD_PMIC_SMPL)	+= sprd_pmic_smpl.o

@@ -2,10 +2,16 @@
 #
 # UNISOC audio driver
 #
+# These configs are only used to enable audio dependent configs!!
+#
 
 menu "UNISOC audio devices"
 
-source "drivers/unisoc_platform/audio/sprd/Kconfig"
-source "drivers/unisoc_platform/audio/sprd_audio/Kconfig"
+config UNISOC_AUDIO_AGDSP_PD
+	tristate "SPRD agdsp power domain"
+	depends on ARCH_SPRD || COMPILE_TEST
+	select PM_GENERIC_DOMAINS if PM
+	help
+	  If you select this feature, it will enable the agdsp power domain.
 
 endmenu
