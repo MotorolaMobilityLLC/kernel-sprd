@@ -119,13 +119,13 @@ static bool sprd_dswdt_fiq_en(void)
 		return false;
 	}
 
-	dswdten_name_p = strstr(cmd_line, "androidboot.dswdten=");
+	dswdten_name_p = strstr(cmd_line, "sprdboot.dswdten=");
 	if (!dswdten_name_p) {
-		pr_err("can't find androidboot.dswdten\n");
+		pr_err("can't find sprdboot.dswdten\n");
 		return false;
 	}
 
-	sscanf(dswdten_name_p, "androidboot.dswdten=%8s", dswdten_value);
+	sscanf(dswdten_name_p, "sprdboot.dswdten=%8s", dswdten_value);
 	if (strncmp(dswdten_value, SPRD_DSWDTEN_MAGIC, strlen(SPRD_DSWDTEN_MAGIC)))
 		return false;
 

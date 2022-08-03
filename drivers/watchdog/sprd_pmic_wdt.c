@@ -157,13 +157,13 @@ static bool sprd_pimc_wdt_en(void)
 		return false;
 	}
 
-	wdten_name_p = strstr(cmd_line, "androidboot.wdten=");
+	wdten_name_p = strstr(cmd_line, "sprdboot.wdten=");
 	if (!wdten_name_p) {
-		pr_err("sprd_pmic_wdt can't find androidboot.wdten\n");
+		pr_err("sprd_pmic_wdt can't find sprdboot.wdten\n");
 		return false;
 	}
 
-	sscanf(wdten_name_p, "androidboot.wdten=%8s", wdten_value);
+	sscanf(wdten_name_p, "sprdboot.wdten=%8s", wdten_value);
 	if (strncmp(wdten_value, SPRD_PMIC_WDTEN_MAGIC, strlen(SPRD_PMIC_WDTEN_MAGIC)))
 		return false;
 
