@@ -80,6 +80,8 @@ struct sprd_glue {
 	u32		usb_pub_slp_poll_mask;
 	bool		suspending;
 	bool		retry_charger_detect;
+	int		usb_data_enabled;
+	enum usb_dr_mode		last_mode;
 };
 
 static int boot_charging;
@@ -471,7 +473,6 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 				"ignore device connection detected from VBUS GPIO.\n");
 			return 0;
 		}
-
 		glue->vbus_active = 1;
 		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
@@ -741,7 +742,7 @@ static void sprd_musb_work(struct work_struct *work)
 
 	spin_lock_irqsave(&glue->lock, flags);
 	current_mode = glue->wq_mode;
-	current_state = glue->vbus_active;
+	current_state = (glue->vbus_active && glue->usb_data_enabled);
 	glue->wq_mode = USB_DR_MODE_UNKNOWN;
 	spin_unlock_irqrestore(&glue->lock, flags);
 	if (current_mode == USB_DR_MODE_UNKNOWN)
@@ -768,6 +769,7 @@ static void sprd_musb_work(struct work_struct *work)
 #endif
 
 	glue->dr_mode = current_mode;
+	glue->last_mode = glue->dr_mode;
 	dev_dbg(musb->controller, "%s enter: vbus = %d mode = %d\n",
 			__func__, current_state, current_mode);
 
@@ -933,6 +935,7 @@ static void sprd_musb_work(struct work_struct *work)
 		glue->charging_mode = false;
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
+		glue->last_mode = glue->dr_mode;
 		glue->dr_mode = USB_DR_MODE_UNKNOWN;
 		spin_unlock_irqrestore(&glue->lock, flags);
 
@@ -1047,6 +1050,117 @@ static struct attribute *musb_sprd_attrs[] = {
 };
 ATTRIBUTE_GROUPS(musb_sprd);
 
+
+static struct class *usb_notify_class;
+static struct device *usb_notify_dev;
+
+static ssize_t usb_data_enabled_show(struct device *dev,
+			       struct device_attribute *attr, char *buf)
+{
+	struct sprd_glue *glue = dev_get_drvdata(dev);
+	int usb_data_enabled_flag = glue->usb_data_enabled;
+
+	return sprintf(buf, "%d\n", usb_data_enabled_flag);
+}
+
+static ssize_t usb_data_enabled_store(struct device *dev,
+				struct device_attribute *attr, const char *buf,
+				size_t count)
+{
+	int value = 0;
+	int ret = 0;
+	unsigned long flags;
+	struct sprd_glue *glue = dev_get_drvdata(dev);
+
+	ret = kstrtoint(buf, 10, &value);
+	if (ret) {
+		dev_err(dev, "input err:%d\n", ret);
+		return count;
+	}
+	spin_lock_irqsave(&glue->lock, flags);
+	dev_info(dev, "input value:%d\n", value);
+	if (glue->usb_data_enabled != value) {
+		if (glue->last_mode == USB_DR_MODE_UNKNOWN) {
+			dev_warn(dev, "last_mode=:%d to %d\n",
+						glue->last_mode, glue->dr_mode);
+			glue->last_mode = glue->dr_mode;
+		}
+		glue->usb_data_enabled = value;
+		glue->wq_mode = glue->last_mode;
+		queue_work(system_unbound_wq, &glue->work);
+	} else {
+		dev_info(dev, "ingnored:%d %d\n",
+					glue->usb_data_enabled, value);
+	}
+	dev_dbg(dev, "enabled:%d mode:%d vbus:%d\n",
+				glue->usb_data_enabled,
+				glue->wq_mode,
+				glue->vbus_active);
+	spin_unlock_irqrestore(&glue->lock, flags);
+
+	return count;
+}
+
+static  DEVICE_ATTR(usb_data_enabled, 0640,
+			       usb_data_enabled_show, usb_data_enabled_store);
+
+static struct attribute *usb_data_control_attrs[] = {
+	&dev_attr_usb_data_enabled.attr,
+	NULL
+};
+
+static const struct attribute_group usb_data_control_group = {
+	.attrs = usb_data_control_attrs,
+};
+
+static int musb_sprd_usb_notify_init(struct platform_device *pdev, void *data)
+{
+	int ret = 0;
+
+	usb_notify_class = class_create(THIS_MODULE, "usb_notify");
+	if (IS_ERR_OR_NULL(usb_notify_class)) {
+		dev_err(&pdev->dev, "usb_notify class create err.\n");
+		ret = PTR_ERR(usb_notify_class);
+		goto out;
+	}
+
+	usb_notify_dev =
+		device_create(usb_notify_class, &pdev->dev, 0, NULL, "usb_control");
+	if (IS_ERR_OR_NULL(usb_notify_dev)) {
+		dev_err(&pdev->dev, "usb_notify class create err.\n");
+		ret = PTR_ERR(usb_notify_dev);
+		class_destroy(usb_notify_class);
+		goto out;
+	}
+
+	ret = sysfs_create_group(&usb_notify_dev->kobj, &usb_data_control_group);
+	if (ret) {
+		dev_err(&pdev->dev, "sysfs create err. ret:%d\n", ret);
+		device_destroy(usb_notify_class, usb_notify_dev->devt);
+		class_destroy(usb_notify_class);
+		goto out;
+	}
+
+	dev_set_drvdata(usb_notify_dev, data);
+	dev_info(&pdev->dev, "[%s] --\n", __func__);
+
+out:
+	return ret;
+}
+
+static void musb_sprd_usb_notify_exit(struct platform_device *pdev)
+{
+	if (usb_notify_dev) {
+		sysfs_remove_group(&usb_notify_dev->kobj, &usb_data_control_group);
+		device_destroy(usb_notify_class, usb_notify_dev->devt);
+	}
+
+	if (usb_notify_class)
+		class_destroy(usb_notify_class);
+
+	dev_info(&pdev->dev, "[%s] --\n", __func__);
+}
+
 static int dwc3_sprd_driver_probe_finish(struct device *dev)
 {
 	while (!dwc3_sprd_probe_finish())
@@ -1065,6 +1179,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	struct sprd_glue *glue;
 	u32 buf[2];
 	int ret;
+	u32 usb_data_enable = 0;
 
 	if (sprd_usbmux_check_mode() == MUX_MODE) {
 		dev_info(&pdev->dev, "musb driver stop probe since usb mux jtag\n");
@@ -1200,6 +1315,19 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		}
 	}
 
+	glue->usb_data_enabled = 1;
+	ret = of_property_read_u32(node, "sprd,usb-data-enable", &usb_data_enable);
+	if (!ret && usb_data_enable) {
+		ret = musb_sprd_usb_notify_init(pdev, glue);
+		if (ret)
+			dev_warn(&pdev->dev, "usb_notify_init err. %d\n", ret);
+
+		glue->last_mode = USB_DR_MODE_UNKNOWN;
+	} else {
+		dev_info(&pdev->dev, "not support usb data control.ret:%d %d\n",
+					ret, usb_data_enable);
+	}
+
 	glue->audio_nb.notifier_call = musb_sprd_audio_notifier;
 	ret = register_sprd_usbm_notifier(&glue->audio_nb, SPRD_USBM_EVENT_HOST_MUSB);
 	if (ret) {
@@ -1249,6 +1377,7 @@ static int musb_sprd_remove(struct platform_device *pdev)
 	struct sprd_glue *glue = platform_get_drvdata(pdev);
 	struct musb *musb = platform_get_drvdata(glue->musb);
 
+	musb_sprd_usb_notify_exit(pdev);
 	/* this gets called on rmmod.
 	 *  - Host mode: host may still be active
 	 *  - Peripheral mode: peripheral is deactivated (or never-activated)
