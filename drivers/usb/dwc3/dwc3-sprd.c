@@ -49,6 +49,7 @@
 #define VBUS_REG_CHECK_DELAY			(msecs_to_jiffies(1000))
 #define DWC3_RUNTIME_CHECK_DELAY		(msecs_to_jiffies(100))
 #define DWC3_UDC_START_CHECK_DELAY		(msecs_to_jiffies(50))
+#define DWC3_USB_ENABLE_CHECK_DELAY		(msecs_to_jiffies(50))
 #define DWC3_SPRD_CHG_MAX_REDETECT_COUNT	3
 
 #define DWC3_AUTOSUSPEND_DELAY 1000
@@ -141,6 +142,7 @@ struct dwc3_sprd {
 	atomic_t		pm_suspended;
 	int                     retry_chg_detect_count;
 	int                     start_host_retry_count;
+	int			usb_data_enabled;
 	unsigned long		inputs;
 	struct workqueue_struct *dwc3_wq;
 	struct workqueue_struct *sm_usb_wq;
@@ -221,6 +223,104 @@ static ssize_t current_speed_show(struct device *dev,
 	return sprintf(buf, "%s\n", usb_speed_string(dwc->gadget.speed));
 }
 static DEVICE_ATTR_RO(current_speed);
+
+static struct class *usb_notify_class;
+static struct device *usb_notify_dev;
+static ssize_t usb_data_enabled_show(struct device *dev,
+			       struct device_attribute *attr, char *buf)
+{
+	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
+	int usb_data_enabled_flag = sdwc->usb_data_enabled;
+
+	return sprintf(buf, "%d\n", usb_data_enabled_flag);
+}
+
+static ssize_t usb_data_enabled_store(struct device *dev,
+				struct device_attribute *attr, const char *buf,
+				size_t count)
+{
+	int value = 0;
+	int ret = 0;
+	unsigned long flags;
+	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
+
+	ret = kstrtoint(buf, 10, &value);
+	if (ret) {
+		dev_err(dev, "input err:%d\n", ret);
+		return count;
+	}
+	spin_lock_irqsave(&sdwc->lock, flags);
+	dev_info(dev, "usb_data_enabled input: %d current: %d\n",
+			value, sdwc->usb_data_enabled);
+
+	if (sdwc->usb_data_enabled != value) {
+		sdwc->usb_data_enabled = value;
+		queue_work(sdwc->dwc3_wq, &sdwc->evt_prepare_work);
+	}
+
+	spin_unlock_irqrestore(&sdwc->lock, flags);
+
+	return count;
+}
+static  DEVICE_ATTR(usb_data_enabled, 0640,
+			       usb_data_enabled_show, usb_data_enabled_store);
+
+static struct attribute *usb_data_control_attrs[] = {
+	&dev_attr_usb_data_enabled.attr,
+	NULL
+};
+
+static const struct attribute_group usb_data_control_group = {
+	.attrs = usb_data_control_attrs,
+};
+
+static int dwc3_sprd_usb_notify_init(struct platform_device *pdev, void *data)
+{
+	int ret = 0;
+
+	usb_notify_class = class_create(THIS_MODULE, "usb_notify");
+	if (IS_ERR_OR_NULL(usb_notify_class)) {
+		dev_err(&pdev->dev, "usb_notify class create err.\n");
+		ret = PTR_ERR(usb_notify_class);
+		goto out;
+	}
+
+	usb_notify_dev =
+		device_create(usb_notify_class, &pdev->dev, 0, NULL, "usb_control");
+	if (IS_ERR_OR_NULL(usb_notify_dev)) {
+		dev_err(&pdev->dev, "usb_notify class create err.\n");
+		ret = PTR_ERR(usb_notify_dev);
+		class_destroy(usb_notify_class);
+		goto out;
+	}
+
+	ret = sysfs_create_group(&usb_notify_dev->kobj, &usb_data_control_group);
+	if (ret) {
+		dev_err(&pdev->dev, "sysfs create err. ret:%d\n", ret);
+		device_destroy(usb_notify_class, usb_notify_dev->devt);
+		class_destroy(usb_notify_class);
+		goto out;
+	}
+
+	dev_set_drvdata(usb_notify_dev, data);
+	dev_info(&pdev->dev, "[%s] --\n", __func__);
+
+out:
+	return ret;
+}
+
+static void dwc3_sprd_usb_notify_exit(struct platform_device *pdev)
+{
+	if (usb_notify_dev) {
+		sysfs_remove_group(&usb_notify_dev->kobj, &usb_data_control_group);
+		device_destroy(usb_notify_class, usb_notify_dev->devt);
+	}
+
+	if (usb_notify_class)
+		class_destroy(usb_notify_class);
+
+	dev_info(&pdev->dev, "[%s] --\n", __func__);
+}
 
 static struct attribute *dwc3_sprd_attrs[] = {
 	&dev_attr_maximum_speed.attr,
@@ -868,6 +968,12 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 		sdwc->drd_state = DRD_STATE_IDLE;
 		fallthrough;
 	case DRD_STATE_IDLE:
+		if (!sdwc->usb_data_enabled) {
+			dev_info(sdwc->dev, "usb_data_enabled = 0, wait\n");
+			rework = true;
+			delay = DWC3_USB_ENABLE_CHECK_DELAY;
+			break;
+		}
 		/*
 		 * The follow ensure that UDC be setted as 25100000.dwc3
 		 * when phone startup with hub plug in. Or UDC would be
@@ -915,6 +1021,17 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 		if (!test_bit(B_SESS_VLD, &sdwc->inputs) ||
 				!test_bit(ID, &sdwc->inputs)) {
 			dev_dbg(sdwc->dev, "!id || !bsv\n");
+			sdwc->drd_state = DRD_STATE_IDLE;
+			dwc3_sprd_otg_start_peripheral(sdwc, 0);
+			/*
+			 * Decrement pm usage count upon cable disconnect
+			 * which was incremented upon cable connect in
+			 * DRD_STATE_IDLE state
+			 */
+			pm_runtime_put_sync(sdwc->dev);
+			rework = true;
+		} else if (0 == sdwc->usb_data_enabled) {
+			dev_info(sdwc->dev, "usb_data_enabled == 0");
 			sdwc->drd_state = DRD_STATE_IDLE;
 			dwc3_sprd_otg_start_peripheral(sdwc, 0);
 			/*
@@ -1202,6 +1319,11 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		goto err_susp_clk;
 	}
 
+	sdwc->usb_data_enabled = true;
+	ret = dwc3_sprd_usb_notify_init(pdev, sdwc);
+	if (ret) {
+		dev_err(dev, "usb_notify_init err %d \n", ret);
+	}
 	INIT_WORK(&sdwc->evt_prepare_work, dwc3_sprd_evt_prepare_work);
 	INIT_DELAYED_WORK(&sdwc->hotplug_sm_work, dwc3_sprd_hotplug_sm_work);
 	INIT_DELAYED_WORK(&sdwc->chg_detect_work, dwc3_sprd_chg_detect_work);
@@ -1341,6 +1463,7 @@ static int dwc3_sprd_remove(struct platform_device *pdev)
 {
 	struct dwc3_sprd *sdwc = platform_get_drvdata(pdev);
 
+	dwc3_sprd_usb_notify_exit(pdev);
 	device_for_each_child(&pdev->dev, NULL, dwc3_sprd_remove_child);
 
 	clk_disable_unprepare(sdwc->core_clk);
