@@ -19,3 +19,7 @@ sprd_coresight-etm4x-y := sprd_coresight-etm4x-core.o sprd_coresight-etm4x-sysfs
 			sprd_coresight-etm4x-cfg.o
 
 obj-$(CONFIG_UNISOC_CORESIGHT_APETB) += sprd_coresight-apetb-ctrl.o sprd_coresight-apetb-main.o
+
+obj-$(CONFIG_UNISOC_CORESIGHT_TMC_GROUP) += sprd_coresight-tmc_group.o
+
+obj-$(CONFIG_UNISOC_CORESIGHT_TMC_GROUP) += phy/

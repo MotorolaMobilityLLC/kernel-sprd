@@ -79,4 +79,7 @@ config UNISOC_CORESIGHT_TMC_GROUP_CTRL
 	help
 	  This enables support for CoreSight tmc group drivers control that is
 	  responsible for dump several tmc data.
+
+source "drivers/unisoc_platform/sprd_coresight/phy/Kconfig"
+
 endif
