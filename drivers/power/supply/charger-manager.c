@@ -1282,7 +1282,6 @@ static void cm_power_path_enable(struct charger_manager *cm, int cmd)
 		if (ret) {
 			dev_err(cm->dev, "Fail to set power_path[%d] of %s, ret = %d\n",
 				cmd, cm->desc->psy_charger_stat[i], ret);
-			continue;
 		}
 	}
 }
