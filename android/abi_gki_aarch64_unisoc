@@ -1590,6 +1590,11 @@
   register_kprobe
   unregister_kprobe
 
+# required by kprobe_iowait.ko
+  register_kretprobe
+  sched_show_task
+  unregister_kretprobe
+
 # required by leds-sc27xx-bltc.ko
   devm_led_classdev_register_ext
 
