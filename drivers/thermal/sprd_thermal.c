@@ -462,6 +462,9 @@ static int sprd_thm_suspend(struct device *dev)
 		sprd_thm_toggle_sensor(thm->sensor[i], false);
 
 	sprd_thm_hw_suspend(thm);
+
+	writel(0x00, thm->base + SPRD_THM_CTL);
+	udelay(2000);
 	clk_disable_unprepare(thm->clk);
 
 	return 0;
