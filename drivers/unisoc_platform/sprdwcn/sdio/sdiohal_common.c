@@ -259,8 +259,11 @@ static void sdiohal_wakelock_deinit(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
+	wakeup_source_remove(p_data->tx_ws);
 	wakeup_source_destroy(p_data->tx_ws);
+	wakeup_source_remove(p_data->rx_ws);
 	wakeup_source_destroy(p_data->rx_ws);
+	wakeup_source_remove(p_data->scan_ws);
 	wakeup_source_destroy(p_data->scan_ws);
 }
 

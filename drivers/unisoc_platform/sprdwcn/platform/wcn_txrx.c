@@ -461,6 +461,7 @@ void mdbg_ring_remove(void)
 	MDBG_FUNC_ENTERY;
 	if (g_match_config && !g_match_config->unisoc_wcn_pcie)
 		mdbg_pt_ring_unreg();
+	wakeup_source_remove(ring_dev->rw_wake_lock);
 	wakeup_source_destroy(ring_dev->rw_wake_lock);
 	cancel_work_sync(&ring_dev->rx_task);
 	mdbg_ring_destroy(ring_dev->ring);
