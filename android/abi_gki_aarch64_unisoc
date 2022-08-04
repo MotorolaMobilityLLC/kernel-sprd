@@ -1677,6 +1677,8 @@
 
 # required by mali_kbase.ko
   dev_pm_qos_read_value
+  debugfs_attr_read
+  debugfs_attr_write
   __find_vma
   __traceiter_gpu_mem_total
 
