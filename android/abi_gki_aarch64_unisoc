@@ -1425,6 +1425,9 @@
   cpufreq_register_governor
   cpufreq_unregister_governor
 
+# required by cqhci.ko
+  devm_blk_ksm_init
+
 # required by dwc3-haps.ko
   pcim_enable_device
 
