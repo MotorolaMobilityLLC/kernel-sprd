@@ -77,6 +77,9 @@
 #define BQ2560X_REG_EN_HIZ_MASK			GENMASK(7, 7)
 #define BQ2560X_REG_EN_HIZ_SHIFT		7
 
+#define BQ2560X_DISABLE_BATFET_RST_MASK         BIT(2)
+#define BQ2560X_DISABLE_BATFET_RST_SHIFT        2
+
 #define BQ2560X_REG_LIMIT_CURRENT_MASK		GENMASK(4, 0)
 
 #define BQ2560X_DISABLE_PIN_MASK		BIT(0)
@@ -446,6 +449,12 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 	ret = bq2560x_charger_set_limit_current(info, info->cur.unknown_cur);
 	if (ret)
 		dev_err(info->dev, "set bq2560x limit current failed\n");
+
+	ret = bq2560x_update_bits(info, BQ2560X_REG_7,
+				  BQ2560X_DISABLE_BATFET_RST_MASK,
+				  0x0 << BQ2560X_DISABLE_BATFET_RST_SHIFT);
+	if (ret)
+		dev_err(info->dev, "disable batfet_rst_en failed\n");
 
 	info->current_charge_limit_cur = BQ2560X_REG_ICHG_LSB * 1000;
 	info->current_input_limit_cur = BQ2560X_REG_IINDPM_LSB * 1000;
