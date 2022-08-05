@@ -5695,6 +5695,7 @@ static ssize_t charger_stop_store(struct device *dev,
 	if (!ret)
 		return -EINVAL;
 
+	sysfs->externally_control = !!stop_charge;
 	if (!is_ext_pwr_online(cm))
 		return -EINVAL;
 
@@ -5705,7 +5706,6 @@ static ssize_t charger_stop_store(struct device *dev,
 			dev_err(cm->dev, "failed to start charger.\n");
 			return ret;
 		}
-		sysfs->externally_control = false;
 		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
 	} else {
 		ret = try_charger_enable(cm, false);
@@ -5713,7 +5713,6 @@ static ssize_t charger_stop_store(struct device *dev,
 			dev_err(cm->dev, "failed to stop charger.\n");
 			return ret;
 		}
-		sysfs->externally_control = true;
 	}
 
 	power_supply_changed(cm->charger_psy);
