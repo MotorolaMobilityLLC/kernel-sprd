@@ -323,9 +323,15 @@ static ssize_t sipa_flex_debug_write(struct file *file,
 {
 	char kbuf[64] = {0};
 	unsigned long val;
+	int ret;
 
-	copy_from_user(kbuf, buffer, count);
-	kstrtoul(kbuf, 10, &val);
+	ret = copy_from_user(kbuf, buffer, count);
+	if (ret != 0)
+		return ret;
+
+	ret = kstrtoul(kbuf, 10, &val);
+	if (ret)
+		return ret;
 
 	if (val == 1)
 		FLEX_NODE_NUM = 100;

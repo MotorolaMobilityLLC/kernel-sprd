@@ -423,8 +423,21 @@ bool sipa_dummy_set_rps_mode(int rps_mode)
 	}
 	//get rx-0
 	queue = netdev->_rx + 0;
+
 	kobj = &queue->kobj;
-	attr = kobj->ktype->default_attrs;
+	if (!kobj) {
+		pr_err("kobj is NULL!\n");
+		return false;
+	}
+
+	/* in kernel5.4 default_attrs in not initialized,
+	 * it replaced by attrs in default_groups
+	 */
+	attr = (*kobj->ktype->default_groups)->attrs;
+	if (!attr) {
+		pr_err("attr is NULL!\n");
+		return false;
+	}
 
 	/*  get rx_queue_default_attrs[] => rps_cpus_attribute
 	 *  and "store_rps_map" func is invoked
