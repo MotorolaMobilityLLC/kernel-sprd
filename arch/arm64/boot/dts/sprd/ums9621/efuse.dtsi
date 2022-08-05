@@ -34,28 +34,8 @@
 			bits = <0 8>;
 		};
 
-		thm0_sen0: thm0-sen0@95 {
-			reg = <0x95 0x1>;
-			bits = <0 8>;
-		};
-
 		thm1_ratio: thm1-ratio@96 {
 			reg = <0x96 0x1>;
-			bits = <0 8>;
-		};
-
-		thm1_sen0: thm1-sen0@97 {
-			reg = <0x97 0x1>;
-			bits = <0 8>;
-		};
-
-		thm3_ratio: thm3-ratio@98 {
-			reg = <0x98 0x1>;
-			bits = <0 8>;
-		};
-
-		thm3_sen0: thm3-sen0@99 {
-			reg = <0x99 0x1>;
 			bits = <0 8>;
 		};
 
@@ -64,83 +44,98 @@
 			bits = <0 8>;
 		};
 
+		thm3_ratio: thm3-ratio@98 {
+			reg = <0x98 0x1>;
+			bits = <0 8>;
+		};
+
+		thm0_sen0: thm0-sen0@95 {
+			reg = <0x95 0x1>;
+			bits = <0 8>;
+		};
+
+		thm0_sen1: thm0-sen1@9d {
+			reg = <0x9d 0x1>;
+			bits = <0 8>;
+		};
+
+		thm1_sen0: thm1-sen0@97 {
+			reg = <0x97 0x1>;
+			bits = <0 8>;
+		};
+
+		thm1_sen1: thm1-sen1@9c {
+			reg = <0x9c 0x1>;
+			bits = <0 8>;
+		};
+
 		thm2_sen0: thm2-sen0@9b {
 			reg = <0x9b 0x1>;
 			bits = <0 8>;
 		};
 
-		thm0_sen1: thm0-sen0@9c {
-			reg = <0x9c 0x1>;
-			bits = <0 8>;
-		};
-
-		thm1_sen1: thm1-sen0@9d {
-			reg = <0x9d 0x1>;
-			bits = <0 8>;
-		};
-
-		thm1_sen2: thm1-sen0@9e {
+		thm2_sen1: thm2-sen1@9e {
 			reg = <0x9e 0x1>;
 			bits = <0 8>;
 		};
 
-		thm1_sen3: thm1-sen0@9f {
+		thm2_sen2: thm2-sen2@9f {
 			reg = <0x9f 0x1>;
 			bits = <0 8>;
 		};
 
-		thm2_sen1: thm2-sen0@a0 {
+		thm2_sen3: thm2-sen3@a0 {
 			reg = <0xa0 0x1>;
 			bits = <0 8>;
 		};
 
-		thm2_sen2: thm2-sen0@a1 {
+		thm2_sen4: thm2-sen4@a1 {
 			reg = <0xa1 0x1>;
 			bits = <0 8>;
 		};
 
-		thm2_sen3: thm2-sen0@a2 {
+		thm2_sen5: thm2-sen5@a2 {
 			reg = <0xa2 0x1>;
 			bits = <0 8>;
 		};
 
-		thm2_sen4: thm2-sen0@a3 {
-			reg = <0xa3 0x1>;
-			bits = <0 8>;
-		};
-
-		thm2_sen6: thm2-sen0@a4 {
+		thm2_sen6: thm2-sen6@a4 {
 			reg = <0xa4 0x1>;
 			bits = <0 8>;
 		};
 
-		thm3_sen2: thm3-sen0@a5 {
+		thm2_sen7: thm2-sen7@a3 {
+			reg = <0xa3 0x1>;
+			bits = <0 8>;
+		};
+
+		thm3_sen0: thm3-sen0@99 {
+			reg = <0x99 0x1>;
+			bits = <0 8>;
+		};
+
+		thm3_sen1: thm3-sen1@a5 {
 			reg = <0xa5 0x1>;
 			bits = <0 8>;
 		};
 
-		thm3_sen3: thm3-sen0@a6 {
+		thm3_sen2: thm3-sen2@a6 {
 			reg = <0xa6 0x1>;
 			bits = <0 8>;
 		};
 
-		thm3_sen4: thm3-sen0@a7 {
+		thm3_sen3: thm3-sen3@a7 {
 			reg = <0xa7 0x1>;
 			bits = <0 8>;
 		};
 
-		thm3_sen1: thm3-sen0@a8 {
-			reg = <0xa8 0x1>;
-			bits = <0 8>;
-		};
-
-		thm2_sen5: thm2-sen0@a9 {
+		thm3_sen4: thm3-sen4@a9 {
 			reg = <0xa9 0x1>;
 			bits = <0 8>;
 		};
 
-		thm3_sen5: thm3-sen0@aa {
-			reg = <0xaa 0x1>;
+		thm3_sen5: thm3-sen5@a8 {
+			reg = <0xa8 0x1>;
 			bits = <0 8>;
 		};
 
