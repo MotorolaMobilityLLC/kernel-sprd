@@ -99,6 +99,7 @@
 #define UPM6710_BUS_OVP_MASK				0x7F
 #define UPM6710_BUS_OVP_SHIFT				0
 #define UPM6710_BUS_OVP_BASE				5950
+#define UPM6710_BUS_OVP_MAX				12300
 #define UPM6710_BUS_OVP_LSB				50
 
 /* Register 07h */

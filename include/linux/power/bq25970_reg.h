@@ -98,6 +98,7 @@
 #define BQ2597X_BUS_OVP_MASK				0x7F
 #define BQ2597X_BUS_OVP_SHIFT				0
 #define BQ2597X_BUS_OVP_BASE				5950
+#define BQ2597X_BUS_OVP_MAX				12300
 #define BQ2597X_BUS_OVP_LSB				50
 
 /* Register 07h */
