@@ -2124,6 +2124,14 @@ int __dwc3_gadget_ep_set_halt(struct dwc3_ep *dep, int value, int protocol)
 			return 0;
 		}
 
+		/* Workaround, if dep wasn't in state DWC3_EP_STALL, no need
+		 * to issue CLEAR_STALL command */
+		if (!(dep->flags & (DWC3_EP_STALL | DWC3_EP_WEDGE))) {
+			dev_info(dwc->dev, "no need to clear STALL on %s\n",
+						dep->name);
+			return 0;
+		}
+
 		dwc3_stop_active_transfer(dep, true, true);
 
 		list_for_each_entry_safe(req, tmp, &dep->started_list, list)
