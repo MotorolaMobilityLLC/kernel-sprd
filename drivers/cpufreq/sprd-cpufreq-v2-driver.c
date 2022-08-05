@@ -697,8 +697,7 @@ static struct device_node *sprd_cluster_node_init(u32 cpu_idx)
 static int sprd_cluster_info_init(struct cluster_info *clusters)
 {
 	struct cluster_info *cluster;
-	unsigned int cpu;
-	int ret;
+	int cpu, ret;
 
 	for_each_possible_cpu(cpu) {
 		cluster = clusters + topology_physical_package_id(cpu);
