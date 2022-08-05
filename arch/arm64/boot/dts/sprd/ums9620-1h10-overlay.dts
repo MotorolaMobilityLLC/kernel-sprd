@@ -364,3 +364,13 @@
 	vbus-supply = <&vddvbus>;
 	status = "okay";
 };
+
+&lcd_nt36672e_truly_mipi_fhd_nodsc {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1600>;
+};
+
+&lcd_g40396_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1600>;
+};
