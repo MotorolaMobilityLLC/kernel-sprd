@@ -456,7 +456,7 @@ static int dwc3_alloc_event_buffers(struct dwc3 *dwc, unsigned length)
 	dwc->num_ev_bufs_ex = num - 1;
 
 	dwc->ev_bufs_ex = devm_kzalloc(dwc->dev,
-			sizeof(struct dwc3_event_buffer) * dwc->num_ev_bufs_ex,
+			sizeof(struct dwc3_event_buffer *) * dwc->num_ev_bufs_ex,
 			GFP_KERNEL);
 	if (!dwc->ev_bufs_ex)
 		return -ENOMEM;
