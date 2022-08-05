@@ -548,6 +548,8 @@ static int upm6710_set_busovp_th(struct upm6710_charger_info *upm, int threshold
 
 	if (threshold < UPM6710_BUS_OVP_BASE)
 		threshold = UPM6710_BUS_OVP_BASE;
+	else if (threshold > UPM6710_BUS_OVP_MAX)
+		threshold = UPM6710_BUS_OVP_MAX;
 
 	val = (threshold - UPM6710_BUS_OVP_BASE) / UPM6710_BUS_OVP_LSB;
 

@@ -155,6 +155,7 @@ struct bq2597x_charger_info {
 
 	bool irq_waiting;
 	bool irq_disabled;
+	bool irq_response;
 	bool resume_completed;
 
 	bool batt_present;
@@ -548,6 +549,8 @@ static int bq2597x_set_busovp_th(struct bq2597x_charger_info *bq, int threshold)
 
 	if (threshold < BQ2597X_BUS_OVP_BASE)
 		threshold = BQ2597X_BUS_OVP_BASE;
+	else if (threshold > BQ2597X_BUS_OVP_MAX)
+		threshold = BQ2597X_BUS_OVP_MAX;
 
 	val = (threshold - BQ2597X_BUS_OVP_BASE) / BQ2597X_BUS_OVP_LSB;
 
@@ -1735,6 +1738,7 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 
 	switch (prop) {
 	case POWER_SUPPLY_PROP_CALIBRATE:
+		bq->irq_response = !!val->intval;
 		if (!val->intval) {
 			bq2597x_enable_adc(bq, false);
 			cancel_delayed_work_sync(&bq->wdt_work);
@@ -1923,9 +1927,15 @@ static void bq2597x_check_fault_status(struct bq2597x_charger_info *bq)
 static irqreturn_t bq2597x_charger_interrupt(int irq, void *dev_id)
 {
 	struct bq2597x_charger_info *bq = dev_id;
+	u8 flag = 0;
 
-	dev_info(bq->dev, "INT OCCURRED\n");
-	cm_notify_event(bq->bq2597x_psy, CM_EVENT_INT, NULL);
+	if (bq->irq_response) {
+		dev_info(bq->dev, "INT OCCURRED\n");
+		cm_notify_event(bq->bq2597x_psy, CM_EVENT_INT, NULL);
+	} else {
+		/* purpose: clear interrupt */
+		bq2597x_read_byte(bq, BQ2597X_REG_11, &flag);
+	}
 
 	return IRQ_HANDLED;
 }
