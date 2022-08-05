@@ -16986,15 +16986,6 @@ CONFIG_SPRD_IRQS_MONITOR
 	[must]
 	[missing plat description] none
 	[function]
-CONFIG_SPRD_JPG
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] menu,make,code
-	[subsys] misc
-	[must] user
-	[missing plat description] none
-	[function] The JPG is the hardware accelerator for jpeg standard image compression.
 CONFIG_SPRD_LOOK_AT
 	[arch] all
 	[plat] all
@@ -17496,24 +17487,6 @@ CONFIG_SPRD_USERLOG
 	[must] user
 	[missing plat description] none
 	[function] Create userlog dev driver
-CONFIG_SPRD_VSP
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make,code,menu
-	[subsys] misc
-	[must] user
-	[missing plat description] none
-	[function] The VSP is a video CODEC accelerator.
-CONFIG_SPRD_VSP_PW_DOMAIN
-	[arch] all
-	[plat] all
-	[missing plat] none
-	[field] make,code,menu
-	[subsys] misc
-	[must] user
-	[missing plat description] none
-	[function] power on vsp domain.
 CONFIG_SPRD_WATCHDOG
 	[arch] all
 	[plat] pike2,sharkl3
