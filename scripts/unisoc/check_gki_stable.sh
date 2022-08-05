@@ -201,27 +201,31 @@ if [ -d ${clang_path} ]; then
 	done < ${DIST_DIR}/${whitelist_out_file} > /dev/null
 	echo -e ""
 	if [ ${#symbols_to_sprd_array[@]} -ne 0 ]; then
-		echo -e "++++  Add the following information to android/abi_gki_aarch64_unisoc  ++++" \
-			 |tee ${DIST_DIR}/diff_whitelist.report
+		echo -e "++++  Add the following information to android/abi_gki_aarch64_unisoc  ++++" >${DIST_DIR}/diff_whitelist.report
 		let RET_VAL+=16
 		let check_whitelist_flag+=1
 		for(( i=0;i<${#symbols_to_sprd_array[@]};i++))
 		do
-			echo ${symbols_to_sprd_array[i]} | tee ${DIST_DIR}/diff_whitelist.report
+			echo ${symbols_to_sprd_array[i]} >> ${DIST_DIR}/diff_whitelist.report
 		done
-		echo >> ${DIST_DIR}/diff_whitelist.report
 	fi
 
 	if [ ${#symbols_to_google_array[@]} -ne 0 ]; then
-		echo -e "++++  The following information needs to be patched to google  ++++" \
-			| tee ${DIST_DIR}/diff_whitelist.report
+		echo -e "++++  The following information needs to be patched to google  ++++" >>${DIST_DIR}/diff_whitelist.report
 		let RET_VAL+=32
 		let check_whitelist_flag+=2
 		for(( i=0;i<${#symbols_to_google_array[@]};i++))
 		do
-			echo ${symbols_to_google_array[i]} | tee ${DIST_DIR}/diff_whitelist.report
+			echo ${symbols_to_google_array[i]} >> ${DIST_DIR}/diff_whitelist.report
 		done
 	fi
+	cat ${DIST_DIR}/diff_whitelist.report
+	echo "++++ list the new symbol belong to ko module name ++++"
+	for symb in $(cat ${DIST_DIR}/diff_whitelist.report |grep -v "^+++")
+	do
+		symb_line=$(grep "$symb" ${DIST_DIR}/${whitelist_out_file} -n|awk -F':' '{print $1}')
+		echo "        ${symb}    $(head ${DIST_DIR}/${whitelist_out_file} -n ${symb_line}| grep "^# required by" |tail -1)"
+	done
 else
 	check_whitelist_flag=4
 fi
