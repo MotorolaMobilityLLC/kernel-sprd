@@ -142,6 +142,11 @@ static void unisoc_modify_thermal_target_freq(void *data,
 	struct cpufreq_policy *cpufreq_policy_find;
 	struct thermal_cooling_device *cdev = policy->cdev;
 
+	if (IS_ERR_OR_NULL(cdev)) {
+		pr_err("Failed to get current policy->cdev.\n");
+		return;
+	}
+
 	curr_max_freq = cpufreq_quick_get_max(policy->cpu);
 
 	cpufreq_policy_find = find_next_cpufreq_policy(policy);
@@ -151,9 +156,6 @@ static void unisoc_modify_thermal_target_freq(void *data,
 
 	/* Debug info for cpufreq cooling device */
 	pr_info("cpu%d temp:%d target_freq:%u\n", policy->cpu, soc_tz->temperature, *target_freq);
-
-	if (!cdev)
-		return;
 
 	switch (cdev->id) {
 	case 0:
