@@ -439,11 +439,14 @@ static const struct sc27xx_fgu_variant_data sc2720_info = {
 };
 
 static bool is_charger_mode;
+static bool allow_charger_enable;
 
-static int get_boot_mode(void)
+static int get_boot_mode(struct sc27xx_fgu_data *data)
 {
 	struct device_node *cmdline_node;
 	const char *cmd_line;
+	char *match;
+	char result[5];
 	int ret;
 
 	cmdline_node = of_find_node_by_path("/chosen");
@@ -451,8 +454,19 @@ static int get_boot_mode(void)
 	if (ret)
 		return ret;
 
-	if (!strncmp(cmd_line, "charger", strlen("charger")))
+	if (strncmp(cmd_line, "charger", strlen("charger")) == 0)
 		is_charger_mode =  true;
+
+	match = strstr(cmd_line, "sprdboot.mode=");
+	if (match) {
+		memcpy(result, (match + strlen("sprdboot.mode=")), sizeof(result) - 1);
+		dev_info(data->dev, "result = %s\n", result);
+		if ((!strcmp(result, "cali")) || (!strcmp(result, "auto")))
+			allow_charger_enable = true;
+	}
+
+	dev_info(data->dev, "cmd_line = %s，allow_charger_enable = %d\n", cmd_line,
+		 allow_charger_enable);
 
 	return 0;
 }
@@ -2454,7 +2468,7 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TEMP:
 		if (data->debug_info.temp_debug_en)
 			val->intval = data->debug_info.debug_temp;
-		else if (data->temp_table_len <= 0)
+		else if (data->temp_table_len <= 0 || (data->bat_present == 0 && allow_charger_enable))
 			val->intval = 200;
 		else {
 			ret = sc27xx_fgu_get_temp(data, &value);
@@ -4585,6 +4599,10 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	if (!data->support_boot_calib)
 		dev_info(&pdev->dev, "Do not support boot calibration function\n");
 
+	ret = get_boot_mode(data);
+	if (ret)
+		dev_warn(dev, "get_boot_mode can't not parse bootargs property\n");
+
 	data->support_charge_cycle =
 		device_property_read_bool(&pdev->dev, "sprd,capacity-charge-cycle");
 	if (!data->support_charge_cycle)
@@ -4622,12 +4640,6 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	ret = devm_add_action_or_reset(dev, sc27xx_fgu_disable, data);
 	if (ret) {
 		dev_err(dev, "failed to add fgu disable action\n");
-		goto err;
-	}
-
-	ret = get_boot_mode();
-	if (ret) {
-		pr_err("get_boot_mode can't not parse bootargs property\n");
 		goto err;
 	}
 
