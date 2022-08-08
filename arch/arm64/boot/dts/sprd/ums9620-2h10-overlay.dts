@@ -92,7 +92,7 @@
 };
 
 &chosen {
-	bootargs_ext = "androidboot.hardware=ums9620_2h10 androidboot.dtbo_idx=0";
+	bootargs_ext = "";
 };
 
 &adi_bus {
