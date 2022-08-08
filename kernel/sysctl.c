@@ -105,6 +105,9 @@
 #ifdef CONFIG_LOCKUP_DETECTOR
 #include <linux/nmi.h>
 #endif
+#ifdef CONFIG_SPRD_CMA_DEBUG
+#include <linux/cma.h>
+#endif
 
 #if defined(CONFIG_SYSCTL)
 
@@ -2861,6 +2864,17 @@ static struct ctl_table vm_table[] = {
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= &two_hundred,
 	},
+#ifdef CONFIG_SPRD_CMA_DEBUG
+	{
+		.procname	= "sprd_cma_debug",
+		.data		= &sysctl_sprd_cma_debug,
+		.maxlen		= sizeof(int),
+		.mode		= 0200, /* write-only */
+		.proc_handler	= sysctl_sprd_cma_debug_handler,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= &two,
+	},
+#endif
 #ifdef CONFIG_HUGETLB_PAGE
 	{
 		.procname	= "nr_hugepages",
