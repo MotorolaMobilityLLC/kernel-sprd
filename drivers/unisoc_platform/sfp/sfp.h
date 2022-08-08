@@ -41,6 +41,8 @@
 
 #define SFP_TCP_CT_WAITING (10 * HZ)
 
+#define SFP_IFACE_PREF "sfp"
+
 enum {
 	IP_L4_PROTO_NULL = 0,
 	IP_L4_PROTO_ICMP = 1,
@@ -181,7 +183,7 @@ struct sfp_fwd_entry {
 	struct sfp_conn *sfp_ct;
 };
 
-#if IS_ENABLED(CONFIG_SPRD_IPA_V3_SUPPORT) || IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
+#if IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
 /* sizeof fwd_entry is 120 bytes */
 struct fwd_entry {
 	struct pkt_tuple_info orig_info;

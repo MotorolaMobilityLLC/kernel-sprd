@@ -52,7 +52,7 @@
 #define DHCP_PORT 67
 #define DNS_PORT 53
 
-#if IS_ENABLED(CONFIG_SPRD_IPA_V3)
+#if IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
 #define CHK_FWD_ENTRY_SIZE (sizeof(struct fwd_entry) != 120)
 #else
 #define CHK_FWD_ENTRY_SIZE (sizeof(struct fwd_entry) != 96)
@@ -1098,47 +1098,73 @@ struct device *sfp_get_ipa_dev(void)
 	return &sfp_ipa_dev;
 }
 
-static void sfp_ipa_dev_init(void)
+static int sfp_parse_dt(struct device *dev)
 {
-	if (CHK_FWD_ENTRY_SIZE || CHK_HASH_TBL_SIZE) {
-		FP_PRT_DBG(FP_PRT_ERR,
-			   "warning: ipa entry align error %zu %zu!\n",
-			   sizeof(struct fwd_entry),
-			   sizeof(struct hd_hash_tbl));
+	int ret;
+	s32 sdata;
+	struct device_node *np = dev->of_node;
+
+	ret = of_property_read_s32(np, "sprd,sfp", &sdata);
+	if (ret) {
+		dev_err(dev, "read sprd,sfp fail ret %d\n", ret);
+		return ret;
 	}
 
-	memset(&sfp_ipa_dev, 0, sizeof(struct device));
-	sfp_ipa_dev.bus = &platform_bus_type;
-	sfp_ipa_dev.coherent_dma_mask = DMA_BIT_MASK(32);
-	sfp_ipa_dev.dma_mask = &sfp_ipa_dev.coherent_dma_mask;
-	of_dma_configure(&sfp_ipa_dev, sfp_ipa_dev.of_node, true);
-#if IS_ENABLED(CONFIG_DMA_PERDEV_COHERENT)
-	sfp_ipa_dev.archdata.dma_coherent = false;
-#endif
-}
-
-/* Initialize sfp manager */
-static int sfp_mgr_init(void)
-{
-	spin_lock_init(&mgr_lock);
-	sfp_entries_hash_init();
-	if (!get_sfp_tether_scheme()) {
-		sfp_ipa_dev_init();
-		sfp_ipa_init();
-	}
-	sfp_proc_create();
 	return 0;
 }
 
+static int sfp_ipa_plat_drv_probe(struct platform_device *pdev)
+{
+	int ret;
+
+	if (!get_sfp_tether_scheme()) {
+		if (pdev->dev.of_node) {
+			ret = sfp_parse_dt(&pdev->dev);
+			if (ret) {
+				dev_err(&pdev->dev, "failed to parse device tree, ret=%d\n", ret);
+				return ret;
+			}
+			memset(&sfp_ipa_dev, 0, sizeof(struct device));
+			sfp_ipa_dev = pdev->dev;
+			sfp_ipa_init();
+		}
+	}
+
+	return 0;
+}
+
+static const struct of_device_id sfp_ipa_plat_drv_match[] = {
+	{ .compatible = "sprd,sfp",},
+	{}
+};
+
+static struct platform_driver sfp_ipa_plat_drv = {
+	.probe = sfp_ipa_plat_drv_probe,
+	.driver = {
+		.name = SFP_IFACE_PREF,
+		.owner = THIS_MODULE,
+		.of_match_table = sfp_ipa_plat_drv_match,
+	},
+};
+
 static int __init init_sfp_module(void)
 {
-	int status;
+	int ret;
 
-	status = sfp_mgr_init();
+	spin_lock_init(&mgr_lock);
+	sfp_entries_hash_init();
+
+	ret = platform_driver_register(&sfp_ipa_plat_drv);
+	if (ret) {
+		pr_err("Failed to register sfp_ipa_plat_drv: %d\n", ret);
+		return 0;
+	}
+	sfp_proc_create();
 	nf_sfp_conntrack_init();
 	sysctl_sfp_init();
-	if (status != SFP_OK)
-		return -EPERM;
+	if (sysctl_net_sfp_enable == 1)
+		sfp_mgr_proc_enable();
+
 	return 0;
 }
 
@@ -1147,6 +1173,7 @@ static void __exit exit_sfp_module(void)
 	sfp_mgr_disable();
 	nfp_proc_exit();
 	sysctl_sfp_exit();
+	platform_driver_unregister(&sfp_ipa_plat_drv);
 }
 
 late_initcall(init_sfp_module);

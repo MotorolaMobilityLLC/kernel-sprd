@@ -37,10 +37,7 @@ int sysctl_net_sfp_enable  __read_mostly = 1;
  * orca cpe supports both pcie tether/usb tether,
  * so 0 stands for IPA, 1 stands for SFP.
  */
-#if IS_ENABLED(CONFIG_SPRD_SIPA) ||\
-	IS_ENABLED(CONFIG_SPRD_SIPA_V3) ||\
-	IS_ENABLED(CONFIG_SPRD_IPA_V3) ||\
-	IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
+#if IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
 int sysctl_net_sfp_tether_scheme  __read_mostly;
 #else
 int sysctl_net_sfp_tether_scheme  __read_mostly = 1;
