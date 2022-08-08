@@ -1035,7 +1035,17 @@ int sprd_panel_parse_lcddtb(struct device_node *lcd_node,
                 printk(KERN_ERR "lcd_name is %s\n", lcd_name);
                 buffer[66] = cit_buffer;
                 info->cmds[CMD_CODE_INIT] = (const void *)buffer;
-            }else
+            }else if(strncmp(lcd_name, "lcd_icnl9911cac_dj_mipi_hd", strlen(lcd_name)) == 0){
+                buffer = (char *)kzalloc(bytes, GFP_KERNEL);
+                if(!buffer)
+                    buffer =(char *)p;
+                else
+                    memcpy(buffer, (char *)p, bytes);
+                printk(KERN_ERR "lcd_name is %s\n", lcd_name);
+                buffer[81] = cit_buffer;
+                info->cmds[CMD_CODE_INIT] = (const void *)buffer;
+            }
+            else
                 info->cmds[CMD_CODE_INIT] = p;
         info->cmds_len[CMD_CODE_INIT] = bytes;
 	} else
