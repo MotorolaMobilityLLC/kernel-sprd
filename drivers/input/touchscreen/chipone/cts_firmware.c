@@ -322,6 +322,7 @@ static const struct cts_firmware * cts_request_newer_driver_builtin_firmware(
 
     const struct cts_firmware *firmware = NULL;
     int    i;
+    int j = 0;
     int name_len = 0; 
     cts_info("Request driver builtin if match hwid: %06x fwid: %04x && ver > %04x",
         hwid, fwid, device_fw_ver);
@@ -331,10 +332,16 @@ static const struct cts_firmware * cts_request_newer_driver_builtin_firmware(
     else
         name_len = strlen(lcd_name);
     if(strncmp(lcd_name, "lcd_icnl9911cac_dj_mipi_hd", name_len) == 0)
+    {
         firmware = cts_driver_builtin_firmwares_cac;
+        j = ARRAY_SIZE(cts_driver_builtin_firmwares_cac);
+    }
     else
+    {
         firmware = cts_driver_builtin_firmwares;
-    for (i = 0; i < ARRAY_SIZE(cts_driver_builtin_firmwares); i++, firmware++) {
+        j = ARRAY_SIZE(cts_driver_builtin_firmwares);
+    }
+    for (i = 0; i < j; i++, firmware++) {
         if (MATCH_HWID(firmware, hwid) && MATCH_FWID(firmware, fwid)) {
             if (!is_firmware_valid(firmware)) {
                 cts_err("Found driver builtin '%s' "
