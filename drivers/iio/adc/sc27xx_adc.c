@@ -956,8 +956,8 @@ static int sprd_adc_read(struct sprd_adc_data *data, int channel, int scale, int
 	tmp = SPRD_ADC_12BIT_MODE;
 	sample_num_sw = (filter_sw ? ADC_MESURE_NUMBER_SW - 1 : 0);
 	sample_num_hw = ((sample_num_hw > 0) ? sample_num_hw : ADC_MESURE_NUMBER_HW_DEF);
-	tmp |= (sample_num_sw << SPRD_ADC_RUN_NUM_SHIFT) & SPRD_ADC_RUN_NUM_MASK;
-	tmp |= (sample_num_hw << SPRD_ADC_AVERAGE_SHIFT) & SPRD_ADC_AVERAGE_MASK;
+	tmp |= ((unsigned long)sample_num_sw << SPRD_ADC_RUN_NUM_SHIFT) & SPRD_ADC_RUN_NUM_MASK;
+	tmp |= ((unsigned long)sample_num_hw << SPRD_ADC_AVERAGE_SHIFT) & SPRD_ADC_AVERAGE_MASK;
 	ret = regmap_update_bits(data->regmap, data->base + SPRD_ADC_CTL,
 				 SPRD_ADC_RUN_NUM_MASK | SPRD_ADC_12BIT_MODE |
 				 SPRD_ADC_AVERAGE_MASK, tmp);
