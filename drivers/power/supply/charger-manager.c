@@ -3452,7 +3452,8 @@ static void cm_start_cp_state_machine(struct charger_manager *cm, bool start)
 		cm->desc->cm_check_fault = false;
 		__pm_stay_awake(cm->cp_ws);
 		cm_cp_state_change(cm, CM_CP_STATE_ENTRY);
-		schedule_delayed_work(&cm->cp_work, 0);
+		/* wait for the PD charger wire communication to complete */
+		schedule_delayed_work(&cm->cp_work, msecs_to_jiffies(CM_CP_WORK_TIME_MS));
 	}
 }
 
