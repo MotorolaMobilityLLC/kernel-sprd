@@ -1427,6 +1427,8 @@
 
 # required by cqhci.ko
   devm_blk_ksm_init
+  sdhci_cqe_disable
+  sdhci_cqe_irq
 
 # required by dwc3-haps.ko
   pcim_enable_device
@@ -1992,6 +1994,7 @@
   sdhci_runtime_suspend_host
   sdhci_set_bus_width
   sdhci_setup_host
+  __sdhci_set_timeout
 
 # required by mmc_swcq.ko
   mmc_cmdq_disable
