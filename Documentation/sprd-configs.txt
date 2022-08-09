@@ -113,8 +113,8 @@ CONFIG_ANDROID_KABI_RESERVE
 	[missing plat description] none
 	[function]
 CONFIG_ANDROID_VENDOR_HOOKS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -5206,6 +5206,42 @@ CONFIG_DRM_PANEL_ORIENTATION_QUIRKS
 CONFIG_DRM_RCAR_WRITEBACK
 	[arch] arm64
 	[plat] sharkl3,sharkl5Pro
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_DRM_SPRD
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_DRM_SPRD_DPU0
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_DRM_SPRD_DSI
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
+CONFIG_DRM_SPRD_GSP
+	[arch] arm
+	[plat] pike2
 	[missing plat] none
 	[field]
 	[subsys]
@@ -16996,8 +17032,8 @@ CONFIG_SPRD_MEMDISK
 	[missing plat description] none
 	[function] Using reserved memory generate block device node.
 CONFIG_SPRD_MEM_OVERLAY_CHECK
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
 	[missing plat] none
 	[field]
 	[subsys]
@@ -17122,8 +17158,8 @@ CONFIG_SPRD_POWER_DEBUG
 	[missing plat description] none
 	[function]
 CONFIG_SPRD_POWER_STAT
-	[arch] all
-	[plat] all
+	[arch] arm64
+	[plat] sharkl3,sharkl5Pro
 	[missing plat] none
 	[field] make
 	[subsys] debug
@@ -17294,8 +17330,8 @@ CONFIG_SPRD_SIPC_ZERO_COPY_SIPX
 	[missing plat description] none
 	[function] This function is used to enable sipx function between modem and AP.
 CONFIG_SPRD_SIP_FW
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make,code
 	[subsys] firmware
@@ -18500,8 +18536,8 @@ CONFIG_UBSAN_TRAP
 	[missing plat description] none
 	[function]
 CONFIG_UCLAMP_BUCKETS_COUNT
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -18509,8 +18545,8 @@ CONFIG_UCLAMP_BUCKETS_COUNT
 	[missing plat description] none
 	[function]
 CONFIG_UCLAMP_TASK
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
