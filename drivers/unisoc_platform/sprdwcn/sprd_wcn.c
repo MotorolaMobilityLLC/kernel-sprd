@@ -173,8 +173,10 @@ static const struct of_device_id wcn_global_match_table[] = {
 static struct wcn_match_data *g_match_data;
 struct wcn_match_data *get_wcn_match_config(void)
 {
-	if (!g_match_data)
+	if (!g_match_data) {
+		pr_err("wcn match data null \n");
 		dump_stack();
+	}
 
 	return g_match_data;
 }
@@ -248,10 +250,13 @@ static int sprd_wcn_probe(struct platform_device *pdev)
 	}
 
 	g_match_data = p_match_data;
-	if (p_match_data->unisoc_wcn_integrated)
+	if (p_match_data->unisoc_wcn_integrated) {
+		pr_info("wcn_intergrated \n");
 		return wcn_probe(pdev);
-	else
+	} else {
+		pr_info("wcn out probe \n");
 		return marlin_probe(pdev);
+	}
 }
 
 static int sprd_wcn_remove(struct platform_device *pdev)
