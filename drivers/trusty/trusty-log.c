@@ -24,12 +24,6 @@
 #include "trusty-log.h"
 #include "trusty.h"
 
-#ifdef pr_fmt
-#undef pr_fmt
-#endif
-#define pr_fmt(fmt) "sprd-trusty-log: " fmt
-
-
 #define SMC_SC_SYSCTL_SET_CONSOLE	SMC_STDCALL_NR(SMC_ENTITY_SYSCTL, 0)
 #define SMC_SC_SYSCTL_GET_CONSOLE	SMC_STDCALL_NR(SMC_ENTITY_SYSCTL, 1)
 #define SMC_SC_SYSCTL_SET_LOGLEVEL	SMC_STDCALL_NR(SMC_ENTITY_SYSCTL, 2)
