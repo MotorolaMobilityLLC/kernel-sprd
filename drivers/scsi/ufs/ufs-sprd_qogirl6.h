@@ -28,7 +28,6 @@ struct ufs_sprd_host {
 	void __iomem *aon_apb_reg;
 	struct syscon_ufs aon_apb_ufs_en;
 	struct syscon_ufs ap_ahb_ufs_clk;
-	struct syscon_ufs ap_apb_ufs_rst;
 	struct syscon_ufs ap_apb_ufs_en;
 	struct syscon_ufs ufs_refclk_on;
 	struct syscon_ufs ahb_ufs_lp;
@@ -36,11 +35,12 @@ struct ufs_sprd_host {
 	struct syscon_ufs ahb_ufs_cb;
 	struct syscon_ufs ahb_ufs_ies_en;
 	struct syscon_ufs ahb_ufs_cg_pclkreq;
-	struct syscon_ufs ap_apb_ufs_glb_rst;
 	struct clk *hclk_source;
 	struct clk *pclk_source;
 	struct clk *hclk;
 	struct clk *pclk;
+	struct reset_control *ap_apb_ufs_rst;
+	struct reset_control *ap_apb_ufs_glb_rst;
 	struct completion pwm_async_done;
 	u32 ioctl_cmd;
 	struct completion hs_async_done;
