@@ -3206,3 +3206,11 @@
   sysfs_add_link_to_group
   sysfs_remove_file_from_group
   sysfs_remove_link_from_group
+
+# required by npu_img_vha.ko
+  _dev_crit
+  debugfs_create_u64
+  dma_fence_array_create
+  do_exit
+  of_irq_get_byname
+  yield
