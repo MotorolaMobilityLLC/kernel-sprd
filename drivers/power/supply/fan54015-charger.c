@@ -215,8 +215,8 @@ static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 		info->cur.dcp_cur = 1500000;
 		info->cur.cdp_limit = 1000000;
 		info->cur.cdp_cur = 1000000;
-		info->cur.unknown_limit = 500000;
-		info->cur.unknown_cur = 500000;
+		info->cur.unknown_limit = 1000000;
+		info->cur.unknown_cur = 1000000;
 
 		/*
 		 * If no battery information is supplied, we should set
