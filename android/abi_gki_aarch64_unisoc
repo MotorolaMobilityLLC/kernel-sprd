@@ -2837,3 +2837,6 @@
   usb_role_switch_get
   usb_role_switch_put
   usb_role_switch_set_role
+
+# required by npu_img_vha.ko
+  do_exit
