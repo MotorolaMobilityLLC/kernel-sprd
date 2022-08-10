@@ -202,6 +202,7 @@ if [ -d ${clang_path} ]; then
 	echo -e ""
 	if [ ${#symbols_to_sprd_array[@]} -ne 0 ]; then
 		echo -e "++++  Add the following information to android/abi_gki_aarch64_unisoc  ++++" >${DIST_DIR}/diff_whitelist.report
+		echo -e "++++  Then upstream the changes to google, and cherry-pick back when merged  ++++" >${DIST_DIR}/diff_whitelist.report
 		let RET_VAL+=16
 		let check_whitelist_flag+=1
 		for(( i=0;i<${#symbols_to_sprd_array[@]};i++))
@@ -212,6 +213,7 @@ if [ -d ${clang_path} ]; then
 
 	if [ ${#symbols_to_google_array[@]} -ne 0 ]; then
 		echo -e "++++  The following information needs to be patched to google  ++++" >>${DIST_DIR}/diff_whitelist.report
+		echo -e "++++  Then we take it back next gki-release with whitelist sync  ++++" >>${DIST_DIR}/diff_whitelist.report
 		let RET_VAL+=32
 		let check_whitelist_flag+=2
 		for(( i=0;i<${#symbols_to_google_array[@]};i++))
