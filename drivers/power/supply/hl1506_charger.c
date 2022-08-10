@@ -620,7 +620,7 @@ static enum power_supply_property hl1506_charge_pump_converter_properties[] = {
 
 static const struct power_supply_desc hl1506_charge_pump_converter_desc = {
 	.name			= "hl1506_cp_converter",
-	.type			= POWER_SUPPLY_TYPE_WIRELESS,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= hl1506_charge_pump_converter_properties,
 	.num_properties		= ARRAY_SIZE(hl1506_charge_pump_converter_properties),
 	.get_property		= hl1506_charger_get_property,

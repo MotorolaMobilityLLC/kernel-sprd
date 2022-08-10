@@ -1166,7 +1166,7 @@ static enum power_supply_property bq2560x_usb_props[] = {
 
 static const struct power_supply_desc bq2560x_charger_desc = {
 	.name			= "bq2560x_charger",
-	.type			= POWER_SUPPLY_TYPE_USB,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= bq2560x_usb_props,
 	.num_properties		= ARRAY_SIZE(bq2560x_usb_props),
 	.get_property		= bq2560x_charger_usb_get_property,
@@ -1176,7 +1176,7 @@ static const struct power_supply_desc bq2560x_charger_desc = {
 
 static const struct power_supply_desc bq2560x_slave_charger_desc = {
 	.name			= "bq2560x_slave_charger",
-	.type			= POWER_SUPPLY_TYPE_USB,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= bq2560x_usb_props,
 	.num_properties		= ARRAY_SIZE(bq2560x_usb_props),
 	.get_property		= bq2560x_charger_usb_get_property,
