@@ -4479,6 +4479,8 @@ static void fast_charge_handler(struct charger_manager *cm)
 	if (!ext_pwr_online)
 		return;
 
+	cm_update_charger_type_status(cm);
+
 	if (cm->desc->is_fast_charge && !cm->desc->enable_fast_charge)
 		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
 					   CM_CHARGE_INFO_INPUT_LIMIT));
