@@ -434,6 +434,9 @@ static void sdhci_sprd_set_uhs_signaling(struct sdhci_host *host,
 	u16 ctrl_2;
 	bool en = false;
 
+	if ((timing == host->timing) && (strcmp(mmc_hostname(mmc), "mmc2") != 0))
+		return;
+
 	ctrl_2 = sdhci_readw(host, SDHCI_HOST_CONTROL2);
 	/* Select Bus Speed Mode for host */
 	ctrl_2 &= ~SDHCI_CTRL_UHS_MASK;
