@@ -52,6 +52,7 @@ enum wcn_gnss_sub_sys {
 	 */
 	WCN_GNSS = 16,
 	WCN_GNSS_BD,
+	WCN_GNSS_GAL,
 	WCN_GNSS_ALL,
 };
 
@@ -79,7 +80,8 @@ enum wcn_aon_chip_id {
 #define WCN_MARLIN_BTWIFI_MASK 0x05
 #define WCN_GNSS_MASK BIT(WCN_GNSS)
 #define WCN_GNSS_BD_MASK BIT(WCN_GNSS_BD)
-#define WCN_GNSS_ALL_MASK (WCN_GNSS_MASK | WCN_GNSS_BD_MASK)
+#define WCN_GNSS_GAL_MASK BIT(WCN_GNSS_GAL)
+#define WCN_GNSS_ALL_MASK (WCN_GNSS_MASK | WCN_GNSS_BD_MASK | WCN_GNSS_GAL_MASK)
 
 #define WCN_POWERUP_WAIT_MS	30000 /*time out in waiting wifi to come up*/
 

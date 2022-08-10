@@ -252,5 +252,5 @@ void integ_wcn_set_module_status_changed(bool status);
 int integ_marlin_get_module_status(void);
 int start_integ_marlin(u32 subsys);
 int stop_integ_marlin(u32 subsys);
-bool wcn_check_2to1_btwf_bin(struct wcn_device *wcn_dev, const struct firmware *firmware, loff_t *off);
+int wcn_check_2to1_bin(struct wcn_device *wcn_dev, const struct firmware *firmware, loff_t *off);
 #endif
