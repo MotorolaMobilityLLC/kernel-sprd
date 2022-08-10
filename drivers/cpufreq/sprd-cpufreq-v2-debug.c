@@ -34,7 +34,7 @@ static size_t table_cat(struct cpufreq_policy *policy, char *buf, size_t len)
 
 	mutex_lock(&cluster_info->mutex);
 
-	cpu_dev = get_cpu_device(policy->cpu);
+	cpu_dev = get_cpu_device(cluster_info->cpu);
 	if (!cpu_dev) {
 		dev_err(chip.dev, "%s: get cpu device failed\n", __func__);
 		goto out_error;

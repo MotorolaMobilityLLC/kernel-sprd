@@ -199,15 +199,15 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 	u64 freq, vol;
 	int i, ret;
 
-	cpu = get_cpu_device(policy->cpu);
-	if (!cpu) {
-		pr_err("get cpu %u dev error\n", policy->cpu);
-		return -EINVAL;
-	}
-
 	cluster = (struct cluster_info *)policy->driver_data;
 	if (!cluster || !cluster->table_update || !cluster->pair_get) {
 		pr_err("get cpu %u cluster info error\n", policy->cpu);
+		return -EINVAL;
+	}
+
+	cpu = get_cpu_device(cluster->cpu);
+	if (!cpu) {
+		pr_err("get cpu %u dev error\n", policy->cpu);
 		return -EINVAL;
 	}
 
