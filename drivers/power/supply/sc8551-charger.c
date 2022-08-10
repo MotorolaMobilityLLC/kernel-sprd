@@ -1740,7 +1740,7 @@ static int sc8551_psy_register(struct sc8551 *sc)
 	else
 		sc->psy_desc.name = "sc8551-standalone";
 
-	sc->psy_desc.type = POWER_SUPPLY_TYPE_MAINS;
+	sc->psy_desc.type = POWER_SUPPLY_TYPE_UNKNOWN;
 	sc->psy_desc.properties = sc8551_charger_props;
 	sc->psy_desc.num_properties = ARRAY_SIZE(sc8551_charger_props);
 	sc->psy_desc.get_property = sc8551_charger_get_property;
