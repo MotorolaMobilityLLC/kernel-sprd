@@ -197,6 +197,7 @@ unisoc_platform:gnss:
 unisoc_platform:iommu:
 unisoc_platform:mailbox:
 unisoc_platform:misc:
+unisoc_platform:mm:
 unisoc_platform:modem_loader:
 unisoc_platform:sched:
 unisoc_platform:sipc:
