@@ -366,6 +366,23 @@
 		>;
 	};
 
+	gsp_dvfs: gsp-dvfs {
+		compatible = "sprd,hwdvfs-gsp-qogirn6pro";
+		sprd,hw-dfs-en = <0>;
+		sprd,work-index-def = <3>;
+		sprd,idle-index-def = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+
+		operating-points = <
+		/* kHz    uV */
+		256000    600000
+		307200    650000
+		384000    700000
+		512000    750000
+		>;
+	};
+
 	vpudec_dvfs: vpudec-dvfs {
 		compatible = "sprd,hwdvfs-vsp-qogirn6pro";
 		sprd,dvfs-work-freq = <668250000>;
