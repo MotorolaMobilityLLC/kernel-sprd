@@ -594,6 +594,7 @@
   mdiobus_alloc_size
   mdiobus_free
   mdiobus_unregister
+  mem_section
   memcpy
   __memcpy_fromio
   memmove
