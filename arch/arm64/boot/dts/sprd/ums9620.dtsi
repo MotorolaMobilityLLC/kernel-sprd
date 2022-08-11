@@ -389,23 +389,6 @@
 			#clock-cells = <1>;
 		};
 
-		gpuapb_gate: gpuapb-gate {
-			compatible = "sprd,ums9620-gpuapb-gate";
-			sprd,syscon = <&gpu_apb_regs>; /* 0x23000000 */
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
-			#clock-cells = <1>;
-			#reset-cells = <1>;
-		};
-
-		gpu_clk: clock-controller@23010000 {
-			compatible = "sprd,ums9620-gpu-clk";
-			reg = <0 0x23010000 0 0x3000>;
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
-			#clock-cells = <1>;
-		};
-
 		ipaapb_gate: ipaapb-gate {
 			compatible = "sprd,ums9620-ipaapb-gate";
 			sprd,syscon = <&ipa_apb_regs>; /* 0x25000000 */
@@ -1140,7 +1123,6 @@
 
 &gpu {
 	clocks = <&aonapb_gate CLK_GPU_EB>,
-	<&gpu_clk CLK_GPU_CORE_EB>,
 	<&g1_pll CLK_RPLL_26M>,
 	<&g5l_pll CLK_TGPLL_76M8>,
 	<&g5l_pll CLK_TGPLL_153M6>,
