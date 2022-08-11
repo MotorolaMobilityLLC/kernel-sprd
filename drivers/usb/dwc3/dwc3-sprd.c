@@ -485,6 +485,8 @@ static void dwc3_sprd_chg_detect_work(struct work_struct *work)
 		if (boot_charging) {
 			dev_info(sdwc->dev, "boot charging mode enter!\n");
 			sdwc->charging_mode = true;
+			sdwc->hs_phy->last_event = USB_EVENT_CHARGER;
+			sdwc->ss_phy->last_event = USB_EVENT_CHARGER;
 			break;
 		}
 
@@ -500,13 +502,19 @@ static void dwc3_sprd_chg_detect_work(struct work_struct *work)
 		if (sdwc->chg_type == UNKNOWN_TYPE) {
 			dev_info(sdwc->dev, "charge detect finished\n");
 			sdwc->charging_mode = true;
+			sdwc->hs_phy->last_event = USB_EVENT_CHARGER;
+			sdwc->ss_phy->last_event = USB_EVENT_CHARGER;
 		} else if (sdwc->chg_type == SDP_TYPE ||
 				   sdwc->chg_type == CDP_TYPE) {
 			dev_info(sdwc->dev, "charge detect finished with %d\n",
 								sdwc->chg_type);
+			sdwc->hs_phy->last_event = USB_EVENT_ENUMERATED;
+			sdwc->ss_phy->last_event = USB_EVENT_ENUMERATED;
 			queue_work(sdwc->dwc3_wq, &sdwc->evt_prepare_work);
 		} else {
 			dev_info(sdwc->dev, "charge detect finished\n");
+			sdwc->hs_phy->last_event = USB_EVENT_CHARGER;
+			sdwc->ss_phy->last_event = USB_EVENT_CHARGER;
 			sdwc->charging_mode = true;
 		}
 		break;
@@ -761,12 +769,16 @@ static int dwc3_sprd_vbus_notifier(struct notifier_block *nb,
 	sdwc->vbus_active = event;
 
 	if (sdwc->vbus_active && sdwc->chg_state == USB_CHG_STATE_UNDETECT) {
+		sdwc->hs_phy->last_event = USB_EVENT_VBUS;
+		sdwc->ss_phy->last_event = USB_EVENT_VBUS;
 		spin_unlock_irqrestore(&sdwc->lock, flags);
 		queue_delayed_work(sdwc->sm_usb_wq, &sdwc->chg_detect_work, 0);
 		return NOTIFY_DONE;
 	}
 
 	if (!sdwc->vbus_active) {
+		sdwc->hs_phy->last_event = USB_EVENT_NONE;
+		sdwc->ss_phy->last_event = USB_EVENT_NONE;
 		spin_unlock_irqrestore(&sdwc->lock, flags);
 		flush_delayed_work(&sdwc->chg_detect_work);
 		spin_lock_irqsave(&sdwc->lock, flags);
@@ -799,13 +811,20 @@ static int dwc3_sprd_id_notifier(struct notifier_block *nb,
 	dev_info(sdwc->dev, "host:%ld (id:%d) event received\n", event, id);
 
 	sdwc->id_state = id;
-	if (sdwc->id_state != DWC3_ID_GROUND) {
+
+	if (sdwc->id_state == DWC3_ID_GROUND) {
+		sdwc->hs_phy->last_event = USB_EVENT_ID;
+		sdwc->ss_phy->last_event = USB_EVENT_ID;
+	} else {
+		sdwc->hs_phy->last_event = USB_EVENT_NONE;
+		sdwc->ss_phy->last_event = USB_EVENT_NONE;
 		if (sdwc->is_audio_dev) {
 			sdwc->is_audio_dev = false;
 			/* notify musb to stop */
 			call_sprd_usbm_event_notifiers(SPRD_USBM_EVENT_HOST_MUSB, false, NULL);
 		}
 	}
+
 	sdwc->chg_state = USB_CHG_STATE_UNDETECT;
 	sdwc->charging_mode = false;
 	sdwc->retry_chg_detect_count = 0;
@@ -823,10 +842,14 @@ static void dwc3_sprd_detect_cable(struct dwc3_sprd *sdwc)
 	if (extcon_get_state(id_ext, EXTCON_USB_HOST) == true) {
 		dev_info(sdwc->dev, "host connection detected from ID GPIO.\n");
 		sdwc->id_state = DWC3_ID_GROUND;
+		sdwc->hs_phy->last_event = USB_EVENT_ID;
+		sdwc->ss_phy->last_event = USB_EVENT_ID;
 		queue_work(sdwc->dwc3_wq, &sdwc->evt_prepare_work);
 	} else if (extcon_get_state(sdwc->edev, EXTCON_USB) == true) {
 		dev_info(sdwc->dev, "device connection detected from VBUS GPIO.\n");
 		sdwc->vbus_active = true;
+		sdwc->hs_phy->last_event = USB_EVENT_VBUS;
+		sdwc->ss_phy->last_event = USB_EVENT_VBUS;
 		if (sdwc->vbus_active &&
 			sdwc->chg_state == USB_CHG_STATE_UNDETECT) {
 			queue_delayed_work(sdwc->sm_usb_wq,
@@ -1132,13 +1155,8 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 			rework = true;
 		} else if (test_bit(A_AUDIO, &sdwc->inputs)) {
 			dev_dbg(sdwc->dev, "A_AUDIO\n");
-			if (regulator_is_enabled(sdwc->vbus)) {
-				ret = regulator_disable(sdwc->vbus);
-				if (ret)
-					dev_err(sdwc->dev,
-						"Failed to disable vbus: %d\n", ret);
-			}
-			usb_role_switch_set_role(dwc->role_sw, USB_ROLE_DEVICE);
+			dwc3_sprd_otg_start_host(sdwc, 0);
+
 			/* start musb */
 			call_sprd_usbm_event_notifiers(SPRD_USBM_EVENT_HOST_MUSB,
 										true, NULL);
@@ -1156,11 +1174,8 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 			!test_bit(A_AUDIO, &sdwc->inputs)) {
 			sdwc->drd_state = DRD_STATE_IDLE;
 			rework = true;
-			usb_phy_vbus_off(sdwc->ss_phy);
-			pm_runtime_mark_last_busy(dwc->dev);
-			pm_runtime_put(dwc->dev);
 			sdwc->glue_dr_mode = USB_DR_MODE_UNKNOWN;
-			dev_dbg(sdwc->dev, "audio exit\n");
+			dev_dbg(sdwc->dev, "A_AUDIO exit\n");
 		}
 		break;
 	default:

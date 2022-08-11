@@ -59,7 +59,7 @@
 		"ipa_tca_clk",
 		"ipa_usb31pll_clk",
 		"ipa_usb_ref_default";
-		usb-phy = <&ssphy>, <&ssphy>;
+		usb-phy = <&dummyphy>, <&ssphy>;
 		power-domains = <&pd_ipa_sys>;
 
 		dwc3@25100000 {
@@ -67,7 +67,7 @@
 			reg = <0 0x25100000 0 0x100000>;
 			interrupts = <GIC_SPI 142 IRQ_TYPE_LEVEL_HIGH>;
 			interrupt-names = "irq";
-			usb-phy = <&ssphy>, <&ssphy>;
+			usb-phy = <&dummyphy>, <&ssphy>;
 			usb-pam = <&pamu3>;
 			phy_type = "utmi";
 			usb-role-switch;
@@ -110,6 +110,9 @@
 
 	};
 
-
+	dummyphy: dummyphy {
+		compatible = "sprd,usb-dummy-phy";
+		status = "okay";
+	};
 };
 

@@ -49,6 +49,7 @@
 #define A_RECOVER		4
 
 #define VBUS_REG_CHECK_DELAY			(msecs_to_jiffies(1000))
+#define MUSB_RUNTIME_CHECK_DELAY		(msecs_to_jiffies(200))
 #define MUSB_SPRD_CHG_MAX_REDETECT_COUNT	3
 
 /* Pls keep the same definition as PHY */
@@ -117,6 +118,7 @@ struct sprd_glue {
 	struct notifier_block		id_nb;
 
 	bool				vbus_active;
+	bool				is_audio_dev;
 	bool				charging_mode;
 	bool				enable_pm_suspend_in_host;
 	atomic_t			pm_suspended;
@@ -668,11 +670,11 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 
 	if (is_slave) {
 		dev_info(glue->dev, "%s, event(%ld) ignored in slave mode\n", __func__, event);
-		return 0;
+		return NOTIFY_DONE;
 	}
 
 	if (glue->vbus_active == event) {
-		dev_info(glue->dev, "ignore repeated vbus active event.\n");
+		dev_info(glue->dev, "ignore repeate vbus event.\n");
 		return NOTIFY_DONE;
 	}
 
@@ -710,15 +712,23 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 	struct sprd_glue *glue = container_of(nb, struct sprd_glue, id_nb);
 	enum musb_vbus_id_status id;
 
-	if (is_slave) {
-		dev_info(glue->dev, "%s, event(%ld) ignored in slave mode\n", __func__, event);
-		return 0;
-	}
-
 	id = event ? MUSB_ID_GROUND : MUSB_ID_FLOAT;
 
-	if (glue->id_state == id)
+	/* to set USB_EVENT_ID as soon as possible */
+	if (is_slave) {
+		if (id == MUSB_ID_GROUND)
+			glue->xceiv->last_event = USB_EVENT_ID;
+		else
+			glue->xceiv->last_event = USB_EVENT_NONE;
+
+		dev_info(glue->dev, "%s, event(%ld) ignored in slave mode\n", __func__, event);
 		return NOTIFY_DONE;
+	}
+
+	if (glue->id_state == id) {
+		dev_info(glue->dev, "ignore repeate id event.\n");
+		return NOTIFY_DONE;
+	}
 
 	dev_info(glue->dev, "host:%ld (id:%d) event received\n", event, id);
 
@@ -731,6 +741,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 	glue->chg_state = USB_CHG_STATE_UNDETECT;
 	glue->charging_mode = false;
 	glue->retry_chg_detect_count = 0;
+
 	queue_work(glue->musb_wq, &glue->resume_work);
 	return NOTIFY_DONE;
 }
@@ -739,39 +750,30 @@ static int musb_sprd_audio_notifier(struct notifier_block *nb,
 				    unsigned long event, void *data)
 {
 	struct sprd_glue *glue = container_of(nb, struct sprd_glue, audio_nb);
-	unsigned long flags;
 
-	dev_dbg(glue->dev, "[%s]event(%ld)\n", __func__, event);
-
-	if (event) {
-		spin_lock_irqsave(&glue->lock, flags);
-		if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
-			spin_unlock_irqrestore(&glue->lock, flags);
-			dev_info(glue->dev, "ignore host connection detected from audio.\n");
-			return 0;
-		}
-
-		glue->vbus_active = 1;
-		glue->dr_mode = USB_DR_MODE_HOST;
-		queue_work(glue->musb_wq, &glue->resume_work);
-		spin_unlock_irqrestore(&glue->lock, flags);
-		dev_info(glue->dev, "host connection detected from audio.\n");
-	} else {
-		spin_lock_irqsave(&glue->lock, flags);
-		if (glue->vbus_active == false || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
-			spin_unlock_irqrestore(&glue->lock, flags);
-			dev_info(glue->dev, "ignore host disconnect detected from audio.\n");
-			return 0;
-		}
-
-		glue->vbus_active = 0;
-		glue->dr_mode = USB_DR_MODE_HOST;
-		queue_work(glue->musb_wq, &glue->resume_work);
-		spin_unlock_irqrestore(&glue->lock, flags);
-		dev_info(glue->dev, "host disconnect detected from audio.\n");
+	if (glue->is_audio_dev == event) {
+		dev_info(glue->dev, "ignore repeate audio event.\n");
+		return NOTIFY_DONE;
 	}
 
-	return 0;
+	dev_info(glue->dev, "audio:%ld event received\n", event);
+
+	glue->is_audio_dev = event;
+
+	/* map audio event to id event */
+	if (glue->is_audio_dev) {
+		glue->xceiv->last_event = USB_EVENT_ID;
+		glue->id_state = MUSB_ID_GROUND;
+	} else {
+		glue->xceiv->last_event = USB_EVENT_NONE;
+		glue->id_state = MUSB_ID_FLOAT;
+	}
+
+	glue->chg_state = USB_CHG_STATE_UNDETECT;
+	glue->charging_mode = false;
+	glue->retry_chg_detect_count = 0;
+	queue_work(glue->musb_wq, &glue->resume_work);
+	return NOTIFY_DONE;
 }
 
 static void musb_sprd_detect_cable(struct sprd_glue *glue)
@@ -783,12 +785,12 @@ static void musb_sprd_detect_cable(struct sprd_glue *glue)
 	if (extcon_get_state(id_ext, EXTCON_USB_HOST) == true) {
 		dev_info(glue->dev, "host connection detected from ID GPIO.\n");
 		glue->id_state = MUSB_ID_GROUND;
-		glue->xceiv->last_event = USB_EVENT_VBUS;
+		glue->xceiv->last_event = USB_EVENT_ID;
 		queue_work(glue->musb_wq, &glue->resume_work);
 	} else if (extcon_get_state(glue->edev, EXTCON_USB) == true) {
 		dev_info(glue->dev, "device connection detected from VBUS GPIO.\n");
 		glue->vbus_active = true;
-		glue->xceiv->last_event = USB_EVENT_ID;
+		glue->xceiv->last_event = USB_EVENT_VBUS;
 		if (glue->vbus_active && glue->chg_state == USB_CHG_STATE_UNDETECT) {
 			queue_delayed_work(glue->sm_usb_wq, &glue->chg_detect_work, 0);
 			spin_unlock_irqrestore(&glue->lock, flags);
@@ -1017,6 +1019,7 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		sprd_musb_enable(musb);
 
 		usb_gadget_set_state(&musb->g, USB_STATE_ATTACHED);
+		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		glue->dr_mode = USB_DR_MODE_PERIPHERAL;
 	} else {
 		u8 devctl;
@@ -1110,8 +1113,11 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		 */
 		msleep(150);
 		sprd_musb_enable(musb);
+		musb->xceiv->otg->state = OTG_STATE_A_IDLE;
 		glue->dr_mode = USB_DR_MODE_HOST;
 	} else {
+		u8 devctl;
+
 		dev_info(glue->dev, "%s: turn off host\n", __func__);
 
 		if (regulator_is_enabled(glue->vbus)) {
@@ -1130,6 +1136,8 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		musb->offload_used = 0;
 		MUSB_DEV_MODE(musb);
 		glue->dr_mode = USB_DR_MODE_UNKNOWN;
+		devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
+		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl & ~MUSB_DEVCTL_SESSION);
 		usb_phy_vbus_off(glue->xceiv);
 
 		/* Decrement pm usage count when leave host state.*/
@@ -1369,8 +1377,9 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 		pm_runtime_put_autosuspend(glue->dev);
 
 		/* put controller and phy in suspend if no cable connected */
-		if (test_bit(ID, &glue->inputs) &&
-				!test_bit(B_SESS_VLD, &glue->inputs)) {
+		if (!is_slave &&
+			test_bit(ID, &glue->inputs) &&
+			!test_bit(B_SESS_VLD, &glue->inputs)) {
 			musb_sprd_detect_cable(glue);
 			glue->drd_state = DRD_STATE_IDLE;
 			break;
@@ -1382,8 +1391,14 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 	case DRD_STATE_IDLE:
 		if (!test_bit(ID, &glue->inputs)) {
 			dev_dbg(glue->dev, "!id\n");
-			glue->drd_state = DRD_STATE_HOST_IDLE;
-			rework = true;
+			if (glue->is_audio_dev && !pm_runtime_suspended(glue->dev)) {
+				dev_info(glue->dev, "waiting glue suspended in audio mode\n");
+				rework = true;
+				delay = MUSB_RUNTIME_CHECK_DELAY;
+			} else {
+				glue->drd_state = DRD_STATE_HOST_IDLE;
+				rework = true;
+			}
 		} else if (test_bit(B_SESS_VLD, &glue->inputs)) {
 			dev_dbg(glue->dev, "b_sess_vld\n");
 			/*
@@ -1665,7 +1680,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 			"failed to register extcon USB HOST notifier.\n");
 			goto err_extcon_vbus;
 		}
-		if (pdata.mode == MUSB_HOST)
+		if (pdata.mode == MUSB_HOST && !is_slave)
 			glue->id_state = MUSB_ID_GROUND;
 		else
 			glue->id_state = MUSB_ID_FLOAT;
@@ -1712,8 +1727,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	musb_sprd_charger_mode();
 	atomic_set(&glue->musb_runtime_suspended, 0);
 
-	if (!is_slave)
-		musb_sprd_ext_event_notify(glue);
+	musb_sprd_ext_event_notify(glue);
 
 	return 0;
 
@@ -1879,6 +1893,11 @@ static int musb_sprd_pm_resume(struct device *dev)
 
 	dev_info(glue->dev, "%s: enter\n", __func__);
 
+	if (!atomic_read(&glue->pm_suspended)) {
+		dev_info(glue->dev, "musb sprd pm is not suspended\n");
+		return 0;
+	}
+
 	if (musb->is_offload && !musb->offload_used) {
 		if (glue->vbus) {
 			dev_info(glue->dev, "enable vbus regulator\n");
@@ -1893,11 +1912,6 @@ static int musb_sprd_pm_resume(struct device *dev)
 					   glue->usb_pub_slp_poll_offset,
 					   msk, 0);
 		}
-	}
-
-	if (!atomic_read(&glue->pm_suspended)) {
-		dev_info(glue->dev, "musb sprd pm is not suspended\n");
-		return 0;
 	}
 
 	flush_work(&glue->resume_work);
@@ -1957,6 +1971,7 @@ static const struct dev_pm_ops musb_sprd_pm_ops = {
 static const struct of_device_id usb_ids[] = {
 	{ .compatible = "sprd,sharkl5-musb" },
 	{ .compatible = "sprd,sharkl5pro-musb" },
+	{ .compatible = "sprd,qogirn6pro-musb" },
 	{}
 };
 

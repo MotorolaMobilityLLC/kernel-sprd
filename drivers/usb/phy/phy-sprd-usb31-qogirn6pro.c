@@ -308,22 +308,50 @@ static int sprd_ssphy_init(struct usb_phy *x)
 
 	sprd_usbm_ssphy_set_onoff(1);
 
-	/* select the IPA_SYS USB controller */
-	msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
-	reg = msk;
-	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_AON_SOC_USB_CTRL,
-			 msk, reg);
+	/* if musb is not active, always select the IPA_SYS USB controller  */
+	if (!sprd_usbm_event_is_active()) {
+		/* select the IPA_SYS USB controller */
+		reg = msk = MASK_AON_APB_USB20_CTRL_MUX_REG;
+		ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_AON_SOC_USB_CTRL,
+				 msk, reg);
+	}
 
-	/* enable analog */
-	msk = MASK_AON_APB_CGM_OTG_REF_EN | MASK_AON_APB_CGM_DPHY_REF_EN;
-	reg = msk;
-	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_CGM_REG1, msk, reg);
+	if (!sprd_usbm_hsphy_get_onoff()) {
+		/*enable analog:0x64900004*/
+		reg = msk = MASK_AON_APB_AON_USB2_TOP_EB | MASK_AON_APB_OTG_PHY_EB |
+							MASK_AON_APB_ANA_EB;
+		ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_EB1, msk, reg);
 
-	/*enable analog:0x64900004*/
-	reg = MASK_AON_APB_AON_USB2_TOP_EB | MASK_AON_APB_OTG_PHY_EB |
-						MASK_AON_APB_ANA_EB;
-	msk = reg;
-	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_APB_EB1, msk, reg);
+		/* enable analog */
+		reg = msk = MASK_AON_APB_CGM_OTG_REF_EN | MASK_AON_APB_CGM_DPHY_REF_EN;
+		ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_CGM_REG1, msk, reg);
+
+		/*
+		 * USB2 PHY power on: set pd_l/pd_s firstly, then set iso_sw.
+		 * poweroff sequence is opposite
+		 */
+		msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
+		ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, 0);
+
+		ret |= regmap_update_bits(phy->ana_g0l,
+			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
+			BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN, 0);
+
+		/* enable usb20 ISO AVDD1V8_USB*/
+		msk = MASK_AON_APB_USB20_ISO_SW_EN;
+		ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_AON_SOC_USB_CTRL, msk, 0);
+
+		/*hsphy vbus valid */
+		reg = msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
+		ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, reg);
+
+		reg = msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_VBUSVLDEXT;
+		ret |= regmap_update_bits(phy->ana_g0l,
+				REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,	msk, reg);
+
+		regmap_write(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
+						phy->device_eye_pattern);
+	}
 
 	/* utmisrp_bvalid  sys vbus valid:0x64900D14*/
 	reg = MASK_AON_APB_SYS_VBUSVALID;
@@ -336,46 +364,17 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	ret |= regmap_write(phy->ipa_apb, REG_IPA_APB_IPA_EB, reg);
 
 	/* usb suspend eb :0x64900138*/
-	reg = MASK_AON_APB_CGM_USB_SUSPEND_EN;
-	msk = reg;
+	reg = msk = MASK_AON_APB_CGM_USB_SUSPEND_EN;
 	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_CGM_REG1, msk, reg);
-
-	/*
-	 * USB2 PHY power on: set pd_l/pd_s firstly, then set iso_sw.
-	 * poweroff sequence is opposite
-	 */
-	msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, 0);
-
-	ret |= regmap_update_bits(phy->ana_g0l,
-		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
-		BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN, 0);
-
-	/* enable usb20 ISO AVDD1V8_USB*/
-	msk = MASK_AON_APB_USB20_ISO_SW_EN;
-	ret |= regmap_update_bits(phy->aon_apb, REG_AON_APB_AON_SOC_USB_CTRL,
-			 msk, 0);
 
 	/* ssphy power on @0x64900d14*/
 	msk = MASK_AON_APB_PHY_TEST_POWERDOWN;
 	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, 0);
 
-	/*hsphy vbus valid */
-	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
-	reg = msk;
-	regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, reg);
 	/*ssphy vbus valid */
 	msk = MASK_AON_APB_SYS_VBUSVALID;
 	reg = msk;
 	regmap_update_bits(phy->aon_apb, REG_AON_APB_USB31DPCOMBPHY_CTRL, msk, reg);
-
-	msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_VBUSVLDEXT;
-	reg = msk;
-	ret |= regmap_update_bits(phy->ana_g0l,
-			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,	msk, reg);
-
-	regmap_write(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
-					phy->device_eye_pattern);
 
 	/* Reset PHY */
 	sprd_ssphy_reset_core(phy);
@@ -682,7 +681,7 @@ static int sprd_ssphy_vbus_notify(struct notifier_block *nb,
 		return 0;
 	}
 
-	if (phy->is_host) {
+	if (phy->is_host || usb_phy->last_event == USB_EVENT_ID) {
 		dev_info(usb_phy->dev, "USB PHY is host mode\n");
 		return 0;
 	}

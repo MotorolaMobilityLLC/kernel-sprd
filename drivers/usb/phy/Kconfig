@@ -179,6 +179,13 @@ config USB_SPRD_UMS512_PHY
 	  This driver takes care of all the PHY functionality, normally paired with
 	  DesignWare USB20 (DRD) Controller.
 
+config SPRD_USB_DUMMY_PHY
+	tristate "Unisoc USB DUMMY PHY Driver"
+	select USB_PHY
+	help
+	  Enable this to support the SPRD USB DUMMY PHY that is needed for
+	  usb (DWC3/MUSB) switch function.
+
 config SPRD_QOGIRN6PRO_USB2_PHY
 	tristate "Spreadtrum Qogirn6pro USB2 PHY Driver"
 	select USB_PHY
