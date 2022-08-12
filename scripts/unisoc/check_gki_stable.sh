@@ -202,7 +202,7 @@ if [ -d ${clang_path} ]; then
 	echo -e ""
 	if [ ${#symbols_to_sprd_array[@]} -ne 0 ]; then
 		echo -e "++++  Add the following information to android/abi_gki_aarch64_unisoc  ++++" >${DIST_DIR}/diff_whitelist.report
-		echo -e "++++  Then upstream the changes to google, and cherry-pick back when merged  ++++" >${DIST_DIR}/diff_whitelist.report
+		echo -e "++++  Then upstream the changes to google, and cherry-pick back when merged  ++++" >>${DIST_DIR}/diff_whitelist.report
 		let RET_VAL+=16
 		let check_whitelist_flag+=1
 		for(( i=0;i<${#symbols_to_sprd_array[@]};i++))
