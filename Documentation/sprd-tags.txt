@@ -64,6 +64,7 @@ base:
 block:
 block:zram:
 
+cgroup:
 char:hw_random:
 clk:sprd:
 clocksource:sprd:
