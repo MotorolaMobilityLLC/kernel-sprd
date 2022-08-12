@@ -283,6 +283,7 @@
 #define REG_AON_APB_PUB_CFG_EARLY_RESP_CTRL                 0x0D3C
 #define REG_AON_APB_RESERVE_H                               0x0FE8
 #define REG_AON_APB_RESERVE_L                               0x0FEC
+#define REG_GPU_APB_RST                                     0x0000
 #define REG_PMU_APB_AON_MEM_CTRL                            0x0000
 #define REG_PMU_APB_MEM_AUTO_SD_CFG                         0x0004
 #define REG_PMU_APB_MEM_AUTO_SLP_CFG                        0x0010
