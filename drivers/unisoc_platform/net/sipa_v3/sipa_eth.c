@@ -124,6 +124,14 @@ static netdev_tx_t sipa_eth_start_xmit(struct sk_buff *skb,
 		}
 	}
 
+	/* because the BPF program and dev->type is rawip,
+	 * the IPv6 forwarding packet is without ethernet header
+	 */
+	if (likely(skb_headroom(skb) >= ETH_HLEN)) {
+		if (skb->mac_header == skb->network_header)
+			skb_push(skb, ETH_HLEN);
+	}
+
 	ret = sipa_nic_tx(sipa_eth->nic_id, pdata->src_id, netid, skb);
 	if (unlikely(ret != 0)) {
 		pr_err("fail to send, ret %d\n", ret);
