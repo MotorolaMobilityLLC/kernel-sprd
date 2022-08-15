@@ -67,6 +67,12 @@
 /* let's not notify more than 100 times per second */
 #define CGROUP_FILE_NOTIFY_MIN_INTV	DIV_ROUND_UP(HZ, 100)
 
+/* record css_set's multi-identity information at (u8 *)cset->dead + 1 */
+#define CSET_IS_M_IDENT(cset)		(!!(*((u8 *)&(cset->dead) + 1)))
+#define SET_CSET_M_IDENT(cset, val)	do { \
+		*((u8 *)&(cset->dead) + 1) = (u8) val; \
+	} while (0)
+
 /*
  * cgroup_mutex is the master lock.  Any modification to cgroup or its
  * hierarchy must be performed while holding it.
@@ -2660,6 +2666,10 @@ void cgroup_migrate_finish(struct cgroup_mgctx *mgctx)
 		cset->mg_dst_cgrp = NULL;
 		cset->mg_dst_cset = NULL;
 		list_del_init(&cset->mg_preload_node);
+		if (CSET_IS_M_IDENT(cset)) {
+			SET_CSET_M_IDENT(cset, false);
+			put_css_set_locked(cset);
+		}
 		put_css_set_locked(cset);
 	}
 
@@ -2716,6 +2726,23 @@ void cgroup_migrate_add_src(struct css_set *src_cset,
 }
 
 /**
+ * list_contains - helper function to check if node is in head's list
+ * @node: list_head node
+ * @head: head of a list_head
+ */
+static bool list_contains(struct list_head *node, struct list_head *head)
+{
+	struct list_head *tmp;
+
+	list_for_each(tmp, head) {
+		if (tmp == node)
+			return true;
+	}
+
+	return false;
+}
+
+/**
  * cgroup_migrate_prepare_dst - prepare destination css_sets for migration
  * @mgctx: migration context
  *
@@ -2767,6 +2794,13 @@ int cgroup_migrate_prepare_dst(struct cgroup_mgctx *mgctx)
 		if (list_empty(&dst_cset->mg_preload_node))
 			list_add_tail(&dst_cset->mg_preload_node,
 				      &mgctx->preloaded_dst_csets);
+		/* If dst_cset is already in mgctx->preloaded_src_csets,
+		 * it means the dst_cset has multi identities. Keep it
+		 * in mgctx->preloaded_src_csets, and mark it.
+		 */
+		else if (list_contains(&dst_cset->mg_preload_node,
+					&mgctx->preloaded_src_csets))
+			SET_CSET_M_IDENT(dst_cset, true);
 		else
 			put_css_set(dst_cset);
 
