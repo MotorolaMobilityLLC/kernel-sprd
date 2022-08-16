@@ -1739,9 +1739,9 @@ static const struct clk_parent_data mm_mtx_parents[] = {
 	{ .hw = &twpll_76m8.hw  },
 	{ .hw = &twpll_128m.hw  },
 	{ .hw = &twpll_256m.hw  },
+	{ .hw = &twpll_307m2.hw  },
 	{ .hw = &twpll_384m.hw  },
 	{ .hw = &isppll_468m.hw  },
-	{ .hw = &twpll_512m.hw  },
 };
 static SPRD_MUX_CLK_DATA(mm_mtx, "mm-mtx", mm_mtx_parents,
 			 0x24, 0, 3, UMS312_MUX_FLAG);
