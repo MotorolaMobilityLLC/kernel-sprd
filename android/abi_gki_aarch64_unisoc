@@ -1,7 +1,6 @@
 [abi_symbol_list]
 # commonly used symbols
   access_process_vm
-  sched_setscheduler_nocheck
   activate_task
   add_cpu
   addrconf_prefix_rcv_add_addr
@@ -596,12 +595,12 @@
   mdiobus_free
   __mdiobus_register
   mdiobus_unregister
-  mem_section
   memcpy
   __memcpy_fromio
   memmove
   memory_read_from_buffer
   memparse
+  mem_section
   memset64
   memset
   migrate_swap
@@ -885,6 +884,7 @@
   sched_feat_keys
   sched_set_fifo_low
   sched_setscheduler
+  sched_setscheduler_nocheck
   sched_uclamp_used
   schedule
   schedule_timeout
@@ -3056,6 +3056,13 @@
 # required by unisoc_dump_io.ko
   blk_stat_enable_accounting
 
+# required by unisoc_multi_control.ko
+  cpufreq_table_index_unsorted
+
+# required by unisoc_schedutil.ko
+  irq_work_queue
+  kobject_init_and_add
+
 # required by usb-storage.ko
   blk_queue_bounce_limit
   blk_queue_max_hw_sectors
@@ -3202,8 +3209,4 @@
   I_BDEV
   set_blocksize
   submit_bio_wait
-# required by unisoc_multi_control.ko
-  cpufreq_table_index_unsorted
-# required by unisoc_schedutil.ko
-  irq_work_queue
-  kobject_init_and_add
+
