@@ -22,3 +22,8 @@ obj-$(CONFIG_UNISOC_SIPA_V3) += sipa_v3/
 # Sipa delegate Drivers
 #
 obj-$(CONFIG_UNISOC_SIPA_DELEGATE) += sipa_delegate/
+
+#
+# URSP report module
+#
+obj-$(CONFIG_UNISOC_URSP_REPORT) += ursp/
