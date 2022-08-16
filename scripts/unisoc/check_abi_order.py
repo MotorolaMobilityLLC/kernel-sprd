@@ -52,7 +52,7 @@ def get_sorted_symbols_for_module(module):
         tmp_symbols=[]
         tmp_symbols=list_all_symbols[module_index[i]+1:]
         for j in range(len(tmp_symbols)):
-            if len(tmp_symbols[j]) == 0:
+            if len(tmp_symbols[j]) == 0 or "# " in tmp_symbols[j] :
                 break
             else:
                 symbol.append(tmp_symbols[j])
@@ -88,14 +88,14 @@ def  main(update_flag):
 
     if get_abi_list(new_abi_whitelist_file) == get_abi_list(abi_whitelist_file):
         check_flag=0
-        print("==== abi whitlist order correct, check pass====")
+        print("==== abi whitlist order correct, check pass====",file=sys.stdout)
         if update_flag == 1:
-            print("==== no need to update the abi whitelist ====")
+            print("==== no need to update the abi whitelist ====",file=sys.stderr)
     else:
         check_flag=1
-        print("==== abi whitlist is not sorted by order,check fail====")
+        print("==== abi whitlist is not sorted by order,check fail====",file=sys.stderr)
         if update_flag == 1:
-            print("==== update the abi whitelist ====")
+            print("==== update the abi whitelist ====",file=sys.stdout)
             cmd="cp " + new_abi_whitelist_file + " " +abi_whitelist_file
             os.system(cmd)
 
