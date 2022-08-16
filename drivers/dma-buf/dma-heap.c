@@ -52,9 +52,6 @@ static dev_t dma_heap_devt;
 static struct class *dma_heap_class;
 static DEFINE_XARRAY_ALLOC(dma_heap_minors);
 
-#ifdef CONFIG_E_SHOW_MEM
-extern int dmabuf_debug_sysheap_show_printk(struct dma_heap *heap, void *data);
-#endif
 struct dma_heap *dma_heap_find(const char *name)
 {
 	struct dma_heap *h;
@@ -404,32 +401,6 @@ static ssize_t total_pools_kb_show(struct kobject *kobj,
 	return sysfs_emit(buf, "%llu\n", total_pool_size / 1024);
 }
 
-#ifdef CONFIG_E_SHOW_MEM
-static int dmabuf_e_show_mem_handler(struct notifier_block *nb,
-				unsigned long val, void *data)
-{
-	struct dma_heap *heap;
-	unsigned long total_used = 0;
-
-	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
-	pr_info("Enhanced Mem-info :DMABUF_Heap\n");
-
-	mutex_lock(&heap_list_lock);
-	list_for_each_entry(heap, &heap_list, list) {
-		if (!strcmp(heap->name, "system"))
-			dmabuf_debug_sysheap_show_printk(heap, &total_used);
-	}
-	mutex_unlock(&heap_list_lock);
-
-	pr_info("Total allocated from Buddy: %lu kB\n", total_used / 1024);
-	return 0;
-}
-
-static struct notifier_block dmabuf_e_show_mem_notifier = {
-	.notifier_call = dmabuf_e_show_mem_handler,
-};
-#endif
-
 static struct kobj_attribute total_pools_kb_attr =
 	__ATTR_RO(total_pools_kb);
 
@@ -482,10 +453,6 @@ static int dma_heap_init(void)
 		goto err_class;
 	}
 	dma_heap_class->devnode = dma_heap_devnode;
-
-#ifdef CONFIG_E_SHOW_MEM
-	register_e_show_mem_notifier(&dmabuf_e_show_mem_notifier);
-#endif
 
 	return 0;
 
