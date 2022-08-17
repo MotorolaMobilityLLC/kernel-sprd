@@ -93,7 +93,6 @@ static ssize_t do_read_log_to_user(struct userlog_log *log,
 
 	/* calculate count and buf */
 	count -= sizeof(struct userlog_entry);
-	buf += sizeof(struct userlog_entry);
 	msg_start = userlog_offset(log,
 					reader->r_off + sizeof(struct userlog_entry));
 
