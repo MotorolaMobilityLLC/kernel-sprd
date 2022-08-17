@@ -386,8 +386,8 @@
 		reg = <0x0 0xb0000000 0x0 0x009e4000>;
 	};
 
-	widevine_reserved: widevine@d9800000 {
-		reg = <0x0 0xd9800000 0x0 0x16800000>;
+	widevine_reserved: widevine@e4c00000 {
+		reg = <0x0 0xe4c00000 0x0 0x0b400000>;
 	};
 
 	/* Encrypt and decrypt widevine video */
