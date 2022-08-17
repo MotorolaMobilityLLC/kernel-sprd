@@ -149,7 +149,7 @@ static void *soc_modem_ram_vmap(phys_addr_t start, size_t size, E_MMAP_TYPE mtyp
 		addr = page_start + i * PAGE_SIZE;
 		pages[i] = pfn_to_page(addr >> PAGE_SHIFT);
 	}
-	vaddr = vmap(pages, page_count, -1, prot) + offset_in_page(start);
+	vaddr = vmap(pages, page_count, VM_IOREMAP, prot) + offset_in_page(start);
 	kfree(pages);
 
 	map->count = page_count;
