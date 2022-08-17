@@ -2590,7 +2590,7 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 				   const union power_supply_propval *val)
 {
 	struct sc27xx_fgu_data *data = power_supply_get_drvdata(psy);
-	int ret = 0;
+	int ret = 0, ui_cap, normal_cap;
 
 	if (!data) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -2608,6 +2608,34 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 		ret = sc27xx_fgu_save_normal_temperature_cap(data, data->normal_temp_cap);
 		if (ret < 0)
 			dev_err(data->dev, "failed to save normal temperature capacity\n");
+
+		ret = sc27xx_fgu_read_last_cap(data, &ui_cap);
+		if (ret < 0) {
+			ui_cap = -1;
+			dev_err(data->dev, "failed to read ui capacity\n");
+		}
+
+		if (val->intval != ui_cap) {
+			dev_info(data->dev, "ui cap save failed, save it again!"
+				 "save_cap = %d, read_cap = %d\n", val->intval, ui_cap);
+			ret = sc27xx_fgu_save_last_cap(data, val->intval);
+			if (ret < 0)
+				dev_err(data->dev, "%d failed to save battery capacity\n", __LINE__);
+		}
+
+		ret = sc27xx_fgu_read_normal_temperature_cap(data, &normal_cap);
+		if (ret < 0) {
+			normal_cap = -1;
+			dev_err(data->dev, "failed to read normal capacity\n");
+		}
+
+		if (data->normal_temp_cap != normal_cap) {
+			dev_info(data->dev, "normal cap save failed, save it again!"
+				 "save_cap = %d, read_cap = %d\n", data->normal_temp_cap, normal_cap);
+			ret = sc27xx_fgu_save_normal_temperature_cap(data, data->normal_temp_cap);
+			if (ret < 0)
+				dev_err(data->dev, "%d failed to save normal temperature capacity\n", __LINE__);
+		}
 		break;
 
 	case POWER_SUPPLY_PROP_CALIBRATE:
