@@ -40,6 +40,15 @@ static int sipa_dele_parse_dts_cfg(struct platform_device *pdev,
 	int ret;
 	struct resource *resource;
 
+	/* get sipa-sys eb */
+	ret = of_property_read_u32(pdev->dev.of_node, "sprd,sipa-sys-eb",
+				   &cfg->sipa_sys_eb);
+	if (ret)
+		dev_err(&pdev->dev, "not get sipa_sys_eb\n");
+	else
+		dev_info(&pdev->dev, "success read sipa_sys_eb = %d\n",
+			 cfg->sipa_sys_eb);
+
 	/* get modem IPA global register base  address */
 	resource = platform_get_resource_byname(pdev,
 						IORESOURCE_MEM,
@@ -81,15 +90,6 @@ static int sipa_dele_parse_dts_cfg(struct platform_device *pdev,
 		dev_err(&pdev->dev, "get resource failed for dl_fifo_depth\n");
 		return ret;
 	}
-
-	/* get sipa-sys eb */
-	ret = of_property_read_u32(pdev->dev.of_node, "sprd,sipa-sys-eb",
-				   &cfg->sipa_sys_eb);
-	if (ret)
-		dev_info(&pdev->dev, "sipa_sys eb = %d\n", cfg->sipa_sys_eb);
-	else
-		dev_info(&pdev->dev, "success read sipa_sys_eb = %d\n",
-			 cfg->sipa_sys_eb);
 
 	return 0;
 }
