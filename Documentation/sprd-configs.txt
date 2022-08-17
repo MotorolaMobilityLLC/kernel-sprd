@@ -5212,42 +5212,6 @@ CONFIG_DRM_RCAR_WRITEBACK
 	[must]
 	[missing plat description] none
 	[function]
-CONFIG_DRM_SPRD
-	[arch] arm
-	[plat] pike2
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
-CONFIG_DRM_SPRD_DPU0
-	[arch] arm
-	[plat] pike2
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
-CONFIG_DRM_SPRD_DSI
-	[arch] arm
-	[plat] pike2
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
-CONFIG_DRM_SPRD_GSP
-	[arch] arm
-	[plat] pike2
-	[missing plat] none
-	[field]
-	[subsys]
-	[must]
-	[missing plat description] none
-	[function]
 CONFIG_DRM_TTM
 	[arch] all
 	[plat] all
