@@ -175,9 +175,7 @@
 	ipa_delegate: sipa-dele {
 		compatible = "sprd,orca-sipa-delegate";
 
-		sprd,ul-fifo-depth = <4096>;
-		sprd,dl-fifo-depth = <4096>;
-
+		sprd,sipa-sys-eb = <1>;
 		power-domains = <&pd_ipa_sys>;
 	};
 };
