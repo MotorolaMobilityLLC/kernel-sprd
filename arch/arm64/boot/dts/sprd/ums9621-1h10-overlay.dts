@@ -7,20 +7,20 @@
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
-#include "reserved-memory/ums9610-haps-overlay.dtsi"
-#include "touchscreen/ums9610-spi1-gpio13-14-tp.dtsi"
-#include "battery/ums9610-haps-overlay.dtsi"
+#include "reserved-memory/ums9621-1h10-overlay.dtsi"
+#include "touchscreen/ums9621-spi1-gpio13-14-tp.dtsi"
+#include "battery/ums9621-1h10-overlay.dtsi"
 #include <dt-bindings/mfd/sprd,ump9620-regs.h>
 #include <dt-bindings/mfd/sprd,ump9620-mask.h>
 #include <dt-bindings/input/input.h>
 
 / {
 
-	model = "Spreadtrum UMS9610 HAPS Board";
+	model = "Spreadtrum UMS9621 1h10 Board";
 
-	compatible = "sprd,ums9610-haps";
+	compatible = "sprd,ums9621-1h10";
 
-	sprd,sc-id = "ums9610 haps 1000";
+	sprd,sc-id = "ums9621 1h10 1000";
 
 	fragment {
 		target-path = "/";
@@ -83,7 +83,7 @@
 };
 
 &chosen {
-	bootargs_ext = "androidboot.hardware=ums9610_haps androidboot.dtbo_idx=0 androidboot.ddrsize=4096";
+	bootargs_ext = "androidboot.hardware=ums9621_1h10 androidboot.dtbo_idx=0";
 };
 
 &adi_bus {
