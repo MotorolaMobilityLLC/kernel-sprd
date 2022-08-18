@@ -5,29 +5,6 @@
  * Copyright (C) 2021, Unisoc Inc.
  */
 
-&soc {
-
-	gpu_apb_regs: syscon@23000000 {
-		compatible = "sprd,ums9620-glbregs", "syscon";
-		#syscon-cells = <2>;
-		reg = <0 0x23000000 0 0x3000>;
-	};
-
-	gpu_clk: clock-controller@23010000 {
-		compatible = "sprd,ums9620-gpu-clk";
-		reg = <0 0x23010000 0 0x3000>;
-		clocks = <&ext_26m>;
-		clock-names = "ext-26m";
-		#clock-cells = <1>;
-	};
-
-	gpu_dvfs_apb_regs: syscon@23014000 {
-		compatible = "sprd,ums9620-glbregs", "syscon";
-		#syscon-cells = <2>;
-		reg = <0 0x23014000 0 0x3000>;
-	};
-};
-
 &mm {
 
 	gpu: gpu@23140000 {
