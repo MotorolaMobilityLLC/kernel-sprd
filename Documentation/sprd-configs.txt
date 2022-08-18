@@ -17313,8 +17313,8 @@ CONFIG_SPRD_SIP_FW
 	[function] Provides interfaces to SoC implementation-specific secure
 	           services.
 CONFIG_SPRD_SOCID
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make,code
 	[subsys] misc
