@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Unisoc UMS9610 clock driver
+ * Unisoc UMS9621 clock driver
  *
  * Copyright (C) 2022 Unisoc, Inc.
  * Author: Zhifeng Tang <zhifeng.tang@unisoc.com>
@@ -14,8 +14,8 @@
 #include <linux/platform_device.h>
 #include <linux/slab.h>
 
-#include <dt-bindings/clock/sprd,ums9610-clk.h>
-#include <dt-bindings/reset/sprd,ums9610-reset.h>
+#include <dt-bindings/clock/sprd,ums9621-clk.h>
+#include <dt-bindings/reset/sprd,ums9621-reset.h>
 
 #include "common.h"
 #include "composite.h"
@@ -25,7 +25,7 @@
 #include "pll.h"
 #include "reset.h"
 
-#define UMS9610_MUX_FLAG	\
+#define UMS9621_MUX_FLAG	\
 	(CLK_GET_RATE_NOCACHE | CLK_SET_RATE_NO_REPARENT)
 
 /* pll gate clock */
@@ -76,7 +76,7 @@ static SPRD_PLL_SC_GATE_CLK_FW_NAME(audpll_gate, "audpll-gate", "ext-26m", 0xa48
 static SPRD_PLL_SC_GATE_CLK_FW_NAME(pixelpll_gate, "pixelpll-gate", "ext-26m", 0xa5c,
 			    0x1000, BIT(2), CLK_IGNORE_UNUSED, 0, 240);
 
-static struct sprd_clk_common *ums9610_pmu_gate_clks[] = {
+static struct sprd_clk_common *ums9621_pmu_gate_clks[] = {
 	/* address base is 0x64910000 */
 	&phyr8pll_gate.common,
 	&psr8pll_gate.common,
@@ -95,7 +95,7 @@ static struct sprd_clk_common *ums9610_pmu_gate_clks[] = {
 	&pixelpll_gate.common,
 };
 
-static struct clk_hw_onecell_data ums9610_pmu_gate_hws = {
+static struct clk_hw_onecell_data ums9621_pmu_gate_hws = {
 	.hws	= {
 		[CLK_26M_AUD]		= &clk_26m_aud.hw,
 		[CLK_13M]		= &clk_13m.hw,
@@ -131,7 +131,7 @@ static struct clk_hw_onecell_data ums9610_pmu_gate_hws = {
 	.num = CLK_PMU_GATE_NUM,
 };
 
-static struct sprd_reset_map ums9610_pmu_apb_resets[] = {
+static struct sprd_reset_map ums9621_pmu_apb_resets[] = {
 	[RESET_PMU_APB_AUD_CEVA_SOFT_RST]	= { 0x0b88, BIT(0), 0x1000 },
 	[RESET_PMU_APB_AP_SOFT_RST]		= { 0x0b98, BIT(0), 0x1000 },
 	[RESET_PMU_APB_APCPU_TOP_SOFT_RST]	= { 0x0b98, BIT(1), 0x1000 },
@@ -150,12 +150,12 @@ static struct sprd_reset_map ums9610_pmu_apb_resets[] = {
 	[RESET_PMU_APB_PUB_SOFT_RST]		= { 0x0b9c, BIT(4), 0x1000 },
 };
 
-static struct sprd_clk_desc ums9610_pmu_gate_desc = {
-	.clk_clks	= ums9610_pmu_gate_clks,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_pmu_gate_clks),
-	.hw_clks	= &ums9610_pmu_gate_hws,
-	.resets		= ums9610_pmu_apb_resets,
-	.num_resets	= ARRAY_SIZE(ums9610_pmu_apb_resets),
+static struct sprd_clk_desc ums9621_pmu_gate_desc = {
+	.clk_clks	= ums9621_pmu_gate_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_pmu_gate_clks),
+	.hw_clks	= &ums9621_pmu_gate_hws,
+	.resets		= ums9621_pmu_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9621_pmu_apb_resets),
 };
 
 /* pll clock at g1 */
@@ -188,12 +188,12 @@ static SPRD_PLL_HW(rpll, "rpll", &clk_26m_aud.hw, 0x10,
 static CLK_FIXED_FACTOR_HW(rpll_390m, "rpll-390m", &rpll.common.hw, 2, 1, 0);
 static CLK_FIXED_FACTOR_HW(rpll_26m, "rpll-26m", &rpll.common.hw, 30, 1, 0);
 
-static struct sprd_clk_common *ums9610_g1_pll_clks[] = {
+static struct sprd_clk_common *ums9621_g1_pll_clks[] = {
 	/* address base is 0x64304000 */
 	&rpll.common,
 };
 
-static struct clk_hw_onecell_data ums9610_g1_pll_hws = {
+static struct clk_hw_onecell_data ums9621_g1_pll_hws = {
 	.hws    = {
 		[CLK_RPLL]		= &rpll.common.hw,
 		[CLK_RPLL_390M]		= &rpll_390m.hw,
@@ -202,10 +202,10 @@ static struct clk_hw_onecell_data ums9610_g1_pll_hws = {
 	.num    = CLK_ANLG_PHY_G1_NUM,
 };
 
-static struct sprd_clk_desc ums9610_g1_pll_desc = {
-	.clk_clks	= ums9610_g1_pll_clks,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_g1_pll_clks),
-	.hw_clks	= &ums9610_g1_pll_hws,
+static struct sprd_clk_desc ums9621_g1_pll_desc = {
+	.clk_clks	= ums9621_g1_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_g1_pll_clks),
+	.hw_clks	= &ums9621_g1_pll_hws,
 };
 
 /* pll at g1l */
@@ -244,14 +244,14 @@ static SPRD_PLL_FW_NAME(dpll2, "dpll2", "ext-26m", 0x44,
 				   3, dpll_ftable, f_dpll, 240,
 				   1000, 1000, 1, 1500000000);
 
-static struct sprd_clk_common *ums9610_g1l_pll_clks[] = {
+static struct sprd_clk_common *ums9621_g1l_pll_clks[] = {
 	/* address base is 0x64308000 */
 	&dpll0.common,
 	&dpll1.common,
 	&dpll2.common,
 };
 
-static struct clk_hw_onecell_data ums9610_g1l_pll_hws = {
+static struct clk_hw_onecell_data ums9621_g1l_pll_hws = {
 	.hws    = {
 		[CLK_DPLL0]		= &dpll0.common.hw,
 		[CLK_DPLL1]		= &dpll1.common.hw,
@@ -260,10 +260,10 @@ static struct clk_hw_onecell_data ums9610_g1l_pll_hws = {
 	.num    = CLK_ANLG_PHY_G1L_NUM,
 };
 
-static struct sprd_clk_desc ums9610_g1l_pll_desc = {
-	.clk_clks	= ums9610_g1l_pll_clks,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_g1l_pll_clks),
-	.hw_clks	= &ums9610_g1l_pll_hws,
+static struct sprd_clk_desc ums9621_g1l_pll_desc = {
+	.clk_clks	= ums9621_g1l_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_g1l_pll_clks),
+	.hw_clks	= &ums9621_g1l_pll_hws,
 };
 
 /* pll at g5l */
@@ -358,14 +358,14 @@ static CLK_FIXED_FACTOR_HW(v4nrpll_614m4, "v4nrpll-614m4", &v4nrpll.common.hw, 4
 static CLK_FIXED_FACTOR_HW(v4nrpll_819m2, "v4nrpll-819m2", &v4nrpll.common.hw, 3, 1, 0);
 static CLK_FIXED_FACTOR_HW(v4nrpll_1228m8, "v4nrpll-1228m8", &v4nrpll.common.hw, 2, 1, 0);
 
-static struct sprd_clk_common *ums9610_g5l_pll_clks[] = {
+static struct sprd_clk_common *ums9621_g5l_pll_clks[] = {
 	/* address base is 0x64324000 */
 	&tgpll.common,
 	&psr8pll.common,
 	&v4nrpll.common,
 };
 
-static struct clk_hw_onecell_data ums9610_g5l_pll_hws = {
+static struct clk_hw_onecell_data ums9621_g5l_pll_hws = {
 	.hws    = {
 		[CLK_TGPLL]		= &tgpll.common.hw,
 		[CLK_TGPLL_12M]		= &tgpll_12m.hw,
@@ -396,10 +396,10 @@ static struct clk_hw_onecell_data ums9610_g5l_pll_hws = {
 	.num    = CLK_ANLG_PHY_G5L_NUM,
 };
 
-static struct sprd_clk_desc ums9610_g5l_pll_desc = {
-	.clk_clks	= ums9610_g5l_pll_clks,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_g5l_pll_clks),
-	.hw_clks	= &ums9610_g5l_pll_hws,
+static struct sprd_clk_desc ums9621_g5l_pll_desc = {
+	.clk_clks	= ums9621_g5l_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_g5l_pll_clks),
+	.hw_clks	= &ums9621_g5l_pll_hws,
 };
 
 /* pll at g5r */
@@ -471,7 +471,7 @@ static SPRD_PLL_FW_NAME(pixelpll, "pixelpll", "ext-26m", 0xa8,
 				   1000, 1000, 1, 1600000000);
 static CLK_FIXED_FACTOR_HW(pixelpll_420m, "pixelpll-420m", &pixelpll.common.hw, 4, 1, 0);
 
-static struct sprd_clk_common *ums9610_g5r_pll_clks[] = {
+static struct sprd_clk_common *ums9621_g5r_pll_clks[] = {
 	/* address base is 0x64320000 */
 	&gpll.common,
 	&audpll.common,
@@ -479,7 +479,7 @@ static struct sprd_clk_common *ums9610_g5r_pll_clks[] = {
 	&pixelpll.common,
 };
 
-static struct clk_hw_onecell_data ums9610_g5r_pll_hws = {
+static struct clk_hw_onecell_data ums9621_g5r_pll_hws = {
 	.hws    = {
 		[CLK_GPLL]		= &gpll.common.hw,
 		[CLK_GPLL_680M]		= &gpll_680m.hw,
@@ -496,10 +496,10 @@ static struct clk_hw_onecell_data ums9610_g5r_pll_hws = {
 	.num    = CLK_ANLG_PHY_G5R_NUM,
 };
 
-static struct sprd_clk_desc ums9610_g5r_pll_desc = {
-	.clk_clks	= ums9610_g5r_pll_clks,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_g5r_pll_clks),
-	.hw_clks	= &ums9610_g5r_pll_hws,
+static struct sprd_clk_desc ums9621_g5r_pll_desc = {
+	.clk_clks	= ums9621_g5r_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_g5r_pll_clks),
+	.hw_clks	= &ums9621_g5r_pll_hws,
 };
 
 /* pll at g8 */
@@ -538,22 +538,22 @@ static SPRD_PLL_FW_NAME(mpllm1, "mpllm1", "ext-26m", 0x0,
 				   4, mpllm_ftable, f_mpllm, 240,
 				   1000, 1000, 1, 1200000000);
 
-static struct sprd_clk_common *ums9610_g8_pll_clks[] = {
+static struct sprd_clk_common *ums9621_g8_pll_clks[] = {
 	/* address base is 0x6432c000 */
 	&mpllm1.common,
 };
 
-static struct clk_hw_onecell_data ums9610_g8_pll_hws = {
+static struct clk_hw_onecell_data ums9621_g8_pll_hws = {
 	.hws    = {
 		[CLK_MPLLM1]		= &mpllm1.common.hw,
 	},
 	.num    = CLK_ANLG_PHY_G8_NUM,
 };
 
-static struct sprd_clk_desc ums9610_g8_pll_desc = {
-	.clk_clks	= ums9610_g8_pll_clks,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_g8_pll_clks),
-	.hw_clks	= &ums9610_g8_pll_hws,
+static struct sprd_clk_desc ums9621_g8_pll_desc = {
+	.clk_clks	= ums9621_g8_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_g8_pll_clks),
+	.hw_clks	= &ums9621_g8_pll_hws,
 };
 
 /* pll at g9 */
@@ -561,22 +561,22 @@ static SPRD_PLL_FW_NAME(mpllm, "mpllm", "ext-26m", 0x0,
 				   4, mpllm_ftable, f_mpllm, 240,
 				   1000, 1000, 1, 1200000000);
 
-static struct sprd_clk_common *ums9610_g9_pll_clks[] = {
+static struct sprd_clk_common *ums9621_g9_pll_clks[] = {
 	/* address base is 0x64330000 */
 	&mpllm.common,
 };
 
-static struct clk_hw_onecell_data ums9610_g9_pll_hws = {
+static struct clk_hw_onecell_data ums9621_g9_pll_hws = {
 	.hws    = {
 		[CLK_MPLLM]		= &mpllm.common.hw,
 	},
 	.num    = CLK_ANLG_PHY_G9_NUM,
 };
 
-static struct sprd_clk_desc ums9610_g9_pll_desc = {
-	.clk_clks	= ums9610_g9_pll_clks,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_g9_pll_clks),
-	.hw_clks	= &ums9610_g9_pll_hws,
+static struct sprd_clk_desc ums9621_g9_pll_desc = {
+	.clk_clks	= ums9621_g9_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_g9_pll_clks),
+	.hw_clks	= &ums9621_g9_pll_hws,
 };
 
 /* pll at g10 */
@@ -607,13 +607,13 @@ static SPRD_PLL_FW_NAME(mplls, "mplls", "ext-26m", 0x20,
 				   4, mplls_ftable, f_mplls, 240,
 				   1000, 1000, 1, 1200000000);
 
-static struct sprd_clk_common *ums9610_g10_pll_clks[] = {
+static struct sprd_clk_common *ums9621_g10_pll_clks[] = {
 	/* address base is 0x64334000 */
 	&mplll.common,
 	&mplls.common,
 };
 
-static struct clk_hw_onecell_data ums9610_g10_pll_hws = {
+static struct clk_hw_onecell_data ums9621_g10_pll_hws = {
 	.hws    = {
 		[CLK_MPLLL]		= &mplll.common.hw,
 		[CLK_MPLLS]		= &mplls.common.hw,
@@ -621,10 +621,10 @@ static struct clk_hw_onecell_data ums9610_g10_pll_hws = {
 	.num    = CLK_ANLG_PHY_G10_NUM,
 };
 
-static struct sprd_clk_desc ums9610_g10_pll_desc = {
-	.clk_clks	= ums9610_g10_pll_clks,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_g10_pll_clks),
-	.hw_clks	= &ums9610_g10_pll_hws,
+static struct sprd_clk_desc ums9621_g10_pll_desc = {
+	.clk_clks	= ums9621_g10_pll_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_g10_pll_clks),
+	.hw_clks	= &ums9621_g10_pll_hws,
 };
 
 /* ap apb gates */
@@ -661,7 +661,7 @@ static SPRD_SC_GATE_CLK_FW_NAME(ce_sec_eb, "ce-sec-eb", "ext-26m", 0x0,
 static SPRD_SC_GATE_CLK_FW_NAME(ce_pub_eb, "ce-pub-eb", "ext-26m", 0x0,
 			0x1000, BIT(31), 0, 0);
 
-static struct sprd_clk_common *ums9610_apapb_gate[] = {
+static struct sprd_clk_common *ums9621_apapb_gate[] = {
 	/* address base is 0x20100000 */
 	&iis0_eb.common,
 	&iis1_eb.common,
@@ -681,7 +681,7 @@ static struct sprd_clk_common *ums9610_apapb_gate[] = {
 	&ce_pub_eb.common,
 };
 
-static struct clk_hw_onecell_data ums9610_apapb_gate_hws = {
+static struct clk_hw_onecell_data ums9621_apapb_gate_hws = {
 	.hws	= {
 		[CLK_IIS0_EB]		= &iis0_eb.common.hw,
 		[CLK_IIS1_EB]		= &iis1_eb.common.hw,
@@ -703,7 +703,7 @@ static struct clk_hw_onecell_data ums9610_apapb_gate_hws = {
 	.num	= CLK_AP_APB_GATE_NUM,
 };
 
-static struct sprd_reset_map ums9610_ap_apb_resets[] = {
+static struct sprd_reset_map ums9621_ap_apb_resets[] = {
 	[RESET_AP_APB_IIS0_SOFT_RST]	= { 0x0004, BIT(1), 0x1000 },
 	[RESET_AP_APB_IIS1_SOFT_RST]	= { 0x0004, BIT(2), 0x1000 },
 	[RESET_AP_APB_IIS2_SOFT_RST]	= { 0x0004, BIT(3), 0x1000 },
@@ -719,12 +719,12 @@ static struct sprd_reset_map ums9610_ap_apb_resets[] = {
 	[RESET_AP_APB_AP_DVFS_SOFT_RST]	= { 0x0004, BIT(22), 0x1000 },
 };
 
-static struct sprd_clk_desc ums9610_apapb_gate_desc = {
-	.clk_clks	= ums9610_apapb_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_apapb_gate),
-	.hw_clks	= &ums9610_apapb_gate_hws,
-	.resets		= ums9610_ap_apb_resets,
-	.num_resets	= ARRAY_SIZE(ums9610_ap_apb_resets),
+static struct sprd_clk_desc ums9621_apapb_gate_desc = {
+	.clk_clks	= ums9621_apapb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_apapb_gate),
+	.hw_clks	= &ums9621_apapb_gate_hws,
+	.resets		= ums9621_ap_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9621_ap_apb_resets),
 };
 
 /* ap ahb gates */
@@ -780,7 +780,7 @@ static SPRD_SC_GATE_CLK_FW_NAME(ufs_rx_1_eb, "ufs-rx-1-eb", "ext-26m", 0x1c,
 static SPRD_SC_GATE_CLK_FW_NAME(ufs_cfg_eb, "ufs-cfg-eb", "ext-26m", 0x1c,
 			0x1000, BIT(3), 0, 0);
 
-static struct sprd_clk_common *ums9610_apahb_gate[] = {
+static struct sprd_clk_common *ums9621_apahb_gate[] = {
 	/* address base is 0x20000000 */
 	&sdio0_eb.common,
 	&sdio1_eb.common,
@@ -807,7 +807,7 @@ static struct sprd_clk_common *ums9610_apahb_gate[] = {
 	&ufs_cfg_eb.common,
 };
 
-static struct clk_hw_onecell_data ums9610_apahb_gate_hws = {
+static struct clk_hw_onecell_data ums9621_apahb_gate_hws = {
 	.hws	= {
 		[CLK_SDIO0_EB]		= &sdio0_eb.common.hw,
 		[CLK_SDIO1_EB]		= &sdio1_eb.common.hw,
@@ -836,7 +836,7 @@ static struct clk_hw_onecell_data ums9610_apahb_gate_hws = {
 	.num	= CLK_AP_AHB_GATE_NUM,
 };
 
-static struct sprd_reset_map ums9610_ap_ahb_resets[] = {
+static struct sprd_reset_map ums9621_ap_ahb_resets[] = {
 	[RESET_AP_AHB_SDIO0_SOFT_RST]	= { 0x0004, BIT(0), 0x1000 },
 	[RESET_AP_AHB_SDIO1_SOFT_RST]	= { 0x0004, BIT(1), 0x1000 },
 	[RESET_AP_AHB_SDIO2_SOFT_RST]	= { 0x0004, BIT(2), 0x1000 },
@@ -855,12 +855,12 @@ static struct sprd_reset_map ums9610_ap_ahb_resets[] = {
 	[RESET_AP_AHB_I2C9_SOFT_RST]	= { 0x0004, BIT(25), 0x1000 },
 };
 
-static struct sprd_clk_desc ums9610_apahb_gate_desc = {
-	.clk_clks	= ums9610_apahb_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_apahb_gate),
-	.hw_clks	= &ums9610_apahb_gate_hws,
-	.resets		= ums9610_ap_ahb_resets,
-	.num_resets	= ARRAY_SIZE(ums9610_ap_ahb_resets),
+static struct sprd_clk_desc ums9621_apahb_gate_desc = {
+	.clk_clks	= ums9621_apahb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_apahb_gate),
+	.hw_clks	= &ums9621_apahb_gate_hws,
+	.resets		= ums9621_ap_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9621_ap_ahb_resets),
 };
 
 /* ipa apb gate clocks */
@@ -878,7 +878,7 @@ static SPRD_SC_GATE_CLK_FW_NAME(pam_usb_eb, "pam-usb-eb", "ext-26m", 0x4,
 static SPRD_SC_GATE_CLK_FW_NAME(pam_wifi_eb, "pam-wifi-eb", "ext-26m", 0x4,
 			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
 
-static struct sprd_clk_common *ums9610_ipaapb_gate[] = {
+static struct sprd_clk_common *ums9621_ipaapb_gate[] = {
 	/* address base is 0x25000000 */
 	&usb_eb.common,
 	&usb_suspend_eb.common,
@@ -887,7 +887,7 @@ static struct sprd_clk_common *ums9610_ipaapb_gate[] = {
 	&pam_wifi_eb.common,
 };
 
-static struct clk_hw_onecell_data ums9610_ipaapb_gate_hws = {
+static struct clk_hw_onecell_data ums9621_ipaapb_gate_hws = {
 	.hws	= {
 		[CLK_USB_EB]		= &usb_eb.common.hw,
 		[CLK_USB_SUSPEND_EB]	= &usb_suspend_eb.common.hw,
@@ -898,7 +898,7 @@ static struct clk_hw_onecell_data ums9610_ipaapb_gate_hws = {
 	.num	= CLK_IPAAPB_GATE_NUM,
 };
 
-static struct sprd_reset_map ums9610_ipa_apb_resets[] = {
+static struct sprd_reset_map ums9621_ipa_apb_resets[] = {
 	[RESET_IPA_APB_USB_SOFT_RST]			= { 0x0000, BIT(0), 0x1000 },
 	[RESET_IPA_APB_PAM_U3_SOFT_RST]			= { 0x0000, BIT(1), 0x1000 },
 	[RESET_IPA_APB_NIC_400_CFG_SOFT_RST]		= { 0x0000, BIT(2), 0x1000 },
@@ -908,12 +908,12 @@ static struct sprd_reset_map ums9610_ipa_apb_resets[] = {
 	[RESET_IPA_APB_BUSMON_PERF_IPA_M0_SOFT_RST]	= { 0x0000, BIT(9), 0x1000 },
 };
 
-static struct sprd_clk_desc ums9610_ipaapb_gate_desc = {
-	.clk_clks	= ums9610_ipaapb_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_ipaapb_gate),
-	.hw_clks	= &ums9610_ipaapb_gate_hws,
-	.resets		= ums9610_ipa_apb_resets,
-	.num_resets	= ARRAY_SIZE(ums9610_ipa_apb_resets),
+static struct sprd_clk_desc ums9621_ipaapb_gate_desc = {
+	.clk_clks	= ums9621_ipaapb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_ipaapb_gate),
+	.hw_clks	= &ums9621_ipaapb_gate_hws,
+	.resets		= ums9621_ipa_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9621_ipa_apb_resets),
 };
 
 /* ipa glb gate clocks*/
@@ -929,7 +929,7 @@ static SPRD_SC_GATE_CLK_FW_NAME(ipa_access_phycp_en, "ipa-access-phycp-en", "ext
 static SPRD_SC_GATE_CLK_FW_NAME(ipa_access_pscp_en, "ipa-access-pscp-en", "ext-26m",
 			0x8, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
 
-static struct sprd_clk_common *ums9610_ipaglb_gate[] = {
+static struct sprd_clk_common *ums9621_ipaglb_gate[] = {
 	/* address base is 0x25240000 */
 	&ipa_eb.common,
 	&tft_eb.common,
@@ -937,7 +937,7 @@ static struct sprd_clk_common *ums9610_ipaglb_gate[] = {
 	&ipa_access_pscp_en.common,
 };
 
-static struct clk_hw_onecell_data ums9610_ipaglb_gate_hws = {
+static struct clk_hw_onecell_data ums9621_ipaglb_gate_hws = {
 	.hws	= {
 		[CLK_IPA_EB]			= &ipa_eb.common.hw,
 		[CLK_TFT_EB]			= &tft_eb.common.hw,
@@ -947,16 +947,16 @@ static struct clk_hw_onecell_data ums9610_ipaglb_gate_hws = {
 	.num	= CLK_IPAGLB_GATE_NUM,
 };
 
-static struct sprd_reset_map ums9610_ipa_glb_apb_resets[] = {
+static struct sprd_reset_map ums9621_ipa_glb_apb_resets[] = {
 	[RESET_IPA_GLB_APB_IPA_SOFT_RST]	= { 0x0000, BIT(0), 0x1000 },
 };
 
-static struct sprd_clk_desc ums9610_ipaglb_gate_desc = {
-	.clk_clks	= ums9610_ipaglb_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_ipaglb_gate),
-	.hw_clks	= &ums9610_ipaglb_gate_hws,
-	.resets = ums9610_ipa_glb_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9610_ipa_glb_apb_resets),
+static struct sprd_clk_desc ums9621_ipaglb_gate_desc = {
+	.clk_clks	= ums9621_ipaglb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_ipaglb_gate),
+	.hw_clks	= &ums9621_ipaglb_gate_hws,
+	.resets = ums9621_ipa_glb_apb_resets,
+	.num_resets = ARRAY_SIZE(ums9621_ipa_glb_apb_resets),
 };
 
 /* ap clks */
@@ -967,7 +967,7 @@ static const struct clk_parent_data ap_apb_parents[] = {
 	{ .hw = &tgpll_128m.hw },
 };
 static SPRD_MUX_CLK_DATA(ap_apb, "ap-apb", ap_apb_parents, 0x28,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data ap_axi_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -976,7 +976,7 @@ static const struct clk_parent_data ap_axi_parents[] = {
 	{ .hw = &tgpll_256m.hw },
 };
 static SPRD_MUX_CLK_DATA(ap_axi, "ap-axi", ap_axi_parents, 0x34,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data ap2emc_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -986,7 +986,7 @@ static const struct clk_parent_data ap2emc_parents[] = {
 	{ .hw = &tgpll_512m.hw },
 };
 static SPRD_MUX_CLK_DATA(ap2emc, "ap2emc", ap2emc_parents, 0x40,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data ap_uart_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1052,7 +1052,7 @@ static const struct clk_parent_data ap_ce_parents[] = {
 	{ .hw = &tgpll_256m.hw },
 };
 static SPRD_MUX_CLK_DATA(ap_ce, "ap-ce", ap_ce_parents, 0x118,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data sdio_parents[] = {
 	{ .hw = &clk_1m.hw },
@@ -1094,11 +1094,11 @@ static const struct clk_parent_data ipa_axi_parents[] = {
 	{ .hw = &v4nrpll_409m6.hw },
 };
 static SPRD_MUX_CLK_DATA(ipa_axi, "ipa-axi", ipa_axi_parents, 0x16c,
-			0, 2, UMS9610_MUX_FLAG);
+			0, 2, UMS9621_MUX_FLAG);
 static SPRD_DIV_CLK_HW(ipa_apb, "ipa-apb", &ipa_axi.common.hw, 0x174,
 			0, 2, 0);
 
-static struct sprd_clk_common *ums9610_ap_clks[] = {
+static struct sprd_clk_common *ums9621_ap_clks[] = {
 	/* address base is 0x20010000 */
 	&ap_apb.common,
 	&ap_axi.common,
@@ -1131,7 +1131,7 @@ static struct sprd_clk_common *ums9610_ap_clks[] = {
 	&ipa_apb.common,
 };
 
-static struct clk_hw_onecell_data ums9610_ap_clk_hws = {
+static struct clk_hw_onecell_data ums9621_ap_clk_hws = {
 	.hws	= {
 		[CLK_AP_APB]		= &ap_apb.common.hw,
 		[CLK_AP_AXI]		= &ap_axi.common.hw,
@@ -1166,10 +1166,10 @@ static struct clk_hw_onecell_data ums9610_ap_clk_hws = {
 	.num	= CLK_AP_CLK_NUM,
 };
 
-static struct sprd_clk_desc ums9610_ap_clk_desc = {
-	.clk_clks	= ums9610_ap_clks,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_ap_clks),
-	.hw_clks	= &ums9610_ap_clk_hws,
+static struct sprd_clk_desc ums9621_ap_clk_desc = {
+	.clk_clks	= ums9621_ap_clks,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_ap_clks),
+	.hw_clks	= &ums9621_ap_clk_hws,
 };
 
 /* aon apb gates */
@@ -1433,7 +1433,7 @@ static SPRD_COMP_CLK_DATA(probe_clk, "probe-clk", aux_parents, 0x24c,
 static SPRD_COMP_CLK_DATA(aux3_clk, "aux3-clk", aux_parents, 0xd20,
 		    6, 6, 0, 6, 0);
 
-static struct sprd_clk_common *ums9610_aon_gate[] = {
+static struct sprd_clk_common *ums9621_aon_gate[] = {
 	/* address base is 0x64900000 */
 	&rc100m_cal_eb.common,
 	&rfti_eb.common,
@@ -1549,7 +1549,7 @@ static struct sprd_clk_common *ums9610_aon_gate[] = {
 	&aux3_clk.common,
 };
 
-static struct clk_hw_onecell_data ums9610_aon_gate_hws = {
+static struct clk_hw_onecell_data ums9621_aon_gate_hws = {
 	.hws	= {
 		[CLK_RC100M_CAL_EB]	= &rc100m_cal_eb.common.hw,
 		[CLK_RFTI_EB]		= &rfti_eb.common.hw,
@@ -1667,7 +1667,7 @@ static struct clk_hw_onecell_data ums9610_aon_gate_hws = {
 	.num	= CLK_AON_APB_GATE_NUM,
 };
 
-static struct sprd_reset_map ums9610_aon_apb_resets[] = {
+static struct sprd_reset_map ums9621_aon_apb_resets[] = {
 	[RESET_AON_APB_RC100M_CAL_SOFT_RST]		= { 0x000c, BIT(0), 0x1000 },
 	[RESET_AON_APB_RFTI_SOFT_RST]			= { 0x000c, BIT(1), 0x1000 },
 	[RESET_AON_APB_DCXO_LC_SOFT_RST]		= { 0x000c, BIT(2), 0x1000 },
@@ -1740,12 +1740,12 @@ static struct sprd_reset_map ums9610_aon_apb_resets[] = {
 	[RESET_AON_APB_UFSDEV_SOFT_RST]			= { 0x0ce8, BIT(0), 0x1000 },
 };
 
-static struct sprd_clk_desc ums9610_aon_gate_desc = {
-	.clk_clks	= ums9610_aon_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_aon_gate),
-	.hw_clks	= &ums9610_aon_gate_hws,
-	.resets		= ums9610_aon_apb_resets,
-	.num_resets	= ARRAY_SIZE(ums9610_aon_apb_resets),
+static struct sprd_clk_desc ums9621_aon_gate_desc = {
+	.clk_clks	= ums9621_aon_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_aon_gate),
+	.hw_clks	= &ums9621_aon_gate_hws,
+	.resets		= ums9621_aon_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9621_aon_apb_resets),
 };
 
 /* aon apb clks */
@@ -1770,7 +1770,7 @@ static const struct clk_parent_data adi_parents[] = {
 	{ .hw = &tgpll_51m2.hw },
 };
 static SPRD_MUX_CLK_DATA(adi, "adi", adi_parents, 0x34,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data pwm_parents[] = {
 	{ .fw_name = "ext-32k" },
@@ -1780,20 +1780,20 @@ static const struct clk_parent_data pwm_parents[] = {
 	{ .hw = &tgpll_48m.hw },
 };
 static SPRD_MUX_CLK_DATA(pwm0, "pwm0", pwm_parents, 0x40,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(pwm1, "pwm1", pwm_parents, 0x4c,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(pwm2, "pwm2", pwm_parents, 0x58,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(pwm3, "pwm3", pwm_parents, 0x64,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data efuse_parents[] = {
 	{ .hw = &rco_100m_25m.hw },
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(efuse, "efuse", efuse_parents, 0x70,
-		    0, 1, UMS9610_MUX_FLAG);
+		    0, 1, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data uart_parents[] = {
 	{ .hw = &rco_100m_4m.hw },
@@ -1805,24 +1805,24 @@ static const struct clk_parent_data uart_parents[] = {
 	{ .hw = &tgpll_128m.hw },
 };
 static SPRD_MUX_CLK_DATA(uart0, "uart0", uart_parents, 0x7c,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(uart1, "uart1", uart_parents, 0x88,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(uart2, "uart2", uart_parents, 0x94,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data thm_parents[] = {
 	{ .fw_name = "ext-32k" },
 	{ .hw = &clk_250k.hw },
 };
 static SPRD_MUX_CLK_DATA(thm0, "thm0", thm_parents, 0xc4,
-		    0, 1, UMS9610_MUX_FLAG);
+		    0, 1, UMS9621_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(thm1, "thm1", thm_parents, 0xd0,
-		    0, 1, UMS9610_MUX_FLAG);
+		    0, 1, UMS9621_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(thm2, "thm2", thm_parents, 0xdc,
-		    0, 1, UMS9610_MUX_FLAG);
+		    0, 1, UMS9621_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(thm3, "thm3", thm_parents, 0xe8,
-		    0, 1, UMS9610_MUX_FLAG);
+		    0, 1, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data aon_ist_parents[] = {
 	{ .hw = &rco_100m_4m.hw },
@@ -1834,7 +1834,7 @@ static const struct clk_parent_data aon_ist_parents[] = {
 	{ .hw = &tgpll_128m.hw },
 };
 static SPRD_MUX_CLK_DATA(aon_ist, "aon-ist", aon_ist_parents, 0x118,
-			0, 3, UMS9610_MUX_FLAG);
+			0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data aon_iis_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1842,7 +1842,7 @@ static const struct clk_parent_data aon_iis_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
 };
 static SPRD_MUX_CLK_DATA(aon_iis, "aon-iis", aon_iis_parents, 0x124,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data scc_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1851,7 +1851,7 @@ static const struct clk_parent_data scc_parents[] = {
 	{ .hw = &tgpll_96m.hw },
 };
 static SPRD_MUX_CLK_DATA(scc, "scc", scc_parents, 0x130,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data apcpu_dap_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1862,7 +1862,7 @@ static const struct clk_parent_data apcpu_dap_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
 };
 static SPRD_MUX_CLK_DATA(apcpu_dap, "apcpu-dap", apcpu_dap_parents, 0x13c,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 
 static const struct clk_parent_data apcpu_ts_parents[] = {
@@ -1872,7 +1872,7 @@ static const struct clk_parent_data apcpu_ts_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
 };
 static SPRD_MUX_CLK_DATA(apcpu_ts, "apcpu-ts", apcpu_ts_parents, 0x148,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data debug_ts_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1881,7 +1881,7 @@ static const struct clk_parent_data debug_ts_parents[] = {
 	{ .hw = &tgpll_192m.hw },
 };
 static SPRD_MUX_CLK_DATA(debug_ts, "debug-ts", debug_ts_parents, 0x154,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data pri_sbi_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1889,28 +1889,28 @@ static const struct clk_parent_data pri_sbi_parents[] = {
 	{ .hw = &tgpll_96m.hw },
 };
 static SPRD_MUX_CLK_DATA(pri_sbi, "pri-sbi", pri_sbi_parents, 0x160,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data xo_sel_parents[] = {
 	{ .fw_name = "ext-26m" },
 	{ .fw_name = "ext-52m" },
 };
 static SPRD_MUX_CLK_DATA(xo_sel, "xo-sel", xo_sel_parents, 0x16c,
-		    0, 1, UMS9610_MUX_FLAG);
+		    0, 1, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data rfti_lth_parents[] = {
 	{ .fw_name = "ext-26m" },
 	{ .fw_name = "ext-52m" },
 };
 static SPRD_MUX_CLK_DATA(rfti_lth, "rfti-lth", rfti_lth_parents, 0x178,
-		    0, 1, UMS9610_MUX_FLAG);
+		    0, 1, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data afc_lth_parents[] = {
 	{ .fw_name = "ext-26m" },
 	{ .fw_name = "ext-52m" },
 };
 static SPRD_MUX_CLK_DATA(afc_lth, "afc-lth", afc_lth_parents, 0x184,
-		    0, 1, UMS9610_MUX_FLAG);
+		    0, 1, UMS9621_MUX_FLAG);
 
 static SPRD_DIV_CLK_FW_NAME(rco100m_fdk, "rco100m-fdk", "rco-100m", 0x198,
 		    0, 6, 0);
@@ -1931,7 +1931,7 @@ static const struct clk_parent_data djtag_tck_parents[] = {
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(djtag_tck, "djtag-tck", djtag_tck_parents, 0x1d8,
-		    0, 1, UMS9610_MUX_FLAG);
+		    0, 1, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data aon_tmr_parents[] = {
 	{ .hw = &rco_100m_4m.hw },
@@ -1939,7 +1939,7 @@ static const struct clk_parent_data aon_tmr_parents[] = {
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(aon_tmr, "aon-tmr", aon_tmr_parents, 0x1fc,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data aon_pmu_parents[] = {
 	{ .fw_name = "ext-32k" },
@@ -1948,7 +1948,7 @@ static const struct clk_parent_data aon_pmu_parents[] = {
 	{ .hw = &rco_60m_4m.hw },
 };
 static SPRD_MUX_CLK_DATA(aon_pmu, "aon-pmu", aon_pmu_parents, 0x214,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data debounce_parents[] = {
 	{ .fw_name = "ext-32k" },
@@ -1959,7 +1959,7 @@ static const struct clk_parent_data debounce_parents[] = {
 	{ .hw = &rco_60m_20m.hw },
 };
 static SPRD_MUX_CLK_DATA(debounce, "debounce", debounce_parents, 0x220,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data apcpu_pmu_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1969,7 +1969,7 @@ static const struct clk_parent_data apcpu_pmu_parents[] = {
 	{ .hw = &tgpll_128m.hw },
 };
 static SPRD_MUX_CLK_DATA(apcpu_pmu, "apcpu-pmu", apcpu_pmu_parents, 0x22c,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data top_dvfs_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1978,7 +1978,7 @@ static const struct clk_parent_data top_dvfs_parents[] = {
 	{ .hw = &tgpll_128m.hw },
 };
 static SPRD_MUX_CLK_DATA(top_dvfs, "top-dvfs", top_dvfs_parents, 0x238,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data pmu_26m_parents[] = {
 	{ .hw = &rco_100m_20m.hw },
@@ -1986,7 +1986,7 @@ static const struct clk_parent_data pmu_26m_parents[] = {
 	{ .hw = &rco_60m_20m.hw },
 };
 static SPRD_MUX_CLK_DATA(pmu_26m, "pmu-26m", aon_pmu_parents, 0x244,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data tzpc_parents[] = {
 	{ .hw = &rco_100m_4m.hw },
@@ -2005,7 +2005,7 @@ static const struct clk_parent_data otg_ref_parents[] = {
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(otg_ref, "otg-ref", otg_ref_parents, 0x25c,
-		    0, 1, UMS9610_MUX_FLAG);
+		    0, 1, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data cssys_parents[] = {
 	{ .hw = &rco_100m_25m.hw },
@@ -2070,7 +2070,7 @@ static const struct clk_parent_data dmc_ref_parents[] = {
 	{ .fw_name = "ext-26m" },
 };
 static SPRD_MUX_CLK_DATA(dmc_ref, "dmc-ref", dmc_ref_parents, 0x2f8,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data usb_parents[] = {
 	{ .hw = &rco_100m_25m.hw },
@@ -2088,7 +2088,7 @@ static const struct clk_parent_data usb_suspend_parents[] = {
 	{ .hw = &clk_1m.hw },
 };
 static SPRD_MUX_CLK_DATA(usb_suspend, "usb-suspend", usb_suspend_parents, 0x328,
-		    0, 1, UMS9610_MUX_FLAG);
+		    0, 1, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data ufs_aon_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -2099,7 +2099,7 @@ static const struct clk_parent_data ufs_aon_parents[] = {
 	{ .hw = &tgpll_256m.hw },
 };
 static SPRD_MUX_CLK_DATA(ufs_aon, "ufs-aon", ufs_aon_parents, 0x334,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data ufs_pck_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -2110,9 +2110,9 @@ static const struct clk_parent_data ufs_pck_parents[] = {
 	{ .hw = &tgpll_256m.hw },
 };
 static SPRD_MUX_CLK_DATA(ufs_pck, "ufs-pck", ufs_pck_parents, 0x340,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
-static struct sprd_clk_common *ums9610_aonapb_clk[] = {
+static struct sprd_clk_common *ums9621_aonapb_clk[] = {
 	/* address base is 0x64920000 */
 	&aon_apb.common,
 	&adi.common,
@@ -2170,7 +2170,7 @@ static struct sprd_clk_common *ums9610_aonapb_clk[] = {
 	&ufs_pck.common,
 };
 
-static struct clk_hw_onecell_data ums9610_aonapb_clk_hws = {
+static struct clk_hw_onecell_data ums9621_aonapb_clk_hws = {
 	.hws	= {
 		[CLK_AON_APB]		= &aon_apb.common.hw,
 		[CLK_ADI]		= &adi.common.hw,
@@ -2230,10 +2230,10 @@ static struct clk_hw_onecell_data ums9610_aonapb_clk_hws = {
 	.num	= CLK_AON_APB_NUM,
 };
 
-static struct sprd_clk_desc ums9610_aonapb_clk_desc = {
-	.clk_clks	= ums9610_aonapb_clk,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_aonapb_clk),
-	.hw_clks	= &ums9610_aonapb_clk_hws,
+static struct sprd_clk_desc ums9621_aonapb_clk_desc = {
+	.clk_clks	= ums9621_aonapb_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_aonapb_clk),
+	.hw_clks	= &ums9621_aonapb_clk_hws,
 };
 
 /* top dvfs clk */
@@ -2327,7 +2327,7 @@ static const struct clk_parent_data periph_parents[] = {
 static SPRD_COMP_CLK_DATA(periph, "periph", periph_parents, 0xe0c,
 		     19, 2, 21, 3, 0);
 
-static struct sprd_clk_common *ums9610_topdvfs_clk[] = {
+static struct sprd_clk_common *ums9621_topdvfs_clk[] = {
 	/* address base is 0x64940000 */
 	&core0.common,
 	&core1.common,
@@ -2346,7 +2346,7 @@ static struct sprd_clk_common *ums9610_topdvfs_clk[] = {
 	&periph.common,
 };
 
-static struct clk_hw_onecell_data ums9610_topdvfs_clk_hws = {
+static struct clk_hw_onecell_data ums9621_topdvfs_clk_hws = {
 	.hws    = {
 		[CLK_CORE0]		= &core0.common.hw,
 		[CLK_CORE1]		= &core1.common.hw,
@@ -2367,39 +2367,39 @@ static struct clk_hw_onecell_data ums9610_topdvfs_clk_hws = {
 	.num    = CLK_TOPDVFS_CLK_NUM,
 };
 
-static struct sprd_clk_desc ums9610_topdvfs_clk_desc = {
-	.clk_clks	= ums9610_topdvfs_clk,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_topdvfs_clk),
-	.hw_clks	= &ums9610_topdvfs_clk_hws,
+static struct sprd_clk_desc ums9621_topdvfs_clk_desc = {
+	.clk_clks	= ums9621_topdvfs_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_topdvfs_clk),
+	.hw_clks	= &ums9621_topdvfs_clk_hws,
 };
 
 /* gpu apb gate */
 static SPRD_SC_GATE_CLK_HW(gpu_core_eb, "gpu-core-eb",  &gpu_eb.common.hw, 0x0,
 			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
 
-static struct sprd_clk_common *ums9610_gpuapb_gate[] = {
+static struct sprd_clk_common *ums9621_gpuapb_gate[] = {
 	/* address base is 0x23000000 */
 	&gpu_core_eb.common,
 };
 
-static struct clk_hw_onecell_data ums9610_gpuapb_gate_hws = {
+static struct clk_hw_onecell_data ums9621_gpuapb_gate_hws = {
 	.hws    = {
 		[CLK_GPU_CORE_EB]	= &gpu_core_eb.common.hw,
 	},
 	.num    = CLK_GPU_APB_GATE_NUM,
 };
 
-static struct sprd_reset_map ums9610_gpu_apb_resets[] = {
+static struct sprd_reset_map ums9621_gpu_apb_resets[] = {
 	[RESET_GPU_APB_GPU_CORE_SOFT_RST]	= { 0x0000, BIT(0), 0x1000 },
 	[RESET_GPU_APB_SYS_SOFT_RST_REQ_CORE]	= { 0x0000, BIT(1), 0x1000 },
 };
 
-static struct sprd_clk_desc ums9610_gpuapb_gate_desc = {
-	.clk_clks	= ums9610_gpuapb_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_gpuapb_gate),
-	.hw_clks	= &ums9610_gpuapb_gate_hws,
-	.resets		= ums9610_gpu_apb_resets,
-	.num_resets 	= ARRAY_SIZE(ums9610_gpu_apb_resets),
+static struct sprd_clk_desc ums9621_gpuapb_gate_desc = {
+	.clk_clks	= ums9621_gpuapb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_gpuapb_gate),
+	.hw_clks	= &ums9621_gpuapb_gate_hws,
+	.resets		= ums9621_gpu_apb_resets,
+	.num_resets 	= ARRAY_SIZE(ums9621_gpu_apb_resets),
 };
 
 /* gpu clocks */
@@ -2421,16 +2421,16 @@ static const struct clk_parent_data ap_mm_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
 };
 static SPRD_MUX_CLK_DATA(ap_mm, "ap-mm", ap_mm_parents, 0x40,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 
-static struct sprd_clk_common *ums9610_gpu_clk[] = {
+static struct sprd_clk_common *ums9621_gpu_clk[] = {
 	/* address base is 0x23010000 */
 	&gpu.common,
 	&ap_mm.common,
 };
 
-static struct clk_hw_onecell_data ums9610_gpu_clk_hws = {
+static struct clk_hw_onecell_data ums9621_gpu_clk_hws = {
 	.hws	= {
 		[CLK_GPU]		= &gpu.common.hw,
 		[CLK_AP_MM]		= &ap_mm.common.hw,
@@ -2438,10 +2438,10 @@ static struct clk_hw_onecell_data ums9610_gpu_clk_hws = {
 	.num	= CLK_GPU_CLK_NUM,
 };
 
-static struct sprd_clk_desc ums9610_gpu_clk_desc = {
-	.clk_clks	= ums9610_gpu_clk,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_gpu_clk),
-	.hw_clks	= &ums9610_gpu_clk_hws,
+static struct sprd_clk_desc ums9621_gpu_clk_desc = {
+	.clk_clks	= ums9621_gpu_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_gpu_clk),
+	.hw_clks	= &ums9621_gpu_clk_hws,
 };
 
 /* mm ahb gate clocks */
@@ -2510,7 +2510,7 @@ static SPRD_SC_GATE_CLK_HW(csi2_en, "csi2-en", &mm_eb.common.hw, 0xc,
 static SPRD_SC_GATE_CLK_HW(ipa_en, "ipa-en", &mm_eb.common.hw, 0xc,
 			0x1000, BIT(16), CLK_IGNORE_UNUSED, 0);
 
-static struct sprd_clk_common *ums9610_mm_gate[] = {
+static struct sprd_clk_common *ums9621_mm_gate[] = {
 	/* address base is 0x30000000 */
 	&jpg_en.common,
 	&ckg_en.common,
@@ -2542,7 +2542,7 @@ static struct sprd_clk_common *ums9610_mm_gate[] = {
 	&ipa_en.common,
 };
 
-static struct clk_hw_onecell_data ums9610_mm_gate_hws = {
+static struct clk_hw_onecell_data ums9621_mm_gate_hws = {
 	.hws	= {
 		[CLK_JPG_EN]			= &jpg_en.common.hw,
 		[CLK_CKG_EN]			= &ckg_en.common.hw,
@@ -2576,7 +2576,7 @@ static struct clk_hw_onecell_data ums9610_mm_gate_hws = {
 	.num	= CLK_MM_GATE_NUM,
 };
 
-static struct sprd_reset_map ums9610_mm_ahb_resets[] = {
+static struct sprd_reset_map ums9621_mm_ahb_resets[] = {
 	[RESET_MM_AHB_REGU_SOFT_RST]		= { 0x00c8, BIT(0), 0x1000 },
 	[RESET_MM_AHB_DCAM0_1_SOFT_RST]		= { 0x00c8, BIT(1), 0x1000 },
 	[RESET_MM_AHB_DCAM2_3_SOFT_RST]		= { 0x00c8, BIT(2), 0x1000 },
@@ -2609,12 +2609,12 @@ static struct sprd_reset_map ums9610_mm_ahb_resets[] = {
 	[RESET_MM_AHB_JPG_VAU_SOFT_RST]		= { 0x00d0, BIT(4), 0x1000 },
 };
 
-static struct sprd_clk_desc ums9610_mm_gate_desc = {
-	.clk_clks	= ums9610_mm_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_mm_gate),
-	.hw_clks	= &ums9610_mm_gate_hws,
-	.resets		= ums9610_mm_ahb_resets,
-	.num_resets	= ARRAY_SIZE(ums9610_mm_ahb_resets),
+static struct sprd_clk_desc ums9621_mm_gate_desc = {
+	.clk_clks	= ums9621_mm_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_mm_gate),
+	.hw_clks	= &ums9621_mm_gate_hws,
+	.resets		= ums9621_mm_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9621_mm_ahb_resets),
 };
 
 /* mm clocks */
@@ -2626,7 +2626,7 @@ static const struct clk_parent_data isp_parents[] = {
 	{ .hw = &tgpll_512m.hw },
 };
 static SPRD_MUX_CLK_DATA(isp, "isp", isp_parents, 0x7c,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data cpp_parents[] = {
 	{ .hw = &tgpll_128m.hw },
@@ -2636,7 +2636,7 @@ static const struct clk_parent_data cpp_parents[] = {
 	{ .hw = &tgpll_384m.hw },
 };
 static SPRD_MUX_CLK_DATA(cpp, "cpp", cpp_parents, 0x88,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data dcam0_1_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
@@ -2646,9 +2646,9 @@ static const struct clk_parent_data dcam0_1_parents[] = {
 	{ .hw = &tgpll_512m.hw },
 };
 static SPRD_MUX_CLK_DATA(dcam0_1, "dcam0-1", dcam0_1_parents, 0xb8,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(dcam0_1_axi, "dcam0-1-axi", dcam0_1_parents, 0xc4,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data dcam2_3_parents[] = {
 	{ .hw = &tgpll_96m.hw },
@@ -2658,9 +2658,9 @@ static const struct clk_parent_data dcam2_3_parents[] = {
 	{ .hw = &tgpll_256m.hw },
 };
 static SPRD_MUX_CLK_DATA(dcam2_3, "dcam2-3", dcam2_3_parents, 0xdc,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 static SPRD_MUX_CLK_DATA(dcam2_3_axi, "dcam2-3-axi", dcam2_3_parents, 0xe8,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data mipi_csi0_parents[] = {
 	{ .hw = &tgpll_256m.hw },
@@ -2670,7 +2670,7 @@ static const struct clk_parent_data mipi_csi0_parents[] = {
 	{ .hw = &tgpll_768m.hw },
 };
 static SPRD_MUX_CLK_DATA(mipi_csi0, "mipi-csi0", mipi_csi0_parents, 0x100,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data mipi_csi1_1_parents[] = {
 	{ .hw = &tgpll_128m.hw },
@@ -2679,7 +2679,7 @@ static const struct clk_parent_data mipi_csi1_1_parents[] = {
 	{ .hw = &tgpll_307m2.hw },
 };
 static SPRD_MUX_CLK_DATA(mipi_csi1_1, "mipi-csi1_1",  mipi_csi1_1_parents,
-		    0x118, 0, 2, UMS9610_MUX_FLAG);
+		    0x118, 0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data mipi_csi1_2_parents[] = {
 	{ .hw = &tgpll_128m.hw },
@@ -2688,7 +2688,7 @@ static const struct clk_parent_data mipi_csi1_2_parents[] = {
 	{ .hw = &tgpll_307m2.hw },
 };
 static SPRD_MUX_CLK_DATA(mipi_csi1_2, "mipi-csi1_2",  mipi_csi1_2_parents,
-		    0x124, 0, 2, UMS9610_MUX_FLAG);
+		    0x124, 0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data mipi_csi2_1_parents[] = {
 	{ .hw = &tgpll_128m.hw },
@@ -2697,7 +2697,7 @@ static const struct clk_parent_data mipi_csi2_1_parents[] = {
 	{ .hw = &tgpll_307m2.hw },
 };
 static SPRD_MUX_CLK_DATA(mipi_csi2_1, "mipi-csi2_1",  mipi_csi2_1_parents,
-		    0x130, 0, 2, UMS9610_MUX_FLAG);
+		    0x130, 0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data mipi_csi2_2_parents[] = {
 	{ .hw = &tgpll_128m.hw },
@@ -2706,7 +2706,7 @@ static const struct clk_parent_data mipi_csi2_2_parents[] = {
 	{ .hw = &tgpll_307m2.hw },
 };
 static SPRD_MUX_CLK_DATA(mipi_csi2_2, "mipi-csi2_2",  mipi_csi2_2_parents,
-		    0x13c, 0, 2, UMS9610_MUX_FLAG);
+		    0x13c, 0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data dcam_mtx_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
@@ -2715,7 +2715,7 @@ static const struct clk_parent_data dcam_mtx_parents[] = {
 	{ .hw = &tgpll_512m.hw },
 };
 static SPRD_MUX_CLK_DATA(dcam_mtx, "dcam-mtx", dcam_mtx_parents, 0x154,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data dcam_blk_cfg_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -2725,7 +2725,7 @@ static const struct clk_parent_data dcam_blk_cfg_parents[] = {
 	{ .hw = &tgpll_128m.hw },
 };
 static SPRD_MUX_CLK_DATA(dcam_blk_cfg, "dcam-blk-cfg", dcam_blk_cfg_parents,
-		    0x160, 0, 3, UMS9610_MUX_FLAG);
+		    0x160, 0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data mm_mtx_data_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
@@ -2735,7 +2735,7 @@ static const struct clk_parent_data mm_mtx_data_parents[] = {
 	{ .hw = &tgpll_512m.hw },
 };
 static SPRD_MUX_CLK_DATA(mm_mtx_data, "mm-mtx-data", mm_mtx_data_parents,
-		    0x16c, 0, 3, UMS9610_MUX_FLAG);
+		    0x16c, 0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data jpg_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
@@ -2745,7 +2745,7 @@ static const struct clk_parent_data jpg_parents[] = {
 	{ .hw = &tgpll_512m.hw },
 };
 static SPRD_MUX_CLK_DATA(jpg, "jpg", jpg_parents, 0x178,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data mm_sys_cfg_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -2755,7 +2755,7 @@ static const struct clk_parent_data mm_sys_cfg_parents[] = {
 	{ .hw = &tgpll_128m.hw },
 };
 static SPRD_MUX_CLK_DATA(mm_sys_cfg, "mm-sys-cfg", mm_sys_cfg_parents,
-		    0x190, 0, 3, UMS9610_MUX_FLAG);
+		    0x190, 0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data sensor_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -2771,7 +2771,7 @@ static SPRD_COMP_CLK_DATA_OFFSET(sensor1, "sensor1", sensor_parents, 0x1b4,
 static SPRD_COMP_CLK_DATA_OFFSET(sensor2, "sensor2", sensor_parents, 0x1c0,
 		     0, 3, 0, 3, 0);
 
-static struct sprd_clk_common *ums9610_mm_clk[] = {
+static struct sprd_clk_common *ums9621_mm_clk[] = {
 	/* address base is 0x30010000 */
 	&isp.common,
 	&cpp.common,
@@ -2794,7 +2794,7 @@ static struct sprd_clk_common *ums9610_mm_clk[] = {
 	&sensor2.common,
 };
 
-static struct clk_hw_onecell_data ums9610_mm_clk_hws = {
+static struct clk_hw_onecell_data ums9621_mm_clk_hws = {
 	.hws	= {
 		[CLK_ISP]		= &isp.common.hw,
 		[CLK_CPP]		= &cpp.common.hw,
@@ -2819,10 +2819,10 @@ static struct clk_hw_onecell_data ums9610_mm_clk_hws = {
 	.num	= CLK_MM_CLK_NUM,
 };
 
-static struct sprd_clk_desc ums9610_mm_clk_desc = {
-	.clk_clks	= ums9610_mm_clk,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_mm_clk),
-	.hw_clks	= &ums9610_mm_clk_hws,
+static struct sprd_clk_desc ums9621_mm_clk_desc = {
+	.clk_clks	= ums9621_mm_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_mm_clk),
+	.hw_clks	= &ums9621_mm_clk_hws,
 };
 
 /* dpu vsp apb clock gates */
@@ -2853,7 +2853,7 @@ static SPRD_GATE_CLK_HW(m_div6clk_gate_en, "m-div6clk-gate-en", &dpu_vsp_eb.comm
 static SPRD_GATE_CLK_HW(s_div6clk_gate_en, "s-div6clk-gate-en", &dpu_vsp_eb.common.hw,
 		     0xb0, BIT(4), CLK_IGNORE_UNUSED, 0);
 
-static struct sprd_clk_common *ums9610_dpu_vsp_gate[] = {
+static struct sprd_clk_common *ums9621_dpu_vsp_gate[] = {
 	/* address base is 0x30100000 */
 	&dpu_eb.common,
 	&dsi0_eb.common,
@@ -2868,7 +2868,7 @@ static struct sprd_clk_common *ums9610_dpu_vsp_gate[] = {
 	&s_div6clk_gate_en.common,
 };
 
-static struct clk_hw_onecell_data ums9610_dpu_vsp_gate_hws = {
+static struct clk_hw_onecell_data ums9621_dpu_vsp_gate_hws = {
 	.hws    = {
 		[CLK_DPU_EB]		= &dpu_eb.common.hw,
 		[CLK_DSI0_EB]		= &dsi0_eb.common.hw,
@@ -2885,7 +2885,7 @@ static struct clk_hw_onecell_data ums9610_dpu_vsp_gate_hws = {
 	.num    = CLK_DPU_VSP_GATE_NUM,
 };
 
-static struct sprd_reset_map ums9610_dpu_vsp_resets[] = {
+static struct sprd_reset_map ums9621_dpu_vsp_resets[] = {
 	[RESET_DPU_VSP_APB_DPU_SOFT_RST]		= { 0x0004, BIT(0), 0x1000 },
 	[RESET_DPU_VSP_APB_DSI0_SOFT_RST]		= { 0x0004, BIT(1), 0x1000 },
 	[RESET_DPU_VSP_APB_DSI1_SOFT_RST]		= { 0x0004, BIT(2), 0x1000 },
@@ -2907,12 +2907,12 @@ static struct sprd_reset_map ums9610_dpu_vsp_resets[] = {
 	[RESET_DPU_VSP_APB_SYS_SOFT_RST_REQ_GSP0]	= { 0x00A0, BIT(4), 0x1000 },
 };
 
-static struct sprd_clk_desc ums9610_dpu_vsp_gate_desc = {
-	.clk_clks	= ums9610_dpu_vsp_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_dpu_vsp_gate),
-	.hw_clks	= &ums9610_dpu_vsp_gate_hws,
-	.resets		= ums9610_dpu_vsp_resets,
-	.num_resets	= ARRAY_SIZE(ums9610_dpu_vsp_resets),
+static struct sprd_clk_desc ums9621_dpu_vsp_gate_desc = {
+	.clk_clks	= ums9621_dpu_vsp_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_dpu_vsp_gate),
+	.hw_clks	= &ums9621_dpu_vsp_gate_hws,
+	.resets		= ums9621_dpu_vsp_resets,
+	.num_resets	= ARRAY_SIZE(ums9621_dpu_vsp_resets),
 };
 
 /* dpu vsp clocks */
@@ -2922,7 +2922,7 @@ static const struct clk_parent_data dpu_cfg_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
 };
 static SPRD_MUX_CLK_DATA(dpu_cfg, "dpu-cfg", dpu_cfg_parents, 0x20,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data vpu_mtx_parents[] = {
 	{ .hw = &tgpll_307m2.hw },
@@ -2931,7 +2931,7 @@ static const struct clk_parent_data vpu_mtx_parents[] = {
 	{ .hw = &v4nrpll_614m4.hw },
 };
 static SPRD_MUX_CLK_DATA(vpu_mtx, "vpu-mtx", vpu_mtx_parents, 0x24,
-		    0, 2, UMS9610_MUX_FLAG);
+		    0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data vpu_enc_parents[] = {
 	{ .hw = &tgpll_256m.hw },
@@ -2941,7 +2941,7 @@ static const struct clk_parent_data vpu_enc_parents[] = {
 	{ .hw = &v4nrpll_614m4.hw },
 };
 static SPRD_MUX_CLK_DATA(vpu_enc, "vpu-enc", vpu_enc_parents, 0x28,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data vpu_dec_parents[] = {
 	{ .hw = &tgpll_256m.hw },
@@ -2951,7 +2951,7 @@ static const struct clk_parent_data vpu_dec_parents[] = {
 	{ .hw = &v4nrpll_614m4.hw },
 };
 static SPRD_MUX_CLK_DATA(vpu_dec, "vpu-dec", vpu_dec_parents, 0x2c,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data gsp_parents[] = {
 	{ .hw = &tgpll_256m.hw },
@@ -2961,7 +2961,7 @@ static const struct clk_parent_data gsp_parents[] = {
 	{ .hw = &v4nrpll_614m4.hw },
 };
 static SPRD_MUX_CLK_DATA(gsp0, "gsp0", gsp_parents, 0x30,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data dispc0_parents[] = {
 	{ .hw = &tgpll_256m.hw },
@@ -2972,7 +2972,7 @@ static const struct clk_parent_data dispc0_parents[] = {
 	{ .hw = &v4nrpll_614m4.hw },
 };
 static SPRD_MUX_CLK_DATA(dispc0, "dispc0", dispc0_parents, 0x34,
-		    0, 3, UMS9610_MUX_FLAG);
+		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data dispc0_dpi_parents[] = {
 	{ .hw = &pixelpll.common.hw },
@@ -3000,7 +3000,7 @@ static const struct clk_parent_data dispc0_dsc_parents[] = {
 static SPRD_COMP_CLK_DATA_OFFSET(dispc0_dsc, "dispc0-dsc", dispc0_dsc_parents, 0x44,
 				0, 3, 0, 4, 0);
 
-static struct sprd_clk_common *ums9610_dpu_vsp_clk[] = {
+static struct sprd_clk_common *ums9621_dpu_vsp_clk[] = {
 	/* address base is 0x30110000 */
 	&dpu_cfg.common,
 	&vpu_mtx.common,
@@ -3012,7 +3012,7 @@ static struct sprd_clk_common *ums9610_dpu_vsp_clk[] = {
 	&dispc0_dsc.common,
 };
 
-static struct clk_hw_onecell_data ums9610_dpu_vsp_clk_hws = {
+static struct clk_hw_onecell_data ums9621_dpu_vsp_clk_hws = {
 	.hws    = {
 		[CLK_DPU_CFG]		= &dpu_cfg.common.hw,
 		[CLK_VPU_MTX]		= &vpu_mtx.common.hw,
@@ -3026,10 +3026,10 @@ static struct clk_hw_onecell_data ums9610_dpu_vsp_clk_hws = {
 	.num    = CLK_DPU_VSP_CLK_NUM,
 };
 
-static struct sprd_clk_desc ums9610_dpu_vsp_clk_desc = {
-	.clk_clks	= ums9610_dpu_vsp_clk,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_dpu_vsp_clk),
-	.hw_clks	= &ums9610_dpu_vsp_clk_hws,
+static struct sprd_clk_desc ums9621_dpu_vsp_clk_desc = {
+	.clk_clks	= ums9621_dpu_vsp_clk,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_dpu_vsp_clk),
+	.hw_clks	= &ums9621_dpu_vsp_clk_hws,
 };
 
 /* audcp global clock gates */
@@ -3088,7 +3088,7 @@ static SPRD_SC_GATE_CLK_HW(audcp_mcdt_ap_eb, "audcp-mcdt-ap-eb", &access_aud_en.
 static SPRD_SC_GATE_CLK_HW(audcp_aud_ap_eb, "audcp-aud-ap-eb", &access_aud_en.common.hw,
 			0x4, 0x1000, BIT(19), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
-static struct sprd_clk_common *ums9610_audcpglb_gate[] = {
+static struct sprd_clk_common *ums9621_audcpglb_gate[] = {
 	/* address base is 0x56200000 */
 	&audcp_iis0_eb.common,
 	&audcp_iis1_eb.common,
@@ -3116,7 +3116,7 @@ static struct sprd_clk_common *ums9610_audcpglb_gate[] = {
 	&audcp_aud_ap_eb.common,
 };
 
-static struct clk_hw_onecell_data ums9610_audcpglb_gate_hws = {
+static struct clk_hw_onecell_data ums9621_audcpglb_gate_hws = {
 	.hws	= {
 		[CLK_AUDCP_IIS0_EB]		= &audcp_iis0_eb.common.hw,
 		[CLK_AUDCP_IIS1_EB]		= &audcp_iis1_eb.common.hw,
@@ -3146,7 +3146,7 @@ static struct clk_hw_onecell_data ums9610_audcpglb_gate_hws = {
 	.num	= CLK_AUDCP_GLB_GATE_NUM,
 };
 
-static struct sprd_reset_map ums9610_audcp_glb_resets[] = {
+static struct sprd_reset_map ums9621_audcp_glb_resets[] = {
 	[RESET_AUDCP_GLB_VBS_24M_SOFT_RST]	= { 0x0008, BIT(0), 0x1000 },
 	[RESET_AUDCP_GLB_DMA_AP_SOFT_RST]	= { 0x0008, BIT(1), 0x1000 },
 	[RESET_AUDCP_GLB_SRC48K_SOFT_RST]	= { 0x0008, BIT(5), 0x1000 },
@@ -3164,12 +3164,12 @@ static struct sprd_reset_map ums9610_audcp_glb_resets[] = {
 	[RESET_AUDCP_GLB_TDM_HF_SOFT_RST]	= { 0x0008, BIT(29), 0x1000 },
 };
 
-static const struct sprd_clk_desc ums9610_audcpglb_gate_desc = {
-	.clk_clks	= ums9610_audcpglb_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_audcpglb_gate),
-	.hw_clks	= &ums9610_audcpglb_gate_hws,
-	.resets		= ums9610_audcp_glb_resets,
-	.num_resets	= ARRAY_SIZE(ums9610_audcp_glb_resets),
+static const struct sprd_clk_desc ums9621_audcpglb_gate_desc = {
+	.clk_clks	= ums9621_audcpglb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_audcpglb_gate),
+	.hw_clks	= &ums9621_audcpglb_gate_hws,
+	.resets		= ums9621_audcp_glb_resets,
+	.num_resets	= ARRAY_SIZE(ums9621_audcp_glb_resets),
 };
 
 /* audcp aon apb gates */
@@ -3190,7 +3190,7 @@ static SPRD_SC_GATE_CLK_HW(audcp_vad_apb_eb, "audcp-vad-apb-eb", &access_aud_en.
 static SPRD_SC_GATE_CLK_HW(audcp_pdm_ap_eb, "audcp-pdm-ap-eb", &access_aud_en.common.hw,
 			0x4, 0x1000, BIT(1), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
-static struct sprd_clk_common *ums9610_audcpapb_gate[] = {
+static struct sprd_clk_common *ums9621_audcpapb_gate[] = {
 	/* address base is 0x56390000 */
 	&audcp_vad_eb.common,
 	&audcp_pdm_eb.common,
@@ -3200,7 +3200,7 @@ static struct sprd_clk_common *ums9610_audcpapb_gate[] = {
 	&audcp_pdm_ap_eb.common,
 };
 
-static struct clk_hw_onecell_data ums9610_audcpapb_gate_hws = {
+static struct clk_hw_onecell_data ums9621_audcpapb_gate_hws = {
 	.hws	= {
 		[CLK_AUDCP_VAD_EB]	= &audcp_vad_eb.common.hw,
 		[CLK_AUDCP_PDM_EB]	= &audcp_pdm_eb.common.hw,
@@ -3212,80 +3212,81 @@ static struct clk_hw_onecell_data ums9610_audcpapb_gate_hws = {
 	.num	= CLK_AUDCP_APB_GATE_NUM,
 };
 
-static struct sprd_reset_map ums9610_audcp_aon_apb_resets[] = {
+static struct sprd_reset_map ums9621_audcp_aon_apb_resets[] = {
 	[RESET_AUDCP_AON_APB_VAD_SOFT_RST]	= { 0x0008, BIT(0), 0x1000 },
 	[RESET_AUDCP_AON_APB_PDM_SOFT_RST]	= { 0x0008, BIT(1), 0x1000 },
 	[RESET_AUDCP_AON_APB_PDM_IIS_SOFT_RST]	= { 0x0008, BIT(2), 0x1000 },
 	[RESET_AUDCP_AON_APB_DVFS_SOFT_RST]	= { 0x0008, BIT(3), 0x1000 },
 };
 
-static const struct sprd_clk_desc ums9610_audcpapb_gate_desc = {
-	.clk_clks	= ums9610_audcpapb_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9610_audcpapb_gate),
-	.hw_clks	= &ums9610_audcpapb_gate_hws,
-	.resets		= ums9610_audcp_aon_apb_resets,
-	.num_resets	= ARRAY_SIZE(ums9610_audcp_aon_apb_resets),
+static const struct sprd_clk_desc ums9621_audcpapb_gate_desc = {
+	.clk_clks	= ums9621_audcpapb_gate,
+	.num_clk_clks	= ARRAY_SIZE(ums9621_audcpapb_gate),
+	.hw_clks	= &ums9621_audcpapb_gate_hws,
+	.resets		= ums9621_audcp_aon_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9621_audcp_aon_apb_resets),
 };
 
-static const struct of_device_id sprd_ums9610_clk_ids[] = {
-	{ .compatible = "sprd,ums9610-pmu-gate",	/* 0x64910000 */
-	  .data = &ums9610_pmu_gate_desc },
-	{ .compatible = "sprd,ums9610-g1-pll",		/* 0x64304000 */
-	  .data = &ums9610_g1_pll_desc },
-	{ .compatible = "sprd,ums9610-g1l-pll",		/* 0x64308000 */
-	  .data = &ums9610_g1l_pll_desc },
-	{ .compatible = "sprd,ums9610-g5l-pll",		/* 0x64324000 */
-	  .data = &ums9610_g5l_pll_desc },
-	{ .compatible = "sprd,ums9610-g5r-pll",		/* 0x64320000 */
-	  .data = &ums9610_g5r_pll_desc },
-	{ .compatible = "sprd,ums9610-g8-pll",		/* 0x6432c000 */
-	  .data = &ums9610_g8_pll_desc },
-	{ .compatible = "sprd,ums9610-g9-pll",		/* 0x64330000 */
-	  .data = &ums9610_g9_pll_desc },
-	{ .compatible = "sprd,ums9610-g10-pll",		/* 0x64334000 */
-	  .data = &ums9610_g10_pll_desc },
-	{ .compatible = "sprd,ums9610-apapb-gate",	/* 0x20100000 */
-	  .data = &ums9610_apapb_gate_desc },
-	{ .compatible = "sprd,ums9610-apahb-gate",	/* 0x20000000 */
-	  .data = &ums9610_apahb_gate_desc },
-	{ .compatible = "sprd,ums9610-ipaapb-gate",	/* 0x25000000 */
-	  .data = &ums9610_ipaapb_gate_desc },
-	{ .compatible = "sprd,ums9610-ipaglb-gate",	/* 0x25240000 */
-	  .data = &ums9610_ipaglb_gate_desc },
-	{ .compatible = "sprd,ums9610-ap-clk",		/* 0x20010000 */
-	  .data = &ums9610_ap_clk_desc },
-	{ .compatible = "sprd,ums9610-aon-gate",	/* 0x64900000 */
-	  .data = &ums9610_aon_gate_desc },
-	{ .compatible = "sprd,ums9610-aonapb-clk",	/* 0x64920000 */
-	  .data = &ums9610_aonapb_clk_desc },
-	{ .compatible = "sprd,ums9610-topdvfs-clk",	/* 0x64940000 */
-	  .data = &ums9610_topdvfs_clk_desc },
-	{ .compatible = "sprd,ums9610-gpuapb-gate",	/* 0x23000000 */
-	  .data = &ums9610_gpuapb_gate_desc },
-	{ .compatible = "sprd,ums9610-gpu-clk",		/* 0x23010000 */
-	  .data = &ums9610_gpu_clk_desc },
-	{ .compatible = "sprd,ums9610-mm-gate",		/* 0x30000000 */
-	  .data = &ums9610_mm_gate_desc },
-	{ .compatible = "sprd,ums9610-mm-clk",		/* 0x30010000 */
-	  .data = &ums9610_mm_clk_desc },
-	{ .compatible = "sprd,ums9610-dpu-vsp-gate",	/* 0x30100000 */
-	  .data = &ums9610_dpu_vsp_gate_desc },
-	{ .compatible = "sprd,ums9610-dpu-vsp-clk",	/* 0x30110000 */
-	  .data = &ums9610_dpu_vsp_clk_desc },
-	{ .compatible = "sprd,ums9610-audcpglb-gate",	/* 0x56200000 */
-	  .data = &ums9610_audcpglb_gate_desc },
-	{ .compatible = "sprd,ums9610-audcpapb-gate",	/* 0x56390000 */
-	  .data = &ums9610_audcpapb_gate_desc },
+static const struct of_device_id sprd_ums9621_clk_ids[] = {
+	{ .compatible = "sprd,ums9621-pmu-gate",	/* 0x64910000 */
+	  .data = &ums9621_pmu_gate_desc },
+	{ .compatible = "sprd,ums9621-g1-pll",		/* 0x64304000 */
+	  .data = &ums9621_g1_pll_desc },
+	{ .compatible = "sprd,ums9621-g1l-pll",		/* 0x64308000 */
+	  .data = &ums9621_g1l_pll_desc },
+	{ .compatible = "sprd,ums9621-g5l-pll",		/* 0x64324000 */
+	  .data = &ums9621_g5l_pll_desc },
+	{ .compatible = "sprd,ums9621-g5r-pll",		/* 0x64320000 */
+	  .data = &ums9621_g5r_pll_desc },
+	{ .compatible = "sprd,ums9621-g8-pll",		/* 0x6432c000 */
+	  .data = &ums9621_g8_pll_desc },
+	{ .compatible = "sprd,ums9621-g9-pll",		/* 0x64330000 */
+	  .data = &ums9621_g9_pll_desc },
+	{ .compatible = "sprd,ums9621-g10-pll",		/* 0x64334000 */
+	  .data = &ums9621_g10_pll_desc },
+	{ .compatible = "sprd,ums9621-apapb-gate",	/* 0x20100000 */
+	  .data = &ums9621_apapb_gate_desc },
+	{ .compatible = "sprd,ums9621-apahb-gate",	/* 0x20000000 */
+	  .data = &ums9621_apahb_gate_desc },
+	{ .compatible = "sprd,ums9621-ipaapb-gate",	/* 0x25000000 */
+	  .data = &ums9621_ipaapb_gate_desc },
+	{ .compatible = "sprd,ums9621-ipaglb-gate",	/* 0x25240000 */
+	  .data = &ums9621_ipaglb_gate_desc },
+	{ .compatible = "sprd,ums9621-ap-clk",		/* 0x20010000 */
+	  .data = &ums9621_ap_clk_desc },
+	{ .compatible = "sprd,ums9621-aon-gate",	/* 0x64900000 */
+	  .data = &ums9621_aon_gate_desc },
+	{ .compatible = "sprd,ums9621-aonapb-clk",	/* 0x64920000 */
+	  .data = &ums9621_aonapb_clk_desc },
+	{ .compatible = "sprd,ums9621-topdvfs-clk",	/* 0x64940000 */
+	  .data = &ums9621_topdvfs_clk_desc },
+	{ .compatible = "sprd,ums9621-gpuapb-gate",	/* 0x23000000 */
+	  .data = &ums9621_gpuapb_gate_desc },
+	{ .compatible = "sprd,ums9621-gpu-clk",		/* 0x23010000 */
+	  .data = &ums9621_gpu_clk_desc },
+	{ .compatible = "sprd,ums9621-mm-gate",		/* 0x30000000 */
+	  .data = &ums9621_mm_gate_desc },
+	{ .compatible = "sprd,ums9621-mm-clk",		/* 0x30010000 */
+	  .data = &ums9621_mm_clk_desc },
+	{ .compatible = "sprd,ums9621-dpu-vsp-gate",	/* 0x30100000 */
+	  .data = &ums9621_dpu_vsp_gate_desc },
+	{ .compatible = "sprd,ums9621-dpu-vsp-clk",	/* 0x30110000 */
+	  .data = &ums9621_dpu_vsp_clk_desc },
+	{ .compatible = "sprd,ums9621-audcpglb-gate",	/* 0x56200000 */
+	  .data = &ums9621_audcpglb_gate_desc },
+	{ .compatible = "sprd,ums9621-audcpapb-gate",	/* 0x56390000 */
+	  .data = &ums9621_audcpapb_gate_desc },
 	{ }
 };
-MODULE_DEVICE_TABLE(of, sprd_ums9610_clk_ids);
+MODULE_DEVICE_TABLE(of, sprd_ums9621_clk_ids);
 
-static int ums9610_clk_probe(struct platform_device *pdev)
+static int ums9621_clk_probe(struct platform_device *pdev)
 {
 	const struct sprd_clk_desc *desc;
 	struct sprd_reset *reset;
 	int ret;
 
+	dev_err(&pdev->dev, " clock probe\n");
 	desc = device_get_match_data(&pdev->dev);
 	if (!desc)
 		return -ENODEV;
@@ -3311,15 +3312,15 @@ static int ums9610_clk_probe(struct platform_device *pdev)
 	return sprd_clk_probe(&pdev->dev, desc->hw_clks);
 }
 
-static struct platform_driver ums9610_clk_driver = {
-	.probe	= ums9610_clk_probe,
+static struct platform_driver ums9621_clk_driver = {
+	.probe	= ums9621_clk_probe,
 	.driver	= {
-		.name	= "ums9610-clk",
-		.of_match_table	= sprd_ums9610_clk_ids,
+		.name	= "ums9621-clk",
+		.of_match_table	= sprd_ums9621_clk_ids,
 	},
 };
-module_platform_driver(ums9610_clk_driver);
+module_platform_driver(ums9621_clk_driver);
 
-MODULE_DESCRIPTION("Unisoc UMS9610 Clock Driver");
+MODULE_DESCRIPTION("Unisoc UMS9621 Clock Driver");
 MODULE_LICENSE("GPL v2");
-MODULE_ALIAS("platform:ums9610-clk");
+MODULE_ALIAS("platform:ums9621-clk");
