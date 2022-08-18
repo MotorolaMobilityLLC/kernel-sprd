@@ -27,6 +27,8 @@
 #include <linux/rbtree.h>
 #include <linux/kthread.h>
 #include <linux/sched/task.h>
+
+static DEFINE_MUTEX(system_heap_lock);
 #endif
 
 static struct dma_heap *sys_heap;
@@ -712,6 +714,31 @@ static struct dma_buf *system_uncached_heap_not_initialized(struct dma_heap *hea
 	return ERR_PTR(-EBUSY);
 }
 
+#ifdef CONFIG_E_SHOW_MEM
+static int dmabuf_e_show_mem_handler(struct notifier_block *nb,
+				unsigned long val, void *data)
+{
+	struct dma_heap *heap;
+	unsigned long total_used = 0;
+	const char *name = "system";
+
+	pr_info("++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("Enhanced Mem-info :DMABUF_Heap\n");
+
+	heap = dma_heap_find(name);
+	mutex_lock(&system_heap_lock);
+	dmabuf_debug_sysheap_show_printk(heap, &total_used);
+	mutex_unlock(&system_heap_lock);
+
+	pr_info("Total allocated from Buddy: %lu kB\n", total_used / 1024);
+	return 0;
+}
+
+static struct notifier_block dmabuf_e_show_mem_notifier = {
+	.notifier_call = dmabuf_e_show_mem_handler,
+};
+#endif
+
 static struct dma_heap_ops system_uncached_heap_ops = {
 	/* After system_heap_create is complete, we will swap this */
 	.allocate = system_uncached_heap_not_initialized,
@@ -768,6 +795,10 @@ static int system_heap_create(void)
 	dma_coerce_mask_and_coherent(dma_heap_get_dev(sys_uncached_heap), DMA_BIT_MASK(64));
 	mb(); /* make sure we only set allocate after dma_mask is set */
 	system_uncached_heap_ops.allocate = system_uncached_heap_allocate;
+
+#ifdef CONFIG_E_SHOW_MEM
+	register_e_show_mem_notifier(&dmabuf_e_show_mem_notifier);
+#endif
 
 	return 0;
 }
