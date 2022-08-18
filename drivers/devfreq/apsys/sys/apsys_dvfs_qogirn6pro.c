@@ -211,9 +211,8 @@ static void apsys_dvfs_min_volt(struct apsys_dev *apsys, u32 min_volt)
 }
 
 static const struct of_device_id sprd_dvfs_of_match[] = {
-	{
-		.compatible = "sprd,ump962x-syscon",
-	},
+	{ .compatible = "sprd,ump962x-syscon", },
+	{ /* necessary */ },
 };
 
 int dpu_vsp_dvfs_check_clkeb(void)
