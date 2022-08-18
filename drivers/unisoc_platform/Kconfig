@@ -59,5 +59,6 @@ source "drivers/unisoc_platform/userlog/Kconfig"
 source "drivers/unisoc_platform/performance/Kconfig"
 source "drivers/unisoc_platform/sprd_coresight/Kconfig"
 source "drivers/unisoc_platform/past_record/Kconfig"
+source "drivers/unisoc_platform/usbpinmux/Kconfig"
 
 endmenu
