@@ -1,0 +1,43 @@
+KERNEL_DIR=${KERNEL_DIR}"/.."
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki.aarch64
+
+BUILD_SYSTEM_DLKM=0
+DEFCONFIG=ums9621_gki_defconfig
+FRAGMENT_CONFIG=${KERNEL_DIR}/arch/arm64/configs/sprd_gki_qogirn6l_debug.fragment
+PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \
+${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig \
+${KERNEL_DIR}/arch/arm64/configs/sprd_gki_qogirn6l.fragment ${ROOT_DIR}/${FRAGMENT_CONFIG}"
+POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
+
+EXT_MODULES="
+../modules/kernel5.15/sample
+../modules/kernel5.15/gpu/natt
+../modules/kernel5.15/input/touchscreen/ssl_ssd20xx
+../modules/kernel5.15/input/touchscreen/synaptics_dsx_td4310
+../modules/kernel5.15/input/touchscreen/focaltech_ft8756_spi
+../modules/kernel5.15/wcn/fm/driver
+../modules/kernel5.15/wcn/bluetooth/driver
+../modules/kernel5.15/display/dispc
+../modules/kernel5.15/display/gsp
+../modules/kernel5.15/dmabufheap
+../modules/kernel5.15/video/sprd-vpu
+../modules/kernel5.15/video/sprd-vpu-power
+../modules/kernel5.15/video/sprd-jpg
+"
+DTC_FLAGS+="-@"
+
+MAKE_GOALS="${MAKE_GOALS}
+dtbs
+"
+
+FILES="${FILES}
+arch/arm64/boot/dts/sprd/ums9621-base.dtb
+arch/arm64/boot/dts/sprd/ums9621-1h10-overlay.dtbo
+vmlinux
+"
+#KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc
+GKI_MODULES_LIST=android/gki_aarch64_modules
+
+MODULES_ORDER=""
+TRIM_NONLISTED_KMI=""
+KMI_SYMBOL_LIST_STRICT_MODE=""
