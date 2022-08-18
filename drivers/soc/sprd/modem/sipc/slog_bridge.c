@@ -111,10 +111,12 @@ static void kernel_vser_register_callback(void *function, void *p) {}
 static void kernel_vser_set_pass_mode(bool pass) {}
 #endif
 
+struct slog_bridge *sb_record;
+EXPORT_SYMBOL_GPL(sb_record);
+
 /* if log_transport the log */
 static ushort log_transport;
 module_param_named(log_transport, log_transport, ushort, 0644);
-
 
 #define SLOG_FLUSH_TIMER	msecs_to_jiffies(20)
 #define FAILED_CNT 2000
@@ -174,42 +176,43 @@ static void slog_block_list_free(struct slog_bridge *sb)
 	}
 }
 
-static void slog_block_release(struct slog_bridge *sb, void *addr,
+static int slog_block_release(struct slog_bridge *sb, struct block_node *blk,
 			       unsigned int len)
 {
-	struct block_node *blk;
 	struct sblock blk_rx;
 	unsigned long flags;
-	struct block_node *temp;
+	int rval;
 
-	list_for_each_entry_safe(blk, temp, &sb->send_list, list) {
-		if (blk->vaddr == addr) {
-			blk->send_len += len;
-			if (blk->length > blk->send_len) {
-				pr_err("release err: len =%d", len);
-				break;
-			}
+	/* release this block */
+	blk_rx.addr = blk->addr;
+	blk_rx.length = blk->length;
+	rval = sblock_release(blk->dst, blk->channel, &blk_rx);
+	if (rval < 0)
+		pr_err("%s: slog-%d-%d release failed\n", __func__, blk->dst, blk->channel);
 
-			dev_dbg(sb->dev, "%s: blk->dst=%d, addr=0x%lx, length=%d",
-				 __func__, blk->dst, (unsigned long int) addr, blk->length);
+	blk->send_len += len;
+	/*usb may not write all buffer in a block*/
+	if (blk->length > blk->send_len)
+		pr_err("%s: usb write err, len =%d", __func__, len);
 
-			/* release this block */
-			blk_rx.addr = blk->addr;
-			blk_rx.length = blk->length;
-			spin_lock_irqsave(&sb->list_lock, flags);
-			sb->send_cnt--;
+	dev_dbg(sb->dev, "%s: blk->dst=%d, addr=0x%lx, length=%d",
+		 __func__, blk->dst, (unsigned long int)blk->vaddr, blk->length);
 
-			/* remove from send list */
-			list_del(&blk->list);
-			/* add to pool list*/
-			list_add_tail(&blk->list, &sb->pool_list);
-			spin_unlock_irqrestore(&sb->list_lock, flags);
-			sblock_release(blk->dst, blk->channel, &blk_rx);
-			dev_dbg(sb->dev, "%s: blk->dst=%d, sb->send_cnt=%d\n",
-				 __func__, blk->dst, sb->send_cnt);
-			break;
-		}
+	spin_lock_irqsave(&sb->list_lock, flags);
+	if (list_empty(&sb->send_list)) {
+		spin_unlock_irqrestore(&sb->list_lock, flags);
+		pr_err("%s: send list is empty, send cnt = %d\n", __func__, sb->send_cnt);
+		return 0;
 	}
+	sb->send_cnt--;
+	/* remove from send list */
+	list_del(&blk->list);
+	/* add to pool list*/
+	list_add_tail(&blk->list, &sb->pool_list);
+	spin_unlock_irqrestore(&sb->list_lock, flags);
+	dev_dbg(sb->dev, "%s: blk->dst=%d, sb->send_cnt=%d\n",
+		 __func__, blk->dst, sb->send_cnt);
+	return 0;
 }
 
 static struct block_node *slog_block_request(struct slog_bridge *sb,
@@ -277,9 +280,14 @@ static struct block_node *slog_block_send(struct slog_bridge *sb)
 static void slog_usb_send_callback(char *buf, unsigned int len, void *p)
 {
 	struct slog_bridge *sb = (struct slog_bridge *)p;
+	struct block_node *blk;
 
-	slog_block_release(sb, buf, len);
-
+	list_for_each_entry(blk, &sb->send_list, list) {
+		if (blk->vaddr == buf) {
+			slog_block_release(sb, blk, len);
+			break;
+		}
+	}
 	sprd_add_action_ex(sb->log_action.actions,
 			   SLOG_READ_DATA_ACTION,
 			   (int)SLOG_POLL_ALL);
@@ -479,7 +487,7 @@ static void slog_bridge_write_to_usb(struct slog_bridge *sb)
 		if (!(ushort volatile)log_transport) {
 			dev_info(sb->dev, "%s: usb disconnected! left %d packets in pending list, %d in send list\n",
 				 __func__, sb->pending_cnt, sb->send_cnt);
-			slog_block_release(sb, blk->vaddr, blk->length);
+			slog_block_release(sb, blk, blk->length);
 			continue;
 		}
 
@@ -497,7 +505,7 @@ static void slog_bridge_write_to_usb(struct slog_bridge *sb)
 					sb->write_failed_cnt = 0;
 				}
 			}
-			slog_block_release(sb, blk->vaddr, blk->length);
+			slog_block_release(sb, blk, blk->length);
 			break;
 		}
 	}
@@ -669,7 +677,7 @@ static int slog_bridge_probe(struct platform_device *pdev)
 			slog_bridge_flush_timer_fn,
 			0);
 
-
+	sb_record = sb;
 	platform_set_drvdata(pdev, sb);
 
 	return 0;
