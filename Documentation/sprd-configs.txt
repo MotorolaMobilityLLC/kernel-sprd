@@ -18527,8 +18527,8 @@ CONFIG_UCLAMP_TASK
 	[missing plat description] none
 	[function]
 CONFIG_UCLAMP_TASK_GROUP
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
