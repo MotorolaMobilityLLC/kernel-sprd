@@ -243,6 +243,13 @@ fi
 
 set +e
 
+# replace the kernel_version string such as 5.15.41+ ->5.15.41
+kernel_version=$( head ${out}/.config -n3 |tail -n1|awk -F" " '{print $3}')
+for f in $(find ${temp_def} -name *.i |xargs grep $kernel_version -l)
+do
+	sed -i "s/${kernel_version}+/$kernel_version/g" $f
+done
+
 # Compare file for intrusive check
 for ((i=0;i<check_ifile_flag;i++))
 do
