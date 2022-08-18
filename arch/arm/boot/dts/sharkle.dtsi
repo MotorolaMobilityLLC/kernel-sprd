@@ -307,6 +307,7 @@
 				compatible = "unisoc,iommuexle-dispc";
 				reg = <0x20800000 0x800>,
 				      <0x20800800 0x80>;
+				phys-offset = <0x80000000>;
 				iova-base = <0x70000000>;
 				iova-size = <0x08000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -333,6 +334,7 @@
 				compatible = "unisoc,iommuexle-gsp";
 				reg = <0x20a00000 0x804>,
 					<0x20a00804 0x80>;
+				phys-offset = <0x80000000>;
 				iova-base = <0x20000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -422,6 +424,7 @@
 				compatible = "unisoc,iommuexle-vsp";
 				reg = <0x21900000 0x1140>,
 				      <0x21901140 0x60>;
+				phys-offset = <0x80000000>;
 				iova-base = <0x10000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -611,7 +614,7 @@
 			};
 
 			timer@40050000 {
-				compatible = "sprd,sharkle-timer";
+				compatible = "sprd,sharkle-timer", "sprd,sc9860-timer";
 				reg = <0x40050000 0x14>;
 				interrupts = <GIC_SPI 28 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_32k>;
@@ -619,7 +622,7 @@
 			};
 
 			timer@40050020 {
-				compatible = "sprd,sharkle-suspend-timer";
+				compatible = "sprd,sharkle-suspend-timer", "sprd,sc9860-suspend-timer";
 				reg = <0x40050020 0x14>;
 				clocks = <&ext_32k>;
 			};
@@ -632,7 +635,13 @@
 				clock-names = "enable";
 				hwlocks = <&hwlock 8>;
 				clocks = <&aonapb_gate CLK_EFUSE_EB>;
+				uid_start: uid-start@ec{
+					reg = <0xec 0x4>;
+				};
 
+				uid_end: uid-end@e8{
+					reg = <0xe8 0x4>;
+				};
 				gthm_sign: cthm-sign@20{
 					reg = <0x20 0x4>;
 					bits = <1 1>;
@@ -905,6 +914,7 @@
 				compatible = "unisoc,iommuexle-dcam";
 				reg = <0x60800000 0x2100>,
 				      <0x60802100 0x60>;
+				phys-offset = <0x80000000>;
 				iova-base = <0x40000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -932,6 +942,7 @@
 				/* sharkle isp need pagetable size */
 				reg = <0x60a00000 0x800>,
 				      <0x60a00800 0x400>;
+				phys-offset = <0x80000000>;
 				iova-base = <0x50000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -952,6 +963,7 @@
 				compatible = "unisoc,iommuexle-cpp";
 				reg = <0x61000000 0x200>,
 				      <0x61000200 0x60>;
+				phys-offset = <0x80000000>;
 				iova-base = <0x60000000>;
 				iova-size = <0x8000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";
@@ -1074,6 +1086,7 @@
 				compatible = "unisoc,iommuexle-jpg";
 				reg = <0x60b00000 0x100>,
 				      <0x60b00100 0x400>;
+				phys-offset = <0x80000000>;
 				iova-base = <0x70000000>;
 				iova-size = <0x10000000>;
 				reg_name = "mmu_interrupt_reg","mmu_reg";

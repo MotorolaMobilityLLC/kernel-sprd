@@ -24,6 +24,8 @@
 
 	sprd,sc-id = "sp9832e 1h10 1000";
 
+	sprd,board_id = <0x2100>;
+
 	/*
 	* When create a new node, we should use the key word __overlay__,
 	* otherwise u-boot can not analyze it.
@@ -58,7 +60,11 @@
 					wakeup-source;
 				};
 			};
-
+			sprd_uid {
+				compatible = "sprd-uid";
+				nvmem-cells = <&uid_start>, <&uid_end>;
+				nvmem-cell-names = "uid_start", "uid_end";
+			};
 			tboard_thermistor:thermal-sensor {
 				compatible = "generic-adc-thermal";
 				#thermal-sensor-cells = <0>;
@@ -130,6 +136,12 @@
 				constant-charge-voltage-max-microvolt = <4350000>;
 				factory-internal-resistance-micro-ohms = <320000>;
 				voltage-min-design-microvolt = <3450000>;
+				fullbatt-voltage = <4300000>;
+				fullbatt-current = <120000>;
+				fullbatt-track-end-vol = <4295000>;
+				fullbatt-track-end-cur = <130000>;
+				first-calib-voltage = <3630000>;
+				first-calib-capacity = <40>;
 				ocv-capacity-celsius = <20>;
 				ocv-capacity-table-0 = <4330000 100>, <4249000 95>, <4189000 90>,
 							<4133000 85>, <4081000 80>, <4034000 75>,
@@ -146,10 +158,69 @@
 							  <129000 1550>, <111000 1600>, <96000 1650>;
 				capacity-temp-table = <25 100>, <10 97>, <(-10) 60>;
 				resistance-temp-table = <20 100>, <10 243>, <(-10) 468>;
+
+				battery-internal-resistance-celsius = <(-20)>, <(-10)>, <0>, <10>,
+					<25>, <35>, <45>, <55>;
+				battery-internal-resistance-table-0 = <1224>, <1224>, <1140>,
+					<1084>, <1034>, <1001>, <994>, <992>, <992>, <992>,
+					<996>, <1002>, <1010>, <1024>, <1045>, <1072>, <1180>,
+					<1393>, <1756>, <2461>, <4272>;
+				battery-internal-resistance-table-1 = <893>, <893>, <818>, <767>,
+					<743>, <705>, <685>, <684>, <678>, <675>, <672>, <673>,
+					<679>, <691>, <709>, <734>, <765>, <799>, <839>, <899>,
+					<1092>;
+				battery-internal-resistance-table-2 = <407>, <407>, <402>, <423>,
+					<429>, <428>, <409>, <416>, <408>, <395>, <390>, <390>,
+					<393>, <398>, <405>, <416>, <431>, <452>, <492>, <585>,
+					<730>;
+				battery-internal-resistance-table-3 = <381>, <381>, <378>, <371>,
+					<366>, <374>, <358>, <364>, <349>, <332>, <327>, <329>,
+					<334>, <340>, <350>, <366>, <386>, <417>, <475>, <585>,
+					<771>;
+				battery-internal-resistance-table-4 = <182>, <182>, <179>, <179>,
+					<179>, <181>, <182>, <195>, <194>, <173>, <164>, <164>,
+					<167>, <171>, <175>, <174>, <172>, <179>, <187>, <244>,
+					<311>;
+				battery-internal-resistance-table-5 = <168>, <168>, <175>, <172>,
+					<171>, <171>, <173>, <184>, <176>, <153>, <147>, <147>,
+					<150>, <153>, <156>, <152>, <149>, <154>, <158>, <206>,
+					<255>;
+				battery-internal-resistance-table-6 = <123>, <123>, <122>, <122>,
+					<123>, <126>, <130>, <138>, <143>, <120>, <115>, <116>,
+					<119>, <124>, <129>, <120>, <117>, <119>, <117>, <139>,
+					<156>;
+				battery-internal-resistance-table-7 = <106>, <106>, <106>, <106>,
+					<108>, <110>, <113>, <119>, <128>, <107>, <104>, <105>,
+					<108>, <112>, <117>, <107>, <106>, <107>, <105>, <127>,
+					<140>;
+				battery-internal-resistance-ocv-table = <4339000>, <4276000>,
+					<4221000>, <4169000>, <4118000>, <4072000>, <4022000>,
+					<3983000>, <3942000>, <3892000>, <3857000>, <3833000>,
+					<3813000>, <3797000>, <3783000>, <3766000>, <3746000>,
+					<3723000>, <3693000>, <3680000>, <3439000>;
+
 				charge-sdp-current-microamp = <500000 500000>;
 				charge-dcp-current-microamp = <1150000 3000000>;
 				charge-cdp-current-microamp = <1150000 1150000>;
 				charge-unknown-current-microamp = <500000 500000>;
+
+				dcp-jeita-temp-table = <1000 1030 0 4350000>,
+					<1150 1180 700000 4350000>,
+					<1450 1420 1150000 4350000>,
+					<1600 1570 700000 4100000>;
+				sdp-jeita-temp-table = <1000 1030 0 4350000>,
+					<1150 1180 500000 4350000>,
+					<1450 1420 500000 4350000>,
+					<1600 1570 500000 4100000>;
+				cdp-jeita-temp-table = <1000 1030 0 4350000>,
+					<1150 1180 700000 4350000>,
+					<1450 1420 1150000 4350000>,
+					<1600 1570 700000 4100000>;
+				unknown-jeita-temp-table = <1000 1030 0 4350000>,
+					<1150 1180 500000 4350000>,
+					<1450 1420 500000 4350000>,
+					<1600 1570 500000 4100000>;
+				force-jeita-status = <2>;
 			};
 
 			charger-manager {
@@ -161,11 +232,9 @@
 
 				cm-fullbatt-vchkdrop-ms = <30000>;
 				cm-fullbatt-vchkdrop-volt = <60000>;
-				cm-fullbatt-voltage = <4320000>;
-				cm-fullbatt-current = <120000>;
 				cm-fullbatt-capacity = <100>;
 
-				cm-num-chargers = <1>;
+				cm-battery = "battery";
 				cm-chargers = "fan54015_charger";
 				cm-fuel-gauge = "sc27xx-fgu";
 
@@ -197,14 +266,6 @@
 				/* drop voltage in microVolts to restart charging */
 				cm-charge-voltage-drop = <700000>;
 				cm-thermal-zone = "board-thmzone";
-				cm-dcp-jeita-temp-table = <1000 1030 0 4350000>, <1150 1180 700000 4350000>,
-					<1450 1420 1150000 4350000>, <1600 1570 700000 4100000>;
-				cm-sdp-jeita-temp-table = <1000 1030 0 4350000>, <1150 1180 500000 4350000>,
-					<1450 1420 500000 4350000>, <1600 1570 500000 4100000>;
-				cm-cdp-jeita-temp-table = <1000 1030 0 4350000>, <1150 1180 700000 4350000>,
-					<1450 1420 1150000 4350000>, <1600 1570 700000 4100000>;
-				cm-unknown-jeita-temp-table = <1000 1030 0 4350000>, <1150 1180 500000 4350000>,
-					<1450 1420 500000 4350000>, <1600 1570 500000 4100000>;
 
 				monitored-battery = <&bat>;
 
