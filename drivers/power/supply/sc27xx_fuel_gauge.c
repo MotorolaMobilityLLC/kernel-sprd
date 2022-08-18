@@ -1599,7 +1599,11 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	int pocv_uv, ret, pocv_cap;
 	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
 
-	sc27xx_fgu_get_boot_voltage(data, &pocv_uv);
+	ret = sc27xx_fgu_get_boot_voltage(data, &pocv_uv);
+	if (ret) {
+		dev_err(data->dev, "Failed to get boot voltage, ret = %d\n", ret);
+		return ret;
+	}
 	data->boot_volt_uv = pocv_uv;
 
 	/*
@@ -1631,7 +1635,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		if (*cap == SC27XX_FGU_DEFAULT_CAP || *cap == SC27XX_FGU_RTC2_RESET_VALUE) {
 			*cap = data->boot_cap;
 			sc27xx_fgu_boot_cap_calibration(data, pocv_cap, pocv_uv, cap);
-			ret = sc27xx_fgu_save_normal_temperature_cap(data, data->boot_cap);
+			ret = sc27xx_fgu_save_normal_temperature_cap(data, *cap);
 			if (ret < 0)
 				dev_err(data->dev, "Failed to initialize fgu user area status1 register\n");
 		} else {
