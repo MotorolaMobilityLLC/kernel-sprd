@@ -357,7 +357,7 @@ static int dpu_dvfs_notify_callback(struct notifier_block *nb,
 	struct dpu_dvfs *dpu = container_of(nb, struct dpu_dvfs, dpu_dvfs_nb);
 	u32 freq = *(int *)data;
 
-	if (!dpu->dvfs_enable || dpu->work_freq == freq)
+	if (!dpu->dvfs_enable)
 		return NOTIFY_DONE;
 
 	if (dpu->dvfs_ops && dpu->dvfs_ops->set_work_freq) {
