@@ -5212,6 +5212,15 @@ CONFIG_DRM_RCAR_WRITEBACK
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_DRM_SPRD_GSP_DVFS
+	[arch] arm64
+	[plat] sharkl5Pro
+	[missing plat] sharkl3
+	[field] make,code
+	[subsys] drm
+	[must] home
+	[missing plat description] support for qogirn6pro.
+	[function] DRM_SPRD_GSP_DVFS is used for enable gsp dvfs.
 CONFIG_DRM_TTM
 	[arch] all
 	[plat] all
