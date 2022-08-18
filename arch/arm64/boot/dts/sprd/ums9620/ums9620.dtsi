@@ -649,3 +649,4 @@
 #include "sipa-sys.dtsi"
 #include "sipa.dtsi"
 #include "sfp.dtsi"
+#include "usbpinmux.dtsi"
