@@ -23,6 +23,7 @@
 #endif
 #include <linux/nvmem-consumer.h>
 #include <linux/rpmb.h>
+#include <linux/reset.h>
 #include "ufshcd.h"
 #include "ufs.h"
 #include "ufshcd-pltfrm.h"
@@ -76,8 +77,9 @@ static int ufs_efuse_calib_data(struct platform_device *pdev,
 	return calib_data;
 }
 
-void ufs_sprd_reset(struct ufs_sprd_host *host)
+int ufs_sprd_reset(struct ufs_sprd_host *host)
 {
+	int ret;
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 
 	regmap_update_bits(host->phy_sram_ext_ld_done.regmap,
@@ -90,27 +92,38 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 			   host->phy_sram_bypass.mask,
 			   host->phy_sram_bypass.mask);
 
-	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
-			   host->aon_apb_ufs_rst.reg,
-			   host->aon_apb_ufs_rst.mask,
-			   host->aon_apb_ufs_rst.mask);
+	ret = reset_control_assert(host->aon_apb_ufs_rst);
+	if (ret) {
+		dev_err(host->hba->dev, "%s assert ufsdev_soft_rst failed, ret = %d!\n",
+				__func__, ret);
+		goto out;
+	}
 
-	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
-			   host->ap_ahb_ufs_rst.reg,
-			   host->ap_ahb_ufs_rst.mask,
-			   host->ap_ahb_ufs_rst.mask);
+	ret = reset_control_assert(host->ap_ahb_ufs_rst);
+	if (ret) {
+		dev_err(host->hba->dev, "%s assert ufs_soft_rst failed, ret = %d!\n",
+				__func__, ret);
+		goto out;
+	}
 
-	mdelay(1);
+	usleep_range(1000, 1100);
 
-	regmap_update_bits(host->aon_apb_ufs_rst.regmap,
-			   host->aon_apb_ufs_rst.reg,
-			   host->aon_apb_ufs_rst.mask,
-			   0);
+	ret = reset_control_deassert(host->aon_apb_ufs_rst);
+	if (ret) {
+		dev_err(host->hba->dev, "%s deassert ufsdev_soft_rst failed, ret = %d!\n",
+				__func__, ret);
+		goto out;
+	}
 
-	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
-			   host->ap_ahb_ufs_rst.reg,
-			   host->ap_ahb_ufs_rst.mask,
-			   0);
+	ret = reset_control_deassert(host->ap_ahb_ufs_rst);
+	if (ret) {
+		dev_err(host->hba->dev, "%s deassert ufs_soft_rst failed, ret = %d!\n",
+				__func__, ret);
+		goto out;
+	}
+
+out:
+	return ret;
 }
 
 static int ufs_sprd_get_syscon_reg(struct device_node *np,
@@ -186,16 +199,6 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	if (ret)
 		return -ENODEV;
 
-	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->ap_ahb_ufs_rst,
-				      "ap_ahb_ufs_rst");
-	if (ret < 0)
-		return -ENODEV;
-
-	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->aon_apb_ufs_rst,
-				      "aon_apb_ufs_rst");
-	if (ret < 0)
-		return -ENODEV;
-
 	ret = ufs_sprd_get_syscon_reg(dev->of_node, &host->phy_sram_ext_ld_done,
 				      "phy_sram_ext_ld_done");
 	if (ret < 0)
@@ -243,18 +246,38 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	clk_set_parent(host->hclk, host->hclk_source);
 
+	host->aon_apb_ufs_rst = devm_reset_control_get(dev, "ufsdev_soft_rst");
+	if (IS_ERR(host->aon_apb_ufs_rst)) {
+		dev_err(dev, "%s get ufsdev_soft_rst failed, err%ld\n",
+			__func__, PTR_ERR(host->aon_apb_ufs_rst));
+		host->aon_apb_ufs_rst = NULL;
+		return -ENODEV;
+	}
+
+	host->ap_ahb_ufs_rst = devm_reset_control_get(dev, "ufs_soft_rst");
+	if (IS_ERR(host->ap_ahb_ufs_rst)) {
+		dev_err(dev, "%s get ufs_soft_rst failed, err%ld\n",
+			__func__, PTR_ERR(host->ap_ahb_ufs_rst));
+		host->ap_ahb_ufs_rst = NULL;
+		return -ENODEV;
+	}
+
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
-	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
-					  host->ap_ahb_ufs_rst.reg,
-					  host->ap_ahb_ufs_rst.mask,
-					  host->ap_ahb_ufs_rst.mask);
+	ret = reset_control_assert(host->ap_ahb_ufs_rst);
+	if (ret) {
+		dev_err(host->hba->dev, "%s assert ufs_soft_rst failed, ret = %d!\n",
+				__func__, ret);
+		return -ENODEV;
+	}
 
-	mdelay(1);
+	usleep_range(1000, 1100);
 
-	regmap_update_bits(host->ap_ahb_ufs_rst.regmap,
-					  host->ap_ahb_ufs_rst.reg,
-					  host->ap_ahb_ufs_rst.mask,
-					  0);
+	ret = reset_control_deassert(host->ap_ahb_ufs_rst);
+	if (ret) {
+		dev_err(host->hba->dev, "%s deassert ufs_soft_rst failed, ret = %d!\n",
+				__func__, ret);
+		return -ENODEV;
+	}
 
 	ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
 	if ((ufshcd_readl(hba, REG_UFS_CCAP) & (1 << 27)))
@@ -286,11 +309,11 @@ out_variant_clear:
  * ufs_sprd_hw_init - controller enable and reset
  * @hba: host controller instance
  */
-void ufs_sprd_hw_init(struct ufs_hba *hba)
+int ufs_sprd_hw_init(struct ufs_hba *hba)
 {
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
-	ufs_sprd_reset(host);
+	return ufs_sprd_reset(host);
 }
 
 static void ufs_sprd_exit(struct ufs_hba *hba)
@@ -570,7 +593,11 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 	switch (status) {
 	case PRE_CHANGE:
 		/* Do hardware reset before host controller enable. */
-		ufs_sprd_hw_init(hba);
+		err = ufs_sprd_hw_init(hba);
+		if (err) {
+			dev_err(hba->dev, "%s: ufs hardware init failed!\n", __func__);
+			return err;
+		}
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 		ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
 		svc_handle = sprd_sip_svc_get_handle();
