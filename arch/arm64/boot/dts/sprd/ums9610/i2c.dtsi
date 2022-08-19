@@ -8,7 +8,7 @@
 
 &apahb {
 	i2c0: i2c@2240000 {
-		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
+		compatible = "sprd,qogirn6lite-i2c", "sprd,sc9860-i2c";
 		reg = <0x2240000 0x100>;
 		interrupts = <GIC_SPI 216 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
@@ -24,7 +24,7 @@
 	};
 
 	i2c1: i2c@2250000 {
-		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
+		compatible = "sprd,qogirn6lite-i2c", "sprd,sc9860-i2c";
 		reg = <0x2250000 0x100>;
 		interrupts = <GIC_SPI 215 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
@@ -40,7 +40,7 @@
 	};
 
 	i2c2: i2c@2260000 {
-		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
+		compatible = "sprd,qogirn6lite-i2c", "sprd,sc9860-i2c";
 		reg = <0x2260000 0x100>;
 		interrupts = <GIC_SPI 214 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
@@ -56,7 +56,7 @@
 	};
 
 	i2c3: i2c@2270000 {
-		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
+		compatible = "sprd,qogirn6lite-i2c", "sprd,sc9860-i2c";
 		reg = <0x2270000 0x100>;
 		interrupts = <GIC_SPI 213 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
@@ -72,7 +72,7 @@
 	};
 
 	i2c4: i2c@2280000 {
-		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
+		compatible = "sprd,qogirn6lite-i2c", "sprd,sc9860-i2c";
 		reg = <0x2280000 0x100>;
 		interrupts = <GIC_SPI 212 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
@@ -88,7 +88,7 @@
 	};
 
 	i2c5: i2c@2290000 {
-		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
+		compatible = "sprd,qogirn6lite-i2c", "sprd,sc9860-i2c";
 		reg = <0x2290000 0x100>;
 		interrupts = <GIC_SPI 211 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
@@ -104,7 +104,7 @@
 	};
 
 	i2c6: i2c@22a0000 {
-		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
+		compatible = "sprd,qogirn6lite-i2c", "sprd,sc9860-i2c";
 		reg = <0x22a0000 0x100>;
 		interrupts = <GIC_SPI 210 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
@@ -120,7 +120,7 @@
 	};
 
 	i2c7: i2c@22b0000 {
-		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
+		compatible = "sprd,qogirn6lite-i2c", "sprd,sc9860-i2c";
 		reg = <0x22b0000 0x100>;
 		interrupts = <GIC_SPI 209 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
@@ -136,7 +136,7 @@
 	};
 
 	i2c8: i2c@22c0000 {
-		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
+		compatible = "sprd,qogirn6lite-i2c", "sprd,sc9860-i2c";
 		reg = <0x22c0000 0x100>;
 		interrupts = <GIC_SPI 208 IRQ_TYPE_LEVEL_HIGH>;
 		clock-frequency = <400000>;
@@ -152,7 +152,7 @@
 	};
 
 	i2c9: i2c@22d0000 {
-		compatible = "sprd,qogirn6pro-i2c", "sprd,sc9860-i2c";
+		compatible = "sprd,qogirn6lite-i2c", "sprd,sc9860-i2c";
 		reg = <0x22d0000 0x100>;
 		interrupts = <GIC_SPI 207 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "enable", "i2c", "source";
