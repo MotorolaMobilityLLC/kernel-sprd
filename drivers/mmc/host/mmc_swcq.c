@@ -2182,6 +2182,7 @@ static void mmc_swcq_status(void *data, const struct blk_mq_queue_data *bd, int 
 
 	if (!queue_flag) {
 		blk_queue_flag_set(QUEUE_FLAG_SAME_FORCE, q);
+		q->limits.discard_granularity = card->pref_erase << 9;
 		queue_flag = true;
 	}
 
