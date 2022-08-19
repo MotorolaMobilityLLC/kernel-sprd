@@ -75,7 +75,6 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 	if (STAY_SLPING == (atomic_read(&(slp_mgr.cp2_state)))) {
 		ap_wakeup_cp();
 		if (is_ums9620) {
-		WCN_INFO("wait 20 is_ums9620 = %d\n", is_ums9620);
 			time_end = ktime_add_ms(ktime_get(), 20);//wakeup fail 10->20
 		}
 		else
