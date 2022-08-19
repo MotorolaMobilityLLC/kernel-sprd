@@ -12,6 +12,8 @@
 #include <linux/list.h>
 #include <uapi/drm/gsp_cfg.h>
 
+#define GSP_MAX_NUM 2
+
 struct gsp_buf {
 	size_t size;
 	struct dma_buf *dmabuf;
