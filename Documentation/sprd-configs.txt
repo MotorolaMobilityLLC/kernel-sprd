@@ -4770,8 +4770,8 @@ CONFIG_DETECT_HUNG_TASK
 	[missing plat description] none
 	[function] Detect hung task.
 CONFIG_DEVFREQ_GOV_PASSIVE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -4779,8 +4779,8 @@ CONFIG_DEVFREQ_GOV_PASSIVE
 	[missing plat description] none
 	[function]
 CONFIG_DEVFREQ_GOV_PERFORMANCE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -4788,8 +4788,8 @@ CONFIG_DEVFREQ_GOV_PERFORMANCE
 	[missing plat description] none
 	[function]
 CONFIG_DEVFREQ_GOV_POWERSAVE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -4806,8 +4806,8 @@ CONFIG_DEVFREQ_GOV_SIMPLE_ONDEMAND
 	[missing plat description] none
 	[function] Support gpu dfs/dvfs logic.
 CONFIG_DEVFREQ_GOV_SPRD_VOTE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -4815,8 +4815,8 @@ CONFIG_DEVFREQ_GOV_SPRD_VOTE
 	[missing plat description] none
 	[function] for DDR dfs governor
 CONFIG_DEVFREQ_GOV_USERSPACE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -4824,8 +4824,8 @@ CONFIG_DEVFREQ_GOV_USERSPACE
 	[missing plat description] none
 	[function]
 CONFIG_DEVFREQ_SPRD_DDR_DVFS
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -4833,8 +4833,8 @@ CONFIG_DEVFREQ_SPRD_DDR_DVFS
 	[missing plat description] none
 	[function] for DDR dfs governor
 CONFIG_DEVFREQ_SPRD_DDR_DVFS_SP
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -13975,8 +13975,8 @@ CONFIG_PM_DEVFREQ
 	[missing plat description] none
 	[function] Generic Dynamic Voltage and Frequency Scaling (DVFS) support
 CONFIG_PM_DEVFREQ_EVENT
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
