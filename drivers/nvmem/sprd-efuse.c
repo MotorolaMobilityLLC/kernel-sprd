@@ -111,6 +111,12 @@ static const struct sprd_efuse_variant_data qogirl6_data = {
 	.blk_double = false,
 };
 
+static const struct sprd_efuse_variant_data qogirn6lite_data = {
+	.blk_nums = 51,
+	.blk_offset = 53,
+	.blk_double = true,
+};
+
 /*
  * On Spreadtrum platform, we have multi-subsystems will access the unique
  * efuse controller, so we need one hardware spinlock to synchronize between
@@ -489,6 +495,7 @@ static const struct of_device_id sprd_efuse_of_match[] = {
 	{ .compatible = "sprd,pike2-efuse", .data = &pike2_data },
 	{ .compatible = "sprd,qogirn6pro-efuse", .data = &qogirn6pro_data },
 	{ .compatible = "sprd,qogirl6-efuse", .data = &qogirl6_data},
+	{ .compatible = "sprd,qogirn6lite-efuse", .data = &qogirn6lite_data },
 	{ }
 };
 
