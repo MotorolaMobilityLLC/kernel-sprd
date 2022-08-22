@@ -162,7 +162,6 @@ struct sensor_cali_store {
 struct sensor_info_t {
 	char name[20];
 	char vendor[20];
-	int32_t position;
 	int32_t version;
 	int32_t handle;
 	float maxrange;
