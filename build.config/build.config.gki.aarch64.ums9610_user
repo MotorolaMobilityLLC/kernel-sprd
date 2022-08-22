@@ -45,6 +45,9 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/codec/sprd/ucp1301
 ../modules/kernel5.15/audio/sprd/codec/sprd/pdm_r2p0
 ../modules/kernel5.15/audio/sprd/dai/tdm
+../modules/common/io/block
+../modules/common/io/iowait
+
 "
 DTC_FLAGS+="-@"
 
