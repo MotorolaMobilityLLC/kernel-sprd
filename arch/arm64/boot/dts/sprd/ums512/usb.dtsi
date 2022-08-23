@@ -26,7 +26,7 @@
 		clock-names = "core_clk";
 		usb-phy = <&hsphy>;
 		phy-names = "usb";
-		dr-mode = "peripheral";
+		dr_mode = "otg";
 		multipoint = "true";
 		wakeup-source;
 	};

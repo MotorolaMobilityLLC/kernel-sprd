@@ -1717,6 +1717,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	if (of_device_is_compatible(node, "sprd,sharkl5pro-musb")) {
 		struct musb *musb = glue->musb;
 
+		dev_info(glue->dev, "set fixup_ep0fifo for L5Pro\n");
 		musb->fixup_ep0fifo = 1;
 	}
 
