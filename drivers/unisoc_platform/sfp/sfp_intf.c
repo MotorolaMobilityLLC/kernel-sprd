@@ -29,6 +29,8 @@
 
 #define DEFAULT_BUFFER_PREFIX_OFFSET 14
 
+unsigned int sfp_stats_bytes;
+
 static void FP_PRT_PKT(int dbg_lvl, void *data, int outif, char *iface)
 {
 	void *l3hdhr;
@@ -378,6 +380,9 @@ static bool sfp_update_pkt_header(int ifindex,
 		FP_PRT_DBG(FP_PRT_DEBUG, "Unexpected IP protocol.\n");
 		return false;
 	}
+
+	sfp_stats_bytes += skb->len;
+
 	return true;
 }
 

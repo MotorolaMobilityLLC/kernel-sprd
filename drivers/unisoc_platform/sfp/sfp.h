@@ -20,6 +20,7 @@
 #include <linux/ip.h>
 #include <net/tcp.h>
 #include <net/udp.h>
+#include <net/genetlink.h>
 #include <linux/sipa.h>
 #include <linux/types.h>
 #include <linux/kern_levels.h>
@@ -42,6 +43,8 @@
 #define SFP_TCP_CT_WAITING (10 * HZ)
 
 #define SFP_IFACE_PREF "sfp"
+
+extern unsigned int sfp_stats_bytes;
 
 enum {
 	IP_L4_PROTO_NULL = 0,
@@ -242,6 +245,26 @@ struct sfp_conn {
 	struct timer_list timeout;
 	u32 ts;
 	int expire;
+};
+
+enum sfp_attrs {
+	SFP_A_UNSPEC,
+	SFP_A_FILTER,
+	SFP_A_STATS,
+	__SFP_A_MAX
+};
+
+#define SFP_A_MAX (__SFP_A_MAX - 1)
+
+enum sfp_commands {
+	__SFP_CMD_UNSPEC,
+	SFP_NL_CMD_APPEND,
+	SFP_NL_CMD_INSERT,
+	SFP_NL_CMD_DELETE,
+	SFP_NL_CMD_FLUSH,
+	SFP_NL_CMD_LIST,
+	SFP_NL_CMD_STATS,
+	SFP_CMD_MAX,
 };
 
 struct sfp_routing_info {
@@ -524,6 +547,9 @@ void sfp_ipa_init(void);
 int sysctl_sfp_init(void);
 void sysctl_sfp_exit(void);
 
+int sfp_netlink_init(void);
+void sfp_netlink_exit(void);
+
 int get_sfp_fwd_entry_count(struct sfp_mgr_fwd_tuple_hash *fwd_hash_entry);
 int delete_in_sfp_fwd_table(const struct sfp_mgr_fwd_tuple_hash *hash);
 void clear_sfp_fwd_table(void);
@@ -555,5 +581,4 @@ bool sfp_ipa_ipv6_check(const struct sk_buff *skb,
 struct device *sfp_get_ipa_dev(void);
 u32 hash_conntrack(const struct nf_conntrack_tuple *tuple);
 
-int sfp_test_init(int count);
 #endif

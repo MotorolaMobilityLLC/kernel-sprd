@@ -1161,6 +1161,7 @@ static int __init init_sfp_module(void)
 	}
 	sfp_proc_create();
 	nf_sfp_conntrack_init();
+	sfp_netlink_init();
 	sysctl_sfp_init();
 	if (sysctl_net_sfp_enable == 1)
 		sfp_mgr_proc_enable();
@@ -1172,6 +1173,7 @@ static void __exit exit_sfp_module(void)
 {
 	sfp_mgr_disable();
 	nfp_proc_exit();
+	sfp_netlink_exit();
 	sysctl_sfp_exit();
 	platform_driver_unregister(&sfp_ipa_plat_drv);
 }
