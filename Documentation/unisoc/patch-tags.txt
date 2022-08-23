@@ -133,6 +133,7 @@ media:platform:sprd-vpu:
 mfd:
 mfd:sprd:
 misc:audio:
+misc:sprd_uid:
 misc:vibrator:
 mm:
 mmc:core:
