@@ -81,6 +81,9 @@ static int audio_smem_init(u32 addr, u32 size)
 		return -1;
 	}
 
+	/* set the memory distribute algo to best fit */
+	gen_pool_set_algo(spool->gen, gen_pool_best_fit, NULL);
+
 	if (gen_pool_add(spool->gen, spool->addr, spool->size, -1) != 0) {
 		pr_err("Failed to add smem gen pool!\n");
 		gen_pool_destroy(spool->gen);
