@@ -16724,8 +16724,8 @@ CONFIG_SPRD_COMMON_CLK
 	[missing plat description] none
 	[function] This function is used to enable sprd common clock driver.
 CONFIG_SPRD_CORE_CTL
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make,code
 	[subsys] sched
@@ -16733,8 +16733,8 @@ CONFIG_SPRD_CORE_CTL
 	[missing plat description] none
 	[function] similar effect as hotplug but at lower latency cost
 CONFIG_SPRD_CORE_ISOLATION
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] make,code
 	[subsys] sched
@@ -17149,8 +17149,8 @@ CONFIG_SPRD_PTM
 	[missing plat description] none
 	[function] Support Spreadtrum PTM.
 CONFIG_SPRD_ROTATION_TASK
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
