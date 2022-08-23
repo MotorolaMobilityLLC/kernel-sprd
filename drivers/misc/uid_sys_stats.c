@@ -828,7 +828,7 @@ static int __init proc_uid_sys_stats_init(void)
 		&uid_io_fops, NULL);
 #ifdef CONFIG_UID_IO_DEBUG
 	init_waitqueue_head(&io_mintor_wait_queue);
-	io_mintor_thread = kthread_run(io_monitor_thread, NULL, "%s", "io_monitor run\n");
+	io_mintor_thread = kthread_run(io_monitor_thread, NULL, "%s", "io_monitor");
 	if (IS_ERR(io_mintor_thread)) {
 		pr_err("Creat io debug mintor fail: %ld\n", PTR_ERR(io_mintor_thread));
 	} else {
