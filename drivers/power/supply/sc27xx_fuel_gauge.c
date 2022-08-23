@@ -345,7 +345,7 @@ struct sc27xx_fgu_data {
 	int batt_ovp_threshold;
 	int index;
 	int ocv_uv;
-	int batt_uV;
+	int batt_mv;
 	int temp_buff[SC27XX_FGU_TEMP_BUFF_CNT];
 	int cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT];
 	bool dischg_trend[SC27XX_FGU_DISCHG_CNT];
@@ -877,9 +877,27 @@ static int sc27xx_fgu_temp2cap(struct power_supply_capacity_temp_table *table,
 	return capacity;
 }
 
+/* @val: value of battery voltage in mV*/
+static int sc27xx_fgu_get_vbat_now(struct sc27xx_fgu_data *data, int *val)
+{
+	int ret, vol_adc = 0;
+
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_VOLTAGE, &vol_adc);
+	if (ret)
+		return ret;
+
+	/*
+	* It is ADC values reading from registers which need to convert to
+	* corresponding voltage values.
+	*/
+	*val = sc27xx_fgu_adc2voltage(data, vol_adc);
+
+	return 0;
+}
+
 static void sc27xx_fgu_capacity_loss_by_temperature(struct sc27xx_fgu_data *data, int *cap)
 {
-	int temp_cap;
+	int temp_cap, ret;
 
 	if (data->cap_table_len > 0) {
 		temp_cap = sc27xx_fgu_temp2cap(data->cap_temp_table,
@@ -907,25 +925,18 @@ static void sc27xx_fgu_capacity_loss_by_temperature(struct sc27xx_fgu_data *data
 			dev_info(data->dev, "%s Capacity_temp > 1000, adjust !!!\n", __func__);
 			*cap = SC27XX_FGU_FCC_PERCENT;
 		}
+
+		if (*cap <= 5) {
+			ret =  sc27xx_fgu_get_vbat_now(data, &data->batt_mv);
+			if (ret) {
+				dev_err(data->dev, "get battery vol error.\n");
+				return;
+			}
+
+			if (data->batt_mv > SC27XX_FGU_LOW_VBAT_REC_REGION)
+				*cap = 5;
+		}
 	}
-}
-
-/* @val: value of battery voltage in mV*/
-static int sc27xx_fgu_get_vbat_now(struct sc27xx_fgu_data *data, int *val)
-{
-	int ret, vol_adc = 0;
-
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_VOLTAGE, &vol_adc);
-	if (ret)
-		return ret;
-
-	/*
-	 * It is ADC values reading from registers which need to convert to
-	 * corresponding voltage values.
-	 */
-	*val = sc27xx_fgu_adc2voltage(data, vol_adc);
-
-	return 0;
 }
 
 /* @val: average value of battery current in mA */
@@ -2875,9 +2886,9 @@ static const struct power_supply_desc sc27xx_fgu_desc = {
 
 static void sc27xx_fgu_adjust_uusoc_vbat(struct sc27xx_fgu_data *data)
 {
-	if (data->batt_uV >= SC27XX_FGU_LOW_VBAT_REC_REGION) {
+	if (data->batt_mv >= SC27XX_FGU_LOW_VBAT_REC_REGION) {
 		data->uusoc_vbat = 0;
-	} else if (data->batt_uV >= SC27XX_FGU_LOW_VBAT_REGION) {
+	} else if (data->batt_mv >= SC27XX_FGU_LOW_VBAT_REGION) {
 		if (data->uusoc_vbat >= 5)
 			data->uusoc_vbat -= 5;
 	}
@@ -2899,7 +2910,7 @@ static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data)
 		data->init_cap -= 5;
 		if (data->init_cap < 0)
 			data->init_cap = 0;
-	} else if (data->batt_uV < SC27XX_FGU_LOW_VBAT_REGION &&
+	} else if (data->batt_mv < SC27XX_FGU_LOW_VBAT_REGION &&
 		   data->normal_temp_cap > data->alarm_cap)
 		data->uusoc_vbat += 5;
 
@@ -3055,7 +3066,7 @@ static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool i
 
 	data->ocv_uv = ocv_mv * 1000;
 
-	ret =  sc27xx_fgu_get_vbat_now(data, &data->batt_uV);
+	ret =  sc27xx_fgu_get_vbat_now(data, &data->batt_mv);
 	if (ret) {
 		dev_err(data->dev, "get battery vol error.\n");
 		return;
