@@ -402,7 +402,7 @@
 #include "bm.dtsi"
 #include "cam.dtsi"
 #include "clock.dtsi"
-//#include "csi.dtsi"
+#include "csi.dtsi"
 #include "ddr-dfs.dtsi"
 #include "dispc.dtsi"
 #include "dma.dtsi"
