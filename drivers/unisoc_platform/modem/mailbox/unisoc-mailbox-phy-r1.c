@@ -216,7 +216,10 @@ static irqreturn_t sprd_mbox_phy_outbox_isr(int irq, void *data)
 	for (i = 0; i < fifo_len; i++) {
 		msg[0] = readl(base + SPRD_MBOX_MSG_LOW);
 		msg[1] = readl(base + SPRD_MBOX_MSG_HIGH);
-		id = readl(base + SPRD_MBOX_ID);
+		if (irq == priv->oob_irq)
+			id = priv->oob_id;
+		else
+			id = readl(base + SPRD_MBOX_ID);
 
 		chan = &priv->mbox.chans[id];
 		if (chan->cl)
