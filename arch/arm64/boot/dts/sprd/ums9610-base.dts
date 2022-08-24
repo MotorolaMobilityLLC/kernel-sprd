@@ -305,6 +305,46 @@
 &dphy {
 	status = "okay";
 };
+
+&isp {
+	status = "okay";
+};
+
+&iommu_isp {
+	status = "okay";
+};
+
+&dcam {
+	status = "okay";
+};
+
+&iommu_dcam {
+	status = "okay";
+};
+
+&dcam_lite {
+	status = "okay";
+};
+
+&iommu_dcam_lite {
+	status = "okay";
+};
+
+&cpp {
+	status = "okay";
+};
+
+&iommu_cpp {
+	status = "okay";
+};
+
+&iommu_fd {
+	status = "okay";
+};
+
+&cpp {
+	status = "okay";
+};
 /*
 &vpu_pd_top {
 	status = "okay";

@@ -19,7 +19,7 @@
 	};
 
 	iommu_dispc: iommu@31001800 {
-		compatible = "unisoc,iommuvaul6p-dispc";
+		compatible = "unisoc,iommuvaun6l-dispc";
 		reg = <0x0 0x31000000 0x0 0x80>,
 		      <0x0 0x31001800 0x0 0x80>;
 		iova-base = <0x10000000>;
@@ -49,7 +49,7 @@
 	};
 
 	iommu_gsp: iommu@31101000 {
-		compatible = "unisoc,iommuvaul6p-gsp";
+		compatible = "unisoc,iommuvaun6l-gsp";
 		reg = <0x0 0x31100000 0x0 0x80>,
 		      <0x0 0x31101000 0x0 0x80>;
 		iova-base = <0x20000000>;
