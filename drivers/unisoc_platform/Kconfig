@@ -30,7 +30,6 @@ config UNISOC_7SRESET
 
 # NOTE: Keep order __alphabetically__ PLEASE!! #
 
-source "drivers/unisoc_platform/audio/Kconfig"
 source "drivers/unisoc_platform/cpufreq/Kconfig"
 source "drivers/unisoc_platform/debug/Kconfig"
 source "drivers/unisoc_platform/debug_log/Kconfig"
