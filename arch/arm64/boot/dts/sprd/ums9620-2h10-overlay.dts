@@ -627,6 +627,14 @@
 	status = "disabled";
 };
 
+&vddsim0 {
+	status = "disabled";
+};
+
+&vddsim1 {
+	status = "disabled";
+};
+
 &avdd12 {
 	regulator-always-on;
 };
