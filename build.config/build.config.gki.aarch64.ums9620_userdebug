@@ -56,12 +56,14 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/dai/vbc/v4/vbc_dai
 ../modules/kernel5.15/audio/sprd/dai/vbc/v4/fe_dai
 ../modules/kernel5.15/audio/sprd/codec/dummy-codec
+../modules/kernel5.15/audio/sprd/codec/sprd/dp
 ../modules/kernel5.15/audio/sprd/codec/sprd/ump9620/codec
 ../modules/kernel5.15/audio/sprd/codec/sprd/ump9620/power
 ../modules/kernel5.15/audio/sprd/codec/sprd/ump9620/power_dev
 ../modules/kernel5.15/audio/sprd/codec/sprd/ucp1301
 ../modules/kernel5.15/audio/sprd/codec/sprd/pdm_r2p0
 ../modules/kernel5.15/audio/sprd/dai/tdm
+../modules/kernel5.15/audio/sprd/dai/sprd_dai
 "
 #camera module version config
 export BSP_BOARD_CAMERA_MODULE_ISP_VERSION="isp2.6"
