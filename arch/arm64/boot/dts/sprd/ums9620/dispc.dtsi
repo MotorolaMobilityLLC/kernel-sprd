@@ -29,7 +29,7 @@
 		#iommu-cells = <0>;
 	};
 
-	gsp_core0: gsp@31100000 {
+	gsp0_core0: gsp@31100000 {
 		compatible = "sprd,gsp-core";
 		reg = <0 0x31100000 0 0x2000>;
 		core-id = <0>;
@@ -38,9 +38,9 @@
 		iommus = <&iommu_gsp>;
 
 		clock-names = "clk_src_512m",
-			      "clk_gsp_eb",
+			      "clk_gsp0_eb",
 			      "clk_dpuvsp_eb",
-			      "clk_gsp";
+			      "clk_gsp0";
 
 		clocks = <&g5l_pll CLK_TGPLL_512M>,
 			 <&dpu_vsp_gate CLK_GSP0_EB>,
@@ -55,6 +55,36 @@
 		reg = <0x0 0x31100000 0x0 0x80>,
 		      <0x0 0x31101000 0x0 0x80>;
 		iova-base = <0x20000000>;
+		iova-size = <0x10000000>;
+		reg_name = "mmu_reg";
+		status = "disabled";
+		#iommu-cells = <0>;
+	};
+
+	gsp1_core0: gsp@31200000 {
+		compatible = "sprd,gsp-core";
+		reg = <0 0x31200000 0 0x2000>;
+		core-id = <0>;
+		kcfg-num = <16>;
+		interrupts = <GIC_SPI 150 IRQ_TYPE_LEVEL_HIGH>;
+		iommus = <&iommu_gsp1>;
+
+		clock-names = "clk_src_512m",
+			      "clk_gsp1_eb",
+			      "clk_dpuvsp_eb",
+			      "clk_gsp1";
+
+		clocks = <&g5l_pll CLK_TGPLL_512M>,
+		         <&dpu_vsp_gate CLK_GSP1_EB>,
+			 <&aonapb_gate CLK_DPU_VSP_EB>,
+			 <&dpu_vsp_clk CLK_GSP1>;
+	};
+
+	iommu_gsp1: iommu@31200000 {
+		compatible = "unisoc,iommuvaul6p-gsp1";
+		reg = <0x0 0x31200000 0x0 0x80>,
+		      <0x0 0x31201000 0x0 0x80>;
+		iova-base = <0x40000000>;
 		iova-size = <0x10000000>;
 		reg_name = "mmu_reg";
 		status = "disabled";
@@ -209,22 +239,33 @@
 };
 
 / {
-	gsp: sprd-gsp {
+	gsp0: sprd-gsp0@31100000 {
 		compatible = "sprd,gsp-r9p0-qogirn6pro";
 		reg = <0 0x30130000 0 0x300>;
-		name = "sprd-gsp";
+		name = "sprd-gsp0";
 		core-cnt = <1>;
 		io-cnt = <7>;
-		cores = <&gsp_core0>;
+		cores = <&gsp0_core0>;
 
-		//#power-domain-cells = <0>;
-		//power-domains = <&vpu_pd_top>;
+		#power-domain-cells = <0>;
+		power-domains = <&vpu_pd_top>;
+	};
+
+	gsp1: sprd-gsp1@31200000 {
+		compatible = "sprd,gsp-lite-r4p0-qogirn6pro";
+		name = "sprd-gsp1";
+		core-cnt = <1>;
+		io-cnt = <7>;
+		cores = <&gsp1_core0>;
+
+		#power-domain-cells = <0>;
+		power-domains = <&vpu_pd_top>;
 	};
 
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>, <&dpu1_port>;
-		gsp = <&gsp>;
+		gsp = <&gsp0>, <&gsp1>;
 	};
 };
 
