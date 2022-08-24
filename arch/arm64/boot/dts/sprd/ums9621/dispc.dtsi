@@ -128,7 +128,7 @@
 
 / {
 	gsp: sprd-gsp {
-		compatible = "sprd,gsp-r9p0-qogirn6pro";
+		compatible = "sprd,gsp-r9p0-qogirn6l";
 		reg = <0 0x30130000 0 0x300>;
 		name = "sprd-gsp";
 		core-cnt = <1>;
