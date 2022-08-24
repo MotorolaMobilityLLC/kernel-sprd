@@ -42,7 +42,7 @@
 	};
 
 	iommu_jpg: iommu@36000300 {
-		compatible = "unisoc,iommuvaul6p-jpg";
+		compatible = "unisoc,iommuvaun6l-jpg";
 		reg = <0x0 0x36000000 0x0 0x300>,
 			<0x0 0x36000300 0x0 0x80>;
 		iova-base = <0x60000000>;

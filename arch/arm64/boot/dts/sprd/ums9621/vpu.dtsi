@@ -104,7 +104,7 @@
 	};
 
 	iommu_vpuenc0: iommu@32000000 {
-		compatible = "unisoc,iommuvaul6p-vsp1";
+		compatible = "unisoc,iommuvaun6l-vsp1";
 		reg = <0x0 0x32000000 0x0 0x80>,
 			  <0x0 0x32000000 0x0 0x80>;
 		iova-base = <0x20000000>;
@@ -156,7 +156,7 @@
 	};
 
 	iommu_vpudec: iommu@32200000 {
-		compatible = "unisoc,iommuvaul6p-vsp";
+		compatible = "unisoc,iommuvaun6l-vsp";
 		reg = <0x0 0x32200000 0x0 0x80>,
 			  <0x0 0x32200000 0x0 0x80>;
 		iova-base = <0x20000000>;
