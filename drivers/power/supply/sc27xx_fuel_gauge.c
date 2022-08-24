@@ -3084,6 +3084,11 @@ static void sc27xx_fgu_capacity_calibration(struct sc27xx_fgu_data *data, bool i
 		return;
 	}
 
+	if (!data->cap_table) {
+		dev_info(data->dev, "%s: cap_table allocate not ready\n", __func__);
+		return;
+	}
+
 	sc27xx_fgu_low_capacity_match_ocv(data);
 
 	if (data->ocv_uv <= data->min_volt_uv) {
