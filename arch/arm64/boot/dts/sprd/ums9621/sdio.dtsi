@@ -60,8 +60,8 @@
 &sdio0 {
 	sprd,phy-delay-sd-uhs-sdr104 = <0x0 0xc3 0xca 0xca>;
 	sprd,phy-delay-sd-uhs-sdr50 = <0x0 0x7f 0x4d 0x4d>;
-	sprd,phy-delay-sd-highspeed = <0x0 0x7f 0x7f 0x7f>;
-	sprd,phy-delay-legacy = <0x7f 0x7f 0x7f 0x7f>;
+	sprd,phy-delay-sd-highspeed = <0x7f 0x43 0x43 0x43>;
+	sprd,phy-delay-legacy = <0x0 0x0 0x0 0x0>;
 	vmmc-supply = <&vddsdcore>;
 	vqmmc-supply = <&vddsdio>;
 	voltage-ranges = <3000 3000>;
@@ -72,10 +72,12 @@
 	sprd,sdio-adma;
 	no-sdio;
 	no-mmc;
-	status = "disabled";
+	status = "okay";
 };
 
 &sdio1 {
+	sprd,phy-delay-sd-uhs-sdr104 = <0x0 0x7f 0x7d 0x7d>;
+	sprd,phy-delay-sd-uhs-sdr50 = <0x0 0xbf 0xc1 0xc1>;
 	bus-width = <4>;
 	sd-uhs-sdr104;
 	sd-uhs-sdr50;
@@ -83,16 +85,28 @@
 	sprd,sdio-adma;
 	no-sd;
 	no-mmc;
-	status = "disabled";
+	status = "okay";
 };
 
 &sdio3 {
+	sprd,phy-delay-mmc-hs400es = <0x3f 0x40 0x3f 0x3f>;
+	sprd,phy-delay-mmc-hs400 = <0x45 0x35 0x45 0x45>;
+	sprd,phy-delay-mmc-hs200 = <0x7f 0x70 0x60 0x60>;
+	sprd,phy-delay-mmc-ddr52 = <0x7f 0x7f 0xbf 0xbf>;
+	sprd,phy-delay-mmc-highspeed = <0x3f 0x40 0x3f 0x3f>;
+	vmmc-supply = <&vddemmccore>;
+	voltage-ranges = <3000 3000>;
 	bus-width = <8>;
 	non-removable;
 	cap-mmc-hw-reset;
+	mmc-hs400-enhanced-strobe;
+	mmc-hs400-1_8v;
+	mmc-hs200-1_8v;
+	mmc-ddr-1_8v;
 	sprd,name = "sdio_emmc";
 	sprd,sdio-adma;
 	no-sdio;
 	no-sd;
 	status = "okay";
+	//supports-swcq;
 };
