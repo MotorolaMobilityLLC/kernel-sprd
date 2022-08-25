@@ -18788,8 +18788,8 @@ CONFIG_UNISOC_MAILBOX_R1
 	[missing plat description] none
 	[function]
 CONFIG_UNISOC_MAPUSER
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
