@@ -964,7 +964,7 @@ int sc2355_tx_cmd_pop_list(int channel, struct mbuf_t *head,
 	struct tx_mgmt *tx_mgmt;
 	struct sprd_msg *pos_buf, *temp_buf;
 
-	pr_debug("%s yuanjiang x channel: %d, head: %p, tail: %p num: %d\n",
+	pr_debug("%s channel: %d, head: %p, tail: %p num: %d\n",
 		 __func__, channel, head, tail, num);
 
 	tx_mgmt = (struct tx_mgmt *)hif->tx_mgmt;

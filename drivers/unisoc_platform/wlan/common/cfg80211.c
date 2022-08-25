@@ -126,8 +126,10 @@ static void cfg80211_do_work(struct work_struct *work)
 		spin_unlock_bh(&priv->work_lock);
 
 		vif = sprd_work->vif;
-		netdev_dbg(vif->ndev, "process delayed work: %d\n",
-			   sprd_work->id);
+		if (vif)
+			netdev_dbg(vif->ndev, "process delayed work: %d\n", sprd_work->id);
+		else
+			pr_debug("process delayed work: %d\n", sprd_work->id);
 
 		switch (sprd_work->id) {
 		case SPRD_WORK_REG_MGMT:
