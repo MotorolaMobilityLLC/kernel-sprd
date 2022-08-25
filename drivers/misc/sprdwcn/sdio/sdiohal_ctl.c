@@ -239,8 +239,6 @@ static int sdiohal_throughput_tx(void)
 	int buf_len = tp_tx_buf_len;
 	int ret = 0;
 
-	mutex_lock(&tp_tx_buf_mux);
-
 	if (!sprdwcn_bus_list_alloc(AT_TX_CHANNEL,
 				    &head, &tail, &tx_debug_num)) {
 		if (tx_debug_num >= tp_tx_buf_cnt) {
@@ -268,8 +266,6 @@ static int sdiohal_throughput_tx(void)
 
 		return -ENOMEM;
 	}
-
-	mutex_unlock(&tp_tx_buf_mux);
 
 	return -ENOMEM;
 }
@@ -963,6 +959,7 @@ static ssize_t at_cmd_write(struct file *filp,
 
 	/* sdio throughput test */
 	if (strstr((buf + PUB_HEAD_RSV), "tp")) {
+		mutex_lock(&tp_tx_buf_mux);
 		sdiohal_find_num(buf + PUB_HEAD_RSV,
 			&tp_tx_buf_cnt, &tp_tx_buf_len);
 		WCN_INFO("%s buf_cnt=%d buf_len=%d\n",
@@ -972,9 +969,9 @@ static ssize_t at_cmd_write(struct file *filp,
 		do_gettimeofday(&tp_tx_start_time);
 		if ((tp_tx_buf_cnt <= TP_TX_BUF_CNT) &&
 			(tp_tx_buf_len <= TP_TX_BUF_LEN)) {
-			sprdwcn_bus_chn_deinit(&at_tx_ops);
+			//sprdwcn_bus_chn_deinit(&at_tx_ops);
 			at_tx_ops.pool_size = TP_TX_POOL_SIZE;
-			sprdwcn_bus_chn_init(&at_tx_ops);
+			//sprdwcn_bus_chn_init(&at_tx_ops);
 #if TCP_TEST_RX
 			sdiohal_launch_tp_tx_thread();
 #endif
@@ -989,6 +986,7 @@ static ssize_t at_cmd_write(struct file *filp,
 		} else
 			WCN_INFO("%s buf_cnt or buf_len false!!\n",
 				 __func__);
+		mutex_unlock(&tp_tx_buf_mux);
 		return count;
 	} else if (strstr((buf + PUB_HEAD_RSV), "tp_test_rx")) {
 		sdiohal_throughput_rx();
