@@ -143,19 +143,6 @@
 #define CLK_UFS_CFG_EB		22
 #define CLK_AP_AHB_GATE_NUM	(CLK_UFS_CFG_EB + 1)
 
-#define CLK_USB_EB		0
-#define CLK_USB_SUSPEND_EB	1
-#define CLK_USB_REF_EB		2
-#define CLK_PAM_USB_EB		3
-#define CLK_PAM_WIFI_EB		4
-#define CLK_IPAAPB_GATE_NUM	(CLK_PAM_WIFI_EB + 1)
-
-#define CLK_IPA_EB			0
-#define CLK_TFT_EB			1
-#define CLK_IPA_ACCESS_PHYCP_EN		2
-#define CLK_IPA_ACCESS_PSCP_EN		3
-#define CLK_IPAGLB_GATE_NUM		(CLK_IPA_ACCESS_PSCP_EN + 1)
-
 #define CLK_AP_APB		0
 #define CLK_AP_AXI		1
 #define CLK_AP2EMC		2
