@@ -4605,6 +4605,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		try_wireless_charger_enable(cm, false);
 		cm_enable_fixed_fchg_handshake(cm, false);
 		try_charger_enable(cm, false);
+		cm->charger_enabled = false;
 		cm_set_charger_present(cm, false);
 		cancel_delayed_work_sync(&cm_monitor_work);
 		cancel_delayed_work_sync(&cm->cp_work);
