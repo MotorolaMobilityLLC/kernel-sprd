@@ -210,34 +210,12 @@
 		compatible = "sprd,ums9621-glbregs", "syscon", "simple-mfd";
 		#syscon-cells = <2>;
 		reg = <0 0x25000000 0 0x3000>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		ranges = <0 0 0x25000000 0x3000>;
-		ipaapb_gate: ipaapb-gate {
-			compatible = "sprd,ums9621-ipaapb-gate";
-			reg = <0x0 0x3000>;
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
-			#clock-cells = <1>;
-			#reset-cells = <1>;
-		};
 	};
 
 	ipa_glb_regs: syscon@25240000 {
 		compatible = "sprd,ums9621-glbregs", "syscon", "simple-mfd";
 		#syscon-cells = <2>;
 		reg = <0 0x25240000 0 0x3000>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		ranges = <0 0 0x25240000 0x3000>;
-		ipaglb_gate: clock-controller@25240000 {
-			compatible = "sprd,ums9621-ipaglb-gate";
-			reg = <0x0 0x3000>;
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
-			#clock-cells = <1>;
-			#reset-cells = <1>;
-		};
 	};
 
 	gpu_apb_regs: syscon@23000000 {
