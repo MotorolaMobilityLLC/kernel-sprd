@@ -15,7 +15,9 @@
 #include <linux/suspend.h>
 
 #include <linux/sched.h>
+#include <linux/kthread.h>
 #include <linux/cpumask.h>
+#include <uapi/linux/sched/types.h>
 
 #include <linux/cpu.h>
 #include <linux/platform_device.h>
@@ -102,8 +104,7 @@ struct cpu_power_ops {
 
 	u32 (*get_sensor_count_p)(int cooling_id);
 
-	int (*get_min_temp_unisolated_core_p)(int cooling_id, int cpu,
-					      int *temp);
+	int (*get_min_temp_unisolated_core_p)(int cooling_id, int cpu, int *temp);
 
 	int (*get_min_temp_isolated_core_p)(int cooling_id, int cpu, int *temp);
 
@@ -123,6 +124,7 @@ struct cpu_cooling_device {
 	int cycle;
 	int min_cpus;
 	int nsensor;
+	int update_flag;
 	unsigned int total;
 	unsigned int level;
 	unsigned int run_cpus;
@@ -130,13 +132,16 @@ struct cpu_cooling_device {
 	unsigned int power;
 	unsigned int cur_freq;
 	unsigned int min_freq;
+	unsigned int max_freq;
 	unsigned int total_freq;
 	unsigned int max_temp;
+	unsigned long target_state;
 	struct cpumask allowed_cpus;
 	struct run_cpus_table *table;
 	struct thermal_cooling_device *cdev;
 	struct cpu_power_ops *power_ops;
 	struct cpumask idle_cpus;
+	struct task_struct *update_thread;
 };
 
 static int (*cpu_isolate_fun)(struct cpumask *mask, int type);
@@ -165,7 +170,7 @@ static int get_cluster_id(int cpu)
 }
 
 static unsigned int get_level(struct cpu_cooling_device *cpu_cdev,
-			       unsigned int cpus)
+			 	unsigned int cpus)
 {
 	struct run_cpus_table *table = cpu_cdev->table;
 	unsigned int level;
@@ -202,7 +207,7 @@ static int cpu_get_static_power(struct cpu_cooling_device *cpu_cdev,
 	opp = dev_pm_opp_find_freq_exact(dev, freq_hz, true);
 	if (IS_ERR(opp)) {
 		dev_warn_ratelimited(dev, "Failed to find OPP for frequency %lu: %ld\n",
-				     freq_hz, PTR_ERR(opp));
+					freq_hz, PTR_ERR(opp));
 		return -EINVAL;
 	}
 
@@ -211,7 +216,7 @@ static int cpu_get_static_power(struct cpu_cooling_device *cpu_cdev,
 
 	if (voltage == 0) {
 		dev_err_ratelimited(dev, "Failed to get voltage for frequency %lu\n",
-				    freq_hz);
+					freq_hz);
 		return -EINVAL;
 	}
 
@@ -249,13 +254,12 @@ static int cpu_get_cur_state(struct thermal_cooling_device *cdev,
 	return 0;
 }
 
-static int cpu_down_cpus(struct thermal_cooling_device *cdev,
-			       u32 cur_cpus, u32 target_cpus)
+static int cpu_down_cpus(struct cpu_cooling_device *cpu_cdev,
+			u32 cur_cpus, u32 target_cpus)
 {
 	int ret;
 	u32 cpu, first, ncpus;
 	struct cpumask mask;
-	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 
 	first = cpumask_first(&cpu_cdev->allowed_cpus);
 	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
@@ -296,13 +300,12 @@ static int cpu_down_cpus(struct thermal_cooling_device *cdev,
 	return 0;
 }
 
-static int cpu_up_cpus(struct thermal_cooling_device *cdev,
-			       u32 cur_cpus, u32 target_cpus)
+static int cpu_up_cpus(struct cpu_cooling_device *cpu_cdev,
+			u32 cur_cpus, u32 target_cpus)
 {
 	int ret;
 	u32 cpu, first, ncpus;
 	struct cpumask mask;
-	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 
 	first = cpumask_first(&cpu_cdev->allowed_cpus);
 	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
@@ -315,11 +318,9 @@ static int cpu_up_cpus(struct thermal_cooling_device *cdev,
 			if (cur_cpus == target_cpus)
 				break;
 			if ((target_cpus > cur_cpus) &&
-			    cpu_online(cpu) && cpu_isolated_fun(cpu)) {
+				cpu_online(cpu) && cpu_isolated_fun(cpu)) {
 				cpumask_set_cpu(cpu, &mask);
-				cpumask_clear_cpu(cpu,
-						  &cpu_cdev->idle_cpus
-						  );
+				cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
 				cur_cpus++;
 			}
 		}
@@ -338,9 +339,7 @@ static int cpu_up_cpus(struct thermal_cooling_device *cdev,
 			if ((target_cpus > cur_cpus) && !cpu_online(cpu)) {
 				ret = add_cpu(cpu);
 				if (!ret && cpu_online(cpu)) {
-					cpumask_clear_cpu(cpu,
-							  &cpu_cdev->idle_cpus
-							  );
+					cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
 					cur_cpus++;
 				}
 			}
@@ -350,29 +349,44 @@ static int cpu_up_cpus(struct thermal_cooling_device *cdev,
 	return 0;
 }
 
-static void cpu_update_target_cpus(struct thermal_cooling_device *cdev,
-				   unsigned long state)
+static void cpu_update_target_cpus(struct cpu_cooling_device *cpu_cdev)
 {
 	u32 cur_run_cpus, next_run_cpus;
 	struct cpumask run_cpus;
-	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
+	unsigned long state;
+
+	state = cpu_cdev->target_state;
 
 	cpumask_andnot(&run_cpus, &cpu_cdev->allowed_cpus,
-		       &cpu_cdev->idle_cpus);
+			&cpu_cdev->idle_cpus);
 	cpu_cdev->run_cpus = cpumask_weight(&run_cpus);
 	cur_run_cpus = cpu_cdev->run_cpus;
 	next_run_cpus = cpu_cdev->table[state].cpus;
 
 	if (cur_run_cpus > next_run_cpus)
-		cpu_down_cpus(cdev, cur_run_cpus, next_run_cpus);
+		cpu_down_cpus(cpu_cdev, cur_run_cpus, next_run_cpus);
 	else
-		cpu_up_cpus(cdev, cur_run_cpus, next_run_cpus);
+		cpu_up_cpus(cpu_cdev, cur_run_cpus, next_run_cpus);
 
 	cpumask_andnot(&run_cpus, &cpu_cdev->allowed_cpus,
-		       &cpu_cdev->idle_cpus);
+			&cpu_cdev->idle_cpus);
 	cpu_cdev->run_cpus = cpumask_weight(&run_cpus);
 	cpu_cdev->level = get_level(cpu_cdev, cpu_cdev->run_cpus);
 
+}
+
+static int cpu_cdev_update_task_fn(void *data)
+{
+	struct cpu_cooling_device *cpu_cdev = data;
+
+	do {
+		cpu_update_target_cpus(cpu_cdev);
+		set_current_state(TASK_INTERRUPTIBLE);
+		cpu_cdev->update_flag = 0;
+		schedule();
+	} while (!kthread_should_stop());
+
+	return 0;
 }
 
 static int cpu_set_cur_state(struct thermal_cooling_device *cdev,
@@ -388,7 +402,10 @@ static int cpu_set_cur_state(struct thermal_cooling_device *cdev,
 	if (cpu_cdev->level == state)
 		return 0;
 
-	cpu_update_target_cpus(cdev, state);
+	cpu_cdev->target_state = state;
+	cpu_cdev->update_flag = 1;
+
+	wake_up_process(cpu_cdev->update_thread);
 
 	return 0;
 }
@@ -405,8 +422,13 @@ static int cpu_get_requested_power(struct thermal_cooling_device *cdev,
 
 	cpumask_and(&temp_mask, &cpu_cdev->allowed_cpus, cpu_online_mask);
 	cpu = cpumask_any(&temp_mask);
-	if (cpu >= nr_cpu_ids)
+	if (cpu >= nr_cpu_ids) {
+		freq = cpu_cdev->max_freq ? cpu_cdev->max_freq : cpu_cdev->cur_freq;
+		ret = cpu_get_static_power(cpu_cdev, freq, &static_power, 1);
+		if (ret)
+			static_power = cpu_cdev->power;
 		goto out;
+	}
 
 	freq = cpufreq_quick_get_max(cpu);
 	ret = cpu_get_static_power(cpu_cdev, freq, &static_power, 1);
@@ -448,7 +470,7 @@ static int cpu_power2state(struct thermal_cooling_device *cdev, u32 power,
 	u32 static_power;
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 
-	if (!cpu_cdev->cycle) {
+	if (!cpu_cdev->cycle || cpu_cdev->update_flag) {
 		*state = get_level(cpu_cdev, cpu_cdev->run_cpus);
 		return 0;
 	}
@@ -492,7 +514,7 @@ static int cpu_power2state(struct thermal_cooling_device *cdev, u32 power,
 
 	cpus = max(cpus, cpu_cdev->min_cpus);
 	if (cpus < cpu_cdev->run_cpus) {
-		if (avg_freq > cpu_cdev->min_freq)  {
+		if (avg_freq > cpu_cdev->min_freq) {
 			*state = get_level(cpu_cdev, cpu_cdev->run_cpus);
 			return 0;
 		} else if (cpu_tz->temperature < cpu_cdev->max_temp) {
@@ -530,6 +552,8 @@ cpu_cooling_register(struct device_node *np,
 	unsigned int i, num_cpus;
 	int ret, id;
 	struct thermal_cooling_device_ops *cooling_ops;
+	struct sched_param params = { .sched_priority = MAX_RT_PRIO-2 };
+	struct task_struct *thread;
 
 	if (!np)
 		return ERR_PTR(-EINVAL);
@@ -598,7 +622,7 @@ cpu_cooling_register(struct device_node *np,
 
 	cooling_ops = &cpu_power_cooling_ops;
 	cdev = thermal_of_cooling_device_register(np, dev_name, cpu_cdev,
-						  cooling_ops);
+						cooling_ops);
 	if (IS_ERR(cdev))
 		goto remove_ida;
 
@@ -610,6 +634,24 @@ cpu_cooling_register(struct device_node *np,
 	cpu_cdev->run_cpus = cpu_cdev->table[0].cpus;
 	cpu_cdev->level = 0;
 	cpu_cdev->cdev = cdev;
+	cpu_cdev->target_state = 0;
+	cpu_cdev->update_flag = 0;
+	cpu_cdev->max_freq = cpufreq_quick_get_max(cpumask_any(&cpu_cdev->allowed_cpus));
+
+	thread = kthread_create(cpu_cdev_update_task_fn, (void *)cpu_cdev,
+				"cpu_cdev%d_update", cpu_cdev->id);
+	if (IS_ERR(thread)) {
+		pr_err("Failed to create update thread\n");
+		goto remove_ida;
+	}
+
+	ret = sched_setscheduler_nocheck(thread, SCHED_FIFO, &params);
+	if (ret) {
+		kthread_stop(thread);
+		goto remove_ida;
+	}
+
+	cpu_cdev->update_thread = thread;
 
 	return cdev;
 
@@ -622,7 +664,7 @@ cpu_cdev:
 	return cdev;
 }
 
-static int  cpu_cooling_unregister(struct thermal_cooling_device *cdev)
+static int cpu_cooling_unregister(struct thermal_cooling_device *cdev)
 {
 	struct cpu_cooling_device *cpu_cdev;
 
@@ -631,6 +673,7 @@ static int  cpu_cooling_unregister(struct thermal_cooling_device *cdev)
 
 	cpu_cdev = cdev->devdata;
 	cpu_set_cur_state(cdev, 0);
+	kthread_stop(cpu_cdev->update_thread);
 	thermal_cooling_device_unregister(cpu_cdev->cdev);
 	ida_simple_remove(&cpu_ida, cpu_cdev->id);
 	kfree(cpu_cdev->table);
@@ -718,7 +761,7 @@ static int sprd_cpu_remove_attr(struct device *dev)
  * @x:	first multiplicand
  * @y:	second multiplicand
  *
- * Return: the result of multiplying two fixed-point numbers.  The
+ * Return: the result of multiplying two fixed-point numbers. The
  * result is also a fixed-point number.
  */
 static inline s64 mul_frac(s64 x, s64 y)
@@ -727,13 +770,13 @@ static inline s64 mul_frac(s64 x, s64 y)
 	return frac_to_int(x * y);
 }
 
-/* return (leak * 100)  */
+/* return (leak * 100) */
 static int get_cpu_static_power_coeff(int cluster_id)
 {
 	return cluster_data[cluster_id].leak_core_base;
 }
 
-/* return (leak * 100)  */
+/* return (leak * 100) */
 static int get_cache_static_power_coeff(int cluster_id)
 {
 	return cluster_data[cluster_id].leak_cluster_base;
@@ -977,7 +1020,7 @@ static u64 get_cluster_voltage_scale(int cluster_id, unsigned long u_volt)
 		&cluster_data[cluster_id].cluster_voltage_scale;
 
 	/* In order to ensure accuracy of data and data does not overflow.
-	 * exam: cubic = eV^3 = e * mV^3 * 10^(-9)  For return Vscale * 1000,
+	 * exam: cubic = eV^3 = e * mV^3 * 10^(-9) For return Vscale * 1000,
 	 * we use div 10^6.Because of parameter 'e' is bigger(10^2) than nomal
 	 * In the last divided by 10^2.
 	 */
@@ -1013,7 +1056,7 @@ static u64 get_core_voltage_scale(int cluster_id, unsigned long u_volt)
 		&cluster_data[cluster_id].core_voltage_scale;
 
 	/* In order to ensure accuracy of data and data does not overflow.
-	 * exam: cubic = eV^3 = e * mV^3 * 10^(-9)  For return Vscale * 1000,
+	 * exam: cubic = eV^3 = e * mV^3 * 10^(-9) For return Vscale * 1000,
 	 * we use div 10^6.Because of parameter 'e' is bigger(10^2) than nomal
 	 * In the last divided by 10^2.
 	 */
