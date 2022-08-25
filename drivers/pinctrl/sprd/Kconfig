@@ -43,3 +43,11 @@ config PINCTRL_SPRD_QOGIRL6PRO
 	select PINCTRL_SPRD
 	help
 	  Say Y here to enable Spreadtrum qogirl6pro pinctrl driver
+
+config PINCTRL_SPRD_QOGIRN6LITE
+	tristate "Spreadtrum qogirn6lite pinctrl driver"
+	depends on OF
+	depends on ARCH_SPRD || COMPILE_TEST
+	select PINCTRL_SPRD
+	help
+	  Say Y here to enable Spreadtrum qogirn6lite pinctrl driver
