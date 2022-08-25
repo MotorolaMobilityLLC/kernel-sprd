@@ -863,102 +863,6 @@ static struct sprd_clk_desc ums9621_apahb_gate_desc = {
 	.num_resets	= ARRAY_SIZE(ums9621_ap_ahb_resets),
 };
 
-/* ipa apb gate clocks */
-/* ipa apb related gate clocks configure CLK_IGNORE_UNUSED because their
- * power domain may be shut down, and they are controlled by related module.
- */
-static SPRD_SC_GATE_CLK_FW_NAME(usb_eb, "usb-eb", "ext-26m", 0x4,
-			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK_FW_NAME(usb_suspend_eb, "usb-suspend-eb", "ext-26m", 0x4,
-			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK_FW_NAME(usb_ref_eb, "usb-ref-eb", "ext-26m", 0x4,
-			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK_FW_NAME(pam_usb_eb, "pam-usb-eb", "ext-26m", 0x4,
-			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK_FW_NAME(pam_wifi_eb, "pam-wifi-eb", "ext-26m", 0x4,
-			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
-
-static struct sprd_clk_common *ums9621_ipaapb_gate[] = {
-	/* address base is 0x25000000 */
-	&usb_eb.common,
-	&usb_suspend_eb.common,
-	&usb_ref_eb.common,
-	&pam_usb_eb.common,
-	&pam_wifi_eb.common,
-};
-
-static struct clk_hw_onecell_data ums9621_ipaapb_gate_hws = {
-	.hws	= {
-		[CLK_USB_EB]		= &usb_eb.common.hw,
-		[CLK_USB_SUSPEND_EB]	= &usb_suspend_eb.common.hw,
-		[CLK_USB_REF_EB]	= &usb_ref_eb.common.hw,
-		[CLK_PAM_USB_EB]	= &pam_usb_eb.common.hw,
-		[CLK_PAM_WIFI_EB]	= &pam_wifi_eb.common.hw,
-	},
-	.num	= CLK_IPAAPB_GATE_NUM,
-};
-
-static struct sprd_reset_map ums9621_ipa_apb_resets[] = {
-	[RESET_IPA_APB_USB_SOFT_RST]			= { 0x0000, BIT(0), 0x1000 },
-	[RESET_IPA_APB_PAM_U3_SOFT_RST]			= { 0x0000, BIT(1), 0x1000 },
-	[RESET_IPA_APB_NIC_400_CFG_SOFT_RST]		= { 0x0000, BIT(2), 0x1000 },
-	[RESET_IPA_APB_PAM_WIFI_SOFT_RST]		= { 0x0000, BIT(3), 0x1000 },
-	[RESET_IPA_APB_BUSMON_PERF_PAM_U3_SOFT_RST]	= { 0x0000, BIT(7), 0x1000 },
-	[RESET_IPA_APB_BUSMON_PERF_UPA_WIFI_SOFT_RST]	= { 0x0000, BIT(8), 0x1000 },
-	[RESET_IPA_APB_BUSMON_PERF_IPA_M0_SOFT_RST]	= { 0x0000, BIT(9), 0x1000 },
-};
-
-static struct sprd_clk_desc ums9621_ipaapb_gate_desc = {
-	.clk_clks	= ums9621_ipaapb_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9621_ipaapb_gate),
-	.hw_clks	= &ums9621_ipaapb_gate_hws,
-	.resets		= ums9621_ipa_apb_resets,
-	.num_resets	= ARRAY_SIZE(ums9621_ipa_apb_resets),
-};
-
-/* ipa glb gate clocks*/
-/* ipa glb related gate clocks configure CLK_IGNORE_UNUSED because their
- * power domain may be shut down, and they are controlled by related module.
- */
-static SPRD_SC_GATE_CLK_FW_NAME(ipa_eb, "ipa-eb", "ext-26m", 0x4,
-			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK_FW_NAME(tft_eb, "tft-eb", "ext-26m", 0x4,
-			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK_FW_NAME(ipa_access_phycp_en, "ipa-access-phycp-en", "ext-26m",
-			0x8, 0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK_FW_NAME(ipa_access_pscp_en, "ipa-access-pscp-en", "ext-26m",
-			0x8, 0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
-
-static struct sprd_clk_common *ums9621_ipaglb_gate[] = {
-	/* address base is 0x25240000 */
-	&ipa_eb.common,
-	&tft_eb.common,
-	&ipa_access_phycp_en.common,
-	&ipa_access_pscp_en.common,
-};
-
-static struct clk_hw_onecell_data ums9621_ipaglb_gate_hws = {
-	.hws	= {
-		[CLK_IPA_EB]			= &ipa_eb.common.hw,
-		[CLK_TFT_EB]			= &tft_eb.common.hw,
-		[CLK_IPA_ACCESS_PHYCP_EN]	= &ipa_access_phycp_en.common.hw,
-		[CLK_IPA_ACCESS_PSCP_EN]	= &ipa_access_pscp_en.common.hw,
-	},
-	.num	= CLK_IPAGLB_GATE_NUM,
-};
-
-static struct sprd_reset_map ums9621_ipa_glb_apb_resets[] = {
-	[RESET_IPA_GLB_APB_IPA_SOFT_RST]	= { 0x0000, BIT(0), 0x1000 },
-};
-
-static struct sprd_clk_desc ums9621_ipaglb_gate_desc = {
-	.clk_clks	= ums9621_ipaglb_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9621_ipaglb_gate),
-	.hw_clks	= &ums9621_ipaglb_gate_hws,
-	.resets = ums9621_ipa_glb_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9621_ipa_glb_apb_resets),
-};
-
 /* ap clks */
 static const struct clk_parent_data ap_apb_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -3248,10 +3152,6 @@ static const struct of_device_id sprd_ums9621_clk_ids[] = {
 	  .data = &ums9621_apapb_gate_desc },
 	{ .compatible = "sprd,ums9621-apahb-gate",	/* 0x20000000 */
 	  .data = &ums9621_apahb_gate_desc },
-	{ .compatible = "sprd,ums9621-ipaapb-gate",	/* 0x25000000 */
-	  .data = &ums9621_ipaapb_gate_desc },
-	{ .compatible = "sprd,ums9621-ipaglb-gate",	/* 0x25240000 */
-	  .data = &ums9621_ipaglb_gate_desc },
 	{ .compatible = "sprd,ums9621-ap-clk",		/* 0x20010000 */
 	  .data = &ums9621_ap_clk_desc },
 	{ .compatible = "sprd,ums9621-aon-gate",	/* 0x64900000 */
