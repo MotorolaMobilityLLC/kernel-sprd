@@ -642,6 +642,7 @@ struct charger_desc {
 	int low_temp_trigger_cnt;
 
 	u32 cap_one_time;
+	u32 default_cap_one_time;
 
 	u32 trickle_time_out;
 	u64 trickle_time;
