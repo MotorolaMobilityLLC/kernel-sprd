@@ -649,7 +649,7 @@ static void sc27xx_fgu_parse_learned_mah(struct sc27xx_fgu_data *data)
 static void sc27xx_fgu_parse_cmdline(struct sc27xx_fgu_data *data)
 {
 	/* parse shutdown rtc time */
-	if (data->support_basp)
+	if (data->support_boot_calib)
 		sc27xx_fgu_parse_shutdown_rtc_time(data);
 
 	/* parse charge cycle */
