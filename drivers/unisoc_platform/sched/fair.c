@@ -669,6 +669,23 @@ unlock:
 
 }
 
+static void record_wakee(struct task_struct *p)
+{
+	/*
+	 * Only decay a single time; tasks that have less then 1 wakeup per
+	 * jiffy will not have built up many flips.
+	 */
+	if (time_after(jiffies, current->wakee_flip_decay_ts + HZ)) {
+		current->wakee_flips >>= 1;
+		current->wakee_flip_decay_ts = jiffies;
+	}
+
+	if (current->last_wakee != p) {
+		current->last_wakee = p;
+		current->wakee_flips++;
+	}
+}
+
 static void walt_select_task_rq_fair(void *data, struct task_struct *p, int prev_cpu,
 					int sd_flag, int wake_flags, int *target_cpu)
 {
@@ -676,6 +693,12 @@ static void walt_select_task_rq_fair(void *data, struct task_struct *p, int prev
 
 	if (static_branch_unlikely(&walt_disabled))
 		return;
+
+	/* just record the last cpu */
+	p->recent_used_cpu = prev_cpu;
+
+	if (wake_flags & WF_TTWU)
+		record_wakee(p);
 
 	sync = (wake_flags & WF_SYNC) && !(current->flags & PF_EXITING);
 
