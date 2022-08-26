@@ -13,7 +13,7 @@
 #define _LINUX_RNDIS_H
 
 #include <linux/rndis.h>
-#include "u_ether.h"
+#include "sprd_u_ether.h"
 #include "ndis.h"
 
 #define RNDIS_MAXIMUM_FRAME_SIZE	1518
