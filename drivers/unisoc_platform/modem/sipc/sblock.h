@@ -163,6 +163,33 @@ struct sblock_mgr {
 	u32 rxblk_end_p_rdptr;
 };
 
+#define INVALID_SLOG_DST_INDEX (0xff)
+#define BLK_POOL_CNT	1000
+
+enum {
+	LOG_ID_PS = 0,
+#if defined(CONFIG_UNISOC_SIPC_SLOG_BRIDGE_5G)
+	LOG_ID_PHY,
+#endif
+	LOG_ID_NR,
+};
+
+struct sb_prepare_info {
+	char	*name;
+	void *release_last_addr;
+	u32 recv_last_addr;
+	u8 first_release_flag;
+	u8 first_recv_flag;
+};
+
+struct slog_config {
+	u8 dst;
+	char *sys_name;
+};
+
+extern struct sb_prepare_info sb_prepare_list_info[];
+extern u8 slog_dst2index[];
+
 #ifdef CONFIG_64BIT
 #define SBLOCK_ALIGN_BYTES (8)
 #else

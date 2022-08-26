@@ -41,6 +41,14 @@
 
 static struct sblock_mgr *sblocks[SIPC_ID_NR][SMSG_VALID_CH_NR];
 
+struct sb_prepare_info sb_prepare_list_info[LOG_ID_NR];
+EXPORT_SYMBOL_GPL(sb_prepare_list_info);
+
+u8 slog_dst2index[SIPC_ID_NR];
+EXPORT_SYMBOL_GPL(slog_dst2index);
+
+void (*sblock_clean_slog_sendlist_callback)(void) = NULL;
+
 /* put one block pack to the pool */
 void sblock_put(u8 dst, u8 channel, struct sblock *blk)
 {
@@ -91,6 +99,18 @@ void sblock_put(u8 dst, u8 channel, struct sblock *blk)
 }
 EXPORT_SYMBOL_GPL(sblock_put);
 
+void sblock_register_slog_clean_sendlist(void (*callback)(void))
+{
+	sblock_clean_slog_sendlist_callback = callback;
+}
+EXPORT_SYMBOL_GPL(sblock_register_slog_clean_sendlist);
+
+void sblock_unregister_slog_clean_sendlist(void)
+{
+	sblock_clean_slog_sendlist_callback = NULL;
+}
+EXPORT_SYMBOL_GPL(sblock_unregister_slog_clean_sendlist);
+
 /* clean rings and recover pools */
 static int sblock_recover(u8 dst, u8 channel)
 {
@@ -101,8 +121,16 @@ static int sblock_recover(u8 dst, u8 channel)
 	unsigned long pflags, qflags;
 	int i, j, rval;
 	u8 ch_index;
+	u8 dst_index;
 
 	pr_info("sblock_recover:channel %d", channel);
+	if (channel == SMSG_CH_PLOG) {
+		dst_index = slog_dst2index[dst];
+		if (dst_index == INVALID_SLOG_DST_INDEX) {
+			pr_err("slog dst %d invalid!\n", dst);
+			return -EINVAL;
+		}
+	}
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
 		pr_err("channel %d invalid!\n", channel);
@@ -145,20 +173,42 @@ static int sblock_recover(u8 dst, u8 channel)
 	spin_unlock_irqrestore(&ring->p_txlock, qflags);
 	spin_unlock_irqrestore(&ring->r_txlock, pflags);
 
+	if (channel == SMSG_CH_PLOG && sblock_clean_slog_sendlist_callback)
+		sblock_clean_slog_sendlist_callback();
 	spin_lock_irqsave(&ring->r_rxlock, pflags);
 	/* clean rxblks ring */
-	*(ringhd_op->rx_rd_p) = *(ringhd_op->rx_wt_p);
+	if (channel != SMSG_CH_PLOG)
+		*(ringhd_op->rx_rd_p) = *(ringhd_op->rx_wt_p);
 
 	spin_lock_irqsave(&ring->p_rxlock, qflags);
 	/* recover rxblks pool */
-	*(poolhd_op->rx_wt_p) = *(poolhd_op->rx_rd_p);
-	for (i = 0, j = 0; i < poolhd_op->rx_count; i++) {
-		if (ring->rxrecord[i] == SBLOCK_BLK_STATE_DONE) {
+	if (channel == SMSG_CH_PLOG) {
+		sb_prepare_list_info[dst_index].first_recv_flag = 1;
+		sb_prepare_list_info[dst_index].first_release_flag = 1;
+		for (i = 0, j = 0; i < poolhd_op->rx_count; i++) {
 			ring->p_rxblks[j].addr = i * sblock->rxblksz +
 						 poolhd_op->rx_addr;
 			ring->p_rxblks[j].length = sblock->rxblksz;
-			*(poolhd_op->rx_wt_p) = *(poolhd_op->rx_wt_p) + 1;
+			ring->rxrecord[i] = SBLOCK_BLK_STATE_DONE;
 			j++;
+		}
+#ifndef CONFIG_UNISOC_SIPC_SLOG_BRIDGE_5G
+		*(ringhd_op->rx_rd_p) = 0;
+		*(ringhd_op->rx_wt_p) = 0;
+		*(poolhd_op->rx_rd_p) = 0;
+#endif
+		*(poolhd_op->rx_wt_p) = poolhd_op->rx_count;
+	} else {
+		/* channel 2,3 recover rxblks pool */
+		*(poolhd_op->rx_wt_p) = *(poolhd_op->rx_rd_p);
+		for (i = 0, j = 0; i < poolhd_op->rx_count; i++) {
+			if (ring->rxrecord[i] == SBLOCK_BLK_STATE_DONE) {
+				ring->p_rxblks[j].addr = i * sblock->rxblksz +
+							 poolhd_op->rx_addr;
+				ring->p_rxblks[j].length = sblock->rxblksz;
+				*(poolhd_op->rx_wt_p) = *(poolhd_op->rx_wt_p) + 1;
+				j++;
+			}
 		}
 	}
 	spin_unlock_irqrestore(&ring->p_rxlock, qflags);
@@ -1442,7 +1492,15 @@ int sblock_receive(u8 dst, u8 channel,
 	unsigned long flags;
 	u8 ch_index;
 	bool no_data;
+	u8 dst_index;
 
+	if (channel == SMSG_CH_PLOG) {
+		dst_index = slog_dst2index[dst];
+		if (dst_index == INVALID_SLOG_DST_INDEX) {
+			pr_err("slog dst %d invalid!\n", dst);
+			return -EINVAL;
+		}
+	}
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
 		pr_err("channel %d invalid!\n", channel);
@@ -1535,6 +1593,27 @@ int sblock_receive(u8 dst, u8 channel,
 			sblock->state == SBLOCK_STATE_READY) {
 		rxpos = sblock_get_ringpos(*(ringhd_op->rx_rd_p),
 					   ringhd_op->rx_count);
+		if (channel == SMSG_CH_PLOG) {
+			if ((!sb_prepare_list_info[dst_index].first_recv_flag ||
+			    (ring->r_rxblks[rxpos].addr != ringhd_op->rx_addr)) &&
+			    (ring->r_rxblks[rxpos].addr -
+			    sb_prepare_list_info[dst_index].recv_last_addr != ringhd_op->rx_size) &&
+			    (sb_prepare_list_info[dst_index].recv_last_addr -
+			    ring->r_rxblks[rxpos].addr != ringhd_op->rx_size *
+			    (ringhd_op->rx_count-1))) {
+				pr_err("receive %s sblock is not continuous, addr: 0x%x, recv last addr: 0x%x\n",
+					sb_prepare_list_info[dst_index].name,
+					ring->r_rxblks[rxpos].addr,
+					sb_prepare_list_info[dst_index].recv_last_addr);
+			} else if (sb_prepare_list_info[dst_index].first_recv_flag) {
+				sb_prepare_list_info[dst_index].first_recv_flag = 0;
+				pr_info("receive first %s sblock, addr: 0x%x, recv last addr: 0x%x\n",
+					sb_prepare_list_info[dst_index].name,
+					ring->r_rxblks[rxpos].addr,
+					sb_prepare_list_info[dst_index].recv_last_addr);
+			}
+			sb_prepare_list_info[dst_index].recv_last_addr = ring->r_rxblks[rxpos].addr;
+		}
 		blk->addr = ring->r_rxblks[rxpos].addr -
 			    sblock->stored_smem_addr +
 			    sblock->smem_virt;
@@ -1717,6 +1796,27 @@ int sblock_get_arrived_count(u8 dst, u8 channel)
 }
 EXPORT_SYMBOL_GPL(sblock_get_arrived_count);
 
+struct sblock_mgr *sblock_mgr_get_addr(u8 dst, u8 channel)
+{
+	struct sblock_mgr *sblock;
+	u8 ch_index;
+
+	ch_index = sipc_channel2index(channel);
+	if (ch_index == INVALID_CHANEL_INDEX) {
+		pr_err("channel %d invalid!\n", channel);
+		return NULL;
+	}
+
+	sblock = sblocks[dst][ch_index];
+	if (!sblock || sblock->state != SBLOCK_STATE_READY) {
+		pr_err("sblock-%d-%d not ready!\n", dst, channel);
+		return NULL;
+	}
+
+	return sblock;
+}
+EXPORT_SYMBOL_GPL(sblock_mgr_get_addr);
+
 int sblock_get_free_count(u8 dst, u8 channel)
 {
 	struct sblock_mgr *sblock;
@@ -1766,7 +1866,14 @@ int sblock_release(u8 dst, u8 channel, struct sblock *blk)
 	int rxpos;
 	int index;
 	u8 ch_index;
+	u8 dst_index;
 	bool send_event = false;
+
+	dst_index = slog_dst2index[dst];
+	if (dst_index == INVALID_SLOG_DST_INDEX) {
+		pr_err("slog dst %d invalid!\n", dst);
+		return -EINVAL;
+	}
 
 	ch_index = sipc_channel2index(channel);
 	if (ch_index == INVALID_CHANEL_INDEX) {
@@ -1787,12 +1894,36 @@ int sblock_release(u8 dst, u8 channel, struct sblock *blk)
 	poolhd_op = &(ring->header_op.poolhd_op);
 
 	spin_lock_irqsave(&ring->p_rxlock, flags);
+	if (channel == SMSG_CH_PLOG) {
+		if ((sb_prepare_list_info[dst_index].first_release_flag && (blk->addr -
+		    sblock->smem_virt + sblock->stored_smem_addr == poolhd_op->rx_addr)) ||
+		    (blk->addr - sb_prepare_list_info[dst_index].release_last_addr ==
+		    poolhd_op->rx_size) || (sb_prepare_list_info[dst_index].release_last_addr -
+		    blk->addr == poolhd_op->rx_size * (poolhd_op->rx_count-1))) {
+			if (sb_prepare_list_info[dst_index].first_release_flag) {
+				sb_prepare_list_info[dst_index].first_release_flag = 0;
+				pr_info("release first %s sblock, addr: 0x%lx, release last addr: 0x%lx\n",
+					sb_prepare_list_info[dst_index].name,
+					blk->addr - sblock->smem_virt + sblock->stored_smem_addr,
+					sb_prepare_list_info[dst_index].release_last_addr -
+					sblock->smem_virt + sblock->stored_smem_addr);
+			}
+		} else {
+			pr_err("release %s sblock is not continuous, addr: 0x%lx, release last addr: 0x%lx\n",
+				sb_prepare_list_info[dst_index].name,
+				blk->addr - sblock->smem_virt + sblock->stored_smem_addr,
+				sb_prepare_list_info[dst_index].release_last_addr -
+				sblock->smem_virt + sblock->stored_smem_addr);
+		}
+	}
 	rxpos = sblock_get_ringpos(*(poolhd_op->rx_wt_p), poolhd_op->rx_count);
 	ring->p_rxblks[rxpos].addr = blk->addr -
 				     sblock->smem_virt +
 				     sblock->stored_smem_addr;
 	ring->p_rxblks[rxpos].length = poolhd_op->rx_size;
 	*(poolhd_op->rx_wt_p) = *(poolhd_op->rx_wt_p) + 1;
+	if (channel == SMSG_CH_PLOG)
+		sb_prepare_list_info[dst_index].release_last_addr = blk->addr;
 	pr_debug("addr=%x\n", ring->p_rxblks[rxpos].addr);
 
 	if ((int)(*(poolhd_op->rx_wt_p) - *(poolhd_op->rx_rd_p)) == 1 &&

@@ -819,6 +819,15 @@ int sblock_release_loop(u8 dst, u8 channel, struct sblock *blk);
 int sblock_get_arrived_count(u8 dst, u8 channel);
 
 /**
+ * sblock_mgr_get_addr  -- get the block_mgr addr
+ *
+ * @dst: dest processor ID
+ * @channel: channel ID
+ * @return: sblock_mgr, 0 on failure
+ */
+struct sblock_mgr *sblock_mgr_get_addr(u8 dst, u8 channel);
+
+/**
  * sblock_get_free_count  -- get the count of available sblock(s) resident in
  * sblock pool on AP.
  *
@@ -827,6 +836,10 @@ int sblock_get_arrived_count(u8 dst, u8 channel);
  * @return: >=0  the count of blocks
  */
 int sblock_get_free_count(u8 dst, u8 channel);
+
+void sblock_register_slog_clean_sendlist(void (*callback)(void));
+
+void sblock_unregister_slog_clean_sendlist(void);
 
 /**
  * sblock_put  -- put a free sblock for sender
