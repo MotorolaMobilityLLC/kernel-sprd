@@ -668,6 +668,7 @@
 #include "sdio.dtsi"
 #include "socid.dtsi"
 #include "usb.dtsi"
+#include "pcie.dtsi"
 #include "vpu.dtsi"
 #include "vdsp.dtsi"
 #include "wdt.dtsi"
