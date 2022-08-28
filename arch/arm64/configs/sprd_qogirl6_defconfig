@@ -2713,9 +2713,9 @@ CONFIG_CHARGER_BQ2597X=m
 # CONFIG_CHARGER_SC2720 is not set
 # CONFIG_CHARGER_SC2721 is not set
 # CONFIG_CHARGER_SGM41511 is not set
-/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+#/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
 CONFIG_CHARGER_SGM41513=m
-/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
+#/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 CONFIG_FUEL_GAUGE_SC27XX=m
 # CONFIG_FAST_CHARGER_SC27XX is not set
 # CONFIG_CHARGER_UCS1002 is not set
