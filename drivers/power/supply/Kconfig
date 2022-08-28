@@ -751,13 +751,13 @@ config CHARGER_SGM41511
 	help
 	  Say Y to include support for SGM Sgm41511 Battery Charger.
 
-/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+#/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
 config CHARGER_SGM41513
         tristate "SGM sgm41513 Charger"
         depends on I2C || COMPILE_TEST
         help
           Say Y to include support for SGM Sgm41513 Battery Charger.
-/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
+#/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 
 config FUEL_GAUGE_SC27XX
 	tristate "Spreadtrum SC27XX fuel gauge driver"
