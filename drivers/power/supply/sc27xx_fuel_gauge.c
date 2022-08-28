@@ -487,6 +487,9 @@ static const char * const sc27xx_charger_supply_name[] = {
 	"bq25910_charger",
 	"eta6937_charger",
 	"aw32257",
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	"sgm41513_charger",
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 };
 
 static int sc27xx_fgu_set_basp_volt(struct sc27xx_fgu_data *data, int max_volt_uv)
@@ -2041,8 +2044,11 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 
 	if (data->temp_table_len > 0) {
 		*temp = sc27xx_fgu_vol2temp(data->temp_table, data->temp_table_len, vol_ntc_uv);
+		/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
 		dev_info(data->dev, "%s: temp = %d\n", __func__, *temp);
+		/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 		*temp = sc27xx_fgu_get_average_temp(data, *temp);
+		pr_err("lys fgu_average_temp after%s: line%d: \n", __func__,  __LINE__);
 	} else {
 		*temp = 200;
 	}
@@ -2109,6 +2115,9 @@ static int sc27xx_fgu_suspend_calib_check_temp(struct sc27xx_fgu_data *data)
 {
 	int ret, temp;
 
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	ret = sc27xx_fgu_get_temp(data, &temp);
 	if (ret) {
 		dev_err(data->dev, "Suspend calib failed to temp, ret = %d\n", ret);
@@ -2470,6 +2479,9 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 		else if (data->temp_table_len <= 0 || (data->bat_present == 0 && allow_charger_enable))
 			val->intval = 200;
 		else {
+			/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+			pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+			/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 			ret = sc27xx_fgu_get_temp(data, &value);
 			if (ret < 0 && !data->debug_info.temp_debug_en)
 				goto error;
@@ -4448,6 +4460,9 @@ static int sc27xx_fgu_hw_init(struct sc27xx_fgu_data *data,
 		goto disable_clk;
 	}
 
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__, __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	ret = sc27xx_fgu_get_temp(data, &data->bat_temp);
 	if (ret) {
 		dev_err(data->dev, "failed to get battery temperature\n");

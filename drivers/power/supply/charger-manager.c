@@ -333,6 +333,9 @@ static bool is_batt_present(struct charger_manager *cm)
 		power_supply_put(psy);
 		break;
 	case CM_CHARGER_STAT:
+		/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+		pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+		/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 		for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 			psy = power_supply_get_by_name(
 					cm->desc->psy_charger_stat[i]);
@@ -1051,6 +1054,9 @@ static int get_constant_charge_current(struct charger_manager *cm, int *cur)
 	int i, ret = -ENODEV;
 
 	/* If at least one of them has one, it's yes. */
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
 		if (!psy) {
@@ -1084,6 +1090,9 @@ static int get_input_current_limit(struct charger_manager *cm, int *cur)
 	struct power_supply *psy;
 	int i, ret = -ENODEV;
 
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	/* If at least one of them has one, it's yes. */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
@@ -1110,6 +1119,9 @@ static int get_charger_input_current(struct charger_manager *cm, int *cur)
 	struct power_supply *psy;
 	int i, ret = -ENODEV;
 
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	/* If at least one of them has one, it's yes. */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
@@ -1335,7 +1347,9 @@ static bool is_charging(struct charger_manager *cm)
 			continue;
 		if (!cm->charger_enabled)
 			continue;
-
+		/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+		pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+		/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
 		if (!psy) {
 			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
@@ -1376,7 +1390,9 @@ static bool cm_primary_charger_enable(struct charger_manager *cm, bool enable)
 
 	if (!cm->desc->psy_charger_stat || !cm->desc->psy_charger_stat[0])
 		return false;
-
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	psy = power_supply_get_by_name(cm->desc->psy_charger_stat[0]);
 	if (!psy) {
 		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
@@ -1745,7 +1761,9 @@ static void cm_vote_property(struct charger_manager *cm, int target_val,
 		dev_err(cm->dev, "psy name is null!!!\n");
 		return;
 	}
-
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	for (i = 0; name[i]; i++) {
 		psy = power_supply_get_by_name(name[i]);
 		if (!psy) {
@@ -1850,7 +1868,9 @@ static int cm_set_charger_ovp(struct charger_manager *cm, int cmd)
 		dev_err(cm->dev, "psy_charger_stat is null!!!\n");
 		return -ENODEV;
 	}
-
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	/*
 	 * make the psy_charger_stat[0] to be main charger,
 	 * set the main charger charge current and limit current
@@ -1887,7 +1907,9 @@ static int cm_enable_second_charger(struct charger_manager *cm, bool enable)
 
 	if (!desc->psy_charger_stat[1])
 		return 0;
-
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	psy = power_supply_get_by_name(desc->psy_charger_stat[1]);
 	if (!psy) {
 		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
@@ -2611,7 +2633,9 @@ static bool cm_check_cp_charger_enabled(struct charger_manager *cm)
 
 	if (!cm->desc->psy_cp_stat)
 		return false;
-
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
 		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
 		if (!cp_psy) {
@@ -2689,7 +2713,9 @@ static void cm_check_cp_soft_monitor_alarm_status(struct charger_manager *cm)
 
 	if (!cm->desc->psy_cp_stat)
 		return;
-
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	psy = power_supply_get_by_name(cm->desc->psy_cp_stat[0]);
 	if (!psy) {
 		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
@@ -3462,7 +3488,9 @@ static int try_charger_enable_by_psy(struct charger_manager *cm, bool enable)
 	union power_supply_propval val;
 	struct power_supply *psy;
 	int i, err;
-
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	for (i = 0; desc->psy_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(desc->psy_charger_stat[i]);
 		if (!psy) {
@@ -3521,7 +3549,9 @@ static int try_wireless_cp_converter_enable_by_psy(struct charger_manager *cm, b
 
 	if (!cm->desc->psy_cp_converter_stat)
 		return 0;
-
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	for (i = 0; desc->psy_cp_converter_stat[i]; i++) {
 		psy = power_supply_get_by_name(desc->psy_cp_converter_stat[i]);
 		if (!psy) {
@@ -3545,7 +3575,7 @@ static int cm_set_primary_charge_wirless_type(struct charger_manager *cm, bool e
 	union power_supply_propval val;
 	struct power_supply *psy;
 	int ret = 0;
-
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
 	psy = power_supply_get_by_name(cm->desc->psy_charger_stat[0]);
 	if (!psy) {
 		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
@@ -4817,7 +4847,9 @@ static int cm_get_charge_control_limit(struct charger_manager *cm,
 {
 	struct power_supply *psy = NULL;
 	int i, ret = 0;
-
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
 		if (!psy) {
@@ -6972,6 +7004,9 @@ static int charger_manager_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	/* Check if charger's supplies are present at probe */
 	for (i = 0; desc->psy_charger_stat[i]; i++) {
 		struct power_supply *psy;
@@ -7044,6 +7079,10 @@ static int charger_manager_probe(struct platform_device *pdev)
 			desc->psy_fuel_gauge);
 		return -EPROBE_DEFER;
 	}
+
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys POWER_SUPPLY_PROP_CURRENT_NOW %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 
 	if (!power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CHARGE_NOW, &val)) {
 		if (!cm_add_battery_psy_property(cm, POWER_SUPPLY_PROP_CHARGE_NOW))
@@ -7149,7 +7188,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 		return PTR_ERR(usb_main.psy);
 
 	}
-
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
 	mutex_init(&cm->desc->keep_awake_mtx);
 
 	/* Add to the list */
@@ -7200,7 +7239,9 @@ static int charger_manager_probe(struct platform_device *pdev)
 		ret = -EPROBE_DEFER;
 		goto err;
 	}
-
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
+	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	if (is_ext_usb_pwr_online(cm) && cm->fchg_info->ops && cm->fchg_info->ops->fchg_detect)
 		cm->fchg_info->ops->fchg_detect(cm->fchg_info);
 
@@ -7220,7 +7261,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME * HZ);
 	INIT_DELAYED_WORK(&cm->uvlo_work, cm_uvlo_check_work);
-
+	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
 	return 0;
 
 err:

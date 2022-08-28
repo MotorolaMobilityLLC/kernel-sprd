@@ -104,7 +104,9 @@ static void power_supply_changed_work(struct work_struct *work)
 		power_supply_update_leds(psy);
 		atomic_notifier_call_chain(&power_supply_notifier,
 				PSY_EVENT_PROP_CHANGED, psy);
-		kobject_uevent(&psy->dev.kobj, KOBJ_CHANGE);
+		/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+		//kobject_uevent(&psy->dev.kobj, KOBJ_CHANGE);
+		/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 		spin_lock_irqsave(&psy->changed_lock, flags);
 	}
 

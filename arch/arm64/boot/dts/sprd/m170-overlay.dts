@@ -217,10 +217,12 @@
 				/*Charge pump target charge current*/
 				cm-cp-taper-current = <1000000>;
 
-				cm-chargers = "bq2560x_charger";
-				cm-charge-pumps = "bq2597x-standalone";
-				cm-wireless-chargers = "nu1619_wireless_charger";
-				cm-wireless-charge-pump-converters = "hl1506_cp_converter";
+				/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+				cm-chargers = "sgm41513_charger";
+				//cm-charge-pumps = "bq2597x-standalone";
+				//cm-wireless-chargers = "nu1619_wireless_charger";
+				//cm-wireless-charge-pump-converters = "hl1506_cp_converter";
+				/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 				cm-fuel-gauge = "sc27xx-fgu";
 
 				/* in deci centigrade */
@@ -488,6 +490,22 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
+/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+	sgm41513_chg: charger@1A {
+                compatible = "sgm,sgm41513_chg";
+                reg = <0x1A>;
+		phys = <&hsphy>;
+                monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
+                irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
+                vddvbus:otg-vbus {
+                        regulator-name = "vddvbus";
+                };
+        };
+/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
+
+/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
+/*
 	bq2560x_chg: charger@6b {
 		compatible = "ti,bq2560x_chg";
 		reg = <0x6b>;
@@ -543,7 +561,8 @@
 		switch_chg_en_gpio = <&ap_gpio 171 GPIO_ACTIVE_HIGH>;
 		switch_flag_en_gpio = <&ap_gpio 176 GPIO_ACTIVE_HIGH>;
 	};
-
+*/
+/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 	flash_ic: flash-ic@63 {
 		compatible = "sprd,flash-ocp8137";
 		reg = <0x63>;
