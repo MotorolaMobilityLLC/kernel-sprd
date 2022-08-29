@@ -22,6 +22,8 @@
 
 	sprd,sc-id = "ums9621 1h10 1000";
 
+	sprd,board_id = <0x1100>;
+
 	fragment {
 		target-path = "/";
 		__overlay__ {
@@ -90,7 +92,7 @@
 };
 
 &chosen {
-	bootargs_ext = "androidboot.hardware=ums9621_1h10 androidboot.dtbo_idx=0";
+	bootargs_ext = "";
 };
 
 &adi_bus {
