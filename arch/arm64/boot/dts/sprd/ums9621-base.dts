@@ -173,19 +173,6 @@
 	regulator-always-on;
 };
 
-&hsphy {
-	vdd-supply = <&vddusb33>;
-	extcon = <&extcon_gpio>;
-	sprd,hsphy-device-eye-pattern = <0x067bd1c0>;
-	sprd,hsphy-host-eye-pattern = <0x067bd1c0>;
-	status = "okay";
-};
-
-&usb {
-	extcon = <&extcon_gpio>, <&pmic_typec>;
-	status = "okay";
-};
-
 &dpu {
 	sprd,logo-memory = <&logo_reserved>;
 	sprd,backlight = <&pwm_backlight>;
