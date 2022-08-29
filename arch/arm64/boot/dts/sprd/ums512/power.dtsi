@@ -13,8 +13,8 @@
 		sprd,pdbg-irq-domain-ana          = "spi4.0";
 		sprd,pdbg-irq-domain-ana-eic      = "32100000.spi:pmic@0:gpio@280";
 		sprd,pdbg-irq-domain-ap-eic-dbnc  = "32020000.gpio";
-		sprd,pdbg-irq-domain-ap-eic-latch = "32000080.gpio";
-		sprd,pdbg-irq-domain-ap-eic-async = "320000a0.gpio";
+		sprd,pdbg-irq-domain-ap-eic-latch = "32020080.gpio";
+		sprd,pdbg-irq-domain-ap-eic-async = "320200a0.gpio";
 		sprd,pdbg-irq-domain-ap-eic-sync  = "320200c0.gpio";
 	};
 
