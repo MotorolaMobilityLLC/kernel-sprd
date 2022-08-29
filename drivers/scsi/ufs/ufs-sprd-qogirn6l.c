@@ -58,8 +58,8 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 				  struct ufs_sprd_host *host)
 {
 	struct platform_device *pdev = to_platform_device(dev);
-	struct ufs_sprd_ums9610_data *priv =
-		(struct ufs_sprd_ums9610_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9621_data *priv =
+		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
 	int ret = 0;
 
 	priv->ufs_lane_calib_data1 = ufs_efuse_calib_data(pdev,
@@ -161,8 +161,8 @@ static int ufs_sprd_priv_pre_init(struct device *dev,
 	int ret = 0;
 
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
-	struct ufs_sprd_ums9610_data *priv =
-		(struct ufs_sprd_ums9610_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9621_data *priv =
+		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
 	struct sprd_sip_svc_handle *svc_handle;
 
 	regmap_update_bits(priv->ap_ahb_ufs_rst.regmap,
@@ -210,7 +210,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		return -ENOMEM;
 
 	host->ufs_priv_data = devm_kzalloc(dev,
-				 sizeof(struct ufs_sprd_ums9610_data),
+				 sizeof(struct ufs_sprd_ums9621_data),
 				 GFP_KERNEL);
 	if (!host->ufs_priv_data)
 		return -ENOMEM;
@@ -245,8 +245,8 @@ static void ufs_sprd_exit(struct ufs_hba *hba)
 	int err = 0;
 	struct device *dev = hba->dev;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_ums9610_data *priv =
-		(struct ufs_sprd_ums9610_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9621_data *priv =
+		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
 
 	regmap_update_bits(priv->aon_apb_ufs_clk_en.regmap,
 			   priv->aon_apb_ufs_clk_en.reg,
@@ -270,8 +270,8 @@ static u32 ufs_sprd_get_ufs_hci_version(struct ufs_hba *hba)
 static void ufs_sprd_hw_init(struct ufs_hba *hba)
 {
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_ums9610_data *priv =
-		(struct ufs_sprd_ums9610_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9621_data *priv =
+		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
 
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 
@@ -314,8 +314,8 @@ static int ufs_sprd_phy_sram_init_done(struct ufs_hba *hba)
 	uint32_t val = 0;
 	uint32_t retry = 10;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_ums9610_data *priv =
-		(struct ufs_sprd_ums9610_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9621_data *priv =
+		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
 
 	do {
 		ret = regmap_read(priv->phy_sram_init_done.regmap,
@@ -350,8 +350,8 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 {
 	int ret = 0;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_ums9610_data *priv =
-		(struct ufs_sprd_ums9610_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9621_data *priv =
+		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
 
 	ufshcd_dme_set(hba, UIC_ARG_MIB(CBREFCLKCTRL2), 0x90);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(CBCRCTRL), 0x01);
@@ -630,8 +630,8 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 	u32 set;
 	unsigned long flags;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_ums9610_data *priv =
-		(struct ufs_sprd_ums9610_data *) host->ufs_priv_data;
+	struct ufs_sprd_ums9621_data *priv =
+		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
 
 	switch (status) {
 	case PRE_CHANGE:
@@ -726,8 +726,8 @@ static void ufs_sprd_fixup_dev_quirks(struct ufs_hba *hba)
 #endif
 }
 
-const struct ufs_hba_variant_ops ufs_hba_sprd_ums9610_vops = {
-	.name = "sprd,ufshc-ums9610",
+const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops = {
+	.name = "sprd,ufshc-ums9621",
 	.init = ufs_sprd_init,
 	.exit = ufs_sprd_exit,
 	.get_ufs_hci_version = ufs_sprd_get_ufs_hci_version,
@@ -738,4 +738,4 @@ const struct ufs_hba_variant_ops ufs_hba_sprd_ums9610_vops = {
 	.fixup_dev_quirks = ufs_sprd_fixup_dev_quirks,
 	.device_reset = ufs_sprd_device_reset,
 };
-EXPORT_SYMBOL(ufs_hba_sprd_ums9610_vops);
+EXPORT_SYMBOL(ufs_hba_sprd_ums9621_vops);

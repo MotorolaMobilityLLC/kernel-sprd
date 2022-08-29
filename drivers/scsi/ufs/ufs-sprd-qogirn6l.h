@@ -6,7 +6,7 @@
 #ifndef _UFS_SPRD_QOGIRN6L_H_
 #define _UFS_SPRD_QOGIRN6L_H_
 
-struct ufs_sprd_ums9610_data {
+struct ufs_sprd_ums9621_data {
 	struct regulator *vdd_mphy;
 	struct syscon_ufs ap_ahb_ufs_rst;
 	struct syscon_ufs aon_apb_ufs_rst;
