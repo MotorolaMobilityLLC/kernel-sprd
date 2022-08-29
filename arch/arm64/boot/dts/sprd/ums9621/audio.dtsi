@@ -1,5 +1,5 @@
-#include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
-#include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
+#include <dt-bindings/soc/sprd,qogirn6lite-mask.h>
+#include <dt-bindings/soc/sprd,qogirn6lite-regs.h>
 
 / {
 	audcp_iram_reserved: audcp-iram@a400 {
@@ -7,7 +7,7 @@
 	};
 
 	sprd_pcm: sprd-pcm-audio {
-		compatible = "unisoc,qogirn6pro-pcm-platform";
+		compatible = "unisoc,qogirn6lite-pcm-platform";
 		#sound-dai-cells = <0>;
 		/* agcp dma_ap */
 		dmas = <&agcp_dma 1 &agcp_dma 2
@@ -42,7 +42,7 @@
 	};
 
 	sprd_compr: sprd-compr-audio {
-		compatible = "unisoc,qogirn6pro-compress-platform";
+		compatible = "unisoc,qogirn6lite-compress-platform";
 		#sound-dai-cells = <0>;
 		dmas = <&agcp_dma 5 &agcp_dma 0>;
 		dma-names = "compr_dma_stage0", "compr_dma_stage1";
@@ -105,7 +105,7 @@
 	};
 
 	audiocp_dvfs {
-		compatible = "unisoc,qogirn6pro-audcp-dvfs";
+		compatible = "unisoc,qogirn6lite-audcp-dvfs";
 		sprd,channel = <10>;
 	};
 
@@ -128,7 +128,7 @@
 
 &apagcp {
 	vbc_v4: vbc@56510000 {
-		compatible = "unisoc,qogirn6pro-vbc";
+		compatible = "unisoc,qogirn6lite-vbc";
 		#sound-dai-cells = <1>;
 		reg = <0 0x56510000 0 0x400>;
 		sprd,syscon-agcp-ahb = <&audcp_glb_regs>;
@@ -180,7 +180,7 @@
 	};
 
 	pdm_dmic: pdm-dmic@56370000 {
-		compatible = "unisoc,pdm-ums9620";
+		compatible = "unisoc,pdm-ums9621";
 		status = "disabled";
 		reg = <0 0x56370000 0 0x2000>,/* 56370000 56371fff */
 				<0 0x56394000 0 0x400>;/* 400 43ff */
@@ -235,5 +235,13 @@
 		sprd,auto_agcp_access = <0>;
 		#power-domain-cells = <0>;
 		status = "disabled";
+	};
+
+	voice_trigger_irq: voice_trigger_irq {
+		compatible = "sprd,voice_trigger_irq";
+		sprd,syscon-agcp-glb = <&audcp_glb_regs>;
+		audcp_glb_eic_int = <&audcp_glb_regs 0x18 0x4>;
+		interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+		power-domains = <&agdsp_domain>;
 	};
 };
