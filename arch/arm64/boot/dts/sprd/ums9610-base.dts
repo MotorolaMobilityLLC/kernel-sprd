@@ -45,6 +45,7 @@
 		spi0 = &spi0;
 		spi1 = &spi1;
 		spi2 = &spi2;
+		spi4 = &adi_bus;
 		pmic_efuse0 = &ump9620_efuse;
 		pmic_efuse1 = &ump9621_efuse;
 	};
