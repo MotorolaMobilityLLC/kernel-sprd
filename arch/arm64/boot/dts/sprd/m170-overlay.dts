@@ -681,102 +681,6 @@
 	clock-frequency = <1000000>;
 };
 
-&sprd_headset {
-	status = "okay";
-	extcon = <&pmic_typec>;
-	mic-gpios = <&ap_gpio 175 GPIO_ACTIVE_HIGH>;
-	lr-gpios = <&ap_gpio 174 GPIO_ACTIVE_HIGH>;
-	sprd,3pole-adc-threshold = <112>;
-};
-
-&pdm_dmic {
-	status = "okay";
-};
-
-&sound_vbc_v4_sprd_codec {
-	status = "okay";
-	sprd-audio-card,routing =
-		"HPMIC Pin", "HP Mic Jack",
-		"MIC Pin", "Mic Jack",
-		"MIC2 Pin", "Aux Mic Jack",
-		"HeadPhone Jack", "HP Pin",
-		"Ext Spk", "SPK Pin",
-		"UCP1301 SPK ON", "SPK Pin",
-		"Ext Spk", "UCP1301 SPK",
-		"PDM DMIC2 ON", "SPK Pin",
-		"Ext Spk", "PDM_DMIC2",
-		"DMIC Pin", "DMic Jack",
-		"DMIC1 Pin", "DMic1 Jack",
-		"Ext Ear", "EAR Pin",
-		"UCP1301 RCV ON", "EAR Pin",
-		"Ext Ear", "UCP1301 RCV";
-
-	/* 35: ucp1301 normal ap01 */
-	sprd-audio-card,dai-link@53 {
-		ignore-suspend = <1>;
-		link-name = "BE_NORMAL_AP01_UCPSPK";
-		stream-name = "BE_ST_NORMAL_AP01_UCPSPK";
-		no-pcm = <1>;
-		dpcm-playback = <1>;
-		be-id = <0>;
-		dai-format = "i2s";
-		plat {
-			sound-dai = <&sprd_route_pcm>;
-		};
-		cpu {
-			sound-dai = <&vbc_v4 31>;
-		};
-		codec {
-			sound-dai = <&ucp1301_spk 0>;
-		};
-	};
-
-	/*
-	 * node 54 and node 55 (index 36 and 37) are reserved for
-	 * "ucp1301-spk2" and "ucp1301-rcv"
-	 * nodes from 56 to 67 (index from 38 to 49) are used by HIFI
-	 */
-	/* 37: ucp1301 normal ap01 rcv */
-	sprd-audio-card,dai-link@55 {
-		ignore-suspend = <1>;
-		link-name = "BE_NORMAL_AP01_UCPRCV";
-		stream-name = "BE_ST_NORMAL_AP01_UCPRCV";
-		no-pcm = <1>;
-		dpcm-playback = <1>;
-		be-id = <0>;
-		dai-format = "i2s";
-		plat {
-			sound-dai = <&sprd_route_pcm>;
-		};
-		cpu {
-			sound-dai = <&vbc_v4 31>;
-		};
-		codec {
-			sound-dai = <&ucp1301_rcv 0>;
-		};
-	};
-
-	/* 63: pdm dmic */
-	sprd-audio-card,dai-link@81 {
-		ignore-suspend = <1>;
-		link-name = "BE_PDM_DMIC";
-		stream-name = "BE_ST_PDM_DMIC";
-		no-pcm = <1>;
-		dpcm-capture = <1>;
-		be-id = <0>;
-		//dai-format = "i2s";
-		plat {
-			sound-dai = <&sprd_route_pcm>;
-		};
-		cpu {
-			sound-dai = <&vbc_v4 31>;
-		};
-		codec {
-			sound-dai = <&pdm_dmic 0>;
-		};
-	};
-};
-
 &vddldo0 {
 	regulator-always-on;
 };
@@ -916,3 +820,25 @@
 			<17 0x1844>, <19 0x1844>, <21 0x1864>, <30 0x1820>,
 			<32 0x197c>, <33 0x1988>, <35 0x19b8>, <39 0x19ac>;
 };
+
+/* M170 code for ext-pa by hanyifan10 at 220829 begin */
+&sprd_headset {
+	status = "okay";
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	hp-use-inter-pa = <1>;
+	fixed-sample-rate = <48000 48000 48000>;
+	digital-codec = <&sprd_audio_codec_dig>;
+};
+
+&sound_vbc_v4_sprd_codec {
+	status = "okay";
+
+	/*ext_control_type, hook selection, mode, gpio share*/
+	sprd,spk-ext-pa-info = <0 0 2 0>;
+	sprd,spk-ext-pa-gpio = <&ap_gpio 129 0>;
+};
+/* M170 code for ext-pa by hanyifan10 at 220829 end */
+
