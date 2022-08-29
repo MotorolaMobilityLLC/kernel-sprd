@@ -161,6 +161,14 @@ config USB_SPRD_DMA_V3
 	  Because of usb dma hardware upgrading,software need to add this macro,used for
 	  compatibility with old dma version.
 
+config USB_SPRD_ADAPTIVE
+	bool 'USB ADAPTIVE MODE'
+	depends on USB_SPRD_DMA
+	help
+	  Enable this to support the SPRD USB ADAPTIVE that hardware transport data using dma
+	  to DSP MCDT automatically within host audio mode. Software need to add this macro to
+	  enable adaptive function.
+
 config USB_SPRD_OFFLOAD
 	bool 'USB OFFLOAD MODE'
 	depends on USB_SPRD_DMA

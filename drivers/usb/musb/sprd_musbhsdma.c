@@ -84,6 +84,9 @@ static struct dma_channel *sprd_dma_channel_allocate(struct dma_controller *c,
 	u8 bit;
 	u16 csr;
 	struct musb *musb;
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	u32 reg;
+#endif
 
 	BUG_ON(hw_ep->epnum == 0);
 	bit = hw_ep->epnum;
@@ -114,8 +117,12 @@ static struct dma_channel *sprd_dma_channel_allocate(struct dma_controller *c,
 	}
 
 	/* Wait 9 more cycles for ensuring DMA can get USB request length */
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	reg = musb_readl(controller->base, MUSB_DMA_FRAG_WAIT);
+	musb_writel(controller->base, MUSB_DMA_FRAG_WAIT, reg|0x8);
+#else
 	musb_writel(controller->base, MUSB_DMA_FRAG_WAIT, 0x8);
-
+#endif
 	musb_channel->controller = controller;
 	musb_channel->ep_num = bit;
 	musb_channel->transmit = transmit;
@@ -140,6 +147,9 @@ static void sprd_configure_channel(struct dma_channel *channel,
 	struct sprd_musb_dma_channel *musb_channel = channel->private_data;
 	struct sprd_musb_dma_controller *controller = musb_channel->controller;
 	void __iomem *mbase = controller->base;
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	struct musb *musb = controller->private_data;
+#endif
 	u8 bchannel = musb_channel->channel_num;
 	u32 csr = 0;
 	u32 haddr4;
@@ -167,7 +177,13 @@ static void sprd_configure_channel(struct dma_channel *channel,
 	} else {
 		/* enable linklist end and rx last interrupt */
 		csr = musb_readl(mbase, MUSB_DMA_CHN_INTR(bchannel));
+
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+		if (!musb->is_adaptive_in)
+			csr |= CHN_USBRX_INT_EN | CHN_LLIST_INT_EN | CHN_CLEAR_INT_EN;
+#else
 		csr |= CHN_USBRX_INT_EN | CHN_LLIST_INT_EN | CHN_CLEAR_INT_EN;
+#endif
 		musb_writel(mbase, MUSB_DMA_CHN_INTR(bchannel), csr);
 
 		/* set linklist pointer */
@@ -186,12 +202,26 @@ static void musb_prepare_node(struct sprd_musb_dma_channel *musb_channel,
 			      dma_addr_t dma_addr, u32 len,
 			      u8 last, u8 sp, u32 index)
 {
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	struct sprd_musb_dma_controller *controller = musb_channel->controller;
+	struct musb *musb = controller->private_data;
+#endif
 	musb_channel->free_slot++;
 
 	musb_channel->dma_linklist[index].addr = (unsigned int)dma_addr;
 	musb_channel->dma_linklist[index].data_addr =
 		((u8)((u64)dma_addr >> 32)) & 0xf;
+
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	/* adaptive in mode, when need bigger DMA buffer */
+	if (musb->is_adaptive_in && !musb->adaptive_in_configured
+		&& musb_channel->channel_num == 16)
+		musb_channel->dma_linklist[index].blk_len = 1024;
+	else
+		musb_channel->dma_linklist[index].blk_len = len;
+#else
 	musb_channel->dma_linklist[index].blk_len = len;
+#endif
 	musb_channel->dma_linklist[index].frag_len = 32;
 	musb_channel->dma_linklist[index].ioc = last;
 	musb_channel->dma_linklist[index].sp = sp;

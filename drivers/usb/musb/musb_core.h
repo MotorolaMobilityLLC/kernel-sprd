@@ -375,6 +375,15 @@ struct musb {
 	unsigned long		quirk_retries;
 	bool			is_host;
 
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	bool			is_adaptive;
+	bool			is_adaptive_in;
+	bool			is_adaptive_out;
+	bool			adaptive_in_configured;
+	bool			adaptive_out_configured;
+	u8			adaptive_used;
+#endif
+
 	int			a_wait_bcon;	/* VBUS timeout in msecs */
 	unsigned long		idle_timeout;	/* Next timeout in jiffies */
 

@@ -74,6 +74,13 @@
  */
 
 static void musb_host_start(struct musb *musb);
+
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+/* Musb can only use the EP1 in adaptive mode */
+#define ADAPTIVE_EP_NUM	1
+#define MCDT_DMA_DEST_ADDR	0x56500028
+#define MCDT_DMA_SRC_ADDR	0x56500038
+#endif
 struct musb *hcd_to_musb(struct usb_hcd *hcd)
 {
 	return *(struct musb **) hcd->hcd_priv;
@@ -233,6 +240,18 @@ musb_start_urb(struct musb *musb, int is_in, struct musb_qh *qh)
 	}
 
 	trace_musb_urb_start(musb, urb);
+
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	if (musb->is_adaptive_in && !musb->adaptive_in_configured) {
+		offset = MCDT_DMA_DEST_ADDR;
+		dev_dbg(musb->controller,
+			"set the mcdt_in_offset:0x%x.\n", offset);
+	} else if (musb->is_adaptive_out && !musb->adaptive_out_configured) {
+		offset = MCDT_DMA_SRC_ADDR;
+		dev_dbg(musb->controller,
+			"set the mcdt_out_offset:0x%x.\n", offset);
+	}
+#endif
 
 	/* Configure endpoint */
 	musb_ep_set_qh(hw_ep, is_in, qh);
@@ -678,8 +697,17 @@ void musb_rx_dma_sprd(struct dma_channel *dma_channel,
 	/* Set RXMAXP with the FIFO size of the endpoint
 	 * to disable double buffer mode.
 	 */
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	if (musb->is_adaptive_in && !musb->adaptive_in_configured)
+		musb_writew(hw_ep->regs, MUSB_RXMAXP,
+			512);
+	else
+		musb_writew(hw_ep->regs, MUSB_RXMAXP,
+			qh->maxpacket | ((qh->hb_mult - 1) << 11));
+#else
 	musb_writew(hw_ep->regs, MUSB_RXMAXP,
 		qh->maxpacket | ((qh->hb_mult - 1) << 11));
+#endif
 
 	if (qh->type == USB_ENDPOINT_XFER_INT) {
 		csr = musb_readw(hw_ep->regs, MUSB_RXCSR);
@@ -690,11 +718,26 @@ void musb_rx_dma_sprd(struct dma_channel *dma_channel,
 	csr = musb_readw(hw_ep->regs, MUSB_RXCSR);
 
 	/*start dma*/
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	if (musb->is_adaptive_in && !musb->adaptive_in_configured) {
+		dma_ok = dma_controller->channel_program(dma_channel,
+					packet_sz, !urb->transfer_flags,
+					offset,
+					qh->segsize);
+	} else
+		dma_ok = dma_controller->channel_program(dma_channel,
+				packet_sz, !(urb->transfer_flags &
+						 URB_SHORT_NOT_OK),
+				urb->transfer_dma + offset,
+				qh->segsize);
+#else
 	dma_ok = dma_controller->channel_program(dma_channel,
 				packet_sz, !(urb->transfer_flags &
 						 URB_SHORT_NOT_OK),
 				urb->transfer_dma + offset,
 				qh->segsize);
+#endif
+
 	if (!dma_ok) {
 		dma_controller->channel_release(dma_channel);
 		hw_ep->rx_channel = dma_channel = NULL;
@@ -739,6 +782,36 @@ static bool musb_tx_dma_program(struct dma_controller *dma,
 	 */
 	wmb();
 
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	if (hw_ep->musb->is_adaptive_out
+			 && !(hw_ep->musb->adaptive_out_configured)) {
+		if (!dma->channel_program(channel, pkt_size, mode,
+				offset, length)) {
+			void __iomem *epio = hw_ep->regs;
+			u16 csr;
+
+			dma->channel_release(channel);
+			hw_ep->tx_channel = NULL;
+
+			csr = musb_readw(epio, MUSB_TXCSR);
+			csr &= ~(MUSB_TXCSR_AUTOSET | MUSB_TXCSR_DMAENAB);
+			musb_writew(epio, MUSB_TXCSR, csr | MUSB_TXCSR_H_WZC_BITS);
+			return false;
+		}
+	} else if (!dma->channel_program(channel, pkt_size, mode,
+			urb->transfer_dma + offset, length)) {
+		void __iomem *epio = hw_ep->regs;
+		u16 csr;
+
+		dma->channel_release(channel);
+		hw_ep->tx_channel = NULL;
+
+		csr = musb_readw(epio, MUSB_TXCSR);
+		csr &= ~(MUSB_TXCSR_AUTOSET | MUSB_TXCSR_DMAENAB);
+		musb_writew(epio, MUSB_TXCSR, csr | MUSB_TXCSR_H_WZC_BITS);
+		return false;
+	}
+#else
 	if (!dma->channel_program(channel, pkt_size, mode,
 			urb->transfer_dma + offset, length)) {
 		void __iomem *epio = hw_ep->regs;
@@ -752,6 +825,8 @@ static bool musb_tx_dma_program(struct dma_controller *dma,
 		musb_writew(epio, MUSB_TXCSR, csr | MUSB_TXCSR_H_WZC_BITS);
 		return false;
 	}
+#endif
+
 	if ((musb_dma_sprd(hw_ep->musb)) && channel) {
 		void __iomem *epio = hw_ep->regs;
 		u16 csr = musb_readw(epio, MUSB_TXCSR);
@@ -2144,7 +2219,12 @@ static int musb_schedule(
 	 */
 	best_diff = 4096;
 	best_end = -1;
-
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	if (musb->is_adaptive_in || musb->is_adaptive_out) {
+		dev_info(musb->controller,"adaptive mode, use fixed hardware EP1.\n");
+		goto adaptive;
+	}
+#endif
 	for (epnum = 1, hw_ep = musb->endpoints + 1;
 			epnum < musb->nr_endpoints;
 			epnum++, hw_ep++) {
@@ -2243,9 +2323,22 @@ static int musb_schedule(
 		return -ENOSPC;
 	}
 
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+adaptive:
+	idle = 1;
+	qh->mux = 0;
+	if (musb->is_adaptive_in || musb->is_adaptive_out) {
+		hw_ep = musb->endpoints + ADAPTIVE_EP_NUM;
+		dev_info(musb->controller,
+			"Musb adaptive mode with fixed EP_%d.\n", hw_ep->epnum);
+	} else
+		hw_ep = musb->endpoints + best_end;
+#else
 	idle = 1;
 	qh->mux = 0;
 	hw_ep = musb->endpoints + best_end;
+#endif
+
 #if IS_ENABLED(CONFIG_USB_MUSB_SPRD)
 	if (musb_dma_sprd(musb) && (musb->is_multipoint))
 		hw_ep->hep[!is_in] = qh->hep;
@@ -2588,6 +2681,128 @@ void musb_set_offload_mode(struct usb_hcd *hcd, bool is_offload)
 EXPORT_SYMBOL(musb_set_offload_mode);
 #endif
 
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+static void musb_adaptive_enable(struct musb *musb, int dir)
+{
+	u32 val;
+	void __iomem *mbase = musb->mregs;
+
+	/* Enable the adaptive mode */
+	val  = musb_readl(mbase, MUSB_DMA_FRAG_WAIT);
+	if(dir)
+		val |= BIT_USB_AUDIO_ADP_MODE |BIT_ARSIZE_ADP_MODE;
+	else
+		val |= BIT_USB_AUDIO_ADP_MODE |BIT_AWSIZE_ADP_MODE_L;
+	musb_writel(mbase, MUSB_DMA_FRAG_WAIT, val);
+	val  = musb_readl(mbase, MUSB_DMA_FRAG_WAIT);
+	dev_info(musb->controller, "%s MUSB_DMA_FRAG_WAIT:0x%x\n",
+		__func__, val);
+}
+
+static void musb_adaptive_disable(struct musb *musb)
+{
+	u32 val;
+	void __iomem *mbase = musb->mregs;
+
+	/* Disable the adaptive mode */
+	val  = musb_readl(mbase, MUSB_DMA_FRAG_WAIT);
+	val &= ~BIT_USB_AUDIO_ADP_MODE;
+	musb_writel(mbase, MUSB_DMA_FRAG_WAIT, val);
+	dev_info(musb->controller, "%s MUSB_DMA_FRAG_WAIT:0x%x\n",
+		__func__, val);
+	musb->is_adaptive = false;
+	musb->is_adaptive_in = false;
+	musb->is_adaptive_out = false;
+	musb->adaptive_in_configured = false;
+	musb->adaptive_out_configured = false;
+}
+
+void musb_set_adaptive_mode(struct usb_hcd *hcd, bool is_adaptive)
+{
+	struct musb *musb = hcd_to_musb(hcd);
+
+	musb->is_adaptive = is_adaptive;
+}
+EXPORT_SYMBOL(musb_set_adaptive_mode);
+
+void musb_adaptive_config(struct usb_hcd *hcd, int ep_num, int mono,
+		int is_pcm_24, int width, int rate, int adaptive_used)
+{
+	struct musb *musb = hcd_to_musb(hcd);
+	void __iomem *mbase = musb->mregs;
+	int dir;
+	u16 intr;
+	u8 bchannel;
+	unsigned long flags;
+
+	if (!is_host_active(musb) || !musb->is_active)
+		return;
+
+	if (ep_num & 0x80) {
+		/* in endpoint */
+		dir = 0;
+		bchannel = (u8)(ep_num & 0xf) + 15;
+		musb->is_adaptive_in = true;
+	} else {
+		/* out endpoint */
+		dir = 1;
+		bchannel = (u8)(ep_num & 0xf);
+		musb->is_adaptive_out = true;
+	}
+
+	musb->is_adaptive = true;
+
+	spin_lock_irqsave(&musb->lock, flags);
+	if (adaptive_used)
+		musb->adaptive_used++;
+	else if (musb->adaptive_used == 0)
+		dev_warn(musb->controller, "warning musb->adaptive_used 0!\n");
+	else
+		musb->adaptive_used--;
+	spin_unlock_irqrestore(&musb->lock, flags);
+
+	dev_info(musb->controller,
+		"%s:ep:0x%x dir:%s mono:%d pcm:%d width:%d rate:%d adaptive_used:%d,"
+		"is_adaptive_in:%d, is_adaptive_out:%d\n",
+		__func__, ep_num, dir?"out":"in", mono, is_pcm_24, width, rate, adaptive_used,
+		musb->is_adaptive_in, musb->is_adaptive_out);
+
+	spin_lock_irqsave(&musb->lock, flags);
+
+	if (musb->adaptive_used == 0) {
+		dev_info(musb->controller, "No adaptive used!\n");
+		musb_adaptive_disable(musb);
+		goto done;
+	}
+
+	/* Disable the EP interrupt */
+	if (ep_num & 0x80) {
+		intr = musb_readw(mbase, MUSB_INTRRXE);
+		intr &= ~(1 << (ADAPTIVE_EP_NUM & 0xf));
+		musb_writew(mbase, MUSB_INTRRXE, intr);
+	} else {
+		intr = musb_readw(mbase, MUSB_INTRTXE);
+		intr &= ~(1 << (ADAPTIVE_EP_NUM & 0xf));
+		musb_writew(mbase, MUSB_INTRTXE, intr);
+	}
+
+	musb_adaptive_enable(musb, dir);
+
+done:
+	spin_unlock_irqrestore(&musb->lock, flags);
+}
+EXPORT_SYMBOL(musb_adaptive_config);
+#else
+void musb_set_adaptive_mode(struct usb_hcd *hcd, bool is_adaptive)
+{}
+EXPORT_SYMBOL(musb_set_adaptive_mode);
+
+void musb_adaptive_config(struct usb_hcd *hcd, int ep_num, int mono,
+		int is_pcm_24, int width, int rate, int adaptive_used)
+{}
+EXPORT_SYMBOL(musb_adaptive_config);
+#endif
+
 static int musb_urb_enqueue(
 	struct usb_hcd			*hcd,
 	struct urb			*urb,
@@ -2605,6 +2820,13 @@ static int musb_urb_enqueue(
 	/* host role must be active */
 	if (!is_host_active(musb) || !musb->is_active)
 		return -ENODEV;
+
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	if (musb->is_adaptive_in && !musb->adaptive_in_configured)
+		dev_info(musb->controller, "config adaptive in.\n");
+	else if (musb->is_adaptive_out && !musb->adaptive_out_configured)
+		dev_info(musb->controller, "config adaptive out.\n");
+#endif
 
 	trace_musb_urb_enq(musb, urb);
 
@@ -2749,6 +2971,16 @@ static int musb_urb_enqueue(
 		}
 	}
 
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	if ((musb->is_adaptive_in && !musb->adaptive_in_configured) ||
+		(musb->is_adaptive_out && !musb->adaptive_out_configured))
+		dev_info(musb->controller,
+			"ep:%d  dir:%s max:%d type:%d addr:%d type:0x%x intv:%d\n",
+			qh->epnum,  epd->bEndpointAddress & USB_ENDPOINT_DIR_MASK?"in":"out",
+			qh->maxpacket, qh->type, qh->addr_reg,
+			qh->type_reg, qh->intv_reg);
+#endif
+
 	/* invariant: hep->hcpriv is null OR the qh that's already scheduled.
 	 * until we get real dma queues (with an entry for each urb/buffer),
 	 * we only have work to do in the former case.
@@ -2771,6 +3003,21 @@ static int musb_urb_enqueue(
 		 * musb_start_urb(), but otherwise only konicawc cares ...
 		 */
 	}
+
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	if (musb->is_adaptive_in && !musb->adaptive_in_configured) {
+		musb->adaptive_in_configured= true;
+		dev_info(musb->controller,
+			"Musb running at adaptive in mode.\n");
+		musb_giveback(musb, urb, -ESHUTDOWN);
+	} else if (musb->is_adaptive_out && !musb->adaptive_out_configured) {
+		musb->adaptive_out_configured= true;
+		dev_info(musb->controller,
+			"Musb running at adaptive out mode.\n");
+		musb_giveback(musb, urb, -ESHUTDOWN);
+	}
+#endif
+
 	spin_unlock_irqrestore(&musb->lock, flags);
 
 done:
@@ -3247,6 +3494,13 @@ int musb_host_alloc(struct musb *musb)
 	musb->hops.advance_schedule = musb_advance_schedule;
 	musb->hops.tx_dma_program = musb_tx_dma_program;
 	musb->hops.rx_dma_program = musb_rx_dma_sprd;
+
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	musb->is_adaptive_in= false;
+	musb->is_adaptive_out = false;
+	musb->adaptive_in_configured = false;
+	musb->adaptive_out_configured = false;
+#endif
 
 	return 0;
 }
