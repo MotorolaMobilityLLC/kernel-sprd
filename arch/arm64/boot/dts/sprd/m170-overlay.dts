@@ -685,6 +685,9 @@
 	regulator-always-on;
 };
 
+&vddldo1 {
+	regulator-always-on;
+};
 &pmic_fgu {
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-micro-ohms = <4850>;
