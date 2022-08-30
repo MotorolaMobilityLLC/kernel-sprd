@@ -101,6 +101,10 @@
 		compatible = "sprd,dmabuf";
 	};
 
+	sprd-map-user {
+		compatible = "unisoc,map-user";
+	};
+
 	firmware {
 		android {
 			compatible = "android,firmware";
