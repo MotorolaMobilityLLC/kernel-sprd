@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Spreadtrum Qogirn6pro board common DTS file
+ * Spreadtrum Qogirn6lite board common DTS file
  *
  * Copyright (C) 2021, Unisoc Inc.
  */
