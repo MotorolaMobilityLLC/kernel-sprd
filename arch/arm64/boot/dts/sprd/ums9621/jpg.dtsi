@@ -7,12 +7,12 @@
 
 &mm {
 	jpg: jpg-codec@36000000 {
-		compatible = "sprd,qogirn6pro-jpg";
+		compatible = "sprd,qogirn6lite-jpg";
 		reg = <0 0x36000000 0 0xc000>;
 		interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
 		reset-syscon = <&mm_ahb_regs
-			REG_MM_AHB_SYS_SOFT_RST
-			MASK_MM_AHB_JPG_SOFT_RST>;
+			REG_CAMERASYS_GLB_SYS_SOFT_RST
+			MASK_CAMERASYS_GLB_JPG_SOFT_RST>;
 		aon-apb-eb-syscon = <&aon_apb_regs
 			REG_AON_APB_APB_EB0
 			MASK_AON_APB_MM_EB>;
