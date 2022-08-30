@@ -125,9 +125,9 @@ CONFIG_SPRD_SENSOR_HUB
 	[missing plat description] none
 	[function] enable sensor hub driver built in kernel
 CONFIG_SPRD_UID
-	[arch] arm64
-	[plat] qogirl6l
-	[missing plat] qogirn6pro,sharkl5Pro
+	[arch] all
+	[plat] all
+	[missing plat] none
 	[field]
 	[subsys]
 	[must]
