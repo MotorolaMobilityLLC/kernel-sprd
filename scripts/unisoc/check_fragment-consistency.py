@@ -14,8 +14,11 @@ tmp_path = "./tmp_fregment_check/"
 gki_config_info = {}
 fragment_gki_config_info = {}
 fragment_soc_config_info = {}
+fragment_soc_without_m_config_info = {}
 ret = 0
 check_flag = 0
+
+config_whitelist=["CONFIG_ARCH_SPRD","CONFIG_WCN_BOOT","CONFIG_SC23XX","CONFIG_USB_F_VSERIAL_BYPASS_USER","CONFIG_SPRD_HANG_DEBUG"]
 
 def read_file(file_path, list_info):
 
@@ -54,35 +57,41 @@ def craete_gki_config_dirc(gki_config_info):
 
     read_file(tmp_path + "/.config", gki_config_info)
 
-def check_fragment_gki_config_consistency(fragment_gki_info, fragment_soc_info):
+def check_fragment_gki_config_consistency(fragment_gki_info, fragment_soc_info,check_modify_gki):
     global check_flag
 
     for soc in fragment_soc_info:
         print >> sys.stderr, "=========================== %s =========================" % soc
         for config in fragment_soc_info[soc]:
-            if fragment_soc_info[soc][config] == "y":
-                #if ( config in gki_config_info and gki_config_info[config] != "y" ):
-                #    print >> sys.stderr, "ERROR: " + config + " should not be modify(gki_defconfig is defined " + gki_config_info[config] + " )!!!"
-                #    check_flag = 1
-                if ( config not in fragment_gki_info or fragment_gki_info[config] != "y" ):
-                    print >> sys.stderr, "ERROR: " + config + " isn't the subset of sprd_gki.fragment"
-                    check_flag = 1
-            elif fragment_soc_info[soc][config] == "m":
-                if ( config in gki_config_info and gki_config_info[config] != "m" ) and (config in gki_config_info and gki_config_info[config] != "n" ):
-                    print >> sys.stderr, "ERROR: " + config + " should not be modify(gki_defconfig is defined " + gki_config_info[config] + " )!!!"
-                    check_flag = 1
-                if ( config not in fragment_gki_info or fragment_gki_info[config] != "m" ):
-                    print >> sys.stderr, "ERROR: " + config + " isn't the subset of sprd_gki.fragment soc"
-                    check_flag = 1
-            elif fragment_soc_info[soc][config] == "n":
-                if ( config in gki_config_info and gki_config_info[config] != "n" ) and ( config in gki_config_info and gki_config_info[config] != "m" ):
-                    print >> sys.stderr, "ERROR: " + config + " should not be modify(gki_defconfig is defined " + gki_config_info[config] + " )!!!"
-                    check_flag = 1
+            if  check_modify_gki == 1:
+                if fragment_soc_info[soc][config] == "y":
+                    if ( config in gki_config_info and gki_config_info[config] != "y" and config not in config_whitelist):
+                        print >> sys.stderr, "ERROR: " + config + " should not be modify(gki_defconfig is defined " + gki_config_info[config] + " )!!!"
+                        check_flag = 1
+            else:
+                if fragment_soc_info[soc][config] == "y":
+                    if ( config not in fragment_gki_info or fragment_gki_info[config] != "y" ):
+                        print >> sys.stderr, "ERROR: " + config + " isn't the subset of sprd_gki.fragment"
+                        check_flag = 1
+                elif fragment_soc_info[soc][config] == "m":
+                    if ( config in gki_config_info and gki_config_info[config] != "m" ) and (config in gki_config_info and gki_config_info[config] != "n" ):
+                        print >> sys.stderr, "ERROR: " + config + " should not be modify(gki_defconfig is defined " + gki_config_info[config] + " )!!!"
+                        check_flag = 1
+                    if ( config not in fragment_gki_info or fragment_gki_info[config] != "m" ):
+                        print >> sys.stderr, "ERROR: " + config + " isn't the subset of sprd_gki.fragment soc"
+                        check_flag = 1
+                elif fragment_soc_info[soc][config] == "n":
+                    if ( config in gki_config_info and gki_config_info[config] != "n" ) and ( config in gki_config_info and gki_config_info[config] != "m" ):
+                        print >> sys.stderr, "ERROR: " + config + " should not be modify(gki_defconfig is defined " + gki_config_info[config] + " )!!!"
+                        check_flag = 1
         print >> sys.stderr, "=========================== %s =========================" % soc
 
 def do_clean():
     os.system("rm -rf " + fragment_defconfig)
     os.system("rm -rf " + tmp_path)
+    (status, output)=commands.getstatusoutput("find ./arch/arm64 -name 'sprd_gki_*.fragment_without_module'")
+    for fragment_without_m_path in output.split("\n"):
+        os.system("rm -rf " + fragment_without_m_path)
 
 def main():
     parser = argparse.ArgumentParser(description="The GKI Check Scripts Can Add Those Paremeter")
@@ -104,11 +113,16 @@ def main():
 
     (status, output)=commands.getstatusoutput("find ./arch/arm64 -name 'sprd_gki_*.fragment'|grep -v 'debug'")
     for fragment_path in output.split("\n"):
+        fragment_without_m_path=fragment_path+"_without_module"
+        os.system("grep -v =m %s > %s" % (fragment_path,fragment_without_m_path))
         soc = fragment_path.split("/").pop().split("_").pop(2).split(".").pop(0)
         fragment_soc_config_info[soc] = {}
+        fragment_soc_without_m_config_info[soc] = {}
         create_fragment_config_dirc(fragment_path, fragment_soc_config_info[soc])
+        create_fragment_config_dirc(fragment_without_m_path, fragment_soc_without_m_config_info[soc])
 
-    check_fragment_gki_config_consistency(fragment_gki_config_info, fragment_soc_config_info)
+    check_fragment_gki_config_consistency(fragment_gki_config_info, fragment_soc_config_info,0)
+    check_fragment_gki_config_consistency(fragment_gki_config_info, fragment_soc_without_m_config_info,1)
     do_clean()
     exit(check_flag)
 
