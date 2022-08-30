@@ -8,7 +8,7 @@
 
 &aon {
 	ap_efuse: efuse@160000 {
-		compatible = "sprd,qogirn6pro-efuse";
+		compatible = "sprd,qogirn6lite-efuse";
 		reg = <0x160000 0x10000>;
 		clock-names = "enable";
 		hwlocks = <&hwlock 8>;
