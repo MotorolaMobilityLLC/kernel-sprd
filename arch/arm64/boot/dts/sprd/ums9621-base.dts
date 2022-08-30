@@ -48,6 +48,8 @@
 		spi4 = &adi_bus;
 		pmic_efuse0 = &ump9620_efuse;
 		pmic_efuse1 = &ump9621_efuse;
+		serdes0 = &serdes0;
+		serdes1 = &serdes1;
 	};
 
 	memory@80000000 {
@@ -446,5 +448,13 @@
 };
 
 &iommu_jpg {
+	status = "okay";
+};
+
+&serdes0 {
+	status = "okay";
+};
+
+&serdes1 {
 	status = "okay";
 };
