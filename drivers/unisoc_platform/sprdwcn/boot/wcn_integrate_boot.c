@@ -33,6 +33,7 @@ static char firmware_file_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 char gnss_firmware_path[FIRMWARE_FILEPATHNAME_LENGTH_MAX];
 int is_wcn_shutdown;
 int is_wcnpll_power_down;
+int ge2_bin_type;
 
 void wcn_boot_init(void)
 {
@@ -419,6 +420,8 @@ static int wcn_load_firmware_data(struct wcn_device *wcn_dev)
  * for reading from the partition image.The first way
  * to use the first.
  */
+#define GAL_BIN_SIZE 0x57800
+#define GNSS_COMBINE_FIRMWARE 0x100000
 static int wcn_download_image(struct wcn_device *wcn_dev)
 {
 	const struct firmware *firmware;
@@ -475,8 +478,8 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 #endif
 	} else {
 		WCN_INFO("image size = %d\n", (int)firmware->size);
-		/*check is 2to1 bin*/
-		if (wcn_check_2to1_btwf_bin(wcn_dev, firmware, &off)) {
+				/*check is 2to1 bin*/
+		if (wcn_check_2to1_bin(wcn_dev, firmware, &off) == 2) {
 			if (wcn_write_data_to_phy_addr(wcn_dev->base_addr,
 					(void *)(firmware->data + off),
 						wcn_dev->file_length)) {
@@ -484,8 +487,20 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 			release_firmware(firmware);
 			return -ENOMEM;
 			}
+		} else if (wcn_check_2to1_bin(wcn_dev, firmware, &off) == 1) {
+			if (firmware->size != GNSS_COMBINE_FIRMWARE) {
+				/* force assert */
+				wcn_assert_interface(1, "gnss bin codesize error");
+				return -1;
+			}
+			if (wcn_write_data_to_phy_addr(wcn_dev->base_addr,
+					(void *)(firmware->data + off),
+						GAL_BIN_SIZE)) {
+			WCN_ERR("L3 wcn_gnss_mem_ram_vmap_nocache fail\n");
+			release_firmware(firmware);
+			return -ENOMEM;
+			}
 		} else {
-			WCN_INFO("it is not 2to1 bin\n");
 			if (wcn_write_data_to_phy_addr(wcn_dev->base_addr,
 					(void *)firmware->data,
 						firmware->size)) {
@@ -3179,7 +3194,8 @@ static struct wcn_device *wcn_get_dev_by_type(u32 subsys_bit)
 	if (subsys_bit & WCN_MARLIN_MASK)
 		return s_wcn_device.btwf_device;
 	else if ((subsys_bit & WCN_GNSS_MASK) ||
-		 (subsys_bit & WCN_GNSS_BD_MASK))
+		 (subsys_bit & WCN_GNSS_BD_MASK) ||
+		(subsys_bit & WCN_GNSS_GAL_MASK))
 		return s_wcn_device.gnss_device;
 
 	WCN_ERR("invalid subsys:0x%x\n", subsys_bit);
@@ -3218,6 +3234,7 @@ int start_integrate_wcn_truely(u32 subsys)
 	unsigned long ret_wait_completion = 0;
 
 	WCN_INFO("start subsys:%d\n", subsys);
+	ge2_bin_type = subsys;
 	wcn_dev = wcn_get_dev_by_type(subsys_bit);
 	if (!wcn_dev) {
 		WCN_ERR("wcn dev null!\n");

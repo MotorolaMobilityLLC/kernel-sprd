@@ -15,7 +15,7 @@
 
 	chosen: chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 loglevel=1 console=ttyS1,115200n8 init=/init root=/dev/ram0 rw printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio initcall_debug=1";
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 loglevel=1 console=ttyS1,115200n8 init=/init root=/dev/ram0 rw printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-ahb/20600000.sdio initcall_debug=1 swiotlb=1 androidboot.selinux=permissive";
 	};
 
 	memory: memory@80000000 {
@@ -76,6 +76,11 @@
 			reg = <0x8e000000 0x00300000>;
 		};
 
+		/* The uboot_log_reserved node is added in uboot. base:0x9de8 0000, size:0x80000 */
+		uboot_log_reserved: uboot_log-mem@9de80000 {
+			reg = <0x9de80000 0x00040000>;
+		};
+
 		logo_reserved: logobuffer@9e000000 {
 			reg = <0x9e000000 0x384000>;
 		};
@@ -86,14 +91,7 @@
 		};
 
 		tos_reserved: tos-mem@b0020000 {
-			reg = <0xb0020000 0x01fe0000>;
-		};
-
-		cma_reserved: cma_share@b80000000 {
-			compatible = "shared-dma-pool";
-			reg = <0xb8000000 0x02000000>;
-			reusable;
-			linux,cma-default;
+			reg = <0xb0020000 0x02e0000>;
 		};
 
 		warm_boot_reserved: warm-boot@0xbff70000 {
@@ -102,7 +100,7 @@
 	};
 
 	sprd-map-user {
-		compatible = "sprd,map-user";
+		compatible = "unisoc,map-user";
 	};
 
 	sprd-wlan {
@@ -209,6 +207,7 @@
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <768000>;
 			sprd,min-cpunum = <4>;
+			sprd,max-temp = <90000>;
 			sprd,core-base = <1139>;
 			sprd,cluster-base = <2751>;
 			sprd,dynamic-core =
@@ -237,7 +236,7 @@
 	};
 
 	ddr_dfs: scene-frequency {
-		compatible = "sprd,dfs";
+		compatible = "sprd,ddr-dvfs";
 		freq-num = <4>;
 	};
 
@@ -291,6 +290,8 @@
 	bus-width = <4>;
 	sd-uhs-sdr104;
 	sd-uhs-sdr50;
+	sprd,name = "sdio_sd";
+	sprd,sdio-adma;
 	no-sdio;
 	no-mmc;
 	status = "okay";
@@ -308,6 +309,8 @@
 	mmc-hs400-1_8v;
 	mmc-hs200-1_8v;
 	mmc-ddr-1_8v;
+	sprd,name = "sdio_emmc";
+	sprd,sdio-adma;
 	no-sdio;
 	no-sd;
 	status = "okay";

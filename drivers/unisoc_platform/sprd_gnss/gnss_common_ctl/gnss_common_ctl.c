@@ -399,6 +399,8 @@ static ssize_t gnss_subsys_store(struct device *dev,
 		gnss_common_ctl_dev.gnss_subsys = WCN_GNSS;
 	else if (set_value == WCN_GNSS_BD)
 		gnss_common_ctl_dev.gnss_subsys  = WCN_GNSS_BD;
+	else if (set_value == WCN_GNSS_GAL)
+		gnss_common_ctl_dev.gnss_subsys  = WCN_GNSS_GAL;
 	else
 		ret = -EINVAL;
 #endif

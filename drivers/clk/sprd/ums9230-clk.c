@@ -597,6 +597,7 @@ static struct sprd_reset_map ums9230_ap_apb_resets[] = {
 	[RESET_AP_APB_I2C6_SOFT_RST]		= { 0x0004, BIT(27), 0x1000 },
 	[RESET_AP_APB_AXI_REGU_SOFT_RST]	= { 0x0004, BIT(28), 0x1000 },
 	[RESET_AP_APB_UFS_AES_SOFT_RST]		= { 0x0004, BIT(29), 0x1000 },
+	[RESET_AP_APB_UFS_GLB_RST]		= { 0x0000, BIT(4), 0x1000 },
 };
 
 static struct sprd_clk_desc ums9230_apapb_gate_desc = {

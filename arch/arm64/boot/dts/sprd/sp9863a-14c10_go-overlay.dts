@@ -104,7 +104,7 @@
 				charge-sdp-current-microamp = <500000 500000>;
 				charge-dcp-current-microamp = <2000000 2000000>;
 				charge-cdp-current-microamp = <2000000 2000000>;
-				charge-unknown-current-microamp = <500000 500000>;
+				charge-unknown-current-microamp = <1050000 1050000>;
 
 				dcp-jeita-temp-table = <1000 1020 0 4400000>,
 					<1150 1180 1000000 4400000>,
@@ -119,9 +119,9 @@
 					<1460 1440 2100000 4400000>,
 					<1550 1180 2100000 4100000>;
 				unknown-jeita-temp-table = <1000 1020 0 4400000>,
-					<1550 1180 600000 4400000>,
-					<1460 1440 600000 4400000>,
-					<1550 1500 600000 4100000>;
+					<1550 1180 700000 4400000>,
+					<1460 1440 1050000 4400000>,
+					<1550 1500 700000 4100000>;
 				force-jeita-status = <2>;
 			};
 

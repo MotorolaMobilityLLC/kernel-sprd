@@ -520,7 +520,13 @@
 				clock-names = "enable";
 				hwlocks = <&hwlock 8>;
 				clocks = <&aonapb_gate CLK_EFUSE_EB>;
+				uid_start: uid-start@e8{
+					reg = <0xe8 0x4>;
+				};
 
+				uid_end: uid-end@ec{
+					reg = <0xec 0x4>;
+				};
 				cthm_sign: cthm-sign@20{
 					reg = <0x20 0x4>;
 					bits = <4 1>;

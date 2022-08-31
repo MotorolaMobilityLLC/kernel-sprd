@@ -1741,6 +1741,7 @@ static void mmc_swcq_recovery_finish(struct mmc_host *mmc)
 		mmc_swcq_pump_requests(swcq);
 }
 
+static bool queue_flag;
 static int mmc_swcq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
 	struct mmc_queue_req *mqrq = container_of(mrq, struct mmc_queue_req,
@@ -1760,6 +1761,11 @@ static int mmc_swcq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
 	if (!swcq->mq)
 		swcq->mq = mq;
+
+	if (!queue_flag) {
+		blk_queue_flag_set(QUEUE_FLAG_SAME_FORCE, q);
+		queue_flag = true;
+	}
 
 	/* Do not queue any new requests in recovery mode. */
 	if (swcq->recovery_halt) {
@@ -2226,6 +2232,7 @@ int mmc_swcq_init(struct mmc_swcq *swcq, struct mmc_host *mmc)
 	swcq->mmc->cqe_private = swcq;
 	mmc_swcq_ops.android_kabi_reserved1 = (u64)mmc_swcq_is_busy;
 	mmc->cqe_ops = &mmc_swcq_ops;
+	queue_flag = false;
 
 	swcq->num_slots = SWCQ_NUM_SLOTS;
 	swcq->next_tag = SWCQ_INVALID_TAG;

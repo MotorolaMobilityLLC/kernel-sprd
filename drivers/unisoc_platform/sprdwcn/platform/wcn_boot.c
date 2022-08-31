@@ -1676,6 +1676,11 @@ enum wcn_clock_type wcn_get_xtal_26m_clk_type(void)
 {
 	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
+	if (!g_match_config) {
+		pr_err("wcn g_match_config null,WCN_CLOCK_TYPE_UNKNOWN \n");
+		return WCN_CLOCK_TYPE_UNKNOWN;
+	}
+
 	if (g_match_config && g_match_config->unisoc_wcn_integrated)
 		return integ_wcn_get_xtal_26m_clk_type();
 	else

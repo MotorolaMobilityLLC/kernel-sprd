@@ -227,7 +227,7 @@ void dwc3_gadget_giveback(struct dwc3_ep *dep, struct dwc3_request *req,
  */
 int dwc3_send_gadget_generic_command(struct dwc3 *dwc, unsigned cmd, u32 param)
 {
-	u32		timeout = 500;
+	u32		timeout = 5000;
 	int		status = 0;
 	int		ret = 0;
 	u32		reg;
@@ -382,6 +382,8 @@ int dwc3_send_gadget_ep_cmd(struct dwc3_ep *dep, unsigned cmd,
 
 	if (timeout == 0) {
 		ret = -ETIMEDOUT;
+		dev_err(dwc->dev, "%s command timeout for %s\n",
+			dwc3_gadget_ep_cmd_string(cmd), dep->name);
 		cmd_status = -ETIMEDOUT;
 	}
 
@@ -647,13 +649,18 @@ static int __dwc3_gadget_ep_enable(struct dwc3_ep *dep, unsigned int action)
 
 	if (!(dep->flags & DWC3_EP_ENABLED)) {
 		ret = dwc3_gadget_start_config(dep);
-		if (ret)
+		if (ret) {
+			dev_err(dwc->dev, "start_config() failed for %s\n",
+								dep->name);
 			return ret;
+		}
 	}
 
 	ret = dwc3_gadget_set_ep_config(dep, action);
-	if (ret)
+	if (ret) {
+		dev_err(dwc->dev, "set_ep_config() failed for %s\n", dep->name);
 		return ret;
+	}
 
 	if (!(dep->flags & DWC3_EP_ENABLED)) {
 		struct dwc3_trb	*trb_st_hw;
@@ -735,20 +742,20 @@ static void dwc3_remove_requests(struct dwc3 *dwc, struct dwc3_ep *dep)
 	/* - giveback all requests to gadget driver */
 	while (!list_empty(&dep->started_list)) {
 		req = next_request(&dep->started_list);
-
-		dwc3_gadget_giveback(dep, req, -ESHUTDOWN);
+		if (req)
+			dwc3_gadget_giveback(dep, req, -ESHUTDOWN);
 	}
 
 	while (!list_empty(&dep->pending_list)) {
 		req = next_request(&dep->pending_list);
-
-		dwc3_gadget_giveback(dep, req, -ESHUTDOWN);
+		if (req)
+			dwc3_gadget_giveback(dep, req, -ESHUTDOWN);
 	}
 
 	while (!list_empty(&dep->cancelled_list)) {
 		req = next_request(&dep->cancelled_list);
-
-		dwc3_gadget_giveback(dep, req, -ESHUTDOWN);
+		if (req)
+			dwc3_gadget_giveback(dep, req, -ESHUTDOWN);
 	}
 }
 
@@ -1662,11 +1669,19 @@ static void dwc3_gadget_ep_skip_trbs(struct dwc3_ep *dep, struct dwc3_request *r
 static void dwc3_gadget_ep_cleanup_cancelled_requests(struct dwc3_ep *dep)
 {
 	struct dwc3_request		*req;
-	struct dwc3_request		*tmp;
 
-	list_for_each_entry_safe(req, tmp, &dep->cancelled_list, list) {
+	/* To avoid there removed n and pullup removed n +1, replace
+	 * list_for_each_entry_safe() with list_empty() */
+	while (!list_empty(&dep->cancelled_list)) {
+		req = next_request(&dep->cancelled_list);
 		dwc3_gadget_ep_skip_trbs(dep, req);
 		dwc3_gadget_giveback(dep, req, -ECONNRESET);
+		/*
+		 * The endpoint is disabled, let the dwc3_remove_requests()
+		 * handle the cleanup.
+		 */
+		if (!dep->endpoint.desc)
+			break;
 	}
 }
 
@@ -1702,6 +1717,13 @@ static int dwc3_gadget_ep_dequeue(struct usb_ep *ep,
 	list_for_each_entry(r, &dep->started_list, list) {
 		if (r == req) {
 			struct dwc3_request *t;
+			/*
+			 * If a Setup packet is received but yet to DMA out, Polling of its
+			 * DEPCMD.CmdAct may block setting up TRB for Setup packet, causing a
+			 * timeout. Add some trace here.
+			 */
+			if (dwc->ep0state != EP0_SETUP_PHASE && !dwc->delayed_status)
+				dev_info(dwc->dev, "ep0status != EP0_SETUP_PHASE \n");
 
 			/* wait until it is processed */
 			dwc3_stop_active_transfer(dep, true, true);
@@ -1993,6 +2015,9 @@ static void dwc3_stop_active_transfers(struct dwc3 *dwc)
 		if (!dep)
 			continue;
 
+		if (!(dep->flags & DWC3_EP_ENABLED))
+			continue;
+
 		dwc3_remove_requests(dwc, dep);
 	}
 }
@@ -2000,7 +2025,7 @@ static void dwc3_stop_active_transfers(struct dwc3 *dwc)
 static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 {
 	u32			reg;
-	u32			timeout = 500;
+	u32			timeout = 5000;
 
 	if (pm_runtime_suspended(dwc->dev))
 		return 0;
@@ -2036,8 +2061,11 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 		reg &= DWC3_DSTS_DEVCTRLHLT;
 	} while (--timeout && !(!is_on ^ !reg));
 
-	if (!timeout)
+	if (!timeout) {
+		dev_err(dwc->dev, "failed to %s controller\n",
+				is_on ? "start" : "stop");
 		return -ETIMEDOUT;
+	}
 
 	return 0;
 }
@@ -2811,14 +2839,20 @@ static void dwc3_gadget_ep_cleanup_completed_requests(struct dwc3_ep *dep,
 		const struct dwc3_event_depevt *event, int status)
 {
 	struct dwc3_request	*req;
-	struct dwc3_request	*tmp;
 
-	list_for_each_entry_safe(req, tmp, &dep->started_list, list) {
+	while (!list_empty(&dep->started_list)) {
 		int ret;
 
+		req = next_request(&dep->started_list);
 		ret = dwc3_gadget_ep_cleanup_completed_request(dep, event,
 				req, status);
 		if (ret)
+			break;
+		/*
+		 * The endpoint is disabled. Let the dwc3_remove_requests()
+		 * handle the cleanup.
+		 */
+		if (!dep->endpoint.desc)
 			break;
 	}
 }
@@ -3078,6 +3112,10 @@ static void dwc3_stop_active_transfer(struct dwc3_ep *dep, bool force,
 	ret = dwc3_send_gadget_ep_cmd(dep, cmd, &params);
 	WARN_ON_ONCE(ret);
 	dep->resource_index = 0;
+	if (ret == -ETIMEDOUT) {
+		dev_info(dwc->dev, "%s(%d): endxfer ret:%d",
+			dep->name, dep->number, ret);
+	}
 
 	if (!interrupt)
 		dep->flags &= ~DWC3_EP_TRANSFER_STARTED;

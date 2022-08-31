@@ -26,6 +26,7 @@
 #define BTWF_SW_DEEP_SLEEP_MAGIC	(0x504C5344) /* SW deep sleep:DSLP */
 
 static int wcn_chiptype;
+extern int ge2_bin_type;
 static int wcn_open_module;
 static int wcn_module_state_change;
 /* format: marlin2-built-in_id0_id1 */
@@ -326,24 +327,41 @@ enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 EXPORT_SYMBOL_GPL(wcn_get_aon_chip_id);
 
 #define WCN_WFBT_LOAD_FIRMWARE_OFFSET 0x180000
-#define WCN_COMBINE_FIRMWARE 0x300000
-bool wcn_check_2to1_btwf_bin(struct wcn_device *wcn_dev, const struct firmware *firmware, loff_t *off)
+#define GNSS_LOAD_FIRMWARE_OFFSET 0xA2800
+int wcn_check_2to1_bin(struct wcn_device *wcn_dev, const struct firmware *firmware, loff_t *off)
 {
-	if (wcn_get_aon_chip_id() == WCN_SHARKL3_CHIP_22NM) {
-		WCN_INFO("it is sharkl3 22nm\n");
-		*off = WCN_WFBT_LOAD_FIRMWARE_OFFSET;
-	} else {
-		*off = 0;
-		WCN_INFO("it is sharkl3 28nm\n");
-	}
+	int ret;
 
-	if ((wcn_chiptype == 1) && (wcn_dev_is_gnss(wcn_dev) == 0) && (firmware->size == WCN_COMBINE_FIRMWARE)) {
-		WCN_INFO("wcn for L3 use 2to1 btwf bin\n");
-		return true;
+	if (wcn_dev_is_gnss(wcn_dev) == 1) {
+		WCN_INFO("gnss bin--------\r\n");
+		if (ge2_bin_type == 18) {
+			WCN_INFO("gnss for L3 use GAl gnss bin\n");
+			*off = GNSS_LOAD_FIRMWARE_OFFSET;
+			ret = 1;
+		} else {
+			*off = 0;
+			WCN_INFO("gnss for L3 use GE2 gnss bin\n");
+			ret = 0;
+		}
 	} else {
-		WCN_INFO("wcn not use 2to1 btwf bin\n");
-		return false;
+		WCN_INFO("btwf bin--------\r\n");
+		if (wcn_get_aon_chip_id() == WCN_SHARKL3_CHIP_22NM) {
+			WCN_INFO("it is sharkl3 22nm\n");
+			*off = WCN_WFBT_LOAD_FIRMWARE_OFFSET;
+		} else {
+			*off = 0;
+			WCN_INFO("it is not sharkl3 22nm\n");
+		}
+
+		if (wcn_chiptype == 1) {
+			WCN_INFO("wcn for L3 use 2to1 btwf bin\n");
+			ret = 2;
+		} else {
+			WCN_INFO("not L3,wcn not use 2to1 btwf bin\n");
+			ret = 0;
+		}
 	}
+	return ret;
 }
 
 u32 wcn_platform_chip_id(void)

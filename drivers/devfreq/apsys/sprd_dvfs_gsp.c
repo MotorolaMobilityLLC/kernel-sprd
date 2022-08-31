@@ -513,10 +513,10 @@ static int gsp_gov_get_target(struct devfreq *devfreq,
 	else
 		adjusted_freq = gsp->idle_freq;
 
-	if (devfreq->max_freq && adjusted_freq > devfreq->max_freq)
-		adjusted_freq = devfreq->max_freq;
-	else if (devfreq->min_freq && adjusted_freq < devfreq->min_freq)
-		adjusted_freq = devfreq->min_freq;
+	if (devfreq->scaling_max_freq && adjusted_freq > devfreq->scaling_max_freq)
+		adjusted_freq = devfreq->scaling_max_freq;
+	else if (devfreq->scaling_min_freq && adjusted_freq < devfreq->scaling_min_freq)
+		adjusted_freq = devfreq->scaling_min_freq;
 
 	*freq = adjusted_freq;
 

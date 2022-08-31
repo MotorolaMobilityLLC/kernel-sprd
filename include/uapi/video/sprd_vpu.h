@@ -72,6 +72,7 @@ struct iommu_map_data {
 	int fd;
 	uint64_t size;
 	uint64_t iova_addr;
+	uint8_t  need_cache_sync;
 };
 
 

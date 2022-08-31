@@ -173,30 +173,6 @@
 			reg = <0 0x27000000 0 0x4000>;
 		};
 
-		ai_clock_regs: syscon@27004000 {
-			compatible = "sprd,ums9620-glbregs", "syscon";
-			#syscon-cells = <2>;
-			reg = <0 0x27004000 0 0x4000>;
-		};
-
-		ai_dvfs_regs: syscon@27008000 {
-			compatible = "sprd,ums9620-glbregs", "syscon";
-			#syscon-cells = <2>;
-			reg = <0 0x27008000 0 0x4000>;
-		};
-
-		ai_mtx_regs: syscon@2700c000 {
-			compatible = "sprd,ums9620-glbregs", "syscon";
-			#syscon-cells = <2>;
-			reg = <0 0x2700c000 0 0x4000>;
-		};
-
-		ai_busmon_regs: syscon@27010000 {
-			compatible = "sprd,ums9620-glbregs", "syscon";
-			#syscon-cells = <2>;
-			reg = <0 0x27010000 0 0x4000>;
-		};
-
 		mm_ahb_regs: syscon@30000000 {
 			compatible = "sprd,ums9620-glbregs", "syscon";
 			#syscon-cells = <2>;
@@ -3058,12 +3034,7 @@
 					<GIC_SPI 221 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 200 IRQ_TYPE_LEVEL_HIGH>;
 				apb_reg = <&ai_apb_regs 0x0 0x0>;
-				clock_reg = <&ai_clock_regs 0x0 0x0>;
-				dvfs_reg = <&ai_dvfs_regs 0x0 0x0>;
-				mtx_reg = <&ai_mtx_regs 0x0 0x0>;
-				busmon_reg = <&ai_busmon_regs 0x0 0x0>;
 				pd_ai_sys = <&pmu_apb_regs 0x0 0x0>;
-				top_dvfs_cfg = <&top_dvfs_apb_regs 0x0 0x0>;
 				clock-names = "ai_apll",
 					"ai_eb",
 					"powervr_eb",

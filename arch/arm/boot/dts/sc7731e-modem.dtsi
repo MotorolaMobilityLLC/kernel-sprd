@@ -54,6 +54,10 @@
 				"sysreset", "getstatus", "dspreset";
 		sprd,version = <0x02>;
 	};
+	cp_dump {
+		compatible = "sprd,cp_dump";
+		sprd,sys-bus-ctrl-sp = <&aon_apb_regs 0x00dc 0x1>;
+	};
 };
 
 /*
@@ -77,6 +81,27 @@
 		sprd,smem-info = <0x8e000000 0x8e000000 0x300000>;
 
 		/* these nodes of channel should be probed by its parent node */
+
+		imsbr_data: channel@2 {
+			compatible = "sprd,spool";
+			reg = <2>;
+			label = "imsbr_data";
+			sprd,tx-blksize = <0x5F4>;
+			sprd,tx-blknum = <64>;
+			sprd,rx-blksize = <0x5F4>;
+			sprd,rx-blknum = <64>;
+		};
+
+		imsbr_ctrl: channel@3 {
+			compatible = "sprd,spool";
+			reg = <3>;
+			label = "imsbr_ctrl";
+			sprd,tx-blksize = <0x80>;
+			sprd,tx-blknum = <64>;
+			sprd,rx-blksize = <0x80>;
+			sprd,rx-blknum = <64>;
+		};
+
 		spipe_lte: channel@4 {
 			compatible = "sprd,spipe";
 			/* channel number */
@@ -250,7 +275,7 @@
 		reg = <6>;
 		label = "sipc-pmsys";
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
-		mboxes = <&mailbox 1 0>;
+		mboxes = <&mailbox 1 0>, <&mailbox 7 1>;
 		/* This is temporary plan*/
 		sprd,smem-info = <0x5000b000 0x2000b000 0x800>;
 
@@ -282,31 +307,6 @@
 			sprd,ringnr = <1>;
 			sprd,size-rxbuf = <0x40>;
 			sprd,size-txbuf = <0x80>;
-		};
-	};
-
-	sipc_ldsp: core@1 {
-		compatible = "sprd,sipc";
-		#address-cells = <1>;
-		#size-cells = <0>;
-		/* endpoint id - should be same with sipc processor id */
-		reg = <1>; //dst
-		label = "sipc-ldsp";
-		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
-		mboxes = <&mailbox 4 0>;
-		/* This is temporary plan*/
-		sprd,smem-info = <0x8b900000 0x8b900000 0x96000>;
-
-		/* these nodes of channel should be probed by its parent node */
-		slog_ldsp: channel@5 {
-			compatible = "sprd,spool";
-			/* channel number */
-			reg = <5>;
-			label = "slog_ldsp";
-			sprd,tx-blksize = <0>;
-			sprd,tx-blknum = <0>;
-			sprd,rx-blksize = <0x800>; /* 2k*/
-			sprd,rx-blknum = <290>;
 		};
 	};
 

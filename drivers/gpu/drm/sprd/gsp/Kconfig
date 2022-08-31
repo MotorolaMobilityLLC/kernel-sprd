@@ -13,9 +13,3 @@ config DRM_SPRD_GSP_IPC_TRUSTY
 	---help---
 	  This function is to support the widevine function.
 
-config DRM_SPRD_GSP_DVFS
-	bool "SPRD DRM GSP dvfs driver"
-	depends on DRM_SPRD_GSP
-	depends on DVFS_APSYS_SPRD
-	---help---
-	  This function is to support the dvfs function.
