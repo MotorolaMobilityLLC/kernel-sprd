@@ -30,4 +30,5 @@ obj-$(CONFIG_USB_SPRD_UMS512_PHY)	+= phy-sprd-ums512.o
 obj-$(CONFIG_SPRD_USB_DUMMY_PHY)	+= phy-sprd-dummy.o
 obj-$(CONFIG_SPRD_QOGIRN6PRO_USB2_PHY)	+= phy-sprd-qogirn6pro.o
 obj-$(CONFIG_SPRD_QOGIRN6PRO_USB31_PHY)	+=phy-sprd-usb31-qogirn6pro.o
+obj-$(CONFIG_SPRD_QOGIRN6LITE_USB2_PHY)	+= phy-sprd-qogirn6lite.o
 
