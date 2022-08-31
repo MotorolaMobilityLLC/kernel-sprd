@@ -39,10 +39,10 @@
 #define CM_UVLO_OFFSET				50000
 #define CM_FORCE_SET_FUEL_CAP_FULL		1000
 #define CM_LOW_TEMP_REGION			100
-#define CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD	3250000
+#define CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD	3400000
 #define CM_UVLO_CALIBRATION_CNT_THRESHOLD	5
-#define CM_LOW_TEMP_SHUTDOWN_VALTAGE		3200000
-#define CM_LOW_CAP_SHUTDOWN_VOLTAGE_THRESHOLD	3300000
+#define CM_LOW_TEMP_SHUTDOWN_VALTAGE		3400000
+#define CM_LOW_CAP_SHUTDOWN_VOLTAGE_THRESHOLD	3400000
 
 #define CM_CAP_ONE_PERCENT			10
 #define CM_HCAP_DECREASE_STEP			8
@@ -6499,6 +6499,29 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	return 0;
 }
 
+static void cm_shutdown_handle(struct charger_manager *cm)
+{
+	switch (cm->desc->uvlo_shutdown_mode) {
+	case CM_SHUTDOWN_MODE_ORDERLY:
+		orderly_poweroff(true);
+		break;
+
+	case CM_SHUTDOWN_MODE_KERNEL:
+		kernel_power_off();
+		break;
+
+	case CM_SHUTDOWN_MODE_ANDROID:
+		cancel_delayed_work_sync(&cm->cap_update_work);
+		cm->desc->cap = 0;
+		power_supply_changed(cm->charger_psy);
+		break;
+
+	default:
+		dev_warn(cm->dev, "Incorrect uvlo_shutdown_mode (%d)\n",
+			 cm->desc->uvlo_shutdown_mode);
+	}
+}
+
 static void cm_uvlo_check_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -6512,32 +6535,20 @@ static void cm_uvlo_check_work(struct work_struct *work)
 		return;
 	}
 
-	if ((u32)batt_uV < cm->desc->shutdown_voltage)
+	if ((u32)batt_uV <= cm->desc->shutdown_voltage + 120000)
 		cm->desc->uvlo_trigger_cnt++;
 	else
 		cm->desc->uvlo_trigger_cnt = 0;
 
 	if (cm->desc->uvlo_trigger_cnt >= CM_UVLO_CALIBRATION_CNT_THRESHOLD) {
-		dev_err(cm->dev, "WARN: batt_uV less than uvlo, will shutdown\n");
-		set_batt_cap(cm, 0);
-		switch (cm->desc->uvlo_shutdown_mode) {
-		case CM_SHUTDOWN_MODE_ORDERLY:
-			orderly_poweroff(true);
-			break;
-
-		case CM_SHUTDOWN_MODE_KERNEL:
-			kernel_power_off();
-			break;
-
-		case CM_SHUTDOWN_MODE_ANDROID:
-			cancel_delayed_work_sync(&cm->cap_update_work);
-			cm->desc->cap = 0;
-			power_supply_changed(cm->charger_psy);
-			break;
-
-		default:
-			dev_warn(cm->dev, "Incorrect uvlo_shutdown_mode (%d)\n",
-				 cm->desc->uvlo_shutdown_mode);
+		if (DIV_ROUND_CLOSEST(cm->desc->cap, 10) <= 1) {
+			dev_err(cm->dev, "WARN: trigger uvlo, will shutdown with uisoc less than 1%\n");
+			cm_shutdown_handle(cm);
+		} else if ((u32)batt_uV <= cm->desc->shutdown_voltage) {
+			dev_err(cm->dev, "WARN: batt_uV less than shutdown voltage, will shutdown,"
+				"and force capacity to 0%\n");
+			set_batt_cap(cm, 0);
+			cm_shutdown_handle(cm);
 		}
 	}
 
@@ -6555,7 +6566,7 @@ static void cm_batt_works(struct work_struct *work)
 	int period_time, flush_time, cur_temp, board_temp = 0;
 	int chg_cur = 0, chg_limit_cur = 0, input_cur = 0;
 	int chg_vol = 0, vbat_avg = 0, ibat_avg = 0, recharge_uv = 0;
-	static int last_fuel_cap = CM_MAGIC_NUM;
+	static int last_fuel_cap = CM_MAGIC_NUM, uvlo_check_cnt;
 	int total_uah, total_mah, one_cap_time, mah_one_percent;
 	int ibat_avg_ma, work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
 
@@ -6851,6 +6862,15 @@ static void cm_batt_works(struct work_struct *work)
 			cm->desc->cap_one_time = CM_CAP_ONE_TIME_24S;
 			work_cycle = CM_CAP_CYCLE_TRACK_TIME_12S;
 		}
+	}
+
+	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD && ibat_avg < 0) {
+		if (++uvlo_check_cnt > 2) {
+			cm->desc->cap_one_time = CM_CAP_ONE_TIME_20S;
+			work_cycle = CM_CAP_CYCLE_TRACK_TIME_10S;
+		}
+	} else {
+		uvlo_check_cnt = 0;
 	}
 
 	dev_info(cm->dev, "work_cycle = %ds, cap_one_time = %ds\n",

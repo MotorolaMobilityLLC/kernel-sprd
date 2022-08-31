@@ -106,8 +106,9 @@
 
 /* micro Ohms */
 #define SC27XX_FGU_IDEAL_RESISTANCE	20000
-#define SC27XX_FGU_LOW_VBAT_REGION	3300
-#define SC27XX_FGU_LOW_VBAT_REC_REGION	3400
+#define SC27XX_FGU_LOW_VBAT_REGION	3400
+#define SC27XX_FGU_LOW_VBAT_REC_REGION	3450
+#define SC27XX_FGU_LOW_VBAT_UUSOC_STEP	7
 #define SC27XX_FGU_RELAX_CNT_THRESHOLD	320
 #define SC27XX_FGU_RELAX_CUR_THRESHOLD_MA	30
 #define SC27XX_FGU_SLP_CAP_CALIB_SLP_TIME	300
@@ -933,7 +934,7 @@ static void sc27xx_fgu_capacity_loss_by_temperature(struct sc27xx_fgu_data *data
 				return;
 			}
 
-			if (data->batt_mv > SC27XX_FGU_LOW_VBAT_REC_REGION)
+			if (data->batt_mv > SC27XX_FGU_LOW_VBAT_REGION)
 				*cap = 5;
 		}
 	}
@@ -2889,8 +2890,8 @@ static void sc27xx_fgu_adjust_uusoc_vbat(struct sc27xx_fgu_data *data)
 	if (data->batt_mv >= SC27XX_FGU_LOW_VBAT_REC_REGION) {
 		data->uusoc_vbat = 0;
 	} else if (data->batt_mv >= SC27XX_FGU_LOW_VBAT_REGION) {
-		if (data->uusoc_vbat >= 5)
-			data->uusoc_vbat -= 5;
+		if (data->uusoc_vbat >= SC27XX_FGU_LOW_VBAT_UUSOC_STEP)
+			data->uusoc_vbat -= SC27XX_FGU_LOW_VBAT_UUSOC_STEP;
 	}
 }
 
@@ -2912,7 +2913,7 @@ static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data)
 			data->init_cap = 0;
 	} else if (data->batt_mv < SC27XX_FGU_LOW_VBAT_REGION &&
 		   data->normal_temp_cap > data->alarm_cap)
-		data->uusoc_vbat += 5;
+		data->uusoc_vbat += SC27XX_FGU_LOW_VBAT_UUSOC_STEP;
 
 	sc27xx_fgu_adjust_uusoc_vbat(data);
 }
