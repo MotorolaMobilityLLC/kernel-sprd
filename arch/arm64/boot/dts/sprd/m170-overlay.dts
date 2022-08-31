@@ -483,23 +483,6 @@
 
 };
 
-&i2c2{
-	status = "okay";
-	clock-frequency = <400000>;
-	#address-cells = <1>;
-	#size-cells = <0>;
-	pn544:pn544@28{
-		compatible = "nxp,pn544";
-		reg = <0x28>;
-		clocks = <&aon_clk CLK_AUX2>,<&ext_26m>,<&aonapb_gate CLK_AUX2_EB>;
-		nxp,pn544-ven = <&ap_gpio 63 0>;
-		nxp,pn544-irq = <&ap_gpio 126 0>;
-		nxp,pn544-fw-dwnld = <&ap_gpio 132 0>;
-		nxp,pn544-req = <&ap_gpio 60 0>;
-		status = "okay";
-	};
-};
-
 &i2c5 {
 	status = "okay";
 	clock-frequency = <400000>;
