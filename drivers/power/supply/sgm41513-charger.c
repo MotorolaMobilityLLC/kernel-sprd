@@ -236,22 +236,12 @@ static const unsigned int ITERM_CURRENT_STABLE[] = {
 
 static enum power_supply_property sgm41513_usb_props[] = {
         POWER_SUPPLY_PROP_STATUS,
-        /* HS03 code for SR-SL6215-01-606 by gaochao at 20210813 start */
-        POWER_SUPPLY_PROP_CHARGE_DONE,
-        /* HS03 code for SR-SL6215-01-606 by gaochao at 20210813 end */
         POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
         POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
         POWER_SUPPLY_PROP_ONLINE,
         POWER_SUPPLY_PROP_HEALTH,
         POWER_SUPPLY_PROP_USB_TYPE,
-        POWER_SUPPLY_PROP_CHARGE_ENABLED,
-        POWER_SUPPLY_PROP_WIRELESS_TYPE,
-        /* HS03 code for SL6215DEV-28 by qiaodan at 20210805 start */
-        POWER_SUPPLY_PROP_POWER_PATH_ENABLED,
-        /* HS03 code for SL6215DEV-28 by qiaodan at 20210805 end */
-        /* HS03 code for SR-SL6215-01-63 by gaochao at 20210805 start */
-        POWER_SUPPLY_PROP_DUMP_CHARGER_IC,
-        /* HS03 code for SR-SL6215-01-63 by gaochao at 20210805 end */
+	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
 };
 
 static void power_path_control(struct sgm41513_charger_info *info)
@@ -647,6 +637,7 @@ static int sgm41513_exit_hiz_mode(struct sgm41513_charger_info *info)
 	return ret;
 }
 
+#if 0
 static int sgm41513_get_hiz_mode(struct sgm41513_charger_info *info,u32 *value)
 {
 	u8 buf;
@@ -657,6 +648,8 @@ static int sgm41513_get_hiz_mode(struct sgm41513_charger_info *info,u32 *value)
 
 	return ret;
 }
+#endif
+
 /* HS03 code for SL6215DEV-28 by qiaodan at 20210805 end */
 static int
 sgm41513_charger_get_charge_voltage(struct sgm41513_charger_info *info,
@@ -732,7 +725,6 @@ static int sgm41513_charger_start_charge(struct sgm41513_charger_info *info)
 	ret = sgm41513_charger_set_termina_cur(info, info->termination_cur);
 	if (ret)
 		dev_err(info->dev, "set sgm41513 terminal cur failed\n");
-
 	return ret;
 }
 
@@ -881,6 +873,7 @@ sgm41513_charger_set_limit_current(struct sgm41513_charger_info *info,
 	return ret;
 }
 
+#if 0
 /* HS03 code for SL6215DEV-3879 by Ditong at 20211221 start */
 static u32 sgm41513_charger_get_limit_voltage(struct sgm41513_charger_info *info,
 					     u32 *limit_vol)
@@ -910,6 +903,7 @@ static u32 sgm41513_charger_get_limit_voltage(struct sgm41513_charger_info *info
 	return 0;
 }
 /* HS03 code for SL6215DEV-3879 by Ditong at 20211221 end */
+#endif
 
 static u32
 sgm41513_charger_get_limit_current(struct sgm41513_charger_info *info,
@@ -970,6 +964,7 @@ static void sgm41513_dump_register(struct sgm41513_charger_info *info)
 	dev_err(info->dev, "%s: %s", __func__, buf);
 }
 
+#if 0
 /* HS03 code for SL6215DEV-3879 by Ditong at 20211221 start */
 static int sgm41513_charger_feed_watchdog(struct sgm41513_charger_info *info,
 					 u32 val)
@@ -1024,6 +1019,7 @@ static int sgm41513_charger_feed_watchdog(struct sgm41513_charger_info *info,
 	return 0;
 }
 /* HS03 code for SL6215DEV-3879 by Ditong at 20211221 end*/
+#endif
 
 /* HS03 code for SR-SL6215-01-606 by gaochao at 20210813 start */
 /*
@@ -1042,7 +1038,6 @@ static irqreturn_t sgm41513_int_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 */
-/* HS03 code for SR-SL6215-01-606 by gaochao at 20210813 end */
 
 static int sgm41513_charger_set_fchg_current(struct sgm41513_charger_info *info,
 					    u32 val)
@@ -1082,6 +1077,7 @@ static int sgm41513_charger_get_status(struct sgm41513_charger_info *info)
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 }
 
+#if 0
 /* HS03 code for SR-SL6215-01-606 by gaochao at 20210813 start */
 static int sgm41513_charger_get_charge_done(struct sgm41513_charger_info *info,
 	union power_supply_propval *val)
@@ -1106,6 +1102,8 @@ static int sgm41513_charger_get_charge_done(struct sgm41513_charger_info *info,
 
 	return 0;
 }
+#endif
+
 /* HS03 code for SR-SL6215-01-606 by gaochao at 20210813 end */
 static void sgm41513_check_wireless_charge(struct sgm41513_charger_info *info, bool enable)
 {
@@ -1145,7 +1143,7 @@ static int sgm41513_charger_set_status(struct sgm41513_charger_info *info,
 	int ret = 0;
 	u32 input_vol;
 
-	if (val == CM_PPS_CHARGE_ENABLE_CMD) {
+	if (val == CM_FAST_CHARGE_OVP_ENABLE_CMD) {
 		ret = sgm41513_charger_set_fchg_current(info, val);
 		if (ret) {
 			dev_err(info->dev, "failed to set 9V fast charge current\n");
@@ -1156,7 +1154,7 @@ static int sgm41513_charger_set_status(struct sgm41513_charger_info *info,
 			dev_err(info->dev, "failed to set fast charge 9V ovp\n");
 			return ret;
 		}
-	} else if (val == CM_PPS_CHARGE_DISABLE_CMD) {
+	} else if (val == CM_FAST_CHARGE_OVP_DISABLE_CMD) {
 		ret = sgm41513_charger_set_fchg_current(info, val);
 		if (ret) {
 			dev_err(info->dev, "failed to set 5V normal charge current\n");
@@ -1272,10 +1270,9 @@ static void sgm41513_current_work(struct work_struct *data)
 		dev_err(info->dev, "set input limit current failed\n");
 		return;
 	}
-
+	sgm41513_dump_register(info);
 	dev_info(info->dev, "set charge_limit_cur %duA, input_limit_curr %duA\n",
 		info->current_charge_limit_cur, info->current_input_limit_cur);
-
 	schedule_delayed_work(&info->cur_work, SGM41513_CURRENT_WORK_MS);
 }
 
@@ -1311,7 +1308,7 @@ static int sgm41513_charger_usb_get_property(struct power_supply *psy,
 					    union power_supply_propval *val)
 {
 	struct sgm41513_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur, online, health, enabled = 0;
+	u32 cur, online, health ;
 	enum usb_charger_type type;
 	int ret = 0;
 
@@ -1330,12 +1327,6 @@ static int sgm41513_charger_usb_get_property(struct power_supply *psy,
 			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
 		break;
 
-	/* HS03 code for SR-SL6215-01-606 by gaochao at 20210813 start */
-	case POWER_SUPPLY_PROP_CHARGE_DONE:
-		// get charge_done from charger ic
-		sgm41513_charger_get_charge_done(info, val);
-		break;
-	/* HS03 code for SR-SL6215-01-606 by gaochao at 20210813 end */
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 		if (!info->charging) {
 			val->intval = 0;
@@ -1396,43 +1387,13 @@ static int sgm41513_charger_usb_get_property(struct power_supply *psy,
 		case CDP_TYPE:
 			val->intval = POWER_SUPPLY_USB_TYPE_CDP;
 			break;
-		/* HS03 code for SR-SL6215-01-545 by shixuanxuan at 20210818 start */
-		#if !defined(HQ_FACTORY_BUILD)
-		case ACA_TYPE:
-			val->intval = POWER_SUPPLY_USB_TYPE_ACA;
-			break;
-		#endif
-		/* HS03 code forSR-SL6215-01-545 by shixuanxuan at 20210818 end */
+
 		default:
 			val->intval = POWER_SUPPLY_USB_TYPE_UNKNOWN;
 		}
 
 		break;
 
-	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
-		if (info->role == SGM41513_ROLE_MASTER_DEFAULT) {
-			ret = regmap_read(info->pmic, info->charger_pd, &enabled);
-			if (ret) {
-				dev_err(info->dev, "get sgm41513 charge status failed\n");
-				goto out;
-			}
-		} else if (info->role == SGM41513_ROLE_SLAVE) {
-			enabled = gpiod_get_value_cansleep(info->gpiod);
-		}
-
-		val->intval = !enabled;
-		break;
-	/* HS03 code for SL6215DEV-28 by qiaodan at 20210805 start */
-	case POWER_SUPPLY_PROP_POWER_PATH_ENABLED:
-		ret = sgm41513_get_hiz_mode(info, &enabled);
-		val->intval = !enabled;
-		break;
-	/* HS03 code for SL6215DEV-28 by qiaodan at 20210805 end */
-	/* HS03 code for SR-SL6215-01-63 by gaochao at 20210805 start */
-	case POWER_SUPPLY_PROP_DUMP_CHARGER_IC:
-		sgm41513_dump_register(info);
-		break;
-	/* HS03 code for SR-SL6215-01-63 by gaochao at 20210805 end */
 	default:
 		ret = -EINVAL;
 	}
@@ -1483,17 +1444,19 @@ static int sgm41513_charger_usb_set_property(struct power_supply *psy,
 		if (ret < 0)
 			dev_err(info->dev, "set input current limit failed\n");
 		break;
-
 	case POWER_SUPPLY_PROP_STATUS:
+		/* M170 code for sgm41513 by liuyansheng10 at 220829 begin */
+		if (val->intval == CM_POWER_PATH_ENABLE_CMD) {
+			sgm41513_exit_hiz_mode(info);
+			break;
+		} else if (val->intval == CM_POWER_PATH_DISABLE_CMD) {
+			sgm41513_enter_hiz_mode(info);
+			break;
+		}
+		/* M170 code for sgm41513 by liuyansheng10 at 220829 end */
 		ret = sgm41513_charger_set_status(info, val->intval);
 		if (ret < 0)
 			dev_err(info->dev, "set charge status failed\n");
-		break;
-
-	case POWER_SUPPLY_PROP_FEED_WATCHDOG:
-		ret = sgm41513_charger_feed_watchdog(info, val->intval);
-		if (ret < 0)
-			dev_err(info->dev, "feed charger watchdog failed\n");
 		break;
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
@@ -1502,18 +1465,7 @@ static int sgm41513_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "failed to set terminate voltage\n");
 		break;
 
-	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
-		if (val->intval == true) {
-			sgm41513_check_wireless_charge(info, true);
-			ret = sgm41513_charger_start_charge(info);
-			if (ret)
-				dev_err(info->dev, "start charge failed\n");
-		} else if (val->intval == false) {
-			sgm41513_check_wireless_charge(info, false);
-			sgm41513_charger_stop_charge(info);
-		}
-		break;
-	case POWER_SUPPLY_PROP_WIRELESS_TYPE:
+	case POWER_SUPPLY_PROP_TYPE:
 		if (val->intval == POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP) {
 			info->is_wireless_charge = true;
 			ret = sgm41513_charger_set_ovp(info, SGM41513_FCHG_OVP_6V);
@@ -1528,26 +1480,7 @@ static int sgm41513_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "failed to set fast charge ovp\n");
 
 		break;
-	/* HS03 code for SL6215DEV-28 by qiaodan at 20210805 start */
-	case POWER_SUPPLY_PROP_POWER_PATH_ENABLED:
-		if (val->intval) {
-			sgm41513_exit_hiz_mode(info);
-		} else {
-			sgm41513_enter_hiz_mode(info);
-		}
-		break;
-	/* HS03 code for SL6215DEV-28 by qiaodan at 20210805 end */
-	/* HS03 code for SL6215DEV-734 by shixuanxuan at 20210906 start */
-	case POWER_SUPPLY_PROP_EN_CHG_TIMER:
-		if (val->intval) {
-			ret = sgm41513_charger_en_chg_timer(info, true);
-		} else {
-			ret = sgm41513_charger_en_chg_timer(info, false);
-		}
-		if (ret)
-			dev_err(info->dev, "failed to disable chg_timer \n");
-		break;
-	/* HS03 code for SL6215DEV-734 by shixuanxuan at 20210906 end */
+
 	default:
 		ret = -EINVAL;
 	}
@@ -1564,15 +1497,9 @@ static int sgm41513_charger_property_is_writeable(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
-	case POWER_SUPPLY_PROP_CHARGE_ENABLED:
-	case POWER_SUPPLY_PROP_WIRELESS_TYPE:
+	case POWER_SUPPLY_PROP_TYPE:
 	case POWER_SUPPLY_PROP_STATUS:
-	/* HS03 code for SL6215DEV-28 by qiaodan at 20210805 start */
-	case POWER_SUPPLY_PROP_POWER_PATH_ENABLED:
-	/* HS03 code for SL6215DEV-28 by qiaodan at 20210805 end */
-	/* HS03 code for SL6215DEV-734 by shixuanxuan at 20210906 start */
-	case POWER_SUPPLY_PROP_EN_CHG_TIMER:
-	/* HS03 code for SL6215DEV-734 by shixuanxuan at 20210906 end */
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 		ret = 1;
 		break;
 
@@ -1592,11 +1519,6 @@ static enum power_supply_usb_type sgm41513_charger_usb_types[] = {
 	POWER_SUPPLY_USB_TYPE_PD,
 	POWER_SUPPLY_USB_TYPE_PD_DRP,
 	POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID,
-	/* HS03 code for SR-SL6215-01-545 by shixuanxuan at 20210818 start */
-	#if !defined(HQ_FACTORY_BUILD)
-	POWER_SUPPLY_USB_TYPE_ACA,
-	#endif
-	/* HS03 code forSR-SL6215-01-545 by shixuanxuan at 20210818 end */
 };
 
 static const struct power_supply_desc sgm41513_charger_desc = {
