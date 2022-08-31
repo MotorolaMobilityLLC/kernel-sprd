@@ -1993,6 +1993,7 @@ static const struct of_device_id usb_ids[] = {
 	{ .compatible = "sprd,sharkl5-musb" },
 	{ .compatible = "sprd,sharkl5pro-musb" },
 	{ .compatible = "sprd,qogirn6pro-musb" },
+	{ .compatible = "sprd,qogirn6lite-musb" },
 	{}
 };
 
