@@ -2392,24 +2392,19 @@ static SPRD_SC_GATE_CLK_HW(dcam_lite_mtx_en, "dcam-lite-mtx-en", &mm_eb.common.h
 			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(dcam_blk_cfg_en, "dcam-blk-cfg-en", &mm_eb.common.hw, 0xc,
 			0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
-/*Note:N6L deleted sensor1.MM_AHB_Control_Register.xls is named sensor0/2/3/ and csi0/2/3;
-bug camerasys_clk_rf.xls is named sensor1/2 and csi0/1/2.
-After discussion with ASIC and MM Team, Clk driver is uniformly defined as 0/1/2 for MM driver to call.
-Therefore,change the name of sensror0/2/3 and csi0/2/3 in mm_gate to sensor0/1/2 and csi0/1/2.
-*/
 static SPRD_SC_GATE_CLK_HW(sensor0_en, "sensor0-en", &mm_eb.common.hw, 0xc,
 			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK_HW(sensor1_en, "sensor1-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(sensor2_en, "sensor2-en", &mm_eb.common.hw, 0xc,
+			0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK_HW(sensor3_en, "sensor3-en", &mm_eb.common.hw, 0xc,
 			0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(dcam_tck_en, "dcam-tck-en", &mm_eb.common.hw, 0xc,
 			0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(csi0_en, "csi0-en", &mm_eb.common.hw, 0xc,
 			0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK_HW(csi1_en, "csi1-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(csi2_en, "csi2-en", &mm_eb.common.hw, 0xc,
+			0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK_HW(csi3_en, "csi3-en", &mm_eb.common.hw, 0xc,
 			0x1000, BIT(15), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(ipa_en, "ipa-en", &mm_eb.common.hw, 0xc,
 			0x1000, BIT(16), CLK_IGNORE_UNUSED, 0);
@@ -2437,12 +2432,12 @@ static struct sprd_clk_common *ums9621_mm_gate[] = {
 	&dcam_lite_mtx_en.common,
 	&dcam_blk_cfg_en.common,
 	&sensor0_en.common,
-	&sensor1_en.common,
 	&sensor2_en.common,
+	&sensor3_en.common,
 	&dcam_tck_en.common,
 	&csi0_en.common,
-	&csi1_en.common,
 	&csi2_en.common,
+	&csi3_en.common,
 	&ipa_en.common,
 };
 
@@ -2469,12 +2464,12 @@ static struct clk_hw_onecell_data ums9621_mm_gate_hws = {
 		[CLK_DCAM_LITE_MTX_EN]		= &dcam_lite_mtx_en.common.hw,
 		[CLK_DCAM_BLK_CFG_EN]		= &dcam_blk_cfg_en.common.hw,
 		[CLK_SENSOR0_EN]		= &sensor0_en.common.hw,
-		[CLK_SENSOR1_EN]		= &sensor1_en.common.hw,
 		[CLK_SENSOR2_EN]		= &sensor2_en.common.hw,
+		[CLK_SENSOR3_EN]		= &sensor3_en.common.hw,
 		[CLK_DCAM_TCK_EN]		= &dcam_tck_en.common.hw,
 		[CLK_CSI0_EN]			= &csi0_en.common.hw,
-		[CLK_CSI1_EN]			= &csi1_en.common.hw,
 		[CLK_CSI2_EN]			= &csi2_en.common.hw,
+		[CLK_CSI3_EN]			= &csi3_en.common.hw,
 		[CLK_IPA_EN]			= &ipa_en.common.hw,
 	},
 	.num	= CLK_MM_GATE_NUM,
@@ -2582,7 +2577,11 @@ static const struct clk_parent_data mipi_csi1_1_parents[] = {
 	{ .hw = &tgpll_256m.hw },
 	{ .hw = &tgpll_307m2.hw },
 };
-static SPRD_MUX_CLK_DATA(mipi_csi1_1, "mipi-csi1_1",  mipi_csi1_1_parents,
+/*
+* Note:N6L deleted csi1.
+* Modify the name of csi0/1/2 to csi0/2/3.
+*/
+static SPRD_MUX_CLK_DATA(mipi_csi2_1, "mipi-csi2_1",  mipi_csi1_1_parents,
 		    0x118, 0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data mipi_csi1_2_parents[] = {
@@ -2591,7 +2590,7 @@ static const struct clk_parent_data mipi_csi1_2_parents[] = {
 	{ .hw = &tgpll_256m.hw },
 	{ .hw = &tgpll_307m2.hw },
 };
-static SPRD_MUX_CLK_DATA(mipi_csi1_2, "mipi-csi1_2",  mipi_csi1_2_parents,
+static SPRD_MUX_CLK_DATA(mipi_csi2_2, "mipi-csi2_2",  mipi_csi1_2_parents,
 		    0x124, 0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data mipi_csi2_1_parents[] = {
@@ -2600,7 +2599,7 @@ static const struct clk_parent_data mipi_csi2_1_parents[] = {
 	{ .hw = &tgpll_256m.hw },
 	{ .hw = &tgpll_307m2.hw },
 };
-static SPRD_MUX_CLK_DATA(mipi_csi2_1, "mipi-csi2_1",  mipi_csi2_1_parents,
+static SPRD_MUX_CLK_DATA(mipi_csi3_1, "mipi-csi3_1",  mipi_csi2_1_parents,
 		    0x130, 0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data mipi_csi2_2_parents[] = {
@@ -2609,7 +2608,7 @@ static const struct clk_parent_data mipi_csi2_2_parents[] = {
 	{ .hw = &tgpll_256m.hw },
 	{ .hw = &tgpll_307m2.hw },
 };
-static SPRD_MUX_CLK_DATA(mipi_csi2_2, "mipi-csi2_2",  mipi_csi2_2_parents,
+static SPRD_MUX_CLK_DATA(mipi_csi3_2, "mipi-csi3_2",  mipi_csi2_2_parents,
 		    0x13c, 0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data dcam_mtx_parents[] = {
@@ -2668,11 +2667,16 @@ static const struct clk_parent_data sensor_parents[] = {
 	{ .hw = &tgpll_64m.hw },
 	{ .hw = &tgpll_96m.hw },
 };
+
+/*
+* Note:N6L deleted sensor1.
+* Modify the name of sensror0/1/2 to sensor0/2/3.
+*/
 static SPRD_COMP_CLK_DATA_OFFSET(sensor0, "sensor0", sensor_parents, 0x19c,
 		     0, 3, 0, 3, 0);
-static SPRD_COMP_CLK_DATA_OFFSET(sensor1, "sensor1", sensor_parents, 0x1b4,
+static SPRD_COMP_CLK_DATA_OFFSET(sensor2, "sensor2", sensor_parents, 0x1b4,
 		     0, 3, 0, 3, 0);
-static SPRD_COMP_CLK_DATA_OFFSET(sensor2, "sensor2", sensor_parents, 0x1c0,
+static SPRD_COMP_CLK_DATA_OFFSET(sensor3, "sensor3", sensor_parents, 0x1c0,
 		     0, 3, 0, 3, 0);
 
 static struct sprd_clk_common *ums9621_mm_clk[] = {
@@ -2684,18 +2688,18 @@ static struct sprd_clk_common *ums9621_mm_clk[] = {
 	&dcam2_3.common,
 	&dcam2_3_axi.common,
 	&mipi_csi0.common,
-	&mipi_csi1_1.common,
-	&mipi_csi1_2.common,
 	&mipi_csi2_1.common,
 	&mipi_csi2_2.common,
+	&mipi_csi3_1.common,
+	&mipi_csi3_2.common,
 	&dcam_mtx.common,
 	&dcam_blk_cfg.common,
 	&mm_mtx_data.common,
 	&jpg.common,
 	&mm_sys_cfg.common,
 	&sensor0.common,
-	&sensor1.common,
 	&sensor2.common,
+	&sensor3.common,
 };
 
 static struct clk_hw_onecell_data ums9621_mm_clk_hws = {
@@ -2707,18 +2711,18 @@ static struct clk_hw_onecell_data ums9621_mm_clk_hws = {
 		[CLK_DCAM2_3]		= &dcam2_3.common.hw,
 		[CLK_DCAM2_3_AXI]	= &dcam2_3_axi.common.hw,
 		[CLK_MIPI_CSI0]		= &mipi_csi0.common.hw,
-		[CLK_MIPI_CSI1_1]	= &mipi_csi1_1.common.hw,
-		[CLK_MIPI_CSI1_2]	= &mipi_csi1_2.common.hw,
 		[CLK_MIPI_CSI2_1]	= &mipi_csi2_1.common.hw,
 		[CLK_MIPI_CSI2_2]	= &mipi_csi2_2.common.hw,
+		[CLK_MIPI_CSI3_1]	= &mipi_csi3_1.common.hw,
+		[CLK_MIPI_CSI3_2]	= &mipi_csi3_2.common.hw,
 		[CLK_DCAM_MTX]		= &dcam_mtx.common.hw,
 		[CLK_DCAM_BLK_CFG]	= &dcam_blk_cfg.common.hw,
 		[CLK_MM_MTX_DATA]	= &mm_mtx_data.common.hw,
 		[CLK_JPG]		= &jpg.common.hw,
 		[CLK_MM_SYS_CFG]	= &mm_sys_cfg.common.hw,
 		[CLK_SENSOR0]		= &sensor0.common.hw,
-		[CLK_SENSOR1]		= &sensor1.common.hw,
 		[CLK_SENSOR2]		= &sensor2.common.hw,
+		[CLK_SENSOR3]		= &sensor3.common.hw,
 	},
 	.num	= CLK_MM_CLK_NUM,
 };
