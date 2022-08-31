@@ -530,6 +530,13 @@ static int vpu_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(64))) {
+		if (dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32)))
+			dev_err(dev, "vpu: failed to set dma mask!\n");
+	} else {
+		dev_info(dev, "vpu: set dma mask as 64bit\n");
+	}
+
 	ret = devm_request_threaded_irq(&pdev->dev, vpu_core->irq, vpu_core->p_data->isr,
 		vpu_isr_thread, 0, vpu_core->p_data->name, vpu_core);
 

@@ -21,6 +21,7 @@
 #include <linux/sprd_soc_id.h>
 #include <dt-bindings/soc/sprd,qogirl6-regs.h>
 #include <linux/rpmb.h>
+#include <linux/reset.h>
 
 #include "ufshcd.h"
 #include "ufs.h"
@@ -68,16 +69,6 @@ int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 	} else {
 		host->ap_apb_ufs_en.reg = args[0];
 		host->ap_apb_ufs_en.mask = args[1];
-	}
-
-	host->ap_apb_ufs_rst.regmap =
-			syscon_regmap_lookup_by_phandle_args(np, "ap_apb_ufs_rst", 2, args);
-	if (IS_ERR(host->ap_apb_ufs_rst.regmap)) {
-		pr_err("failed to get ap_apb_ufs_rst\n");
-		return PTR_ERR(host->ap_apb_ufs_rst.regmap);
-	} else {
-		host->ap_apb_ufs_rst.reg = args[0];
-		host->ap_apb_ufs_rst.mask = args[1];
 	}
 
 	host->ufs_refclk_on.regmap =
@@ -138,16 +129,6 @@ int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 		host->ahb_ufs_cg_pclkreq.reg = args[0];
 		host->ahb_ufs_cg_pclkreq.mask = args[1];
 	}
-	host->ap_apb_ufs_glb_rst.regmap =
-			syscon_regmap_lookup_by_phandle_args(np, "ap_apb_ufs_glb_rst", 2, args);
-	if (IS_ERR(host->ap_apb_ufs_glb_rst.regmap)) {
-		pr_err("failed to get ap_apb_ufs_glb_rst\n");
-		return PTR_ERR(host->ap_apb_ufs_glb_rst.regmap);
-	} else {
-		host->ap_apb_ufs_glb_rst.reg = args[0];
-		host->ap_apb_ufs_glb_rst.mask = args[1];
-	}
-
 
 	host->pclk = devm_clk_get(&pdev->dev, "ufs_pclk");
 	if (IS_ERR(host->pclk)) {
@@ -242,8 +223,9 @@ void ufs_sprd_reset_pre(struct ufs_sprd_host *host)
 				  host->ahb_ufs_ies_en.mask);
 }
 
-void ufs_sprd_reset(struct ufs_sprd_host *host)
+int ufs_sprd_reset(struct ufs_sprd_host *host)
 {
+	int ret = 0;
 	u32 aon_ver_id = 0;
 
 	sprd_get_soc_id(AON_VER_ID, &aon_ver_id, 1);
@@ -255,15 +237,19 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 			   host->ap_apb_ufs_en.reg,
 			   host->ap_apb_ufs_en.mask,
 			   0);
-	regmap_update_bits(host->ap_apb_ufs_glb_rst.regmap,
-			   host->ap_apb_ufs_glb_rst.reg,
-			   host->ap_apb_ufs_glb_rst.mask,
-			   host->ap_apb_ufs_glb_rst.mask);
-	udelay(10);
-	regmap_update_bits(host->ap_apb_ufs_glb_rst.regmap,
-			   host->ap_apb_ufs_glb_rst.reg,
-			   host->ap_apb_ufs_glb_rst.mask,
-			   0);
+
+	/* ufs global reset */
+	ret = reset_control_assert(host->ap_apb_ufs_glb_rst);
+	if (ret) {
+		dev_err(host->hba->dev, "assert ufs_glb_rst failed, ret = %d!\n", ret);
+		goto out;
+	}
+	usleep_range(10, 20);
+	ret = reset_control_deassert(host->ap_apb_ufs_glb_rst);
+	if (ret) {
+		dev_err(host->hba->dev, "deassert ufs_glb_rst failed, ret = %d!\n", ret);
+		goto out;
+	}
 
 	/* Configs need strict squence. */
 	regmap_update_bits(host->ap_apb_ufs_en.regmap,
@@ -287,7 +273,7 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 	/* apb reset */
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_2T2R_APB_RESETN,
 			0, MPHY_2T2R_APB_REG1);
-	mdelay(1);
+	usleep_range(1000, 1100);
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_2T2R_APB_RESETN,
 			MPHY_2T2R_APB_RESETN, MPHY_2T2R_APB_REG1);
 
@@ -347,15 +333,19 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 			  host->ahb_ufs_force_isol.reg,
 			  host->ahb_ufs_force_isol.mask,
 			  0);
-	regmap_update_bits(host->ap_apb_ufs_rst.regmap,
-			  host->ap_apb_ufs_rst.reg,
-			  host->ap_apb_ufs_rst.mask,
-			  host->ap_apb_ufs_rst.mask);
-	udelay(10);
-	regmap_update_bits(host->ap_apb_ufs_rst.regmap,
-			  host->ap_apb_ufs_rst.reg,
-			  host->ap_apb_ufs_rst.mask,
-			  0);
+
+	/* ufs soft reset */
+	ret = reset_control_assert(host->ap_apb_ufs_glb_rst);
+	if (ret) {
+		dev_err(host->hba->dev, "assert ufs_glb_rst failed, ret = %d!\n", ret);
+		goto out;
+	}
+	usleep_range(10, 20);
+	ret = reset_control_deassert(host->ap_apb_ufs_glb_rst);
+	if (ret) {
+		dev_err(host->hba->dev, "deassert ufs_glb_rst failed, ret = %d!\n", ret);
+		goto out;
+	}
 
 	regmap_update_bits(host->ahb_ufs_ies_en.regmap,
 			  host->ahb_ufs_ies_en.reg,
@@ -365,14 +355,14 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_ANR_MPHY_CTRL2_REFCLKON_MASK,
 			MPHY_ANR_MPHY_CTRL2_REFCLKON_VAL, MPHY_ANR_MPHY_CTRL2);
-	udelay(1);
+	usleep_range(1, 2);
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_REG_SEL_CFG_0_REFCLKON_MASK,
 			MPHY_REG_SEL_CFG_0_REFCLKON_VAL, MPHY_REG_SEL_CFG_0);
-	udelay(1);
+	usleep_range(1, 2);
 	ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_APB_REFCLK_AUTOH8_EN_MASK,
 			MPHY_APB_REFCLK_AUTOH8_EN_VAL, MPHY_DIG_CFG14_LANE0);
 
-	udelay(1);
+	usleep_range(1, 2);
 	if (aon_ver_id == AON_VER_UFS) {
 		ufs_sprd_rmwl(host->ufs_analog_reg, MPHY_APB_PLLTIMER_MASK,
 				MPHY_APB_PLLTIMER_VAL, MPHY_DIG_CFG18_LANE0);
@@ -381,6 +371,9 @@ void ufs_sprd_reset(struct ufs_sprd_host *host)
 				MPHY_APB_HSTXSCLKINV1_VAL,
 				MPHY_DIG_CFG19_LANE0);
 	}
+
+out:
+	return ret;
 }
 
 static int is_ufs_sprd_host_in_pwm(struct ufs_hba *hba)
@@ -559,6 +552,22 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	syscon_get_args(dev, host);
 
+	host->ap_apb_ufs_rst = devm_reset_control_get(dev, "ufs_rst");
+	if (IS_ERR(host->ap_apb_ufs_rst)) {
+		dev_err(dev, "%s get ufs_rst failed, err%ld\n",
+			__func__, PTR_ERR(host->ap_apb_ufs_rst));
+		host->ap_apb_ufs_rst = NULL;
+		return -ENODEV;
+	}
+
+	host->ap_apb_ufs_glb_rst = devm_reset_control_get(dev, "ufs_glb_rst");
+	if (IS_ERR(host->ap_apb_ufs_glb_rst)) {
+		dev_err(dev, "%s get ufs_glb_rst failed, err%ld\n",
+			__func__, PTR_ERR(host->ap_apb_ufs_glb_rst));
+		host->ap_apb_ufs_glb_rst = NULL;
+		return -ENODEV;
+	}
+
 	hba->host->hostt->ioctl = ufshcd_sprd_ioctl;
 #ifdef CONFIG_COMPAT
 	hba->host->hostt->compat_ioctl = ufshcd_sprd_ioctl;
@@ -607,11 +616,11 @@ static int ufs_sprd_init(struct ufs_hba *hba)
  * ufs_sprd_hw_init - controller enable and reset
  * @hba: host controller instance
  */
-void ufs_sprd_hw_init(struct ufs_hba *hba)
+int ufs_sprd_hw_init(struct ufs_hba *hba)
 {
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
-	ufs_sprd_reset(host);
+	return ufs_sprd_reset(host);
 }
 
 static void ufs_sprd_exit(struct ufs_hba *hba)
@@ -637,7 +646,11 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 	switch (status) {
 	case PRE_CHANGE:
 		/* Do hardware reset before host controller enable. */
-		ufs_sprd_hw_init(hba);
+		err = ufs_sprd_hw_init(hba);
+		if (err) {
+			dev_err(hba->dev, "%s: ufs hardware init failed!\n", __func__);
+			return err;
+		}
 
 		spin_lock_irqsave(hba->host->host_lock, flags);
 		ufshcd_writel(hba, 0, REG_AUTO_HIBERNATE_IDLE_TIMER);

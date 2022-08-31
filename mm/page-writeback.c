@@ -1553,7 +1553,7 @@ static inline void wb_dirty_limits(struct dirty_throttle_control *dtc)
 
 #if defined(CONFIG_SPRD_DEBUG)
 #define BALANCE_TIME_STEP	(3)
-#define BALANCE_TIME_PANIC	(60)
+#define BALANCE_TIME_PANIC	(200)
 #endif
 
 /*

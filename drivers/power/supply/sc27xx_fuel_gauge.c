@@ -1602,7 +1602,11 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 	int pocv_uv, ret, pocv_cap;
 	bool is_first_poweron = sc27xx_fgu_is_first_poweron(data);
 
-	sc27xx_fgu_get_boot_voltage(data, &pocv_uv);
+	ret = sc27xx_fgu_get_boot_voltage(data, &pocv_uv);
+	if (ret) {
+		dev_err(data->dev, "Failed to get boot voltage, ret = %d\n", ret);
+		return ret;
+	}
 	data->boot_volt_uv = pocv_uv;
 
 	/*
@@ -1634,7 +1638,7 @@ static int sc27xx_fgu_get_boot_capacity(struct sc27xx_fgu_data *data, int *cap)
 		if (*cap == SC27XX_FGU_DEFAULT_CAP || *cap == SC27XX_FGU_RTC2_RESET_VALUE) {
 			*cap = data->boot_cap;
 			sc27xx_fgu_boot_cap_calibration(data, pocv_cap, pocv_uv, cap);
-			ret = sc27xx_fgu_save_normal_temperature_cap(data, data->boot_cap);
+			ret = sc27xx_fgu_save_normal_temperature_cap(data, *cap);
 			if (ret < 0)
 				dev_err(data->dev, "Failed to initialize fgu user area status1 register\n");
 		} else {
@@ -2602,7 +2606,7 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 				   const union power_supply_propval *val)
 {
 	struct sc27xx_fgu_data *data = power_supply_get_drvdata(psy);
-	int ret = 0;
+	int ret = 0, ui_cap, normal_cap;
 
 	if (!data) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -2620,6 +2624,34 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 		ret = sc27xx_fgu_save_normal_temperature_cap(data, data->normal_temp_cap);
 		if (ret < 0)
 			dev_err(data->dev, "failed to save normal temperature capacity\n");
+
+		ret = sc27xx_fgu_read_last_cap(data, &ui_cap);
+		if (ret < 0) {
+			ui_cap = -1;
+			dev_err(data->dev, "failed to read ui capacity\n");
+		}
+
+		if (val->intval != ui_cap) {
+			dev_info(data->dev, "ui cap save failed, save it again!"
+				 "save_cap = %d, read_cap = %d\n", val->intval, ui_cap);
+			ret = sc27xx_fgu_save_last_cap(data, val->intval);
+			if (ret < 0)
+				dev_err(data->dev, "%d failed to save battery capacity\n", __LINE__);
+		}
+
+		ret = sc27xx_fgu_read_normal_temperature_cap(data, &normal_cap);
+		if (ret < 0) {
+			normal_cap = -1;
+			dev_err(data->dev, "failed to read normal capacity\n");
+		}
+
+		if (data->normal_temp_cap != normal_cap) {
+			dev_info(data->dev, "normal cap save failed, save it again!"
+				 "save_cap = %d, read_cap = %d\n", data->normal_temp_cap, normal_cap);
+			ret = sc27xx_fgu_save_normal_temperature_cap(data, data->normal_temp_cap);
+			if (ret < 0)
+				dev_err(data->dev, "%d failed to save normal temperature capacity\n", __LINE__);
+		}
 		break;
 
 	case POWER_SUPPLY_PROP_CALIBRATE:

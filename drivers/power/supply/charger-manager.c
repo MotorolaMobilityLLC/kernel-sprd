@@ -3478,7 +3478,8 @@ static void cm_start_cp_state_machine(struct charger_manager *cm, bool start)
 		cm->desc->cm_check_fault = false;
 		__pm_stay_awake(cm->cp_ws);
 		cm_cp_state_change(cm, CM_CP_STATE_ENTRY);
-		schedule_delayed_work(&cm->cp_work, 0);
+		/* wait for the PD charger wire communication to complete */
+		schedule_delayed_work(&cm->cp_work, msecs_to_jiffies(CM_CP_WORK_TIME_MS));
 	}
 }
 
@@ -4544,6 +4545,8 @@ static void fast_charge_handler(struct charger_manager *cm)
 
 	if (!ext_pwr_online)
 		return;
+
+	cm_update_charger_type_status(cm);
 
 	if (cm->desc->is_fast_charge && !cm->desc->enable_fast_charge)
 		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
@@ -6826,8 +6829,16 @@ static void cm_batt_works(struct work_struct *work)
 			if (fuel_cap != CM_CAP_FULL_PERCENT)
 				fuel_cap = CM_CAP_FULL_PERCENT;
 
-			if (fuel_cap > cm->desc->cap)
-				fuel_cap = cm->desc->cap + 1;
+			if (fuel_cap > cm->desc->cap) {
+				if (cm->desc->cap < 900)
+					fuel_cap = cm->desc->cap + 10;
+				else if (cm->desc->cap < 960)
+					fuel_cap = cm->desc->cap + 5;
+				else if (cm->desc->cap < 990)
+					fuel_cap = cm->desc->cap + 3;
+				else
+					fuel_cap = cm->desc->cap + 1;
+			}
 		}
 
 		break;

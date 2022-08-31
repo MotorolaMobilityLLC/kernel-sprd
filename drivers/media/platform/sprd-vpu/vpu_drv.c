@@ -464,24 +464,22 @@ int get_iova(void *inst_ptr, struct vpu_platform_data *data,
 		goto err_get_dmabuf;
 	}
 
-	if (dma_set_mask(data->dev, DMA_BIT_MASK(64))) {
-		pr_err("mydev: No suitable DMA available\n");
-		goto ignore_this_device;
-	}
+	if (mapdata->need_cache_sync) {
+		attachment = dma_buf_attach(dmabuf, data->dev);
+		if (IS_ERR_OR_NULL(attachment)) {
+			pr_err("Failed to attach dmabuf=%p\n", dmabuf);
+			ret = PTR_ERR(attachment);
+			goto err_attach;
+		}
 
-	attachment = dma_buf_attach(dmabuf, data->dev);
-	if (IS_ERR_OR_NULL(attachment)) {
-		pr_err("Failed to attach dmabuf=%p\n", dmabuf);
-		ret = PTR_ERR(attachment);
-		goto err_attach;
-	}
-
-	table = dma_buf_map_attachment(attachment, DMA_BIDIRECTIONAL);
-	if (IS_ERR_OR_NULL(table)) {
-		pr_err("Failed to map attachment=%p\n", attachment);
-		ret = PTR_ERR(table);
-		goto err_map_attachment;
-	}
+		table = dma_buf_map_attachment(attachment, DMA_BIDIRECTIONAL);
+		if (IS_ERR_OR_NULL(table)) {
+			pr_err("Failed to map attachment=%p\n", attachment);
+			ret = PTR_ERR(table);
+			goto err_map_attachment;
+		}
+	} else
+		dev_dbg(dev, "get_iova, bypass dma_buf_attach and dma_buf_map_attachment\n");
 
 	iommu_map_data.ch_type = SPRD_IOMMU_FM_CH_RW;
 	ret = sprd_iommu_map(data->dev, &iommu_map_data);
@@ -502,8 +500,10 @@ int get_iova(void *inst_ptr, struct vpu_platform_data *data,
 		entry->iova_addr = iommu_map_data.iova_addr;
 		entry->iova_size = iommu_map_data.iova_size;
 		entry->dmabuf = dmabuf;
-		entry->attachment = attachment;
-		entry->table = table;
+		if (mapdata->need_cache_sync) {
+			entry->attachment = attachment;
+			entry->table = table;
+		}
 		entry->inst_ptr = inst_ptr;
 		list_add(&entry->list, &data->map_list);
 		mutex_unlock(&data->map_lock);
@@ -538,12 +538,13 @@ err_kzalloc:
 				ret, iommu_ummap_data.iova_addr, iommu_ummap_data.iova_size);
 		}
 err_iommu_map:
-		dma_buf_unmap_attachment(attachment, table, DMA_BIDIRECTIONAL);
+		if (mapdata->need_cache_sync)
+			dma_buf_unmap_attachment(attachment, table, DMA_BIDIRECTIONAL);
 err_map_attachment:
-		dma_buf_detach(dmabuf, attachment);
+		if (mapdata->need_cache_sync)
+			dma_buf_detach(dmabuf, attachment);
 err_attach:
 err_get_dmabuf:
-ignore_this_device:
 		clock_disable(data);
 
 		return ret;
@@ -594,8 +595,13 @@ int free_iova(void *inst_ptr, struct vpu_platform_data *data,
 	}
 	pr_debug("sprd_iommu_unmap success: iova_addr=%#llx size=%llu\n",
 		ummapdata->iova_addr, ummapdata->size);
-	dma_buf_unmap_attachment(entry->attachment, entry->table, DMA_BIDIRECTIONAL);
-	dma_buf_detach(entry->dmabuf, entry->attachment);
+
+	if (ummapdata->need_cache_sync) {
+		dma_buf_unmap_attachment(entry->attachment, entry->table, DMA_BIDIRECTIONAL);
+		dma_buf_detach(entry->dmabuf, entry->attachment);
+	} else
+		dev_dbg(data->dev, "free_iova, bypass dma_buf_unmap_attachment and dma_buf_detach\n");
+
 	kfree(entry);
 
 	clock_disable(data);
