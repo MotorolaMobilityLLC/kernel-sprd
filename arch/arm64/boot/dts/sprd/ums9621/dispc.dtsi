@@ -1,6 +1,9 @@
+#include <dt-bindings/soc/sprd,qogirn6lite-mask.h>
+#include <dt-bindings/soc/sprd,qogirn6lite-regs.h>
+
 &dpuvsp {
 	dpu: dpu@31000000 {
-		compatible = "sprd,qogirn6pro-dpu";
+		compatible = "sprd,qogirn6lite-dpu";
 		reg = <0x0 0x31000000 0x0 0x3000>,
 		       <0x0 0x30120000 0x0 0x100>;
 		resets = <&dpu_vsp_gate RESET_DPU_VSP_APB_DPU_SOFT_RST>,
@@ -19,7 +22,7 @@
 	};
 
 	iommu_dispc: iommu@31001800 {
-		compatible = "unisoc,iommuvaul6p-dispc";
+		compatible = "unisoc,iommuvaun6l-dispc";
 		reg = <0x0 0x31000000 0x0 0x80>,
 		      <0x0 0x31001800 0x0 0x80>;
 		iova-base = <0x10000000>;
@@ -49,7 +52,7 @@
 	};
 
 	iommu_gsp: iommu@31101000 {
-		compatible = "unisoc,iommuvaul6p-gsp";
+		compatible = "unisoc,iommuvaun6l-gsp";
 		reg = <0x0 0x31100000 0x0 0x80>,
 		      <0x0 0x31101000 0x0 0x80>;
 		iova-base = <0x20000000>;
@@ -60,7 +63,7 @@
 	};
 
 	dsi: dsi@31300000 {
-		compatible = "sprd,qogirn6pro-dsi-host";
+		compatible = "sprd,qogirn6lite-dsi-host";
 		reg = <0x0 0x31300000 0x0 0x1000>;
 		resets = <&dpu_vsp_gate RESET_DPU_VSP_APB_DSI0_SOFT_RST>;
 		reset-names = "dsi_rst";
@@ -88,15 +91,15 @@
 	};
 
 	dphy: dphy {
-		compatible = "sprd,qogirn6pro-dsi-phy";
+		compatible = "sprd,qogirn6lite-dsi-phy";
 		#address-cells = <1>;
 		#size-cells = <0>;
 		reg = <0x0 0x31300000 0x0 0x1000>;
-		enable-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_MISC_CKG_EB
+		enable-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_MISC_CKG_EN
 			(MASK_DPU_VSP_APB_DPHY0_REF_CKG_EN |
 			MASK_DPU_VSP_APB_DPHY0_CFG_CKG_EN)>;
-		power-syscon = <&pmu_apb_regs REG_PMU_APB_RF_ANALOG_PHY_PD_CFG
-			MASK_PMU_APB_RF_DSI0_PD_REG>;
+		power-syscon = <&pmu_apb_regs REG_PMU_APB_ANALOG_PHY_PWRDOWN_CFG
+			MASK_PMU_APB_DSI_4LANE_0_PWR_PD_REG >;
 		aod_mode-syscon = <&aon_apb_regs REG_AON_APB_MIPI_DSI8_CTRL
 			(MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_EN_M |
 			MASK_AON_APB_MIPI_DSI_8LANE_DSI_AOD_MOD_M)>;
