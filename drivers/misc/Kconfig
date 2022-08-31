@@ -523,4 +523,5 @@ source "drivers/misc/ocxl/Kconfig"
 source "drivers/misc/cardreader/Kconfig"
 source "drivers/misc/habanalabs/Kconfig"
 source "drivers/misc/vibrator/Kconfig"
+source "drivers/misc/aw9610x/Kconfig"
 endmenu
