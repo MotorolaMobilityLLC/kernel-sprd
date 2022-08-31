@@ -669,6 +669,18 @@
 	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
+
+	aw9610x_sar@12 {
+		compatible = "awinic,aw9610x_sar";
+		reg = <0x12>;
+		//reset-gpio = <&ap_gpio 63 0>;
+		irq-gpio = <&ap_gpio 176 0>;
+		aw9610x,using-firmware;
+		//vcc0-supply = <&pm660l_l4>;
+		channel_use_flag = <0x1f>;
+		sar-num = <0>;
+		status = "okay";
+	};
 };
 
 &i2c4 {

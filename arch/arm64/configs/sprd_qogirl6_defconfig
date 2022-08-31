@@ -5792,6 +5792,8 @@ CONFIG_UNICODE=y
 # CONFIG_UNICODE_NORMALIZATION_SELFTEST is not set
 # end of File systems
 
+CONFIG_AW9610X_SAR=m
+
 #
 # Security options
 #
