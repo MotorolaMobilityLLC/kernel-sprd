@@ -12,6 +12,7 @@ static int one_thousand = 1000;
 #if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
 /* map util clamp_min to boost */
 unsigned int sysctl_sched_uclamp_min_to_boost = 1;
+EXPORT_SYMBOL_GPL(sysctl_sched_uclamp_min_to_boost);
 unsigned int sysctl_sched_uclamp_threshold = 100;
 #else
 unsigned int sysctl_sched_uclamp_threshold = 50;
