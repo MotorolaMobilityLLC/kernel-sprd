@@ -1,0 +1,7 @@
+config NFC_PN557
+	tristate "NXP PN557 nfc driver"
+	depends on I2C
+	help
+	  NXP PN557 core driver.
+	  This is a driver based on the HCI NFC kernel layers and
+	  will thus not work with NXP libnfc library.
