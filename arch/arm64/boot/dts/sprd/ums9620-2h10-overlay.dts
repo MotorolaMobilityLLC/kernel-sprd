@@ -83,7 +83,86 @@
 					compatible = "sprd,marlin3-fm";
 					sprd,name = "sprd-fm";
 				};
+			};
 
+			front_sensor: front-sensor {
+				compatible = "sprd,shell-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "chg-thmzone",
+						"pa-thmzone",
+						"board-thmzone",
+						"battery";
+				temp-coeff = <18881 17918 18288 18241 18889 18974 18976
+						13160 17177 17571 17413 17324 17990 23386
+						15219 15341 15299 15330 14777 13891 16130
+						597 16326 16001 15710 19060 19947 38182>;
+				coeff-offset = <17000>;
+				temp-const = <256>;
+				const-offset = <0>;
+			};
+
+			back_sensor: back-sensor {
+				compatible = "sprd,shell-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "chg-thmzone",
+						"pa-thmzone",
+						"board-thmzone",
+						"battery";
+				temp-coeff = <19281 19863 20573 20843 21523 21903 21530
+						15641 19803 20542 20460 20374 21149 27280
+						20678 19833 19152 18770 18146 17276 19273
+						521 18852 18577 18451 22329 23133 44243>;
+				coeff-offset = <20000>;
+				temp-const = <791>;
+				const-offset = <1000>;
+			};
+
+			right_sensor: right-sensor {
+				compatible = "sprd,shell-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "chg-thmzone",
+						"pa-thmzone",
+						"board-thmzone",
+						"battery";
+				temp-coeff = <27622 25445 26082 26122 27037 27278 27858
+						16966 24115 24729 24593 24441 25423 32621
+						20953 21210 21364 21195 20328 19033 21485
+						760 22980 22690 22546 26582 27761 52778>;
+				coeff-offset = <24000>;
+				temp-const = <805>;
+				const-offset = <1000>;
+			};
+
+			left_sensor: left-sensor {
+				compatible = "sprd,shell-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "chg-thmzone",
+						"pa-thmzone",
+						"board-thmzone",
+						"battery";
+				temp-coeff = <17337 15400 15676 15485 16166 16131 16666
+						10227 14360 14697 14516 14422 14890 19470
+						11164 11541 12008 12157 11494 10590 12498
+						229 13686 13382 12645 15805 16673 32684>;
+				coeff-offset = <14000>;
+				temp-const = <12>;
+				const-offset = <0>;
+			};
+
+			env_sensor: env-sensor {
+				compatible = "sprd,shell-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "chg-thmzone",
+						"pa-thmzone",
+						"board-thmzone",
+						"battery";
+				temp-coeff = <88434 86056 89451 90002 93103 93856 90891
+						28750 79653 85395 85323 84382 87994 125132
+						71347 69498 67250 65976 63148 60212 71661
+						425 73750 73214 74213 87331 89947 173603>;
+				coeff-offset = <80000>;
+				temp-const = <681>;
+				const-offset = <3000>;
 			};
 
 			fingerprint@0 {
@@ -103,6 +182,38 @@
 
 &chosen {
 	bootargs_ext = "";
+};
+
+&thm_zone {
+	front_thmzone: front-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&front_sensor>;
+	};
+
+	back_thmzone: back-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&back_sensor>;
+	};
+
+	right_thmzone: right-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&right_sensor>;
+	};
+
+	left_thmzone: left-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&left_sensor>;
+	};
+
+	env_thmzone: env-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&env_sensor>;
+	};
 };
 
 &adi_bus {
