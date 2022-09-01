@@ -390,11 +390,13 @@
 #define CLK_DCAM_BLK_CFG_EN		19
 #define CLK_SENSOR0_EN			20
 #define CLK_SENSOR1_EN			21
-#define CLK_SENSOR2_EN			22
+#define CLK_SENSOR2_EN			21
+#define CLK_SENSOR3_EN			22
 #define CLK_DCAM_TCK_EN			23
 #define CLK_CSI0_EN			24
 #define CLK_CSI1_EN			25
-#define CLK_CSI2_EN			26
+#define CLK_CSI2_EN			25
+#define CLK_CSI3_EN			26
 #define CLK_IPA_EN			27
 #define CLK_MM_GATE_NUM			(CLK_IPA_EN + 1)
 
@@ -407,8 +409,10 @@
 #define CLK_MIPI_CSI0		7
 #define CLK_MIPI_CSI1_1		8
 #define CLK_MIPI_CSI1_2		9
-#define CLK_MIPI_CSI2_1		10
-#define CLK_MIPI_CSI2_2		11
+#define CLK_MIPI_CSI2_1		8
+#define CLK_MIPI_CSI2_2		9
+#define CLK_MIPI_CSI3_1		10
+#define CLK_MIPI_CSI3_2		11
 #define CLK_DCAM_MTX		12
 #define CLK_DCAM_BLK_CFG	13
 #define CLK_MM_MTX_DATA		14
@@ -416,7 +420,8 @@
 #define CLK_MM_SYS_CFG		16
 #define CLK_SENSOR0		17
 #define CLK_SENSOR1		18
-#define CLK_SENSOR2		19
+#define CLK_SENSOR2		18
+#define CLK_SENSOR3		19
 #define CLK_MM_CLK_NUM		(CLK_SENSOR2 + 1)
 
 #define CLK_DPU_EB		0
