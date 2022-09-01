@@ -659,12 +659,6 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 	switch (status) {
 	case PRE_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
-			if (ufshcd_is_auto_hibern8_supported(hba)) {
-				spin_lock_irqsave(hba->host->host_lock, flags);
-				ufshcd_writel(hba, 0, REG_AUTO_HIBERNATE_IDLE_TIMER);
-				spin_unlock_irqrestore(hba->host->host_lock, flags);
-			}
-
 			spin_lock_irqsave(hba->host->host_lock, flags);
 			set = ufshcd_readl(hba, REG_INTERRUPT_ENABLE);
 			set &= ~UIC_COMMAND_COMPL;
@@ -691,13 +685,6 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 			set |= UIC_COMMAND_COMPL;
 			ufshcd_writel(hba, set, REG_INTERRUPT_ENABLE);
 			spin_unlock_irqrestore(hba->host->host_lock, flags);
-
-			if (ufshcd_is_auto_hibern8_supported(hba)) {
-				spin_lock_irqsave(hba->host->host_lock, flags);
-				ufshcd_writel(hba, AUTO_H8_IDLE_TIME_10MS,
-					REG_AUTO_HIBERNATE_IDLE_TIMER);
-				spin_unlock_irqrestore(hba->host->host_lock, flags);
-			}
 		}
 
 		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
@@ -756,6 +743,21 @@ static void ufs_sprd_fixup_dev_quirks(struct ufs_hba *hba)
 	ufshcd_decode_ufs_uid(hba);
 }
 
+static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
+					enum ufs_notify_change_status status)
+{
+	unsigned long flags;
+
+	/* disable auto h8 before ssu */
+	if (ufshcd_is_auto_hibern8_supported(hba)) {
+		spin_lock_irqsave(hba->host->host_lock, flags);
+		ufshcd_writel(hba, 0, REG_AUTO_HIBERNATE_IDLE_TIMER);
+		spin_unlock_irqrestore(hba->host->host_lock, flags);
+	}
+
+	return 0;
+}
+
 const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops = {
 	.name = "sprd,ufshc-ums9620",
 	.init = ufs_sprd_init,
@@ -767,5 +769,6 @@ const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops = {
 	.setup_xfer_req = ufs_sprd_setup_xfer_req,
 	.fixup_dev_quirks = ufs_sprd_fixup_dev_quirks,
 	.device_reset = ufs_sprd_device_reset,
+	.suspend = ufs_sprd_suspend,
 };
 EXPORT_SYMBOL(ufs_hba_sprd_ums9620_vops);
