@@ -55,7 +55,8 @@ int mmc_send_tuning_read(struct mmc_host *host)
 	data.blocks = 1;
 	data.flags = MMC_DATA_READ;
 	data.blk_addr = 0;
-
+	data.timeout_ns = 100000000;
+	data.timeout_clks = 0;
 
 	data.sg = &sg;
 	data.sg_len = 1;

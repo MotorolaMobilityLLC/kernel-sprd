@@ -434,9 +434,6 @@ static void sdhci_sprd_set_uhs_signaling(struct sdhci_host *host,
 	u16 ctrl_2;
 	bool en = false;
 
-	if ((timing == host->timing) && (strcmp(mmc_hostname(mmc), "mmc2") != 0))
-		return;
-
 	ctrl_2 = sdhci_readw(host, SDHCI_HOST_CONTROL2);
 	/* Select Bus Speed Mode for host */
 	ctrl_2 &= ~SDHCI_CTRL_UHS_MASK;
@@ -463,7 +460,10 @@ static void sdhci_sprd_set_uhs_signaling(struct sdhci_host *host,
 		ctrl_2 |= SDHCI_SPRD_CTRL_HS200;
 		break;
 	case MMC_TIMING_MMC_HS400:
-		ctrl_2 |= SDHCI_SPRD_CTRL_HS400;
+		if (mmc->ios.enhanced_strobe)
+			ctrl_2 |= SDHCI_SPRD_CTRL_HS400ES;
+		else
+			ctrl_2 |= SDHCI_SPRD_CTRL_HS400;
 		break;
 	default:
 		break;
@@ -480,6 +480,8 @@ static void sdhci_sprd_set_uhs_signaling(struct sdhci_host *host,
 
 	if (!mmc->ios.enhanced_strobe)
 		sdhci_writel(host, p[timing], SDHCI_SPRD_REG_32_DLL_DLY);
+	else
+		sdhci_writel(host, p[MMC_TIMING_MMC_HS400 + 1], SDHCI_SPRD_REG_32_DLL_DLY);
 }
 
 static void sdhci_sprd_hw_reset(struct sdhci_host *host)
@@ -669,11 +671,9 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 				dll_dly &= ~(SDHCI_SPRD_CMD_DLY_MASK);
 				dll_dly |= ((i << 8) & SDHCI_SPRD_CMD_DLY_MASK);
 			} else {
-				dll_dly &= ~(SDHCI_SPRD_POSRD_DLY_MASK | SDHCI_SPRD_NEGRD_DLY_MASK |
-							SDHCI_SPRD_CMD_DLY_MASK);
+				dll_dly &= ~(SDHCI_SPRD_POSRD_DLY_MASK | SDHCI_SPRD_NEGRD_DLY_MASK);
 				dll_dly |= (((i << 16) & SDHCI_SPRD_POSRD_DLY_MASK) |
-							((i << 24) & SDHCI_SPRD_NEGRD_DLY_MASK) |
-							((i << 8) & SDHCI_SPRD_CMD_DLY_MASK));
+							((i << 24) & SDHCI_SPRD_NEGRD_DLY_MASK));
 			}
 		} else {
 			dll_dly &= ~(SDHCI_SPRD_CMD_DLY_MASK |
@@ -802,10 +802,9 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 			p[mmc->ios.timing] |= ((final_phase << 8) & SDHCI_SPRD_CMD_DLY_MASK);
 		} else {
 			p[mmc->ios.timing] &= ~(SDHCI_SPRD_POSRD_DLY_MASK |
-				SDHCI_SPRD_NEGRD_DLY_MASK | SDHCI_SPRD_CMD_DLY_MASK);
+				SDHCI_SPRD_NEGRD_DLY_MASK);
 			p[mmc->ios.timing] |= (((final_phase << 16) & SDHCI_SPRD_POSRD_DLY_MASK) |
-				((final_phase << 24) & SDHCI_SPRD_NEGRD_DLY_MASK) |
-				((final_phase << 8) & SDHCI_SPRD_CMD_DLY_MASK));
+				((final_phase << 24) & SDHCI_SPRD_NEGRD_DLY_MASK));
 		}
 	} else {
 		p[mmc->ios.timing] &= ~(SDHCI_SPRD_CMD_DLY_MASK |
