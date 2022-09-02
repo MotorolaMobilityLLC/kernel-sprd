@@ -17005,8 +17005,8 @@ CONFIG_SPRD_MEMDISK
 	[missing plat description] none
 	[function] Using reserved memory generate block device node.
 CONFIG_SPRD_MEM_OVERLAY_CHECK
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
