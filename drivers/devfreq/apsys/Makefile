@@ -33,6 +33,7 @@ apsys-dvfs-y := \
 
 apsys-dvfs-$(CONFIG_DRM_SPRD_GSP_DVFS) += \
 	sprd_dvfs_gsp.o \
-	gsp/gsp_dvfs_qogirn6pro.o
+	gsp/gsp_dvfs_qogirn6pro.o \
+	gsp/gsp_dvfs_qogirn6lite.o
 
 obj-$(CONFIG_DVFS_APSYS_SPRD) += apsys-dvfs.o

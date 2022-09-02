@@ -20,7 +20,6 @@
 
 #include "sprd_dvfs_apsys.h"
 #include "sprd_dvfs_gsp.h"
-#include "sys/apsys_dvfs_qogirn6pro.h"
 
 static int GSP_DVFS_ENABLE = 1;
 
@@ -655,9 +654,15 @@ static const struct sprd_gsp_dvfs_ops qogirn6pro_gsp_dvfs = {
 	.dvfs_ops = &qogirn6pro_gsp_dvfs_ops,
 };
 
+static const struct sprd_gsp_dvfs_ops qogirn6lite_gsp_dvfs = {
+	.dvfs_ops = &qogirn6lite_gsp_dvfs_ops,
+};
+
 static const struct of_device_id gsp_dvfs_of_match[] = {
 	{ .compatible = "sprd,hwdvfs-gsp-qogirn6pro",
 	  .data = &qogirn6pro_gsp_dvfs },
+	{ .compatible = "sprd,hwdvfs-gsp-qogirn6lite",
+	  .data = &qogirn6lite_gsp_dvfs },
 	{ }
 };
 

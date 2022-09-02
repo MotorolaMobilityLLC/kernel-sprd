@@ -28,6 +28,7 @@ typedef enum {
 	GSP_CLK_INDEX_307M2,
 	GSP_CLK_INDEX_384M,
 	GSP_CLK_INDEX_512M,
+	GSP_CLK_INDEX_614M4,
 } clock_level;
 
 typedef enum {
@@ -35,6 +36,7 @@ typedef enum {
 	GSP_CLK307M2 = 307200000,
 	GSP_CLK384M = 384000000,
 	GSP_CLK512M = 512000000,
+	GSP_CLK614M4 = 614400000,
 } clock_rate;
 
 struct gsp_dvfs {
@@ -95,5 +97,6 @@ struct sprd_gsp_dvfs_ops {
 };
 
 extern const struct gsp_dvfs_ops qogirn6pro_gsp_dvfs_ops;
+extern const struct gsp_dvfs_ops qogirn6lite_gsp_dvfs_ops;
 
 #endif /* __SPRD_DVFS_GSP_H__ */
