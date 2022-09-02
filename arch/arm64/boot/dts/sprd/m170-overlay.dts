@@ -695,7 +695,7 @@
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
 		vddcamd-supply = <&vddcamd0>;
-	/*	vddcammot-supply = <&vddcammot>; */
+		vddcammot-supply = <&vddcammot>;
 		reset-gpios = <&ap_gpio 44 0>;
 	/*	power-down-gpios = <&ap_gpio 47 0>; */
 		sprd,phyid = <2>;
@@ -874,6 +874,7 @@
 	};
 };
 
+/*
 &i2c6 {
 	status = "okay";
 	clock-frequency = <400000>;
@@ -895,11 +896,12 @@
 		vddcammot-supply = <&vddcammot>;
 		mot-gpios = <&ap_gpio 112 0>;
 		reset-gpios = <&ap_gpio 114 0>;
-	/*	power-down-gpios = <&ap_gpio 40 0>;*/
+		power-down-gpios = <&ap_gpio 40 0>;
 		sprd,phyid = <3>;
 		csi = <&csi2>;
 	};
 };
+*/
 
 &hsphy {
 	vdd-supply = <&vddusb33>;

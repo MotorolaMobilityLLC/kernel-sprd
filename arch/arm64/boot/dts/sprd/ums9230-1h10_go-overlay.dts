@@ -419,7 +419,7 @@
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
 		vddcamd-supply = <&vddcamd0>;
-	/*	vddcammot-supply = <&vddcammot>; */
+		vddcammot-supply = <&vddcammot>;
 		reset-gpios = <&ap_gpio 44 0>;
 	/*	power-down-gpios = <&ap_gpio 47 0>; */
 		sprd,phyid = <2>;
