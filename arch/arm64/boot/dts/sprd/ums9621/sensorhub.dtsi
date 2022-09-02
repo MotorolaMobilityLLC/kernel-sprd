@@ -8,7 +8,7 @@
 
  / {
 	sensorhub {
-		compatible = "sprd,qogirn6pro-sensorhub", "sprd,sensor-hub";
+		compatible = "sprd,qogirn6lite-sensorhub", "sprd,sensor-hub";
 		sipc-sensorhub-id = <9>;
 	};
 };
