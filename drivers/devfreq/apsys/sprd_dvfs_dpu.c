@@ -660,6 +660,10 @@ static const struct sprd_dpu_dvfs_ops qogirn6pro_dpu_dvfs = {
 	.core = &qogirn6pro_dpu_dvfs_ops,
 };
 
+static const struct sprd_dpu_dvfs_ops qogirn6lite_dpu_dvfs = {
+	.core = &qogirn6lite_dpu_dvfs_ops,
+};
+
 static const struct sprd_dpu_dvfs_ops roc1_dpu_dvfs = {
 	.core = &roc1_dpu_dvfs_ops,
 };
@@ -675,6 +679,8 @@ static const struct of_device_id dpu_dvfs_of_match[] = {
 	  .data = &qogirl6_dpu_dvfs},
 	{ .compatible = "sprd,hwdvfs-dpu-qogirn6pro",
 	  .data = &qogirn6pro_dpu_dvfs},
+	{ .compatible = "sprd,hwdvfs-dpu-qogirn6lite",
+	  .data = &qogirn6lite_dpu_dvfs},
 	{ }
 };
 

@@ -11,12 +11,14 @@ apsys-dvfs-y := \
 	sprd_dvfs_vsp.o \
 	sprd_dvfs_vdsp.o \
 	dpu/dpu_dvfs_qogirn6pro.o \
+	dpu/dpu_dvfs_qogirn6lite.o \
 	dpu/dpu_dvfs_sharkl5pro.o \
 	dpu/dpu_dvfs_sharkl5.o \
 	dpu/dpu_dvfs_qogirl6.o \
 	dpu/dpu_dvfs_roc1.o \
 	sys/apsys_dvfs_qogirl6.o \
 	sys/apsys_dvfs_qogirn6pro.o \
+	sys/apsys_dvfs_qogirn6lite.o \
 	sys/apsys_dvfs_sharkl5.o \
 	sys/apsys_dvfs_sharkl5pro.o \
 	sys/apsys_dvfs_roc1.o \

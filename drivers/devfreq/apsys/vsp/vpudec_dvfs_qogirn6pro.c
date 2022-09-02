@@ -11,6 +11,7 @@
  * GNU General Public License for more details.
  */
 
+#include "sprd_dvfs_apsys.h"
 #include "sprd_dvfs_vsp.h"
 #include "../sys/apsys_dvfs_qogirn6pro.h"
 

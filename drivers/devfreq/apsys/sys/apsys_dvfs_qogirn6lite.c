@@ -14,9 +14,9 @@
 #include <linux/mfd/syscon.h>
 
 #include "sprd_dvfs_apsys.h"
-#include "apsys_dvfs_qogirn6pro.h"
+#include "apsys_dvfs_qogirn6lite.h"
 
-char *qogirn6pro_apsys_val_to_volt(u32 val)
+char *qogirn6lite_apsys_val_to_volt(u32 val)
 {
 	switch (val) {
 	case 0:
@@ -31,7 +31,7 @@ char *qogirn6pro_apsys_val_to_volt(u32 val)
 	}
 }
 
-char *qogirn6pro_dpu_val_to_freq(u32 val)
+char *qogirn6lite_dpu_val_to_freq(u32 val)
 {
 	switch (val) {
 	case 0:
@@ -52,7 +52,7 @@ char *qogirn6pro_dpu_val_to_freq(u32 val)
 	}
 }
 
-char *qogirn6pro_gsp_val_to_volt(u32 val)
+char *qogirn6lite_gsp_val_to_volt(u32 val)
 {
 	switch (val) {
 	case 0:
@@ -71,7 +71,7 @@ char *qogirn6pro_gsp_val_to_volt(u32 val)
 	}
 }
 
-char *qogirn6pro_gsp_val_to_freq(u32 val)
+char *qogirn6lite_gsp_val_to_freq(u32 val)
 {
 	switch (val) {
 	case 0:
@@ -82,13 +82,15 @@ char *qogirn6pro_gsp_val_to_freq(u32 val)
 		return "384M";
 	case 3:
 		return "512M";
+	case 4:
+		return "614.4M";
 	default:
 		pr_err("invalid frequency value %u\n", val);
 		return "N/A";
 	}
 }
 
-char *qogirn6pro_vpu_val_to_volt(u32 val)
+char *qogirn6lite_vpu_val_to_volt(u32 val)
 {
 	switch (val) {
 	case 0:
@@ -107,7 +109,7 @@ char *qogirn6pro_vpu_val_to_volt(u32 val)
 	}
 }
 
-char *qogirn6pro_vpuenc_val_to_freq(u32 val)
+char *qogirn6lite_vpuenc_val_to_freq(u32 val)
 {
 	switch (val) {
 	case 0:
@@ -124,7 +126,7 @@ char *qogirn6pro_vpuenc_val_to_freq(u32 val)
 	}
 }
 
-char *qogirn6pro_vpudec_val_to_freq(u32 val)
+char *qogirn6lite_vpudec_val_to_freq(u32 val)
 {
 	switch (val) {
 	case 0:
@@ -143,7 +145,7 @@ char *qogirn6pro_vpudec_val_to_freq(u32 val)
 	}
 }
 
-char *qogirn6pro_vdsp_val_to_freq(u32 val)
+char *qogirn6lite_vdsp_val_to_freq(u32 val)
 {
 	switch (val) {
 	case 0:
@@ -318,7 +320,7 @@ static void apsys_dvfs_init(struct apsys_dev *apsys)
 	apsys_dvfs_min_volt(apsys, apsys->dvfs_coffe.dvfs_min_volt);
 }
 
-const struct apsys_dvfs_ops qogirn6pro_apsys_dvfs_ops = {
+const struct apsys_dvfs_ops qogirn6lite_apsys_dvfs_ops = {
 	.parse_dt = apsys_dvfs_parse_dt,
 	.dvfs_init = apsys_dvfs_init,
 	.apsys_auto_gate = apsys_dvfs_auto_gate,

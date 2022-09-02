@@ -120,6 +120,8 @@ extern const struct apsys_dvfs_ops sharkl5pro_apsys_dvfs_ops;
 extern const struct apsys_dvfs_ops sharkl5_apsys_dvfs_ops;
 extern const struct apsys_dvfs_ops qogirl6_apsys_dvfs_ops;
 extern const struct apsys_dvfs_ops qogirn6pro_apsys_dvfs_ops;
+extern const struct apsys_dvfs_ops qogirn6lite_apsys_dvfs_ops;
 extern const struct apsys_dvfs_ops roc1_apsys_dvfs_ops;
 
+extern int dpu_vsp_dvfs_check_clkeb(void);
 #endif /* __SPRD_DVFS_APSYS_H__ */

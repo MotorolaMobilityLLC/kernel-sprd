@@ -14,6 +14,7 @@
 #include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
+#include <linux/regmap.h>
 
 #include "../governor.h"
 #include "sprd_dvfs_apsys.h"
@@ -25,6 +26,18 @@ LIST_HEAD(apsys_dvfs_head);
 struct class *dvfs_class;
 struct regmap *regmap_aon_base;
 bool n6pro_AA_flag;
+
+int dpu_vsp_dvfs_check_clkeb(void)
+{
+	u32  dpu_vsp_dvfs_eb_reg = 0;
+
+	regmap_read(regmap_aon_base, 0x0, &dpu_vsp_dvfs_eb_reg);
+
+	if (dpu_vsp_dvfs_eb_reg&BIT(21))
+		return 0;
+	else
+		return -1;
+}
 
 int n6pro_soc_ver_id_check(void)
 {
@@ -362,6 +375,10 @@ static const struct sprd_apsys_dvfs_ops qogirn6pro_apsys_ops = {
 	.version = "qogirn6pro",
 };
 
+static const struct sprd_apsys_dvfs_ops qogirn6lite_apsys_ops = {
+	.apsys_ops = &qogirn6lite_apsys_dvfs_ops,
+	.version = "qogirn6lite",
+};
 /*
 static const struct sprd_apsys_dvfs_ops sharkl5pro_apsys_ops = {
 	.apsys_ops = &sharkl5pro_apsys_dvfs_ops,
@@ -379,6 +396,8 @@ static const struct of_device_id apsys_dvfs_of_match[] = {
 	  .data = &qogirl6_apsys_ops },
 	{ .compatible = "sprd,hwdvfs-dpuvsp-qogirn6pro",
 	  .data = &qogirn6pro_apsys_ops },
+	{ .compatible = "sprd,hwdvfs-dpuvsp-qogirn6lite",
+	  .data = &qogirn6lite_apsys_ops },
 	{ },
 };
 

@@ -3,8 +3,8 @@
  * Copyright (C) 2020 Unisoc Inc.
  */
 
-#ifndef __DPU_VSP_SYS_REG_qogirn6pro_H__
-#define __DPU_VSP_SYS_REG_qogirn6pro_H__
+#ifndef __DPU_VSP_SYS_REG_qogirn6lite_H__
+#define __DPU_VSP_SYS_REG_qogirn6lite_H__
 
 enum {
 	VOL55 = 0, //0.55v
@@ -36,7 +36,6 @@ struct dpu_vspsys_dvfs_reg {
 	u32 dpu_vsp_vpu_enc_dvfs_cgm_cfg_dbg;
 	u32 dpu_vsp_vpu_dec_dvfs_cgm_cfg_dbg;
 	u32 dpu_vsp_vpu_gsp0_dvfs_cgm_cfg_dbg;
-	u32 dpu_vsp_vpu_gsp1_dvfs_cgm_cfg_dbg;
 	u32 dpu_vsp_vpu_dispc0_dvfs_cgm_cfg_dbg;
 	u32 reserved_0x80_0x12c[44];
 	u32 dpu_vsp_dvfs_state_dbg;
@@ -73,14 +72,6 @@ struct dpu_vspsys_dvfs_reg {
 	u32 gsp0_index5_map;
 	u32 gsp0_index6_map;
 	u32 gsp0_index7_map;
-	u32 gsp1_index0_map;
-	u32 gsp1_index1_map;
-	u32 gsp1_index2_map;
-	u32 gsp1_index3_map;
-	u32 gsp1_index4_map;
-	u32 gsp1_index5_map;
-	u32 gsp1_index6_map;
-	u32 gsp1_index7_map;
 	u32 dispc_index0_map;
 	u32 dispc_index1_map;
 	u32 dispc_index2_map;
@@ -98,8 +89,6 @@ struct dpu_vspsys_dvfs_reg {
 	u32 vpu_dec_dvfs_index_idle_cfg;
 	u32 vpu_gsp0_dvfs_index_cfg;
 	u32 vpu_gsp0_dvfs_index_idle_cfg;
-	u32 vpu_gsp_dvfs_index_cfg;
-	u32 vpu_gsp_dvfs_index_idle_cfg;
 	u32 dispc_dvfs_index_cfg;
 	u32 dispc_dvfs_index_idle_cfg;
 	u32 reserved_0x7c4_0x920[88];
@@ -118,13 +107,13 @@ struct dpu_vspsys_dvfs_reg {
 	u32 dpu_vsp_dvfs_reserved_reg_cfg3;
 };
 
-char *qogirn6pro_apsys_val_to_volt(u32 val);
-char *qogirn6pro_dpu_vspsys_val_to_volt(u32 val);
-char *qogirn6pro_dpu_val_to_freq(u32 val);
-char *qogirn6pro_gsp_val_to_volt(u32 val);
-char *qogirn6pro_gsp_val_to_freq(u32 val);
-char *qogirn6pro_vpu_val_to_volt(u32 val);
-char *qogirn6pro_vpuenc_val_to_freq(u32 val);
-char *qogirn6pro_vpudec_val_to_freq(u32 val);
-char *qogirn6pro_vpu_mtx_val_to_freq(u32 val);
+char *qogirn6lite_apsys_val_to_volt(u32 val);
+char *qogirn6lite_dpu_vspsys_val_to_volt(u32 val);
+char *qogirn6lite_dpu_val_to_freq(u32 val);
+char *qogirn6lite_gsp_val_to_volt(u32 val);
+char *qogirn6lite_gsp_val_to_freq(u32 val);
+char *qogirn6lite_vpu_val_to_volt(u32 val);
+char *qogirn6lite_vpuenc_val_to_freq(u32 val);
+char *qogirn6lite_vpudec_val_to_freq(u32 val);
+char *qogirn6lite_vpu_mtx_val_to_freq(u32 val);
 #endif

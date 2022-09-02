@@ -18,6 +18,7 @@
 #include <linux/slab.h>
 #include "../governor.h"
 
+#include "sprd_dvfs_apsys.h"
 #include "sprd_dvfs_gsp.h"
 #include "sys/apsys_dvfs_qogirn6pro.h"
 
