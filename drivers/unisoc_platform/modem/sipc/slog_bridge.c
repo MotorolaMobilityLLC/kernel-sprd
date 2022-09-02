@@ -101,7 +101,7 @@ struct block_node {
 	struct	list_head list;
 };
 
-#ifdef CONFIG_USB_F_VSERIAL_BYPASS_USER
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
 extern ssize_t vser_pass_user_write(char *buf, size_t count);
 extern void kernel_vser_register_callback(void *function, void *p);
 extern void kernel_vser_set_pass_mode(bool pass);
