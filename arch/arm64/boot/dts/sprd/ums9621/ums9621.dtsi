@@ -371,6 +371,41 @@
 		#size-cells = <0>;
 	};
 
+	vpudec_dvfs: vpudec-dvfs {
+		compatible = "sprd,hwdvfs-vsp-qogirn6lite";
+		sprd,dvfs-work-freq = <614400000>;
+		sprd,dvfs-idle-freq = <256000000>;
+		sprd,dvfs-enable-flag = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+
+		operating-points = <
+			/* kHz    uV */
+			256000    600000
+			307200    600000
+			384000    650000
+			512000    700000
+			614400    750000
+			>;
+	};
+
+	vpuenc_dvfs: vpuenc-dvfs {
+		compatible = "sprd,hwdvfs-vpuenc-qogirn6lite";
+		sprd,dvfs-work-freq = <614400000>;
+		sprd,dvfs-idle-freq = <256000000>;
+		sprd,dvfs-enable-flag = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+
+		operating-points = <
+			/* kHz    uV */
+			256000    600000
+			307200    650000
+			384000    700000
+			512000    700000
+			614400    750000
+			>;
+	};
 };
 
 /* Include other IP modules ALPHABETICALLY */
