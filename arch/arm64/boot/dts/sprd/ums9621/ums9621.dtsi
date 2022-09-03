@@ -317,7 +317,7 @@
 			};
 
 			pwms: pwm@30000 {
-				compatible = "sprd,ums9620-pwm";
+				compatible = "sprd,ums9621-pwm","sprd,ums9620-pwm";
 				reg = <0x30000 0x10000>;
 				clock-names = "pwm0", "enable0",
 						"pwm1", "enable1",
@@ -332,7 +332,7 @@
 						  <&aonapb_clk CLK_PWM2>,
 						  <&aonapb_clk CLK_PWM3>;
 				assigned-clock-parents = <&ext_26m>,
-							 <&ext_26m>,
+							 <&ext_32k>,
 							 <&ext_26m>,
 							 <&ext_26m>;
 				#pwm-cells = <2>;
