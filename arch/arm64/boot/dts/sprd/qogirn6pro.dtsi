@@ -2113,7 +2113,7 @@
 						  <&aonapb_clk CLK_PWM2>,
 						  <&aonapb_clk CLK_PWM3>;
 				assigned-clock-parents = <&ext_26m>,
-							 <&ext_26m>,
+							 <&ext_32k>,
 							 <&ext_26m>,
 							 <&ext_26m>;
 				#pwm-cells = <2>;
