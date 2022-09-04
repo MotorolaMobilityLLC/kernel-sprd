@@ -1165,7 +1165,8 @@ static enum power_supply_property bq2560x_usb_props[] = {
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {
-	.name			= "bq2560x_charger",
+	//.name			= "bq2560x_charger",
+	.name                   = "sgm41513_charger",
 	.type			= POWER_SUPPLY_TYPE_USB,
 	.properties		= bq2560x_usb_props,
 	.num_properties		= ARRAY_SIZE(bq2560x_usb_props),
@@ -1598,6 +1599,8 @@ static const struct regulator_ops bq2560x_charger_vbus_ops = {
 static const struct regulator_desc bq2560x_charger_vbus_desc = {
 	.name = "otg-vbus",
 	.of_match = "otg-vbus",
+	//.name = "bq2560x_otg_vbus",
+	//.of_match = "bq2560x_otg_vbus",
 	.type = REGULATOR_VOLTAGE,
 	.owner = THIS_MODULE,
 	.ops = &bq2560x_charger_vbus_ops,

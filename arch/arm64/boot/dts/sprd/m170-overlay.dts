@@ -782,8 +782,10 @@
 	clock-frequency = <400000>;
 	#address-cells = <1>;
 	#size-cells = <0>;
+	vddvbus:otg-vbus {
+		regulator-name = "vddvbus";
+	};
 
-/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
 	sgm41513_chg: charger@1A {
                 compatible = "sgm,sgm41513_chg";
                 reg = <0x1A>;
@@ -791,23 +793,17 @@
                 monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>;
                 irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
-                vddvbus:otg-vbus {
-                        regulator-name = "vddvbus";
-                };
         };
-/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 
-/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
-/*
 	bq2560x_chg: charger@6b {
 		compatible = "ti,bq2560x_chg";
 		reg = <0x6b>;
+		phys = <&hsphy>;
 		monitored-battery = <&bat>;
+		extcon = <&extcon_gpio>;
 		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
-		vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
-		};
 	};
+/*
 
 	bq2597x_chg: charger@65 {
 		compatible = "ti,bq2597x-standalone";
