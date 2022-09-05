@@ -14,6 +14,7 @@ EXT_MODULES="
 ../modules/kernel5.15/wcn/wlan/wlan_combo
 ../modules/kernel5.15/sample
 ../modules/kernel5.15/gpu/natt
+../modules/kernel5.15/nfc/SN4V
 ../modules/kernel5.15/npu/vdsp
 ../modules/kernel5.15/input/touchscreen/ssl_ssd20xx
 ../modules/kernel5.15/input/touchscreen/synaptics_dsx_td4310
