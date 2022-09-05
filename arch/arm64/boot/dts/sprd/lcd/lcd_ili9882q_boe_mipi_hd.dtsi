@@ -206,7 +206,7 @@
 						39 00 00 02 06 A4	// cabc_clk_sel_pll
 						39 00 00 04 FF 98 82 03
 						39 00 00 02 83 20
-						39 00 00 02 84 00
+						39 00 00 02 84 00	//20 = 12bit 50 = 8bit
 
 						// Gamma Register 
 						39 00 00 04 FF 98 82 08
@@ -238,6 +238,33 @@
 						39 00 00 03 51 0C CC
 						39 00 00 02 35 00
 						05 78 00 01 11
+
+						39 00 00 04 FF 98 82 06
+						39 00 00 02 06 A4
+
+						39 00 00 04 FF 98 82 0B
+						39 00 00 02 94 88
+						39 00 00 02 95 23
+						39 00 00 02 96 06
+						39 00 00 02 97 06
+						39 00 00 02 98 CB
+						39 00 00 02 99 CB
+						39 00 00 02 9A 88
+						39 00 00 02 9B E7
+						39 00 00 02 9C 06
+						39 00 00 02 9D 06
+						39 00 00 02 9E DE
+						39 00 00 02 9F DE
+						39 00 00 02 AA 22
+
+						39 00 00 04 FF 98 82 02
+						39 00 00 02 06 8D
+						39 00 00 02 0B A0
+						39 00 00 02 0C 00
+						39 00 00 02 0D 22
+						39 00 00 02 0E EE
+
+						39 00 00 04 FF 98 82 00
 						05 14 00 01 29
 						];
 
@@ -251,13 +278,13 @@
 						39 14 00 01 29
 						];  
 
-					//oled-backlight {
-						//default-brightness = <900>;
-						//sprd,max-level = <4095>;
-						//brightness-levels = [
-						//39 00 00 03 51 0C CC
-						//];
-					//};
+					oled-backlight {
+						default-brightness = <900>;
+						sprd,max-level = <4095>;
+						brightness-levels = [
+						39 00 00 03 51 0C CC
+						];
+					};
 
 					display-timings {
 						native-mode = <&ili9882q_boe_timing0>;
@@ -269,7 +296,7 @@
 							hback-porch = <90>;
 							hfront-porch = <32>;
 							vback-porch = <26>;
-							vfront-porch = <234>;
+							vfront-porch = <238>;
 							hsync-len = <12>;
 							vsync-len = <8>;
 						};
