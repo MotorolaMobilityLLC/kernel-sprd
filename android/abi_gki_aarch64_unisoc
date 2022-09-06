@@ -59,6 +59,7 @@
   blk_queue_physical_block_size
   blk_start_plug
   blk_update_request
+  blockdev_superblock
   blocking_notifier_chain_register
   blocking_notifier_chain_unregister
   bpf_trace_run1
@@ -644,6 +645,7 @@
   nf_unregister_net_hooks
   nla_find
   nla_reserve
+  nla_strscpy
   __nla_validate
   node_states
   noop_llseek
@@ -1116,6 +1118,9 @@
   __traceiter_android_vh_get_thermal_zone_device
   __traceiter_android_vh_ipi_stop
   __traceiter_android_vh_mmc_check_status
+  __traceiter_android_vh_mmc_sd_update_cmdline_timing
+  __traceiter_android_vh_mmc_sd_update_dataline_timing
+  __traceiter_android_vh_mmc_update_partition_status
   __traceiter_android_vh_modify_thermal_request_freq
   __traceiter_android_vh_modify_thermal_target_freq
   __traceiter_android_vh_scheduler_tick
@@ -1124,6 +1129,7 @@
   __traceiter_android_vh_thermal_register
   __traceiter_android_vh_thermal_unregister
   __traceiter_android_vh_update_topology_flags_workfn
+  __traceiter_android_vh_usb_new_device_added
   __traceiter_clock_set_rate
   __traceiter_cpu_frequency
   __traceiter_cpu_frequency_limits
@@ -1194,6 +1200,9 @@
   __tracepoint_android_vh_get_thermal_zone_device
   __tracepoint_android_vh_ipi_stop
   __tracepoint_android_vh_mmc_check_status
+  __tracepoint_android_vh_mmc_sd_update_cmdline_timing
+  __tracepoint_android_vh_mmc_sd_update_dataline_timing
+  __tracepoint_android_vh_mmc_update_partition_status
   __tracepoint_android_vh_modify_thermal_request_freq
   __tracepoint_android_vh_modify_thermal_target_freq
   __tracepoint_android_vh_scheduler_tick
@@ -1322,6 +1331,7 @@
   vmalloc_to_page
   vm_iomap_memory
   vm_map_ram
+  vm_memory_committed
   vm_node_stat
   vm_unmap_aliases
   vm_unmap_ram
@@ -1803,6 +1813,7 @@
   mmc_cmdq_enable
   mmc_cqe_post_req
   mmc_hw_reset
+  mmc_issue_type
   mmc_put_card
   mmc_switch
   mmc_wait_for_cmd
@@ -2920,7 +2931,6 @@
   nla_put_64bit
   nla_put
   nla_put_nohdr
-  nla_strscpy
   register_inet6addr_notifier
   register_inetaddr_notifier
   register_netdevice
@@ -2999,7 +3009,17 @@
   kobject_uevent
   match_string
 
-# required by ufs_sprd.ko
+# required by typec_displayport.ko
+  extcon_sync
+  typec_altmode2port
+  typec_altmode_enter
+  typec_altmode_exit
+  typec_altmode_get_partner
+  __typec_altmode_register_driver
+  typec_altmode_unregister_driver
+  typec_get_negotiated_svdm_version
+
+# required by ufs-sprd.ko
   __traceiter_android_vh_ufs_check_int_errors
   __traceiter_android_vh_ufs_compl_command
   __traceiter_android_vh_ufs_fill_prdt
