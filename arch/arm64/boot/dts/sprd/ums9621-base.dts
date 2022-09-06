@@ -364,16 +364,12 @@
 &iommu_fd {
 	status = "okay";
 };
-/*
+
 &vpu_pd_top {
 	status = "okay";
 };
 
 &vpu_pd_enc0 {
-	status = "okay";
-};
-
-&vpu_pd_enc1 {
 	status = "okay";
 };
 
@@ -389,14 +385,6 @@
 	status = "okay";
 };
 
-&vpu_enc1 {
-	status = "okay";
-};
-
-&iommu_vpuenc1 {
-	status = "okay";
-};
-
 &vpu_dec {
 	status = "okay";
 };
@@ -405,7 +393,6 @@
 	status = "okay";
 };
 
-*/
 &dsp_mem_dump {
 	/* for cmd para addr, fix bug 1740522*/
 	sprd,dspdumpmem = <0x56200000 0x3000
