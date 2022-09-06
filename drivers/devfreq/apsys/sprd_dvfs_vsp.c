@@ -44,9 +44,21 @@ static const struct sprd_vsp_dvfs_data qogirn6pro_vsp_data = {
 };
 
 static const struct sprd_vsp_dvfs_data qogirn6pro_vpuenc_data = {
-	.ver = "qogirn6pro-vpuenc",
+	.ver = "vpuenc",
 	.max_freq_level = 4,
 	.dvfs_ops = &qogirn6pro_vpuenc_vsp_dvfs_ops,
+};
+
+static const struct sprd_vsp_dvfs_data qogirn6lite_vsp_data = {
+	.ver = "qogirn6lite",
+	.max_freq_level = 5,
+	.dvfs_ops = &qogirn6lite_vpudec_vsp_dvfs_ops,
+};
+
+static const struct sprd_vsp_dvfs_data qogirn6lite_vpuenc_data = {
+	.ver = "vpuenc",
+	.max_freq_level = 4,
+	.dvfs_ops = &qogirn6lite_vpuenc_vsp_dvfs_ops,
 };
 
 static const struct of_device_id vsp_dvfs_of_match[] = {
@@ -62,6 +74,10 @@ static const struct of_device_id vsp_dvfs_of_match[] = {
 	  .data = &qogirn6pro_vsp_data },
 	{ .compatible = "sprd,hwdvfs-vpuenc-qogirn6pro",
 	  .data = &qogirn6pro_vpuenc_data },
+	{ .compatible = "sprd,hwdvfs-vsp-qogirn6lite",
+	  .data = &qogirn6lite_vsp_data },
+	{ .compatible = "sprd,hwdvfs-vpuenc-qogirn6lite",
+	  .data = &qogirn6lite_vpuenc_data },
 	{ },
 };
 
@@ -592,7 +608,7 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 	vsp->vsp_dvfs_nb.notifier_call = vsp_dvfs_notify_callback;
-	if (!strcmp("qogirn6pro-vpuenc", data->ver)) {
+	if (!strcmp("vpuenc", data->ver)) {
 		pr_debug("chain_register: vpuenc \n");
 		ret = blocking_notifier_chain_register(&vpuenc_dvfs_chain,
 			&vsp->vsp_dvfs_nb);
@@ -626,7 +642,7 @@ static int vsp_dvfs_probe(struct platform_device *pdev)
 
 ret:
 	dev_pm_opp_of_remove_table(dev);
-	if (!strcmp("qogirn6pro-vpuenc", data->ver))
+	if (!strcmp("vpuenc", data->ver))
 		blocking_notifier_chain_unregister(&vpuenc_dvfs_chain, &vsp->vsp_dvfs_nb);
 	else
 		blocking_notifier_chain_unregister(&vsp_dvfs_chain, &vsp->vsp_dvfs_nb);
