@@ -111,6 +111,10 @@
 		compatible = "sprd,dmabuf";
 	};
 
+	sprd-map-user {
+		compatible = "unisoc,map-user";
+	};
+
 	gpio-keys {
 		compatible = "gpio-keys";
 		key-volumedown {
