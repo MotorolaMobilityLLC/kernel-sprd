@@ -3225,8 +3225,8 @@ static void sc27xx_fgu_disable(void *_data)
 		return;
 	}
 
-	regmap_update_bits(data->regmap, SC27XX_CLK_EN0, SC27XX_FGU_RTC_EN, 0);
-	regmap_update_bits(data->regmap, SC27XX_MODULE_EN0, SC27XX_FGU_EN, 0);
+	regmap_update_bits(data->regmap, data->pdata->clk_en, SC27XX_FGU_RTC_EN, 0);
+	regmap_update_bits(data->regmap, data->pdata->module_en, SC27XX_FGU_EN, 0);
 }
 
 static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
