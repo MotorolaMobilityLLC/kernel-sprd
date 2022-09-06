@@ -252,6 +252,22 @@
 	};
 };
 
+&i2c2 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	sec-nfc@27 {
+		compatible = "sec-nfc";
+		reg = <0x27>;
+		clock-names = "nfc_clk","source","enable";
+		clocks = <&aonapb_gate CLK_AUX1>, <&pmu_gate CLK_26M_AUD>, <&aonapb_gate CLK_AUX1_EB>;
+		sec-nfc,ven-gpio = <&ap_gpio 150 0>;
+		sec-nfc,firm-gpio = <&ap_gpio 111 0>;
+		sec-nfc,irq-gpio = <&ap_gpio 112 0>;
+		sec-nfc,clk-req = <&ap_gpio 147 0>;
+	};
+};
 
 &i2c4 {
 	status = "okay";
