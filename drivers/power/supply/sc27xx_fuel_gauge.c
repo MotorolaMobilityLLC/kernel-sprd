@@ -1491,7 +1491,7 @@ static void sc27xx_fgu_calc_charge_cycle(struct sc27xx_fgu_data *data, int cap, 
 
 static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv_uv)
 {
-	int vol_mv, cur_adc, oci_ma, ret, ocv_mv, fgu_sts;
+	int vol_adc, cur_adc, oci_ma, ret, ocv_mv, fgu_sts, vol_mv;
 
 	/*
 	 * After system booting on, the SC27XX_FGU_CLBCNT_QMAXL register saved
@@ -1511,13 +1511,13 @@ static int sc27xx_fgu_get_boot_voltage(struct sc27xx_fgu_data *data, int *pocv_u
 	 * beginning. It is ADC values reading from registers which need to
 	 * convert the corresponding voltage.
 	 */
-	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_POCV, &vol_mv);
+	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_POCV, &vol_adc);
 	if (ret) {
 		dev_err(data->dev, "Failed to read FGU_POCV, ret = %d\n", ret);
 		return ret;
 	}
 
-	vol_mv = sc27xx_fgu_adc2voltage(data, vol_mv);
+	vol_mv = sc27xx_fgu_adc2voltage(data, vol_adc);
 	*pocv_uv = vol_mv * 1000 - oci_ma * data->internal_resist;
 
 	ret = regmap_read(data->regmap, data->base + SC27XX_FGU_STATUS, &fgu_sts);
@@ -2245,14 +2245,14 @@ static int sc27xx_fgu_suspend_calib_check_sleep_cur(struct sc27xx_fgu_data *data
 
 static int sc27xx_fgu_suspend_calib_get_ocv(struct sc27xx_fgu_data *data)
 {
-	int ret, i, cur_ma = 0x7fffffff;
-	u32 vol_mv = 0;
+	int ret, i, vol_mv = 0, cur_ma = 0, cur_adc = 0x7fffffff;
+	u32 vol_adc = 0;
 
 	for (i = SC27XX_FGU_VOLTAGE_BUFF_CNT - 1; i >= 0; i--) {
-		vol_mv = 0;
+		vol_adc = 0;
 		ret = regmap_read(data->regmap,
 				  data->base + SC27XX_FGU_VOLTAGE_BUF + i * 4,
-				  &vol_mv);
+				  &vol_adc);
 		if (ret) {
 			dev_info(data->dev, "Sleep calib fail to get vbat_buf[%d]\n", i);
 			continue;
@@ -2262,12 +2262,12 @@ static int sc27xx_fgu_suspend_calib_get_ocv(struct sc27xx_fgu_data *data)
 		 * It is ADC values reading from registers which need to convert to
 		 * corresponding voltage values.
 		 */
-		vol_mv = sc27xx_fgu_adc2voltage(data, vol_mv);
+		vol_mv = sc27xx_fgu_adc2voltage(data, vol_adc);
 
-		cur_ma = 0x7fffffff;
+		cur_adc = 0x7fffffff;
 		ret = regmap_read(data->regmap,
 				  data->base + SC27XX_FGU_CURRENT_BUF + i * 4,
-				  &cur_ma);
+				  &cur_adc);
 		if (ret) {
 			dev_info(data->dev, "Sleep calib fail to get cur_buf[%d]\n", i);
 			continue;
@@ -2277,16 +2277,16 @@ static int sc27xx_fgu_suspend_calib_get_ocv(struct sc27xx_fgu_data *data)
 		 * It is ADC values reading from registers which need to convert to
 		 * corresponding current values.
 		 */
-		cur_ma = sc27xx_fgu_adc2current(data, (s64)cur_ma - SC27XX_FGU_CUR_BASIC_ADC);
+		cur_ma = sc27xx_fgu_adc2current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
 		if (abs(cur_ma) < data->slp_cap_calib.relax_cur_threshold) {
 			dev_info(data->dev, "Sleep calib get cur[%d] = %d meet condition\n", i, cur_ma);
 			break;
 		}
 	}
 
-	if (vol_mv == 0 || cur_ma == 0x7fffffff) {
-		dev_info(data->dev, "Sleep calib fail to get cur and vol: cur = %d, vol = %d\n",
-			 cur_ma, vol_mv);
+	if (vol_adc == 0 || cur_adc == 0x7fffffff) {
+		dev_info(data->dev, "Sleep calib fail to get cur and vol: cur_adc = %d, vol_adc = %d\n",
+			 cur_adc, vol_adc);
 		return -EINVAL;
 	}
 
@@ -2920,7 +2920,7 @@ static void sc27xx_fgu_low_capacity_match_ocv(struct sc27xx_fgu_data *data)
 
 static bool sc27xx_fgu_discharging_current_trend(struct sc27xx_fgu_data *data)
 {
-	int i, ret, cur = 0;
+	int i, ret, cur_adc = 0;
 	bool is_discharging = true;
 
 	if (data->cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT - 1] == SC27XX_FGU_MAGIC_NUMBER) {
@@ -2928,14 +2928,14 @@ static bool sc27xx_fgu_discharging_current_trend(struct sc27xx_fgu_data *data)
 		for (i = 0; i < SC27XX_FGU_CURRENT_BUFF_CNT; i++) {
 			ret = regmap_read(data->regmap,
 					  data->base + SC27XX_FGU_CURRENT_BUF + i * 4,
-					  &cur);
+					  &cur_adc);
 			if (ret) {
 				dev_err(data->dev, "fail to init cur_now_buff[%d]\n", i);
 				return is_discharging;
 			}
 
 			data->cur_now_buff[i] =
-				sc27xx_fgu_adc2current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
+				sc27xx_fgu_adc2current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
 		}
 
 		return is_discharging;
@@ -2949,7 +2949,7 @@ static bool sc27xx_fgu_discharging_current_trend(struct sc27xx_fgu_data *data)
 	for (i = 0; i < SC27XX_FGU_CURRENT_BUFF_CNT; i++) {
 		ret = regmap_read(data->regmap,
 				  data->base + SC27XX_FGU_CURRENT_BUF + i * 4,
-				  &cur);
+				  &cur_adc);
 		if (ret) {
 			dev_err(data->dev, "fail to get cur_now_buff[%d]\n", i);
 			data->cur_now_buff[SC27XX_FGU_CURRENT_BUFF_CNT - 1] =
@@ -2959,7 +2959,7 @@ static bool sc27xx_fgu_discharging_current_trend(struct sc27xx_fgu_data *data)
 		}
 
 		data->cur_now_buff[i] =
-			sc27xx_fgu_adc2current(data, (s64)cur - SC27XX_FGU_CUR_BASIC_ADC);
+			sc27xx_fgu_adc2current(data, (s64)cur_adc - SC27XX_FGU_CUR_BASIC_ADC);
 		if (data->cur_now_buff[i] > 0)
 			is_discharging = false;
 	}
