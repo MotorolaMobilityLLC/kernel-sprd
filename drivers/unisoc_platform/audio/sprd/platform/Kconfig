@@ -1,0 +1,13 @@
+menu "SPRD Platform"
+
+config SND_SOC_UNISOC_AUDIO_TWO_STAGE_DMAENGINE
+	tristate "Use 2 stage dma engine"
+	help
+	  Say Y if you want to use 2stage dma engine, 2 stage dma is
+           designed for low power.
+
+config SND_SOC_UNISOC_AUDIO_DMAENGINE
+	tristate "platform DMA engine"
+	help
+	  If the platform DMA engine is used, set Y or M, else N.
+endmenu

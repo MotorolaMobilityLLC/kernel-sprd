@@ -1,0 +1,2 @@
+config SND_SOC_UNISOC_VAUDIO
+	tristate "Vaudio"
