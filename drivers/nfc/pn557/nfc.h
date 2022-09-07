@@ -34,6 +34,14 @@
 #define _NXP_NFC_H_
 #define NXP_NFC_MAGIC 0xE9
 
+#include <linux/platform_device.h>
+#include <linux/clk.h>
+#include <linux/regulator/consumer.h>
+#include <linux/err.h>
+
+
+
+
 /* Device specific structure */
 struct nfc_dev    {
     wait_queue_head_t   read_wq;
@@ -52,6 +60,9 @@ struct nfc_dev    {
     unsigned int        count_irq;
     /* NFC additional parameters for old platforms */
     void *pdata_op;
+    struct clk *clk_enable;
+    struct clk *clk_26m;
+    struct clk *clk_parent;
 };
 
 void nfc_disable_irq(struct nfc_dev *nfc_dev);

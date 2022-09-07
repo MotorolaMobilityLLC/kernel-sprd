@@ -55,10 +55,41 @@
 #define WAKEUP_SRC_TIMEOUT      (2000)
 #define MAX_RETRY_COUNT          3
 #define MAX_SECURE_SESSIONS      1
+#define NFC_CLK_FREQ 26000000
 
 /*Compile time function calls based on the platform selection*/
 #define platform_func(prefix, postfix) prefix##postfix
 #define func(prefix, postfix) platform_func(prefix, postfix)
+
+static int nfc_clk_select(struct nfc_dev *nfc_dev)
+{
+    int ret = 0;
+    nfc_dev->clk_26m = devm_clk_get(&nfc_dev->client->dev, "nfc_clk");
+    if (IS_ERR(nfc_dev->clk_26m)) {
+        pr_err("can't get nfc clock dts config: clk_26m\n");
+        return -1;
+      }
+    nfc_dev->clk_parent = devm_clk_get(&nfc_dev->client->dev, "source");
+    if (IS_ERR(nfc_dev->clk_parent)) {
+        pr_err("can't get nfc clock dts config: source\n");
+        return -1;
+      }
+    nfc_dev->clk_enable = devm_clk_get(&nfc_dev->client->dev, "enable");
+    if (IS_ERR(nfc_dev->clk_enable)) {
+        pr_err("can't get nfc clock dts config: enable\n");
+        return -1;
+      }
+    clk_set_parent(nfc_dev->clk_26m, nfc_dev->clk_parent);
+    clk_set_rate(nfc_dev->clk_26m, NFC_CLK_FREQ);
+    ret = clk_prepare_enable(nfc_dev->clk_26m);
+    if(ret)
+        return -2;
+    ret = clk_prepare_enable(nfc_dev->clk_enable);
+    if(ret)
+        return -2;
+
+    return 0;
+}
 
 void nfc_disable_irq(struct nfc_dev *nfc_dev)
 {
@@ -412,6 +443,7 @@ static int nfc_probe(struct i2c_client *client,
     device_init_wakeup(&client->dev, true);
     device_set_wakeup_capable(&client->dev, true);
     i2c_set_clientdata(client, nfc_dev);
+    nfc_clk_select(nfc_dev);
     /*Enable IRQ and VEN*/
     nfc_enable_irq(nfc_dev);
     /*call to platform specific probe*/
@@ -449,6 +481,8 @@ static int nfc_remove(struct i2c_client *client)
     struct nfc_dev *nfc_dev;
     pr_info("%s: remove device\n", __func__);
     nfc_dev = i2c_get_clientdata(client);
+    clk_disable_unprepare(nfc_dev->clk_26m);
+    clk_disable_unprepare(nfc_dev->clk_parent);
     if (!nfc_dev) {
         pr_err("%s: device doesn't exist anymore\n", __func__);
         ret = -ENODEV;
