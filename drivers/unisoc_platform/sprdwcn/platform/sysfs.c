@@ -35,6 +35,7 @@ struct wcn_sysfs_info {
 	unsigned char loglevel;
 };
 
+bool isInAtCmd;
 static struct wcn_sysfs_info sysfs_info;
 
 void wcn_send_atcmd_lock(void)
@@ -291,9 +292,12 @@ static ssize_t wcn_sysfs_show_sw_ver(struct device *dev,
 {
 	size_t len = 0;
 	char a[] = "at+spatgetcp2info\r\n";
+	isInAtCmd = true;
 
+	WCN_INFO("%s \n", __func__);
 	if (!marlin_get_module_status()) {
 		memcpy(buf, sysfs_info.sw_ver_buf, sysfs_info.sw_ver_len);
+		isInAtCmd = false;
 		return sysfs_info.sw_ver_len;
 	}
 
@@ -307,6 +311,7 @@ static ssize_t wcn_sysfs_show_sw_ver(struct device *dev,
 	/* because cp2 pass wrong len */
 	len = strlen(buf);
 	WCN_INFO("show:len=%zd\n", len);
+	isInAtCmd = false;
 
 	return len;
 }

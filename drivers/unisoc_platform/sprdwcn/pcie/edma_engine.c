@@ -789,8 +789,8 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 		WARN_ON(1);
 		return -1;
 	}
-
-	__pm_stay_awake(edma->edma_push_ws);
+	if (!atomic_read(&edma->pcie_info->is_suspending))
+		__pm_stay_awake(edma->edma_push_ws);
 
 	if (inout == TX)
 		edma_print_mbuf_data(chn, head, tail, __func__);
@@ -838,8 +838,8 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 		edma_hw_tx_req(chn);
 	} else
 		edma_hw_rx_req(chn);
-
-	__pm_relax(edma->edma_push_ws);
+	if (!atomic_read(&edma->pcie_info->is_suspending))
+		__pm_relax(edma->edma_push_ws);
 
 	return 0;
 }
@@ -1258,7 +1258,7 @@ int msi_irq_handle(int irq)
 	dma_int.reg = edma->dma_chn_reg[chn].dma_int.reg;
 	msg.chn = chn;
 
-	__pm_wakeup_event(edma->edma_pop_ws, jiffies_to_msecs(HZ / 2));
+	//__pm_wakeup_event(edma->edma_pop_ws, jiffies_to_msecs(HZ / 2));
 
 	if (edma->chn_sw[chn].inout == TX) {
 		wcn_set_tx_complete_status(1);
