@@ -622,6 +622,12 @@ static int32_t aw9610x_input_init(struct aw9610x *aw9610x, uint8_t *err_num)
 			__set_bit(EV_KEY, aw9610x->channels_arr[i].input->evbit);
 			__set_bit(EV_SYN, aw9610x->channels_arr[i].input->evbit);
 			__set_bit(KEY_F1, aw9610x->channels_arr[i].input->keybit);
+			__set_bit(KEY_F25, aw9610x->channels_arr[i].input->keybit);
+			__set_bit(KEY_F26, aw9610x->channels_arr[i].input->keybit);
+			__set_bit(KEY_F27, aw9610x->channels_arr[i].input->keybit);
+			__set_bit(KEY_F28, aw9610x->channels_arr[i].input->keybit);
+			__set_bit(KEY_F29, aw9610x->channels_arr[i].input->keybit);
+			__set_bit(KEY_F30, aw9610x->channels_arr[i].input->keybit);
 			input_set_abs_params(aw9610x->channels_arr[i].input,
 						ABS_DISTANCE, -1, 100, 0, 0);
 			ret = input_register_device(aw9610x->channels_arr[i].input);
@@ -1364,6 +1370,7 @@ static struct attribute_group aw9610x_sar_attribute_group = {
 static void aw9610x_irq_handle(struct aw9610x *aw9610x)
 {
 	uint8_t i = 0;
+//	uint8_t j = 0;
 	uint32_t curr_status = 0;
 	uint32_t curr_status_val = 0;
 
@@ -1377,6 +1384,46 @@ static void aw9610x_irq_handle(struct aw9610x *aw9610x)
 		return;
 	}
 
+//#define KEY_F25         249
+//#define KEY_F26         250
+//#define KEY_F27         251
+//#define KEY_F28         252
+//#define KEY_F29         253
+//#define KEY_F30         254
+
+// start change report keycode 2022-09-07
+	for(i = 0; i < AW_CHANNEL_MAX; i++)
+	{
+		curr_status = (((uint8_t)(curr_status_val >> (24 + i)) & 0x1));
+		AWLOGD(aw9610x->dev, "curr_state[%d] = 0x%x", i, curr_status);
+
+		if (aw9610x->channels_arr[i].used == AW_FALSE)
+		{
+			AWLOGD(aw9610x->dev, "channels_arr[%d] no user", i);
+			continue;
+		}
+		if (aw9610x->channels_arr[i].last_channel_info == curr_status) {
+			AWLOGD(aw9610x->dev, "status not change");
+			continue;
+		}
+		if (curr_status == FAR)
+		{
+			AWLOGD(aw9610x->dev, "status is FAR");
+			input_report_key(aw9610x->channels_arr[i].input, KEY_F25+i, 0);
+		} else if (curr_status == TRIGGER_TH0) {
+			AWLOGD(aw9610x->dev, "status is NER");
+			input_report_key(aw9610x->channels_arr[i].input, KEY_F25+i, 1);
+		} else {
+			AWLOGE(aw9610x->dev, "error abs distance");
+			return;
+		}
+		input_sync(aw9610x->channels_arr[i].input);
+		aw9610x->channels_arr[i].last_channel_info = curr_status;
+	}
+
+// end change report keycode 2022-09-07
+
+/*
 	for (i = 0; i < AW_CHANNEL_MAX; i++) {
 		curr_status =
 			(((uint8_t)(curr_status_val >> (24 + i)) & 0x1))
@@ -1429,7 +1476,7 @@ static void aw9610x_irq_handle(struct aw9610x *aw9610x)
 		input_sync(aw9610x->channels_arr[i].input);
 
 		aw9610x->channels_arr[i].last_channel_info = curr_status;
-	}
+	} */
 }
 
 static void aw9610x_farirq_handle(struct aw9610x *aw9610x)
