@@ -357,7 +357,7 @@
 		};
 
 		apsys_dvfs: apsys-dvfs@30114000 {
-			compatible = "sprd,hwdvfs-dpuvsp-qogirn6pro";
+			compatible = "sprd,hwdvfs-dpuvsp-qogirn6lite";
 			reg = <0x0 0x30114000 0x0 0x4000>;
 			sprd,dpuvpu-dvfs-up-window = <0x40>;
 			sprd,dpuvpu-dvfs-down-window = <0x80>;
@@ -405,6 +405,43 @@
 			512000    700000
 			614400    750000
 			>;
+	};
+
+	dpu_dvfs: dpu-dvfs {
+		compatible = "sprd,hwdvfs-dpu-qogirn6lite";
+		sprd,hw-dfs-en = <4>;
+		sprd,work-index-def = <6>;
+		sprd,idle-index-def = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+
+		operating-points = <
+			/* kHz    uV */
+			256000    600000
+			307200    600000
+			384000    650000
+			409600    700000
+			512000    700000
+			614400    750000
+		>;
+	};
+
+	gsp_dvfs: gsp-dvfs {
+		compatible = "sprd,hwdvfs-gsp-qogirn6lite";
+		sprd,hw-dfs-en = <0>;
+		sprd,work-index-def = <3>;
+		sprd,idle-index-def = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+
+		operating-points = <
+			/* kHz    uV */
+			256000    600000
+			307200    600000
+			384000    650000
+			512000    700000
+			614400    750000
+		>;
 	};
 };
 
