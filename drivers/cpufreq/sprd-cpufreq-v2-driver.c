@@ -16,6 +16,7 @@
 #define ON_BOOST		0
 #define OUT_BOOST		1
 #define SPRD_CPUFREQ_BOOST_DURATION	(60ul * HZ)
+#define SPRD_DVFS_DEBUG_MAGIC		(0x5A)
 
 struct cluster_prop {
 	char *name;
@@ -189,6 +190,32 @@ static struct temp_node *sprd_temp_list_find(struct list_head *head, int temp)
 	}
 
 	return pos;
+}
+
+static u32 sprd_cpufreq_get_debug_flag(void)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line, *dvfs_set;
+	u32 value = 0;
+	int ret;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+
+	if (ret) {
+		pr_err("Fail to find cmdline bootargs property\n");
+		return 0;
+	}
+
+	dvfs_set = strstr(cmd_line, "sprdboot.dvfs_set=0x");
+	if (!dvfs_set) {
+		pr_info("no property sprdboot.dvfs_set found\n");
+		return 0;
+	}
+
+	sscanf(dvfs_set, "sprdboot.dvfs_set=0x%x", &value);
+
+	return value;
 }
 
 static void sprd_cluster_get_supply_mode(char *dcdc_supply)
@@ -849,6 +876,13 @@ static int sprd_cluster_info_init(struct cluster_info *clusters)
 static int sprd_cpufreq_driver_probe(struct platform_device *pdev)
 {
 	int ret;
+	u32 flag;
+
+	flag = sprd_cpufreq_get_debug_flag();
+	if ((flag & 0xFF) == SPRD_DVFS_DEBUG_MAGIC) {
+		pr_info("disable apcpu dvfs for debug!\n");
+		return 0;
+	}
 
 	boot_done_timestamp = jiffies + SPRD_CPUFREQ_BOOST_DURATION;
 
@@ -866,7 +900,7 @@ static int sprd_cpufreq_driver_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	ret = pclusters->dvfs_init();
+	ret = pclusters->dvfs_init(flag);
 	if (ret) {
 		pr_err("init dvfs device error\n");
 		return ret;

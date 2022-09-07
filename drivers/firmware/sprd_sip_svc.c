@@ -550,12 +550,12 @@ static int sprd_sip_svc_dvfs_version_set(u32 cluster, u64 *ver)
 	return sprd_sip_remap_err(res.a0);
 }
 
-static int sprd_sip_svc_dvfs_init(void)
+static int sprd_sip_svc_dvfs_init(u32 flag)
 {
 	struct arm_smccc_res res;
 
 	arm_smccc_smc(SPRD_SIP_SVC_DVFS_INIT,
-		      0, 0, 0, 0, 0, 0, 0, &res);
+		      flag, 0, 0, 0, 0, 0, 0, &res);
 
 	return sprd_sip_remap_err(res.a0);
 }

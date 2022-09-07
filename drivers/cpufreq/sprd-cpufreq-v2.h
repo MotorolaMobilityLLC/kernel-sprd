@@ -58,7 +58,7 @@ struct cluster_info {
 	struct mutex mutex;
 	struct device_node *node;
 
-	int (*dvfs_init)(void);
+	int (*dvfs_init)(u32 flag);
 
 	int (*dvfs_enable)(u32 cluster);
 
