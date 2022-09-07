@@ -662,6 +662,8 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 	case PRE_CHANGE:
 		memcpy(dev_req_params, dev_max_params,
 				       sizeof(struct ufs_pa_layer_attr));
+		if (dev_req_params->gear_rx == UFS_HS_G4)
+			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), 0x0);
 		break;
 	case POST_CHANGE:
 		/* Set auto h8 ilde time to 10ms */
