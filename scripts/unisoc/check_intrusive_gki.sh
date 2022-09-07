@@ -25,7 +25,7 @@ compile_for_clang()
 {
     local global=$1
 
-    make LLVM=1 LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out gki_defconfig
+    make ARCH=arm64 LLVM=1 LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out gki_defconfig
     ${ROOT_DIR}/${KERNEL_DIR}/scripts/config --file ${out}/.config \
        -e LTO_CLANG \
        -d LTO_NONE \
@@ -35,7 +35,7 @@ compile_for_clang()
        -d CONFIG_LOCALVERSION_AUTO \
        -d WERROR
 
-    make LLVM=1 LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global -j64
+    make ARCH=arm64 LLVM=1 LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global -j64
 }
 
 copy_specify_dir()
@@ -189,7 +189,7 @@ if [ $check_hfile_flag -ne 0 ]; then
             global+="$predir "
         fi
     done
-    make -i KCFLAGS="-P -U__LINE__ -D__LINE__=0" LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global -j64
+    make ARCH=arm64 -i KCFLAGS="-P -U__LINE__ -D__LINE__=0" LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global -j64
     copy_specify_dir $check_ifile_flag $aosp_prefile_dir
 
 elif [ $check_cfile_flag -ne 0 ]; then
@@ -205,7 +205,7 @@ elif [ $check_cfile_flag -ne 0 ]; then
             let check_ifile_flag+=1
         fi
     done
-    make -i KCFLAGS="-P -U__LINE__ -D__LINE__=0" LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global -j64
+    make ARCH=arm64 -i KCFLAGS="-P -U__LINE__ -D__LINE__=0" LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global -j64
     copy_specify_dir $check_ifile_flag $aosp_prefile_dir
 fi
 
@@ -220,7 +220,7 @@ if [ ${#PreArrarydir[@]} -ne 0 ]; then
     do
         global_1+="$predir "
     done
-    make KCFLAGS="-P -U__LINE__ -D__LINE__=0" LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global_1 -j64
+    make ARCH=arm64 KCFLAGS="-P -U__LINE__ -D__LINE__=0" LLVM=1 DEPMOD=depmod DTC=${DTC_BIN} O=$out $global_1 -j64
     cd $out
     for predir in ${PreArrarydir[*]}
     do
