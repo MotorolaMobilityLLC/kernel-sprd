@@ -971,6 +971,21 @@
 	};
 };
 
+&i2c3{
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	vituralsar@33{
+		compatible = "virtualsar,antcheck";
+		reg = <0x33>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <58 0x02>;
+		vituralsar,irq-gpio = <&ap_gpio 58 0>;
+		status = "okay";
+	};
+};
+
 &i2c4 {
 	status = "okay";
 	#address-cells = <1>;
