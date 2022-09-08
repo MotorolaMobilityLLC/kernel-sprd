@@ -215,9 +215,10 @@ static inline u32 sdhci_sprd_readl(struct sdhci_host *host, int reg)
 
 	sts = readl_relaxed(host->ioaddr + reg);
 
-	if (likely(reg == SDHCI_INT_STATUS) &&
-	    sprd_host->support_cqe &&
-	    readl(sprd_host->cqe_mem + CQHCI_IS))
+	if (likely(reg == SDHCI_INT_STATUS) && sprd_host->support_cqe &&
+	    (readl(sprd_host->cqe_mem + CQHCI_IS) &
+	    readl(sprd_host->cqe_mem + CQHCI_ISTE) &
+	    readl(sprd_host->cqe_mem + CQHCI_ISGE)))
 		sts |= SDHCI_INT_CQE;
 
 	return sts;
@@ -903,7 +904,7 @@ static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
 	if ((command == SEND_TUNING_BLOCK) || (command == SEND_TUNING_BLOCK_HS200))
 		return;
 
-	SDHCI_SPRD_DUMP("CMD%d int 0x%08x\n", command, sprd_host->int_status);
+	SDHCI_SPRD_DUMP("CMD%d Error\n", command);
 
 	sprintf(sdhci_hostname, "%s%s", mmc_hostname(host->mmc),
 			": sprd-sdhci + 0x000: ");
@@ -919,6 +920,13 @@ static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
 			": sprd-sdhci + 0x250: ");
 	print_hex_dump(KERN_ERR, sdhci_hostname, DUMP_PREFIX_OFFSET,
 			16, 4, host->ioaddr + 0x250, 32, 0);
+
+	if (sprd_host->support_cqe) {
+		sprintf(sdhci_hostname, "%s%s", mmc_hostname(host->mmc),
+				": sprd-sdhci + 0x300: ");
+		print_hex_dump(KERN_ERR, sdhci_hostname, DUMP_PREFIX_OFFSET,
+				16, 4, host->ioaddr + 0x300, 128, 0);
+	}
 }
 
 static u32 sdhci_sprd_cqe_irq(struct sdhci_host *host, u32 intmask)
@@ -927,17 +935,25 @@ static u32 sdhci_sprd_cqe_irq(struct sdhci_host *host, u32 intmask)
 	int cmd_error = 0;
 	int data_error = 0;
 	struct mmc_command cmd;
+	bool flag = false;
 	sprd_host->int_status = intmask;
 
 	if (intmask & SDHCI_INT_ERROR_MASK)
 		sdhci_sprd_dump_vendor_regs(host);
 
 	/* when data crc, host->cmd = null in sdhci_cqe_irq() */
-	if (host->cqe_on && sprd_host->support_cqe && (intmask & SDHCI_INT_ERROR_MASK) && !host->cmd)
+	if (host->cqe_on && sprd_host->support_cqe && (intmask & SDHCI_INT_ERROR_MASK)
+		&& !host->cmd) {
 		host->cmd = &cmd;
+		flag = true;
+	}
 
 	if (!sdhci_cqe_irq(host, intmask, &cmd_error, &data_error))
 		return intmask;
+
+	/* when data crc, host->cmd = null in sdhci_cqe_irq() */
+	if (flag)
+		host->cmd = NULL;
 
 	cqhci_irq(host->mmc, intmask, cmd_error, data_error);
 
