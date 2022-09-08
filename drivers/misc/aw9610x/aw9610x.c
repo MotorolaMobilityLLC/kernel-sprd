@@ -302,6 +302,7 @@ aw9610x_addrblock_load(struct device *dev, const char *buf)
  *the document of storage_spedata
  *
  ******************************************************/
+/*
 static int32_t aw9610x_filedata_deal(struct aw9610x *aw9610x)
 {
 	struct file *fp = NULL;
@@ -361,7 +362,6 @@ static int32_t aw9610x_filedata_deal(struct aw9610x *aw9610x)
 	filp_close(fp, NULL);
 	kfree(buf);
 
-	/* nvspe_datas come from nv*/
 	for (i = 0; i < AW_SPE_REG_NUM; i++) {
 		nv_flag |= aw9610x->nvspe_data[i];
 		if (nv_flag != 0)
@@ -380,7 +380,7 @@ static int32_t aw9610x_filedata_deal(struct aw9610x *aw9610x)
 
 	return 0;
 }
-
+*/
 static int32_t
 aw9610x_store_spedata_to_file(struct aw9610x *aw9610x, char *buf)
 {
@@ -490,7 +490,7 @@ static void aw9610x_get_calidata(struct aw9610x *aw9610x)
 
 	AWLOGD(aw9610x->dev, "successfully write_spereg_to_file");
 }
-
+/*
 static void aw9610x_class1_reg(struct aw9610x *aw9610x)
 {
 	int32_t i = 0;
@@ -525,7 +525,7 @@ static void aw9610x_spereg_deal(struct aw9610x *aw9610x)
 	aw9610x_class1_reg(aw9610x);
 	aw9610x_class2_reg(aw9610x);
 }
-
+*/
 static void aw9610x_datablock_load(struct device *dev, const char *buf)
 {
 	uint32_t i = 0;
@@ -558,6 +558,7 @@ static void aw9610x_datablock_load(struct device *dev, const char *buf)
 	i2c_write_seq(aw9610x);
 }
 
+/*
 static void aw9610x_power_on_prox_detection(struct aw9610x *aw9610x)
 {
 	int32_t ret = 0;
@@ -588,6 +589,7 @@ static void aw9610x_power_on_prox_detection(struct aw9610x *aw9610x)
 	if (reg_data & 0x10000)
 		aw9610x->power_prox = 1;
 }
+*/
 
 static int32_t aw9610x_input_init(struct aw9610x *aw9610x, uint8_t *err_num)
 {
@@ -655,11 +657,8 @@ exit_input:
 static void aw9610x_channel_scan_start(struct aw9610x *aw9610x)
 {
 	AWLOGD(aw9610x->dev, "enter");
-	if (aw9610x->pwprox_dete == true) {
-		 aw9610x_power_on_prox_detection(aw9610x);
-	} else {
-		aw9610x_i2c_write(aw9610x, REG_CMD, AW9610X_ACTIVE_MODE);
-	}
+
+	aw9610x_i2c_write(aw9610x, REG_CMD, AW9610X_ACTIVE_MODE);
 
 	aw9610x_i2c_write(aw9610x, REG_IRQEN, aw9610x->hostirqen);
 	aw9610x->mode = AW9610X_ACTIVE_MODE;
@@ -1084,11 +1083,9 @@ static ssize_t aw9610x_factory_cali_set(struct device *dev,
 	uint32_t databuf[1] = { 0 };
 
 	if (sscanf(buf, "%d", &databuf[0]) == 1) {
-		if ((databuf[0] == 1) && (aw9610x->pwprox_dete == true)) {
+		if (databuf[0] == 1) {
 			aw9610x_get_calidata(aw9610x);
 		} else {
-			AWLOGE(aw9610x->dev, "aw_unsupport the pw_prox_dete=%d",
-						aw9610x->pwprox_dete);
 			return count;
 		}
 		aw9610x_sw_reset(aw9610x);
@@ -1104,12 +1101,6 @@ static ssize_t aw9610x_power_prox_get(struct device *dev,
 {
 	struct aw9610x *aw9610x = dev_get_drvdata(dev);
 	ssize_t len = 0;
-
-	if (aw9610x->pwprox_dete == false) {
-		len += snprintf(buf + len, PAGE_SIZE - len,
-							"unsupport powerprox!");
-		return len;
-	}
 
 	len += snprintf(buf + len, PAGE_SIZE - len, "power_prox: ");
 	len += snprintf(buf + len, PAGE_SIZE - len, "%d\n",
@@ -1478,7 +1469,7 @@ static void aw9610x_irq_handle(struct aw9610x *aw9610x)
 		aw9610x->channels_arr[i].last_channel_info = curr_status;
 	} */
 }
-
+/*
 static void aw9610x_farirq_handle(struct aw9610x *aw9610x)
 {
 	uint8_t th0_far = 0;
@@ -1487,7 +1478,7 @@ static void aw9610x_farirq_handle(struct aw9610x *aw9610x)
 	if (th0_far == 1)
 		aw9610x->power_prox = AW9610X_FUNC_OFF;
 }
-
+*/
 static void aw9610x_irq_multiple_sar_select(struct aw9610x *aw9610x)
 {
 	/* multiple sar handle IO */
@@ -1526,9 +1517,6 @@ static void aw9610x_interrupt_clear(struct aw9610x *aw9610x)
 		return;
 	}
 	AWLOGI(aw9610x->dev, "IRQSRC = 0x%x", aw9610x->irq_status);
-
-	if (aw9610x->pwprox_dete == true)
-		aw9610x_farirq_handle(aw9610x);
 
 	switch (aw9610x->vers) {
 	case AW9610X:
@@ -1723,10 +1711,6 @@ static int32_t aw9610x_parse_dt(struct device *dev, struct aw9610x *aw9610x,
 	aw9610x->firmware_flag =
 			of_property_read_bool(np, "aw9610x,using-firmware");
 	AWLOGI(aw9610x->dev, "firmware_flag = <%d>", aw9610x->firmware_flag);
-
-	aw9610x->pwprox_dete =
-		of_property_read_bool(np, "aw9610x,using-pwon-prox-dete");
-	AWLOGI(aw9610x->dev, "pwprox_dete = <%d>", aw9610x->pwprox_dete);
 
 	aw9610x->satu_release =
 		of_property_read_bool(np, "aw9610x,using-satu");
