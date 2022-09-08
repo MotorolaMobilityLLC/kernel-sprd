@@ -489,6 +489,7 @@ static const char * const sc27xx_charger_supply_name[] = {
 	"aw32257",
 	/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
 	"sgm41513_charger",
+	"charger",
 	/* M170 code for sgm41513 by liuyansheng10 at 220828 end */
 };
 

@@ -31,6 +31,7 @@
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 #include <linux/usb/sprd_usbm.h>
+#include <linux/power_supply.h>
 
 #include "musb_core.h"
 #include "sprd_musbhsdma.h"
@@ -54,6 +55,7 @@ struct sprd_glue {
 	struct regulator	*vbus;
 	struct wakeup_source	*pd_wake_lock;
 	struct regmap		*pmu;
+	struct power_supply 	*chg_psy;
 
 	enum usb_dr_mode		dr_mode;
 	enum usb_dr_mode		wq_mode;
@@ -831,6 +833,7 @@ static void sprd_musb_work(struct work_struct *work)
 		}
 
 		if (glue->dr_mode == USB_DR_MODE_HOST) {
+#ifdef OTG_USE_REGULATOR
 			if (!glue->vbus) {
 				glue->vbus = devm_regulator_get(glue->dev, "vbus");
 				if (IS_ERR(glue->vbus)) {
@@ -846,6 +849,23 @@ static void sprd_musb_work(struct work_struct *work)
 					"Failed to enable vbus: %d\n", ret);
 				goto end;
 			}
+#else
+			if (glue->chg_psy == NULL) {
+				glue->chg_psy = power_supply_get_by_name("charger");
+				if (glue->chg_psy == NULL) {
+					dev_err(glue->dev, "get charger power supply failed\n");
+				}
+			}
+			if (glue->chg_psy) {
+				union power_supply_propval val;
+				val.intval = 1;
+				ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
+				if (ret) {
+					dev_err(glue->dev, "failed to enable vbus\n");
+					goto end;
+				}
+			}
+#endif
 		}
 
 		ret = pm_runtime_get_sync(musb->controller);
@@ -905,6 +925,7 @@ static void sprd_musb_work(struct work_struct *work)
 				msleep(50);
 		}
 
+#ifdef OTG_USE_REGULATOR
 		if (glue->dr_mode == USB_DR_MODE_HOST && glue->vbus) {
 			ret = regulator_disable(glue->vbus);
 			if (ret) {
@@ -913,6 +934,23 @@ static void sprd_musb_work(struct work_struct *work)
 				goto end;
 			}
 		}
+#else
+		if (glue->chg_psy == NULL) {
+			glue->chg_psy = power_supply_get_by_name("charger");
+			if (glue->chg_psy == NULL) {
+				dev_err(glue->dev, "get charger power supply failed\n");
+			}
+		}
+		if (glue->dr_mode == USB_DR_MODE_HOST && glue->chg_psy) {
+			union power_supply_propval val;
+			val.intval = 0;
+			ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
+			if (ret) {
+				dev_err(glue->dev, "failed to disable vbus\n");
+				goto end;
+			}
+		}
+#endif
 
 		musb->shutdowning = 0;
 		musb->offload_used = 0;
@@ -1224,12 +1262,21 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	}
 
 	if (pdata.mode == MUSB_HOST || pdata.mode == MUSB_OTG) {
+#ifdef OTG_USE_REGULATOR
 		glue->vbus = devm_regulator_get(dev, "vbus");
 		if (IS_ERR(glue->vbus)) {
 			ret = PTR_ERR(glue->vbus);
 			dev_warn(dev, "unable to get vbus supply %d\n", ret);
 			glue->vbus = NULL;
 		}
+#else
+		if (glue->chg_psy == NULL) {
+			glue->chg_psy = power_supply_get_by_name("charger");
+			if (glue->chg_psy == NULL) {
+				dev_err(dev, "get charger power supply failed\n");
+			}
+		}
+#endif
 	}
 
 	glue->pmu = syscon_regmap_lookup_by_phandle_args(dev->of_node,
@@ -1390,6 +1437,9 @@ static int musb_sprd_remove(struct platform_device *pdev)
 	cancel_work_sync(&musb->irq_work.work);
 	cancel_delayed_work_sync(&musb->finish_resume_work);
 	cancel_delayed_work_sync(&musb->deassert_reset_work);
+	if (glue->chg_psy) {
+		power_supply_put(glue->chg_psy);
+	}
 	platform_device_unregister(glue->musb);
 
 	return 0;
@@ -1486,12 +1536,28 @@ static int musb_sprd_suspend(struct device *dev)
 	int ret;
 
 	if (musb->is_offload && !musb->offload_used) {
+#ifdef OTG_USE_REGULATOR
 		if (glue->vbus) {
 			ret = regulator_disable(glue->vbus);
 			if (ret < 0)
 				dev_err(glue->dev,
 					"Failed to disable vbus: %d\n", ret);
 		}
+#else
+		if (glue->chg_psy == NULL) {
+			glue->chg_psy = power_supply_get_by_name("charger");
+			if (glue->chg_psy == NULL) {
+				dev_err(glue->dev, "get charger power supply failed\n");
+			}
+		}
+		if (glue->chg_psy) {
+			union power_supply_propval val;
+			val.intval = 0;
+			ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
+			if (ret)
+				dev_err(glue->dev, "failed to disable vbus\n");
+		}
+#endif
 		if (glue->pmu) {
 			val = msk = glue->usb_pub_slp_poll_mask;
 			regmap_update_bits(glue->pmu,
@@ -1512,12 +1578,28 @@ static int musb_sprd_resume(struct device *dev)
 	int ret;
 
 	if (musb->is_offload && !musb->offload_used) {
+#ifdef OTG_USE_REGULATOR
 		if (glue->vbus) {
 			ret = regulator_enable(glue->vbus);
 			if (ret < 0)
 				dev_err(glue->dev,
 					"Failed to enable vbus: %d\n", ret);
 		}
+#else
+		if (glue->chg_psy == NULL) {
+			glue->chg_psy = power_supply_get_by_name("charger");
+			if (glue->chg_psy == NULL) {
+				dev_err(glue->dev, "get charger power supply failed\n");
+			}
+		}
+		if (glue->chg_psy) {
+			union power_supply_propval val;
+			val.intval = 1;
+			ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
+			if (ret)
+				dev_err(glue->dev, "failed to enable vbus\n");
+		}
+#endif
 		if (glue->pmu) {
 			msk = glue->usb_pub_slp_poll_mask;
 			regmap_update_bits(glue->pmu,
