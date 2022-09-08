@@ -81,9 +81,7 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 
 	hba = platform_get_drvdata(pdev);
 	ufs_sprd_rpmb_add(hba);
-#ifdef CONFIG_SPRD_UFS_PROC_FS
 	sprd_ufs_proc_init(hba);
-#endif
 out:
 	return err;
 }
@@ -92,9 +90,7 @@ static void ufs_sprd_shutdown(struct platform_device *pdev)
 {
 	struct ufs_hba *hba =  platform_get_drvdata(pdev);
 
-#ifdef CONFIG_SPRD_UFS_PROC_FS
 	sprd_ufs_proc_exit();
-#endif
 	ufs_sprd_rpmb_remove(hba);
 	ufshcd_pltfrm_shutdown(pdev);
 }
@@ -104,9 +100,7 @@ static int ufs_sprd_remove(struct platform_device *pdev)
 	struct ufs_hba *hba =  platform_get_drvdata(pdev);
 
 	pm_runtime_get_sync(&(pdev)->dev);
-#ifdef CONFIG_SPRD_UFS_PROC_FS
 	sprd_ufs_proc_exit();
-#endif
 	ufs_sprd_rpmb_remove(hba);
 	ufshcd_remove(hba);
 	return 0;

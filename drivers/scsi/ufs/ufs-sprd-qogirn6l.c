@@ -21,9 +21,7 @@
 #include "ufs-sprd-qogirn6l.h"
 #include "ufs-sprd-ioctl.h"
 #include "ufs-sprd-rpmb.h"
-#ifdef CONFIG_SPRD_UFS_PROC_FS
 #include "ufs-sprd-bootdevice.h"
-#endif
 
 static int ufs_efuse_calib_data(struct platform_device *pdev,
 				const char *cell_name)
@@ -720,10 +718,8 @@ static void ufs_sprd_setup_xfer_req(struct ufs_hba *hba, int task_tag, bool scsi
 
 static void ufs_sprd_fixup_dev_quirks(struct ufs_hba *hba)
 {
-#ifdef CONFIG_SPRD_UFS_PROC_FS
 	/* vendor UFS UID info decode. */
 	ufshcd_decode_ufs_uid(hba);
-#endif
 }
 
 const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops = {
