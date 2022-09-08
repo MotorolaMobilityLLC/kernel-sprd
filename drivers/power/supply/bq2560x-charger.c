@@ -187,6 +187,12 @@ static struct bq2560x_charger_reg_tab reg_tab[BQ2560X_REG_NUM + 1] = {
 	{12, 0, "null"},
 };
 
+#ifndef OTG_USE_REGULATOR
+static int bq2560x_charger_enable_otg(struct bq2560x_charger_info *info);
+static int bq2560x_charger_disable_otg(struct bq2560x_charger_info *info);
+static int bq2560x_charger_vbus_is_enabled(struct bq2560x_charger_info *info);
+#endif
+
 static void power_path_control(struct bq2560x_charger_info *info)
 {
 	struct device_node *cmdline_node;
@@ -1006,6 +1012,11 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 		}
 
 		break;
+#ifndef OTG_USE_REGULATOR
+	case POWER_SUPPLY_PROP_SCOPE:
+		val->intval = bq2560x_charger_vbus_is_enabled(info);
+		break;
+#endif
 	default:
 		ret = -EINVAL;
 	}
@@ -1125,6 +1136,15 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 		else
 			cancel_delayed_work_sync(&info->wdt_work);
 		break;
+#ifndef OTG_USE_REGULATOR
+        case POWER_SUPPLY_PROP_SCOPE:
+		if (val->intval == 1)
+			bq2560x_charger_enable_otg(info);
+		else
+			bq2560x_charger_disable_otg(info);
+                break;
+#endif
+
 	default:
 		ret = -EINVAL;
 	}
@@ -1165,8 +1185,9 @@ static enum power_supply_property bq2560x_usb_props[] = {
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {
+	.name                   = "charger",
 	//.name			= "bq2560x_charger",
-	.name                   = "sgm41513_charger",
+	//.name                   = "sgm41513_charger",
 	.type			= POWER_SUPPLY_TYPE_USB,
 	.properties		= bq2560x_usb_props,
 	.num_properties		= ARRAY_SIZE(bq2560x_usb_props),
@@ -1459,7 +1480,10 @@ static void bq2560x_charger_otg_work(struct work_struct *work)
 	do {
 		otg_fault = bq2560x_charger_check_otg_fault(info);
 		if (!otg_fault) {
-			dev_dbg(info->dev, "%s:line%d:restart charger otg\n", __func__, __LINE__);
+			dev_info(info->dev, "%s:line%d:restart charger otg\n", __func__, __LINE__);
+			ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+					BQ2560X_REG_CHG_MASK,
+					0x0 << BQ2560X_REG_CHG_SHIFT);
 			ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 						  BQ2560X_REG_OTG_MASK,
 						  BQ2560X_REG_OTG_MASK);
@@ -1476,10 +1500,11 @@ static void bq2560x_charger_otg_work(struct work_struct *work)
 	}
 
 out:
-	dev_dbg(info->dev, "%s:line%d:schedule_work\n", __func__, __LINE__);
+	dev_info(info->dev, "%s:line%d:schedule_work\n", __func__, __LINE__);
 	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(1500));
 }
 
+#ifdef OTG_USE_REGULATOR
 static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct bq2560x_charger_info *info = rdev_get_drvdata(dev);
@@ -1626,6 +1651,141 @@ bq2560x_charger_register_vbus_regulator(struct bq2560x_charger_info *info)
 
 	return ret;
 }
+
+#else
+static int bq2560x_charger_enable_otg(struct bq2560x_charger_info *info)
+{
+	int ret = 0;
+
+	dev_err(info->dev, "lys %s enter\n", __func__);
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	//mutex_lock(&info->lock);
+
+	ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+			BQ2560X_REG_EN_HIZ_MASK, 0);
+	if (ret)
+		dev_err(info->dev, "disable HIZ mode failed\n");
+
+	msleep(500);
+
+	/*
+	 * Disable charger detection function in case
+	 * affecting the OTG timing sequence.
+	 */
+	ret = regmap_update_bits(info->pmic, info->charger_detect,
+				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+	if (ret) {
+		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
+		goto out;
+	}
+
+	//disable charger
+	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+			BQ2560X_REG_CHG_MASK,
+			0x0 << BQ2560X_REG_CHG_SHIFT);
+
+
+	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+				  BQ2560X_REG_OTG_MASK,
+				  BQ2560X_REG_OTG_MASK);
+	if (ret) {
+		dev_err(info->dev, "enable bq2560x otg failed\n");
+		regmap_update_bits(info->pmic, info->charger_detect,
+				   BIT_DP_DM_BC_ENB, 0);
+		goto out;
+	}
+
+	info->otg_enable = true;
+	schedule_delayed_work(&info->wdt_work,
+			      msecs_to_jiffies(BQ2560X_FEED_WATCHDOG_VALID_MS));
+	schedule_delayed_work(&info->otg_work,
+			      msecs_to_jiffies(BQ2560X_OTG_VALID_MS));
+out:
+	//mutex_unlock(&info->lock);
+	dev_info(info->dev, "%s:line%d:enable_otg\n", __func__, __LINE__);
+
+	return ret;
+}
+
+static int bq2560x_charger_disable_otg(struct bq2560x_charger_info *info)
+{
+	int ret = 0;
+	dev_err(info->dev, "lys %s() enter\n", __func__);
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	//mutex_lock(&info->lock);
+
+	info->otg_enable = false;
+	cancel_delayed_work_sync(&info->wdt_work);
+	cancel_delayed_work_sync(&info->otg_work);
+	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+				  BQ2560X_REG_OTG_MASK,
+				  0);
+	if (ret) {
+		dev_err(info->dev, "disable bq2560x otg failed\n");
+	}
+	//enable charger
+	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+			 BQ2560X_REG_CHG_MASK,
+			 0x1 << BQ2560X_REG_CHG_SHIFT);
+	if (ret) {
+		dev_err(info->dev, "enable bq2560x charger failed\n");
+		goto out;
+	}
+
+	/* Enable charger detection function to identify the charger type */
+	ret = regmap_update_bits(info->pmic, info->charger_detect, BIT_DP_DM_BC_ENB, 0);
+	if (ret)
+		dev_err(info->dev, "enable BC1.2 failed\n");
+
+out:
+	//mutex_unlock(&info->lock);
+	dev_info(info->dev, "%s:line%d:disable_otg\n", __func__, __LINE__);
+
+	return ret;
+}
+
+static int bq2560x_charger_vbus_is_enabled(struct bq2560x_charger_info *info)
+{
+	int ret;
+	u8 val;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	//mutex_lock(&info->lock);
+
+	ret = bq2560x_read(info, BQ2560X_REG_1, &val);
+	if (ret) {
+		dev_err(info->dev, "failed to get bq2560x otg status\n");
+		//mutex_unlock(&info->lock);
+		return ret;
+	}
+
+	val &= BQ2560X_REG_OTG_MASK;
+
+	//mutex_unlock(&info->lock);
+	dev_dbg(info->dev, "%s:line%d:vbus_is_enabled\n", __func__, __LINE__);
+
+	return val;
+}
+
+static int
+bq2560x_charger_register_vbus_regulator(struct bq2560x_charger_info *info)
+{
+	return 0;
+}
+#endif
 
 #else
 static int

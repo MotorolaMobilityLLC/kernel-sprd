@@ -217,7 +217,7 @@
 				cm-cp-taper-current = <1000000>;
 
 				/* M170 code for sgm41513 by liuyansheng10 at 220828 begin */
-				cm-chargers = "sgm41513_charger";
+				cm-chargers = "charger";
 				//cm-charge-pumps = "bq2597x-standalone";
 				//cm-wireless-chargers = "nu1619_wireless_charger";
 				//cm-wireless-charge-pump-converters = "hl1506_cp_converter";
@@ -793,9 +793,6 @@
 	clock-frequency = <400000>;
 	#address-cells = <1>;
 	#size-cells = <0>;
-	vddvbus:otg-vbus {
-		regulator-name = "vddvbus";
-	};
 
 	sgm41513_chg: charger@1A {
                 compatible = "sgm,sgm41513_chg";
@@ -804,6 +801,11 @@
                 monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>;
                 irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
+/*
+		vddvbus:otg-vbus {
+			regulator-name = "vddvbus";
+		};
+*/
         };
 
 	bq2560x_chg: charger@6b {
@@ -813,6 +815,11 @@
 		monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>;
 		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
+/*
+		vddvbus1:otg-vbus {
+			regulator-name = "vddvbus1";
+		};
+*/
 	};
 /*
 
@@ -922,7 +929,8 @@
 
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
-	vbus-supply = <&vddvbus>;
+	//vbus-supply = <&vddvbus>;
+	//vbus1-supply = <&vddvbus1>;
 	status = "okay";
 };
 

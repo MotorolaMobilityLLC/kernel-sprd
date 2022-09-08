@@ -1303,6 +1303,9 @@ static int sgm41513_charger_usb_change(struct notifier_block *nb,
 	return NOTIFY_OK;
 }
 
+#ifndef OTG_USE_REGULATOR
+static int sgm41513_charger_vbus_is_enabled(struct sgm41513_charger_info *info);
+#endif
 static int sgm41513_charger_usb_get_property(struct power_supply *psy,
 					    enum power_supply_property psp,
 					    union power_supply_propval *val)
@@ -1394,6 +1397,12 @@ static int sgm41513_charger_usb_get_property(struct power_supply *psy,
 
 		break;
 
+#ifndef OTG_USE_REGULATOR
+	case POWER_SUPPLY_PROP_SCOPE:
+		val->intval = sgm41513_charger_vbus_is_enabled(info);
+		break;
+#endif
+
 	default:
 		ret = -EINVAL;
 	}
@@ -1403,6 +1412,10 @@ out:
 	return ret;
 }
 
+#ifndef OTG_USE_REGULATOR
+static int sgm41513_charger_enable_otg(struct sgm41513_charger_info *info);
+static int sgm41513_charger_disable_otg(struct sgm41513_charger_info *info);
+#endif
 static int sgm41513_charger_usb_set_property(struct power_supply *psy,
 				enum power_supply_property psp,
 				const union power_supply_propval *val)
@@ -1481,6 +1494,15 @@ static int sgm41513_charger_usb_set_property(struct power_supply *psy,
 
 		break;
 
+#ifndef OTG_USE_REGULATOR
+	case POWER_SUPPLY_PROP_SCOPE:
+		if (val->intval == 1)
+			sgm41513_charger_enable_otg(info);
+		else
+			sgm41513_charger_disable_otg(info);
+		break;
+#endif
+
 	default:
 		ret = -EINVAL;
 	}
@@ -1522,7 +1544,7 @@ static enum power_supply_usb_type sgm41513_charger_usb_types[] = {
 };
 
 static const struct power_supply_desc sgm41513_charger_desc = {
-	.name			= "sgm41513_charger",
+	.name			= "charger",
 	/* HS03 code for P211012-03864 by yuli at 20211027 start */
 	//.type			= POWER_SUPPLY_TYPE_USB,
 	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
@@ -1872,6 +1894,7 @@ out:
 	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(1500));
 }
 
+#ifdef OTG_USE_REGULATOR
 static int sgm41513_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct sgm41513_charger_info *info = rdev_get_drvdata(dev);
@@ -2027,6 +2050,128 @@ sgm41513_charger_register_vbus_regulator(struct sgm41513_charger_info *info)
 
 	return ret;
 }
+
+#else
+static int sgm41513_charger_enable_otg(struct sgm41513_charger_info *info)
+{
+	int ret = 0;
+
+	/* HS03 code for SR-SL6215-01-178 Import multi-charger driver patch of SPCSS00872701 by gaochao at 20210720 start */
+	dev_info(info->dev, "%s:line%d enter\n", __func__, __LINE__);
+	/* HS03 code for SR-SL6215-01-178 Import multi-charger driver patch of SPCSS00872701 by gaochao at 20210720 end */
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	//mutex_lock(&info->lock);
+
+	/*
+	 * Disable charger detection function in case
+	 * affecting the OTG timing sequence.
+	 */
+	ret = regmap_update_bits(info->pmic, info->charger_detect,
+				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+	if (ret) {
+		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
+		goto out;
+	}
+
+	ret = sgm41513_update_bits(info, SGM41513_REG_1,
+				  SGM41513_REG_OTG_MASK,
+				  SGM41513_REG_OTG_MASK);
+	if (ret) {
+		dev_err(info->dev, "enable sgm41513 otg failed\n");
+		regmap_update_bits(info->pmic, info->charger_detect,
+				   BIT_DP_DM_BC_ENB, 0);
+		goto out;
+	}
+
+	info->otg_enable = true;
+	schedule_delayed_work(&info->wdt_work,
+			      msecs_to_jiffies(SGM41513_FEED_WATCHDOG_VALID_MS));
+	schedule_delayed_work(&info->otg_work,
+			      msecs_to_jiffies(SGM41513_OTG_VALID_MS));
+out:
+	//mutex_unlock(&info->lock);
+	return ret;
+}
+
+static int sgm41513_charger_disable_otg(struct sgm41513_charger_info *info)
+{
+	int ret = 0;
+
+	/* HS03 code for SR-SL6215-01-178 Import multi-charger driver patch of SPCSS00872701 by gaochao at 20210720 start */
+	dev_info(info->dev, "%s:line%d enter\n", __func__, __LINE__);
+	/* HS03 code for SR-SL6215-01-178 Import multi-charger driver patch of SPCSS00872701 by gaochao at 20210720 end */
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	//mutex_lock(&info->lock);
+
+	info->otg_enable = false;
+	cancel_delayed_work_sync(&info->wdt_work);
+	cancel_delayed_work_sync(&info->otg_work);
+	ret = sgm41513_update_bits(info, SGM41513_REG_1,
+				  SGM41513_REG_OTG_MASK,
+				  0);
+	if (ret) {
+		dev_err(info->dev, "disable sgm41513 otg failed\n");
+		goto out;
+	}
+
+	/* Enable charger detection function to identify the charger type */
+	ret = regmap_update_bits(info->pmic, info->charger_detect,
+				  BIT_DP_DM_BC_ENB, 0);
+	if (ret)
+		dev_err(info->dev, "enable BC1.2 failed\n");
+
+out:
+	//mutex_unlock(&info->lock);
+	return ret;
+
+
+}
+
+static int sgm41513_charger_vbus_is_enabled(struct sgm41513_charger_info *info)
+{
+	int ret;
+	u8 val;
+
+	/* HS03 code for SR-SL6215-01-178 Import multi-charger driver patch of SPCSS00872701 by gaochao at 20210720 start */
+	dev_info(info->dev, "%s:line%d enter\n", __func__, __LINE__);
+	/* HS03 code for SR-SL6215-01-178 Import multi-charger driver patch of SPCSS00872701 by gaochao at 20210720 end */
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	//mutex_lock(&info->lock);
+
+	ret = sgm41513_read(info, SGM41513_REG_1, &val);
+	if (ret) {
+		dev_err(info->dev, "failed to get sgm41513 otg status\n");
+		//mutex_unlock(&info->lock);
+		return ret;
+	}
+
+	val &= SGM41513_REG_OTG_MASK;
+	/* HS03 code for SR-SL6215-01-178 Import multi-charger driver patch of SPCSS00872701 by gaochao at 20210720 start */
+	dev_info(info->dev, "%s:line%d val = %d\n", __func__, __LINE__, val);
+	/* HS03 code for SR-SL6215-01-178 Import multi-charger driver patch of SPCSS00872701 by gaochao at 20210720 end */
+
+	//mutex_unlock(&info->lock);
+	return val;
+}
+
+static int
+sgm41513_charger_register_vbus_regulator(struct sgm41513_charger_info *info)
+{
+	return 0;
+}
+#endif
 
 #else
 static int
