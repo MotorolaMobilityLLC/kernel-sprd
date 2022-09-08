@@ -15,6 +15,7 @@ EXT_MODULES="
 ../modules/kernel5.15/input/touchscreen/ssl_ssd20xx
 ../modules/kernel5.15/input/touchscreen/synaptics_dsx_td4310
 ../modules/kernel5.15/input/touchscreen/focaltech_ft8756_spi
+../modules/kernel5.15/wcn/wlan/wlan_combo
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
 ../modules/kernel5.15/display/dispc
