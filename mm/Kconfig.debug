@@ -164,3 +164,9 @@ config E_SHOW_MEM
 	help
 	  Enable mem info show for DMA-BUF, GPU, ZRAM, Vmalloc etc.
 
+config SPRD_MEM_OVERLAY_CHECK
+	bool "Detect reserved-memory region is overlay"
+	default n
+	help
+	  It's will panic when detect overlay in reserved-memory region.
+
