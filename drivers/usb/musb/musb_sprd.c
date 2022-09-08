@@ -1000,6 +1000,9 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 
 		__pm_stay_awake(glue->wake_lock);
 
+		MUSB_DEV_MODE(musb);
+		musb->is_active = 0;
+		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		sprd_musb_hdrc_config.fifo_cfg = sprd_musb_device_mode_cfg;
 		sprd_musb_reset_context(musb);
 		pm_runtime_get_sync(musb->controller);
@@ -1019,7 +1022,6 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		sprd_musb_enable(musb);
 
 		usb_gadget_set_state(&musb->g, USB_STATE_ATTACHED);
-		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		glue->dr_mode = USB_DR_MODE_PERIPHERAL;
 	} else {
 		u8 devctl;
@@ -1030,6 +1032,7 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
 		usb_gadget_set_state(&musb->g, USB_STATE_NOTATTACHED);
 		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl & ~MUSB_DEVCTL_SESSION);
+		musb->is_active = 0;
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		musb->offload_used = 0;
@@ -1093,6 +1096,8 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 			__pm_stay_awake(glue->wake_lock);
 
 		MUSB_HST_MODE(musb);
+		musb->is_active = 1;
+		musb->xceiv->otg->state = OTG_STATE_A_IDLE;
 		sprd_musb_hdrc_config.fifo_cfg = sprd_musb_host_mode_cfg;
 		sprd_musb_reset_context(musb);
 
@@ -1113,7 +1118,6 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		 */
 		msleep(150);
 		sprd_musb_enable(musb);
-		musb->xceiv->otg->state = OTG_STATE_A_IDLE;
 		glue->dr_mode = USB_DR_MODE_HOST;
 	} else {
 		u8 devctl;
@@ -1125,6 +1129,7 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 			if (ret)
 				dev_err(glue->dev, "Failed to disable vbus: %d\n", ret);
 		}
+		musb->is_active = 0;
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 		/* disable usb audio offload */
