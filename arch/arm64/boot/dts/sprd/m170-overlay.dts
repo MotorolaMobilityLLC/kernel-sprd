@@ -23,7 +23,7 @@
 		target-path = "/";
 		__overlay__ {
 			pwm_backlight: sprd_backlight {
-				compatible = "sprd,sharkl6-backlight";
+				//compatible = "sprd,sharkl6-backlight";	//m170 use cabc_pwm, not pwm_backlight
 				pwms = <&pwms 2 40000>;
 				pwm-names = "backlight";
 				sprd,max-brightness-level = <924>;
