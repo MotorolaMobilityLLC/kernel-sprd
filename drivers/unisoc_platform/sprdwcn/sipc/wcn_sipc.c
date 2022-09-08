@@ -345,7 +345,7 @@ void wcn_sipc_pop_list_flush(struct sipc_chn_info *sipc_chn)
 		WCN_DEBUG("index:%d  pop_queue->mbuf_num:%d",
 			  sipc_chn->index, pop_queue->mbuf_num);
 		pop_queue->mbuf_tail->next = NULL;
-		if (sipc_chn->ops->pop_link != NULL)
+		if (sipc_chn->ops != NULL && sipc_chn->ops->pop_link != NULL)
 			sipc_chn->ops->pop_link(sipc_chn->index,
 				pop_queue->mbuf_head, pop_queue->mbuf_tail,
 				pop_queue->mbuf_num);
@@ -483,6 +483,11 @@ static int wcn_sipc_sbuf_push(u8 index,
 {
 	struct sipc_chn_info *sipc_chn;
 
+	if (sprdwcn_bus_get_carddump_status()) {
+		WCN_ERR("%s not device(card dump)\n", __func__);
+		return -ENODEV;
+	}
+
 	if (SIPC_INVALID_CHN(index))
 		return -E_INVALIDPARA;
 	sipc_chn = SIPC_CHN(index);
@@ -613,6 +618,8 @@ static void wcn_sipc_sblk_push_list_dequeue(struct sipc_chn_info *sipc_chn)
 	/* nothing to do */
 	if (!sipc_chn->push_queue.mbuf_num) {
 		mutex_unlock(&sipc_chn->pushq_lock);
+		WCN_INFO("channel %d-%d(%d), chn_deinit?\n",
+			sipc_chn->dst, sipc_chn->chn, sipc_chn->index);
 		WCN_HERE_CHN(sipc_chn->index);
 		return;
 	}
@@ -968,12 +975,26 @@ static int wcn_sipc_chn_deinit(struct mchn_ops_t *ops)
 	int idx = ops->channel;
 
 	struct sipc_chn_info *sipc_chn;
+	struct sipc_chn_info *tx_sipc_chn = NULL;
 
 	sipc_chn = SIPC_CHN(idx);
 	sipc_chn->ops = NULL;
 	WCN_INFO("[%s]:index[%d] chn[%d], sipc_chn->ops = null.\n", __func__, idx, sipc_chn->chn);
 
+	tx_sipc_chn = SIPC_CHN(sipc_chn->relate_index);
+	if (SIPC_CHN_TYPE_SBLK(idx) && SIPC_CHN_DIR_TX(idx)) {
+		WCN_INFO("Wait %d-%d index%d push\n",
+			tx_sipc_chn->dst, tx_sipc_chn->chn, tx_sipc_chn->index);
+		mutex_lock(&tx_sipc_chn->pushq_lock);
+		/* WARNING: wcn_sipc_sblk_push_list_dequeue done */
+		tx_sipc_chn->push_queue.mbuf_num = 0;
+	}
+
 	bus_chn_deinit(ops);
+
+	if (SIPC_CHN_TYPE_SBLK(idx) && SIPC_CHN_DIR_TX(idx))
+		mutex_unlock(&tx_sipc_chn->pushq_lock);
+
 	/* only destroy when chn created fail so it can create again.  */
 	if (SIPC_CHN_TYPE_SBLK(idx)) {
 		if (SIPC_CHN_DIR_TX(idx) && wcn_sipc_sblk_chn_rx_status_check(idx) != 0) {

@@ -163,6 +163,7 @@ static int buf_pool_deinit(struct buffer_pool_t *pool)
 	       (sizeof(struct mbuf_t) + pool->payload) * pool->size);
 	kfree(pool->mem);
 	pool->mem = NULL;
+	pool->free = 0;
 
 	return 0;
 }

@@ -1350,24 +1350,10 @@ int wcn_remove(struct platform_device *pdev)
 void wcn_shutdown(struct platform_device *pdev)
 {
 	struct wcn_device *wcn_dev = platform_get_drvdata(pdev);
-	int ret = 0;
 
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		u32 open_status;
-		u32 subsys_bit = 0;
-		is_wcn_shutdown = 1;
-
-		if (wcn_dev && wcn_dev->wcn_open_status) {
-			WCN_INFO("%s:dev name %s\n", __func__, wcn_dev->name);
-			open_status = wcn_dev->wcn_open_status;
-			for (subsys_bit = 0; subsys_bit < 32; subsys_bit++) {
-				if (open_status & (0x1<<subsys_bit))
-					ret = stop_marlin(subsys_bit);
-				if (ret)
-					WCN_ERR("stop_marlin ret: %d\n", ret);
-			}
-		}
-		is_wcn_shutdown = 0;
+		WCN_INFO("%s WCN A-DIE powerdown\n", __func__);
+		wcn_sys_power_clock_unsupport(true);
 		return;
 	}
 
