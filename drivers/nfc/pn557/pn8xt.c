@@ -118,7 +118,8 @@ static int signal_handler(pn8xt_access_st_t state, long nfc_pid)
     sinfo.si_int = state;
     pid = nfc_pid;
 
-    task = pid_task(find_vpid(pid), PIDTYPE_PID);
+    // task = pid_task(find_vpid(pid), PIDTYPE_PID);
+    task = NULL;
     if(task) {
         pr_info("%s: %s\n", __func__, task->comm);
         // sigret = force_sig_info(SIG_NFC, &sinfo, task);
