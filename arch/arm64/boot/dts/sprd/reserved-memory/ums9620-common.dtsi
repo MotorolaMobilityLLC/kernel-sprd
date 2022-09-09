@@ -1,4 +1,40 @@
 #include "modem-5g-common.dtsi"
-/ {
+&reserved_memory {
+	logo_reserved: logobuffer@b0000000 {
+		reg = <0x0 0xb0000000 0x0 0x009e4000>;
+	};
 
+	/* Only for userdebug, will be removed in user mode by lk */
+	uboot_reserved: sysdump-uboot@b5000000 {
+		reg = <0x0 0xb5000000 0x0 0x01000000>;
+	};
+
+	/* The uboot_log_reserved node is added in lk. base:0xbbe80000, size:0x80000 */
+	uboot_log_reserved: uboot_log-mem@bbe80000 {
+		reg = <0x0 0xbbe80000 0x0 0x00080000>;
+	};
+
+	ise_med_reserved: ise_med@bc000000 {
+		compatible = "sprd,qogirn6pro-ise-med";
+		reg = <0x0 0xbc000000 0x0 0x01000000>;
+	};
+
+	/* must be 1M aligned */
+	sml_reserved: sml-mem@bd000000 {
+		reg = <0x0 0xbd000000 0x0 0x00040000>;
+	};
+
+	/* the reg values may be not accurate, they have been fixed in lk !!! */
+	tos_reserved: tos-mem@bd040000 {
+		reg = <0x0 0xbd040000 0x0 0x01fc0000>;
+	};
+
+	tos_shm_reserved: sh-mem@c3000000{
+		reg = <0x0 0xc3000000 0x0 0x00100000>;
+	};
+
+	dptx_hdcp_reserved: dptx_hdcp@fff10000 {
+		reg = <0x0 0xfff10000 0x0 0x00060000>;
+	};
 };
+
