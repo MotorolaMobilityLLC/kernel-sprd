@@ -120,7 +120,6 @@
 	aliases {
 		cooling-device0 = &cluster0_cooling;
 		cooling-device1 = &cluster1_cooling;
-		gpu-cooling0 = &gpu_cooling0;
 		thm-sensor0 = &virtual_sensor;
 	};
 
@@ -152,15 +151,19 @@
 					trip = <&soc_target>;
 					contribution = <1024>;
 					cooling-device =
-					<&CPU0 THERMAL_NO_LIMIT \
-					THERMAL_NO_LIMIT>;
+					<&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU4 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU5 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 				};
 				map1 {
 					trip = <&soc_target>;
 					contribution = <682>;
 					cooling-device =
-					<&CPU6 THERMAL_NO_LIMIT \
-					THERMAL_NO_LIMIT>;
+					<&CPU6 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU7 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 				};
 				map2 {
 					trip = <&soc_target>;
@@ -180,8 +183,7 @@
 					trip = <&soc_target>;
 					contribution = <1024>;
 					cooling-device =
-					<&gpu THERMAL_NO_LIMIT \
-					THERMAL_NO_LIMIT>;
+					<&gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 				};
 			};
 		};
@@ -365,40 +367,6 @@
 			sprd,dynamic-cluster =
 			/* Pdynperghz*10    Freq     Vbase */
 			<  246            1000     1000>;
-		};
-	};
-
-	gpu-cooling-devices {
-		gpu_cooling0: gpu-cooling0 {
-			compatible = "sprd,mali-power-model";
-			#cooling-cells = <2>;
-			sprd,efuse-block7 = <7>;
-			sprd,efuse-block15 = <15>;
-			/* core_leak =                             */
-			/*(LIT_LEAK[4:0]+1) x 2mA x 0.85V x 18.69% */
-			sprd,leak-core = <2 85 1869>;
-			/* cluster_leak =                           */
-			/* (LIT_LEAK[4:0]+1) x 2mA x 0.85V x 25.24% */
-			sprd,leak-cluster = <2 85 2524>;
-			/*Tscale = aT^3 + bT^2 + cT +di   */
-			sprd,temp-scale =
-			/* a*10^7   b*10^7      c*10^7     d*10^7 */
-			<  25     (-2204)     131423    (-740872)>;
-			/*Vscale = eV^3 + fV^2 + gV + h */
-			sprd,voltage-scale =
-			/* e*10^2   f*10^2     g*10^2      h*10^2*/
-			<  801  (-1712)       1335     (-324)>;
-			sprd,hotplug-period = <0>;
-			/* core Vbase*10^2*/
-			sprd,core-base = <9343>;
-			/* cluster Vbase*10^2*/
-			sprd,cluster-base = <966>;
-			sprd,dynamic-core =
-			/*Pdynperghz*10^2    Freq     Vbase  */
-			< 7150           850     800>;
-			sprd,dynamic-cluster =
-			/*Pdynperghz*10^2    Freq     Vbase  */
-			< 6064           768     900>;
 		};
 	};
 };

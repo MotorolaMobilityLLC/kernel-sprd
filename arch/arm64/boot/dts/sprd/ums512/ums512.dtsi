@@ -61,8 +61,8 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
-			dynamic-power-coefficient = <102>;
 			#cooling-cells = <2>;
+			dynamic-power-coefficient = <102>;
 			sugov_slack_timer;
 		};
 
@@ -73,6 +73,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <102>;
 		};
 
@@ -83,6 +84,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <102>;
 		};
 
@@ -93,6 +95,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <102>;
 		};
 
@@ -103,6 +106,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <102>;
 		};
 
@@ -113,6 +117,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <102>;
 		};
 
@@ -123,8 +128,8 @@
 			enable-method = "psci";
 			cpu-idle-states = <&BIG_CORE_PD>;
 			capacity-dmips-mhz = <1024>;
-			dynamic-power-coefficient = <501>;
 			#cooling-cells = <2>;
+			dynamic-power-coefficient = <501>;
 		};
 
 		CPU7: cpu@700 {
@@ -134,6 +139,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&BIG_CORE_PD>;
 			capacity-dmips-mhz = <1024>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <501>;
 		};
 	};
