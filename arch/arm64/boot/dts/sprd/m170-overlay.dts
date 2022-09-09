@@ -8,6 +8,7 @@
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_ili9882q_boe_mipi_hd.dtsi"
+#include "lcd/lcd_nt36528_tm_mipi_hd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "tp/ums9230-spi3-gpio144-145-tp.dtsi"
 #include "ums9230-wcn.dtsi"
@@ -1059,6 +1060,11 @@
 };
 
 &lcd_ili9882q_boe_mipi_hd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1600>;
+};
+
+&lcd_nt36528_tm_mipi_hd {
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
 };
