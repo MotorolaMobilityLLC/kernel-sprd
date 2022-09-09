@@ -28,6 +28,7 @@
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <linux/thermal.h>
+#include <linux/usb/sprd_pd.h>
 #include <linux/workqueue.h>
 
 /*
@@ -2107,6 +2108,22 @@ static int cm_fixed_fchg_enable(struct charger_manager *cm)
 		return 0;
 	}
 
+	if (cm->desc->adapter_max_vbus == CM_FAST_CHARGE_VOLTAGE_5V) {
+		dev_dbg(cm->dev, "no need to require voltage, %d\n", cm->desc->adapter_max_vbus);
+		return 0;
+	}
+
+	ret = cm_get_adapter_max_voltage(cm, &adapter_max_vbus);
+	if (ret) {
+		dev_err(cm->dev, "failed to obtain the adapter max voltage\n");
+		return ret;
+	}
+
+	if (adapter_max_vbus == CM_FAST_CHARGE_VOLTAGE_5V) {
+		cm->desc->adapter_max_vbus = adapter_max_vbus;
+		return 0;
+	}
+
 	/*
 	 * cm->desc->enable_fast_charge should be set to true when the transient
 	 * current is voting, otherwise the current of the parallel charging
@@ -2143,11 +2160,6 @@ static int cm_fixed_fchg_enable(struct charger_manager *cm)
 	/*
 	 * adjust fast charger output voltage from 5V to 9V
 	 */
-	ret = cm_get_adapter_max_voltage(cm, &adapter_max_vbus);
-	if (ret) {
-		dev_err(cm->dev, "failed to obtain the adapter max voltage\n");
-		goto ovp_err;
-	}
 
 	if (adapter_max_vbus > CM_FAST_CHARGE_VOLTAGE_9V)
 		adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_9V;
@@ -4315,6 +4327,12 @@ static int cm_get_target_status(struct charger_manager *cm)
 
 	if (is_full_charged(cm))
 		return POWER_SUPPLY_STATUS_FULL;
+
+	if (cm->desc->xts_limit_cur) {
+		dev_info(cm->dev, "xts limit cur is still working\n");
+		return POWER_SUPPLY_STATUS_NOT_CHARGING;
+	}
+
 	/* Charging is allowed. */
 	return POWER_SUPPLY_STATUS_CHARGING;
 }
@@ -4546,6 +4564,48 @@ static void cm_charger_int_handler(struct charger_manager *cm)
 	cm->desc->cm_check_int = true;
 }
 
+static int cm_charger_pd_limit_current(struct charger_manager *cm)
+{
+	int ret;
+	int max_vol, max_cur;
+
+	if (!cm->fchg_info->support_fchg || !cm->fchg_info->pd_enable ||
+	    !cm->fchg_info->ops || !cm->fchg_info->ops->get_fchg_vol_max ||
+	    !cm->fchg_info->ops->get_fchg_cur_max)
+		return -EINVAL;
+
+	ret = cm->fchg_info->ops->get_fchg_vol_max(cm->fchg_info, &max_vol);
+	if (ret)
+		dev_err(cm->dev, "%s, failed to get fchg max voltage, ret=%d\n", __func__, ret);
+
+	dev_dbg(cm->dev, "%s:max_vol = %d\n", __func__, max_vol);
+	if (max_vol > 5000000) {
+		dev_dbg(cm->dev, "%s:max_vol = %d\n", __func__, max_vol);
+		return -EINVAL;
+	}
+
+	ret = cm->fchg_info->ops->get_fchg_cur_max(cm->fchg_info, max_vol, &max_cur);
+	if (ret)
+		dev_err(cm->dev, "%s, failed to get fchg max current, ret=%d\n", __func__, ret);
+
+	dev_dbg(cm->dev, "%s:max_cur = %d\n", __func__, max_cur);
+	if (max_cur <= 100000 && max_cur > 0) {
+		cm->desc->xts_limit_cur = true;
+		try_charger_enable(cm, false);
+		cm_power_path_enable(cm, CM_POWER_PATH_DISABLE_CMD);
+		dev_info(cm->dev, "%s:line%d limit cur\n", __func__, __LINE__);
+		return 1;
+	} else if (cm->desc->xts_limit_cur && max_cur <= 1000000 && max_cur > 100000) {
+		cm->desc->xts_limit_cur = false;
+		try_charger_enable(cm, true);
+		cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
+		dev_info(cm->dev, "%s:line%d not limit cur\n", __func__, __LINE__);
+		return 1;
+	}
+
+	return 0;
+}
+
 
 /**
  * fast_charge_handler - Event handler for CM_EVENT_FAST_CHARGE
@@ -4559,6 +4619,10 @@ static void fast_charge_handler(struct charger_manager *cm)
 		device_set_wakeup_capable(cm->dev, true);
 
 	cm_charger_is_support_fchg(cm);
+	if (cm_charger_pd_limit_current(cm) > 0) {
+		dev_info(cm->dev, "%s, xts update limit cur\n", __func__);
+		return;
+	}
 	ext_pwr_online = is_ext_pwr_online(cm);
 
 	dev_info(cm->dev, "%s, fast_charger_type = %d, cp_running = %d, "
@@ -4655,6 +4719,8 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 					   CM_CHARGE_INFO_INPUT_LIMIT |
 					   CM_CHARGE_INFO_JEITA_LIMIT));
 	} else {
+		if (cm->desc->xts_limit_cur)
+			cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
 		try_wireless_charger_enable(cm, false);
 		cm_enable_fixed_fchg_handshake(cm, false);
 		try_charger_enable(cm, false);
@@ -4690,6 +4756,8 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->usb_charge_en = 0;
 		cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
 					 SPRD_VOTE_TYPE_ALL, 0, 0, 0, cm);
+		cm->desc->xts_limit_cur = false;
+		cm->desc->adapter_max_vbus = 0;
 	}
 
 	cm_update_charger_type_status(cm);
@@ -5063,9 +5131,39 @@ static void cm_get_current_max(struct charger_manager *cm, int *current_max)
 	*current_max = min(chg_type_max_ibus, adapter_max_ibus);
 }
 
+static int cm_source_try_sink_limit_current(struct charger_manager *cm, int limit)
+{
+	const u32 pdo_limit[1] = {SPRD_PDO_FIXED(5000, 100, SPRD_PDO_FIXED_USB_COMM)};
+	const u32 pdo_no_limit[1] = {SPRD_PDO_FIXED(5000, 400, SPRD_PDO_FIXED_USB_COMM)};
+	int ret;
+
+	if (!cm->fchg_info->support_fchg || !cm->fchg_info->ops ||
+	    !cm->fchg_info->ops->update_src_cap) {
+		dev_err(cm->dev, "%s:%d not support\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	if (limit)
+		ret = cm->fchg_info->ops->update_src_cap(cm->fchg_info, pdo_limit, 1);
+	else
+		ret = cm->fchg_info->ops->update_src_cap(cm->fchg_info, pdo_no_limit, 1);
+
+	if (ret) {
+		dev_err(cm->dev, "[%s]failed to update src cap, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	return 0;
+}
+
 static void cm_set_charge_control_limit(struct charger_manager *cm, int power)
 {
 	dev_info(cm->dev, "thermal set charge power limit, thm_pwr = %dmW\n", power);
+	if (power == 1 || power == 0) {
+		dev_info(cm->dev, "usb set charge power limit, limit = %d\n", power);
+		cm_source_try_sink_limit_current(cm, power);
+		return;
+	}
 	cm->desc->thm_info.thm_pwr = power;
 	cm_update_charge_info(cm, CM_CHARGE_INFO_THERMAL_LIMIT);
 

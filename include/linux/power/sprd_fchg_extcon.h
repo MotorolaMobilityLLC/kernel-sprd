@@ -79,6 +79,7 @@ struct sprd_fchg_ops {
 	int (*enable_dynamic_fchg)(struct sprd_fchg_info *info, bool enable);
 	int (*adj_fchg_vol)(struct sprd_fchg_info *info, u32 input_vol);
 	int (*adj_fchg_cur)(struct sprd_fchg_info *info, u32 input_current);
+	int (*update_src_cap)(struct sprd_fchg_info *info, const u32 *pdo, unsigned int nr_pdo);
 	void (*suspend)(struct sprd_fchg_info *info);
 	void (*resume)(struct sprd_fchg_info *info);
 	void (*remove)(struct sprd_fchg_info *info);

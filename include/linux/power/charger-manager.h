@@ -718,6 +718,9 @@ struct charger_desc {
 	struct mutex charger_type_mtx;
 	struct mutex charge_info_mtx;
 	struct mutex keep_awake_mtx;
+
+	bool xts_limit_cur;
+	int adapter_max_vbus;
 };
 
 #define PSY_NAME_MAX	30

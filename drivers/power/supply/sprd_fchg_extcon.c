@@ -332,6 +332,35 @@ done:
 	return 0;
 }
 
+static int sprd_pd_update_source_capabilities(struct sprd_fchg_info *info,
+					      const u32 *pdo,
+					      unsigned int nr_pdo)
+{
+	struct sprd_tcpm_port *port;
+	struct power_supply *psy_tcpm;
+	int ret;
+
+	psy_tcpm = power_supply_get_by_name(SPRD_FCHG_TCPM_PD_NAME);
+	if (!psy_tcpm) {
+		dev_err(info->dev, "%s, psy_tcpm is NULL\n", __func__);
+		return -ENODEV;
+	}
+
+	port = power_supply_get_drvdata(psy_tcpm);
+	if (!port) {
+		dev_err(info->dev, "%s, failed to get tcpm port\n", __func__);
+		return -EINVAL;
+	}
+
+	ret = sprd_tcpm_update_ext_source_capabilities(port, pdo, nr_pdo);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to update src cap, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	return 0;
+}
+
 static int sprd_pps_adjust_voltage(struct sprd_fchg_info *info, u32 input_vol)
 {
 	union power_supply_propval val;
@@ -497,6 +526,13 @@ static int sprd_get_pps_current_max(struct sprd_fchg_info *info, u32 *max_cur)
 }
 
 static int sprd_pd_fixed_adjust_voltage(struct sprd_fchg_info *info, u32 input_vol)
+{
+	return 0;
+}
+
+static int sprd_pd_update_source_capabilities(struct sprd_fchg_info *info,
+					      const u32 *pdo,
+					      unsigned int nr_pdo)
 {
 	return 0;
 }
@@ -936,6 +972,29 @@ static int sprd_adjust_fchg_current(struct sprd_fchg_info *info, u32 input_curre
 	return ret;
 }
 
+static int sprd_update_source_capabilities(struct sprd_fchg_info *info, const u32 *pdo,
+				       unsigned int nr_pdo)
+{
+	int ret = 0;
+
+	if (!info) {
+		pr_err("%s[%d]: info is NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	if (!info->support_fchg)
+		return -EINVAL;
+
+	mutex_lock(&info->lock);
+	dev_info(info->dev, "%s:%d, pd_extcon = %d\n", __func__, __LINE__, info->pd_extcon);
+	ret = sprd_pd_update_source_capabilities(info, pdo, nr_pdo);
+	if (ret)
+		dev_err(info->dev, "%s, failed to update src cap, ret=%d\n", __func__, ret);
+	mutex_unlock(&info->lock);
+
+	return ret;
+}
+
 static int sprd_get_fchg_type(struct sprd_fchg_info *info, u32 *type)
 {
 	if (!info) {
@@ -1169,6 +1228,7 @@ struct sprd_fchg_info *sprd_fchg_info_register(struct device *dev)
 	info->ops->enable_dynamic_fchg = sprd_enable_dynamic_fchg;
 	info->ops->adj_fchg_vol = sprd_adjust_fchg_voltage;
 	info->ops->adj_fchg_cur = sprd_adjust_fchg_current;
+	info->ops->update_src_cap = sprd_update_source_capabilities;
 	info->ops->suspend = sprd_fchg_suspend;
 	info->ops->resume = sprd_fchg_resume;
 	info->ops->remove = sprd_fchg_remove;
