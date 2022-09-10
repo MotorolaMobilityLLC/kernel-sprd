@@ -165,6 +165,20 @@ struct sprd_sip_svc_npu_ops {
 };
 
 /**
+ * struct sprd_sip_svc_gpu_ops - represents the various operations
+ *      provided by SPRD SIP GPU
+ *
+ * @get_id: gets the chip id and gpu bin
+ * @update_voltage_list: update the voltage index corresponding meaning for DVFS
+ *
+ */
+struct sprd_sip_svc_gpu_ops {
+	struct sprd_sip_svc_rev_info rev;
+	int (*get_id)(u32 *chip_id, u32 *bin_index);
+	int (*update_voltage_list)(u32 is_high_temp);
+};
+
+/**
  * struct sprd_sip_svc_handle - Handle returned to SPRD SIP clients for usage
  *
  * @perf_ops: pointer to set of performance operations
@@ -178,6 +192,7 @@ struct sprd_sip_svc_handle {
 	struct sprd_sip_svc_dvfs_ops dvfs_ops;
 	struct sprd_sip_svc_storage_ops storage_ops;
 	struct sprd_sip_svc_npu_ops npu_ops;
+	struct sprd_sip_svc_gpu_ops gpu_ops;
 };
 
 /**

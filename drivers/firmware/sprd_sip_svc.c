@@ -276,6 +276,25 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x0705))
 
+/* SIP gpu operations */
+#define SPRD_SIP_SVC_GPU_REV						\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0800))
+
+#define SPRD_SIP_SVC_GPU_GET_ID						\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0801))
+
+#define SPRD_SIP_SVC_GPU_UPDATE_VOLTAGE_LIST 				\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0802))
+
 #define SPRD_SIP_RET_UNK	0xFFFFFFFFUL
 
 static struct sprd_sip_svc_handle sprd_sip_svc_handle = {};
@@ -576,6 +595,30 @@ static int sprd_sip_svc_dvfs_debug_init(void)
 	return sprd_sip_remap_err(res.a0);
 }
 
+static int sprd_sip_svc_gpu_get_id(u32 *chip_id, u32 *gpu_bin)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_GPU_GET_ID,
+				0, 0, 0, 0, 0, 0, 0, &res);
+
+	if (chip_id)
+		*chip_id = res.a1;
+	if (gpu_bin)
+		*gpu_bin = res.a2;
+
+	return sprd_sip_remap_err(res.a0);
+}
+static int sprd_sip_svc_gpu_update_voltage_list(u32 is_high_temp)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_GPU_UPDATE_VOLTAGE_LIST,
+				is_high_temp, 0, 0, 0, 0, 0, 0, &res);
+
+	return sprd_sip_remap_err(res.a0);
+}
+
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 static int sprd_sip_svc_storage_ufs_crypto_enable(void)
 {
@@ -756,6 +799,20 @@ static int __init sprd_sip_svc_init(void)
 	pr_notice("SPRD SIP SVC NPU:v%d.%d detected in firmware.\n",
 		  sprd_sip_svc_handle.npu_ops.rev.major_ver,
 		  sprd_sip_svc_handle.npu_ops.rev.minor_ver);
+
+	/* init gpu_ops */
+	arm_smccc_smc(SPRD_SIP_SVC_GPU_REV, 0, 0, 0, 0, 0, 0, 0, &res);
+	sprd_sip_svc_handle.gpu_ops.rev.major_ver = (u32)(res.a0);
+	sprd_sip_svc_handle.gpu_ops.rev.minor_ver = (u32)(res.a1);
+
+	sprd_sip_svc_handle.gpu_ops.get_id =
+				sprd_sip_svc_gpu_get_id;
+	sprd_sip_svc_handle.gpu_ops.update_voltage_list =
+				sprd_sip_svc_gpu_update_voltage_list;
+
+	pr_notice("SPRD SIP SVC GPU:v%d.%d detected in firmware.\n",
+		sprd_sip_svc_handle.gpu_ops.rev.major_ver,
+		sprd_sip_svc_handle.gpu_ops.rev.minor_ver);
 
 	return ret;
 }
