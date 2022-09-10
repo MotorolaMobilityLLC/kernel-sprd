@@ -400,6 +400,11 @@ int sprd_cfg80211_add_key(struct wiphy *wiphy, struct net_device *ndev,
 
 	netdev_info(ndev, "%s key_index=%d, pairwise=%d, key_len=%d\n",
 		    __func__, key_index, pairwise, params->key_len);
+	if (key_index > SPRD_MAX_KEY_INDEX) {
+		netdev_err(ndev, "%s key index %d out of bounds!\n", __func__,
+			   key_index);
+		return -ENOENT;
+	}
 
 	vif->key_index[pairwise] = key_index;
 	vif->key_len[pairwise][key_index] = params->key_len;

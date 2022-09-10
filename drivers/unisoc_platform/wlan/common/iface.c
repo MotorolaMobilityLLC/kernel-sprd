@@ -601,6 +601,7 @@ static int iface_priv_cmd(struct net_device *ndev, void __user *data)
 	u8 feat = 0, status = 0;
 	u8 addr[ETH_ALEN] = { 0 }, *mac_addr = NULL, *tmp, *mac_list;
 	int ret = 0, skip, counter, index;
+	#define MAC_ADDR_STR_LEN strlen("00:11:22:33:44:55")
 
 	if (!data)
 		return -EINVAL;
@@ -625,6 +626,8 @@ static int iface_priv_cmd(struct net_device *ndev, void __user *data)
 	if (!strncasecmp(command, CMD_BLACKLIST_ENABLE,
 			 strlen(CMD_BLACKLIST_ENABLE))) {
 		skip = strlen(CMD_BLACKLIST_ENABLE) + 1;
+		if (priv_cmd.total_len < skip + MAC_ADDR_STR_LEN)
+			goto out;
 		iface_str2mac(command + skip, addr);
 		if (!is_valid_ether_addr(addr))
 			goto out;
@@ -658,6 +661,11 @@ static int iface_priv_cmd(struct net_device *ndev, void __user *data)
 				strlen(CMD_ENABLE_WHITELIST))) {
 		skip = strlen(CMD_ENABLE_WHITELIST) + 1;
 		counter = command[skip];
+		if (counter < 0 || counter > 10) {
+			netdev_err(ndev, "%s: enable whitelist counter is invalid: %d\n",
+				   __func__, counter);
+			goto out;
+		}
 		netdev_info(ndev, "%s: enable whitelist counter : %d\n",
 			    __func__, counter);
 		if (!counter) {
@@ -665,6 +673,8 @@ static int iface_priv_cmd(struct net_device *ndev, void __user *data)
 						 SUBCMD_ENABLE, 0, NULL);
 			goto out;
 		}
+		if (priv_cmd.total_len < skip + counter * (MAC_ADDR_STR_LEN + 1))
+			goto out;
 		mac_addr = kmalloc(ETH_ALEN * counter, GFP_KERNEL);
 		if (!mac_addr) {
 			ret = -ENOMEM;
@@ -691,6 +701,11 @@ static int iface_priv_cmd(struct net_device *ndev, void __user *data)
 				strlen(CMD_DISABLE_WHITELIST))) {
 		skip = strlen(CMD_DISABLE_WHITELIST) + 1;
 		counter = command[skip];
+		if (counter < 0 || counter > 10) {
+			netdev_err(ndev, "%s: disable whitelist counter is invalid: %d\n",
+				   __func__, counter);
+			goto out;
+		}
 		netdev_info(ndev, "%s: disable whitelist counter : %d\n",
 			    __func__, counter);
 		if (!counter) {
@@ -698,6 +713,8 @@ static int iface_priv_cmd(struct net_device *ndev, void __user *data)
 						 SUBCMD_DISABLE, 0, NULL);
 			goto out;
 		}
+		if (priv_cmd.total_len < skip + counter * (MAC_ADDR_STR_LEN + 1))
+			goto out;
 		mac_addr = kmalloc(ETH_ALEN * counter, GFP_KERNEL);
 		if (!mac_addr) {
 			ret = -ENOMEM;
@@ -819,6 +836,8 @@ static int iface_set_power_save(struct net_device *ndev, void __user *data)
 	if (!strncasecmp(command, CMD_SETSUSPENDMODE,
 			 strlen(CMD_SETSUSPENDMODE))) {
 		skip = strlen(CMD_SETSUSPENDMODE) + 1;
+		if (priv_cmd.total_len <= skip)
+			goto out;
 		ret = kstrtoint(command + skip, 0, &value);
 		if (ret)
 			goto out;

@@ -1632,9 +1632,16 @@ static int vendor_set_bssid_hotlist(struct wiphy *wiphy,
 					type = nla_type(inner_iter);
 					switch (type) {
 					case GSCAN_ATTR_CONFIG_AP_THR_BSSID:
-					    memcpy(bssid_hotlist_params->ap[i].bssid,
-						   nla_data(inner_iter),
-						   6 * sizeof(unsigned char));
+						if (nla_len(inner_iter) < 6 * sizeof(unsigned char)) {
+							netdev_err(vif->ndev,
+								"nla_data for networks nla type 0x%x not support\n",
+								type);
+							ret = -EINVAL;
+						} else {
+							memcpy(bssid_hotlist_params->ap[i].bssid,
+								nla_data(inner_iter),
+								6 * sizeof(unsigned char));
+						}
 					break;
 
 					case GSCAN_ATTR_CONFIG_AP_THR_RSSI_LOW:
@@ -1786,9 +1793,16 @@ static int vendor_set_significant_change(struct wiphy *wiphy,
 				type = nla_type(inner_iter);
 				switch (type) {
 				case GSCAN_ATTR_CONFIG_AP_THR_BSSID:
-					memcpy(significant_change_params->ap[i].bssid,
-					       nla_data(inner_iter),
-					       6 * sizeof(unsigned char));
+					if (nla_len(inner_iter) < 6 * sizeof(unsigned char)) {
+						netdev_err(vif->ndev,
+							"nla_data for networks nla type 0x%x not support\n",
+							type);
+						ret = -EINVAL;
+					} else {
+						memcpy(significant_change_params->ap[i].bssid,
+							nla_data(inner_iter),
+							6 * sizeof(unsigned char));
+					}
 				break;
 
 				case GSCAN_ATTR_CONFIG_AP_THR_RSSI_LOW:
@@ -2049,6 +2063,12 @@ static int vendor_set_mac_oui(struct wiphy *wiphy,
 		type = nla_type(pos);
 		switch (type) {
 		case ATTR_SET_SCANNING_MAC_OUI:
+			if (nla_len(pos) < sizeof(struct v_MACADDR_t)) {
+				netdev_err(vif->ndev, "nla_data for nla type 0x%x not support\n",
+					type);
+				ret = -EINVAL;
+				goto out;
+			}
 			memcpy(rand_mac, nla_data(pos), 3);
 			break;
 
@@ -2407,6 +2427,8 @@ static int vendor_set_roam_params(struct wiphy *wiphy,
 			pr_info("black list mac addr:%pM\n",
 				black_params.black_list[i].MAC_addr);
 			i++;
+			if (i >= MAX_BLACK_BSSID)
+				goto fail;
 		}
 		black_params.num_black_bssid = i;
 		/* send black list with roam_params CMD */
@@ -2547,16 +2569,19 @@ static int vendor_set_passpoint_list(struct wiphy *wiphy,
 				     struct wireless_dev *wdev,
 				     const void *data, int len)
 {
-	struct nlattr *tb[GSCAN_ATTR_MAX + 1];
-	struct nlattr *tb2[GSCAN_ATTR_MAX + 1];
+	struct nlattr *tb[GSCAN_ATTR_MAX + 1] = {NULL,};
+	struct nlattr *tb2[GSCAN_ATTR_MAX + 1] = {NULL,};
 	struct nlattr *HS_list;
 	struct sprd_vif *vif = netdev_priv(wdev->netdev);
 	struct wifi_passpoint_network *HS_list_params;
 	int i = 0, rem, flush, ret = 0, tlen, hs_num;
 	struct cmd_gscan_rsp_header rsp;
 	u16 rlen = sizeof(struct cmd_gscan_rsp_header);
+	int maxtype = ARRAY_SIZE(wlan_gscan_config_policy);
 
-	if (nla_parse(tb, GSCAN_ATTR_MAX, data, len,
+	if (maxtype > GSCAN_ATTR_MAX)
+		maxtype = GSCAN_ATTR_MAX;
+	if (nla_parse(tb, maxtype, data, len,
 		      wlan_gscan_config_policy, NULL)) {
 		netdev_info(vif->ndev,
 			    "%s :Fail to parse attribute\n", __func__);
@@ -2613,7 +2638,9 @@ static int vendor_set_passpoint_list(struct wiphy *wiphy,
 
 		HS_list_params->id = nla_get_u32(tb[GSCAN_ATTR_ANQPO_HS_NETWORK_ID]);
 
-		if (!tb2[GSCAN_ATTR_ANQPO_HS_NAI_REALM]) {
+		if (!tb2[GSCAN_ATTR_ANQPO_HS_NAI_REALM] ||
+		    (nla_len(tb2[GSCAN_ATTR_ANQPO_HS_NAI_REALM]) >
+		    sizeof(HS_list_params->realm))) {
 			netdev_info(vif->ndev,
 				    "%s :Fail to parse GSCAN_ATTR_ANQPO_HS_NAI_REALM\n",
 				    __func__);
@@ -2621,9 +2648,12 @@ static int vendor_set_passpoint_list(struct wiphy *wiphy,
 			goto out;
 		}
 		memcpy(HS_list_params->realm,
-		       nla_data(tb2[GSCAN_ATTR_ANQPO_HS_NAI_REALM]), 256);
+		       nla_data(tb2[GSCAN_ATTR_ANQPO_HS_NAI_REALM]),
+		       nla_len(tb2[GSCAN_ATTR_ANQPO_HS_NAI_REALM]));
 
-		if (!tb2[GSCAN_ATTR_ANQPO_HS_ROAM_CONSORTIUM_ID]) {
+		if (!tb2[GSCAN_ATTR_ANQPO_HS_ROAM_CONSORTIUM_ID] ||
+		    (nla_len(tb2[GSCAN_ATTR_ANQPO_HS_ROAM_CONSORTIUM_ID]) >
+		    sizeof(HS_list_params->roaming_ids))) {
 			netdev_info(vif->ndev,
 				    "%s :Fail to parse GSCAN_ATTR_ANQPO_HS_ROAM_CONSORTIUM_ID\n",
 				    __func__);
@@ -2632,9 +2662,12 @@ static int vendor_set_passpoint_list(struct wiphy *wiphy,
 		}
 
 		memcpy(HS_list_params->roaming_ids,
-		       nla_data(tb2[GSCAN_ATTR_ANQPO_HS_ROAM_CONSORTIUM_ID]), 128);
+		       nla_data(tb2[GSCAN_ATTR_ANQPO_HS_ROAM_CONSORTIUM_ID]),
+		       nla_len(tb2[GSCAN_ATTR_ANQPO_HS_ROAM_CONSORTIUM_ID]));
 
-		if (!tb2[GSCAN_ATTR_ANQPO_HS_PLMN]) {
+		if (!tb2[GSCAN_ATTR_ANQPO_HS_PLMN] ||
+		    (nla_len(tb2[GSCAN_ATTR_ANQPO_HS_PLMN]) >
+		    sizeof(HS_list_params->plmn))) {
 			netdev_info(vif->ndev,
 				    "%s :Fail to parse GSCAN_ATTR_ANQPO_HS_PLMN\n",
 				    __func__);
@@ -2642,8 +2675,9 @@ static int vendor_set_passpoint_list(struct wiphy *wiphy,
 			goto out;
 		}
 
-		memcpy(HS_list_params->plmn, nla_data(tb2[GSCAN_ATTR_ANQPO_HS_PLMN]),
-		       3);
+		memcpy(HS_list_params->plmn,
+		       nla_data(tb2[GSCAN_ATTR_ANQPO_HS_PLMN]),
+		       nla_len(tb2[GSCAN_ATTR_ANQPO_HS_PLMN]));
 		i++;
 	}
 
