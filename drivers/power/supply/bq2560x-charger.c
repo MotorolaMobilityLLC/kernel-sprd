@@ -80,6 +80,9 @@
 #define BQ2560X_DISABLE_BATFET_RST_MASK         BIT(2)
 #define BQ2560X_DISABLE_BATFET_RST_SHIFT        2
 
+#define BQ2560X_EN_BATFET_MASK          BIT(5)
+#define BQ2560X_EN_BATFET_SHIFT        5
+
 #define BQ2560X_REG_LIMIT_CURRENT_MASK		GENMASK(4, 0)
 
 #define BQ2560X_DISABLE_PIN_MASK		BIT(0)
@@ -111,7 +114,9 @@ struct bq2560x_charger_sysfs {
 	struct device_attribute attr_bq2560x_lookup_reg;
 	struct device_attribute attr_bq2560x_sel_reg_id;
 	struct device_attribute attr_bq2560x_reg_val;
-	struct attribute *attrs[5];
+	struct device_attribute attr_bq2560x_batfet_val;
+	struct device_attribute attr_bq2560x_hizi_val;
+	struct attribute *attrs[7];
 
 	struct bq2560x_charger_info *info;
 };
@@ -1313,6 +1318,129 @@ static ssize_t bq2560x_register_id_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "Curent register id = %d\n", info->reg_id);
 }
 
+static ssize_t bq2560x_register_batfet_store(struct device *dev,
+					 struct device_attribute *attr,
+					 const char *buf, size_t count)
+{
+	struct bq2560x_charger_sysfs *bq2560x_sysfs =
+		container_of(attr, struct bq2560x_charger_sysfs,
+			     attr_bq2560x_batfet_val);
+	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
+	int ret ;
+	bool batfet;
+
+	if (!info) {
+		dev_err(dev, "%s bq2560x_sysfs->info is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtobool(buf, &batfet);
+	if (ret) {
+		dev_err(info->dev, "batfet fail\n");
+		return count;
+	}
+
+	if(batfet) {
+		ret = bq2560x_update_bits(info, BQ2560X_REG_7,
+				  BQ2560X_EN_BATFET_SHIFT,
+				  0x1 << BQ2560X_DISABLE_BATFET_RST_SHIFT);
+		if (ret)
+			dev_err(info->dev, "enter batfet mode failed\n");
+	}
+	else
+	{
+		ret = bq2560x_update_bits(info, BQ2560X_REG_7,
+				  BQ2560X_EN_BATFET_SHIFT,0);
+		if (ret)
+			dev_err(info->dev, "exit batfet mode failed\n");
+	}
+
+	return count;
+}
+
+static ssize_t bq2560x_register_batfet_show(struct device *dev,
+					struct device_attribute *attr,
+					char *buf)
+{
+	u8 batfet , value;
+	int ret;
+	struct bq2560x_charger_sysfs *bq2560x_sysfs =
+		container_of(attr, struct bq2560x_charger_sysfs,
+			     attr_bq2560x_batfet_val);
+	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
+
+	if (!info)
+		return snprintf(buf, PAGE_SIZE, "%s bq2560x_sysfs->info is null\n", __func__);
+
+	ret = bq2560x_read(info, BQ2560X_REG_7, &batfet);
+	value = (batfet & BQ2560X_EN_BATFET_MASK) >> BQ2560X_EN_BATFET_SHIFT;
+	return sprintf(buf, "%d\n", value);
+}
+
+static ssize_t bq2560x_register_hizi_store(struct device *dev,
+					 struct device_attribute *attr,
+					 const char *buf, size_t count)
+{
+	struct bq2560x_charger_sysfs *bq2560x_sysfs =
+		container_of(attr, struct bq2560x_charger_sysfs,
+			     attr_bq2560x_hizi_val);
+	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
+	int ret ;
+	bool batfet;
+
+	if (!info) {
+		dev_err(dev, "%s bq2560x_sysfs->info is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtobool(buf, &batfet);
+	if (ret) {
+		dev_err(info->dev, "hizi_store fail\n");
+		return count;
+	}
+
+	if(batfet) {
+		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+						  BQ2560X_REG_EN_HIZ_MASK,
+						  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
+		if (ret)
+			dev_err(info->dev, "enable HIZ mode failed\n");
+	}
+	else
+	{
+		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+			BQ2560X_REG_EN_HIZ_MASK, 0);
+		if (ret)
+			dev_err(info->dev, "exit HIZ mode failed\n");
+	}
+
+	return count;
+}
+
+static ssize_t bq2560x_register_hizi_show(struct device *dev,
+					struct device_attribute *attr,
+					char *buf)
+{
+	u8 batfet , value ;
+	int ret;
+	struct bq2560x_charger_sysfs *bq2560x_sysfs =
+		container_of(attr, struct bq2560x_charger_sysfs,
+			     attr_bq2560x_hizi_val);
+	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
+
+	if (!info)
+		return snprintf(buf, PAGE_SIZE, "%s bq2560x_sysfs->info is null\n", __func__);
+
+	ret = bq2560x_read(info, BQ2560X_REG_0, &batfet);
+	if (ret < 0) {
+		dev_err(info->dev, "Fail to get power path status, ret = %d\n", ret);
+	}
+	value = (batfet & BQ2560X_REG_EN_HIZ_MASK) >> BQ2560X_REG_EN_HIZ_SHIFT;
+	return sprintf(buf, "%d\n", value);
+}
+
+
+
 static ssize_t bq2560x_register_table_show(struct device *dev,
 					   struct device_attribute *attr,
 					   char *buf)
@@ -1375,7 +1503,9 @@ static int bq2560x_register_sysfs(struct bq2560x_charger_info *info)
 	bq2560x_sysfs->attrs[1] = &bq2560x_sysfs->attr_bq2560x_lookup_reg.attr;
 	bq2560x_sysfs->attrs[2] = &bq2560x_sysfs->attr_bq2560x_sel_reg_id.attr;
 	bq2560x_sysfs->attrs[3] = &bq2560x_sysfs->attr_bq2560x_reg_val.attr;
-	bq2560x_sysfs->attrs[4] = NULL;
+	bq2560x_sysfs->attrs[4] = &bq2560x_sysfs->attr_bq2560x_batfet_val.attr;
+	bq2560x_sysfs->attrs[5] = &bq2560x_sysfs->attr_bq2560x_hizi_val.attr;
+	bq2560x_sysfs->attrs[6] = NULL;
 	bq2560x_sysfs->attr_g.name = "debug";
 	bq2560x_sysfs->attr_g.attrs = bq2560x_sysfs->attrs;
 
@@ -1394,6 +1524,18 @@ static int bq2560x_register_sysfs(struct bq2560x_charger_info *info)
 	bq2560x_sysfs->attr_bq2560x_sel_reg_id.attr.mode = 0644;
 	bq2560x_sysfs->attr_bq2560x_sel_reg_id.show = bq2560x_register_id_show;
 	bq2560x_sysfs->attr_bq2560x_sel_reg_id.store = bq2560x_register_id_store;
+
+	sysfs_attr_init(&bq2560x_sysfs->attr_bq2560x_batfet_val.attr);
+	bq2560x_sysfs->attr_bq2560x_batfet_val.attr.name = "charger_batfet_val";
+	bq2560x_sysfs->attr_bq2560x_batfet_val.attr.mode = 0644;
+	bq2560x_sysfs->attr_bq2560x_batfet_val.show = bq2560x_register_batfet_show;
+	bq2560x_sysfs->attr_bq2560x_batfet_val.store = bq2560x_register_batfet_store;
+
+	sysfs_attr_init(&bq2560x_sysfs->attr_bq2560x_hizi_val.attr);
+	bq2560x_sysfs->attr_bq2560x_hizi_val.attr.name = "charger_hizi_val";
+	bq2560x_sysfs->attr_bq2560x_hizi_val.attr.mode = 0644;
+	bq2560x_sysfs->attr_bq2560x_hizi_val.show = bq2560x_register_hizi_show;
+	bq2560x_sysfs->attr_bq2560x_hizi_val.store = bq2560x_register_hizi_store;
 
 	sysfs_attr_init(&bq2560x_sysfs->attr_bq2560x_reg_val.attr);
 	bq2560x_sysfs->attr_bq2560x_reg_val.attr.name = "bq2560x_reg_val";

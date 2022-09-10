@@ -87,6 +87,9 @@
 #define SGM41513_REG_EN_HIZ_MASK			GENMASK(7, 7)
 #define SGM41513_REG_EN_HIZ_SHIFT		7
 
+#define SGM41513_REG_EN_BATFET_MASK                     GENMASK(5, 5)
+#define SGM41513_REG_EN_BATFET_SHIFT            5
+
 #define SGM41513_REG_LIMIT_CURRENT_MASK		GENMASK(4, 0)
 
 /* HS03 code for SR-SL6215-01-178 Import multi-charger driver patch of SPCSS00872701 by gaochao at 20210720 start */
@@ -136,7 +139,9 @@ struct sgm41513_charger_sysfs {
 	struct device_attribute attr_sgm41513_lookup_reg;
 	struct device_attribute attr_sgm41513_sel_reg_id;
 	struct device_attribute attr_sgm41513_reg_val;
-	struct attribute *attrs[5];
+	struct device_attribute attr_sgm41513_batfet_val;
+	struct device_attribute attr_sgm41513_hizi_val;
+	struct attribute *attrs[7];
 
 	struct sgm41513_charger_info *info;
 };
@@ -1680,6 +1685,111 @@ static ssize_t sgm41513_register_id_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "Curent register id = %d\n", info->reg_id);
 }
 
+static ssize_t sgm41513_register_batfet_store(struct device *dev,
+					 struct device_attribute *attr,
+					 const char *buf, size_t count)
+{
+	struct sgm41513_charger_sysfs *sgm41513_sysfs =
+		container_of(attr, struct sgm41513_charger_sysfs,
+			     attr_sgm41513_batfet_val);
+	struct sgm41513_charger_info *info = sgm41513_sysfs->info;
+	int ret;
+	bool batfet;
+
+	if (!info) {
+		dev_err(dev, "%s sgm41513_sysfs->info is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtobool(buf, &batfet);
+	if (ret) {
+		dev_err(info->dev, "batfet fail\n");
+		return count;
+	}
+
+	if(batfet) {
+		ret = sgm41513_update_bits(info, SGM41513_REG_7,SGM41513_REG_EN_BATFET_MASK, 0x1 << SGM41513_REG_EN_BATFET_SHIFT);
+		if (ret)
+			dev_err(info->dev, "enter batfet mode failed\n");
+	}
+	else
+	{
+		ret = sgm41513_update_bits(info, SGM41513_REG_7, SGM41513_REG_EN_BATFET_MASK, 0);
+		if (ret)
+			dev_err(info->dev, "exit batfet mode failed\n");
+	}
+	return count;
+}
+
+static ssize_t sgm41513_register_batfet_show(struct device *dev,
+					struct device_attribute *attr,
+					char *buf)
+{	u8 batfet , value;
+	int ret;
+	struct sgm41513_charger_sysfs *sgm41513_sysfs =
+		container_of(attr, struct sgm41513_charger_sysfs,
+			     attr_sgm41513_batfet_val);
+	struct sgm41513_charger_info *info = sgm41513_sysfs->info;
+
+	if (!info)
+		return snprintf(buf, PAGE_SIZE, "%s sgm41513_sysfs->info is null\n", __func__);
+	ret = sgm41513_read(info, SGM41513_REG_7, &batfet);
+	value = (batfet & SGM41513_REG_EN_BATFET_MASK) >> SGM41513_REG_EN_BATFET_SHIFT;
+	return sprintf(buf, "%d\n", value);
+}
+
+static ssize_t sgm41513_register_hizi_store(struct device *dev,
+					 struct device_attribute *attr,
+					 const char *buf, size_t count)
+{
+	struct sgm41513_charger_sysfs *sgm41513_sysfs =
+		container_of(attr, struct sgm41513_charger_sysfs,
+			     attr_sgm41513_hizi_val);
+	struct sgm41513_charger_info *info = sgm41513_sysfs->info;
+	int ret;
+	bool batfet;
+
+	if (!info) {
+		dev_err(dev, "%s sgm41513_sysfs->info is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtobool(buf, &batfet);
+	if (ret) {
+		dev_err(info->dev, "hizi_store fail\n");
+		return count;
+	}
+
+	if(batfet) {
+		ret = sgm41513_update_bits(info, SGM41513_REG_0,SGM41513_REG_EN_HIZ_MASK, 0x1 << SGM41513_REG_EN_HIZ_SHIFT);
+		if (ret)
+			dev_err(info->dev, "enter HIZ mode failed\n");
+	}
+	else
+	{
+		ret = sgm41513_update_bits(info, SGM41513_REG_0, SGM41513_REG_EN_HIZ_MASK, 0);
+		if (ret)
+			dev_err(info->dev, "exit HIZ mode failed\n");
+	}
+	return count;
+}
+
+static ssize_t sgm41513_register_hizi_show(struct device *dev,
+					struct device_attribute *attr,
+					char *buf)
+{	u8 batfet , value;
+	int ret;
+	struct sgm41513_charger_sysfs *sgm41513_sysfs =
+		container_of(attr, struct sgm41513_charger_sysfs,
+			     attr_sgm41513_hizi_val);
+	struct sgm41513_charger_info *info = sgm41513_sysfs->info;
+
+	if (!info)
+		return snprintf(buf, PAGE_SIZE, "%s sgm41513_sysfs->info is null\n", __func__);
+	ret = sgm41513_read(info, SGM41513_REG_0, &batfet);
+	value = (batfet & SGM41513_REG_EN_HIZ_MASK) >> SGM41513_REG_EN_HIZ_SHIFT;
+	return sprintf(buf, "%d\n", value);
+}
 static ssize_t sgm41513_register_table_show(struct device *dev,
 					   struct device_attribute *attr,
 					   char *buf)
@@ -1742,7 +1852,9 @@ static int sgm41513_register_sysfs(struct sgm41513_charger_info *info)
 	sgm41513_sysfs->attrs[1] = &sgm41513_sysfs->attr_sgm41513_lookup_reg.attr;
 	sgm41513_sysfs->attrs[2] = &sgm41513_sysfs->attr_sgm41513_sel_reg_id.attr;
 	sgm41513_sysfs->attrs[3] = &sgm41513_sysfs->attr_sgm41513_reg_val.attr;
-	sgm41513_sysfs->attrs[4] = NULL;
+	sgm41513_sysfs->attrs[4] = &sgm41513_sysfs->attr_sgm41513_batfet_val.attr;
+	sgm41513_sysfs->attrs[5] = &sgm41513_sysfs->attr_sgm41513_hizi_val.attr;
+	sgm41513_sysfs->attrs[6] = NULL;
 	sgm41513_sysfs->attr_g.name = "debug";
 	sgm41513_sysfs->attr_g.attrs = sgm41513_sysfs->attrs;
 
@@ -1767,6 +1879,18 @@ static int sgm41513_register_sysfs(struct sgm41513_charger_info *info)
 	sgm41513_sysfs->attr_sgm41513_reg_val.attr.mode = 0644;
 	sgm41513_sysfs->attr_sgm41513_reg_val.show = sgm41513_register_value_show;
 	sgm41513_sysfs->attr_sgm41513_reg_val.store = sgm41513_register_value_store;
+
+	sysfs_attr_init(&sgm41513_sysfs->attr_sgm41513_batfet_val.attr);
+        sgm41513_sysfs->attr_sgm41513_batfet_val.attr.name = "charger_batfet_val";
+        sgm41513_sysfs->attr_sgm41513_batfet_val.attr.mode = 0644;
+        sgm41513_sysfs->attr_sgm41513_batfet_val.show = sgm41513_register_batfet_show;
+        sgm41513_sysfs->attr_sgm41513_batfet_val.store = sgm41513_register_batfet_store;
+
+	sysfs_attr_init(&sgm41513_sysfs->attr_sgm41513_batfet_val.attr);
+        sgm41513_sysfs->attr_sgm41513_hizi_val.attr.name = "charger_hizi_val";
+        sgm41513_sysfs->attr_sgm41513_hizi_val.attr.mode = 0644;
+        sgm41513_sysfs->attr_sgm41513_hizi_val.show = sgm41513_register_hizi_show;
+        sgm41513_sysfs->attr_sgm41513_hizi_val.store = sgm41513_register_hizi_store;
 
 	ret = sysfs_create_group(&info->psy_usb->dev.kobj, &sgm41513_sysfs->attr_g);
 	if (ret < 0)
