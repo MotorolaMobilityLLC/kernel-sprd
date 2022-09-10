@@ -18805,6 +18805,15 @@ CONFIG_UNISOC_MODEM_LOADER
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_UNISOC_MODEM_LOADER_RAM_VMAP
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_UNISOC_SIPC_VIRT_BUS
 	[arch] all
 	[plat] all
