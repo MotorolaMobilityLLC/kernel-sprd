@@ -265,7 +265,8 @@ struct charger_sysfs_ctl_item {
 	struct device_attribute attr_enable_power_path;
 	struct device_attribute attr_keep_awake;
 	struct device_attribute attr_support_fast_charge;
-	struct attribute *attrs[10];
+	struct device_attribute attr_capacity_control;
+	struct attribute *attrs[11];
 
 	struct charger_manager *cm;
 };
@@ -667,6 +668,8 @@ struct charger_desc {
 
 	bool jeita_disabled;
 	int force_jeita_status;
+
+	bool capacity_control_enabel;
 
 	int temperature;
 

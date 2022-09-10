@@ -4239,6 +4239,7 @@ out:
 	return 0;
 }
 
+static void cm_get_uisoc(struct charger_manager *cm, int *uisoc);
 /**
  * cm_get_target_status - Check current status and get next target status.
  * @cm: the Charger Manager representing the battery.
@@ -4246,6 +4247,7 @@ out:
 static int cm_get_target_status(struct charger_manager *cm)
 {
 	int ret;
+	int uisoc=0;
 
 	/*
 	 * Adjust the charging current according to current battery
@@ -4288,6 +4290,14 @@ static int cm_get_target_status(struct charger_manager *cm)
 	if (cm->charging_status & CM_CHARGE_DURATION_ABNORMAL) {
 		dev_warn(cm->dev, "Charging duration is still abnormal\n");
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
+	}
+
+	cm_get_uisoc(cm, &uisoc);
+	if (cm->desc->jeita_disabled) {
+		if (cm->charging_status & (uisoc > 65)) {
+			dev_warn(cm->dev, "capacity conrtol is enable\n");
+			return POWER_SUPPLY_STATUS_NOT_CHARGING;
+		}
 	}
 
 	if (is_full_charged(cm))
@@ -5602,6 +5612,59 @@ static ssize_t jeita_control_store(struct device *dev,
 	return count;
 }
 
+static ssize_t capacity_control_show(struct device *dev,  struct device_attribute *attr, char *buf)
+{
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_capacity_control);
+	struct charger_desc *desc;
+
+	pr_err("%s:line%d: lys!!!\n", __func__, __LINE__);
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	desc = sysfs->cm->desc;
+	if (!desc) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	return sprintf(buf, "%d\n", desc->capacity_control_enabel);
+}
+
+static ssize_t capacity_control_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count)
+{
+	int ret;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_capacity_control);
+	struct charger_desc *desc;
+	bool enabled;
+
+	pr_err("%s:line%d: lys!!!\n", __func__, __LINE__);
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	desc = sysfs->cm->desc;
+	if (!desc) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	ret =  kstrtobool(buf, &enabled);
+	if (ret)
+		return ret;
+
+	desc->capacity_control_enabel = enabled;
+
+	return count;
+}
+
+
 static ssize_t
 charge_pump_present_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -6103,7 +6166,8 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		sysfs->attrs[6] = &sysfs->attr_enable_power_path.attr;
 		sysfs->attrs[7] = &sysfs->attr_keep_awake.attr;
 		sysfs->attrs[8] = &sysfs->attr_support_fast_charge.attr;
-		sysfs->attrs[9] = NULL;
+		sysfs->attrs[9] = &sysfs->attr_capacity_control.attr;
+		sysfs->attrs[10] = NULL;
 
 		sysfs->attr_grp.name = name;
 		sysfs->attr_grp.attrs = sysfs->attrs;
@@ -6155,6 +6219,12 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		sysfs->attr_support_fast_charge.attr.mode = 0444;
 		sysfs->attr_support_fast_charge.show = support_fast_charge_show;
 
+		sysfs_attr_init(&sysfs->attr_capacity_control.attr);
+		sysfs->attr_capacity_control.attr.name = "capacity_control";
+		sysfs->attr_capacity_control.attr.mode = 0644;
+		sysfs->attr_capacity_control.show = capacity_control_show;
+		sysfs->attr_capacity_control.store = capacity_control_store;
+
 		sysfs_attr_init(&sysfs->attr_externally_control.attr);
 		sysfs->attr_externally_control.attr.name = "externally_control";
 		sysfs->attr_externally_control.attr.mode = 0644;
@@ -6162,6 +6232,7 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 				= charger_externally_control_show;
 		sysfs->attr_externally_control.store
 				= charger_externally_control_store;
+
 
 		if (!desc->sysfs[i].externally_control || !chargers_externally_control)
 			chargers_externally_control = 0;
