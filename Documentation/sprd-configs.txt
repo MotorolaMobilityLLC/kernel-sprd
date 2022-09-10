@@ -16670,8 +16670,8 @@ CONFIG_SPRD_AUTOTEST
 	[missing plat description] none
 	[function] Support Spreadtrum autotest
 CONFIG_SPRD_AUTOTEST_GPIO
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] menu,make
 	[subsys] soc
@@ -16679,8 +16679,8 @@ CONFIG_SPRD_AUTOTEST_GPIO
 	[missing plat description] none
 	[function] Spreadtrum gpio autotest support
 CONFIG_SPRD_AUTOTEST_PINCTRL
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] menu,make,code
 	[subsys] soc
