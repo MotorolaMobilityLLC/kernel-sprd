@@ -471,8 +471,8 @@ static void __add_cpu_stat_log(struct sprd_cpu_stat *cpu)
 	sprd_cpu_log(false, " 100.00%% |");
 	sprd_cpu_log(false, " %15llu", cpu->nr_switches);
 #ifdef CONFIG_VM_EVENT_COUNTERS
-	sprd_cpu_log(false, " %15llu", cpu->nr_pgfault);
-	sprd_cpu_log(false, " %15llu", cpu->nr_pgmajfault);
+	sprd_cpu_log(false, " %15lu", cpu->nr_pgfault);
+	sprd_cpu_log(false, " %15lu", cpu->nr_pgmajfault);
 #endif
 }
 

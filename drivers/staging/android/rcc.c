@@ -38,7 +38,7 @@ static inline unsigned long elapsed_jiffies(unsigned long start)
 
 static bool is_swap_full(int max_percent)
 {
-	struct sysinfo si;
+	struct sysinfo si = {0};
 
 	si_swapinfo(&si);
 	if (si.totalswap == 0)

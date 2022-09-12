@@ -198,17 +198,17 @@
 			ranges;
 
 			mm_domain: mm-domain {
-				compatible = "sprd,mm-domain";
 				syscon-names = "force_shutdown",
 					"shutdown_en",
 					"power_state",
 					"qos_ar",
 					"qos_aw";
-				syscons = <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>,
-					<&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN>,
-					<&pmu_apb_regs REG_PMU_APB_PWR_STATUS3_DBG MASK_PMU_APB_PD_MM_TOP_STATE>,
-					<&mm_ahb_regs REG_MM_AHB_MM_QOS MASK_MM_AHB_AR_QOS_THRESHOLD_MM>,
-					<&mm_ahb_regs REG_MM_AHB_MM_QOS MASK_MM_AHB_AW_QOS_THRESHOLD_MM>;
+				compatible = "sprd,sharkl5-camsys-domain";
+				force_shutdown = <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_FORCE_SHUTDOWN>;
+				shutdown_en = <&pmu_apb_regs REG_PMU_APB_PD_MM_TOP_CFG MASK_PMU_APB_PD_MM_TOP_AUTO_SHUTDOWN_EN>;
+				power_state = <&pmu_apb_regs REG_PMU_APB_PWR_STATUS3_DBG MASK_PMU_APB_PD_MM_TOP_STATE>;
+				qos_ar = <&mm_ahb_regs REG_MM_AHB_MM_QOS MASK_MM_AHB_AR_QOS_THRESHOLD_MM>;
+				qos_aw = <&mm_ahb_regs REG_MM_AHB_MM_QOS MASK_MM_AHB_AW_QOS_THRESHOLD_MM>;
 				clock-names = "mm_eb",
 					"mm_ahb_eb",
 					"clk_mm_ahb",
@@ -224,6 +224,8 @@
 					<&mm_clk CLK_MM_MTX>,
 					<&pll2 CLK_ISPPLL_468M>;
 				mm_qos_threshold = <&mm_qos_threshold>;
+				#power-domain-cells = <0>;
+				status = "okay";
 			};
 
 			mipi_csi_phy: mipi-csi-phy {
@@ -233,17 +235,11 @@
 				status = "disabled";
 
 				csi_phy0: phy@0 {
-					syscons = <&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CSI_4L_ISO_SW
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CSI_ISO_SW_EN>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CTRL_CSI_4L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CSI_PS_PD_S>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CTRL_CSI_4L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CSI_PS_PD_L>;
-					syscon-names = "iso_sw_en", "ps_pd_s",
-							"ps_pd_l";
+					#syscon-cells = <2>;
+					iso_sw_en = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CSI_4L_ISO_SW MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CSI_ISO_SW_EN>;
+					ps_pd_s = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CTRL_CSI_4L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CSI_PS_PD_S>;
+					ps_pd_l = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CTRL_CSI_4L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_4LANE_CSI_PS_PD_L>;
+					syscon-names = "iso_sw_en", "ps_pd_s", "ps_pd_l";
 					reg = <0>;
 					sprd,project-id = <0>;
 					sprd,phyname = "4lane";
@@ -252,20 +248,12 @@
 				};
 
 				csi_phy1: phy@1 {
-					syscons = <&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2L_ISO_SW
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_ISO_SW_EN>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
-					syscon-names = "iso_sw_en", "csi_mode_sel",
-							"ps_pd_l", "ps_pd_s";
+					#syscon-cells = <2>;
+					iso_sw_en = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2L_ISO_SW MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_ISO_SW_EN>;
+					csi_mode_sel = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>;
+					ps_pd_l = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>;
+					ps_pd_s = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
+					syscon-names = "iso_sw_en", "csi_mode_sel", "ps_pd_l", "ps_pd_s";
 					reg = <1>;
 					sprd,project-id = <0>;
 					sprd,phyname = "2p2";
@@ -274,17 +262,11 @@
 				};
 
 				csi_phy2: phy@2 {
-					syscons = <&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CSI_2L_ISO_SW
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CSI_ISO_SW_EN>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CTRL_CSI_2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CSI_PS_PD_S>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CTRL_CSI_2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CSI_PS_PD_L>;
-					syscon-names = "iso_sw_en", "ps_pd_s",
-							"ps_pd_l";
+					#syscon-cells = <2>;
+					iso_sw_en = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CSI_2L_ISO_SW MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CSI_ISO_SW_EN>;
+					ps_pd_s = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CTRL_CSI_2L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CSI_PS_PD_S>;
+					ps_pd_l = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CTRL_CSI_2L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2LANE_CSI_PS_PD_L>;
+					syscon-names = "iso_sw_en", "ps_pd_s", "ps_pd_l";
 					reg = <2>;
 					sprd,project-id = <0>;
 					sprd,phyname = "2lane";
@@ -293,20 +275,12 @@
 				};
 
 				csi_phy3: phy@3 {
-					syscons = <&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2L_ISO_SW
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_ISO_SW_EN>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
-					syscon-names = "iso_sw_en", "csi_mode_sel",
-							"ps_pd_l", "ps_pd_s";
+					#syscon-cells = <2>;
+					iso_sw_en = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2L_ISO_SW MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_ISO_SW_EN>;
+					csi_mode_sel = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>;
+					ps_pd_l = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>;
+					ps_pd_s = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
+					syscon-names = "iso_sw_en", "csi_mode_sel", "ps_pd_l", "ps_pd_s";
 					reg = <3>;
 					sprd,project-id = <0>;
 					sprd,phyname = "2p2_m";
@@ -315,20 +289,12 @@
 				};
 
 				csi_phy4: phy@4 {
-					syscons = <&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2L_ISO_SW
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_ISO_SW_EN>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>,
-						<&anlg_phy_g10_regs
-							REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L
-							MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
-					syscon-names = "iso_sw_en", "csi_mode_sel",
-							"ps_pd_l", "ps_pd_s";
+					#syscon-cells = <2>;
+					iso_sw_en = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_2L_ISO_SW MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_ISO_SW_EN>;
+					csi_mode_sel = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_MODE_SEL>;
+					ps_pd_l = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_L>;
+					ps_pd_s = <&anlg_phy_g10_regs REG_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CTRL_CSI_2P2L MASK_ANLG_PHY_G10_ANALOG_MIPI_CSI_2P2LANE_CSI_PS_PD_S>;
+					syscon-names = "iso_sw_en", "csi_mode_sel", "ps_pd_l", "ps_pd_s";
 					reg = <4>;
 					sprd,project-id = <0>;
 					sprd,phyname = "2p2_s";
@@ -406,6 +372,7 @@
 			};
 
 			isp: isp@62000000 {
+				#syscon-cells = <2>;
 				compatible = "sprd,isp";
 				reg = <0 0x62000000 0 0x100000>;
 				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>,
@@ -427,14 +394,12 @@
 					<&pll2 CLK_TWPLL_384M>,
 					<&pll2 CLK_ISPPLL_468M>,
 					<&pll2 CLK_ISPPLL_468M>;
-				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_ISP_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_ISP_AHB_SOFT_RST>;
-				syscon-names = "reset",
-						"isp_ahb_reset";
+				reset = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_SOFT_RST>;
+				isp_ahb_reset = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_ISP_AHB_SOFT_RST>;
+				syscon-names = "reset", "isp_ahb_reset";
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp-count = <1>;
+				power-domains = <&mm_domain>;
 				iommus = <&iommu_isp>;
 				isp_qos = <&isp_qos>;
 				status = "disabled";
@@ -454,28 +419,25 @@
 			};
 
 			csi0: csi@62300000 {
+				#syscon-cells = <2>;
 				compatible = "sprd,csi-regs0";
 				reg = <0 0x62300000 0 0x1000>;
 				interrupts = <GIC_SPI 45 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 46 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 47 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 48 IRQ_TYPE_LEVEL_HIGH>;
-				syscons = <&mm_ahb_regs
-						REG_MM_AHB_MIPI_CSI_SEL_CTRL
-						(MASK_MM_AHB_MIPI_CSI_DPHY_C0_SEL0 |
-						MASK_MM_AHB_MIPI_CSI_DPHY_C0_SEL1)>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_EB MASK_MM_AHB_CSI0_EB>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_MIPI_CSI0_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_MIPI_CSI0_CKG_EN>,
-					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>,
-					<&aon_apb_regs REG_AON_APB_CGM_CLK_TOP_REG1 MASK_AON_APB_CGM_CPHY_CFG_EN>;
+				csi_dhpy_c_sel = <&mm_ahb_regs REG_MM_AHB_MIPI_CSI_SEL_CTRL (MASK_MM_AHB_MIPI_CSI_DPHY_C0_SEL0 | MASK_MM_AHB_MIPI_CSI_DPHY_C0_SEL1)>;
+				csi_eb = <&mm_ahb_regs REG_MM_AHB_AHB_EB MASK_MM_AHB_CSI0_EB>;
+				csi_rst = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_MIPI_CSI0_SOFT_RST>;
+				csi_ckg_en = <&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_MIPI_CSI0_CKG_EN>;
+				cphy_ckg_en = <&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>;
+				cphy_cfg_en = <&aon_apb_regs REG_AON_APB_CGM_CLK_TOP_REG1 MASK_AON_APB_CGM_CPHY_CFG_EN>;
 				syscon-names = "csi_dhpy_c_sel",
 					"csi_eb",
 					"csi_rst",
 					"csi_ckg_en",
 					"cphy_ckg_en",
 					"cphy_cfg_en";
-
 				clock-names = "csi_eb",
 					"mipi_csi_eb",
 					"mipi_csi_src",
@@ -492,26 +454,25 @@
 				       <&pll2 CLK_TWPLL_192M>;
 				sprd,csi-id = <0>;
 				sprd,dcam-id = <0>;
+				power-domains = <&mm_domain>;
 				sprd,ip-version = <0x200>;
 				status = "disable";
 			};
 
 			csi1: csi@62400000 {
+				#syscon-cells = <2>;
 				compatible = "sprd,csi-regs1";
 				reg = <0 0x62400000 0 0x1000>;
 				interrupts = <GIC_SPI 49 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 50 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 52 IRQ_TYPE_LEVEL_HIGH>;
-				syscons = <&mm_ahb_regs
-						REG_MM_AHB_MIPI_CSI_SEL_CTRL
-						(MASK_MM_AHB_MIPI_CSI_DPHY_C1_SEL0
-						| MASK_MM_AHB_MIPI_CSI_DPHY_C1_SEL1)>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_EB MASK_MM_AHB_CSI1_EB>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_MIPI_CSI1_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_MIPI_CSI1_CKG_EN>,
-					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>,
-					<&aon_apb_regs REG_AON_APB_CGM_CLK_TOP_REG1 MASK_AON_APB_CGM_CPHY_CFG_EN>;
+				csi_dhpy_c_sel = <&mm_ahb_regs REG_MM_AHB_MIPI_CSI_SEL_CTRL (MASK_MM_AHB_MIPI_CSI_DPHY_C1_SEL0 | MASK_MM_AHB_MIPI_CSI_DPHY_C1_SEL1)>;
+				csi_eb = <&mm_ahb_regs REG_MM_AHB_AHB_EB MASK_MM_AHB_CSI1_EB>;
+				csi_rst = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_MIPI_CSI1_SOFT_RST>;
+				csi_ckg_en = <&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_MIPI_CSI1_CKG_EN>;
+				cphy_ckg_en = <&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>;
+				cphy_cfg_en = <&aon_apb_regs REG_AON_APB_CGM_CLK_TOP_REG1 MASK_AON_APB_CGM_CPHY_CFG_EN>;
 				syscon-names = "csi_dhpy_c_sel",
 					"csi_eb",
 					"csi_rst",
@@ -534,24 +495,25 @@
 				       <&pll2 CLK_TWPLL_192M>;
 				sprd,csi-id = <1>;
 				sprd,dcam-id = <1>;
+				power-domains = <&mm_domain>;
 				sprd,ip-version = <0x200>;
 				status = "disable";
 			};
 
 			csi2: csi@62500000 {
+				#syscon-cells = <2>;
 				compatible = "sprd,csi-regs2";
 				reg = <0 0x62500000 0 0x1000>;
 				interrupts = <GIC_SPI 53 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 54 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>;
-				syscons = <&mm_ahb_regs REG_MM_AHB_MIPI_CSI_SEL_CTRL
-						MASK_MM_AHB_MIPI_CSI_DPHY_C2_SEL0>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_EB MASK_MM_AHB_CSI2_EB>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_MIPI_CSI2_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_MIPI_CSI2_CKG_EN>,
-					<&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>,
-					<&aon_apb_regs REG_AON_APB_CGM_CLK_TOP_REG1 MASK_AON_APB_CGM_CPHY_CFG_EN>;
+				csi_dhpy_c_sel = <&mm_ahb_regs REG_MM_AHB_MIPI_CSI_SEL_CTRL MASK_MM_AHB_MIPI_CSI_DPHY_C2_SEL0>;
+				csi_eb = <&mm_ahb_regs REG_MM_AHB_AHB_EB MASK_MM_AHB_CSI2_EB>;
+				csi_rst = <&mm_ahb_regs REG_MM_AHB_AHB_RST MASK_MM_AHB_MIPI_CSI2_SOFT_RST>;
+				csi_ckg_en = <&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_MIPI_CSI2_CKG_EN>;
+				cphy_ckg_en = <&mm_ahb_regs REG_MM_AHB_GEN_CLK_CFG MASK_MM_AHB_CPHY_CFG_CKG_EN>;
+				cphy_cfg_en = <&aon_apb_regs REG_AON_APB_CGM_CLK_TOP_REG1 MASK_AON_APB_CGM_CPHY_CFG_EN>;
 				syscon-names = "csi_dhpy_c_sel",
 					"csi_eb",
 					"csi_rst",
@@ -574,6 +536,7 @@
 				       <&pll2 CLK_TWPLL_192M>;
 				sprd,csi-id = <2>;
 				sprd,dcam-id = <2>;
+				power-domains = <&mm_domain>;
 				sprd,ip-version = <0x200>;
 				status = "disable";
 			};
@@ -636,6 +599,7 @@
 			};
 
 			dcam: dcam@62900000 {
+				#syscon-cells = <2>;
 				compatible = "sprd,sharkl5-cam";
 				reg = <0 0x62900000 0 0x1000>,
 					<0 0x62901000 0 0x1000>,
@@ -679,13 +643,13 @@
 					<&pll2 CLK_TWPLL_307M2>,
 					<&pll2 CLK_TWPLL_384M>,
 					<&pll2 CLK_TWPLL_384M>;
-				syscons = <&mm_ahb_regs REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_DCAM_ALL_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_DCAM0_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST
-					MASK_MM_AHB_DCAM1_SOFT_RST>,
-					<&mm_ahb_regs REG_MM_AHB_AHB_RST
+				dcam_all_reset = <&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM_ALL_SOFT_RST>;
+				dcam0_reset = <&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM0_SOFT_RST>;
+				dcam1_reset = <&mm_ahb_regs REG_MM_AHB_AHB_RST
+					MASK_MM_AHB_DCAM1_SOFT_RST>;
+				dcam2_reset = <&mm_ahb_regs REG_MM_AHB_AHB_RST
 					MASK_MM_AHB_DCAM2_SOFT_RST>;
 				syscon-names = "dcam_all_reset",
 						"dcam0_reset",
@@ -694,6 +658,7 @@
 				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				sprd,isp = <&isp>;
 				sprd,dcam-count = <3>;
+				power-domains = <&mm_domain>;
 				iommus = <&iommu_dcam>;
 				sprd,project-id = <1>;
 				dcam_qos = <&dcam_qos>;
@@ -1994,6 +1959,8 @@
 				sprd,syscon-enable = <&aon_apb_regs>;
 				sprd,syscon-anag2 = <&anlg_phy_g2_regs>;
 				sprd,vdd-voltage = <3300000>;
+				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
+				io-channel-names = "dp", "dm";
 				#phy-cells = <0>;
 			};
 

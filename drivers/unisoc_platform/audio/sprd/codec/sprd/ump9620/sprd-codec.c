@@ -4677,10 +4677,10 @@ static int sprd_codec_add0_data_sel_put(struct snd_kcontrol *kcontrol,
 		sp_asoc_pr_info("%s using MIC12 for default\n", __func__);
 	}
 
-	sci_adi_set(ANA_REG_GLB_ADD0_DATA_SEL, val);
+	sci_adi_write(ANA_REG_GLB_ADD0_DATA_SEL, val, ADD0_DATA_SEL_MASK);
 
-	sp_asoc_pr_info("add0 data type %s\n",
-			add0_data_sel_txt[sprd_codec->add0_data_sel]);
+	sp_asoc_pr_info("add0 data type %s, val = %x\n",
+			add0_data_sel_txt[sprd_codec->add0_data_sel], val);
 
 	return 0;
 }

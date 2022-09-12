@@ -8,7 +8,7 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
-#include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
+#include "lcd/lcd_nt36672e_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "tp/ums9620-spi1-gpio13-14-tp.dtsi"
 
@@ -252,7 +252,7 @@
 				sprd,rc-ctrl = <&pcie1>;
 
 				gnss_common_ctl {
-					compatible = "sprd,gnss_common_ctl";
+					compatible = "sprd,gnss";
 					sprd,name = "gnss_common_ctl";
 				};
 			};
@@ -268,7 +268,7 @@
 			};
 
 			sprd-wlan {
-				compatible = "sprd,sc2355-wifi";
+				compatible = "sprd,sc2355-pcie-wifi";
 				reg = <0 0x21040064 0 0x0A>,
 				<0 0x25200000 0 0x3000>;
 				reg-names = "wifi_ipaqos",
@@ -505,6 +505,14 @@
 &ion {
 	#address-cells = <1>;
 	#size-cells = <0>;
+
+	heap@1 {
+		reg = <1>;
+		label = "carveout_mm";
+		type = <2>;
+		memory-region = <&widevine_reserved>;
+	};
+
 	heap@4 {
 		reg = <4>;
 		label = "carveout_fd";
@@ -517,6 +525,13 @@
 		label = "carveout_isemed";
 		type = <2>;
 		memory-region = <&ise_med_reserved>;
+	};
+
+	heap@7 {
+		reg = <7>;
+		label = "carveout_oemcrypto";
+		type = <2>;
+		memory-region = <&oemcrypto_reserved>;
 	};
 };
 
@@ -572,6 +587,15 @@
 
 	/* if we need use fastcall for widevine, open the following config */
 	// sprd,widevine-use-fastcall;
+	sprd,vrr-supported;
+	sprd,supported-vfrefresh-count = <3>;
+	sprd,vrefresh-limit = <61 91 121>;
+	sprd,blend-layer-count-limit = <4 3 2>;
+};
+
+&lcd_nt36672e_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1600>;
 };
 
 &lcd_g40396_truly_mipi_fhd {
@@ -608,6 +632,14 @@
 };
 
 &vddmodem {
+	status = "disabled";
+};
+
+&vddsim0 {
+	status = "disabled";
+};
+
+&vddsim1 {
 	status = "disabled";
 };
 

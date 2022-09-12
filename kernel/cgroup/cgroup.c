@@ -67,6 +67,12 @@
 /* let's not notify more than 100 times per second */
 #define CGROUP_FILE_NOTIFY_MIN_INTV	DIV_ROUND_UP(HZ, 100)
 
+/* record css_set's multi-identity information at (u8 *)cset->dead + 1 */
+#define CSET_IS_M_IDENT(cset)		(!!(*((u8 *)&(cset->dead) + 1)))
+#define SET_CSET_M_IDENT(cset, val)	do { \
+		*((u8 *)&(cset->dead) + 1) = (u8) val; \
+	} while (0)
+
 /*
  * cgroup_mutex is the master lock.  Any modification to cgroup or its
  * hierarchy must be performed while holding it.
@@ -2391,6 +2397,47 @@ int task_cgroup_path(struct task_struct *task, char *buf, size_t buflen)
 EXPORT_SYMBOL_GPL(task_cgroup_path);
 
 /**
+ * cgroup_attach_lock - Lock for ->attach()
+ * @lock_threadgroup: whether to down_write cgroup_threadgroup_rwsem
+ *
+ * cgroup migration sometimes needs to stabilize threadgroups against forks and
+ * exits by write-locking cgroup_threadgroup_rwsem. However, some ->attach()
+ * implementations (e.g. cpuset), also need to disable CPU hotplug.
+ * Unfortunately, letting ->attach() operations acquire cpus_read_lock() can
+ * lead to deadlocks.
+ *
+ * Bringing up a CPU may involve creating new tasks which requires read-locking
+ * threadgroup_rwsem, so threadgroup_rwsem nests inside cpus_read_lock(). If we
+ * call an ->attach() which acquires the cpus lock while write-locking
+ * threadgroup_rwsem, the locking order is reversed and we end up waiting for an
+ * on-going CPU hotplug operation which in turn is waiting for the
+ * threadgroup_rwsem to be released to create new tasks. For more details:
+ *
+ *   http://lkml.kernel.org/r/20220711174629.uehfmqegcwn2lqzu@wubuntu
+ *
+ * Resolve the situation by always acquiring cpus_read_lock() before optionally
+ * write-locking cgroup_threadgroup_rwsem. This allows ->attach() to assume that
+ * CPU hotplug is disabled on entry.
+ */
+void cgroup_attach_lock(bool lock_threadgroup)
+{
+	cpus_read_lock();
+	if (lock_threadgroup)
+		percpu_down_write(&cgroup_threadgroup_rwsem);
+}
+
+/**
+ * cgroup_attach_unlock - Undo cgroup_attach_lock()
+ * @lock_threadgroup: whether to up_write cgroup_threadgroup_rwsem
+ */
+void cgroup_attach_unlock(bool lock_threadgroup)
+{
+	if (lock_threadgroup)
+		percpu_up_write(&cgroup_threadgroup_rwsem);
+	cpus_read_unlock();
+}
+
+/**
  * cgroup_migrate_add_task - add a migration target task to a migration context
  * @task: target task
  * @mgctx: target migration context
@@ -2660,6 +2707,10 @@ void cgroup_migrate_finish(struct cgroup_mgctx *mgctx)
 		cset->mg_dst_cgrp = NULL;
 		cset->mg_dst_cset = NULL;
 		list_del_init(&cset->mg_preload_node);
+		if (CSET_IS_M_IDENT(cset)) {
+			SET_CSET_M_IDENT(cset, false);
+			put_css_set_locked(cset);
+		}
 		put_css_set_locked(cset);
 	}
 
@@ -2716,6 +2767,23 @@ void cgroup_migrate_add_src(struct css_set *src_cset,
 }
 
 /**
+ * list_contains - helper function to check if node is in head's list
+ * @node: list_head node
+ * @head: head of a list_head
+ */
+static bool list_contains(struct list_head *node, struct list_head *head)
+{
+	struct list_head *tmp;
+
+	list_for_each(tmp, head) {
+		if (tmp == node)
+			return true;
+	}
+
+	return false;
+}
+
+/**
  * cgroup_migrate_prepare_dst - prepare destination css_sets for migration
  * @mgctx: migration context
  *
@@ -2767,6 +2835,13 @@ int cgroup_migrate_prepare_dst(struct cgroup_mgctx *mgctx)
 		if (list_empty(&dst_cset->mg_preload_node))
 			list_add_tail(&dst_cset->mg_preload_node,
 				      &mgctx->preloaded_dst_csets);
+		/* If dst_cset is already in mgctx->preloaded_src_csets,
+		 * it means the dst_cset has multi identities. Keep it
+		 * in mgctx->preloaded_src_csets, and mark it.
+		 */
+		else if (list_contains(&dst_cset->mg_preload_node,
+					&mgctx->preloaded_src_csets))
+			SET_CSET_M_IDENT(dst_cset, true);
 		else
 			put_css_set(dst_cset);
 
@@ -2865,7 +2940,6 @@ int cgroup_attach_task(struct cgroup *dst_cgrp, struct task_struct *leader,
 }
 
 struct task_struct *cgroup_procs_write_start(char *buf, bool threadgroup)
-	__acquires(&cgroup_threadgroup_rwsem)
 {
 	struct task_struct *tsk;
 	pid_t pid;
@@ -2873,7 +2947,7 @@ struct task_struct *cgroup_procs_write_start(char *buf, bool threadgroup)
 	if (kstrtoint(strstrip(buf), 0, &pid) || pid < 0)
 		return ERR_PTR(-EINVAL);
 
-	percpu_down_write(&cgroup_threadgroup_rwsem);
+	cgroup_attach_lock(true);
 
 	rcu_read_lock();
 	if (pid) {
@@ -2904,14 +2978,13 @@ struct task_struct *cgroup_procs_write_start(char *buf, bool threadgroup)
 	goto out_unlock_rcu;
 
 out_unlock_threadgroup:
-	percpu_up_write(&cgroup_threadgroup_rwsem);
+	cgroup_attach_unlock(true);
 out_unlock_rcu:
 	rcu_read_unlock();
 	return tsk;
 }
 
 void cgroup_procs_write_finish(struct task_struct *task)
-	__releases(&cgroup_threadgroup_rwsem)
 {
 	struct cgroup_subsys *ss;
 	int ssid;
@@ -2919,7 +2992,8 @@ void cgroup_procs_write_finish(struct task_struct *task)
 	/* release reference from cgroup_procs_write_start() */
 	put_task_struct(task);
 
-	percpu_up_write(&cgroup_threadgroup_rwsem);
+	cgroup_attach_unlock(true);
+
 	for_each_subsys(ss, ssid)
 		if (ss->post_attach)
 			ss->post_attach();
@@ -2978,7 +3052,7 @@ static int cgroup_update_dfl_csses(struct cgroup *cgrp)
 
 	lockdep_assert_held(&cgroup_mutex);
 
-	percpu_down_write(&cgroup_threadgroup_rwsem);
+	cgroup_attach_lock(true);
 
 	/* look up all csses currently attached to @cgrp's subtree */
 	spin_lock_irq(&css_set_lock);
@@ -3008,7 +3082,7 @@ static int cgroup_update_dfl_csses(struct cgroup *cgrp)
 	ret = cgroup_migrate_execute(&mgctx);
 out_finish:
 	cgroup_migrate_finish(&mgctx);
-	percpu_up_write(&cgroup_threadgroup_rwsem);
+	cgroup_attach_unlock(true);
 	return ret;
 }
 

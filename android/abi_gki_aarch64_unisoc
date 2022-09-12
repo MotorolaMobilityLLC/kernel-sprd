@@ -155,6 +155,7 @@
   del_timer
   del_timer_sync
   destroy_workqueue
+  dev_close
   _dev_crit
   dev_driver_string
   _dev_err
@@ -240,6 +241,8 @@
   dput
   driver_register
   driver_unregister
+  __drm_atomic_helper_crtc_destroy_state
+  __drm_atomic_helper_crtc_duplicate_state
   drm_atomic_helper_plane_destroy_state
   drm_atomic_helper_plane_duplicate_state
   drm_atomic_helper_plane_reset
@@ -313,9 +316,12 @@
   gen_pool_add_owner
   gen_pool_alloc_algo_owner
   gen_pool_avail
+  gen_pool_best_fit
   gen_pool_create
   gen_pool_fixed_alloc
   gen_pool_free_owner
+  gen_pool_set_algo
+  getboottime64
   get_cpu_device
   __get_free_pages
   get_governor_parent_kobj
@@ -515,6 +521,15 @@
   mii_nway_restart
   misc_deregister
   misc_register
+  mmc_cmdq_disable
+  mmc_cmdq_enable
+  mmc_cqe_post_req
+  mmc_cqe_request_done
+  mmc_hw_reset
+  mmc_put_card
+  mmc_send_tuning
+  mmc_switch
+  mmc_wait_for_cmd
   mod_node_page_state
   mod_timer
   module_put
@@ -535,6 +550,7 @@
   nf_conntrack_destroy
   nf_conntrack_find_get
   nf_ct_get_tuplepr
+  nf_ct_invert_tuple
   nf_ct_l4proto_find
   nf_register_net_hooks
   nf_unregister_net_hooks
@@ -773,6 +789,8 @@
   set_page_dirty
   __SetPageMovable
   set_user_nice
+  sg_copy_from_buffer
+  sg_copy_to_buffer
   sg_init_table
   sg_miter_next
   sg_miter_start
@@ -1241,6 +1259,7 @@
   __remove_inode_hash
   sb_min_blocksize
   sb_set_blocksize
+  sched_setattr
   setattr_copy
   setattr_prepare
   strscpy
@@ -1323,7 +1342,6 @@
   mempool_destroy
   mempool_free
   mempool_free_slab
-  nf_ct_invert_tuple
   param_ops_int
   prandom_u32
   proc_create_net_data
@@ -1453,34 +1471,17 @@
 # required by microarray_fp.ko
   cdev_alloc
 
-# required by mmc_hsq.ko
-  mmc_cqe_request_done
-  mmc_send_tuning
-
 # required by mmc_swcq.ko
   cpufreq_cpu_get
   cpufreq_cpu_put
-  __drm_atomic_helper_crtc_destroy_state
-  __drm_atomic_helper_crtc_duplicate_state
   drm_dev_printk
   drm_dp_get_adjust_request_pre_emphasis
   drm_dp_get_adjust_request_voltage
   drm_dp_link_train_channel_eq_delay
   extcon_get_property
-  gen_pool_best_fit
-  gen_pool_set_algo
-  mmc_cmdq_disable
-  mmc_cmdq_enable
-  mmc_cqe_post_req
-  mmc_hw_reset
-  mmc_put_card
-  mmc_switch
-  mmc_wait_for_cmd
   raw_notifier_call_chain
   raw_notifier_chain_register
   send_sig_info
-  sg_copy_from_buffer
-  sg_copy_to_buffer
   smp_call_function_single
   vm_node_stat
 

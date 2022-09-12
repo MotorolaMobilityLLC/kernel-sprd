@@ -710,6 +710,10 @@
 	status = "okay";
 };
 
+&mm_domain {
+	status = "okay";
+};
+
 &dcam {
 	status = "okay";
 };

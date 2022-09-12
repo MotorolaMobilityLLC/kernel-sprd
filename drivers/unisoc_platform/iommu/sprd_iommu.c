@@ -1448,6 +1448,11 @@ static int sprd_iommu_get_resource(struct device_node *np,
 		return err;
 	pdata->iova_size = val;
 
+	err = of_property_read_u32(np, "phys-offset", &val);
+	if (!err) {
+		IOMMU_INFO("phys-offset:0x%x\n", val);
+		pdata->phys_offset = val;
+	}
 	IOMMU_INFO("iova_base:0x%lx,iova_size:%zx\n",
 		pdata->iova_base,
 		pdata->iova_size);

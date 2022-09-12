@@ -260,10 +260,12 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 	if (!sc->partner)
 		return -ENODEV;
 
-	typec_set_pwr_opmode(sc->port, TYPEC_PWR_MODE_USB);
-	typec_set_pwr_role(sc->port, power_role);
-	typec_set_data_role(sc->port, data_role);
-	typec_set_vconn_role(sc->port, vconn_role);
+	if (sc->state != SC27XX_AUDIO_CABLE) {
+		typec_set_pwr_opmode(sc->port, TYPEC_PWR_MODE_USB);
+		typec_set_pwr_role(sc->port, power_role);
+		typec_set_data_role(sc->port, data_role);
+		typec_set_vconn_role(sc->port, vconn_role);
+	}
 
 	switch (sc->state) {
 	case SC27XX_ATTACHED_SNK:

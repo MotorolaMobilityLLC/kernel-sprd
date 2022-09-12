@@ -1055,6 +1055,9 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		/* set twice in case of double buffering */
 		musb_writew(regs, MUSB_RXCSR, csr);
 		musb_writew(regs, MUSB_RXCSR, csr);
+		/* workround, sometimes we can't flush fifo by only two times. */
+		while (musb_readw(regs, MUSB_RXCSR) & MUSB_RXCSR_RXPKTRDY)
+			musb_writew(regs, MUSB_RXCSR, csr);
 	}
 
 	/* NOTE:  all the I/O code _should_ work fine without DMA, in case

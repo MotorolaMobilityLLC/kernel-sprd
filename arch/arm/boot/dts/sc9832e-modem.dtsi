@@ -248,8 +248,8 @@
 		/* endpoint id - should be same with sipc processor id */
 		reg = <6>;
 		label = "sipc-pmsys";
-		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
-		mboxes = <&mailbox 1 0>;
+		/* <&mailbox channel_id is_no_wakeup(default 0)> */
+		mboxes = <&mailbox 1 0>, <&mailbox 7 1>;
 		/* This is temporary plan*/
 		sprd,smem-info = <0xe400 0x2000e400 0x800>;
 

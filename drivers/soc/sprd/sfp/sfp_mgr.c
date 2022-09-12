@@ -205,12 +205,16 @@ int sfp_mgr_fwd_entry_delete(const struct nf_conntrack_tuple *tuple)
 static void sfp_mgr_fwd_death_by_timeout(struct timer_list *t)
 {
 	struct sfp_conn *sfp_entry = from_timer(sfp_entry, t, timeout);
-	//sfp_entry = (struct sfp_conn *)ul_fwd_entry_conn;
+	struct sfp_mgr_fwd_tuple_hash *tuplehash_original;
+	struct sfp_mgr_fwd_tuple_hash *tuplehash_reply;
 
 	if (!sfp_entry) {
 		FP_PRT_DBG(FP_PRT_ERR, "sfp_entry was free when time out.\n");
 		return;
 	}
+
+	tuplehash_original = &sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL];
+	tuplehash_reply = &sfp_entry->tuplehash[IP_CT_DIR_REPLY];
 
 	FP_PRT_DBG(FP_PRT_DEBUG, "SFP:<<check death by timeout(%p)>>.\n",
 		   sfp_entry);
@@ -242,12 +246,16 @@ static void sfp_mgr_fwd_death_by_timeout(struct timer_list *t)
 			   &sfp_entry->tuplehash[IP_CT_DIR_REPLY].tuple);
 
 	rcu_read_lock_bh();
-	hlist_del_rcu(&sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL].entry_lst);
-	call_rcu(&sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL].rcu,
-		 sfp_mgr_fwd_entry_free);
-	hlist_del_rcu(&sfp_entry->tuplehash[IP_CT_DIR_REPLY].entry_lst);
-	call_rcu(&sfp_entry->tuplehash[IP_CT_DIR_REPLY].rcu,
-		 sfp_mgr_fwd_entry_free);
+
+	if (tuplehash_original->entry_lst.pprev != LIST_POISON2) {
+		hlist_del_rcu(&tuplehash_original->entry_lst);
+		call_rcu(&tuplehash_original->rcu, sfp_mgr_fwd_entry_free);
+	}
+	if (tuplehash_reply->entry_lst.pprev != LIST_POISON2) {
+		hlist_del_rcu(&tuplehash_reply->entry_lst);
+		call_rcu(&tuplehash_reply->rcu, sfp_mgr_fwd_entry_free);
+	}
+
 	rcu_read_unlock_bh();
 	spin_unlock_bh(&mgr_lock);
 }

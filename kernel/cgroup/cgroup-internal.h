@@ -264,6 +264,8 @@ int cgroup_show_path(struct seq_file *sf, struct kernfs_node *kf_node,
 
 int __cgroup_task_count(const struct cgroup *cgrp);
 int cgroup_task_count(const struct cgroup *cgrp);
+void cgroup_attach_lock(bool lock_threadgroup);
+void cgroup_attach_unlock(bool lock_threadgroup);
 
 /*
  * rstat.c

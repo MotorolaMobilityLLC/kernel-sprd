@@ -115,6 +115,7 @@ static int sprd_iommuex_hw_init(struct sprd_iommu_dev *dev,
 	/*master reg base addr*/
 	iommu_init_param.master_reg_addr = data->pgt_base;
 	/*iommu base reg*/
+	iommu_init_param.phys_offset = data->phys_offset;
 	iommu_init_param.ctrl_reg_addr = data->ctrl_reg;
 	/*va base addr*/
 	iommu_init_param.fm_base_addr = data->iova_base;

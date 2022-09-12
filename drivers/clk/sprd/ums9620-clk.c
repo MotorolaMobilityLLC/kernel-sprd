@@ -2318,77 +2318,6 @@ static struct sprd_clk_desc ums9620_topdvfs_clk_desc = {
 	.hw_clks	= &ums9620_topdvfs_clk_hws,
 };
 
-/* gpu apb gate */
-static SPRD_SC_GATE_CLK_HW(gpu_core_eb, "gpu-core-eb",  &gpu_eb.common.hw, 0x0,
-			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
-
-static struct sprd_clk_common *ums9620_gpuapb_gate[] = {
-	/* address base is 0x23000000 */
-	&gpu_core_eb.common,
-};
-
-static struct clk_hw_onecell_data ums9620_gpuapb_gate_hws = {
-	.hws    = {
-		[CLK_GPU_CORE_EB]	= &gpu_core_eb.common.hw,
-	},
-	.num    = CLK_GPU_APB_GATE_NUM,
-};
-
-static struct sprd_reset_map ums9620_gpu_apb_resets[] = {
-	[RESET_GPU_APB_GPU_CORE_SOFT_RST]	= { 0x0000, BIT(0), 0x1000 },
-	[RESET_GPU_APB_SYS_SOFT_RST_REQ_CORE]	= { 0x0000, BIT(1), 0x1000 },
-};
-
-static struct sprd_clk_desc ums9620_gpuapb_gate_desc = {
-	.clk_clks	= ums9620_gpuapb_gate,
-	.num_clk_clks	= ARRAY_SIZE(ums9620_gpuapb_gate),
-	.hw_clks	= &ums9620_gpuapb_gate_hws,
-	.resets = ums9620_gpu_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9620_gpu_apb_resets),
-};
-
-/* gpu clocks */
-static const struct clk_parent_data gpu_parents[] = {
-	{ .fw_name = "ext-26m" },
-	{ .hw = &tgpll_76m8.hw },
-	{ .hw = &tgpll_153m6.hw },
-	{ .hw = &tgpll_384m.hw },
-	{ .hw = &tgpll_512m.hw },
-	{ .hw = &gpll.common.hw },
-	{ .hw = &gpll_850m.hw },
-};
-static SPRD_COMP_CLK_DATA_OFFSET(gpu, "gpu", gpu_parents, 0x28,
-			    0, 3, 0, 3, 0);
-
-static const struct clk_parent_data ap_mm_parents[] = {
-	{ .fw_name = "ext-26m" },
-	{ .hw = &tgpll_76m8.hw },
-	{ .hw = &tgpll_153m6.hw },
-};
-static SPRD_MUX_CLK_DATA(ap_mm, "ap-mm", ap_mm_parents, 0x40,
-		    0, 2, UMS9620_MUX_FLAG);
-
-
-static struct sprd_clk_common *ums9620_gpu_clk[] = {
-	/* address base is 0x23010000 */
-	&gpu.common,
-	&ap_mm.common,
-};
-
-static struct clk_hw_onecell_data ums9620_gpu_clk_hws = {
-	.hws	= {
-		[CLK_GPU]		= &gpu.common.hw,
-		[CLK_AP_MM]		= &ap_mm.common.hw,
-	},
-	.num	= CLK_GPU_CLK_NUM,
-};
-
-static struct sprd_clk_desc ums9620_gpu_clk_desc = {
-	.clk_clks	= ums9620_gpu_clk,
-	.num_clk_clks	= ARRAY_SIZE(ums9620_gpu_clk),
-	.hw_clks	= &ums9620_gpu_clk_hws,
-};
-
 /* ipa apb gate clocks */
 /* ipa apb related gate clocks configure CLK_IGNORE_UNUSED because their
  * power domain may be shut down, and they are controlled by related module.
@@ -3865,10 +3794,6 @@ static const struct of_device_id sprd_ums9620_clk_ids[] = {
 	  .data = &ums9620_aonapb_clk_desc },
 	{ .compatible = "sprd,ums9620-topdvfs-clk",	/* 0x64940000 */
 	  .data = &ums9620_topdvfs_clk_desc },
-	{ .compatible = "sprd,ums9620-gpuapb-gate",	/* 0x23000000 */
-	  .data = &ums9620_gpuapb_gate_desc },
-	{ .compatible = "sprd,ums9620-gpu-clk",		/* 0x23010000 */
-	  .data = &ums9620_gpu_clk_desc },
 	{ .compatible = "sprd,ums9620-ipaapb-gate",	/* 0x25000000 */
 	  .data = &ums9620_ipaapb_gate_desc },
 	{ .compatible = "sprd,ums9620-ipa-clk",		/* 0x25010000 */

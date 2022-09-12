@@ -4877,7 +4877,7 @@ CONFIG_SC27XX_ADC=y
 #
 # Spreadtrum Sensor Hub new
 #
-CONFIG_SPRD_SENSOR_HUB_NEW=y
+CONFIG_SPRD_SENSOR_HUB_NEW=m
 # end of Spreadtrum Sensor Hub new
 
 CONFIG_PWM=y

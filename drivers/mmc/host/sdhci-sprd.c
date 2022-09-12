@@ -34,6 +34,9 @@
 #include "emmc_write_protect.c"
 #endif
 
+#include "sdhci-sprd-tuning.h"
+#include "sdhci-sprd-tuning.c"
+
 #define DRIVER_NAME "sprd-sdhci"
 #define SDHCI_SPRD_DUMP(f, x...) \
 	pr_err("%s: " DRIVER_NAME ": " f, mmc_hostname(host->mmc), ## x)
@@ -151,6 +154,7 @@ struct sdhci_sprd_host {
 	struct register_hotplug reg_debounce_cn;
 	struct register_hotplug reg_rmldo_en;
 	u32 int_status;
+	u32 sdhs_tuning;
 };
 
 struct sdhci_sprd_phy_cfg {
@@ -532,6 +536,35 @@ static void sdhci_sprd_request_done(struct sdhci_host *host,
 	 mmc_request_done(host->mmc, mrq);
 }
 
+static int sprd_calc_hs_mode_tuning_range(struct sdhci_sprd_host *host, int *value_t)
+{
+	int i;
+	bool prev_vl = 0;
+	int range_count = 0;
+	u32 dll_cnt = host->dll_cnt;
+	u32 mid_dll_cnt = host->mid_dll_cnt;
+	struct ranges_t *ranges = host->ranges;
+
+	for (i = 0; i < mid_dll_cnt; i++) {
+		if ((!prev_vl) && value_t[i] && value_t[i + dll_cnt] && value_t[i + mid_dll_cnt]) {
+			range_count++;
+			ranges[range_count - 1].start = i;
+		}
+
+		if (value_t[i] && value_t[i + dll_cnt] && value_t[i + mid_dll_cnt]) {
+			ranges[range_count - 1].end = i;
+			pr_debug("recalculate tuning ok: %d\n", i);
+		} else
+			pr_debug("recalculate tuning fail: %d\n", i);
+
+		prev_vl = value_t[i] && value_t[i + dll_cnt] && value_t[i + mid_dll_cnt];
+	}
+
+	host->ranges = ranges;
+
+	return range_count;
+}
+
 static int sprd_calc_tuning_range(struct sdhci_sprd_host *host, int *value_t)
 {
 	int i;
@@ -608,9 +641,15 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	dll_cfg = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
 	dll_cfg &= ~(0xf << 24);
 	sdhci_writel(host, dll_cfg, SDHCI_SPRD_REG_32_DLL_CFG);
-	dll_cnt = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS0) & 0xff;
+
+	if ((mmc->ios.timing == MMC_TIMING_SD_HS) &&
+			(strcmp(mmc_hostname(mmc), "mmc1") == 0))
+		dll_cnt = 128;
+	else
+		dll_cnt = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS0) & 0xff;
 	dll_cnt = dll_cnt << 1;
 	length = (dll_cnt * 150) / 100;
+
 	pr_info("%s: dll config 0x%08x, dll count %d, tuning length: %d\n",
 		mmc_hostname(mmc), dll_cfg, dll_cnt, length);
 
@@ -628,6 +667,18 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		if (host->flags & SDHCI_HS400_TUNING) {
 			dll_dly &= ~SDHCI_SPRD_CMD_DLY_MASK;
 			dll_dly |= (i << 8);
+		} else if ((mmc->ios.timing == MMC_TIMING_SD_HS) &&
+					(strcmp(mmc_hostname(mmc), "mmc1") == 0)) {
+			if (opcode == MMC_SET_BLOCKLEN) {
+				dll_dly &= ~(SDHCI_SPRD_CMD_DLY_MASK);
+				dll_dly |= ((i << 8) & SDHCI_SPRD_CMD_DLY_MASK);
+			} else {
+				dll_dly &= ~(SDHCI_SPRD_POSRD_DLY_MASK | SDHCI_SPRD_NEGRD_DLY_MASK |
+							SDHCI_SPRD_CMD_DLY_MASK);
+				dll_dly |= (((i << 16) & SDHCI_SPRD_POSRD_DLY_MASK) |
+							((i << 24) & SDHCI_SPRD_NEGRD_DLY_MASK) |
+							((i << 8) & SDHCI_SPRD_CMD_DLY_MASK));
+			}
 		} else {
 			dll_dly &= ~(SDHCI_SPRD_CMD_DLY_MASK |
 				     SDHCI_SPRD_POSRD_DLY_MASK);
@@ -637,7 +688,17 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 		sdhci_writel(host, dll_dly, SDHCI_SPRD_REG_32_DLL_DLY);
 		pr_debug("%s: dll_dly 0x%08x\n", mmc_hostname(mmc), dll_dly);
 
-		value = !mmc_send_tuning(mmc, opcode, NULL);
+		if ((mmc->ios.timing == MMC_TIMING_SD_HS) &&
+				(strcmp(mmc_hostname(mmc), "mmc1") == 0)) {
+			sprd_host->sdhs_tuning = 1;
+			if (opcode == MMC_SET_BLOCKLEN)
+				value = !mmc_send_tuning_cmd(mmc);
+			else
+				value = !mmc_send_tuning_read(mmc);
+			sprd_host->sdhs_tuning = 0;
+		} else {
+			value = !mmc_send_tuning(mmc, opcode, NULL);
+		}
 
 		if ((!prev_vl) && value) {
 			range_count++;
@@ -661,27 +722,47 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	sprd_host->ranges = ranges;
 
 	first_vl = (value_t[0] && value_t[dll_cnt]);
-	range_count = sprd_calc_tuning_range(sprd_host, value_t);
+	if ((mmc->ios.timing == MMC_TIMING_SD_HS) &&
+			(strcmp(mmc_hostname(mmc), "mmc1") == 0))
+		range_count = sprd_calc_hs_mode_tuning_range(sprd_host, value_t);
+	else
+		range_count = sprd_calc_tuning_range(sprd_host, value_t);
 
 	if (range_count == 0) {
 		pr_warn("%s: all tuning phases fail!\n", mmc_hostname(mmc));
 		err = -EIO;
 		goto out;
 	}
+	if ((mmc->ios.timing == MMC_TIMING_SD_HS) &&
+			(strcmp(mmc_hostname(mmc), "mmc1") == 0)) {
+		if ((range_count > 1) && (ranges[range_count - 1].end == 127)
+				&& (ranges[0].start == 0)) {
+			ranges[0].start = ranges[range_count - 1].start;
+			range_count--;
 
-	if ((range_count > 1) && first_vl && value) {
-		ranges[0].start = ranges[range_count - 1].start;
-		range_count--;
+			if (ranges[0].end >= mid_dll_cnt)
+				ranges[0].end = mid_dll_cnt;
+		}
+	} else {
+		if ((range_count > 1) && first_vl && value) {
+			ranges[0].start = ranges[range_count - 1].start;
+			range_count--;
 
-		if (ranges[0].end >= mid_dll_cnt)
-			ranges[0].end = mid_dll_cnt;
+			if (ranges[0].end >= mid_dll_cnt)
+				ranges[0].end = mid_dll_cnt;
+		}
 	}
 
 	for (i = 0; i < range_count; i++) {
 		int len = (ranges[i].end - ranges[i].start + 1);
 
-		if (len < 0)
-			len += dll_cnt;
+		if (len < 0) {
+			if ((mmc->ios.timing == MMC_TIMING_SD_HS) &&
+					(strcmp(mmc_hostname(mmc), "mmc1") == 0))
+				len += mid_dll_cnt;
+			else
+				len += dll_cnt;
+		}
 
 		pr_debug("%s: good tuning phase range %d ~ %d\n",
 			 mmc_hostname(mmc), ranges[i].start, ranges[i].end);
@@ -699,8 +780,14 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	mid_step = ranges[longest_range].start + longest_range_len / 2;
 	mid_step %= dll_cnt;
 
-	dll_cfg |= 0xf << 24;
-	sdhci_writel(host, dll_cfg, SDHCI_SPRD_REG_32_DLL_CFG);
+	if ((mmc->ios.timing == MMC_TIMING_SD_HS) &&
+			(strcmp(mmc_hostname(mmc), "mmc1") == 0)) {
+		dll_cfg &= ~(0xf << 24);
+		sdhci_writel(host, dll_cfg, SDHCI_SPRD_REG_32_DLL_CFG);
+	} else {
+		dll_cfg |= 0xf << 24;
+		sdhci_writel(host, dll_cfg, SDHCI_SPRD_REG_32_DLL_CFG);
+	}
 
 	if (mid_step <= dll_cnt)
 		final_phase = (mid_step * 256) / dll_cnt;
@@ -710,6 +797,18 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	if (host->flags & SDHCI_HS400_TUNING) {
 		p[mmc->ios.timing] &= ~SDHCI_SPRD_CMD_DLY_MASK;
 		p[mmc->ios.timing] |= (final_phase << 8);
+	} else if ((mmc->ios.timing == MMC_TIMING_SD_HS) &&
+				(strcmp(mmc_hostname(mmc), "mmc1") == 0)) {
+		if (opcode == MMC_SET_BLOCKLEN) {
+			p[mmc->ios.timing] &= ~(SDHCI_SPRD_CMD_DLY_MASK);
+			p[mmc->ios.timing] |= ((final_phase << 8) & SDHCI_SPRD_CMD_DLY_MASK);
+		} else {
+			p[mmc->ios.timing] &= ~(SDHCI_SPRD_POSRD_DLY_MASK |
+						SDHCI_SPRD_NEGRD_DLY_MASK | SDHCI_SPRD_CMD_DLY_MASK);
+			p[mmc->ios.timing] |= (((final_phase << 16) & SDHCI_SPRD_POSRD_DLY_MASK) |
+						((final_phase << 24) & SDHCI_SPRD_NEGRD_DLY_MASK) |
+						((final_phase << 8) & SDHCI_SPRD_CMD_DLY_MASK));
+		}
 	} else {
 		p[mmc->ios.timing] &= ~(SDHCI_SPRD_CMD_DLY_MASK |
 					SDHCI_SPRD_POSRD_DLY_MASK);
@@ -875,7 +974,8 @@ static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
 		return;
 
 	command = SDHCI_GET_CMD(sdhci_readw(host, SDHCI_COMMAND));
-	if ((command == SEND_TUNING_BLOCK) || (command == SEND_TUNING_BLOCK_HS200))
+	if ((command == SEND_TUNING_BLOCK) || (command == SEND_TUNING_BLOCK_HS200)
+		|| sprd_host->sdhs_tuning)
 		return;
 
 	SDHCI_SPRD_DUMP("CMD%d int 0x%08x\n", command, sprd_host->int_status);

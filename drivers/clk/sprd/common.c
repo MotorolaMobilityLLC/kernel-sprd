@@ -17,7 +17,6 @@ static const struct regmap_config sprdclk_regmap_config = {
 	.reg_bits	= 32,
 	.reg_stride	= 4,
 	.val_bits	= 32,
-	.max_register	= 0xffff,
 	.fast_io	= true,
 };
 
@@ -43,6 +42,7 @@ int sprd_clk_regmap_init(struct platform_device *pdev,
 	struct device_node *node = pdev->dev.of_node;
 	struct regmap *regmap;
 	struct resource *res;
+	struct regmap_config clk_regmap_config = sprdclk_regmap_config;
 
 	if (of_find_property(node, "sprd,syscon", NULL)) {
 		regmap = syscon_regmap_lookup_by_phandle(node, "sprd,syscon");
@@ -52,12 +52,16 @@ int sprd_clk_regmap_init(struct platform_device *pdev,
 		}
 	} else {
 		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+		if (!res)
+			return -ENODEV;
+
 		base = devm_ioremap_resource(&pdev->dev, res);
 		if (IS_ERR(base))
 			return PTR_ERR(base);
 
+		clk_regmap_config.max_register = resource_size(res) - clk_regmap_config.reg_stride;
 		regmap = devm_regmap_init_mmio(&pdev->dev, base,
-					       &sprdclk_regmap_config);
+					       &clk_regmap_config);
 		if (IS_ERR(regmap)) {
 			pr_err("failed to init regmap\n");
 			return PTR_ERR(regmap);
