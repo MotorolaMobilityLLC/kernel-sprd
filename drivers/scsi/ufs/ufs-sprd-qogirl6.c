@@ -22,15 +22,16 @@
 #include <dt-bindings/soc/sprd,qogirl6-regs.h>
 #include <linux/rpmb.h>
 #include <linux/reset.h>
+#include <trace/hooks/ufshcd.h>
 
 #include "ufshcd.h"
 #include "ufs.h"
 #include "ufshcd-pltfrm.h"
 #include "ufshci.h"
-#include "ufs-sprd_qogirl6.h"
+#include "ufs-sprd-qogirl6.h"
 #include "ufs_quirks.h"
 #include "unipro.h"
-
+#include "ufs-sprd-ioctl.h"
 
 int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 {
@@ -419,116 +420,6 @@ static int sprd_ufs_pwrchange(struct ufs_hba *hba)
 out:
 	return ret;
 
-}
-
-int sprd_ufs_ioctl_get_pwr_info(struct scsi_device *dev, void __user *buf_user)
-{
-	struct ufs_hba *hba;
-	unsigned int *idata = NULL;
-	struct ufs_sprd_host *host = NULL;
-	int err;
-
-	if (dev)
-		hba = shost_priv(dev->host);
-	else
-		return -ENODEV;
-
-	/* check scsi device instance */
-	if (!dev->rev) {
-		dev_err(hba->dev, "%s: scsi_device or rev is NULL\n", __func__);
-		err = -ENOENT;
-		goto out;
-	}
-	host = ufshcd_get_variant(hba);
-	idata = kzalloc(sizeof(unsigned int), GFP_KERNEL);
-	if (!idata) {
-		err = -ENOMEM;
-		goto out;
-	}
-
-	/* extract params from user buffer */
-	err = copy_from_user(idata, buf_user, sizeof(unsigned int));
-	if (err) {
-		dev_err(hba->dev,
-			"%s: failed copying buffer from user, err %d\n",
-			__func__, err);
-		goto out_release_mem;
-	}
-
-	if (host->ioctl_cmd == UFS_IOCTL_ENTER_MODE) {
-		if ((((hba->pwr_info.pwr_tx) << 4)|
-		      (hba->pwr_info.pwr_rx)) == PWM_MODE_VAL)
-			*idata = 1;
-		else
-			*idata = 0;
-	}
-
-	if (host->ioctl_cmd == UFS_IOCTL_AFC_EXIT) {
-		if ((((hba->pwr_info.pwr_tx) << 4)|
-		      (hba->pwr_info.pwr_rx)) == HS_MODE_VAL)
-			*idata = 1;
-		else
-			*idata = 0;
-	}
-
-	dev_err(hba->dev,
-		"%s:gear[0x%x:0x%x],lane[0x%x:0x%x],pwr[0x%x:0x%x],hs_rate=0x%x,idata=0x%x!\n",
-		__func__, hba->pwr_info.gear_rx, hba->pwr_info.gear_tx,
-		hba->pwr_info.lane_rx, hba->pwr_info.lane_tx,
-		hba->pwr_info.pwr_rx, hba->pwr_info.pwr_tx,
-		hba->pwr_info.hs_rate, *idata);
-
-	err = copy_to_user(buf_user, idata, sizeof(unsigned int));
-	if (err) {
-		dev_err(hba->dev, "%s: err %d copying to user.\n",
-				__func__, err);
-		goto out_release_mem;
-	}
-
-out_release_mem:
-	kfree(idata);
-out:
-	return err;
-}
-int ufshcd_sprd_ioctl(struct scsi_device *dev, unsigned int cmd, void __user *buffer)
-{
-	struct ufs_hba *hba = shost_priv(dev->host);
-	struct ufs_sprd_host *host = NULL;
-	int err = 0;
-
-	if (!buffer) {
-		dev_err(hba->dev, "%s: user buffer is NULL\n", __func__);
-		return -EINVAL;
-	}
-	host = ufshcd_get_variant(hba);
-
-	switch (cmd) {
-	case UFS_IOCTL_ENTER_MODE:
-		host->ioctl_cmd = UFS_IOCTL_ENTER_MODE;
-		init_completion(&host->pwm_async_done);
-		if (!wait_for_completion_timeout(&host->pwm_async_done, 50000)) {
-			pr_err("pwm mode time out!\n");
-			return -ETIMEDOUT;
-		}
-		err = sprd_ufs_ioctl_get_pwr_info(dev, buffer);
-		break;
-	case UFS_IOCTL_AFC_EXIT:
-		host->ioctl_cmd = UFS_IOCTL_AFC_EXIT;
-		init_completion(&host->hs_async_done);
-		if (!wait_for_completion_timeout(&host->hs_async_done, 50000)) {
-			pr_err("hs mode time out!\n");
-			return -ETIMEDOUT;
-		}
-		err = sprd_ufs_ioctl_get_pwr_info(dev, buffer);
-		host->ioctl_cmd = 0;
-		break;
-	default:
-		err = -ENOIOCTLCMD;
-		dev_dbg(hba->dev, "%s: Unsupported ioctl cmd %d\n", __func__, cmd);
-		break;
-	}
-
-	return err;
 }
 
 /*
@@ -1211,6 +1102,19 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.device_reset = ufs_sprd_device_reset,
 };
 
+static void ufs_sprd_vh_prepare_command(void *data, struct ufs_hba *hba,
+					struct request *rq,
+					struct ufshcd_lrb *lrbp,
+					int *err)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	if (unlikely(host->ffu_is_process == TRUE))
+		prepare_command_send_in_ffu_state(hba, lrbp, err);
+
+	return;
+}
+
 /*
  * ufs_sprd_probe - probe routine of the driver
  * @pdev: pointer to Platform device handle
@@ -1222,6 +1126,8 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 	int err;
 	struct device *dev = &pdev->dev;
 	struct ufs_hba *hba;
+
+	register_trace_android_vh_ufs_prepare_command(ufs_sprd_vh_prepare_command, NULL);
 
 	/* Perform generic probe */
 	err = ufshcd_pltfrm_init(pdev, &ufs_hba_sprd_vops);

@@ -26,6 +26,7 @@ struct sprd_iommu_init_data {
 	unsigned long fault_page;
 	unsigned long re_route_page;
 	unsigned int iommu_rev;
+	u32 phys_offset;
 
 	/*add for 9860 interlace ddr*/
 	/*iommu reserved memory of pf page table*/

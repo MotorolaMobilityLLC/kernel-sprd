@@ -291,14 +291,14 @@
 };
 
 &chosen {
-	bootargs_ext = "androidboot.hardware=sp7731e_1h10 androidboot.dtbo_idx=0 dummy_hcd.num=0 androidboot.selinux=permissive";
+	bootargs_ext = "androidboot.hardware=sp7731e_1h10 androidboot.dtbo_idx=0 dummy_hcd.num=0";
 };
 
 &reserved_memory {
 	#address-cells = <1>;
 	#size-cells = <1>;
 
-	fd_reserved: fd@bfa70000 {
+	fd_reserved: faceid-mem@bfa70000 {
 		reg = <0xbfa70000 0x00500000>;
 	};
 

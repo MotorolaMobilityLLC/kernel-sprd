@@ -516,6 +516,7 @@ static void rndis_command_complete(struct usb_ep *ep, struct usb_request *req)
 	}
 
 	status = sprd_rndis_msg_parser(rndis->params, (u8 *) req->buf);
+	spin_unlock_irqrestore(&rndis->lock, flags);
 	if (status < 0)
 		pr_err("RNDIS command error %d, %d/%d\n",
 			status, req->actual, req->length);
@@ -538,7 +539,6 @@ static void rndis_command_complete(struct usb_ep *ep, struct usb_request *req)
 			gether_update_dl_max_pkts_per_xfer(&rndis->port,
 					 rndis->port.dl_max_pkts_per_xfer);
 
-			spin_unlock_irqrestore(&rndis->lock, flags);
 			return;
 		}
 		if (buf->MaxTransferSize > 2048)
@@ -551,7 +551,6 @@ static void rndis_command_complete(struct usb_ep *ep, struct usb_request *req)
 		if (rndis_dl_max_pkt_per_xfer <= 1)
 			rndis->port.multi_pkt_xfer = 0;
 	}
-	spin_unlock_irqrestore(&rndis->lock, flags);
 }
 
 static int

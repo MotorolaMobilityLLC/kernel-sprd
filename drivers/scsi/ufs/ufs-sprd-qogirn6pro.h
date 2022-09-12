@@ -30,8 +30,6 @@ struct ufs_sprd_host {
 	void __iomem *mphy_reg;
 	void __iomem *rus;
 	struct regulator *vdd_mphy;
-	struct syscon_ufs ap_ahb_ufs_rst;
-	struct syscon_ufs aon_apb_ufs_rst;
 	struct syscon_ufs phy_sram_ext_ld_done;
 	struct syscon_ufs phy_sram_bypass;
 	struct syscon_ufs phy_sram_init_done;
@@ -41,6 +39,8 @@ struct ufs_sprd_host {
 
 	struct clk *hclk_source;
 	struct clk *hclk;
+	struct reset_control *ap_ahb_ufs_rst;
+	struct reset_control *aon_apb_ufs_rst;
 	uint32_t ufs_lane_calib_data0;
 	uint32_t ufs_lane_calib_data1;
 };

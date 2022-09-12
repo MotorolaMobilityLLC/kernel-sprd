@@ -62,6 +62,7 @@
 
 /* ANA_REG_GLB_ADD0_DATA_SEL */
 #define BITS_ADD0_DATA_SEL(x)                 (((x) & GENMASK(1, 0)) << 7)
+#define ADD0_DATA_SEL_MASK                      0x180
 
 /* ANA_REG_GLB_ARM_MODULE_EN */
 #define BIT_ANA_AUD_EN                          BIT(4)

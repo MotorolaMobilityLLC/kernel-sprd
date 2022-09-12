@@ -36,7 +36,6 @@
  */
 #define CM_DEFAULT_RECHARGE_TEMP_DIFF		50
 #define CM_DEFAULT_CHARGE_TEMP_MAX		500
-#define CM_CAP_CYCLE_TRACK_TIME			15
 #define CM_UVLO_OFFSET				50000
 #define CM_FORCE_SET_FUEL_CAP_FULL		1000
 #define CM_LOW_TEMP_REGION			100
@@ -106,6 +105,14 @@
 #define CM_CP_WORK_TIME_MS			500
 #define CM_CHK_DIS_FCHG_WORK_MS			5000
 #define CM_TRY_DIS_FCHG_WORK_MS			100
+
+#define CM_CAP_ONE_TIME_24S			24
+#define CM_CAP_ONE_TIME_20S			20
+#define CM_CAP_ONE_TIME_16S			16
+#define CM_CAP_CYCLE_TRACK_TIME_15S		15
+#define CM_CAP_CYCLE_TRACK_TIME_12S		12
+#define CM_CAP_CYCLE_TRACK_TIME_10S		10
+#define CM_CAP_CYCLE_TRACK_TIME_8S		8
 
 static const char * const cm_cp_state_names[] = {
 	[CM_CP_STATE_UNKNOWN] = "Charge pump state: UNKNOWN",
@@ -4645,6 +4652,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		try_wireless_charger_enable(cm, false);
 		cm_enable_fixed_fchg_handshake(cm, false);
 		try_charger_enable(cm, false);
+		cm->charger_enabled = false;
 		cm_set_charger_present(cm, false);
 		cancel_delayed_work_sync(&cm_monitor_work);
 		cancel_delayed_work_sync(&cm->cp_work);
@@ -6361,6 +6369,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	of_property_read_u32(np, "cm-shutdown-voltage", &desc->shutdown_voltage);
 	of_property_read_u32(np, "cm-tickle-time-out", &desc->trickle_time_out);
 	of_property_read_u32(np, "cm-one-cap-time", &desc->cap_one_time);
+	of_property_read_u32(np, "cm-one-cap-time", &desc->default_cap_one_time);
 	of_property_read_u32(np, "cm-wdt-interval", &desc->wdt_interval);
 
 	of_property_read_u32(np, "cm-battery-stat", &battery_stat);
@@ -6651,6 +6660,8 @@ static void cm_batt_works(struct work_struct *work)
 	int chg_cur = 0, chg_limit_cur = 0, input_cur = 0;
 	int chg_vol = 0, vbat_avg = 0, ibat_avg = 0, recharge_uv = 0;
 	static int last_fuel_cap = CM_MAGIC_NUM;
+	int total_uah, total_mah, one_cap_time, mah_one_percent;
+	int ibat_avg_ma, work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
 
 	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
@@ -6677,6 +6688,12 @@ static void cm_batt_works(struct work_struct *work)
 	ret = get_ibat_avg_uA(cm, &ibat_avg);
 	if (ret)
 		dev_err(cm->dev, "get ibat_avg_uA error.\n");
+
+	ret = get_batt_total_cap(cm, &total_uah);
+	if (ret) {
+		dev_err(cm->dev, "failed to get total uah.\n");
+		goto schedule_cap_update_work;
+	}
 
 	ret = get_batt_cap(cm, &fuel_cap);
 	if (ret) {
@@ -6917,6 +6934,32 @@ static void cm_batt_works(struct work_struct *work)
 		break;
 	}
 
+	/*
+	* When fast charging and high current charging,
+	* the work cycle needs to be updated according to the current value.
+	*/
+	cm->desc->cap_one_time = cm->desc->default_cap_one_time;
+	one_cap_time = cm->desc->cap_one_time;
+	ibat_avg_ma = ibat_avg / 1000;
+	if (ibat_avg_ma > 0) {
+		total_mah = total_uah / 1000;
+		mah_one_percent = total_mah * 3600 / 100;
+		one_cap_time = DIV_ROUND_CLOSEST(mah_one_percent, ibat_avg_ma);
+		if (one_cap_time <= 20) {
+			cm->desc->cap_one_time = CM_CAP_ONE_TIME_16S;
+			work_cycle = CM_CAP_CYCLE_TRACK_TIME_8S;
+		} else if (one_cap_time <= 25) {
+			cm->desc->cap_one_time = CM_CAP_ONE_TIME_20S;
+			work_cycle = CM_CAP_CYCLE_TRACK_TIME_10S;
+		} else if (one_cap_time < 30) {
+			cm->desc->cap_one_time = CM_CAP_ONE_TIME_24S;
+			work_cycle = CM_CAP_CYCLE_TRACK_TIME_12S;
+		}
+	}
+
+	dev_info(cm->dev, "work_cycle = %ds, cap_one_time = %ds\n",
+		 work_cycle, cm->desc->cap_one_time);
+
 	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD) {
 		dev_info(cm->dev, "batt_uV is less than UVLO calib volt\n");
 		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(100));
@@ -6939,7 +6982,7 @@ static void cm_batt_works(struct work_struct *work)
 schedule_cap_update_work:
 	queue_delayed_work(system_power_efficient_wq,
 			   &cm->cap_update_work,
-			   CM_CAP_CYCLE_TRACK_TIME * HZ);
+			   work_cycle * HZ);
 }
 
 static int cm_check_alt_cp_psy_ready_status(struct charger_manager *cm)
@@ -7341,7 +7384,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	schedule_work(&setup_polling);
 
-	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME * HZ);
+	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME_15S * HZ);
 	INIT_DELAYED_WORK(&cm->uvlo_work, cm_uvlo_check_work);
 	pr_err("lys %s: line%d: \n", __func__,  __LINE__);
 	return 0;

@@ -14,6 +14,7 @@
 #ifndef _UFS_SPRD_H_
 #define _UFS_SPRD_H_
 #include <linux/bits.h>
+#include <linux/sprd_soc_id.h>
 
 struct syscon_ufs {
 	struct regmap *regmap;
@@ -44,6 +45,7 @@ struct ufs_sprd_host {
 	struct completion pwm_async_done;
 	u32 ioctl_cmd;
 	struct completion hs_async_done;
+	bool ffu_is_process;
 };
 
 extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);

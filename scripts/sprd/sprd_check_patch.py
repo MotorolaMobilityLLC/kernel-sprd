@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 import os
+import re
 import sys
 import commands
 
@@ -110,6 +111,7 @@ def find_last_char(string, p):
 def check_tags_commit_id(patch_info_list):
     global check_tags_flag
     check_title_flag = 1
+    check_issue_num = 0
     check_commit_id_flag = 0
     tags_list_start_num = 0
     ret_hit_tags_list = []
@@ -145,6 +147,12 @@ def check_tags_commit_id(patch_info_list):
                 tags_list_start_num += 1
 
             if tags_list[tags_list_start_num].strip(":") in ATTRIBUTE_TAGS:
+                if tags_list[tags_list_start_num].strip(":") in ATTRIBUTE_TAGS[0:ATTRIBUTE_TAGS.index("ANDROID") + 1]:
+                    for line in patch_info_list:
+                        if re.search('Bug: \d{9,}',line):
+                            check_issue_num=1
+                    if check_issue_num != 1:
+                        return(1, "the patch is not from aosp kernel/common branch")
                 if tags_list[tags_list_start_num].strip(":") in ATTRIBUTE_TAGS[0:ATTRIBUTE_TAGS.index("FROMLIST") + 1]:
                     check_tags_flag = 0
                     check_commit_id_flag = 0
