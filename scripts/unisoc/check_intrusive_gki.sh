@@ -254,7 +254,7 @@ done
 for ((i=0;i<check_ifile_flag;i++))
 do
     if [ -n "${PreArrarydir[i]}" ]; then
-        diff $patch_prefile_dir/${PreArrarydir[i]} $aosp_prefile_dir/${PreArrarydir[i]} > /dev/null
+        diff $patch_prefile_dir/${PreArrarydir[i]} $aosp_prefile_dir/${PreArrarydir[i]} --ignore-blank-lines > /dev/null
         result_val=$?
         if [ $result_val -eq 0 ] || [[ ${PreArrarydir[i]} == "init/version.i"  ]]; then
             unset PreArrarydir[i]
