@@ -89,6 +89,10 @@ export KERNEL_DIR=${MAIN_SCRIPT_DIR##*/}
 echo "= ROOT_DIR: $ROOT_DIR"
 echo "= KERNEL_DIR: $KERNEL_DIR"
 
+export KBUILD_BUILD_TIMESTAMP=$(date "+%Y-%m-%d")
+export KBUILD_BUILD_VERSION=1
+
+
 CLANG_VERSION=`cat ${ROOT_DIR}/${KERNEL_DIR}/build.config.constants | grep "CLANG_VERSION" | awk -F "=" '{print $2}'`
 DTC_BIN=${ROOT_DIR}/build/kernel/build-tools/path/linux-x86/dtc
 CLANG_BIN=${ROOT_DIR}/prebuilts/clang/host/linux-x86/clang-${CLANG_VERSION}/bin
@@ -254,7 +258,12 @@ done
 for ((i=0;i<check_ifile_flag;i++))
 do
     if [ -n "${PreArrarydir[i]}" ]; then
-        diff $patch_prefile_dir/${PreArrarydir[i]} $aosp_prefile_dir/${PreArrarydir[i]} --ignore-blank-lines > /dev/null
+	# use the diff to compare twice, the first compare only to print file name
+        diff -q --ignore-blank-lines $patch_prefile_dir/${PreArrarydir[i]} \
+		$aosp_prefile_dir/${PreArrarydir[i]}
+        diff --ignore-blank-lines -y --suppress-common-lines \
+		$patch_prefile_dir/${PreArrarydir[i]} \
+		$aosp_prefile_dir/${PreArrarydir[i]}
         result_val=$?
         if [ $result_val -eq 0 ] || [[ ${PreArrarydir[i]} == "init/version.i"  ]]; then
             unset PreArrarydir[i]
