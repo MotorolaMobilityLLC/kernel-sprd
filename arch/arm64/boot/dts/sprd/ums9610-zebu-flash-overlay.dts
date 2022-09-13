@@ -20,7 +20,7 @@
 
 	compatible = "sprd,ums9610-zebu-flash";
 
-	sprd,sc-id = "ums9610-zebu flash 1000";
+	sprd,sc-id = "ums9610 zebu_flash 1000";
 
 	fragment {
 		target-path = "/";
