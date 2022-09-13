@@ -37,7 +37,7 @@ struct dpu_vspsys_dvfs_reg {
 	u32 dpu_vsp_vpu_dec_dvfs_cgm_cfg_dbg;
 	u32 dpu_vsp_vpu_gsp0_dvfs_cgm_cfg_dbg;
 	u32 dpu_vsp_vpu_dispc0_dvfs_cgm_cfg_dbg;
-	u32 reserved_0x80_0x12c[44];
+	u32 reserved_0x7c_0x12c[45];
 	u32 dpu_vsp_dvfs_state_dbg;
 	u32 reserved_0x134_0x150[8];
 	u32 vpu_mtx_index0_map;
@@ -80,7 +80,7 @@ struct dpu_vspsys_dvfs_reg {
 	u32 dispc_index5_map;
 	u32 dispc_index6_map;
 	u32 dispc_index7_map;
-	u32 reserved_0x214_0x790[352];
+	u32 reserved_0x1fc_0x790[358];
 	u32 vpu_mtx_dvfs_index_cfg;
 	u32 vpu_mtx_dvfs_index_idle_cfg;
 	u32 vpu_enc_dvfs_index_cfg;
@@ -91,7 +91,7 @@ struct dpu_vspsys_dvfs_reg {
 	u32 vpu_gsp0_dvfs_index_idle_cfg;
 	u32 dispc_dvfs_index_cfg;
 	u32 dispc_dvfs_index_idle_cfg;
-	u32 reserved_0x7c4_0x920[88];
+	u32 reserved_0x7bc_0x920[90];
 	u32 dpu_vsp_freq_upd_state;
 	u32 reserved_0x928_0x940[7];
 	u32 dpu_vsp_gfree_wait_delay_cfg0;

@@ -52,9 +52,9 @@ static void dpu_hw_dfs_en(struct dpu_dvfs *dpu, bool dfs_en)
 
 	mutex_lock(&dpu->apsys->reg_lock);
 	if (dfs_en)
-		reg->dpu_vsp_dfs_en_ctrl |= BIT(0);
+		reg->dpu_vsp_dfs_en_ctrl |= BIT(3);
 	else
-		reg->dpu_vsp_dfs_en_ctrl &= ~BIT(0);
+		reg->dpu_vsp_dfs_en_ctrl &= ~BIT(3);
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
 
@@ -197,9 +197,9 @@ static void set_dpu_freq_upd_en_byp(struct dpu_dvfs *dpu, bool enable)
 
 	mutex_lock(&dpu->apsys->reg_lock);
 	if (enable)
-		reg->dpu_vsp_freq_update_bypass |= BIT(0);
+		reg->dpu_vsp_freq_update_bypass |= BIT(4);
 	else
-		reg->dpu_vsp_freq_update_bypass &= ~BIT(0);
+		reg->dpu_vsp_freq_update_bypass &= ~BIT(4);
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
 
@@ -210,9 +210,9 @@ static void set_dpu_freq_upd_delay_en(struct dpu_dvfs *dpu, bool enable)
 
 	mutex_lock(&dpu->apsys->reg_lock);
 	if (enable)
-		reg->dpu_vsp_freq_upd_type_cfg |= BIT(5);
+		reg->dpu_vsp_freq_upd_type_cfg |= BIT(9);
 	else
-		reg->dpu_vsp_freq_upd_type_cfg &= ~BIT(5);
+		reg->dpu_vsp_freq_upd_type_cfg &= ~BIT(9);
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
 
@@ -223,9 +223,9 @@ static void set_dpu_freq_upd_hdsk_en(struct dpu_dvfs *dpu, bool enable)
 
 	mutex_lock(&dpu->apsys->reg_lock);
 	if (enable)
-		reg->dpu_vsp_freq_upd_type_cfg |= BIT(4);
+		reg->dpu_vsp_freq_upd_type_cfg |= BIT(8);
 	else
-		reg->dpu_vsp_freq_upd_type_cfg &= ~BIT(4);
+		reg->dpu_vsp_freq_upd_type_cfg &= ~BIT(8);
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
 
@@ -236,9 +236,9 @@ static void set_dpu_dvfs_swtrig_en(struct dpu_dvfs *dpu, bool enable)
 
 	mutex_lock(&dpu->apsys->reg_lock);
 	if (enable)
-		reg->dpu_vsp_sw_trig_ctrl |= BIT(0);
+		reg->dpu_vsp_sw_trig_ctrl |= BIT(3);
 	else
-		reg->dpu_vsp_sw_trig_ctrl &= ~BIT(0);
+		reg->dpu_vsp_sw_trig_ctrl &= ~BIT(3);
 	mutex_unlock(&dpu->apsys->reg_lock);
 }
 
