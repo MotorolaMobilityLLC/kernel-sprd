@@ -59,10 +59,10 @@ static irqreturn_t sar_irq_handler(int irq, void *dev_id)
 	{
 		if (input_data == 0)
 		{
-			input_report_key(sdata->input_dev, gpio_key.code, 0);
+			input_report_key(sdata->input_dev, KEY_ANT, 0);
 			old_data = input_data;
 		} else {
-			input_report_key(sdata->input_dev, gpio_key.code, 1);
+			input_report_key(sdata->input_dev, KEY_ANT, 1);
 			old_data = input_data;
 		}
 	}
@@ -80,7 +80,7 @@ static s8 sar_request_irq(struct vituralsar_data *sdata)
 {
 	s32 ret = -1;
 	const u8 irq_table[] = SAR_IRQ_TAB;
-
+	printk("%s start ...", __func__);
 	ret  = request_irq(sdata->client->irq, sar_irq_handler, irq_table[sdata->int_trigger_type], sdata->client->name, sdata);
 	if (ret) {
 		printk("Request IRQ failed!ERRNO:%d.", ret);
@@ -117,7 +117,7 @@ static s8 sar_request_input_dev(struct vituralsar_data *sdata)
 {
 	s8 ret = -1;
 
-	printk("keven start sar_request_input_dev \n");
+	printk("start sar_request_input_dev ...\n");
 	sdata->input_dev = input_allocate_device();
 	if (sdata->input_dev == NULL) {
 		printk("Failed to allocate input device.");
@@ -127,23 +127,20 @@ static s8 sar_request_input_dev(struct vituralsar_data *sdata)
 	__set_bit(EV_SYN, sdata->input_dev->evbit);
 	__set_bit(EV_ABS, sdata->input_dev->evbit);
 	__set_bit(EV_KEY, sdata->input_dev->evbit);
-	__set_bit(EV_REP, sdata->input_dev->evbit);
 
 
 	sdata->input_dev->name = sar_name;
 	sdata->input_dev->phys = sar_input_phys;
 	sdata->input_dev->id.bustype = BUS_I2C;
 
-	input_set_abs_params(sdata->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);    //area = 255
-	input_set_abs_params(sdata->input_dev, ABS_MT_POSITION_X, 0, 1080 - 1, 0, 0);
-	input_set_abs_params(sdata->input_dev, ABS_MT_POSITION_Y, 0, 2340 - 1, 0, 0);
+	input_set_abs_params(sdata->input_dev, KEY_ANT, -1, 100, 0, 0);
 
 	ret = input_register_device(sdata->input_dev);
 	if (ret) {
 		printk("Register %s input device failed", sdata->input_dev->name);
 		return -ENODEV;
 	}
-	input_set_capability(sdata->input_dev, EV_KEY, gpio_key.code);
+	input_set_capability(sdata->input_dev, EV_KEY, KEY_ANT);
 
 	return 0;
 }
@@ -259,7 +256,10 @@ static int virtualsar_probe (struct i2c_client *client, const struct i2c_device_
 		printk("SAR %s -request irq fail\n", __func__);
 	}
 
-	__set_bit(EV_REP, sdata->input_dev->evbit);
+	__set_bit(EV_KEY, sdata->input_dev->evbit);
+	__set_bit(EV_SYN, sdata->input_dev->evbit);
+	__set_bit(KEY_ANT, sdata->input_dev->keybit);
+
 
 	//enable irq
 	printk("after sar_irq_enable,probe end \n");
