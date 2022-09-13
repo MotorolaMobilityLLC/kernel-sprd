@@ -11002,8 +11002,8 @@ CONFIG_MMC_BLOCK_MINORS
 	[missing plat description] none
 	[function] Number of minors per block device
 CONFIG_MMC_CRYPTO
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
