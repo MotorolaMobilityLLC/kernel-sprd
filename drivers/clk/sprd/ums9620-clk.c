@@ -2650,19 +2650,19 @@ static struct sprd_clk_desc ums9620_pcie_clk_desc = {
  * domain may be shut down, and they are controlled by related module.
  */
 static SPRD_SC_GATE_CLK_HW(powervr_eb, "powervr-eb", &ai_eb.common.hw, 0x0,
-			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(0), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mtx_apbreg_eb, "mtx-apbreg-eb", &ai_eb.common.hw, 0x0,
-			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(1), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(ai_dvfs_eb, "ai-dvfs-eb", &ai_eb.common.hw, 0x0,
-			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(2), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(ocm_eb, "ocm-eb", &ai_eb.common.hw, 0x0,
-			0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(3), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(axi_pmon_eb, "axi-pmon-eb", &ai_eb.common.hw, 0x0,
-			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(4), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(aon_to_ocm_eb, "aon-to-ocm-eb", &ai_eb.common.hw, 0x0,
-			0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(5), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(nic400_busmon_eb, "nic400-busmon-eb", &ai_eb.common.hw, 0x0,
-			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(6), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
 static struct sprd_clk_common *ums9620_aiapb_gate[] = {
 	/* address base is 0x27000000 */
@@ -2796,105 +2796,105 @@ static struct sprd_clk_desc ums9620_ai_dvfs_clk_desc = {
  * domain may be shut down, and they are controlled by related module.
  */
 static SPRD_SC_GATE_CLK_HW(jpg_en, "jpg-en", &mm_eb.common.hw, 0x0,
-			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(0), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(ckg_en, "ckg-en", &mm_eb.common.hw, 0x0,
-			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(1), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mailbox_en, "mailbox-en", &mm_eb.common.hw, 0x0,
-			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(2), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dvfs_en, "dvfs-en", &mm_eb.common.hw, 0x0,
-			0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(3), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(sys_mtx_cfg_en, "sys_mtx-cfg-en", &mm_eb.common.hw, 0x0,
-			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(4), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(sys_cfg_mtx_busmon_en, "sys-cfg-mtx-busmon-en", &mm_eb.common.hw,
-			0x0, 0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(5), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(sys_mst_busmon_en, "sys-mst-busmon-en", &mm_eb.common.hw,
-			0x0, 0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+			0x0, 0x1000, BIT(6), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(sys_tck_en, "sys-tck-en", &mm_eb.common.hw, 0x0,
-			0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(7), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_mtx_data_en, "mm-mtx-data-en", &mm_eb.common.hw, 0x0,
-			0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(8), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(isp_en, "isp-en", &mm_eb.common.hw, 0x4,
-			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(0), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(cpp_en, "cpp-en", &mm_eb.common.hw, 0x4,
-			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(1), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(depth_en, "depth-en", &mm_eb.common.hw, 0x4,
-			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(2), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(fd_en, "fd-em", &mm_eb.common.hw, 0x4,
-			0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(3), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dewarp_en, "dewarp-en", &mm_eb.common.hw, 0x4,
-			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(4), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(isp_mtx_en, "isp-mtx-en", &mm_eb.common.hw, 0x4,
-			0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(5), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(isp_blk_cfg_en, "isp-blk-cfg-en", &mm_eb.common.hw, 0x4,
-			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(6), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(isp_blk_en, "isp-blk-en", &mm_eb.common.hw, 0x4,
-			0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(7), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dwp_clk_gate_en, "dwp-clk-gate-en", &mm_eb.common.hw, 0x4,
-			0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(8), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(isp_blk_mst_busmon_en, "isp-blk-mst-busmon-en", &mm_eb.common.hw,
-			0x4, 0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
+			0x4, 0x1000, BIT(9), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(isp_tck_en, "isp-tck-en", &mm_eb.common.hw, 0x4,
-			0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(10), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vdsp_en, "vdsp-en", &mm_eb.common.hw, 0x8,
-			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(0), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vdsp_m_en, "vdsp-m-en", &mm_eb.common.hw, 0x8,
-			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(1), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vdma_en, "vdma-en", &mm_eb.common.hw, 0x8,
-			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(2), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vdsp_tck_en, "vdsp-tck-en", &mm_eb.common.hw, 0x8,
-			0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(3), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vdsp_mtx_data_en, "vdsp-mtx-data-en", &mm_eb.common.hw, 0x8,
-			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(4), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vdsp_blk_cfg_en, "vdsp-blk-cfg-en", &mm_eb.common.hw, 0x8,
-			0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(5), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_uart_en, "mm-uart-en", &mm_eb.common.hw, 0x8,
-			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(6), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vdsp_blk_en, "vdsp-blk-en", &mm_eb.common.hw, 0x8,
-			0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(7), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vdsp_slv_busmon_en, "vdsp-slv-busmon-en", &mm_eb.common.hw,
-			0x8, 0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+			0x8, 0x1000, BIT(8), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vdsp_mst_busmon_en, "vdsp-mst-busmon-en", &mm_eb.common.hw,
-			0x8, 0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
+			0x8, 0x1000, BIT(9), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(idvau_en, "idvau-en", &mm_eb.common.hw, 0x8,
-			0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(10), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dvau_en, "dvau-en", &mm_eb.common.hw, 0x8,
-			0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(11), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(ivau_en, "ivau-en", &mm_eb.common.hw, 0x8,
-			0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(12), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dcam_if_en, "dcam-if-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(0), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dcam_if_lite_en, "dcam-if-lite-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(1), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(phy_cfg_en, "phy-cfg-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(2), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dcam_mtx_en, "dcam-mtx-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(3), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dcam_lite_mtx_en, "dcam-lite-mtx-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(4), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dcam_blk_cfg_en, "dcam-blk-cfg-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(5), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(sensor0_en, "sensor0-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(6), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(sensor1_en, "sensor1-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(7), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(sensor2_en, "sensor2-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(8), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(sensor3_en, "sensor3-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(9), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dcam_blk_en, "dcam-blk-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(10), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dcam_tck_en, "dcam-tck-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(11), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(csi0_en, "csi0-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(12), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(csi1_en, "csi1-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(13), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(13), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(csi2_en, "csi2-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(14), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(14), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(csi3_en, "csi3-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(15), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(15), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(ipa_en, "ipa-en", &mm_eb.common.hw, 0xc,
-			0x1000, BIT(16), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(16), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
 static struct sprd_clk_common *ums9620_mm_gate[] = {
 	/* address base is 0x30000000 */
@@ -3372,31 +3372,31 @@ static struct sprd_clk_desc ums9620_mm_clk_desc = {
  * kernel gates these clock.
  */
 static SPRD_SC_GATE_CLK_HW(dpu_eb, "dpu-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(0), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(0), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dsi0_eb, "dsi0-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(1), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dsi1_eb, "dsi1-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(2), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(2), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vpu_enc0_eb, "vpu-enc0-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(3), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(3), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vpu_enc1_eb, "vpu-enc1-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(4), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(4), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(vpu_dec_eb, "dpu-dec-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(5), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(5), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(gsp0_eb, "gsp0-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(6), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(6), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(gsp1_eb, "gsp1-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(7), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(7), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dpu_dvfs_eb, "dpu-dvfs-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(8), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(8), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dpu_ckg_eb, "dpu-ckg-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(9), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(dpu_busmon_eb, "dpu-busmon-eb", &dpu_vsp_eb.common.hw, 0x0,
-			0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
+			0x1000, BIT(10), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_GATE_CLK_HW(m_div6clk_gate_en, "m-div6clk-gate-en", &dpu_vsp_eb.common.hw,
-		     0xb0, BIT(3), CLK_IGNORE_UNUSED, 0);
+		     0xb0, BIT(3), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_GATE_CLK_HW(s_div6clk_gate_en, "s-div6clk-gate-en", &dpu_vsp_eb.common.hw,
-		     0xb0, BIT(4), CLK_IGNORE_UNUSED, 0);
+		     0xb0, BIT(4), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
 static struct sprd_clk_common *ums9620_dpu_vsp_gate[] = {
 	/* address base is 0x30100000 */
