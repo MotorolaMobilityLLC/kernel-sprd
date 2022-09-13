@@ -293,13 +293,13 @@
 						39 14 00 01 29
 						];  
 
-					//oled-backlight {
-						//default-brightness = <900>;
-						//sprd,max-level = <4095>;
-						//brightness-levels = [
-						//39 00 00 03 51 0C CC
-						//];
-					//};
+					oled-backlight {
+						default-brightness = <900>;
+						sprd,max-level = <4095>;
+						brightness-levels = [
+						39 00 00 03 51 0C CC
+						];
+					};
 
 					display-timings {
 						native-mode = <&nt36528_tm_timing0>;
