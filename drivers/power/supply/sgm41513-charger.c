@@ -511,6 +511,7 @@ static int sgm41513_charger_hw_init(struct sgm41513_charger_info *info)
 	struct sprd_battery_info bat_info = {};
 	int voltage_max_microvolt, termination_cur;
 	int ret ;
+  	u8 batfetresetvalue;
 	/* HS03 code for SR-SL6215-01-181 by gaochao at 20210719 start */
 	//int bat_id = 0;
 
@@ -561,6 +562,14 @@ static int sgm41513_charger_hw_init(struct sgm41513_charger_info *info)
 			dev_err(info->dev, "reset sgm41513 failed\n");
 			return ret;
 		}
+
+          	ret = sgm41513_read(info, SGM41513_REG_7, &batfetresetvalue);
+          	ret = sgm41513_write(info, SGM41513_REG_7, batfetresetvalue&0xfb);
+		if (ret) {
+			dev_err(info->dev, "reset sgm41513 batfet reset failed\n");
+			return ret;
+		}
+
 		pr_err("%s:ret=%d line%d: \n", __func__, ret, __LINE__);
 		if (info->role == SGM41513_ROLE_MASTER_DEFAULT) {
 			ret = sgm41513_charger_set_ovp(info, SGM41513_FCHG_OVP_6V);
