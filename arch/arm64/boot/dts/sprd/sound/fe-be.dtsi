@@ -1202,6 +1202,203 @@
 				sound-dai = <&sprd_audio_codec_ana 0>;
 			};
 		};
+
+		/* 58: be normal_ap01 usb mcdt */
+		sprd-audio-card,dai-link@98 {
+			ignore-suspend = <0>;
+			link-name = "BE_NORMAL_AP01_USB_MCDT";
+			stream-name = "BE_ST_NORMAL_AP01_USB_MCDT";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			dpcm-capture = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 58>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
+		/* 59: be normal_ap23 usb mcdt */
+		sprd-audio-card,dai-link@99 {
+			ignore-suspend = <0>;
+			link-name = "BE_NORMAL_AP23_USB_MCDT";
+			stream-name = "BE_ST_NORMAL_AP23_USB_MCDT";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			dpcm-capture = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 59>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
+		/* 60: be capture dsp usb mcdt */
+		sprd-audio-card,dai-link@100 {
+			ignore-suspend = <0>;
+			link-name = "BE_CAPTURE_DSP_USB_MCDT";
+			stream-name = "BE_ST_CAPTURE_DSP_USB_MCDT";
+			no-pcm = <1>;
+			dpcm-capture = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 60>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
+		/* 61: be fast usb mcdt */
+		sprd-audio-card,dai-link@101 {
+			ignore-suspend = <1>;
+			link-name = "BE_FAST_USB_MCDT";
+			stream-name = "BE_ST_FAST_USB_MCDT";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 61>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
+		/* 62: be offload usb mcdt */
+		sprd-audio-card,dai-link@102 {
+			ignore-suspend = <0>;
+			ignore-pmdown-time = <0>;
+			link-name = "BE_OFFLOAD_USB_MCDT";
+			stream-name = "BE_ST_OFFLOAD_USB_MCDT";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 62>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
+		/* 63: be voice usb mcdt */
+		sprd-audio-card,dai-link@103 {
+			ignore-suspend = <1>;
+			link-name = "BE_VOICE_USB_MCDT";
+			stream-name = "BE_ST_VOICE_USB_MCDT";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			dpcm-capture = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 63>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
+		/* 64: be voip usb mcdt */
+		sprd-audio-card,dai-link@104 {
+			ignore-suspend = <1>;
+			link-name = "BE_VOIP_USB_MCDT";
+			stream-name = "BE_ST_VOIP_USB_MCDT";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			dpcm-capture = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 64>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
+		/* 65: be fm usb mcdt */
+		sprd-audio-card,dai-link@105 {
+			ignore-suspend = <1>;
+			link-name = "BE_FM_USB_MCDT";
+			stream-name = "BE_ST_FM_USB_MCDT";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 65>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
+		/* 66: be loop usb mcdt */
+		sprd-audio-card,dai-link@106 {
+			ignore-suspend = <1>;
+			link-name = "BE_LOOP_USB_MCDT";
+			stream-name = "BE_ST_LOOP_USB_MCDT";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			dpcm-capture = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 66>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
+		/* 67: be fm dsp usb mcdt */
+		sprd-audio-card,dai-link@107 {
+			ignore-suspend = <1>;
+			link-name = "BE_FM_DSP_USB_MCDT";
+			stream-name = "BE_ST_FM_DSP_USB_MCDT";
+			no-pcm = <1>;
+			dpcm-playback = <1>;
+			be-id = <0>;
+			plat {
+				sound-dai = <&sprd_route_pcm>;
+			};
+			cpu {
+				sound-dai = <&vbc_v4 67>;
+			};
+			codec {
+				sound-dai = <0 0>;
+			};
+		};
+
 	};
 
 	sprd_pcm_iis: sprd-pcm-iis {
