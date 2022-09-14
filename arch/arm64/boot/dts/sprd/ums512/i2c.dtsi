@@ -15,6 +15,8 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		status = "disabled";
+		reset-names = "i2c_rst";
+		resets = <&apapb_gate RESET_AP_APB_I2C0_SOFT_RST>;
 	};
 
 	i2c1: i2c@70400000 {
@@ -25,6 +27,8 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		status = "disabled";
+		reset-names = "i2c_rst";
+		resets = <&apapb_gate RESET_AP_APB_I2C1_SOFT_RST>;
 	};
 
 	i2c2: i2c@70500000 {
@@ -35,6 +39,8 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		status = "disabled";
+		reset-names = "i2c_rst";
+		resets = <&apapb_gate RESET_AP_APB_I2C2_SOFT_RST>;
 	};
 
 	i2c3: i2c@70600000 {
@@ -45,6 +51,8 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		status = "disabled";
+		reset-names = "i2c_rst";
+		resets = <&apapb_gate RESET_AP_APB_I2C3_SOFT_RST>;
 	};
 
 	i2c4: i2c@70700000 {
@@ -55,6 +63,8 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		status = "disabled";
+		reset-names = "i2c_rst";
+		resets = <&apapb_gate RESET_AP_APB_I2C4_SOFT_RST>;
 	};
 
 };
@@ -100,6 +110,8 @@
 		#address-cells = <1>;
 		#size-cells = <0>;
 		status = "disabled";
+		reset-names = "i2c_rst";
+		resets = <&aonapb_gate RESET_AON_APB_I2C_SOFT_RST>;
 	};
 
 };
