@@ -700,12 +700,6 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 		}
 		break;
 	case POST_CHANGE:
-		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
-			ufshcd_writel(hba,
-				AUTO_H8_IDLE_TIME_10MS,
-				REG_AUTO_HIBERNATE_IDLE_TIMER);
-		}
-
 		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
 			regmap_update_bits(host->ufsdev_refclk_en.regmap,
 					   host->ufsdev_refclk_en.reg,
