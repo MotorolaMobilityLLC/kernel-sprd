@@ -14398,8 +14398,8 @@ CONFIG_PROBE_EVENTS
 	[missing plat description] none
 	[function] trace probe status bit
 CONFIG_PROCESS_RECLAIM
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -14697,6 +14697,15 @@ CONFIG_RATIONAL
 	[missing plat description] none
 	[function] Calculate best rational approximation for a given fraction
 		taking into account restricted register size.
+CONFIG_RCC
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_RCU_CPU_STALL_TIMEOUT
 	[arch] all
 	[plat] all
@@ -20122,8 +20131,8 @@ CONFIG_WQ_POWER_EFFICIENT_DEFAULT
 	[missing plat description] none
 	[function] power efficient work queue
 CONFIG_WRITEBACK_SWAPCACHE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] mm
 	[subsys] swap
