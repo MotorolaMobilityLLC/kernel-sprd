@@ -1343,7 +1343,7 @@ static ssize_t bq2560x_register_batfet_store(struct device *dev,
 	if(batfet) {
 		ret = bq2560x_update_bits(info, BQ2560X_REG_7,
 				  BQ2560X_EN_BATFET_SHIFT,
-				  0x1 << BQ2560X_DISABLE_BATFET_RST_SHIFT);
+				  0x1 << BQ2560X_EN_BATFET_SHIFT);
 		if (ret)
 			dev_err(info->dev, "enter batfet mode failed\n");
 	}

@@ -4300,11 +4300,9 @@ static int cm_get_target_status(struct charger_manager *cm)
 	}
 
 	cm_get_uisoc(cm, &uisoc);
-	if (cm->desc->jeita_disabled) {
-		if (cm->charging_status & (uisoc > 65)) {
-			dev_warn(cm->dev, "capacity conrtol is enable\n");
-			return POWER_SUPPLY_STATUS_NOT_CHARGING;
-		}
+	if (cm->charging_status & (uisoc > 65)) {
+		dev_warn(cm->dev, "capacity conrtol is enable\n");
+		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 	}
 
 	if (is_full_charged(cm))
