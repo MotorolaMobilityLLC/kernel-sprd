@@ -662,17 +662,17 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		goto platform_device_err;
 	}
 
-	ret = of_property_read_u32(dev->of_node, "hsphy-device-eye-pattern",
+	ret = of_property_read_u32(dev->of_node, "sprd,hsphy-device-eye-pattern",
 					&phy->device_eye_pattern);
 	if (ret < 0) {
-		dev_err(dev, "unable to get hsphy-device-eye-pattern node\n");
+		dev_err(dev, "unable to get sprd,sphy-device-eye-pattern node\n");
 		phy->device_eye_pattern = DEFAULT_DEVICE_EYE_PATTERN;
 	}
 
-	ret = of_property_read_u32(dev->of_node, "hsphy-host-eye-pattern",
+	ret = of_property_read_u32(dev->of_node, "sprd,hsphy-host-eye-pattern",
 					&phy->host_eye_pattern);
 	if (ret < 0) {
-		dev_err(dev, "unable to get hsphy-host-eye-pattern node\n");
+		dev_err(dev, "unable to get sprd,hsphy-host-eye-pattern node\n");
 		phy->host_eye_pattern = DEFAULT_HOST_EYE_PATTERN;
 	}
 
