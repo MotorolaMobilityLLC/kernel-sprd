@@ -48,6 +48,7 @@
 #define A_SUSPEND		3
 #define A_RECOVER		4
 
+#define CHARGER_DETECT_DELAY			(msecs_to_jiffies(1000))
 #define VBUS_REG_CHECK_DELAY			(msecs_to_jiffies(1000))
 #define MUSB_RUNTIME_CHECK_DELAY		(msecs_to_jiffies(200))
 #define MUSB_SPRD_CHG_MAX_REDETECT_COUNT	3
@@ -68,6 +69,7 @@ enum musb_drd_state {
 
 enum usb_chg_detect_state {
 	USB_CHG_STATE_UNDETECT = 0,
+	USB_CHG_STATE_DETECT,
 	USB_CHG_STATE_DETECTED,
 	USB_CHG_STATE_RETRY_DETECT,
 	USB_CHG_STATE_RETRY_DETECTED,
@@ -1173,20 +1175,24 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 			glue->xceiv->last_event = USB_EVENT_CHARGER;
 			break;
 		}
-
+		glue->chg_state = USB_CHG_STATE_DETECT;
+		fallthrough;
+	case USB_CHG_STATE_DETECT:
+		if (!glue->vbus_active)
+			break;
 		if (usb_phy->charger_detect)
 			glue->chg_type = usb_phy->charger_detect(usb_phy);
 		glue->chg_state = USB_CHG_STATE_DETECTED;
 		fallthrough;
 	case USB_CHG_STATE_DETECTED:
+		if (!glue->vbus_active)
+			break;
 		dev_info(glue->dev, "charger = %d\n", glue->chg_type);
 		if (glue->chg_type == UNKNOWN_TYPE) {
 			if (usb_phy->flags & CHARGER_2NDDETECT_ENABLE) {
-				if (extcon_get_state(glue->edev, EXTCON_USB))
-					glue->chg_type = musb_sprd_retry_charger_detect(glue);
-				glue->chg_state = USB_CHG_STATE_RETRY_DETECTED;
+				glue->chg_state = USB_CHG_STATE_RETRY_DETECT;
 				rework = true;
-				delay = 0;
+				delay = CHARGER_DETECT_DELAY;
 			} else {
 				dev_info(glue->dev, "charge detect finished\n");
 				glue->xceiv->last_event = USB_EVENT_CHARGER;
@@ -1202,8 +1208,17 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 			glue->charging_mode = true;
 		}
 		break;
+	case USB_CHG_STATE_RETRY_DETECT:
+		if (!glue->vbus_active)
+			break;
+		if (extcon_get_state(glue->edev, EXTCON_USB))
+			glue->chg_type = musb_sprd_retry_charger_detect(glue);
+		glue->chg_state = USB_CHG_STATE_RETRY_DETECTED;
+		fallthrough;
 	case USB_CHG_STATE_RETRY_DETECTED:
-		dev_info(glue->dev, "charger = %d\n", glue->chg_type);
+		if (!glue->vbus_active)
+			break;
+		dev_info(glue->dev, "redetected charger = %d\n", glue->chg_type);
 		if (glue->chg_type == UNKNOWN_TYPE) {
 			dev_info(glue->dev, "charge retry_detect finished\n");
 			glue->xceiv->last_event = USB_EVENT_CHARGER;
