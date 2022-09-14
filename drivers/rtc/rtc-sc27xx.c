@@ -100,6 +100,19 @@
 #define SPRD_RTC_POLL_TIMEOUT		200000
 #define SPRD_RTC_POLL_DELAY_US		20000
 
+static int sprd_rtcdbg_log_force;
+module_param(sprd_rtcdbg_log_force, int, 0644);
+MODULE_PARM_DESC(sprd_rtcdbg_log_force, "sprd rtcdbg log force out (default: 0)");
+#define SPRD_RTCDBG_INFO(fmt, ...)							\
+	do {										\
+		if (!sprd_rtcdbg_log_force)						\
+			pr_info("[%s] "pr_fmt(fmt), "SPRD_RTCDBG", ##__VA_ARGS__);	\
+		else {									\
+			pr_err("[%s] "pr_fmt(fmt), "SPRD_RTCDBG", ##__VA_ARGS__);	\
+			dump_stack();							\
+		}									\
+	} while (0)									\
+
 struct sprd_rtc {
 	struct rtc_device	*rtc;
 	struct regmap		*regmap;
@@ -107,6 +120,7 @@ struct sprd_rtc {
 	u32			base;
 	int			irq;
 	bool			valid;
+	char                    alrm_comm[128];
 };
 
 /*
@@ -350,6 +364,10 @@ static int sprd_rtc_set_aux_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	time64_t secs = rtc_tm_to_time64(&alrm->time);
 	int ret;
 
+	SPRD_RTCDBG_INFO("setting aux_alarm: %d-%d-%d %d:%d:%d\n", alrm->time.tm_year + 1900,
+		       alrm->time.tm_mon + 1, alrm->time.tm_mday, alrm->time.tm_hour,
+		       alrm->time.tm_min, alrm->time.tm_sec);
+
 	/* clear the auxiliary alarm interrupt status */
 	ret = regmap_write(rtc->regmap, rtc->base + SPRD_RTC_INT_CLR,
 			   SPRD_RTC_AUXALM_EN);
@@ -398,6 +416,14 @@ static int sprd_rtc_set_time(struct device *dev, struct rtc_time *tm)
 	struct sprd_rtc *rtc = dev_get_drvdata(dev);
 	time64_t secs = rtc_tm_to_time64(tm);
 	int ret;
+
+	SPRD_RTCDBG_INFO("setting time: %d-%d-%d %d:%d:%d\n",
+		tm->tm_year + 1900,
+		tm->tm_mon + 1,
+		tm->tm_mday,
+		tm->tm_hour,
+		tm->tm_min,
+		tm->tm_sec);
 
 	ret = sprd_rtc_set_secs(rtc, SPRD_RTC_TIME, secs);
 	if (ret)
@@ -471,6 +497,8 @@ static int sprd_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 		rtc_ktime_to_tm(rtc->rtc->aie_timer.node.expires);
 	int ret;
 
+	strlcpy(rtc->alrm_comm, current->comm, sizeof(rtc->alrm_comm));
+
 	/*
 	 * We have 2 groups alarms: normal alarm and auxiliary alarm. Since
 	 * both normal alarm event and auxiliary alarm event can wake up system
@@ -486,6 +514,10 @@ static int sprd_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	 */
 	if (!rtc->rtc->aie_timer.enabled || rtc_tm_sub(&aie_time, &alrm->time))
 		return sprd_rtc_set_aux_alarm(dev, alrm);
+
+	SPRD_RTCDBG_INFO("settint normal_alarm: %d-%d-%d %d:%d:%d\n", alrm->time.tm_year + 1900,
+		       alrm->time.tm_mon + 1, alrm->time.tm_mday, alrm->time.tm_hour,
+		       alrm->time.tm_min, alrm->time.tm_sec);
 
 	/* clear the alarm interrupt status firstly */
 	ret = regmap_write(rtc->regmap, rtc->base + SPRD_RTC_INT_CLR,
@@ -558,12 +590,20 @@ static irqreturn_t sprd_rtc_handler(int irq, void *dev_id)
 {
 	struct sprd_rtc *rtc = dev_id;
 	int ret;
+	struct rtc_wkalrm alarm;
 
 	ret = sprd_rtc_clear_alarm_ints(rtc);
 	if (ret)
 		return IRQ_RETVAL(ret);
 
+	ret = sprd_rtc_read_alarm(rtc->rtc->dev.parent, &alarm);
+	if (ret)
+		ret = -EINVAL;
 	rtc_update_irq(rtc->rtc, 1, RTC_AF | RTC_IRQF);
+	SPRD_RTCDBG_INFO("alarm set by [%s],triggered at %d-%d-%d %d:%d:%d\n",
+		       rtc->alrm_comm, alarm.time.tm_year + 1900, alarm.time.tm_mon + 1,
+		       alarm.time.tm_mday, alarm.time.tm_hour, alarm.time.tm_min,
+		       alarm.time.tm_sec);
 	return IRQ_HANDLED;
 }
 
