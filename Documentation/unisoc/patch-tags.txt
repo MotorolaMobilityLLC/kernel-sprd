@@ -147,6 +147,8 @@ net:
 net:ims_bridge:
 nvmem:sprd:
 
+of:
+
 pci:dwc:
 pci:dwc:sprd:
 pinctrl:sprd:
