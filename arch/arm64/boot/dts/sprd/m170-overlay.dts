@@ -795,6 +795,12 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
+	i2c_lcd_bias: ocp2131@3e {
+		compatible = "sprd,i2c_lcd_bias";
+		reg = <0x3e>;
+		status = "okay";
+	};
+
 	sgm41513_chg: charger@1A {
                 compatible = "sgm,sgm41513_chg";
                 reg = <0x1A>;
