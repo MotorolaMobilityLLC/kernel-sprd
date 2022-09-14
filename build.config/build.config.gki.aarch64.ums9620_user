@@ -15,9 +15,8 @@ EXT_MODULES="
 ../modules/kernel5.15/gpu/natt
 ../modules/kernel5.15/nfc/SN4V
 ../modules/kernel5.15/npu/vdsp
-../modules/kernel5.15/input/touchscreen/ssl_ssd20xx
-../modules/kernel5.15/input/touchscreen/synaptics_dsx_td4310
 ../modules/kernel5.15/input/touchscreen/focaltech_ft8756_spi
+../modules/kernel5.15/input/touchscreen/novatek_nt36xxx
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
 ../modules/kernel5.15/display/gsp
@@ -32,7 +31,6 @@ EXT_MODULES="
 ../modules/common/camera/mmdvfs
 ../modules/common/io/block
 ../modules/common/io/iowait
-../modules/kernel5.15/input/touchscreen/novatek_nt36xxx
 ../modules/kernel5.15/video/sprd-vpu
 ../modules/kernel5.15/video/sprd-vpu-power
 ../modules/kernel5.15/video/sprd-jpg
