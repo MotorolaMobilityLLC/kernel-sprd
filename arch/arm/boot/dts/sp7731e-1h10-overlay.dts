@@ -547,3 +547,11 @@
 &vddemmccore {
 	regulator-always-on;
 };
+
+&vddsim0 {
+	status = "disabled";
+};
+
+&vddsim1 {
+	status = "disabled";
+};
