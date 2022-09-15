@@ -5655,7 +5655,7 @@ static const struct power_supply_desc psy_default = {
 	.property_is_writeable	= charger_property_is_writeable,
 	.usb_types		= default_usb_types,
 	.num_usb_types		= ARRAY_SIZE(default_usb_types),
-	.no_thermal = true,
+	.no_thermal = false,
 };
 
 static void cm_update_charger_type_status(struct charger_manager *cm)
