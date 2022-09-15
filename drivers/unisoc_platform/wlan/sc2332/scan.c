@@ -196,7 +196,7 @@ int sc2332_scan(struct wiphy *wiphy,
 
 		scan_ssids = (struct sprd_scan_ssid *)ssids_ptr;
 		for (i = 0; i < n; i++) {
-			if (!ssids[i].ssid_len)
+			if (!ssids[i].ssid_len || ssids[i].ssid_len > IEEE80211_MAX_SSID_LEN)
 				continue;
 			scan_ssids->len = ssids[i].ssid_len;
 			strncpy(scan_ssids->ssid, ssids[i].ssid,
