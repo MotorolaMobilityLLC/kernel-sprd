@@ -609,7 +609,7 @@ static int iface_priv_cmd(struct net_device *ndev, void __user *data)
 		return -EFAULT;
 
 	/* add length check to avoid invalid NULL ptr */
-	if (!priv_cmd.total_len) {
+	if (priv_cmd.total_len <= 0) {
 		netdev_info(ndev, "%s: priv cmd total len is invalid\n",
 			    __func__);
 		return -EINVAL;
@@ -819,7 +819,7 @@ static int iface_set_power_save(struct net_device *ndev, void __user *data)
 		return -EFAULT;
 
 	/* add length check to avoid invalid NULL ptr */
-	if (!priv_cmd.total_len) {
+	if (priv_cmd.total_len <= 0) {
 		netdev_err(ndev, "%s: priv cmd total len is invalid\n",
 			   __func__);
 		return -EINVAL;
@@ -882,6 +882,7 @@ static int iface_set_p2p_mac(struct net_device *ndev, void __user *data)
 	int ret = 0;
 	struct sprd_vif *tmp1, *tmp2;
 	u8 addr[ETH_ALEN] = { 0 };
+	#define P2P_MAC_SKIP_LEN 11
 
 	if (!data)
 		return -EINVAL;
@@ -889,7 +890,7 @@ static int iface_set_p2p_mac(struct net_device *ndev, void __user *data)
 		return -EFAULT;
 
 	/* add length check to avoid invalid NULL ptr */
-	if (!priv_cmd.total_len) {
+	if (priv_cmd.total_len < P2P_MAC_SKIP_LEN + ETH_ALEN) {
 		netdev_err(ndev, "%s: priv cmd total len is invalid\n",
 			   __func__);
 		return -EINVAL;
@@ -903,7 +904,7 @@ static int iface_set_p2p_mac(struct net_device *ndev, void __user *data)
 		goto out;
 	}
 
-	memcpy(addr, command + 11, ETH_ALEN);
+	memcpy(addr, command + P2P_MAC_SKIP_LEN, ETH_ALEN);
 	netdev_info(ndev, "p2p dev random addr is %pM\n", addr);
 	if (is_multicast_ether_addr(addr)) {
 		netdev_err(ndev, "%s invalid addr\n", __func__);
@@ -959,7 +960,7 @@ static int iface_set_ndev_mac(struct net_device *ndev, void __user *data)
 		return -EFAULT;
 
 	/* add length check to avoid invalid NULL ptr */
-	if (!priv_cmd.total_len) {
+	if (priv_cmd.total_len < ETH_ALEN) {
 		netdev_info(ndev, "%s: priv cmd total len is invalid\n",
 			    __func__);
 		return -EINVAL;
