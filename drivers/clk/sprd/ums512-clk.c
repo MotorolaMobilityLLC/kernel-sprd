@@ -1884,7 +1884,7 @@ static const struct sprd_clk_desc ums512_audcpahb_gate_desc = {
 
 /* gpu clocks */
 static SPRD_GATE_CLK_HW(gpu_core_gate, "gpu-core-gate", &gpu_eb.common.hw,
-			0x4, BIT(0), 0, 0);
+			0x4, BIT(0), 0, SPRD_GATE_NON_AON);
 
 static const struct clk_parent_data gpu_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -1896,16 +1896,16 @@ static const struct clk_parent_data gpu_parents[] = {
 };
 
 static SPRD_COMP_CLK_DATA(gpu_core_clk, "gpu-core-clk", gpu_parents,
-			  0x4, 4, 3, 8, 3, 0);
+			  0x4, 4, 3, 8, 3, SPRD_GATE_NON_AON);
 
 static SPRD_GATE_CLK_HW(gpu_mem_gate, "gpu-mem-gate", &gpu_eb.common.hw,
-			0x8, BIT(0), 0, 0);
+			0x8, BIT(0), 0, SPRD_GATE_NON_AON);
 
 static SPRD_COMP_CLK_DATA(gpu_mem_clk, "gpu-mem-clk", gpu_parents,
 			  0x8, 4, 3, 8, 3, 0);
 
 static SPRD_GATE_CLK_HW(gpu_sys_gate, "gpu-sys-gate", &gpu_eb.common.hw,
-			0xc, BIT(0), 0, 0);
+			0xc, BIT(0), 0, SPRD_GATE_NON_AON);
 
 static SPRD_DIV_CLK_HW(gpu_sys_clk, "gpu-sys-clk", &gpu_eb.common.hw,
 		       0xc, 4, 3, 0);
@@ -2037,13 +2037,13 @@ static SPRD_MUX_CLK_DATA(isp_clk, "isp-clk", isp_parents,
 			 0x48, 0, 3, UMS512_MUX_FLAG);
 
 static SPRD_GATE_CLK_HW(mipi_csi0, "mipi-csi0", &mm_eb.common.hw,
-			0x4c, BIT(16), CLK_IGNORE_UNUSED, 0);
+			0x4c, BIT(16), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
 static SPRD_GATE_CLK_HW(mipi_csi1, "mipi-csi1", &mm_eb.common.hw,
-			0x50, BIT(16), CLK_IGNORE_UNUSED, 0);
+			0x50, BIT(16), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
 static SPRD_GATE_CLK_HW(mipi_csi2, "mipi-csi2", &mm_eb.common.hw,
-			0x54, BIT(16), CLK_IGNORE_UNUSED, 0);
+			0x54, BIT(16), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 
 static struct sprd_clk_common *ums512_mm_clk[] = {
 	/* address base is 0x62100000 */
@@ -2091,45 +2091,45 @@ static struct sprd_clk_desc ums512_mm_clk_desc = {
 
 /* mm gate clocks */
 static SPRD_SC_GATE_CLK_HW(mm_cpp_eb, "mm-cpp-eb", &mm_eb.common.hw,
-			   0x0, 0x1000, BIT(0), 0, 0);
+			   0x0, 0x1000, BIT(0), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_jpg_eb, "mm-jpg-eb", &mm_eb.common.hw,
-			   0x0, 0x1000, BIT(1), 0, 0);
+			   0x0, 0x1000, BIT(1), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_dcam_eb, "mm-dcam-eb", &mm_eb.common.hw,
-			   0x0, 0x1000, BIT(2), 0, 0);
+			   0x0, 0x1000, BIT(2), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_isp_eb, "mm-isp-eb", &mm_eb.common.hw,
-			   0x0, 0x1000, BIT(3), 0, 0);
+			   0x0, 0x1000, BIT(3), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_csi2_eb, "mm-csi2-eb", &mm_eb.common.hw,
-			   0x0, 0x1000, BIT(4), 0, 0);
+			   0x0, 0x1000, BIT(4), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_csi1_eb, "mm-csi1-eb", &mm_eb.common.hw,
-			   0x0, 0x1000, BIT(5), 0, 0);
+			   0x0, 0x1000, BIT(5), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_csi0_eb, "mm-csi0-eb", &mm_eb.common.hw,
-			   0x0, 0x1000, BIT(6), 0, 0);
+			   0x0, 0x1000, BIT(6), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_ckg_eb, "mm-ckg-eb", &mm_eb.common.hw,
-			   0x0, 0x1000, BIT(7), 0, 0);
+			   0x0, 0x1000, BIT(7), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_isp_ahb_eb, "mm-isp-ahb-eb", &mm_eb.common.hw,
-			   0x0, 0x1000, BIT(8), 0, 0);
+			   0x0, 0x1000, BIT(8), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_dvfs_eb, "mm-dvfs-eb", &mm_eb.common.hw,
-			   0x0, 0x1000, BIT(9), 0, 0);
+			   0x0, 0x1000, BIT(9), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_fd_eb, "mm-fd-eb", &mm_eb.common.hw,
-			   0x0, 0x1000, BIT(10), 0, 0);
+			   0x0, 0x1000, BIT(10), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_sensor2_en, "mm-sensor2-en", &mm_eb.common.hw,
-			   0x8, 0x1000, BIT(0), 0, 0);
+			   0x8, 0x1000, BIT(0), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_sensor1_en, "mm-sensor1-en", &mm_eb.common.hw,
-			   0x8, 0x1000, BIT(1), 0, 0);
+			   0x8, 0x1000, BIT(1), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_sensor0_en, "mm-sensor0-en", &mm_eb.common.hw,
-			   0x8, 0x1000, BIT(2), 0, 0);
+			   0x8, 0x1000, BIT(2), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_mipi_csi2_en, "mm-mipi-csi2-en", &mm_eb.common.hw,
-			   0x8, 0x1000, BIT(3), 0, 0);
+			   0x8, 0x1000, BIT(3), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_mipi_csi1_en, "mm-mipi-csi1-en", &mm_eb.common.hw,
-			   0x8, 0x1000, BIT(4), 0, 0);
+			   0x8, 0x1000, BIT(4), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_mipi_csi0_en, "mm-mipi-csi0-en", &mm_eb.common.hw,
-			   0x8, 0x1000, BIT(5), 0, 0);
+			   0x8, 0x1000, BIT(5), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_dcam_axi_en, "mm-dcam-axi-en", &mm_eb.common.hw,
-			   0x8, 0x1000, BIT(6), 0, 0);
+			   0x8, 0x1000, BIT(6), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_isp_axi_en, "mm-isp-axi-en", &mm_eb.common.hw,
-			   0x8, 0x1000, BIT(7), 0, 0);
+			   0x8, 0x1000, BIT(7), 0, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(mm_cphy_en, "mm-cphy-en", &mm_eb.common.hw,
-			   0x8, 0x1000, BIT(8), 0, 0);
+			   0x8, 0x1000, BIT(8), 0, SPRD_GATE_NON_AON);
 
 static struct sprd_clk_common *ums512_mm_gate_clk[] = {
 	/* address base is 0x62200000 */
