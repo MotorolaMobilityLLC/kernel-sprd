@@ -469,6 +469,8 @@ static SPRD_PLL_HW(phyr8pll, "phyr8pll", &phyr8pll_gate.common.hw, 0x90,
 static SPRD_PLL_FW_NAME(pixelpll, "pixelpll", "ext-26m", 0xa8,
 				   3, pixelpll_ftable, f_pixelpll, 240,
 				   1000, 1000, 1, 1600000000);
+static CLK_FIXED_FACTOR_HW(pixelpll_200m, "pixelpll-200m", &pixelpll.common.hw, 42, 5, 0);
+static CLK_FIXED_FACTOR_HW(pixelpll_400m, "pixelpll-400m", &pixelpll.common.hw, 21, 5, 0);
 static CLK_FIXED_FACTOR_HW(pixelpll_420m, "pixelpll-420m", &pixelpll.common.hw, 4, 1, 0);
 
 static struct sprd_clk_common *ums9621_g5r_pll_clks[] = {
@@ -491,6 +493,8 @@ static struct clk_hw_onecell_data ums9621_g5r_pll_hws = {
 		[CLK_AUDPLL_12M28]	= &audpll_12m28.hw,
 		[CLK_PHYR8PLL]		= &phyr8pll.common.hw,
 		[CLK_PIXELPLL]		= &pixelpll.common.hw,
+		[CLK_PIXELPLL_200M]	= &pixelpll_200m.hw,
+		[CLK_PIXELPLL_400M]	= &pixelpll_400m.hw,
 		[CLK_PIXELPLL_420M]	= &pixelpll_420m.hw,
 	},
 	.num    = CLK_ANLG_PHY_G5R_NUM,
@@ -2883,27 +2887,27 @@ static SPRD_MUX_CLK_DATA(dispc0, "dispc0", dispc0_parents, 0x34,
 		    0, 3, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data dispc0_dpi_parents[] = {
-	{ .hw = &pixelpll.common.hw },
+	{ .hw = &pixelpll_200m.hw },
 	{ .hw = &tgpll_256m.hw },
 	{ .hw = &tgpll_307m2.hw },
 	{ .fw_name = "dphy-312m5" },
 	{ .hw = &tgpll_384m.hw },
-	{ .hw = &pixelpll.common.hw },
+	{ .hw = &pixelpll_400m.hw },
 	{ .fw_name = "dphy-416m7" },
-	{ .hw = &pixelpll_420m.hw},
+	{ .hw = &pixelpll_420m.hw },
 };
 static SPRD_COMP_CLK_DATA_OFFSET(dispc0_dpi, "dispc0-dpi", dispc0_dpi_parents, 0x3c,
 			    0, 3, 0, 3, 0);
 
 static const struct clk_parent_data dispc0_dsc_parents[] = {
-	{ .hw = &pixelpll.common.hw },
+	{ .hw = &pixelpll_200m.hw },
 	{ .hw = &tgpll_256m.hw },
 	{ .hw = &tgpll_307m2.hw },
 	{ .fw_name = "dphy-312m5" },
 	{ .hw = &tgpll_384m.hw },
-	{ .hw = &pixelpll.common.hw },
+	{ .hw = &pixelpll_400m.hw },
 	{ .fw_name = "dphy-416m7" },
-	{ .hw = &pixelpll_420m.hw},
+	{ .hw = &pixelpll_420m.hw },
 };
 static SPRD_COMP_CLK_DATA_OFFSET(dispc0_dsc, "dispc0-dsc", dispc0_dsc_parents, 0x44,
 				0, 3, 0, 4, 0);
