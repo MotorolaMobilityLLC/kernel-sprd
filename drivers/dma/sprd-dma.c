@@ -156,6 +156,13 @@
 
 #define SPRD_DMA_SOFTWARE_UID		0
 
+/* for k515 */
+#define SPRD_DMA_SRC_CHN0_INT		9
+#define SPRD_DMA_SRC_CHN1_INT		10
+#define SPRD_DMA_DST_CHN0_INT		11
+#define SPRD_DMA_DST_CHN1_INT		12
+
+
 /* dma data width values */
 enum sprd_dma_datawidth {
 	SPRD_DMA_DATAWIDTH_1_BYTE,
@@ -442,7 +449,7 @@ static int sprd_dma_set_2stage_config(struct sprd_dma_chn *schan)
 		val = chn & SPRD_DMA_GLB_SRC_CHN_MASK;
 		val |= BIT(schan->trg_mode - 1) << SPRD_DMA_GLB_TRG_OFFSET;
 		val |= SPRD_DMA_GLB_2STAGE_EN;
-		if (schan->int_type != SPRD_DMA_NO_INT)
+		if (schan->int_type & SPRD_DMA_SRC_CHN0_INT)
 			val |= SPRD_DMA_GLB_SRC_INT;
 
 		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP1,
@@ -455,7 +462,7 @@ static int sprd_dma_set_2stage_config(struct sprd_dma_chn *schan)
 		val = chn & SPRD_DMA_GLB_SRC_CHN_MASK;
 		val |= BIT(schan->trg_mode - 1) << SPRD_DMA_GLB_TRG_OFFSET;
 		val |= SPRD_DMA_GLB_2STAGE_EN;
-		if (schan->int_type != SPRD_DMA_NO_INT)
+		if (schan->int_type & SPRD_DMA_SRC_CHN1_INT)
 			val |= SPRD_DMA_GLB_SRC_INT;
 
 		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP2,
@@ -468,7 +475,7 @@ static int sprd_dma_set_2stage_config(struct sprd_dma_chn *schan)
 		val = (chn << SPRD_DMA_GLB_DEST_CHN_OFFSET) &
 			SPRD_DMA_GLB_DEST_CHN_MASK;
 		val |= SPRD_DMA_GLB_2STAGE_EN;
-		if (schan->int_type != SPRD_DMA_NO_INT)
+		if (schan->int_type & SPRD_DMA_DST_CHN0_INT)
 			val |= SPRD_DMA_GLB_DEST_INT;
 
 		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP1,
@@ -480,7 +487,7 @@ static int sprd_dma_set_2stage_config(struct sprd_dma_chn *schan)
 		val = (chn << SPRD_DMA_GLB_DEST_CHN_OFFSET) &
 			SPRD_DMA_GLB_DEST_CHN_MASK;
 		val |= SPRD_DMA_GLB_2STAGE_EN;
-		if (schan->int_type != SPRD_DMA_NO_INT)
+		if (schan->int_type & SPRD_DMA_DST_CHN1_INT)
 			val |= SPRD_DMA_GLB_DEST_INT;
 
 		sprd_dma_glb_update(sdev, SPRD_DMA_GLB_2STAGE_GRP2,
