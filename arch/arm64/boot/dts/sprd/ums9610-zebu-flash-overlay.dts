@@ -305,3 +305,14 @@
 		interrupts = <169 IRQ_TYPE_LEVEL_LOW>;
 	};
 };
+
+/*
+ * zebu_flash bitfile does not contain camera
+ */
+&mm_gate {
+	status = "disabled";
+};
+
+&mm_clk {
+	status = "disabled";
+};
