@@ -5,29 +5,6 @@
  * Copyright (C) 2021, Unisoc Inc.
  */
 
-&soc {
-
-	gpu_apb_regs: syscon@23000000 {
-		compatible = "sprd,ums9620-glbregs", "syscon";
-		#syscon-cells = <2>;
-		reg = <0 0x23000000 0 0x3000>;
-	};
-
-	gpu_clk: clock-controller@23010000 {
-		compatible = "sprd,ums9620-gpu-clk";
-		reg = <0 0x23010000 0 0x3000>;
-		clocks = <&ext_26m>;
-		clock-names = "ext-26m";
-		#clock-cells = <1>;
-	};
-
-	gpu_dvfs_apb_regs: syscon@23014000 {
-		compatible = "sprd,ums9620-glbregs", "syscon";
-		#syscon-cells = <2>;
-		reg = <0 0x23014000 0 0x3000>;
-	};
-};
-
 &mm {
 
 	gpu: gpu@23140000 {
@@ -70,22 +47,10 @@
 		gpll_cfg_frc_on=<&pmu_apb_regs
 			REG_PMU_APB_GPLL_REL_CFG
 			MASK_PMU_APB_GPLL_FRC_ON>;
-		gpu_soft_rst=<&pmu_apb_regs
-			REG_PMU_APB_SYS_SOFT_RST_0
-			MASK_PMU_APB_GPU_SOFT_RST>;
-		/*
-		syscon-names = "top_dvfs_cfg",
-			"gpu_sw_dvfs_ctrl",
-			"dcdc_gpu_voltage0",
-			"dcdc_gpu_voltage1",
-			"dcdc_gpu_voltage2",
-			"dcdc_gpu_voltage3",
-			"top_force_shutdown",
-			"gpu_top_state",
-			"gpll_cfg_frc_off",
-			"gpll_cfg_frc_on",
-			"gpu_soft_rst";
-		*/
+
+		resets = <&pmu_gate
+			RESET_PMU_APB_GPU_SOFT_RST>;
+		reset-names = "gpu_soft_rst";
 
 		interrupts = <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
 			<GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
@@ -110,6 +75,8 @@
 
 		/*sprd,qos = <&gpu_qos>;*/
 		sprd,dvfs-default = <0>;
+		#cooling-cells = <2>;
+		dynamic-power-coefficient = <2824>;
 
 		clocks = <&aonapb_gate CLK_GPU_EB>,
 			<&gpu_clk CLK_GPU_CORE_EB>,
@@ -122,3 +89,4 @@
 			<&g5r_pll CLK_GPLL_850M>;
 	};
 };
+
