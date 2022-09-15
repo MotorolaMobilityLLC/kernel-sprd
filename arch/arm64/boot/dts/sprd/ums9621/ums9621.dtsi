@@ -57,6 +57,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <153>;
 			sugov_slack_timer;
 		};
@@ -67,6 +68,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <153>;
 		};
 		CPU2: cpu@200 {
@@ -76,6 +78,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <153>;
 		};
 		CPU3: cpu@300 {
@@ -85,6 +88,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <153>;
 		};
 		CPU4: cpu@400 {
@@ -94,6 +98,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <153>;
 		};
 		CPU5: cpu@500 {
@@ -103,6 +108,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <153>;
 		};
 		CPU6: cpu@600 {
@@ -112,6 +118,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <1024>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <673>;
 		};
 		CPU7: cpu@700 {
@@ -121,6 +128,7 @@
 			enable-method = "psci";
 			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <1024>;
+			#cooling-cells = <2>;
 			dynamic-power-coefficient = <673>;
 		};
 	};
