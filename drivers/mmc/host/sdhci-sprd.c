@@ -29,6 +29,7 @@
 #include "sdhci-sprd-swcq.c"
 
 #include "cqhci.h"
+#include <trace/hooks/mmc.h>
 
 #if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
 #include "sdhci-sprd-powp.h"
@@ -1399,6 +1400,27 @@ irqreturn_t cqhci_irq(struct mmc_host *mmc, u32 intmask, int cmd_error,
 }
 #endif
 
+static void sd_cmdline_timing(void *data, struct mmc_card *card, int *ret)
+{
+	*ret = 0;
+}
+
+static void sd_data_timing(void *data, struct mmc_card *card, int *ret)
+{
+	*ret = 0;
+}
+
+/*
+ * Vendor hook can only be registered once.
+ */
+static void sdhci_sprd_register_vendor_hook(struct sdhci_host *host)
+{
+	if (!strcmp(mmc_hostname(host->mmc), "mmc1")) {
+		register_trace_android_vh_mmc_sd_update_cmdline_timing(sd_cmdline_timing, NULL);
+		register_trace_android_vh_mmc_sd_update_dataline_timing(sd_data_timing, NULL);
+	}
+}
+
 static int sdhci_sprd_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -1610,6 +1632,8 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			&& (host->mmc->caps2 & MMC_CAP2_NO_MMC)) {
 		host->mmc->caps &= ~MMC_CAP_NEEDS_POLL;
 	}
+
+	sdhci_sprd_register_vendor_hook(host);
 
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);
