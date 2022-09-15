@@ -1703,8 +1703,14 @@ static int cmdevt_set_ie(struct sprd_priv *priv, struct sprd_vif *vif, u8 type,
 {
 	struct sprd_msg *msg;
 	struct cmd_set_ie *p;
+	size_t datalen = sizeof(*p) + len;
 
-	msg = get_cmdbuf(priv, vif, sizeof(*p) + len, CMD_SET_IE);
+	if (datalen > 0xFFFF) {
+		pr_err("%s err datalen %zu.\n", __func__, datalen);
+		return -EINVAL;
+	}
+
+	msg = get_cmdbuf(priv, vif, (u16)datalen, CMD_SET_IE);
 	if (!msg)
 		return -ENOMEM;
 

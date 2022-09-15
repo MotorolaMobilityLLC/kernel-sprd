@@ -254,20 +254,20 @@ static int cfg80211_set_beacon_ies(struct sprd_vif *vif,
 	if (!beacon)
 		return -EINVAL;
 
-	if (beacon->beacon_ies_len) {
+	if (beacon->beacon_ies_len && beacon->beacon_ies_len <= 0xFFFF) {
 		netdev_dbg(vif->ndev, "set beacon IE\n");
 		ret = sprd_set_beacon_ie(vif->priv, vif, beacon->beacon_ies,
 					 beacon->beacon_ies_len);
 	}
 
-	if (beacon->proberesp_ies_len) {
+	if (beacon->proberesp_ies_len && beacon->proberesp_ies_len <= 0xFFFF) {
 		netdev_dbg(vif->ndev, "set probe response IE\n");
 		ret = sprd_set_proberesp_ie(vif->priv, vif,
 					    beacon->proberesp_ies,
 					    beacon->proberesp_ies_len);
 	}
 
-	if (beacon->assocresp_ies_len) {
+	if (beacon->assocresp_ies_len && beacon->assocresp_ies_len <= 0xFFFF) {
 		netdev_dbg(vif->ndev, "set associate response IE\n");
 		ret = sprd_set_assocresp_ie(vif->priv, vif,
 					    beacon->assocresp_ies,
