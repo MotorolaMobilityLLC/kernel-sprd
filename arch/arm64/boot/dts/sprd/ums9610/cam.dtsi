@@ -8,7 +8,7 @@
 
 &mm {
 	mm_domain: mm_domain {
-		compatible = "sprd,qogirl6pro-camsys-domain";
+		compatible = "sprd,qogirl6l-camsys-domain";
 		force_shutdown = <&pmu_apb_regs
 		REG_PMU_APB_PD_CAMERA_CFG_0
 		MASK_PMU_APB_PD_CAMERA_FORCE_SHUTDOWN>;
@@ -59,12 +59,12 @@
 			<GIC_SPI 241 IRQ_TYPE_LEVEL_HIGH>,
 			<GIC_SPI 238 IRQ_TYPE_LEVEL_HIGH>;
 		interrupts_name = "ispch0", "ispch1", "dec";
-		isp_vau_reset = <&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
-				MASK_MM_AHB_ISP_VAU_SOFT_RST>;
-		isp_ahb_reset = <&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
-				MASK_MM_AHB_ISP_ALL_SOFT_RST>;
-		reset = <&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
-				MASK_MM_AHB_ISP_SOFT_RST>;
+		isp_vau_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_ISP_BLK_SOFT_RST
+				MASK_CAMERASYS_GLB_ISP_VAU_SOFT_RST>;
+		isp_ahb_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_ISP_BLK_SOFT_RST
+				MASK_CAMERASYS_GLB_ISP_ALL_SOFT>;
+		reset = <&mm_ahb_regs REG_CAMERASYS_GLB_ISP_BLK_SOFT_RST
+				MASK_CAMERASYS_GLB_ISP_SOFT_RST>;
 		clock-names = "isp_eb",
 				"isp_mtx_en",
 				"isp_tck_en",
@@ -117,14 +117,14 @@
 			<GIC_SPI 107 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "dcam0",
 					"dcam1";
-		dcam01_all_reset = <&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
-			MASK_MM_AHB_DCAM0_1_ALL_SOFT_RST>;
-		dcam01_axi_reset = <&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
-			MASK_MM_AHB_DCAM0_1_AXI_SOFT_RST>;
-		dcam0_reset = <&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
-			MASK_MM_AHB_DCAM0_SOFT_RST>;
-		dcam1_reset = <&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
-			MASK_MM_AHB_DCAM1_SOFT_RST>;
+		dcam01_all_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_DCAM0_1_ALL_SOFT_RST>;
+		dcam01_axi_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_DCAM0_1_AXI_SOFT_RST>;
+		dcam0_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_DCAM0_SOFT_RST>;
+		dcam1_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_DCAM1_SOFT_RST>;
 
 		clock-names = "dcam_eb",
 			"dcam_blk_cfg_en",
@@ -186,12 +186,12 @@
 			<GIC_SPI 109 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "dcam2",
 					"dcam3";
-		lite_all_reset = <&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
-			MASK_MM_AHB_DCAM2_3_ALL_SOFT_RST>;
-		lite0_reset = <&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
-			MASK_MM_AHB_DCAM2_SOFT_RST>;
-		lite1_reset = <&mm_ahb_regs REG_MM_AHB_DCAM_BLK_SOFT_RST
-			MASK_MM_AHB_DCAM3_SOFT_RST>;
+		lite_all_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_DCAM2_3_ALL_SOFT_RST>;
+		lite0_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_DCAM2_SOFT_RST>;
+		lite1_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_DCAM3_SOFT_RST>;
 		clock-names = "dcam_lite_eb",
 			"dcam_lite_mtx_en",
 			"dcam_lite_clk",
