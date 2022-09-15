@@ -644,6 +644,14 @@
 				flash-enf-gpios = <&ap_gpio 112 0>;
 				#pwm-cells = <2>;
 			};
+
+			vituralsar {
+				compatible = "virtualsar,antcheck";
+				interrupt-parent = <&ap_gpio>;
+				interrupts = <122 0x02>;
+				vituralsar,irq-gpio = <&ap_gpio 122 0>;
+				status = "okay";
+			};
 		};
 	};
 };
@@ -982,21 +990,6 @@
 		//vcc0-supply = <&pm660l_l4>;
 		channel_use_flag = <0x1f>;
 		sar-num = <0>;
-		status = "okay";
-	};
-};
-
-&i2c3{
-	status = "okay";
-	#address-cells = <1>;
-	#size-cells = <0>;
-
-	vituralsar@33{
-		compatible = "virtualsar,antcheck";
-		reg = <0x33>;
-		interrupt-parent = <&ap_gpio>;
-		interrupts = <58 0x02>;
-		vituralsar,irq-gpio = <&ap_gpio 58 0>;
 		status = "okay";
 	};
 };
