@@ -869,7 +869,12 @@ int sprd_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 
 	/* Set PSK */
 	if (sme->key_len) {
-		if (sme->crypto.cipher_group == WLAN_CIPHER_SUITE_WEP40 ||
+		if (sme->key_len > WLAN_MAX_KEY_LEN) {
+			netdev_err(ndev, "%s invalid key len: %d\n", __func__,
+				   sme->key_len);
+			ret = -EINVAL;
+			goto err;
+		} else if (sme->crypto.cipher_group == WLAN_CIPHER_SUITE_WEP40 ||
 		    sme->crypto.cipher_group == WLAN_CIPHER_SUITE_WEP104 ||
 		    sme->crypto.ciphers_pairwise[0] ==
 		    WLAN_CIPHER_SUITE_WEP40 ||
@@ -885,11 +890,6 @@ int sprd_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 						    NULL, NULL);
 			if (ret)
 				goto err;
-		} else if (sme->key_len > WLAN_MAX_KEY_LEN) {
-			netdev_err(ndev, "%s invalid key len: %d\n", __func__,
-				   sme->key_len);
-			ret = -EINVAL;
-			goto err;
 		} else {
 			netdev_info(ndev, "PSK %s\n", sme->key);
 			con.psk_len = sme->key_len;
