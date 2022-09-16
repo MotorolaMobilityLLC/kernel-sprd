@@ -10,6 +10,7 @@
  *	Andrew F. Davis <afd@ti.com>
  */
 
+#include <linux/sprd_iommu.h>
 #include <linux/dma-buf.h>
 #include <linux/dma-mapping.h>
 #include <linux/dma-heap.h>
@@ -22,7 +23,6 @@
 #include <linux/vmalloc.h>
 
 #include "page_pool.h"
-
 #ifdef CONFIG_E_SHOW_MEM
 #include <linux/rbtree.h>
 #include <linux/kthread.h>
@@ -33,6 +33,8 @@ static DEFINE_MUTEX(system_heap_lock);
 
 static struct dma_heap *sys_heap;
 static struct dma_heap *sys_uncached_heap;
+
+extern int sprd_iommu_notifier_call_chain(void *data);
 
 struct system_heap_buffer {
 	struct dma_heap *heap;
@@ -435,6 +437,7 @@ static void system_heap_dma_buf_release(struct dma_buf *dmabuf)
 		dmabuf_page_pool_free(pools[j], page);
 	}
 	sg_free_table(table);
+	sprd_iommu_notifier_call_chain((void *)buffer);
 	kfree(buffer);
 }
 
