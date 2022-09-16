@@ -33,6 +33,8 @@
 #include "sprd_iommu_sysfs.h"
 #include "drv/com/sprd_com.h"
 
+BLOCKING_NOTIFIER_HEAD(sprd_iommu_notif_chain);
+
 static int sprd_iommu_probe(struct platform_device *pdev);
 static int sprd_iommu_remove(struct platform_device *pdev);
 
@@ -47,6 +49,12 @@ struct system_heap_buffer {
 
 	bool uncached;
 };
+
+int sprd_iommu_notifier_call_chain(void *data)
+{
+	return blocking_notifier_call_chain(&sprd_iommu_notif_chain, 0, data);
+}
+EXPORT_SYMBOL(sprd_iommu_notifier_call_chain);
 
 static struct sprd_iommu_list_data sprd_iommu_list[SPRD_IOMMU_MAX] = {
 	{ .iommu_id = SPRD_IOMMU_VSP,
@@ -1314,44 +1322,55 @@ EXPORT_SYMBOL(sprd_iommu_unmap_with_idx);
 
 int sprd_iommu_unmap_orphaned(struct sprd_iommu_unmap_data *data)
 {
-	int ret;
+	int ret = 0;
 	struct sprd_iommu_dev *iommu_dev;
 	unsigned long iova;
 	unsigned long flag = 0;
+	int i;
 
 	if (data == NULL) {
 		IOMMU_ERR("null parameter error! data %p\n", data);
 		return -EINVAL;
 	}
 
-	if (data->dev_id >= SPRD_IOMMU_MAX) {
-		IOMMU_ERR("dev id error %d\n", data->dev_id);
-		return -EINVAL;
+	for (i = 0; i < SPRD_IOMMU_MAX; i++) {
+		iommu_dev = sprd_iommu_list[i].iommu_dev;
+		if (!iommu_dev)
+			continue;
+
+		spin_lock_irqsave(&iommu_dev->pgt_lock, flag);
+
+		ret = sprd_iommu_clear_sg_iova(iommu_dev, data->buf,
+						(unsigned long)(data->table),
+						data->iova_size, &iova);
+		if (ret) {
+			ret = iommu_dev->ops->iova_unmap_orphaned(iommu_dev,
+							 iova, data->iova_size);
+			iommu_dev->map_count--;
+			iommu_dev->ops->iova_free(iommu_dev, iova, data->iova_size);
+			IOMMU_ERR("%s iova leak error, buf %p id %d iova 0x%lx size 0x%zx\n",
+				iommu_dev->init_data->name, data->buf, data->dev_id,
+				iova, data->iova_size);
+		}
+
+		spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
 	}
 
-	iommu_dev = sprd_iommu_list[data->dev_id].iommu_dev;
-
-	spin_lock_irqsave(&iommu_dev->pgt_lock, flag);
-
-	ret = sprd_iommu_clear_sg_iova(iommu_dev, data->buf,
-					(unsigned long)(data->table),
-					data->iova_size, &iova);
-	if (ret) {
-		ret = iommu_dev->ops->iova_unmap_orphaned(iommu_dev,
-						 iova, data->iova_size);
-		iommu_dev->map_count--;
-		iommu_dev->ops->iova_free(iommu_dev, iova, data->iova_size);
-		IOMMU_ERR("%s iova leak error, buf %p id %d iova 0x%lx size 0x%zx\n",
-			iommu_dev->init_data->name, data->buf, data->dev_id,
-			iova, data->iova_size);
-	} else
-		IOMMU_ERR("%s illegal error buf %p id %d size 0x%zx\n",
-			iommu_dev->init_data->name, data->buf, data->dev_id,
-			data->iova_size);
-
-	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
-
 	return ret;
+}
+
+static int sprd_iommu_notify_callback(struct notifier_block *nb,
+			unsigned long action, void *data)
+{
+	struct sprd_iommu_unmap_data unmap_data = {0};
+
+	unmap_data.buf = data;
+	unmap_data.table = &((struct system_heap_buffer *)data)->sg_table;
+	unmap_data.iova_size = ((struct system_heap_buffer *)data)->len;
+	unmap_data.ch_type = SPRD_IOMMU_FM_CH_RW;
+	sprd_iommu_unmap_orphaned(&unmap_data);
+
+	return NOTIFY_OK;
 }
 
 int sprd_iommu_suspend(struct device *dev)
@@ -1619,6 +1638,7 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	struct sprd_iommu_dev *iommu_dev = NULL;
 	struct sprd_iommu_init_data *pdata = NULL;
+	static bool probe_first_time = true;
 
 	IOMMU_INFO("start\n");
 
@@ -2024,6 +2044,12 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 
 	np->data  = iommu_dev;
 	sprd_iommu_set_list(iommu_dev);
+	if (probe_first_time) {
+		iommu_dev->sprd_iommu_nb.notifier_call = sprd_iommu_notify_callback;
+		err = blocking_notifier_chain_register(&sprd_iommu_notif_chain,
+					       &iommu_dev->sprd_iommu_nb);
+		probe_first_time = false;
+	}
 	pm_runtime_enable(&pdev->dev);
 	IOMMU_INFO("%s end\n", iommu_dev->init_data->name);
 	return 0;

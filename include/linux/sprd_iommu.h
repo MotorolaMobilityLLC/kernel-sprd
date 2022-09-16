@@ -116,6 +116,7 @@ struct sprd_iommu_dev {
 	u32 channel_id;
 	int id;
 	int org_id;
+	struct notifier_block sprd_iommu_nb;
 };
 
 /*map arguments for kernel space*/
@@ -146,6 +147,7 @@ struct sprd_iommu_list_data {
 
 /*kernel API for Iommu map/unmap*/
 #if IS_ENABLED(CONFIG_UNISOC_IOMMU)
+int sprd_iommu_notifier_call_chain(void *data);
 int sprd_iommu_attach_device(struct device *dev);
 int sprd_iommu_dettach_device(struct device *dev);
 
@@ -165,6 +167,11 @@ int sprd_iommu_resume(struct device *dev);
 int sprd_iommu_restore(struct device *dev);
 int sprd_iommu_set_cam_bypass(bool vaor_bp_en);
 #else
+int sprd_iommu_notifier_call_chain(void *data)
+{
+	return -ENODEV;
+}
+
 static inline int sprd_iommu_attach_device(struct device *dev)
 {
 	return -ENODEV;
