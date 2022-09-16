@@ -12,12 +12,14 @@
 #include <linux/regmap.h>
 #include <trace/hooks/ufshcd.h>
 
+#include "ufs.h"
 #include "ufshcd.h"
 #include "ufshcd-pltfrm.h"
 #include "ufs-sprd.h"
 #include "ufs-sprd-ioctl.h"
 #include "ufs-sprd-rpmb.h"
 #include "ufs-sprd-bootdevice.h"
+#include "ufs-sprd-debug.h"
 
 extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops;
 extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops;
@@ -62,6 +64,68 @@ static void ufs_sprd_vh_update_sdev(void *data, struct scsi_device *sdev)
 	sdev->broken_fua = 1;
 }
 
+static void ufs_sprd_vh_send_uic_cmd(void *data, struct ufs_hba *hba,
+				     struct uic_command *ucmd, int str)
+{
+	struct ufs_uic_cmd_info uic_tmp = {};
+
+	if (sprd_ufs_debug_is_supported() == TRUE) {
+		uic_tmp.argu1 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_1);
+		uic_tmp.argu2 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_2);
+		uic_tmp.argu3 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_3);
+		if (str == UFS_CMD_SEND) {
+			uic_tmp.cmd = ucmd->command;
+			ufshcd_common_trace(hba, UFS_TRACE_UIC_SEND, &uic_tmp);
+		} else {
+			uic_tmp.cmd = ufshcd_readl(hba, REG_UIC_COMMAND);
+			ufshcd_common_trace(hba, UFS_TRACE_UIC_CMPL, &uic_tmp);
+		}
+	}
+}
+
+static void ufs_sprd_vh_compl_cmd(void *data,
+				  struct ufs_hba *hba,
+				  struct ufshcd_lrb *lrbp)
+{
+	if (sprd_ufs_debug_is_supported() == TRUE) {
+		if (lrbp->cmd)
+			ufshcd_update_common_event_trace(hba, UFS_TRACE_COMPLETED,
+							 lrbp->task_tag);
+		else if (lrbp->command_type == UTP_CMD_TYPE_DEV_MANAGE ||
+			 lrbp->command_type == UTP_CMD_TYPE_UFS_STORAGE)
+			ufshcd_update_common_event_trace(hba, UFS_TRACE_DEV_COMPLETED,
+							 lrbp->task_tag);
+	}
+}
+
+static void ufs_sprd_vh_send_tm_cmd(void *data, struct ufs_hba *hba,
+				    int tag, int str)
+{
+	struct utp_task_req_desc *descp = &hba->utmrdl_base_addr[tag];
+	struct ufs_tm_cmd_info tm_tmp = {};
+
+	if (sprd_ufs_debug_is_supported() == TRUE) {
+		tm_tmp.tm_func = (u8) (__be32_to_cpu(descp->header.dword_1) >> 16);
+		tm_tmp.param1 = descp->upiu_req.input_param1;
+		tm_tmp.param2 = descp->upiu_req.input_param2;
+		if (str == UFS_TM_SEND)
+			ufshcd_common_trace(hba, UFS_TRACE_TM_SEND, &tm_tmp);
+		else {
+			tm_tmp.ocs = le32_to_cpu(descp->header.dword_2) & MASK_OCS;
+			ufshcd_common_trace(hba, UFS_TRACE_TM_COMPLETED, &tm_tmp);
+		}
+	}
+}
+
+static void ufs_sprd_vh_check_int_errors(void *data,
+					struct ufs_hba *hba,
+					bool queue_eh_work)
+{
+	if (queue_eh_work && sprd_ufs_debug_is_supported() == TRUE)
+		ufshcd_common_trace(hba, UFS_TRACE_INT_ERROR, NULL);
+}
+
+
 static const struct of_device_id ufs_sprd_of_match[] = {
 	{ .compatible = "sprd,ufshc-ums9620", .data = &ufs_hba_sprd_ums9620_vops },
 	{ .compatible = "sprd,ufshc-ums9621", .data = &ufs_hba_sprd_ums9621_vops },
@@ -77,6 +141,10 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 
 	register_trace_android_vh_ufs_prepare_command(ufs_sprd_vh_prepare_command, NULL);
 	register_trace_android_vh_ufs_update_sdev(ufs_sprd_vh_update_sdev, NULL);
+	register_trace_android_vh_ufs_send_uic_command(ufs_sprd_vh_send_uic_cmd, NULL);
+	register_trace_android_vh_ufs_compl_command(ufs_sprd_vh_compl_cmd, NULL);
+	register_trace_android_vh_ufs_send_tm_command(ufs_sprd_vh_send_tm_cmd, NULL);
+	register_trace_android_vh_ufs_check_int_errors(ufs_sprd_vh_check_int_errors, NULL);
 
 	/* Perform generic probe */
 	of_id = of_match_node(ufs_sprd_of_match, pdev->dev.of_node);
@@ -89,6 +157,7 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 	hba = platform_get_drvdata(pdev);
 	ufs_sprd_rpmb_add(hba);
 	sprd_ufs_proc_init(hba);
+	ufs_sprd_debug_proc_init(hba);
 out:
 	return err;
 }

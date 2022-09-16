@@ -30,4 +30,5 @@ ufs_sprd-y += ufs-sprd.o
 ufs_sprd-y += ufs-sprd-ioctl.o
 ufs_sprd-y += ufs-sprd-rpmb.o
 ufs_sprd-y += ufs-sprd-bootdevice.o
+ufs_sprd-y += ufs-sprd-debug.o
 ufs_sprd-y += ufs-sprd-qogirn6pro.o ufs-sprd-qogirn6l.o

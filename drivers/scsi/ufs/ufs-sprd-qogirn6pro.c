@@ -23,6 +23,7 @@
 #include "ufs-sprd-ioctl.h"
 #include "ufs-sprd-rpmb.h"
 #include "ufs-sprd-bootdevice.h"
+#include "ufs-sprd-debug.h"
 
 static int ufs_efuse_calib_data(struct platform_device *pdev,
 				const char *cell_name)
@@ -716,9 +717,11 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 	}
 }
 
-/* FOR writebooster */
 static int ufs_sprd_device_reset(struct ufs_hba *hba)
 {
+	if (sprd_ufs_debug_is_supported() == TRUE)
+		ufshcd_common_trace(hba, UFS_TRACE_RESET_AND_RESTORE, NULL);
+
 	return 0;
 }
 
@@ -737,6 +740,13 @@ static void ufs_sprd_setup_xfer_req(struct ufs_hba *hba, int task_tag, bool scsi
 	if (!data_direction && crypto) {
 		dword_0 &= ~(UTP_REQ_DESC_CRYPTO_ENABLE_CMD);
 		req_desc->header.dword_0 = cpu_to_le32(dword_0);
+	}
+
+	if (sprd_ufs_debug_is_supported() == TRUE) {
+		if (scsi_cmd)
+			ufshcd_update_common_event_trace(hba, UFS_TRACE_SEND, task_tag);
+		else
+			ufshcd_update_common_event_trace(hba, UFS_TRACE_DEV_SEND, task_tag);
 	}
 }
 
