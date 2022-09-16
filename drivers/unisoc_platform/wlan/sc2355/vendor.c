@@ -494,16 +494,30 @@ static int vendor_parse_sae_entry(struct sae_entry *entry,
 		case VENDOR_SAE_PASSWORD:
 			data_len = nla_len(pos);
 			entry->passwd_len = data_len;
-			nla_strscpy(entry->password, pos, data_len + 1);
-			pr_info("entry->passwd: %s, entry->len:%d\n",
-				entry->password, entry->passwd_len);
+			if (data_len < sizeof(entry->password)) {
+				nla_strscpy(entry->password, pos, data_len + 1);
+				pr_info("entry->passwd: %s, entry->len:%d\n",
+					entry->password, entry->passwd_len);
+			} else {
+				pr_err("entry->passwd_len(%d) is more than expected\n", data_len);
+				return -ENOEXEC;
+			}
 			break;
 		case VENDOR_SAE_IDENTIFIER:
 			data_len = nla_len(pos);
 			entry->id_len = data_len;
+			if (entry->id_len > sizeof(entry->identifier)) {
+				pr_err("invalid id_len %d\n", entry->id_len);
+				return -EINVAL;
+			}
 			nla_strscpy(entry->identifier, pos, data_len);
 			break;
 		case VENDOR_SAE_PEER_ADDR:
+			data_len = nla_len(pos);
+			if (data_len != ETH_ALEN) {
+				pr_err("invalid peer_addr len %d\n", data_len);
+				return -EINVAL;
+			}
 			nla_memcpy(entry->peer_addr, pos, ETH_ALEN);
 			break;
 		case VENDOR_SAE_VLAN_ID:
@@ -3106,14 +3120,17 @@ static int vendor_set_sae_password(struct wiphy *wiphy,
 
 		switch (type) {
 		case VENDOR_SAE_ENTRY:
+			if (sae_entry_index >= SPRD_SAE_MAX_NUM)
+				return -EINVAL;
 			sae_para.entry[sae_entry_index].vlan_id =
 			    SPRD_SAE_NOT_SET;
 			sae_para.entry[sae_entry_index].used = 1;
-			vendor_parse_sae_entry(&sae_para.entry[sae_entry_index],
-					       nla_data(pos), nla_len(pos));
-			sae_entry_index++;
-			if (sae_entry_index >= SPRD_SAE_MAX_NUM)
+			if (vendor_parse_sae_entry(&sae_para.entry[sae_entry_index],
+					       nla_data(pos), nla_len(pos)) != 0) {
+				pr_err("%s %d error.\n", __func__, __LINE__);
 				return -EINVAL;
+			}
+			sae_entry_index++;
 			break;
 
 		case VENDOR_SAE_GROUP_ID:
@@ -3129,17 +3146,22 @@ static int vendor_set_sae_password(struct wiphy *wiphy,
 
 		case VENDOR_SAE_PWD:
 			sae_para.passphrase_len = nla_len(pos);
-			nla_strscpy(sae_para.passphrase, pos,
-				    sae_para.passphrase_len + 1);
-			pr_info("pwd is :%s, len :%d\n", sae_para.passphrase,
-				sae_para.passphrase_len);
+			if (sae_para.passphrase_len < sizeof(sae_para.passphrase)) {
+				nla_strscpy(sae_para.passphrase, pos,
+					    sae_para.passphrase_len + 1);
+				pr_info("pwd is :%s, len :%d\n", sae_para.passphrase,
+					sae_para.passphrase_len);
+			} else {
+				pr_err("%s %d error.\n", __func__, __LINE__);
+				return -EINVAL;
+			}
 			break;
 		default:
 			break;
 		}
 	}
 
-	para = kzalloc(512, GFP_KERNEL);
+	para = kzalloc(1024, GFP_KERNEL);
 	if (!para)
 		return -ENOMEM;
 
