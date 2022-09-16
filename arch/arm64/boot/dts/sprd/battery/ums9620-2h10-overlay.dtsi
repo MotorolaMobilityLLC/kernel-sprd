@@ -129,14 +129,6 @@
 	phys = <&hsphy>;
 	pd-extcon-enable;
 	extcon = <&pmic_typec>, <&pmic_pd>;
-
-	regulator@0 {
-		cm-regulator-name = "vddgen0";
-		cable@0 {
-			cm-cable-name = "USB";
-			extcon = <&pmic_typec>;
-		};
-	};
 };
 
 &i2c6 {
