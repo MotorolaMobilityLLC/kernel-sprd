@@ -421,9 +421,32 @@ static void show_val_kb(struct seq_buf *m, const char *s, unsigned long num)
 					num << (PAGE_SHIFT - 10));
 }
 
+static long nr_blockdev_pages_nolock(void)
+{
+	struct inode *inode;
+	long ret = 0;
+
+	list_for_each_entry(inode, &blockdev_superblock->s_inodes, i_sb_list)
+		ret += inode->i_mapping->nrpages;
+
+	return ret;
+}
+
+static void si_meminfo_nolock(struct sysinfo *val)
+{
+	val->totalram = totalram_pages();
+	val->sharedram = global_node_page_state(NR_SHMEM);
+	val->freeram = global_zone_page_state(NR_FREE_PAGES);
+	val->bufferram = nr_blockdev_pages_nolock();
+	val->totalhigh = totalhigh_pages();
+	val->freehigh = nr_free_highpages();
+	val->mem_unit = PAGE_SIZE;
+}
+
 static int meminfo_proc_show(struct seq_buf *m)
 {
 	struct sysinfo i;
+	unsigned long committed;
 	long cached;
 	long available;
 	unsigned long pages[NR_LRU_LISTS];
@@ -431,8 +454,9 @@ static int meminfo_proc_show(struct seq_buf *m)
 	int lru;
 	unsigned long *addr;
 
-	si_meminfo(&i);
+	si_meminfo_nolock(&i);
 	si_swapinfo(&i);
+	committed = vm_memory_committed();
 
 	cached = global_node_page_state(NR_FILE_PAGES) -
 			total_swapcache_pages() - i.bufferram;
@@ -505,6 +529,7 @@ static int meminfo_proc_show(struct seq_buf *m)
 			global_zone_page_state(NR_BOUNCE));
 	show_val_kb(m, "WritebackTmp:	",
 			global_node_page_state(NR_WRITEBACK_TEMP));
+	show_val_kb(m, "Committed_AS:	", committed);
 	show_val_kb_pf(m, "VmallocTotal:	%8lukB\n",
 			(unsigned long)VMALLOC_TOTAL >> 10);
 	show_val_kb(m, "VmallocUsed:	", vmalloc_nr_pages());
