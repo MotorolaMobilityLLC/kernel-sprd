@@ -71,7 +71,7 @@
 				key-volumedown {
 					label = "Volume Down Key";
 					linux,code = <KEY_VOLUMEDOWN>;
-					gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
+					gpios = <&ap_gpio 125 GPIO_ACTIVE_LOW>;
 					debounce-interval = <2>;
 					wakeup-source;
 				};
@@ -91,6 +91,16 @@
 					debounce-interval = <2>;
 					wakeup-source;
 				};
+
+				key-volumedown-evb {
+					label = "evb Volume Down Key";
+					linux,code = <KEY_VOLUMEDOWN>;
+					gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
+
+
 			};
 
 			bat: battery {
