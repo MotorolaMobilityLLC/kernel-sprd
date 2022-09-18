@@ -770,6 +770,9 @@ static int gpio_keys_probe(struct platform_device *pdev)
 	struct input_dev *input;
 	int i, error;
 	int wakeup = 0;
+	char *cmdline_buf = saved_command_line;
+	char *str_to_find = NULL;
+	bool volumedown_evb_flag = false;
 
 	if (!pdata) {
 		pdata = gpio_keys_get_devtree_pdata(dev);
@@ -818,13 +821,24 @@ static int gpio_keys_probe(struct platform_device *pdev)
 	input->keycodesize = sizeof(ddata->keymap[0]);
 	input->keycodemax = pdata->nbuttons;
 
+
+	str_to_find = strstr(cmdline_buf , "hwlevel=Pre_EVB");
+	if (str_to_find != NULL) {
+		dev_err(dev, "[gpio_keys] hwlevel=Pre_EVB exist!str_to_find=%s\n",str_to_find);
+		volumedown_evb_flag = true;
+		dev_err(dev, "[gpio_keys] use evb phase keyin0 as volumedown key\n");
+	} else {	
+		volumedown_evb_flag = false;
+		dev_err(dev, "[gpio_keys] use keyin1 as volumedown key\n");
+	}
 	/* Enable auto repeat feature of Linux input subsystem */
 	if (pdata->rep)
 		__set_bit(EV_REP, input->evbit);
 
 	for (i = 0; i < pdata->nbuttons; i++) {
 		const struct gpio_keys_button *button = &pdata->buttons[i];
-
+		bool skip = false;
+		
 		if (!dev_get_platdata(dev)) {
 			child = device_get_next_child_node(dev, child);
 			if (!child) {
@@ -834,16 +848,31 @@ static int gpio_keys_probe(struct platform_device *pdev)
 				return -EINVAL;
 			}
 		}
-
-		error = gpio_keys_setup_key(pdev, input, ddata,
-					    button, i, child);
-		if (error) {
-			fwnode_handle_put(child);
-			return error;
+		
+		if (volumedown_evb_flag == false) {
+			dev_err(dev, "[gpio_keys] i=%d,button->desc=%s\n",i,button->desc);
+			if (!strncmp(button->desc,"evb Volume Down Key",sizeof("evb Volume Down Key"))) {
+				dev_err(dev, "[gpio_keys] skip evb volume donw key setting\n");
+				skip = true;
+			}
+		} else {
+			dev_err(dev, "[gpio_keys] i=%d,button->desc=%s\n",i,button->desc);
+			if (!strncmp(button->desc,"Volume Down Key",sizeof("Volume Down Key"))) {
+				dev_err(dev, "[gpio_keys] skip volume donw key setting\n");
+				skip = true;
+			}
 		}
+		if (skip != true) {
+			error = gpio_keys_setup_key(pdev, input, ddata,
+						    button, i, child);
+			if (error) {
+				fwnode_handle_put(child);
+				return error;
+			}
 
-		if (button->wakeup)
-			wakeup = 1;
+			if (button->wakeup)
+				wakeup = 1;
+		}
 	}
 
 	fwnode_handle_put(child);
