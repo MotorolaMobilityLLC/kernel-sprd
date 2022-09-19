@@ -438,6 +438,8 @@ static int get_cp_ibat_uA(struct charger_manager *cm, int *uA)
 	if (!cm || !cm->desc || !cm->desc->psy_cp_stat)
 		return ret;
 
+	*uA = 0;
+
 	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
 		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
 		if (!cp_psy) {
@@ -547,6 +549,8 @@ static int get_cp_ibus_uA(struct charger_manager *cm, int *cur)
 
 	if (!cm->desc->psy_cp_stat)
 		return 0;
+
+	*cur = 0;
 
 	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
 		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
@@ -1058,6 +1062,8 @@ static int get_constant_charge_current(struct charger_manager *cm, int *cur)
 	struct power_supply *psy;
 	int i, ret = -ENODEV;
 
+	*cur = 0;
+
 	/* If at least one of them has one, it's yes. */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
@@ -1092,6 +1098,8 @@ static int get_input_current_limit(struct charger_manager *cm, int *cur)
 	struct power_supply *psy;
 	int i, ret = -ENODEV;
 
+	*cur = 0;
+
 	/* If at least one of them has one, it's yes. */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
@@ -1117,6 +1125,8 @@ static int get_charger_input_current(struct charger_manager *cm, int *cur)
 	union power_supply_propval val;
 	struct power_supply *psy;
 	int i, ret = -ENODEV;
+
+	*cur = 0;
 
 	/* If at least one of them has one, it's yes. */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
