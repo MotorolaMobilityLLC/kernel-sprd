@@ -6542,11 +6542,11 @@ static void cm_uvlo_check_work(struct work_struct *work)
 
 	if (cm->desc->uvlo_trigger_cnt >= CM_UVLO_CALIBRATION_CNT_THRESHOLD) {
 		if (DIV_ROUND_CLOSEST(cm->desc->cap, 10) <= 1) {
-			dev_err(cm->dev, "WARN: trigger uvlo, will shutdown with uisoc less than 1%\n");
+			dev_err(cm->dev, "WARN: trigger uvlo, will shutdown with uisoc less than 1%%\n");
 			cm_shutdown_handle(cm);
 		} else if ((u32)batt_uV <= cm->desc->shutdown_voltage) {
 			dev_err(cm->dev, "WARN: batt_uV less than shutdown voltage, will shutdown,"
-				"and force capacity to 0%\n");
+				"and force capacity to 0%%\n");
 			set_batt_cap(cm, 0);
 			cm_shutdown_handle(cm);
 		}
