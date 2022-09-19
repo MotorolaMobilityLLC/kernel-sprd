@@ -574,12 +574,26 @@ bool gnss_delay_ctl(void)
 }
 EXPORT_SYMBOL_GPL(gnss_delay_ctl);
 
+static ssize_t gnss_power_busy_show(struct device *dev,
+				 struct device_attribute *attr, char *buf)
+{
+	bool power_busy = 0;
+
+	power_busy = wcn_is_power_busy();
+	dev_info(dev, "%s wcn power busy %d\n", __func__, power_busy);
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n", power_busy);
+}
+
+static DEVICE_ATTR_RO(gnss_power_busy);
+
 static struct attribute *gnss_common_ctl_attrs[] = {
 	&dev_attr_gnss_power_enable.attr,
 	&dev_attr_gnss_dump.attr,
 	&dev_attr_gnss_status.attr,
 	&dev_attr_gnss_subsys.attr,
 	&dev_attr_gnss_clktype.attr,
+	&dev_attr_gnss_power_busy.attr,
 	NULL,
 };
 
