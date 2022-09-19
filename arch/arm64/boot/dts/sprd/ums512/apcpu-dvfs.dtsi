@@ -60,8 +60,10 @@
 			nvmem-cell-names = "dvfs_bin";
 			nvmem-cells = <&dvfs_bin_cpu1>;
 			sprd,multi-version;
+			sprd,multi-supply;
 			sprd,cpufreq-boost;
 			sprd,pmic-type = <1>;
+			sprd,pmic-type-v2 = <0>;
 			sprd,transition-delay = <500>;
 			sprd,thmzone-names = "soc-thmzone";
 
