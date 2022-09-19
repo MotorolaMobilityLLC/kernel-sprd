@@ -154,6 +154,13 @@ static int antcheck_remove(struct platform_device *pdev)
 	free_irq(antcheck_irq_num_pin, NULL);
 	return 0;
 }
+
+static void antcheck_shutdown(struct platform_device *pdev)
+{
+	free_irq(antcheck_irq_num_pin, NULL);
+	printk("antcheck shutdown \n");
+}
+
 static struct of_device_id antcheck_dtb_table[] = {
 	{.compatible = "virtualsar,antcheck",},
 	{ },
@@ -161,6 +168,7 @@ static struct of_device_id antcheck_dtb_table[] = {
 
 static struct platform_driver antcheck_driver = {
 	.probe = antcheck_probe,
+	.shutdown = antcheck_shutdown,
 	.remove = antcheck_remove,
 	.driver = {
 		.name = "platform-antcheck",
