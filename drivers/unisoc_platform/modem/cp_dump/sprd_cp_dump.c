@@ -301,7 +301,7 @@ static long cp_dump_ioctl(struct file *filp, unsigned int cmd, unsigned long arg
 		if (ret)
 			break;
 		cp_dump->dump_info->region_cnt = tmp.region_cnt;
-		for (i = 0; i < tmp.region_cnt; i++) {
+		for (i = 0; i < tmp.region_cnt && tmp.region_cnt < MAX_REGION_CNT; i++) {
 			cp_dump->dump_info->regions[i].address = (u64)tmp.regions[i].address;
 			cp_dump->dump_info->regions[i].size = (u32)tmp.regions[i].size;
 			strcpy(cp_dump->dump_info->regions[i].name, tmp.regions[i].name);
