@@ -206,9 +206,9 @@ static void set_gsp_dvfs_swtrig_en(struct gsp_dvfs *gsp, bool enable)
 
 	mutex_lock(&gsp->apsys->reg_lock);
 	if (enable)
-		reg->dpu_vsp_sw_trig_ctrl |= BIT(0);
+		reg->dpu_vsp_sw_trig_ctrl |= BIT(2);
 	else
-		reg->dpu_vsp_sw_trig_ctrl &= ~BIT(0);
+		reg->dpu_vsp_sw_trig_ctrl &= ~BIT(2);
 	mutex_unlock(&gsp->apsys->reg_lock);
 }
 
