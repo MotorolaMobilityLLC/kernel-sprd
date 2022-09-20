@@ -4,9 +4,11 @@ KERNEL_DIR=${KERNEL_DIR}"/.."
 BUILD_SYSTEM_DLKM=0
 DEFCONFIG=ums9620_gki_defconfig
 FRAGMENT_CONFIG=${KERNEL_DIR}/arch/arm64/configs/sprd_gki_qogirn6pro_debug.fragment
+UMS9620_BASE_CONFIG="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig
+                     ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_gki_qogirn6pro.fragment
+                    "
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \
-${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig \
-${KERNEL_DIR}/arch/arm64/configs/sprd_gki_qogirn6pro.fragment ${ROOT_DIR}/${FRAGMENT_CONFIG}"
+${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${UMS9620_BASE_CONFIG} ${ROOT_DIR}/${FRAGMENT_CONFIG}"
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
 
 EXT_MODULES="
