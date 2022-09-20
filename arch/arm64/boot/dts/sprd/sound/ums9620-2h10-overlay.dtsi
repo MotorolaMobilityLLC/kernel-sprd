@@ -35,7 +35,7 @@
 			sound-dai = <&sprd_route_pcm>;
 		};
 		cpu {
-			sound-dai = <&agcp_i2s0 57>;
+			sound-dai = <&agcp_i2s0 0>;
 		};
 		codec {
 			sound-dai = <&dptx 0>;
