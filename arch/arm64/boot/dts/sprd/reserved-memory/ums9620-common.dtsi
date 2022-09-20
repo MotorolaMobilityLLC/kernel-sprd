@@ -1,16 +1,19 @@
 #include "modem-5g-common.dtsi"
 &reserved_memory {
-	logo_reserved: logobuffer@b0000000 {
+	/* the @addr value is not accurate on N6Pro, please refer to the reg value */
+	logobuffer@be000000 {
 		reg = <0x0 0xb0000000 0x0 0x009e4000>;
 	};
 
 	/* Only for userdebug, will be removed in user mode by lk */
-	uboot_reserved: sysdump-uboot@b5000000 {
+	/* the @addr value is not accurate on N6Pro, please refer to the reg value */
+	sysdump-uboot@bf000000 {
 		reg = <0x0 0xb5000000 0x0 0x01000000>;
 	};
 
 	/* The uboot_log_reserved node is added in lk. base:0xbbe80000, size:0x80000 */
-	uboot_log_reserved: uboot_log-mem@bbe80000 {
+	/* the @addr value is not accurate on N6Pro, please refer to the reg value */
+	uboot_log-mem@ffef0000 {
 		reg = <0x0 0xbbe80000 0x0 0x00080000>;
 	};
 
@@ -20,16 +23,19 @@
 	};
 
 	/* must be 1M aligned */
-	sml_reserved: sml-mem@bd000000 {
+	/* the @addr value is not accurate on N6Pro, please refer to the reg value */
+	sml-mem@b0000000 {
 		reg = <0x0 0xbd000000 0x0 0x00040000>;
 	};
 
 	/* the reg values may be not accurate, they have been fixed in lk !!! */
-	tos_reserved: tos-mem@bd040000 {
+	/* the @addr value is not accurate on N6Pro, please refer to the reg value */
+	tos-mem@b0040000 {
 		reg = <0x0 0xbd040000 0x0 0x01fc0000>;
 	};
 
-	tos_shm_reserved: sh-mem@c3000000{
+	/* the @addr value is not accurate on N6Pro, please refer to the reg value */
+	sh-mem@b2000000{
 		reg = <0x0 0xc3000000 0x0 0x00100000>;
 	};
 
