@@ -72,6 +72,7 @@
 					label = "Volume Down Key";
 					linux,code = <KEY_VOLUMEDOWN>;
 					gpios = <&ap_gpio 125 GPIO_ACTIVE_LOW>;
+					evb-gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
 					debounce-interval = <2>;
 					wakeup-source;
 				};
@@ -88,14 +89,6 @@
 					label = "Power Key";
 					linux,code = <KEY_POWER>;
 					gpios = <&pmic_eic 1 GPIO_ACTIVE_LOW>;
-					debounce-interval = <2>;
-					wakeup-source;
-				};
-
-				key-volumedown-evb {
-					label = "evb Volume Down Key";
-					linux,code = <KEY_VOLUMEDOWN>;
-					gpios = <&ap_gpio 124 GPIO_ACTIVE_LOW>;
 					debounce-interval = <2>;
 					wakeup-source;
 				};

@@ -58,6 +58,7 @@ struct gpio_keys_drvdata {
 	struct gpio_button_data data[0];
 };
 
+bool volumedown_evb_flag = false;
 /*
  * SYSFS interface for enabling/disabling keys and switches:
  *
@@ -493,8 +494,24 @@ static int gpio_keys_setup_key(struct platform_device *pdev,
 	bdata->button = button;
 	spin_lock_init(&bdata->lock);
 
+	
+	dev_err(dev, "desc: %s\n",button->desc);
 	if (child) {
-		bdata->gpiod = devm_fwnode_get_gpiod_from_child(dev, NULL,
+		if (!strncmp(button->desc, "Volume Down Key", sizeof("Volume Down Key"))) {
+			if (volumedown_evb_flag == true) {
+				dev_err(dev, "volumedown_evb_flag :ture, get gpio with evb con_id\n");			
+				bdata->gpiod = devm_fwnode_get_gpiod_from_child(dev, "evb",
+								child,
+								GPIOD_IN,
+								desc);
+			} else {
+				bdata->gpiod = devm_fwnode_get_gpiod_from_child(dev, NULL,
+								child,
+								GPIOD_IN,
+								desc);
+			}
+		} else 
+			bdata->gpiod = devm_fwnode_get_gpiod_from_child(dev, NULL,
 								child,
 								GPIOD_IN,
 								desc);
@@ -772,7 +789,6 @@ static int gpio_keys_probe(struct platform_device *pdev)
 	int wakeup = 0;
 	char *cmdline_buf = saved_command_line;
 	char *str_to_find = NULL;
-	bool volumedown_evb_flag = false;
 
 	if (!pdata) {
 		pdata = gpio_keys_get_devtree_pdata(dev);
@@ -837,7 +853,6 @@ static int gpio_keys_probe(struct platform_device *pdev)
 
 	for (i = 0; i < pdata->nbuttons; i++) {
 		const struct gpio_keys_button *button = &pdata->buttons[i];
-		bool skip = false;
 		
 		if (!dev_get_platdata(dev)) {
 			child = device_get_next_child_node(dev, child);
@@ -849,30 +864,15 @@ static int gpio_keys_probe(struct platform_device *pdev)
 			}
 		}
 		
-		if (volumedown_evb_flag == false) {
-			dev_err(dev, "[gpio_keys] i=%d,button->desc=%s\n",i,button->desc);
-			if (!strncmp(button->desc,"evb Volume Down Key",sizeof("evb Volume Down Key"))) {
-				dev_err(dev, "[gpio_keys] skip evb volume donw key setting\n");
-				skip = true;
-			}
-		} else {
-			dev_err(dev, "[gpio_keys] i=%d,button->desc=%s\n",i,button->desc);
-			if (!strncmp(button->desc,"Volume Down Key",sizeof("Volume Down Key"))) {
-				dev_err(dev, "[gpio_keys] skip volume donw key setting\n");
-				skip = true;
-			}
+		error = gpio_keys_setup_key(pdev, input, ddata,
+					    button, i, child);
+		if (error) {
+			fwnode_handle_put(child);
+			return error;
 		}
-		if (skip != true) {
-			error = gpio_keys_setup_key(pdev, input, ddata,
-						    button, i, child);
-			if (error) {
-				fwnode_handle_put(child);
-				return error;
-			}
 
-			if (button->wakeup)
-				wakeup = 1;
-		}
+		if (button->wakeup)
+			wakeup = 1;
 	}
 
 	fwnode_handle_put(child);
