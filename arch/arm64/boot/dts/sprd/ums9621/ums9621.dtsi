@@ -175,25 +175,25 @@
 		entry-method = "arm,psci";
 		LIT_CORE_PD: core-sleep-lit {
 			compatible = "arm,idle-state";
-			entry-latency-us = <1000>;
-			exit-latency-us = <500>;
-			min-residency-us = <2500>;
+			entry-latency-us = <0xffffffff>;
+			exit-latency-us = <0xffffffff>;
+			min-residency-us = <0xffffffff>;
 			local-timer-stop;
 			arm,psci-suspend-param = <0x00010000>;
 		};
 		MID_CORE_PD: core-sleep-mid {
 			compatible = "arm,idle-state";
-			entry-latency-us = <4000>;
-			exit-latency-us = <4000>;
-			min-residency-us = <10000>;
+			entry-latency-us = <0xffffffff>;
+			exit-latency-us = <0xffffffff>;
+			min-residency-us = <0xffffffff>;
 			local-timer-stop;
 			arm,psci-suspend-param = <0x00010000>;
 		};
 		CLUSTER_PD: cluster-pd {
 			compatible = "arm,idle-state";
-			entry-latency-us = <10000>;
-			exit-latency-us = <10000>;
-			min-residency-us = <25000>;
+			entry-latency-us = <0xffffffff>;
+			exit-latency-us = <0xffffffff>;
+			min-residency-us = <0xffffffff>;
 			local-timer-stop;
 			arm,psci-suspend-param = <0x01010000>;
 		};
