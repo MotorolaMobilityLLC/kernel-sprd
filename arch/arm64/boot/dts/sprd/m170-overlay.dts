@@ -100,6 +100,13 @@
 					wakeup-source;
 				};
 
+				key-antcheck {
+					label = "antcheck";
+					linux,code = <KEY_ANT>;
+					gpios = <&ap_gpio 122 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
 
 			};
 
@@ -653,14 +660,6 @@
 				pwm-names = "pwm0";
 				flash-enf-gpios = <&ap_gpio 112 0>;
 				#pwm-cells = <2>;
-			};
-
-			vituralsar {
-				compatible = "virtualsar,antcheck";
-				interrupt-parent = <&ap_gpio>;
-				interrupts = <122 0x02>;
-				vituralsar,irq-gpio = <&ap_gpio 122 0>;
-				status = "okay";
 			};
 		};
 	};
