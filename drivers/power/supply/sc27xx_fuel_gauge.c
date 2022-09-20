@@ -166,6 +166,8 @@
 #define SC27XX_FGU_CAPACITY_TRACK_100S		100
 #define SC27XX_FGU_WORK_MS			msecs_to_jiffies(15000)
 
+#define SC27XX_FGU_PROBE_TIMEOUT		msecs_to_jiffies(3000)
+
 /* RTC OF 2021-08-06 15 : 44*/
 #define SC27XX_FGU_MISCDATA_RTC_TIME		(1621355101)
 #define SC27XX_FGU_SHUTDOWN_TIME		(15 * 60)
@@ -401,6 +403,9 @@ struct sc27xx_fgu_data {
 	int basp_full_design_table_len;
 	int *basp_voltage_max_table;
 	int basp_voltage_max_table_len;
+
+	struct completion probe_init;
+	bool probe_initialized;
 };
 
 struct sc27xx_fgu_variant_data {
@@ -2440,6 +2445,21 @@ static int sc27xx_fgu_batt_ovp_threshold_config(struct sc27xx_fgu_data *data)
 	return ret;
 }
 
+static bool sc27xx_fgu_probe_is_ready(struct sc27xx_fgu_data *data)
+{
+	unsigned long timeout;
+
+	if (unlikely(!data->probe_initialized)) {
+		timeout = wait_for_completion_timeout(&data->probe_init, SC27XX_FGU_PROBE_TIMEOUT);
+		if (!timeout) {
+			dev_err(data->dev, "%s wait probe timeout\n", __func__);
+			return false;
+		}
+	}
+
+	return true;
+}
+
 static int sc27xx_fgu_get_property(struct power_supply *psy,
 				   enum power_supply_property psp,
 				   union power_supply_propval *val)
@@ -2449,6 +2469,11 @@ static int sc27xx_fgu_get_property(struct power_supply *psy,
 
 	if (!data) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	if (!sc27xx_fgu_probe_is_ready(data)) {
+		dev_err(data->dev, "%s wait probe timeout\n", __func__);
 		return -EINVAL;
 	}
 
@@ -2611,6 +2636,11 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 
 	if (!data) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	if (!sc27xx_fgu_probe_is_ready(data)) {
+		dev_err(data->dev, "%s wait probe timeout\n", __func__);
 		return -EINVAL;
 	}
 
@@ -3139,6 +3169,11 @@ static irqreturn_t sc27xx_fgu_interrupt(int irq, void *dev_id)
 		return IRQ_HANDLED;
 	}
 
+	if (!sc27xx_fgu_probe_is_ready(data)) {
+		dev_err(data->dev, "%s wait probe timeout\n", __func__);
+		return IRQ_HANDLED;
+	}
+
 	ret = sc27xx_fgu_get_status(data, &chg_sts);
 	if (ret)
 		return IRQ_HANDLED;
@@ -3193,6 +3228,11 @@ static irqreturn_t sc27xx_fgu_bat_detection(int irq, void *dev_id)
 
 	if (!data) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return IRQ_HANDLED;
+	}
+
+	if (!sc27xx_fgu_probe_is_ready(data)) {
+		dev_err(data->dev, "%s wait probe timeout\n", __func__);
 		return IRQ_HANDLED;
 	}
 
@@ -4675,7 +4715,7 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 
 	data->bat_present = !!ret;
 	mutex_init(&data->lock);
-	mutex_lock(&data->lock);
+	init_completion(&data->probe_init);
 
 	fgu_cfg.drv_data = data;
 	fgu_cfg.of_node = np;
@@ -4762,12 +4802,12 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 	if (ret)
 		dev_err(&pdev->dev, "register sysfs fail, ret = %d\n", ret);
 
-	mutex_unlock(&data->lock);
+	data->probe_initialized = true;
+	complete_all(&data->probe_init);
 	return 0;
 
 err:
 	sc27xx_fgu_disable(data);
-	mutex_unlock(&data->lock);
 	mutex_destroy(&data->lock);
 	return ret;
 }
