@@ -52,6 +52,13 @@ void sipc_debug_putline(struct seq_file *m, char c, int n)
 EXPORT_SYMBOL_GPL(sipc_debug_putline);
 #endif
 
+#if IS_ENABLED(CONFIG_SPRD_SIPC)
+static struct notifier_block senddie_panic_nb = {
+	.notifier_call = senddie_callback,
+	.priority = INT_MAX-1,
+};
+#endif
+
 static u64 sprd_u32_to_u64(u32 *mssg)
 {
 	u64 msg_64 = 0;
@@ -304,7 +311,7 @@ static int __init sprd_ipc_init(void)
 	smsg_init_wakeup();
 	smsg_init_channel2index();
 #if IS_ENABLED(CONFIG_SPRD_SIPC)
-	spi_callback_register(smsg_senddie);
+	atomic_notifier_chain_register(&panic_notifier_list, &senddie_panic_nb);
 #endif
 	return platform_driver_register(&sprd_ipc_driver);
 }
@@ -313,7 +320,7 @@ static void __exit sprd_ipc_exit(void)
 {
 	smsg_remove_wakeup();
 #if IS_ENABLED(CONFIG_SPRD_SIPC)
-	spi_callback_unregister();
+	atomic_notifier_chain_unregister(&panic_notifier_list, &senddie_panic_nb);
 #endif
 	platform_driver_unregister(&sprd_ipc_driver);
 }
