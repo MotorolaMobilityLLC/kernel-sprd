@@ -8712,6 +8712,7 @@ static void ufshcd_hba_vreg_set_hpm(struct ufs_hba *hba)
 static int ufshcd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 {
 	int ret = 0;
+	unsigned long flags;
 	enum ufs_pm_level pm_lvl;
 	enum ufs_dev_pwr_mode req_dev_pwr_mode;
 	enum uic_link_state req_link_state;
@@ -8782,7 +8783,11 @@ static int ufshcd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 			ufshcd_wb_need_flush(hba));
 	}
 
-	ufshcd_writel(hba, 0x0, REG_AUTO_HIBERNATE_IDLE_TIMER);
+	if (ufshcd_is_auto_hibern8_supported(hba)) {
+		spin_lock_irqsave(hba->host->host_lock, flags);
+		ufshcd_writel(hba, 0, REG_AUTO_HIBERNATE_IDLE_TIMER);
+		spin_unlock_irqrestore(hba->host->host_lock, flags);
+	}
 
 	if (req_dev_pwr_mode != hba->curr_dev_pwr_mode) {
 		if ((ufshcd_is_runtime_pm(pm_op) && !hba->auto_bkops_enabled) ||

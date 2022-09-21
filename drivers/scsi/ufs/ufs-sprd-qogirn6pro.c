@@ -296,8 +296,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
 
-	hba->caps |= UFSHCD_CAP_CLK_GATING | UFSHCD_CAP_CRYPTO |
-		     UFSHCD_CAP_HIBERN8_WITH_CLK_GATING | UFSHCD_CAP_WB_EN;
+	hba->caps |= UFSHCD_CAP_CLK_GATING | UFSHCD_CAP_CRYPTO | UFSHCD_CAP_WB_EN;
 
 	return 0;
 
@@ -651,6 +650,7 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 				struct ufs_pa_layer_attr *dev_req_params)
 {
 	int err = 0;
+	unsigned long flags;
 
 	if (!dev_req_params) {
 		pr_err("%s: incoming dev_req_params is NULL\n", __func__);
@@ -667,8 +667,11 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		break;
 	case POST_CHANGE:
 		/* Set auto h8 ilde time to 10ms */
-		ufshcd_writel(hba,
-			AUTO_H8_IDLE_TIME_10MS, REG_AUTO_HIBERNATE_IDLE_TIMER);
+		if (ufshcd_is_auto_hibern8_supported(hba)) {
+			spin_lock_irqsave(hba->host->host_lock, flags);
+			ufshcd_writel(hba, AUTO_H8_IDLE_TIME_10MS, REG_AUTO_HIBERNATE_IDLE_TIMER);
+			spin_unlock_irqrestore(hba->host->host_lock, flags);
+		}
 		break;
 	default:
 		err = -EINVAL;
@@ -710,6 +713,7 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 					   host->usb31pllv_ref2mphy_en.reg,
 					   host->usb31pllv_ref2mphy_en.mask,
 					   0);
+			mdelay(2);
 		}
 		break;
 	default:
@@ -987,6 +991,18 @@ void ufs_sprd_setup_xfer_req(struct ufs_hba *hba, int task_tag, bool scsi_cmd)
 	}
 }
 
+static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
+{
+	mdelay(30);
+	return 0;
+}
+
+static int ufs_sprd_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
+{
+	udelay(100);
+	return 0;
+}
+
 /*
  * struct ufs_hba_sprd_vops - UFS sprd specific variant operations
  *
@@ -1005,6 +1021,8 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.hibern8_notify = ufs_sprd_hibern8_notify,
 	.setup_xfer_req = ufs_sprd_setup_xfer_req,
 	.device_reset = ufs_sprd_device_reset,
+	.suspend = ufs_sprd_suspend,
+	.resume = ufs_sprd_resume,
 };
 
 /**
