@@ -592,10 +592,9 @@ static const struct clk_parent_data dispc0_dpi_parents[] = {
 	{ .hw = &twpll_96m.hw  },
 	{ .hw = &twpll_128m.hw  },
 	{ .hw = &twpll_153m6.hw  },
-	{ .hw = &twpll_192m.hw  },
 };
 static SPRD_COMP_CLK_DATA(dispc0_dpi, "dispc0-dpi", dispc0_dpi_parents,
-			  0x9c, 0, 3, 8, 4, 0);
+			  0x9c, 0, 2, 8, 4, 0);
 
 static const struct clk_parent_data dsi_apb_parents[] = {
 	{ .hw = &twpll_96m.hw  },
@@ -822,7 +821,7 @@ static SPRD_GATE_CLK_FW_NAME(apcpu_dap_mtck, "apcpu-dap-mtck", "ext-26m",
 			     0x28c, BIT(16), 0, 0);
 
 static const struct clk_parent_data apcpu_ts_parents[] = {
-	{ .fw_name = "ext-32m" },
+	{ .fw_name = "ext-32k" },
 	{ .fw_name = "ext-26m" },
 	{ .hw = &twpll_128m.hw  },
 	{ .hw = &twpll_153m6.hw  },
