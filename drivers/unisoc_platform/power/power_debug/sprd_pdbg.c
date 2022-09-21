@@ -484,9 +484,7 @@ static int sprd_pdbg_pm_notifier(struct notifier_block *notifier,
 		unsigned long pm_event, void *unused)
 {
 	struct power_debug *pdbg = sprd_pdbg_get_instance();
-	struct timespec64 sleep_time;
-	struct timespec64 total_time;
-	struct timespec64 suspend_resume_time;
+	ktime_t sleep_time, total_time, suspend_resume_time;
 	u64 suspend_time_ms;
 
 	if (!pdbg)
@@ -506,12 +504,10 @@ static int sprd_pdbg_pm_notifier(struct notifier_block *notifier,
 		pdbg->curr_monotime = ktime_get();
 		 /* monotonic time since boot including the time spent in suspend */
 		pdbg->curr_stime = ktime_get_boottime();
-		total_time = ktime_to_timespec64(ktime_sub(pdbg->curr_stime, pdbg->last_stime));
-		suspend_resume_time =
-			ktime_to_timespec64(ktime_sub(pdbg->curr_monotime, pdbg->last_monotime));
-		sleep_time = timespec64_sub(total_time, suspend_resume_time);
-		suspend_time_ms = timespec64_to_ns(&sleep_time);
-		do_div(suspend_time_ms, 1000000);
+		total_time = ktime_sub(pdbg->curr_stime, pdbg->last_stime);
+		suspend_resume_time = ktime_sub(pdbg->curr_monotime, pdbg->last_monotime);
+		sleep_time = ktime_sub(total_time, suspend_resume_time);
+		suspend_time_ms = ktime_to_ms(sleep_time);
 		SPRD_PDBG_INFO("kernel suspend %llums\n", suspend_time_ms);
 		break;
 	default:
