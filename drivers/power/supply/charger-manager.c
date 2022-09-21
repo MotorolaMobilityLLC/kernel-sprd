@@ -114,6 +114,7 @@
 #define CM_CAP_CYCLE_TRACK_TIME_12S		12
 #define CM_CAP_CYCLE_TRACK_TIME_10S		10
 #define CM_CAP_CYCLE_TRACK_TIME_8S		8
+#define CM_INIT_BOARD_TEMP			250
 
 static const char * const cm_cp_state_names[] = {
 	[CM_CP_STATE_UNKNOWN] = "Charge pump state: UNKNOWN",
@@ -3763,7 +3764,7 @@ static void check_charging_duration(struct charger_manager *cm)
 	return;
 }
 
-static int cm_get_battery_temperature_by_psy(struct charger_manager *cm, int *temp)
+static int cm_get_battery_temperature(struct charger_manager *cm, int *temp)
 {
 	struct power_supply *fuel_gauge;
 	int ret;
@@ -3782,25 +3783,25 @@ static int cm_get_battery_temperature_by_psy(struct charger_manager *cm, int *te
 	return ret;
 }
 
-static int cm_get_battery_temperature(struct charger_manager *cm, int *temp)
+static int cm_get_board_temperature(struct charger_manager *cm, int *temp)
 {
 	int ret = 0;
 
+	*temp = CM_INIT_BOARD_TEMP;
 	if (!cm->desc->measure_battery_temp)
 		return -ENODEV;
 
 #if IS_ENABLED(CONFIG_THERMAL)
 	if (cm->tzd_batt) {
 		ret = thermal_zone_get_temp(cm->tzd_batt, temp);
-		if (!ret)
+		if (!ret) {
 			/* Calibrate temperature unit */
 			*temp /= 100;
-	} else
-#endif
-	{
-		/* if-else continued from CONFIG_THERMAL */
-		*temp = cm->desc->temperature;
+			return ret;
+		}
 	}
+#endif
+	dev_err(cm->dev, "Can not to get board temperature, return init_temp=%d\n", *temp);
 
 	return ret;
 }
@@ -3811,14 +3812,14 @@ static int cm_check_thermal_status(struct charger_manager *cm)
 	int temp, upper_limit, lower_limit;
 	int ret = 0;
 
-	ret = cm_get_battery_temperature(cm, &temp);
+	ret = cm_get_board_temperature(cm, &temp);
 	if (ret) {
 		/* FIXME:
 		 * No information of battery temperature might
 		 * occur hazardous result. We have to handle it
 		 * depending on battery type.
 		 */
-		dev_err(cm->dev, "Failed to get battery temperature\n");
+		dev_err(cm->dev, "Failed to get board temperature\n");
 		return 0;
 	}
 
@@ -5129,7 +5130,7 @@ static int charger_get_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_TEMP_AMBIENT:
-		return cm_get_battery_temperature(cm, &val->intval);
+		return cm_get_board_temperature(cm, &val->intval);
 
 	case POWER_SUPPLY_PROP_CAPACITY:
 		cm_get_uisoc(cm, &val->intval);
@@ -6595,7 +6596,7 @@ static void cm_batt_works(struct work_struct *work)
 	if (ret)
 		dev_warn(cm->dev, "get chg_vol error.\n");
 
-	ret = cm_get_battery_temperature_by_psy(cm, &cur_temp);
+	ret = cm_get_battery_temperature(cm, &cur_temp);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery temperature\n");
 		goto schedule_cap_update_work;
@@ -6603,7 +6604,7 @@ static void cm_batt_works(struct work_struct *work)
 
 	cm->desc->temperature = cur_temp;
 
-	ret = cm_get_battery_temperature(cm, &board_temp);
+	ret = cm_get_board_temperature(cm, &board_temp);
 	if (ret)
 		dev_warn(cm->dev, "failed to get board temperature\n");
 
@@ -7111,7 +7112,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	if (device_property_read_bool(&pdev->dev, "cm-support-linear-charge"))
 		cm->desc->thm_info.need_calib_charge_lmt = true;
 
-	ret = cm_get_battery_temperature_by_psy(cm, &cm->desc->temperature);
+	ret = cm_get_battery_temperature(cm, &cm->desc->temperature);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery temperature\n");
 		return ret;
