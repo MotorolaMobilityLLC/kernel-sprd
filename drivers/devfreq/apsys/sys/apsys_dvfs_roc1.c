@@ -50,27 +50,6 @@ char *roc1_dpu_val_to_freq(u32 val)
 	}
 }
 
-char *roc1_vdsp_val_to_freq(u32 val)
-{
-	switch (val) {
-	case 0:
-		return "192M";
-	case 1:
-		return "307.2M";
-	case 2:
-		return "468M";
-	case 3:
-		return "614.4M";
-	case 4:
-		return "702M";
-	case 5:
-		return "768M";
-	default:
-		pr_err("invalid frequency value %u\n", val);
-		return "N/A";
-	}
-}
-
 char *roc1_vsp_val_to_freq(u32 val)
 {
 	switch (val) {

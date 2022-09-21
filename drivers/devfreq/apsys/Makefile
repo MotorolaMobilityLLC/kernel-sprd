@@ -9,7 +9,6 @@ apsys-dvfs-y := \
 	sprd_dvfs_apsys.o \
 	sprd_dvfs_dpu.o \
 	sprd_dvfs_vsp.o \
-	sprd_dvfs_vdsp.o \
 	dpu/dpu_dvfs_qogirn6pro.o \
 	dpu/dpu_dvfs_qogirn6lite.o \
 	dpu/dpu_dvfs_sharkl5pro.o \
@@ -29,13 +28,15 @@ apsys-dvfs-y := \
 	vsp/vpudec_dvfs_qogirn6pro.o \
 	vsp/vpuenc_dvfs_qogirn6pro.o \
 	vsp/vpudec_dvfs_qogirn6lite.o \
-	vsp/vpuenc_dvfs_qogirn6lite.o \
-	vdsp/vdsp_dvfs_sharkl5pro.o \
-	vdsp/vdsp_dvfs_roc1.o
+	vsp/vpuenc_dvfs_qogirn6lite.o
 
 apsys-dvfs-$(CONFIG_DRM_SPRD_GSP_DVFS) += \
 	sprd_dvfs_gsp.o \
 	gsp/gsp_dvfs_qogirn6pro.o \
 	gsp/gsp_dvfs_qogirn6lite.o
+
+apsys-dvfs-$(CONFIG_DVFS_APSYS_VDSP) += \
+	sprd_dvfs_vdsp.o \
+	vdsp/vdsp_dvfs_sharkl5pro.o
 
 obj-$(CONFIG_DVFS_APSYS_SPRD) += apsys-dvfs.o

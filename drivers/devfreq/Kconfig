@@ -181,6 +181,16 @@ config DRM_SPRD_GSP_DVFS
 	help
 	  This function is to support the dvfs function.
 
+config DVFS_APSYS_VDSP
+	bool "SPRD APSYS VDSP dvfs driver"
+	depends on DVFS_APSYS_SPRD
+	help
+	  This function is to support the vdsp dvfs function.
+	  Vdsp dvfs is for change vdsp frequency&voltage.
+	  In sharkL5Pro vdsp power is from ap system.
+	  Others qogirN6pro vdsp power is from mm system.
+	  So this config is use on different hardware.
+
 source "drivers/devfreq/event/Kconfig"
 
 endif # PM_DEVFREQ

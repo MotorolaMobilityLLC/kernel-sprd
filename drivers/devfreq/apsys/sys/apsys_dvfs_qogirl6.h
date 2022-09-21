@@ -20,14 +20,6 @@ struct apsys_dvfs_reg {
 	u32 reserved_0x0044_0x0048[2];
 	u32 ap_dvfs_cgm_cfg_dbg;
 	u32 ap_dvfs_state_dbg;
-	u32 vdsp_index0_map;
-	u32 vdsp_index1_map;
-	u32 vdsp_index2_map;
-	u32 vdsp_index3_map;
-	u32 vdsp_index4_map;
-	u32 vdsp_index5_map;
-	u32 vdsp_index6_map;
-	u32 vdsp_index7_map;
 	u32 vsp_index0_map;
 	u32 vsp_index1_map;
 	u32 vsp_index2_map;
@@ -45,8 +37,6 @@ struct apsys_dvfs_reg {
 	u32 dispc_index5_map;
 	u32 dispc_index6_map;
 	u32 dispc_index7_map;
-	u32 vdsp_dvfs_index_cfg;
-	u32 vdsp_dvfs_index_idle_cfg;
 	u32 vsp_dvfs_index_cfg;
 	u32 vsp_dvfs_index_idle_cfg;
 	u32 dispc_dvfs_index_cfg;
@@ -63,5 +53,4 @@ struct apsys_dvfs_reg {
 char *qogirl6_apsys_val_to_volt(u32 val);
 char *qogirl6_dpu_val_to_freq(u32 val);
 char *qogirl6_vsp_val_to_freq(u32 val);
-char *qogirl6_vdsp_val_to_freq(u32 val);
 #endif

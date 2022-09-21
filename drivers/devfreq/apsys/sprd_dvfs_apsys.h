@@ -113,14 +113,18 @@ extern struct platform_driver gsp_dvfs_driver;
 #endif
 extern struct platform_driver dpu_dvfs_driver;
 extern struct platform_driver vsp_dvfs_driver;
+#ifdef CONFIG_DVFS_APSYS_VDSP
 extern struct platform_driver vdsp_dvfs_driver;
+#endif
 
 #ifdef CONFIG_DRM_SPRD_GSP_DVFS
 extern struct devfreq_governor gsp_devfreq_gov;
 #endif
 extern struct devfreq_governor vsp_devfreq_gov;
 extern struct devfreq_governor dpu_devfreq_gov;
+#ifdef CONFIG_DVFS_APSYS_VDSP
 extern struct devfreq_governor vdsp_devfreq_gov;
+#endif
 
 extern struct regmap *regmap_aon_base;
 

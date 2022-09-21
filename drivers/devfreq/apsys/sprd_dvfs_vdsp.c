@@ -421,23 +421,6 @@ static int vdsp_dvfs_target(struct device *dev, unsigned long *freq,
 static int vdsp_dvfs_get_dev_status(struct device *dev,
 					 struct devfreq_dev_status *stat)
 {
-	/*
-	struct vdsp_dvfs *vdsp = dev_get_drvdata(dev);
-	struct devfreq_event_data edata;
-	int ret = 0;
-
-	pr_info("devfreq_dev_profile-->get_dev_status\n");
-
-	ret = devfreq_event_get_event(vdsp->edev, &edata);
-	if (ret < 0)
-		return ret;
-
-	stat->current_frequency = vdsp->work_freq;
-	stat->busy_time = edata.load_count;
-	stat->total_time = edata.total_count;
-
-	return ret;
-	*/
 	return 0;
 }
 
@@ -509,7 +492,7 @@ static int vdsp_gov_get_target(struct devfreq *devfreq,
 	struct vdsp_dvfs *vdsp = dev_get_drvdata(devfreq->dev.parent);
 	u32 adjusted_freq = 0;
 
-	pr_info("devfreq_governor-->get_target_freq\n");
+	pr_info("get_target_freq\n");
 
 	if (vdsp->freq_type == DVFS_WORK)
 		adjusted_freq = vdsp->work_freq;
@@ -531,7 +514,7 @@ static int vdsp_gov_event_handler(struct devfreq *devfreq,
 {
 	int ret = 0;
 
-	pr_info("devfreq_governor-->event_handler(%d)\n", event);
+	pr_info("event_handler(%d)\n", event);
 	switch (event) {
 	case DEVFREQ_GOV_START:
 		ret = userspace_init(devfreq);
@@ -611,8 +594,7 @@ static int vdsp_dvfs_probe(struct platform_device *pdev)
 	vdsp->vdsp_dvfs_nb.notifier_call = vdsp_dvfs_notify_callback;
 	ret = blocking_notifier_chain_register(&vdsp_dvfs_chain, &vdsp->vdsp_dvfs_nb);
 	if (ret) {
-		dev_err(&pdev->dev,
-			"failed to register vdsp layer change notifier\n");
+		pr_err("failed to register vdsp layer change notifier\n");
 		goto err;
 	}
 
@@ -622,8 +604,7 @@ static int vdsp_dvfs_probe(struct platform_device *pdev)
 						 "vdsp_dvfs",
 						 NULL);
 	if (IS_ERR(vdsp->devfreq)) {
-		dev_err(dev,
-			"failed to add devfreq dev with vdsp-dvfs governor\n");
+		pr_err("failed to add devfreq dev with vdsp-dvfs governor\n");
 		ret = PTR_ERR(vdsp->devfreq);
 		goto err;
 	}
@@ -659,15 +640,9 @@ static const struct sprd_vdsp_dvfs_ops sharkl5pro_dvfs_ops = {
 	.dvfs_ops = &sharkl5pro_vdsp_dvfs_ops,
 };
 
-static const struct sprd_vdsp_dvfs_ops roc1_dvfs_ops = {
-	.dvfs_ops = &roc1_vdsp_dvfs_ops,
-};
-
 static const struct of_device_id vdsp_dvfs_of_match[] = {
 	{ .compatible = "sprd,hwdvfs-vdsp-sharkl5pro",
 	  .data = &sharkl5pro_dvfs_ops },
-	{ .compatible = "sprd,hwdvfs-vdsp-roc1",
-	  .data = &roc1_dvfs_ops },
 	{ },
 };
 

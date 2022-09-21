@@ -451,7 +451,9 @@ static struct platform_driver *sprd_apsys_dvfs_drivers[]  = {
 #ifdef CONFIG_DRM_SPRD_GSP_DVFS
 	&gsp_dvfs_driver,
 #endif
+#ifdef CONFIG_DVFS_APSYS_VDSP
 	&vdsp_dvfs_driver,
+#endif
 	&vsp_dvfs_driver,
 };
 
@@ -460,7 +462,9 @@ static struct devfreq_governor *sprd_apsys_dvfs_governors[]  = {
 #ifdef CONFIG_DRM_SPRD_GSP_DVFS
 	&gsp_devfreq_gov,
 #endif
+#ifdef CONFIG_DVFS_APSYS_VDSP
 	&vdsp_devfreq_gov,
+#endif
 	&vsp_devfreq_gov,
 };
 
@@ -470,7 +474,7 @@ static int __init apsys_dvfs_register(void)
 
 	ret = platform_driver_register(&apsys_dvfs_driver);
 	if (n6pro_AA_flag) {
-		pr_info("%s() n6pro aa does not need dvfs, skip other probe\n", __func__);
+		pr_warn("%s: n6pro aa does not need dvfs, skip other probe\n", __func__);
 		return -1;
 	}
 
@@ -482,8 +486,10 @@ static int __init apsys_dvfs_register(void)
 		}
 
 		ret = platform_driver_register(sprd_apsys_dvfs_drivers[i]);
-		if (ret)
+		if (ret) {
 			devfreq_remove_governor(sprd_apsys_dvfs_governors[i]);
+			pr_err("%s: remove governor:%d\n", __func__, i);
+		}
 	}
 
 	return ret;
