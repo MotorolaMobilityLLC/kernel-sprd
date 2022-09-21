@@ -877,6 +877,7 @@
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 				status = "disabled";
 				iommus = <&iommu_dispc>;
+				sprd,qos = <&dpu_qos>;
 
 				dpu_port: port {
 					dpu_out: endpoint {
