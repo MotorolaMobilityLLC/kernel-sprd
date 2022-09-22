@@ -16,11 +16,11 @@
 			&agcp_dma 15 &agcp_dma 16
 			&agcp_dma 14 &agcp_dma 8
 			&agcp_dma 12 &agcp_dma 9
-			&agcp_dma 13 &agcp_dma 8
+			&agcp_dma 10 &agcp_dma 5
 			&agcp_dma 11 &agcp_dma 6
 			&agcp_dma 14 &agcp_dma 14
 			&agcp_dma 12 &agcp_dma 6
-			&agcp_dma 19 &agcp_dma 20
+			&agcp_dma 19 &agcp_dma 19
 			&agcp_dma 23 &agcp_dma 24>;
 
 		dma-names =
