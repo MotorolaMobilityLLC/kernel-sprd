@@ -181,7 +181,7 @@
 					<3723000>, <3693000>, <3680000>, <3439000>;
 
 				charge-sdp-current-microamp = <500000 500000>;
-				charge-dcp-current-microamp = <2000000 2500000>;
+				charge-dcp-current-microamp = <2800000 3000000>;
 				charge-cdp-current-microamp = <1500000 1500000>;
 				charge-unknown-current-microamp = <500000 500000>;
 				charge-fchg-current-microamp = <3250000 3000000>;
@@ -250,7 +250,7 @@
 				cm-wdt-interval = <60>;
 
 				/* drop voltage in microVolts to allow shutdown */
-				cm-shutdown-voltage = <3100000>;
+				cm-shutdown-voltage = <3400000>;
 
 				/* when 99% of the time is exceeded, it will be forced to 100% */
 				cm-tickle-time-out = <1500>;
