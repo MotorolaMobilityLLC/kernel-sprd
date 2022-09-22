@@ -391,30 +391,6 @@
 							hsync-len = <12>;
 							vsync-len = <10>;
 						};
-
-						nt36672e_truly_timing1: timing1 {
-							clock-frequency = <384000000>;
-							hactive = <1080>;
-							vactive = <2408>; /*2408*/
-							hback-porch = <56>;
-							hfront-porch = <130>;
-							vback-porch = <30>;
-							vfront-porch = <890>;
-							hsync-len = <12>;
-							vsync-len = <10>;
-						};
-
-						nt36672e_truly_timing2: timing2 {
-							clock-frequency = <384000000>;
-							hactive = <1080>;
-							vactive = <2408>; /*2408*/
-							hback-porch = <56>;
-							hfront-porch = <130>;
-							vback-porch = <30>;
-							vfront-porch = <46>;
-							hsync-len = <12>;
-							vsync-len = <10>;
-						};
 					};
 				};
 			};
