@@ -12,6 +12,9 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/sdio.h>
 
+#ifdef CONFIG_SPRD_DEBUG
+#include "sdhci.h"
+#endif
 extern int _sdhci_request_atomic(struct mmc_host *mmc, struct mmc_request *mrq);
 extern int sprd_sdhci_request_sync(struct mmc_host *mmc, struct mmc_request *mrq);
 extern int mmc_hsq_swcq_init(struct sdhci_host *host,

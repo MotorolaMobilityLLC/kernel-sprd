@@ -1384,6 +1384,9 @@ static irqreturn_t sdhci_sprd_irq(int irq, void *dev_id)
 		if (intmask & SDHCI_INT_DATA_MASK)
 			sdhci_sprd_data_irq(host, intmask & SDHCI_INT_DATA_MASK);
 
+#ifdef CONFIG_SPRD_DEBUG
+		mmc_debug_update(host, NULL, intmask);
+#endif
 		if (intmask & SDHCI_INT_BUS_POWER)
 			pr_err("%s: Card is consuming too much power!\n",
 				mmc_hostname(host->mmc));
@@ -1523,6 +1526,9 @@ static irqreturn_t raw_sdhci_irq(int irq, void *dev_id)
 		if (intmask & SDHCI_INT_DATA_MASK)
 			sdhci_sprd_data_irq(host, intmask & SDHCI_INT_DATA_MASK);
 
+#ifdef CONFIG_SPRD_DEBUG
+		mmc_debug_update(host, NULL, intmask);
+#endif
 		if (intmask & SDHCI_INT_BUS_POWER)
 			pr_err("%s: Card is consuming too much power!\n",
 				mmc_hostname(host->mmc));
@@ -2041,6 +2047,9 @@ static bool sdhci_sprd_send_command(struct sdhci_host *host, struct mmc_command 
 
 	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->opcode, flags), SDHCI_COMMAND);
 
+#ifdef CONFIG_SPRD_DEBUG
+	mmc_debug_update(host, cmd, 0);
+#endif
 	/*polling mode*/
 	if (swcq->need_polling) {
 		second_time = sched_clock();

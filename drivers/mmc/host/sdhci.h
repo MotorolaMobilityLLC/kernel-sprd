@@ -821,5 +821,8 @@ void sdhci_abort_tuning(struct sdhci_host *host, u32 opcode);
 void sdhci_switch_external_dma(struct sdhci_host *host, bool en);
 void sdhci_set_data_timeout_irq(struct sdhci_host *host, bool enable);
 void __sdhci_set_timeout(struct sdhci_host *host, struct mmc_command *cmd);
+#ifdef CONFIG_SPRD_DEBUG
+void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 type);
+#endif
 
 #endif /* __SDHCI_HW_H */

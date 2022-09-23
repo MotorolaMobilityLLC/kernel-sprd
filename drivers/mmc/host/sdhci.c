@@ -53,6 +53,170 @@ static void sdhci_enable_preset_value(struct sdhci_host *host, bool enable);
 
 static bool sdhci_send_command(struct sdhci_host *host, struct mmc_command *cmd);
 
+#ifdef CONFIG_SPRD_DEBUG
+#define MMC_ARRAY_SIZE 14	/* 2^(14-2) = 4096ms/blocks */
+/*
+ * convert ms to index: (ilog2(ms) + 1)
+ * array[6]++ means the time is: 32ms <= time < 64ms
+ * [0] [1] [2] [3] [4] [5]  [6]  [7]  [8]   [9]   [10]  [11]   [12]   [13]
+ * 0ms 1ms 2ms 4ms 8ms 16ms 32ms 64ms 128ms 256ms 512ms 1024ms 2048ms 4096ms
+ *
+ * convert block_length to index: (ilog2(block_length) + 1)
+ * array[6]++ means the block_length  is: 32blocks <= block_length < 64blocks
+ * [0]     [1]      [2]      [3]      [4]      [5]       [6]       [7]
+ * 0block  1blocks  2blocks  4blocks  8blocks  16blocks  32blocks  64blocks
+ * [8]        [9]        [10]       [11]        [12]        [13]
+ * 128blocks  256blocks  512blocks  1024blocks  2048blocks  4096blocks
+ */
+struct mmc_debug_info {
+	char name[8];
+	u32 cmd;
+	u32 arg;
+	u32 blocks;
+	u32 cnt_time;
+	u32 read_total_blocks;
+	u32 write_total_blocks;
+	struct mmc_request *mrq;
+	ktime_t start_time;
+	ktime_t end_time;
+	unsigned long read_total_time;
+	unsigned long write_total_time;
+	unsigned long cmd_2_end[MMC_ARRAY_SIZE];
+	unsigned long data_2_end[MMC_ARRAY_SIZE];
+	unsigned long block_len[MMC_ARRAY_SIZE];
+};
+
+#define rq_log(array, fmt, ...) \
+	pr_info(fmt ":%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n", \
+		##__VA_ARGS__, array[0], array[1], array[2], array[3], \
+		array[4], array[5], array[6], array[7], array[8], \
+		array[9], array[10], array[11], array[12], array[13])
+
+static struct mmc_debug_info mmc_debug[3] = {
+	{.name = "mmc0"}, {.name = "mmc1"}, {.name = "mmc2"}
+};
+
+void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host)
+{
+	u32 read_speed = 0;
+	u32 write_speed = 0;
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	bool flag = true;
+#endif
+
+	if ((ktime_to_ms(ktime_get()) - info->cnt_time) > (10000ULL)) {
+		/* calculate read/write speed */
+		if (info->read_total_time)
+			read_speed = info->read_total_blocks * 50000 / info->read_total_time;
+		if (info->write_total_time)
+			write_speed = info->write_total_blocks * 50000 / info->write_total_time;
+
+		/* print debug messages of mmc io */
+		rq_log(info->cmd_2_end, "|__c2e%9s", info->name);
+		rq_log(info->data_2_end, "|__d2e%9s", info->name);
+		rq_log(info->block_len, "|__blocks%6s", info->name);
+		pr_info("|__speed%7s: read= %d.%d M/s, write= %d.%d M/s, r_blk= %d, w_blk= %d\n",
+			info->name, read_speed / 100, read_speed % 100, write_speed / 100,
+			write_speed % 100, info->read_total_blocks, info->write_total_blocks);
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+		if (!strcmp(info->name, "mmc0") && info->mrq &&
+			((read_speed > 0 && read_speed < 100) ||
+			(write_speed > 0 && write_speed < 100)))
+			host->mmc->cqe_ops->cqe_timeout(host->mmc, info->mrq, &flag);
+#endif
+
+		/* clear mmc_debug structure except name*/
+		memset(&info->cmd, 0, sizeof(struct mmc_debug_info) - 8);
+		info->cnt_time = ktime_to_ms(ktime_get());
+	}
+}
+
+void mmc_debug_calc(struct mmc_debug_info *info)
+{
+	u32 cmd = info->cmd;
+
+	/* judge sdio read/write cmd type */
+	if (!strcmp(info->name, "mmc2") &&
+		(cmd == SD_IO_RW_DIRECT || cmd == SD_IO_RW_EXTENDED))
+		cmd = info->arg >> 31 ? MMC_EXECUTE_WRITE_TASK : MMC_EXECUTE_READ_TASK;
+
+
+	/* record read/write info */
+	if (cmd == MMC_READ_MULTIPLE_BLOCK || cmd == MMC_EXECUTE_READ_TASK ||
+		cmd == MMC_READ_SINGLE_BLOCK) {
+		info->read_total_blocks += info->blocks;
+		info->read_total_time += ktime_to_us(info->end_time - info->start_time);
+	} else if (cmd == MMC_WRITE_BLOCK || cmd == MMC_EXECUTE_WRITE_TASK ||
+		cmd == MMC_WRITE_MULTIPLE_BLOCK) {
+		info->write_total_blocks += info->blocks;
+		info->write_total_time += ktime_to_us(info->end_time - info->start_time);
+	}
+}
+
+void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 type)
+{
+	struct mmc_debug_info *info = NULL;
+	unsigned int msecs;
+	u8 i, index;
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+	bool flag = true;
+#endif
+
+	/* select mmc type */
+	for (i = 0; i <= 2; i++) {
+		if (!strcmp(mmc_hostname(host->mmc), mmc_debug[i].name))
+			info = &mmc_debug[i];
+	}
+
+	if (!info)
+		return;
+
+	if (!type && cmd) {
+		/* send cmd */
+		info->cmd = cmd->opcode;
+		info->arg = cmd->arg;
+		info->mrq = cmd->mrq;
+		info->blocks = cmd->mrq->data ? cmd->mrq->data->blocks : 0;
+		info->start_time = ktime_get();
+	} else if ((type & SDHCI_INT_CMD_MASK) && info->start_time) {
+		/* cmd interrupt respond */
+		info->end_time = ktime_get();
+		msecs = ktime_to_ms(info->end_time - info->start_time);
+		index = msecs > 0 ? min((MMC_ARRAY_SIZE - 1), ilog2(msecs) + 1) : 0;
+		info->cmd_2_end[index]++;
+		if (index >= 11) {
+			pr_info("%s: cmd rsp over 1s! cmd= %d blk= %d arg= %x mrq= %p rsp= %x\n",
+				info->name, info->cmd, info->blocks, info->arg,
+				info->mrq, sdhci_readl(host, SDHCI_RESPONSE));
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+			if (!strcmp(info->name, "mmc0") && info->mrq)
+				host->mmc->cqe_ops->cqe_timeout(host->mmc, info->mrq, &flag);
+#endif
+		}
+	} else if ((type & SDHCI_INT_DATA_MASK) && info->start_time) {
+		/* data interrupt respond */
+		info->end_time = ktime_get();
+		msecs = ktime_to_ms(info->end_time - info->start_time);
+		index = info->blocks > 0 ? min((MMC_ARRAY_SIZE - 1), ilog2(info->blocks) + 1) : 0;
+		info->block_len[index]++;
+		index = msecs > 0 ? min((MMC_ARRAY_SIZE - 1), ilog2(msecs) + 1) : 0;
+		info->data_2_end[index]++;
+		if (index >= 11) {
+			pr_info("%s: data rsp over 1s! cmd= %d blk= %d arg= %x mrq= 0x%p\n",
+				info->name, info->cmd, info->blocks, info->arg, info->mrq);
+#if IS_ENABLED(CONFIG_MMC_SWCQ)
+			if (!strcmp(info->name, "mmc0") && info->mrq)
+				host->mmc->cqe_ops->cqe_timeout(host->mmc, info->mrq, &flag);
+#endif
+		}
+
+		mmc_debug_calc(info);
+		info->start_time = 0;
+		mmc_debug_print(info, host);
+	}
+}
+EXPORT_SYMBOL(mmc_debug_update);
+#endif
 void sdhci_dumpregs(struct sdhci_host *host)
 {
 	SDHCI_DUMP("============ SDHCI REGISTER DUMP ===========\n");
@@ -1693,6 +1857,9 @@ static bool sdhci_send_command(struct sdhci_host *host, struct mmc_command *cmd)
 		sdhci_external_dma_pre_transfer(host, cmd);
 
 	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->opcode, flags), SDHCI_COMMAND);
+#ifdef CONFIG_SPRD_DEBUG
+	mmc_debug_update(host, cmd, 0);
+#endif
 
 	return true;
 }
@@ -3532,6 +3699,9 @@ static irqreturn_t sdhci_irq(int irq, void *dev_id)
 		if (intmask & SDHCI_INT_DATA_MASK)
 			sdhci_data_irq(host, intmask & SDHCI_INT_DATA_MASK);
 
+#ifdef CONFIG_SPRD_DEBUG
+		mmc_debug_update(host, NULL, intmask);
+#endif
 		if (intmask & SDHCI_INT_BUS_POWER)
 			pr_err("%s: Card is consuming too much power!\n",
 				mmc_hostname(host->mmc));
