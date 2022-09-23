@@ -3,3 +3,4 @@ obj-$(CONFIG_SPRD_DEBUG)	+= cpu_usage/
 obj-y	+= busmonitor/
 obj-y	+= djtag/
 obj-y	+= dmc_mpu/
+obj-y	+= apb_prot/
