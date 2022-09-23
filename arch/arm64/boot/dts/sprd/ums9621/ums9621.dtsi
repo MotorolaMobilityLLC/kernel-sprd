@@ -551,6 +551,7 @@
 };
 
 /* Include other IP modules ALPHABETICALLY */
+#include "apb_prot.dtsi"
 #include "audio.dtsi"
 #include "bm.dtsi"
 #include "cam.dtsi"
