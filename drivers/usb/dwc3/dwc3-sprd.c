@@ -942,20 +942,19 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 	switch (sdwc->drd_state) {
 	case DRD_STATE_UNDEFINED:
 		dwc3_sprd_override_pm_ops(dwc->dev, &sdwc->dwc3_pm_ops, false);
-		/* set dwc3 a new delay */
-		pm_runtime_set_autosuspend_delay(dwc->dev, 0);
+		/* enable dwc3 core runtime */
 		pm_runtime_allow(dwc->dev);
 
-		pm_runtime_get_noresume(sdwc->dev);
 		pm_runtime_set_active(sdwc->dev);
 		pm_runtime_use_autosuspend(sdwc->dev);
 		pm_runtime_set_autosuspend_delay(sdwc->dev,
 						 DWC3_AUTOSUSPEND_DELAY);
-		device_init_wakeup(sdwc->dev, true);
 		pm_runtime_enable(sdwc->dev);
+		pm_runtime_get_noresume(sdwc->dev);
 		pm_runtime_mark_last_busy(sdwc->dev);
 		pm_runtime_put_autosuspend(sdwc->dev);
 
+		device_init_wakeup(sdwc->dev, true);
 		/* put controller and phy in suspend if no cable connected */
 		if (test_bit(ID, &sdwc->inputs) &&
 				!test_bit(B_SESS_VLD, &sdwc->inputs)) {
