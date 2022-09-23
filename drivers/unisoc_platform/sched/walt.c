@@ -55,14 +55,14 @@ unsigned long walt_cpu_util_freq(int cpu)
 {
 	u64 walt_cpu_util;
 	struct rq *rq = cpu_rq(cpu);
-	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 
-	walt_cpu_util = wrq->cumulative_runnable_avg;
+	walt_cpu_util = uni_rq->cumulative_runnable_avg;
 	walt_cpu_util <<= SCHED_CAPACITY_SHIFT;
 	do_div(walt_cpu_util, walt_ravg_window);
 
-	if (wrq->is_busy == CPU_BUSY_SET || sysctl_walt_io_is_busy != 0) {
-		u64 prev_runnable_sum = wrq->prev_runnable_sum;
+	if (uni_rq->is_busy == CPU_BUSY_SET || sysctl_walt_io_is_busy != 0) {
+		u64 prev_runnable_sum = uni_rq->prev_runnable_sum;
 
 		prev_runnable_sum <<= SCHED_CAPACITY_SHIFT;
 		do_div(prev_runnable_sum, walt_ravg_window);
@@ -73,27 +73,27 @@ unsigned long walt_cpu_util_freq(int cpu)
 }
 EXPORT_SYMBOL_GPL(walt_cpu_util_freq);
 
-static inline unsigned int walt_task_load(struct walt_task_ravg *wtr)
+static inline unsigned int walt_task_load(struct uni_task_struct *uni_tsk)
 {
-	return wtr->demand;
+	return uni_tsk->demand;
 }
 
 static inline void fixup_cum_window_demand(struct rq *rq, s64 delta)
 {
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
 
-	wrq->cum_window_demand += delta;
-	if (unlikely((s64)wrq->cum_window_demand < 0))
-		wrq->cum_window_demand = 0;
+	uni_rq->cum_window_demand += delta;
+	if (unlikely((s64)uni_rq->cum_window_demand < 0))
+		uni_rq->cum_window_demand = 0;
 }
 
 static void
 walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p)
 {
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
 
-	wrq->cumulative_runnable_avg += wtr->demand;
+	uni_rq->cumulative_runnable_avg += uni_tsk->demand;
 
 	/*
 	 * Add a task's contribution to the cumulative window demand when
@@ -102,18 +102,18 @@ walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p)
 	 *     prio/cgroup/class change.
 	 * (2) task is waking for the first time in this window.
 	 */
-	if (p->on_rq || (wtr->last_sleep_ts < wrq->window_start))
-		fixup_cum_window_demand(rq, wtr->demand);
+	if (p->on_rq || (uni_tsk->last_sleep_ts < uni_rq->window_start))
+		fixup_cum_window_demand(rq, uni_tsk->demand);
 }
 
 static void
 walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p)
 {
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
 
-	wrq->cumulative_runnable_avg -= wtr->demand;
-	BUG_ON((s64)wrq->cumulative_runnable_avg < 0);
+	uni_rq->cumulative_runnable_avg -= uni_tsk->demand;
+	BUG_ON((s64)uni_rq->cumulative_runnable_avg < 0);
 
 	/*
 	 * on_rq will be 1 for sleeping tasks. So check if the task
@@ -121,20 +121,20 @@ walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p)
 	 * prio/cgroup/class.
 	 */
 	if (task_on_rq_migrating(p) || task_is_running(p))
-		fixup_cum_window_demand(rq, -(s64)wtr->demand);
+		fixup_cum_window_demand(rq, -(s64)uni_tsk->demand);
 }
 
 static void
-walt_fixup_cumulative_runnable_avg(struct rq *rq, struct walt_task_ravg *wtr,
+walt_fixup_cumulative_runnable_avg(struct rq *rq, struct uni_task_struct *uni_tsk,
 				   u64 new_task_load)
 {
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
-	s64 task_load_delta = (s64)new_task_load - walt_task_load(wtr);
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
+	s64 task_load_delta = (s64)new_task_load - walt_task_load(uni_tsk);
 
-	wrq->cumulative_runnable_avg += task_load_delta;
-	if (unlikely((s64)wrq->cumulative_runnable_avg < 0))
+	uni_rq->cumulative_runnable_avg += task_load_delta;
+	if (unlikely((s64)uni_rq->cumulative_runnable_avg < 0))
 		panic("cra less than zero: tld: %lld, task_load(p) = %u\n",
-			task_load_delta, walt_task_load(wtr));
+			task_load_delta, walt_task_load(uni_tsk));
 
 	fixup_cum_window_demand(rq, task_load_delta);
 }
@@ -172,10 +172,10 @@ static u64 update_window_start(struct rq *rq, u64 wallclock)
 {
 	s64 delta;
 	int nr_windows;
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
-	u64 old_window_start = wrq->window_start;
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
+	u64 old_window_start = uni_rq->window_start;
 
-	delta = wallclock - wrq->window_start;
+	delta = wallclock - uni_rq->window_start;
 	/* If the MPM global timer is cleared, set delta as 0 to avoid kernel BUG happening */
 	if (delta < 0) {
 		delta = 0;
@@ -186,9 +186,9 @@ static u64 update_window_start(struct rq *rq, u64 wallclock)
 		return old_window_start;
 
 	nr_windows = div64_u64(delta, walt_ravg_window);
-	wrq->window_start += (u64)nr_windows * (u64)walt_ravg_window;
+	uni_rq->window_start += (u64)nr_windows * (u64)walt_ravg_window;
 
-	wrq->cum_window_demand = wrq->cumulative_runnable_avg;
+	uni_rq->cum_window_demand = uni_rq->cumulative_runnable_avg;
 
 	return old_window_start;
 }
@@ -245,12 +245,12 @@ static int account_busy_for_cpu_time(struct rq *rq, struct task_struct *p,
 static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 	     int event, u64 wallclock, u64 irqtime)
 {
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
 	int new_window, nr_full_windows = 0;
 	int p_is_curr_task = (p == rq->curr);
-	u64 mark_start = wtr->mark_start;
-	u64 window_start = wrq->window_start;
+	u64 mark_start = uni_tsk->mark_start;
+	u64 window_start = uni_rq->window_start;
 	u32 window_size = walt_ravg_window;
 	u64 delta;
 
@@ -267,10 +267,10 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 		u32 curr_window = 0;
 
 		if (!nr_full_windows)
-			curr_window = wtr->curr_window;
+			curr_window = uni_tsk->curr_window;
 
-		wtr->prev_window = curr_window;
-		wtr->curr_window = 0;
+		uni_tsk->prev_window = curr_window;
+		uni_tsk->curr_window = 0;
 	}
 
 	if (!account_busy_for_cpu_time(rq, p, irqtime, event)) {
@@ -297,10 +297,10 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 
 			/* p is either idle task or an exiting task */
 			if (!nr_full_windows)
-				prev_sum = wrq->curr_runnable_sum;
+				prev_sum = uni_rq->curr_runnable_sum;
 
-			wrq->prev_runnable_sum = prev_sum;
-			wrq->curr_runnable_sum = 0;
+			uni_rq->prev_runnable_sum = prev_sum;
+			uni_rq->curr_runnable_sum = 0;
 		}
 
 		return;
@@ -320,9 +320,9 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 		else
 			delta = irqtime;
 		delta = scale_exec_time(delta, rq);
-		wrq->curr_runnable_sum += delta;
+		uni_rq->curr_runnable_sum += delta;
 		if (!is_idle_task(p) && !exiting_task(p))
-			wtr->curr_window += delta;
+			uni_tsk->curr_window += delta;
 
 		return;
 	}
@@ -348,7 +348,7 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 			 */
 			delta = scale_exec_time(window_start - mark_start, rq);
 			if (!exiting_task(p))
-				wtr->prev_window += delta;
+				uni_tsk->prev_window += delta;
 		} else {
 			/*
 			 * Since at least one full window has elapsed,
@@ -357,15 +357,15 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 			 */
 			delta = scale_exec_time(window_size, rq);
 			if (!exiting_task(p))
-				wtr->prev_window = delta;
+				uni_tsk->prev_window = delta;
 		}
-		wrq->prev_runnable_sum += delta;
+		uni_rq->prev_runnable_sum += delta;
 
 		/* Account piece of busy time in the current window. */
 		delta = scale_exec_time(wallclock - window_start, rq);
-		wrq->curr_runnable_sum += delta;
+		uni_rq->curr_runnable_sum += delta;
 		if (!exiting_task(p))
-			wtr->curr_window = delta;
+			uni_tsk->curr_window = delta;
 
 		return;
 	}
@@ -392,9 +392,9 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 			 */
 			delta = scale_exec_time(window_start - mark_start, rq);
 			if (!is_idle_task(p) && !exiting_task(p))
-				wtr->prev_window += delta;
+				uni_tsk->prev_window += delta;
 
-			delta += wrq->curr_runnable_sum;
+			delta += uni_rq->curr_runnable_sum;
 		} else {
 			/*
 			 * Since at least one full window has elapsed,
@@ -403,7 +403,7 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 			 */
 			delta = scale_exec_time(window_size, rq);
 			if (!is_idle_task(p) && !exiting_task(p))
-				wtr->prev_window = delta;
+				uni_tsk->prev_window = delta;
 
 		}
 		/*
@@ -412,13 +412,13 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 		 * Rollover for new task runnable sum has completed by previous
 		 * if-else statement.
 		 */
-		wrq->prev_runnable_sum = delta;
+		uni_rq->prev_runnable_sum = delta;
 
 		/* Account piece of busy time in the current window. */
 		delta = scale_exec_time(wallclock - window_start, rq);
-		wrq->curr_runnable_sum = delta;
+		uni_rq->curr_runnable_sum = delta;
 		if (!is_idle_task(p) && !exiting_task(p))
-			wtr->curr_window = delta;
+			uni_tsk->curr_window = delta;
 
 		return;
 	}
@@ -443,9 +443,9 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 		 * Roll window over. If IRQ busy time was just in the current
 		 * window then that is all that need be accounted.
 		 */
-		wrq->prev_runnable_sum = wrq->curr_runnable_sum;
+		uni_rq->prev_runnable_sum = uni_rq->curr_runnable_sum;
 		if (mark_start > window_start) {
-			wrq->curr_runnable_sum = scale_exec_time(irqtime, rq);
+			uni_rq->curr_runnable_sum = scale_exec_time(irqtime, rq);
 			return;
 		}
 
@@ -457,11 +457,11 @@ static void update_cpu_busy_time(struct task_struct *p, struct rq *rq,
 		if (delta > window_size)
 			delta = window_size;
 		delta = scale_exec_time(delta, rq);
-		wrq->prev_runnable_sum += delta;
+		uni_rq->prev_runnable_sum += delta;
 
 		/* Process the remaining IRQ busy time in the current window. */
 		delta = wallclock - window_start;
-		wrq->curr_runnable_sum = scale_exec_time(delta, rq);
+		uni_rq->curr_runnable_sum = scale_exec_time(delta, rq);
 
 		return;
 	}
@@ -500,8 +500,8 @@ static int account_busy_for_task_demand(struct task_struct *p, int event)
 static void update_history(struct rq *rq, struct task_struct *p,
 			 u32 runtime, int samples, int event)
 {
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
-	u32 *hist = &wtr->sum_history[0];
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+	u32 *hist = &uni_tsk->sum_history[0];
 	int ridx, widx;
 	u32 max = 0, avg, demand;
 	u64 sum = 0;
@@ -527,7 +527,7 @@ static void update_history(struct rq *rq, struct task_struct *p,
 			max = hist[widx];
 	}
 
-	wtr->sum = 0;
+	uni_tsk->sum = 0;
 
 	if (walt_window_stats_policy == WINDOW_STATS_RECENT) {
 		demand = runtime;
@@ -555,32 +555,32 @@ static void update_history(struct rq *rq, struct task_struct *p,
 	 */
 	if (!task_has_dl_policy(p) || !p->dl.dl_throttled) {
 		if (task_on_rq_queued(p))
-			walt_fixup_cumulative_runnable_avg(rq, wtr, demand);
+			walt_fixup_cumulative_runnable_avg(rq, uni_tsk, demand);
 		else if (rq->curr == p)
 			fixup_cum_window_demand(rq, demand);
 	}
 
-	wtr->demand = demand;
-	wtr->demand_scale = scale_demand(demand);
+	uni_tsk->demand = demand;
+	uni_tsk->demand_scale = scale_demand(demand);
 
 done:
-	trace_walt_update_history(rq, p, wtr, runtime, samples, event);
+	trace_walt_update_history(rq, p, uni_tsk, runtime, samples, event);
 }
 
 static void add_to_task_demand(struct rq *rq, struct task_struct *p,
 				u64 delta)
 {
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
 
 	delta = scale_exec_time(delta, rq);
-	wtr->sum += delta;
-	if (unlikely(wtr->sum > walt_ravg_window))
-		wtr->sum = walt_ravg_window;
+	uni_tsk->sum += delta;
+	if (unlikely(uni_tsk->sum > walt_ravg_window))
+		uni_tsk->sum = walt_ravg_window;
 
 	if (sysctl_sched_walt_cross_window_util) {
-		wtr->sum_latest += delta;
-		if (unlikely(wtr->sum_latest > walt_ravg_window))
-			wtr->sum_latest = walt_ravg_window;
+		uni_tsk->sum_latest += delta;
+		if (unlikely(uni_tsk->sum_latest > walt_ravg_window))
+			uni_tsk->sum_latest = walt_ravg_window;
 	}
 }
 
@@ -637,10 +637,10 @@ static void add_to_task_demand(struct rq *rq, struct task_struct *p,
 static void update_task_demand(struct task_struct *p, struct rq *rq,
 	     int event, u64 wallclock)
 {
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
-	u64 mark_start = wtr->mark_start;
-	u64 delta, window_start = wrq->window_start;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
+	u64 mark_start = uni_tsk->mark_start;
+	u64 delta, window_start = uni_rq->window_start;
 	int new_window, nr_full_windows;
 	u32 window_size = walt_ravg_window;
 	u32 window_scale = scale_exec_time(window_size, rq);
@@ -657,10 +657,10 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 			 * elapsed, but since empty windows are dropped,
 			 * it is not necessary to account those.
 			 */
-			update_history(rq, p, wtr->sum, 1, event);
+			update_history(rq, p, uni_tsk->sum, 1, event);
 		}
 		if (sysctl_sched_walt_cross_window_util)
-			wtr->sum_latest = 0;
+			uni_tsk->sum_latest = 0;
 		return;
 	}
 
@@ -686,15 +686,15 @@ static void update_task_demand(struct task_struct *p, struct rq *rq,
 	add_to_task_demand(rq, p, window_start - mark_start);
 
 	/* Push new sample(s) into task's demand history */
-	update_history(rq, p, wtr->sum, 1, event);
+	update_history(rq, p, uni_tsk->sum, 1, event);
 	if (sysctl_sched_walt_cross_window_util)
-		wtr->sum = wtr->sum_latest;
+		uni_tsk->sum = uni_tsk->sum_latest;
 	if (nr_full_windows) {
 		update_history(rq, p, window_scale,
 			       nr_full_windows, event);
 		if (sysctl_sched_walt_cross_window_util) {
-			wtr->sum = window_scale;
-			wtr->sum_latest = window_scale;
+			uni_tsk->sum = window_scale;
+			uni_tsk->sum_latest = window_scale;
 		}
 	}
 	/*
@@ -713,15 +713,15 @@ done:
 	 * WINDOW_STATS_MAX. The purpose is to create opportunity
 	 * for rising cpu freq when cr_avg is used for cpufreq
 	 */
-	if (wtr->sum > wtr->demand && walt_window_stats_policy == WINDOW_STATS_MAX) {
+	if (uni_tsk->sum > uni_tsk->demand && walt_window_stats_policy == WINDOW_STATS_MAX) {
 		if (!task_has_dl_policy(p) || !p->dl.dl_throttled) {
 			if (task_on_rq_queued(p))
-				walt_fixup_cumulative_runnable_avg(rq, wtr, wtr->sum);
+				walt_fixup_cumulative_runnable_avg(rq, uni_tsk, uni_tsk->sum);
 			else if (rq->curr == p)
-				fixup_cum_window_demand(rq, wtr->sum);
+				fixup_cum_window_demand(rq, uni_tsk->sum);
 		}
-		wtr->demand = wtr->sum;
-		wtr->demand_scale = scale_demand(wtr->sum);
+		uni_tsk->demand = uni_tsk->sum;
+		uni_tsk->demand_scale = scale_demand(uni_tsk->sum);
 	}
 }
 
@@ -729,50 +729,50 @@ done:
 static void walt_update_task_ravg(struct task_struct *p, struct rq *rq,
 	     int event, u64 wallclock, u64 irqtime)
 {
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
 	u64 old_window_start;
 
-	if (unlikely(!wrq->window_start))
+	if (unlikely(!uni_rq->window_start))
 		return;
 
 	lockdep_assert_rq_held(rq);
 
 	old_window_start = update_window_start(rq, wallclock);
 
-	if (!wtr->mark_start)
+	if (!uni_tsk->mark_start)
 		goto done;
 
 	update_task_demand(p, rq, event, wallclock);
 	update_cpu_busy_time(p, rq, event, wallclock, irqtime);
 
 done:
-	if (wrq->window_start > old_window_start) {
+	if (uni_rq->window_start > old_window_start) {
 		unsigned long cap_orig = capacity_orig_of(cpu_of(rq));
 		u64 busy_limit = (walt_ravg_window * sysctl_walt_busy_threshold) / 100;
 
 		busy_limit = (busy_limit * cap_orig) >> SCHED_CAPACITY_SHIFT;
-		if (wrq->prev_runnable_sum >= busy_limit) {
-			if (wrq->is_busy == CPU_BUSY_CLR)
-				wrq->is_busy = CPU_BUSY_PREPARE;
-			else if (wrq->is_busy == CPU_BUSY_PREPARE)
-				wrq->is_busy = CPU_BUSY_SET;
-		} else if (wrq->is_busy != CPU_BUSY_CLR) {
-			wrq->is_busy = CPU_BUSY_CLR;
+		if (uni_rq->prev_runnable_sum >= busy_limit) {
+			if (uni_rq->is_busy == CPU_BUSY_CLR)
+				uni_rq->is_busy = CPU_BUSY_PREPARE;
+			else if (uni_rq->is_busy == CPU_BUSY_PREPARE)
+				uni_rq->is_busy = CPU_BUSY_SET;
+		} else if (uni_rq->is_busy != CPU_BUSY_CLR) {
+			uni_rq->is_busy = CPU_BUSY_CLR;
 		}
 	}
 
-	trace_walt_update_task_ravg(p, rq, wtr, wrq, event, wallclock, irqtime);
+	trace_walt_update_task_ravg(p, rq, uni_tsk, uni_rq, event, wallclock, irqtime);
 
-	wtr->mark_start = wallclock;
+	uni_tsk->mark_start = wallclock;
 }
 
 /*
  * static void reset_task_stats(struct task_struct *p)
  * {
- *         struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
+ *         struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
  *
- *         memset(wtr, 0, sizeof(struct walt_task_ravg));
+ *         memset(uni_tsk, 0, sizeof(struct uni_task_struct));
  * }
  */
 
@@ -780,40 +780,40 @@ static void walt_mark_task_starting(struct task_struct *p)
 {
 	u64 wallclock;
 	struct rq *rq = task_rq(p);
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
 
-	if (unlikely(!wrq->window_start)) {
+	if (unlikely(!uni_rq->window_start)) {
 //		reset_task_stats(p);
 		return;
 	}
 
 	wallclock = walt_ktime_clock();
-	wtr->mark_start = wallclock;
+	uni_tsk->mark_start = wallclock;
 }
 
 static void walt_set_window_start(struct rq *rq)
 {
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
-	struct walt_task_ravg *curr_wtr = (struct walt_task_ravg *)rq->curr->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
+	struct uni_task_struct *curr_uni_tsk = (struct uni_task_struct *)rq->curr->android_vendor_data1;
 
-	if (likely(wrq->window_start))
+	if (likely(uni_rq->window_start))
 		return;
 
 	if (cpu_of(rq) == sync_cpu) {
-		wrq->window_start = 1;
+		uni_rq->window_start = 1;
 	} else {
 		struct rq *sync_rq = cpu_rq(sync_cpu);
-		struct walt_rq *sync_wrq = (struct walt_rq *)sync_rq->android_vendor_data1;
+		struct uni_rq *sync_uni_rq = (struct uni_rq *)sync_rq->android_vendor_data1;
 
 		raw_spin_rq_unlock(rq);
 		double_rq_lock(rq, sync_rq);
-		wrq->window_start = sync_wrq->window_start;
-		wrq->curr_runnable_sum = wrq->prev_runnable_sum = 0;
+		uni_rq->window_start = sync_uni_rq->window_start;
+		uni_rq->curr_runnable_sum = uni_rq->prev_runnable_sum = 0;
 		raw_spin_rq_unlock(sync_rq);
 	}
 
-	curr_wtr->mark_start = wrq->window_start;
+	curr_uni_tsk->mark_start = uni_rq->window_start;
 }
 
 static void walt_migrate_sync_cpu(int cpu)
@@ -825,7 +825,7 @@ static void walt_migrate_sync_cpu(int cpu)
 static void walt_account_irqtime(int cpu, struct task_struct *curr, u64 delta)
 {
 	struct rq *rq = cpu_rq(cpu);
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
 	unsigned long flags;
 	u64 cur_jiffies_ts, nr_windows;
 
@@ -837,23 +837,23 @@ static void walt_account_irqtime(int cpu, struct task_struct *curr, u64 delta)
 		walt_update_task_ravg(curr, rq, IRQ_UPDATE, walt_ktime_clock(),
 				 delta);
 
-	nr_windows = cur_jiffies_ts - wrq->irqload_ts;
+	nr_windows = cur_jiffies_ts - uni_rq->irqload_ts;
 
 	if (nr_windows) {
 		if (nr_windows < 10) {
 			/* Decay CPU's irqload by 3/4 for each window. */
-			wrq->avg_irqload *= (3 * nr_windows);
-			wrq->avg_irqload = div64_u64(wrq->avg_irqload,
+			uni_rq->avg_irqload *= (3 * nr_windows);
+			uni_rq->avg_irqload = div64_u64(uni_rq->avg_irqload,
 						    4 * nr_windows);
 		} else {
-			wrq->avg_irqload = 0;
+			uni_rq->avg_irqload = 0;
 		}
-		wrq->avg_irqload += wrq->cur_irqload;
-		wrq->cur_irqload = 0;
+		uni_rq->avg_irqload += uni_rq->cur_irqload;
+		uni_rq->cur_irqload = 0;
 	}
 
-	wrq->cur_irqload += delta;
-	wrq->irqload_ts = cur_jiffies_ts;
+	uni_rq->cur_irqload += delta;
+	uni_rq->irqload_ts = cur_jiffies_ts;
 	raw_spin_rq_unlock_irqrestore(rq, flags);
 }
 
@@ -861,9 +861,9 @@ static void walt_fixup_busy_time(struct task_struct *p, int new_cpu)
 {
 	struct rq *src_rq = task_rq(p);
 	struct rq *dest_rq = cpu_rq(new_cpu);
-	struct walt_rq *src_wrq = (struct walt_rq *)src_rq->android_vendor_data1;
-	struct walt_rq *dst_wrq = (struct walt_rq *)dest_rq->android_vendor_data1;
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
+	struct uni_rq *src_uni_rq = (struct uni_rq *)src_rq->android_vendor_data1;
+	struct uni_rq *dst_uni_rq = (struct uni_rq *)dest_rq->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
 	u64 wallclock;
 	unsigned int p_state = READ_ONCE(p->__state);
 
@@ -894,32 +894,32 @@ static void walt_fixup_busy_time(struct task_struct *p, int new_cpu)
 	 * demand.
 	 */
 	if (p_state == TASK_WAKING &&
-	    wtr->last_sleep_ts >= src_wrq->window_start) {
-		fixup_cum_window_demand(src_rq, -(s64)wtr->demand);
-		fixup_cum_window_demand(dest_rq, wtr->demand);
+	    uni_tsk->last_sleep_ts >= src_uni_rq->window_start) {
+		fixup_cum_window_demand(src_rq, -(s64)uni_tsk->demand);
+		fixup_cum_window_demand(dest_rq, uni_tsk->demand);
 	}
 
-	if (wtr->curr_window) {
-		src_wrq->curr_runnable_sum -= wtr->curr_window;
-		dst_wrq->curr_runnable_sum += wtr->curr_window;
+	if (uni_tsk->curr_window) {
+		src_uni_rq->curr_runnable_sum -= uni_tsk->curr_window;
+		dst_uni_rq->curr_runnable_sum += uni_tsk->curr_window;
 	}
 
-	if (wtr->prev_window) {
-		src_wrq->prev_runnable_sum -= wtr->prev_window;
-		dst_wrq->prev_runnable_sum += wtr->prev_window;
+	if (uni_tsk->prev_window) {
+		src_uni_rq->prev_runnable_sum -= uni_tsk->prev_window;
+		dst_uni_rq->prev_runnable_sum += uni_tsk->prev_window;
 	}
 
-	if ((s64)src_wrq->prev_runnable_sum < 0) {
-		src_wrq->prev_runnable_sum = 0;
+	if ((s64)src_uni_rq->prev_runnable_sum < 0) {
+		src_uni_rq->prev_runnable_sum = 0;
 		WARN_ON(1);
 	}
-	if ((s64)src_wrq->curr_runnable_sum < 0) {
-		src_wrq->curr_runnable_sum = 0;
+	if ((s64)src_uni_rq->curr_runnable_sum < 0) {
+		src_uni_rq->curr_runnable_sum = 0;
 		WARN_ON(1);
 	}
 
-	trace_walt_migration_update_sum(src_rq, src_wrq, p);
-	trace_walt_migration_update_sum(dest_rq, dst_wrq, p);
+	trace_walt_migration_update_sum(src_rq, src_uni_rq, p);
+	trace_walt_migration_update_sum(dest_rq, dst_uni_rq, p);
 
 	if (p_state == TASK_WAKING)
 		double_rq_unlock(src_rq, dest_rq);
@@ -927,30 +927,30 @@ static void walt_fixup_busy_time(struct task_struct *p, int new_cpu)
 
 static void __sched_fork_init(struct task_struct *p)
 {
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
 
-	wtr->last_sleep_ts = 0;
-	wtr->last_enqueue_ts = 0;
+	uni_tsk->last_sleep_ts = 0;
+	uni_tsk->last_enqueue_ts = 0;
 }
 
 static void walt_init_new_task_load(struct task_struct *p)
 {
 	int i;
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
-	struct walt_task_ravg *cur_wtr =
-			(struct walt_task_ravg *)current->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+	struct uni_task_struct *cur_uni_tsk =
+			(struct uni_task_struct *)current->android_vendor_data1;
 	u32 init_load_windows =
 			div64_u64((u64)sysctl_sched_walt_init_task_load_pct *
 					(u64)walt_ravg_window, 100);
-	u32 init_load_pct = cur_wtr->init_load_pct;
+	u32 init_load_pct = cur_uni_tsk->init_load_pct;
 	u32 tg_load_pct = tg_init_load_pct(p);
 
-	wtr->init_load_pct = 0;
-	wtr->mark_start = 0;
-	wtr->sum = 0;
-	wtr->sum_latest = 0;
-	wtr->curr_window = 0;
-	wtr->prev_window = 0;
+	uni_tsk->init_load_pct = 0;
+	uni_tsk->mark_start = 0;
+	uni_tsk->sum = 0;
+	uni_tsk->sum_latest = 0;
+	uni_tsk->curr_window = 0;
+	uni_tsk->prev_window = 0;
 
 	init_load_pct = init_load_pct > tg_load_pct ? init_load_pct : tg_load_pct;
 
@@ -962,10 +962,10 @@ static void walt_init_new_task_load(struct task_struct *p)
 	if (unlikely(is_idle_task(p)))
 		init_load_windows = 0;
 
-	wtr->demand = init_load_windows;
-	wtr->demand_scale = scale_demand(init_load_windows);
+	uni_tsk->demand = init_load_windows;
+	uni_tsk->demand_scale = scale_demand(init_load_windows);
 	for (i = 0; i < RAVG_HIST_SIZE_MAX; ++i)
-		wtr->sum_history[i] = init_load_windows;
+		uni_tsk->sum_history[i] = init_load_windows;
 
 	__sched_fork_init(p);
 }
@@ -1020,11 +1020,11 @@ static void add_cluster(const struct cpumask *cpus, struct list_head *head)
 {
 	struct sched_cluster *cluster = alloc_new_cluster(cpus);
 	int i;
-	struct walt_rq *wrq;
+	struct uni_rq *uni_rq;
 
 	for_each_cpu(i, cpus) {
-		wrq = (struct walt_rq *) cpu_rq(i)->android_vendor_data1;
-		wrq->cluster = cluster;
+		uni_rq = (struct uni_rq *) cpu_rq(i)->android_vendor_data1;
+		uni_rq->cluster = cluster;
 	}
 	insert_cluster(cluster, head);
 	num_sched_clusters++;
@@ -1034,12 +1034,12 @@ static void cleanup_clusters(struct list_head *head)
 {
 	struct sched_cluster *cluster, *tmp;
 	int i;
-	struct walt_rq *wrq;
+	struct uni_rq *uni_rq;
 
 	list_for_each_entry_safe(cluster, tmp, head, list) {
 		for_each_cpu(i, &cluster->cpus) {
-			wrq = (struct walt_rq *) cpu_rq(i)->android_vendor_data1;
-			wrq->cluster = &init_cluster;
+			uni_rq = (struct uni_rq *) cpu_rq(i)->android_vendor_data1;
+			uni_rq->cluster = &init_cluster;
 		}
 		list_del(&cluster->list);
 		num_sched_clusters--;
@@ -1155,39 +1155,39 @@ static void walt_update_cluster_topology(void)
 static void walt_init_existing_task_load(struct task_struct *p)
 {
 	int i;
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
 
-	wtr->init_load_pct = 0;
-	wtr->mark_start = 0;
-	wtr->sum = 0;
-	wtr->sum_latest = 0;
-	wtr->curr_window = 0;
-	wtr->prev_window = 0;
+	uni_tsk->init_load_pct = 0;
+	uni_tsk->mark_start = 0;
+	uni_tsk->sum = 0;
+	uni_tsk->sum_latest = 0;
+	uni_tsk->curr_window = 0;
+	uni_tsk->prev_window = 0;
 
-	wtr->demand = 0;
-	wtr->demand_scale = 0;
+	uni_tsk->demand = 0;
+	uni_tsk->demand_scale = 0;
 	for (i = 0; i < RAVG_HIST_SIZE_MAX; ++i)
-		wtr->sum_history[i] = 0;
+		uni_tsk->sum_history[i] = 0;
 
 	__sched_fork_init(p);
 }
 
 static void walt_sched_init_rq(struct rq *rq)
 {
-	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 
-	wrq->push_task = NULL;
+	uni_rq->push_task = NULL;
 
-	wrq->cumulative_runnable_avg = 0;
-	wrq->window_start = 0;
-	wrq->cur_irqload = 0;
-	wrq->avg_irqload = 0;
-	wrq->irqload_ts = 0;
-	wrq->is_busy = 0;
-	wrq->sched_flag = 0;
+	uni_rq->cumulative_runnable_avg = 0;
+	uni_rq->window_start = 0;
+	uni_rq->cur_irqload = 0;
+	uni_rq->avg_irqload = 0;
+	uni_rq->irqload_ts = 0;
+	uni_rq->is_busy = 0;
+	uni_rq->sched_flag = 0;
 
-	wrq->cumulative_runnable_avg = 0;
-	wrq->curr_runnable_sum = wrq->prev_runnable_sum = 0;
+	uni_rq->cumulative_runnable_avg = 0;
+	uni_rq->curr_runnable_sum = uni_rq->prev_runnable_sum = 0;
 }
 
 DEFINE_STATIC_KEY_TRUE(walt_disabled);
@@ -1302,13 +1302,13 @@ static void android_rvh_enqueue_task(void *data, struct rq *rq, struct task_stru
 
 static void android_rvh_after_enqueue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
 {
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
 	u64 wallclock = walt_ktime_clock();
 
 	if (static_branch_unlikely(&walt_disabled))
 		return;
 
-	wtr->last_enqueue_ts = wallclock;
+	uni_tsk->last_enqueue_ts = wallclock;
 
 	walt_cpufreq_update_util(rq, 0);
 }
@@ -1356,7 +1356,7 @@ static void android_rvh_account_irq_end(void *data, struct task_struct *curr, in
 static void android_rvh_schedule(void *data, struct task_struct *prev,
 				 struct task_struct *next, struct rq *rq)
 {
-	struct walt_task_ravg *prev_wtr = (struct walt_task_ravg *)prev->android_vendor_data1;
+	struct uni_task_struct *prev_uni_tsk = (struct uni_task_struct *)prev->android_vendor_data1;
 	u64 wallclock = walt_ktime_clock();
 
 	if (static_branch_unlikely(&walt_disabled))
@@ -1364,7 +1364,7 @@ static void android_rvh_schedule(void *data, struct task_struct *prev,
 
 	if (likely(prev != next)) {
 		if (!prev->on_rq)
-			prev_wtr->last_sleep_ts = wallclock;
+			prev_uni_tsk->last_sleep_ts = wallclock;
 
 		walt_update_task_ravg(prev, rq, PUT_PREV_TASK, wallclock, 0);
 		walt_update_task_ravg(next, rq, PICK_NEXT_TASK, wallclock, 0);
@@ -1379,17 +1379,17 @@ static void walt_effective_cpu_util(void *data, int cpu, unsigned long util_cfs,
 {
 	u64 walt_cpu_util;
 	struct rq *rq = cpu_rq(cpu);
-	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 	u64 prev_runnable_sum;
 
 	if (static_branch_unlikely(&walt_disabled))
 		return;
 
-	walt_cpu_util = wrq->cumulative_runnable_avg;
+	walt_cpu_util = uni_rq->cumulative_runnable_avg;
 	walt_cpu_util <<= SCHED_CAPACITY_SHIFT;
 	do_div(walt_cpu_util, walt_ravg_window);
 
-	prev_runnable_sum = wrq->prev_runnable_sum;
+	prev_runnable_sum = uni_rq->prev_runnable_sum;
 	prev_runnable_sum <<= SCHED_CAPACITY_SHIFT;
 	do_div(prev_runnable_sum, walt_ravg_window);
 
@@ -1430,7 +1430,7 @@ static int walt_init_stop_handler(void *data)
 	int cpu;
 	struct task_struct *g, *p;
 	u64 window_start_ns, nr_windows;
-	struct walt_rq *wrq;
+	struct uni_rq *uni_rq;
 
 	read_lock(&tasklist_lock);
 	for_each_possible_cpu(cpu) {
@@ -1453,8 +1453,8 @@ static int walt_init_stop_handler(void *data)
 
 		walt_sched_init_rq(rq);
 
-		wrq = (struct walt_rq *) rq->android_vendor_data1;
-		wrq->window_start = window_start_ns;
+		uni_rq = (struct uni_rq *) rq->android_vendor_data1;
+		uni_rq->window_start = window_start_ns;
 	}
 
 	walt_update_cluster_topology();
@@ -1500,15 +1500,15 @@ static void android_vh_update_topology_flags_workfn(void *unused, void *unused2)
 	schedule_work(&walt_init_work);
 }
 
-#define WALT_VENDOR_DATA_TEST(wstruct, kstruct)		\
-	BUILD_BUG_ON(sizeof(wstruct) > (sizeof(u64) *	\
+#define UNI_VENDOR_DATA_TEST(unistruct, kstruct)		\
+	BUILD_BUG_ON(sizeof(unistruct) > (sizeof(u64) *	\
 			ARRAY_SIZE(((kstruct *)0)->android_vendor_data1)))
 
 static __init int walt_module_init(void)
 {
-	WALT_VENDOR_DATA_TEST(struct walt_task_ravg, struct task_struct);
-	WALT_VENDOR_DATA_TEST(struct walt_rq, struct rq);
-	WALT_VENDOR_DATA_TEST(struct walt_task_group, struct task_group);
+	UNI_VENDOR_DATA_TEST(struct uni_task_struct, struct task_struct);
+	UNI_VENDOR_DATA_TEST(struct uni_rq, struct rq);
+	UNI_VENDOR_DATA_TEST(struct uni_task_group, struct task_group);
 
 	register_trace_android_vh_update_topology_flags_workfn(
 			android_vh_update_topology_flags_workfn, NULL);

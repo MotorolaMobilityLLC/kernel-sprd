@@ -11,14 +11,14 @@
 
 #include <linux/tracepoint.h>
 
-struct walt_task_ravg;
-struct walt_rq;
+struct uni_task_ravg;
+struct uni_rq;
 struct pd_cache;
 
 TRACE_EVENT(walt_update_task_ravg,
 
 	TP_PROTO(struct task_struct *p, struct rq *rq,
-		 struct walt_task_ravg *wtr, struct walt_rq *wrq,
+		 struct uni_task_struct *wtr, struct uni_rq *wrq,
 		 int evt, u64 wallclock, u64 irqtime),
 
 	TP_ARGS(p, rq, wtr, wrq, evt, wallclock, irqtime),
@@ -92,7 +92,7 @@ TRACE_EVENT(walt_update_task_ravg,
 TRACE_EVENT(walt_update_history,
 
 	TP_PROTO(struct rq *rq, struct task_struct *p,
-		 struct walt_task_ravg *wtr, u32 runtime,
+		 struct uni_task_struct *wtr, u32 runtime,
 		 int samples, int evt),
 
 	TP_ARGS(rq, p, wtr, runtime, samples, evt),
@@ -132,7 +132,7 @@ TRACE_EVENT(walt_update_history,
 
 TRACE_EVENT(walt_migration_update_sum,
 
-	TP_PROTO(struct rq *rq, struct walt_rq *wrq, struct task_struct *p),
+	TP_PROTO(struct rq *rq, struct uni_rq *wrq, struct task_struct *p),
 
 	TP_ARGS(rq, wrq, p),
 

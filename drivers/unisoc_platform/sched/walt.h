@@ -9,6 +9,7 @@
 #include <linux/module.h>
 #include <linux/sched.h>
 #include <linux/types.h>
+#include <linux/unisoc_vd_def.h>
 
 #include "trace.h"
 #include "../../../kernel/sched/sched.h"
@@ -18,16 +19,7 @@
 
 DECLARE_STATIC_KEY_TRUE(walt_disabled);
 
-#define RAVG_HIST_SIZE_MAX  6
 extern __read_mostly unsigned int walt_ravg_window;
-
-struct sched_cluster {
-	raw_spinlock_t		load_lock;
-	struct list_head	list;
-	struct cpumask		cpus;
-	int			id;
-	unsigned long		capacity;
-};
 
 enum task_event {
 	PUT_PREV_TASK   = 0,
@@ -36,74 +28,6 @@ enum task_event {
 	TASK_MIGRATE    = 3,
 	TASK_UPDATE     = 4,
 	IRQ_UPDATE	= 5,
-};
-
-struct walt_task_ravg {
-	/*
-	 * 'mark_start' marks the beginning of an event (task waking up, task
-	 * starting to execute, task being preempted) within a window
-	 *
-	 * 'sum' represents how runnable a task has been within current
-	 * window. It incorporates both running time and wait time and is
-	 * frequency scaled.
-	 *
-	 * 'sum_history' keeps track of history of 'sum' seen over previous
-	 * RAVG_HIST_SIZE windows. Windows where task was entirely sleeping are
-	 * ignored.
-	 *
-	 * 'demand' represents maximum sum seen over previous
-	 * sysctl_sched_ravg_hist_size windows. 'demand' could drive frequency
-	 * demand for tasks.
-	 *
-	 * 'curr_window' represents task's contribution to cpu busy time
-	 * statistics (rq->curr_runnable_sum) in current window
-	 *
-	 * 'prev_window' represents task's contribution to cpu busy time
-	 * statistics (rq->prev_runnable_sum) in previous window
-	 */
-	u64 mark_start;
-	u32 sum, demand, sum_latest, demand_scale;
-	u32 sum_history[RAVG_HIST_SIZE_MAX];
-	u32 curr_window, prev_window;
-	/*
-	 * 'init_load_pct' represents the initial task load assigned to children
-	 * of this task
-	 */
-	u32 init_load_pct;
-	u64 last_sleep_ts;
-	u64 last_enqueue_ts;
-};
-
-struct walt_rq {
-	struct task_struct      *push_task;
-	struct sched_cluster	*cluster;
-
-	unsigned long sched_flag;
-	u64 cumulative_runnable_avg;
-	u64 window_start;
-	u64 curr_runnable_sum;
-	u64 prev_runnable_sum;
-	u64 cur_irqload;
-	u64 avg_irqload;
-	u64 irqload_ts;
-	u64 cum_window_demand;
-	enum {
-		CPU_BUSY_CLR = 0,
-		CPU_BUSY_PREPARE,
-		CPU_BUSY_SET,
-	} is_busy;
-};
-
-struct walt_task_group {
-	/* CGroup index */
-	int idx;
-	/* Boost value for tasks in CGroup */
-	int boost;
-
-	int account_wait_time;
-	u32 init_task_load_pct;
-
-	int prefer_active;
 };
 
 struct pd_cache {
@@ -161,10 +85,10 @@ static inline bool is_min_capacity_cluster(struct sched_cluster *cluster)
 
 static inline int same_cluster(int src_cpu, int dst_cpu)
 {
-	struct walt_rq *src_wrq = (struct walt_rq *) cpu_rq(src_cpu)->android_vendor_data1;
-	struct walt_rq *dest_wrq = (struct walt_rq *) cpu_rq(dst_cpu)->android_vendor_data1;
+	struct uni_rq *src_uni_rq = (struct uni_rq *) cpu_rq(src_cpu)->android_vendor_data1;
+	struct uni_rq *dest_uni_rq = (struct uni_rq *) cpu_rq(dst_cpu)->android_vendor_data1;
 
-	return src_wrq->cluster == dest_wrq->cluster;
+	return src_uni_rq->cluster == dest_uni_rq->cluster;
 }
 
 extern u64 walt_ktime_clock(void);
@@ -193,21 +117,21 @@ static inline struct task_group *css_tg(struct cgroup_subsys_state *css)
 	return css ? container_of(css, struct task_group, css) : NULL;
 }
 
-static inline struct walt_task_group *get_walt_task_group(struct task_struct *p)
+static inline struct uni_task_group *get_uni_task_group(struct task_struct *p)
 {
-	return (struct walt_task_group *) (p->sched_task_group->android_vendor_data1);
+	return (struct uni_task_group *) (p->sched_task_group->android_vendor_data1);
 }
 
 static inline unsigned int tg_init_load_pct(struct task_struct *p)
 {
-	struct walt_task_group *wtg = get_walt_task_group(p);
+	struct uni_task_group *wtg = get_uni_task_group(p);
 
 	return wtg->init_task_load_pct;
 }
 
 static inline unsigned int tg_account_wait_time(struct task_struct *p)
 {
-	struct walt_task_group *wtg = get_walt_task_group(p);
+	struct uni_task_group *wtg = get_uni_task_group(p);
 
 	return wtg->account_wait_time;
 }
@@ -216,7 +140,7 @@ static inline unsigned int tg_account_wait_time(struct task_struct *p)
 static inline int task_group_boost(struct task_struct *p)
 {
 #ifdef CONFIG_UNISOC_GROUP_BOOST
-	struct walt_task_group *wtg = get_walt_task_group(p);
+	struct uni_task_group *wtg = get_uni_task_group(p);
 
 	return wtg->boost;
 #else
@@ -228,8 +152,8 @@ static inline int task_group_boost(struct task_struct *p)
 static inline int walt_cpu_high_irqload(int cpu)
 {
 	struct rq *rq = cpu_rq(cpu);
-	struct walt_rq *wrq = (struct walt_rq *)rq->android_vendor_data1;
-	s64 delta = get_jiffies_64() - wrq->irqload_ts;
+	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
+	s64 delta = get_jiffies_64() - uni_rq->irqload_ts;
 	u64 irq_load = 0;
 
 	/*
@@ -240,22 +164,22 @@ static inline int walt_cpu_high_irqload(int cpu)
 	 */
 
 	if (delta < WALT_HIGH_IRQ_TIMEOUT)
-		irq_load = wrq->avg_irqload;
+		irq_load = uni_rq->avg_irqload;
 
 	return irq_load >= sysctl_sched_walt_cpu_high_irqload;
 }
 
 static inline unsigned long walt_task_util(struct task_struct *p)
 {
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *) p->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *) p->android_vendor_data1;
 
-	return wtr->demand_scale;
+	return uni_tsk->demand_scale;
 }
 
 static inline unsigned long walt_cpu_util(int cpu)
 {
-	struct walt_rq *wrq = (struct walt_rq *) cpu_rq(cpu)->android_vendor_data1;
-	u64 cpu_util = wrq->cumulative_runnable_avg;
+	struct uni_rq *uni_rq = (struct uni_rq *) cpu_rq(cpu)->android_vendor_data1;
+	u64 cpu_util = uni_rq->cumulative_runnable_avg;
 
 	cpu_util <<= SCHED_CAPACITY_SHIFT;
 	do_div(cpu_util, walt_ravg_window);
@@ -456,25 +380,25 @@ extern unsigned int sysctl_rotation_threshold_ms;
 static inline bool is_reserved(int cpu)
 {
 	struct rq *rq = cpu_rq(cpu);
-	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 
-	return test_bit(CPU_RESERVED, &wrq->sched_flag);
+	return test_bit(CPU_RESERVED, &uni_rq->sched_flag);
 }
 
 static inline void mark_reserved(int cpu)
 {
 	struct rq *rq = cpu_rq(cpu);
-	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 
-	test_and_set_bit(CPU_RESERVED, &wrq->sched_flag);
+	test_and_set_bit(CPU_RESERVED, &uni_rq->sched_flag);
 }
 
 static inline void clear_reserved(int cpu)
 {
 	struct rq *rq = cpu_rq(cpu);
-	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 
-	return clear_bit(CPU_RESERVED, &wrq->sched_flag);
+	return clear_bit(CPU_RESERVED, &uni_rq->sched_flag);
 }
 #else
 static inline bool is_reserved(int cpu)

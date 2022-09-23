@@ -37,7 +37,7 @@ struct boost_groups {
 	raw_spinlock_t lock;
 };
 
-struct walt_task_group *cgrp_table[BOOSTGROUPS_COUNT];
+struct uni_task_group *cgrp_table[BOOSTGROUPS_COUNT];
 
 #ifdef CONFIG_UNISOC_GROUP_BOOST
 
@@ -168,7 +168,7 @@ void walt_group_boost_enqueue(struct rq *rq, struct task_struct *p)
 	int cpu = cpu_of(rq);
 	struct boost_groups *bg = &per_cpu(cpu_boost_groups, cpu);
 	unsigned long irq_flags;
-	struct walt_task_group *wtg;
+	struct uni_task_group *uni_tg;
 	int idx;
 
 	/*
@@ -178,11 +178,11 @@ void walt_group_boost_enqueue(struct rq *rq, struct task_struct *p)
 	 */
 	raw_spin_lock_irqsave(&bg->lock, irq_flags);
 
-	wtg = get_walt_task_group(p);
-	if (!wtg)
+	uni_tg = get_uni_task_group(p);
+	if (!uni_tg)
 		goto unlock;
 
-	idx = wtg->idx;
+	idx = uni_tg->idx;
 
 	group_boost_tasks_update(p, cpu, idx, ENQUEUE_TASK);
 
@@ -195,7 +195,7 @@ void walt_group_boost_dequeue(struct rq *rq, struct task_struct *p)
 	int cpu = cpu_of(rq);
 	struct boost_groups *bg = &per_cpu(cpu_boost_groups, cpu);
 	unsigned long irq_flags;
-	struct walt_task_group *wtg;
+	struct uni_task_group *uni_tg;
 	int idx;
 
 	/*
@@ -204,11 +204,11 @@ void walt_group_boost_dequeue(struct rq *rq, struct task_struct *p)
 	 */
 	raw_spin_lock_irqsave(&bg->lock, irq_flags);
 
-	wtg = get_walt_task_group(p);
-	if (!wtg)
+	uni_tg = get_uni_task_group(p);
+	if (!uni_tg)
 		goto unlock;
 
-	idx = wtg->idx;
+	idx = uni_tg->idx;
 
 	group_boost_tasks_update(p, cpu, idx, DEQUEUE_TASK);
 unlock:
@@ -218,25 +218,25 @@ unlock:
 
 static void walt_init_tg_params(struct task_group *tg)
 {
-	struct walt_task_group *wtg;
+	struct uni_task_group *uni_tg;
 
-	wtg = (struct walt_task_group *) tg->android_vendor_data1;
+	uni_tg = (struct uni_task_group *) tg->android_vendor_data1;
 
-	wtg->boost = 0;
-	wtg->account_wait_time = 1;
-	wtg->init_task_load_pct = 0;
-	wtg->prefer_active = 0;
+	uni_tg->boost = 0;
+	uni_tg->account_wait_time = 1;
+	uni_tg->init_task_load_pct = 0;
+	uni_tg->prefer_active = 0;
 }
 
 static void walt_update_root_group(struct cgroup_subsys_state *css)
 {
 	struct task_group *tg = css_tg(css);
-	struct walt_task_group *wtg;
+	struct uni_task_group *uni_tg;
 
-	wtg = (struct walt_task_group *) tg->android_vendor_data1;
+	uni_tg = (struct uni_task_group *) tg->android_vendor_data1;
 
-	wtg->idx = ROOT_GROUP;
-	cgrp_table[ROOT_GROUP] = wtg;
+	uni_tg->idx = ROOT_GROUP;
+	cgrp_table[ROOT_GROUP] = uni_tg;
 
 	walt_init_tg_params(tg);
 }
@@ -244,24 +244,24 @@ static void walt_update_root_group(struct cgroup_subsys_state *css)
 void walt_update_task_group(struct cgroup_subsys_state *css)
 {
 	struct task_group *tg = css_tg(css);
-	struct walt_task_group *wtg;
+	struct uni_task_group *uni_tg;
 
-	wtg = (struct walt_task_group *) tg->android_vendor_data1;
+	uni_tg = (struct uni_task_group *) tg->android_vendor_data1;
 
 	if (!strcmp(css->cgroup->kn->name, "top-app")) {
-		wtg->idx = TOP_APP;
-		cgrp_table[TOP_APP] = wtg;
+		uni_tg->idx = TOP_APP;
+		cgrp_table[TOP_APP] = uni_tg;
 	} else if (!strcmp(css->cgroup->kn->name, "foreground")) {
-		wtg->idx = FOREGROUND;
-		cgrp_table[FOREGROUND] = wtg;
+		uni_tg->idx = FOREGROUND;
+		cgrp_table[FOREGROUND] = uni_tg;
 	} else if (!strcmp(css->cgroup->kn->name, "background")) {
-		wtg->idx = BACKGROUND;
-		cgrp_table[BACKGROUND] = wtg;
+		uni_tg->idx = BACKGROUND;
+		cgrp_table[BACKGROUND] = uni_tg;
 	} else if (!strcmp(css->cgroup->kn->name, "system")) {
-		wtg->idx = SYSTEM_GROUP;
-		cgrp_table[SYSTEM_GROUP] = wtg;
+		uni_tg->idx = SYSTEM_GROUP;
+		cgrp_table[SYSTEM_GROUP] = uni_tg;
 	} else
-		wtg->idx = OTHER_GROUPS;
+		uni_tg->idx = OTHER_GROUPS;
 
 	walt_init_tg_params(tg);
 }
@@ -274,7 +274,7 @@ static int sched_group_boost_handler(struct ctl_table *table, int write,
 	int ret;
 	unsigned long grp_id = (unsigned long)table->data;
 	static DEFINE_MUTEX(mutex);
-	struct walt_task_group *wtg = cgrp_table[grp_id];
+	struct uni_task_group *uni_tg = cgrp_table[grp_id];
 	int old_boost_val, boost_val;
 	struct ctl_table tmp = {
 		.data   = &boost_val,
@@ -284,8 +284,8 @@ static int sched_group_boost_handler(struct ctl_table *table, int write,
 
 	mutex_lock(&mutex);
 
-	if (wtg) {
-		old_boost_val = wtg->boost;
+	if (uni_tg) {
+		old_boost_val = uni_tg->boost;
 	} else {
 		ret = -EINVAL;
 		goto unlock_mutex;
@@ -308,7 +308,7 @@ static int sched_group_boost_handler(struct ctl_table *table, int write,
 	}
 
 	if (old_boost_val != boost_val) {
-		wtg->boost = boost_val;
+		uni_tg->boost = boost_val;
 		group_boost_val_update(grp_id, boost_val);
 	}
 
@@ -325,7 +325,7 @@ static int sched_account_wait_time_handler(struct ctl_table *table, int write,
 	int ret;
 	unsigned long grp_id = (unsigned long)table->data;
 	static DEFINE_MUTEX(mutex);
-	struct walt_task_group *wtg = cgrp_table[grp_id];
+	struct uni_task_group *uni_tg = cgrp_table[grp_id];
 	int val;
 	struct ctl_table tmp = {
 		.data   = &val,
@@ -335,13 +335,13 @@ static int sched_account_wait_time_handler(struct ctl_table *table, int write,
 
 	mutex_lock(&mutex);
 
-	if (!wtg) {
+	if (!uni_tg) {
 		ret = -EINVAL;
 		goto unlock_mutex;
 	}
 
 	if (!write) {
-		val = wtg->account_wait_time;
+		val = uni_tg->account_wait_time;
 		ret = proc_dointvec(&tmp, write, buffer, lenp, ppos);
 		goto unlock_mutex;
 	}
@@ -350,7 +350,7 @@ static int sched_account_wait_time_handler(struct ctl_table *table, int write,
 	if (ret)
 		goto unlock_mutex;
 
-	wtg->account_wait_time = !!val;
+	uni_tg->account_wait_time = !!val;
 
 unlock_mutex:
 	mutex_unlock(&mutex);
@@ -365,7 +365,7 @@ static int sched_init_load_pct_handler(struct ctl_table *table, int write,
 	int ret;
 	unsigned long grp_id = (unsigned long)table->data;
 	static DEFINE_MUTEX(mutex);
-	struct walt_task_group *wtg = cgrp_table[grp_id];
+	struct uni_task_group *uni_tg = cgrp_table[grp_id];
 	int val;
 	struct ctl_table tmp = {
 		.data   = &val,
@@ -375,13 +375,13 @@ static int sched_init_load_pct_handler(struct ctl_table *table, int write,
 
 	mutex_lock(&mutex);
 
-	if (!wtg) {
+	if (!uni_tg) {
 		ret = -EINVAL;
 		goto unlock_mutex;
 	}
 
 	if (!write) {
-		val = wtg->init_task_load_pct;
+		val = uni_tg->init_task_load_pct;
 		ret = proc_dointvec(&tmp, write, buffer, lenp, ppos);
 		goto unlock_mutex;
 	}
@@ -396,7 +396,7 @@ static int sched_init_load_pct_handler(struct ctl_table *table, int write,
 		goto unlock_mutex;
 	}
 
-	wtg->init_task_load_pct = val;
+	uni_tg->init_task_load_pct = val;
 
 unlock_mutex:
 	mutex_unlock(&mutex);

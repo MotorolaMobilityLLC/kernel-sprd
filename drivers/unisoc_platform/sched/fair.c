@@ -6,7 +6,6 @@
 #include <trace/hooks/sched.h>
 
 #include "walt.h"
-//#include "trace.h"
 
 /*
  * Remove and clamp on negative, from a local variable.
@@ -149,7 +148,7 @@ static void check_for_task_rotation(struct rq *src_rq)
 	u64 wc, wait, max_wait = 0;
 	u64 run, max_run = 0;
 	int big_task = 0;
-	struct walt_task_ravg *wtr;
+	struct uni_task_struct *uni_tsk;
 
 	if (!rotation_enable || !sysctl_rotation_enable)
 		return;
@@ -180,8 +179,8 @@ static void check_for_task_rotation(struct rq *src_rq)
 		    task_fits_capacity(curr_task, capacity_of(i), i))
 			continue;
 
-		wtr = (struct walt_task_ravg *) curr_task->android_vendor_data1;
-		wait = wc - wtr->last_enqueue_ts;
+		uni_tsk = (struct uni_task_struct *) curr_task->android_vendor_data1;
+		wait = wc - uni_tsk->last_enqueue_ts;
 		if (wait > max_wait) {
 			max_wait = wait;
 			deserved_cpu = i;
@@ -203,8 +202,8 @@ static void check_for_task_rotation(struct rq *src_rq)
 		if (rq->nr_running > 1)
 			continue;
 
-		wtr = (struct walt_task_ravg *) rq->curr->android_vendor_data1;
-		run = wc - wtr->last_enqueue_ts;
+		uni_tsk = (struct uni_task_struct *) rq->curr->android_vendor_data1;
+		run = wc - uni_tsk->last_enqueue_ts;
 
 		if (run < threshold_time)
 			continue;
@@ -773,13 +772,13 @@ static void walt_migrate_queued_task(void *data, struct rq *rq,
 static void walt_can_migrate_task(void *data, struct task_struct *p,
 				  int dst_cpu, int *can_migrate)
 {
-	struct walt_rq *wrq = (struct walt_rq *) task_rq(p)->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *) task_rq(p)->android_vendor_data1;
 
 	if (static_branch_unlikely(&walt_disabled))
 		return;
 
 	/* Don't detach task if it is under active migration */
-	if (unlikely(wrq->push_task == p))
+	if (unlikely(uni_rq->push_task == p))
 		*can_migrate = 0;
 }
 
@@ -905,13 +904,13 @@ static int walt_active_migration_cpu_stop(void *data)
 	int busiest_cpu = cpu_of(busiest_rq);
 	int target_cpu = busiest_rq->push_cpu;
 	struct rq *target_rq = cpu_rq(target_cpu);
-	struct walt_rq *busiest_wrq = (struct walt_rq *) busiest_rq->android_vendor_data1;
+	struct uni_rq *busiest_uni_rq = (struct uni_rq *) busiest_rq->android_vendor_data1;
 	struct task_struct *push_task;
 	struct rq_flags rf;
 	int push_task_detached = 0;
 
 	rq_lock_irq(busiest_rq, &rf);
-	push_task = busiest_wrq->push_task;
+	push_task = busiest_uni_rq->push_task;
 
 	if (!cpu_active(busiest_cpu) || !cpu_active(target_cpu) || !push_task)
 		goto out_unlock;
@@ -944,7 +943,7 @@ static int walt_active_migration_cpu_stop(void *data)
 out_unlock:
 	busiest_rq->active_balance = 0;
 	clear_reserved(target_cpu);
-	busiest_wrq->push_task = NULL;
+	busiest_uni_rq->push_task = NULL;
 	rq_unlock(busiest_rq, &rf);
 
 	if (push_task_detached)
@@ -963,7 +962,7 @@ static void android_vh_scheduler_tick(void *unused, struct rq *rq)
 {
 	int prev_cpu = rq->cpu, new_cpu;
 	struct task_struct *p = rq->curr;
-	struct walt_rq *wrq = (struct walt_rq *) rq->android_vendor_data1;
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 	int ret;
 
 	if (static_branch_unlikely(&walt_disabled))
@@ -992,7 +991,7 @@ static void android_vh_scheduler_tick(void *unused, struct rq *rq)
 		rq->active_balance = 1;
 		rq->push_cpu = new_cpu;
 		get_task_struct(p);
-		wrq->push_task = p;
+		uni_rq->push_task = p;
 
 		raw_spin_rq_unlock(rq);
 
@@ -1028,8 +1027,8 @@ static void walt_cpu_overutilzed(void *data, int cpu, int *overutilized)
 static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 					     struct rq *rq, bool *need_update)
 {
-	struct walt_task_ravg *wtr;
-	struct walt_rq *wrq;
+	struct uni_task_struct *uni_tsk;
+	struct uni_rq *uni_rq;
 
 	if (static_branch_unlikely(&walt_disabled))
 		return;
@@ -1041,8 +1040,8 @@ static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 		return;
 	}
 
-	wrq = (struct walt_rq *) rq->android_vendor_data1;
-	wtr = (struct walt_task_ravg *) p->android_vendor_data1;
+	uni_rq = (struct uni_rq *) rq->android_vendor_data1;
+	uni_tsk = (struct uni_task_struct *) p->android_vendor_data1;
 
 	if (is_max_capacity_cpu(cpu_of(rq)) ||
 	    task_fits_capacity(p, capacity_orig_of(cpu_of(rq)), cpu_of(rq))) {

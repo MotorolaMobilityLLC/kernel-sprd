@@ -38,19 +38,18 @@
 
 #include <linux/android_debug_symbols.h>
 #include <linux/tracepoint.h>
+#if IS_ENABLED(CONFIG_SCHED_WALT)
+#include <linux/unisoc_vd_def.h>
+#endif
 #include <trace/hooks/vendor_hooks.h>
 #include <trace/hooks/debug.h>
 
 #include "unisoc_dump_info.h"
 #include "unisoc_sysdump.h"
 #include "sysdump.h"
-#if IS_ENABLED(CONFIG_SCHED_WALT)
-#include "../sched/walt.h"
-#else
 #include <linux/module.h>
 #include <linux/sched.h>
 #include "../../../kernel/sched/sched.h"
-#endif
 
 static struct seq_buf *unisoc_task_seq_buf;
 static struct seq_buf *unisoc_rq_seq_buf;
@@ -258,7 +257,7 @@ static void dump_task_info(struct task_struct *task, char *status,
 {
 	struct sched_entity *se;
 #if IS_ENABLED(CONFIG_SCHED_WALT)
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)task->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)task->android_vendor_data1;
 #endif
 
 	dump_align();
@@ -283,8 +282,8 @@ static void dump_task_info(struct task_struct *task, char *status,
 	SEQ_printf(unisoc_rq_seq_buf, " prio: %d aff: %*pb",
 		       task->prio, cpumask_pr_args(&task->cpus_mask));
 #if IS_ENABLED(CONFIG_SCHED_WALT)
-	SEQ_printf(unisoc_rq_seq_buf, " enqueue: %llu", wtr->last_enqueue_ts);
-	SEQ_printf(unisoc_rq_seq_buf, " last_sleep: %llu", wtr->last_sleep_ts);
+	SEQ_printf(unisoc_rq_seq_buf, " enqueue: %llu", uni_tsk->last_enqueue_ts);
+	SEQ_printf(unisoc_rq_seq_buf, " last_sleep: %llu", uni_tsk->last_sleep_ts);
 #endif
 	SEQ_printf(unisoc_rq_seq_buf, " vrun: %llu exec_start: %llu sum_ex: %llu\n",
 		se->vruntime, se->exec_start, se->sum_exec_runtime);
@@ -578,7 +577,7 @@ static void unisoc_print_task_stats(int cpu, struct rq *rq, struct task_struct *
 {
 	struct seq_buf *task_seq_buf;
 #if IS_ENABLED(CONFIG_SCHED_WALT)
-	struct walt_task_ravg *wtr = (struct walt_task_ravg *)p->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
 #endif
 
 	task_seq_buf = unisoc_task_seq_buf;
@@ -607,11 +606,11 @@ static void unisoc_print_task_stats(int cpu, struct rq *rq, struct task_struct *
 				nsec_low(p->se.sum_exec_runtime));
 #if IS_ENABLED(CONFIG_SCHED_WALT)
 	SEQ_printf(task_seq_buf, "   %6lld.%09ld",
-				nsec_high(wtr->last_enqueue_ts),
-				nsec_low(wtr->last_enqueue_ts));
+				nsec_high(uni_tsk->last_enqueue_ts),
+				nsec_low(uni_tsk->last_enqueue_ts));
 	SEQ_printf(task_seq_buf, "   %6lld.%09ld",
-				nsec_high(wtr->last_sleep_ts),
-				nsec_low(wtr->last_sleep_ts));
+				nsec_high(uni_tsk->last_sleep_ts),
+				nsec_low(uni_tsk->last_sleep_ts));
 #endif
 	SEQ_printf(task_seq_buf, "\n");
 }
