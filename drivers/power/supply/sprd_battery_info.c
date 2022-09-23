@@ -721,6 +721,7 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 	}
 
 	battery_id = sprd_battery_parse_battery_id(psy);
+	pr_err("%s:line%d battery_id= %d\n", __func__, __LINE__,battery_id);
 
 	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", battery_id);
 	if (!battery_np) {
