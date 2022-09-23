@@ -47,6 +47,7 @@
 #include "../include/wcn_dbg.h"
 #include "wcn_txrx.h"
 #include "wcn_gnss_dump.h"
+#include "wcn_debug_bus.h"
 
 #define SUFFIX "androidboot.slot_suffix="
 
@@ -890,6 +891,44 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	WCN_INFO("cp base = %llu, size = 0x%x\n",
 		 (u64)wcn_dev->base_addr, wcn_dev->maxsz);
 
+	if (strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0) {
+		index = 1;
+		ret = of_address_to_resource(np, index, &res);
+		if (ret) {
+			WCN_INFO("Use temporary debugbus DDR\n");
+			wcn_dev->dbus.base_addr = DEBUGBUS_TO_DDR_BASE;
+			wcn_dev->dbus.maxsz = DEBUGBUS_TO_DDR_LEN;
+		} else {
+			wcn_dev->dbus.base_addr = res.start;
+			wcn_dev->dbus.maxsz = res.end - res.start + 1;
+		}
+
+		WCN_INFO("dbus base = 0x%llx, size = 0x%x\n",
+			 (u64)wcn_dev->dbus.base_addr, wcn_dev->dbus.maxsz);
+		wcn_dev->dbus.dbus_data_pool = kzalloc(wcn_dev->dbus.maxsz, GFP_KERNEL);
+		if (!wcn_dev->dbus.dbus_data_pool) {
+			WCN_ERR("%s fail to malloc\n", __func__);
+			return -ENOMEM;
+		}
+
+		index = 2;
+		ret = of_address_to_resource(np, index, &res);
+		if (ret) {
+			WCN_INFO("Use temporary debugbus register\n");
+			wcn_dev->dbus.phy_reg = DEBUGBUS_REG_BASE;
+			wcn_dev->dbus.dbus_max_offset = DEBUGBUS_REG_LEN;
+			wcn_dev->dbus.dbus_reg_base = ioremap(wcn_dev->dbus.phy_reg,
+					wcn_dev->dbus.dbus_max_offset);
+		} else {
+			wcn_dev->dbus.phy_reg = res.start;
+			wcn_dev->dbus.dbus_max_offset = res.end - res.start + 1;
+			wcn_dev->dbus.dbus_reg_base = of_iomap(np, index);
+		}
+
+		WCN_INFO("phy_reg=0x%llx,size=0x%x,map to dbus_reg_base=0x%p\n",
+			(u64)wcn_dev->dbus.phy_reg, wcn_dev->dbus.dbus_max_offset,
+			wcn_dev->dbus.dbus_reg_base);
+	}
 	ret = of_property_read_string(np, "sprd,file-name",
 				      (const char **)&wcn_dev->file_path);
 	if (!ret)

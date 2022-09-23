@@ -18,6 +18,7 @@
 #include "bus_common.h"
 #include "wcn_integrate.h"
 #include "wcn_sipc.h"
+#include "../platform/wcn_procfs.h"
 
 #define SIPC_WCN_DST 3
 
@@ -59,7 +60,6 @@
 .sblk.mapped_smem_base = _mapped_smem_base}
 
 static struct wcn_sipc_info_t g_sipc_info = {0};
-
 /* default sipc channel info */
 /* at/bt/fm use sbuf channel 4:  */
 /* at bufid 5  bt bufid(tx 11 rx 10) fm bufid(tx 14 rx 13) */
@@ -483,11 +483,6 @@ static int wcn_sipc_sbuf_push(u8 index,
 {
 	struct sipc_chn_info *sipc_chn;
 
-	if (sprdwcn_bus_get_carddump_status()) {
-		WCN_ERR("%s not device(card dump)\n", __func__);
-		return -ENODEV;
-	}
-
 	if (SIPC_INVALID_CHN(index))
 		return -E_INVALIDPARA;
 	sipc_chn = SIPC_CHN(index);
@@ -651,8 +646,8 @@ static void wcn_sipc_sblk_push_list_dequeue(struct sipc_chn_info *sipc_chn)
 			sipc_chn->push_queue.mbuf_num = 0;
 		}
 	}
-	mutex_unlock(&sipc_chn->pushq_lock);
 	wcn_sipc_pop_list_flush(sipc_chn);
+	mutex_unlock(&sipc_chn->pushq_lock);
 	WCN_HERE_CHN(sipc_chn->index);
 }
 
@@ -673,20 +668,14 @@ static int wcn_sipc_sblk_push(u8 index,
 			struct mbuf_t *head, struct mbuf_t *tail, int num)
 {
 	struct sipc_chn_info *sipc_chn;
-	int check_count = 0;
 
 	if (unlikely(SIPC_INVALID_CHN(index)))
 		return -E_INVALIDPARA;
 
 	sipc_chn = SIPC_CHN(index);
-	while (wcn_sipc_sblk_chn_rx_status_check(index) != 0) {
-		WCN_INFO("sipc chn %d wait create ,index %d !\n", sipc_chn->chn, index);
-		msleep(30);
-		check_count++;
-		if (check_count >= 100) {
-			WCN_ERR("sipc chn %d not created!", sipc_chn->chn);
-			return -E_INVALIDPARA;
-		}
+	if (wcn_sipc_sblk_chn_rx_status_check(index) != 0) {
+		WCN_ERR("sipc chn %d not created!", sipc_chn->chn);
+		return -E_INVALIDPARA;
 	}
 	wcn_sipc_record_mbuf_recv_from_user(index, num);
 	wcn_sipc_push_list_enqueue(sipc_chn, head, tail, num);
@@ -783,6 +772,12 @@ static int wcn_sipc_push_list(int index, struct mbuf_t *head,
 		return -E_NULLPOINT;
 
 	if (wcn_sipc_ops->inout == WCNBUS_TX) {
+		if (!wcn_push_list_condition_check(head, tail, num)) {
+			WCN_INFO("%s WCN is asserting, cancel send.index=%d",
+				__func__, index);
+			return -E_INVALIDPARA;
+		}
+
 		ret = sipc_data_ops[SIPC_TYPE(index)].sipc_send(
 					index, head, tail, num);
 		if (ret < 0)

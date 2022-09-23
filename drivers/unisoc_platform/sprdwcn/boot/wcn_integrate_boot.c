@@ -19,6 +19,7 @@
 #include "../include/wcn_dbg.h"
 #include "wcn_ca_trusty.h"
 #include "../sipc/wcn_sipc.h"
+#include "wcn_debug_bus.h"
 #define GNSS_CALI_DONE_FLAG (0x1314520)
 
 static struct mutex marlin_lock;
@@ -35,7 +36,6 @@ int is_wcn_shutdown;
 int is_wcnpll_power_down;
 int ge2_bin_type;
 extern void wcn_dfs_status_clear(void);
-
 static void wcn_show_dev_status(const char *pre_str);
 
 static int wcn_sys_merlion_soft_reset(struct wcn_device *wcn_dev)
@@ -88,6 +88,8 @@ static int wcn_sys_merlion_soft_reset(struct wcn_device *wcn_dev)
 		force = true;
 		if (wcn_sys_polling_powerdown(wcn_dev) == false) {
 			WCN_ERR("WCN is not powerdown(soft reset)\n");
+			wcn_debug_bus_show(wcn_dev, "WCN shutdown failed,First time...");
+			wcn_debug_bus_show(wcn_dev, "WCN shutdown failed,Second time...");
 			BUG_ON(true);
 			return -EBUSY;
 		}
@@ -3273,6 +3275,8 @@ void wcn_power_wq(struct work_struct *pwork)
 		ret = wcn_proc_native_start(wcn_dev);
 		if (ret) {
 			WCN_INFO("[-]%s wcn poweron module fail!\n", __func__);
+			wcn_debug_bus_show(NULL, "WCN bootup fail,First time...");
+			wcn_debug_bus_show(NULL, "WCN bootup fail,Second time...");
 			return;
 		}
 	} else {

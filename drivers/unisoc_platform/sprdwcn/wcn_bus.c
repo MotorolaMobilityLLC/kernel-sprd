@@ -40,6 +40,50 @@ static struct sprdwcn_bus_ops *wcn_bus_ops;
 
 static struct chn_info_t g_sipc_chn_info[SIPC_CHN_MAX_NUM];
 static struct chn_info_t g_chn_info[CHN_MAX_NUM];
+
+static bool mdbg_white_list_str_check(char *buf, ssize_t len)
+{
+	int i = 0;
+	char * const str_in_assert[] = {
+		"at+sleep_switch",
+	};
+
+	for (i = 0; i < ARRAY_SIZE(str_in_assert); i++) {
+		if (!strncasecmp(buf, str_in_assert[i], strlen(str_in_assert[i]))) {
+			pr_info("%s (%s) white list\n", __func__, buf);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool wcn_push_list_condition_check(
+		struct mbuf_t *head, struct mbuf_t *tail, int num)
+{
+	size_t rsvlen = 0;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	if (sprdwcn_bus_get_carddump_status() || wcn_is_assert()) {
+		if (num != 1) {
+			pr_err("%s mbuf(%d) does not allow sending(WCN ASSERT)\n",
+				__func__, num);
+			return false;
+		}
+
+		if (g_match_config && g_match_config->unisoc_wcn_sipc)
+			rsvlen = 0;
+		else if (g_match_config && g_match_config->unisoc_wcn_sdio)
+			rsvlen = SDIOHAL_PUB_HEAD_RSV;
+		else
+			rsvlen = PUB_HEAD_RSV;
+
+		return mdbg_white_list_str_check(head->buf + rsvlen, head->len);
+	}
+
+	return true;
+}
+
 static struct chn_info_t *chn_info(void)
 {
 	struct wcn_match_data *g_match_config = get_wcn_match_config();
@@ -237,6 +281,10 @@ int buf_list_free(int chn, struct mbuf_t *head, struct mbuf_t *tail, int num)
 	}
 
 	pool = &((chn_inf + chn)->pool);
+	if (pool->mem == NULL) {
+		pr_err("%s channel has been released\n", __func__);
+		return -1;
+	}
 	spin_lock_bh(&(pool->lock));
 	buf_list_check(pool, head, tail, num);
 	tail->next = pool->head;
