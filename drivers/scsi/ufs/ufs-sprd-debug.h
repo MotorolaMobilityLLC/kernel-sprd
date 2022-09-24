@@ -6,7 +6,17 @@
  *
  */
 
-#define UFS_CMD_RECORD_DEPTH (800)
+/* Default OFF!!! */
+#define UFS_DEBUG_ERR_PANIC_DEF false
+
+#ifdef CONFIG_SPRD_DEBUG
+/* Userdebug ver default ON!!! */
+#define UFS_DEBUG_ON_DEF true
+#else
+#define UFS_DEBUG_ON_DEF false
+#endif
+
+#define UFS_CMD_RECORD_DEPTH (300)
 #define UFS_SINGLE_LINE_STR_LIMIT (230)
 #define DUMP_BUFFER_S (UFS_CMD_RECORD_DEPTH * UFS_SINGLE_LINE_STR_LIMIT)
 
@@ -75,6 +85,7 @@ struct ufs_event_info {
 	pid_t pid;
 	u32 cpu;
 	bool flag;
+	bool panic_f;
 	ktime_t time;
 	union {
 		struct ufs_cmd_info ci;
@@ -104,4 +115,5 @@ int ufs_sprd_debug_proc_init(struct ufs_hba *hba);
 void ufshcd_update_common_event_trace(struct ufs_hba *hba,
 				      enum ufs_event_list event, unsigned int tag);
 void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *data);
-bool sprd_ufs_debug_is_supported(void);
+bool sprd_ufs_debug_is_supported(struct ufs_hba *hba);
+void sprd_ufs_debug_err_dump(struct ufs_hba *hba);

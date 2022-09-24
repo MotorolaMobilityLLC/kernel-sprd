@@ -69,7 +69,7 @@ static void ufs_sprd_vh_send_uic_cmd(void *data, struct ufs_hba *hba,
 {
 	struct ufs_uic_cmd_info uic_tmp = {};
 
-	if (sprd_ufs_debug_is_supported() == TRUE) {
+	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
 		uic_tmp.argu1 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_1);
 		uic_tmp.argu2 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_2);
 		uic_tmp.argu3 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_3);
@@ -87,7 +87,7 @@ static void ufs_sprd_vh_compl_cmd(void *data,
 				  struct ufs_hba *hba,
 				  struct ufshcd_lrb *lrbp)
 {
-	if (sprd_ufs_debug_is_supported() == TRUE) {
+	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
 		if (lrbp->cmd)
 			ufshcd_update_common_event_trace(hba, UFS_TRACE_COMPLETED,
 							 lrbp->task_tag);
@@ -104,7 +104,7 @@ static void ufs_sprd_vh_send_tm_cmd(void *data, struct ufs_hba *hba,
 	struct utp_task_req_desc *descp = &hba->utmrdl_base_addr[tag];
 	struct ufs_tm_cmd_info tm_tmp = {};
 
-	if (sprd_ufs_debug_is_supported() == TRUE) {
+	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
 		tm_tmp.tm_func = (u8) (__be32_to_cpu(descp->header.dword_1) >> 16);
 		tm_tmp.param1 = descp->upiu_req.input_param1;
 		tm_tmp.param2 = descp->upiu_req.input_param2;
@@ -121,8 +121,33 @@ static void ufs_sprd_vh_check_int_errors(void *data,
 					struct ufs_hba *hba,
 					bool queue_eh_work)
 {
-	if (queue_eh_work && sprd_ufs_debug_is_supported() == TRUE)
+	if (queue_eh_work && sprd_ufs_debug_is_supported(hba) == TRUE)
 		ufshcd_common_trace(hba, UFS_TRACE_INT_ERROR, NULL);
+}
+
+static void ufs_sprd_vh_send_cmd(void *data,
+				  struct ufs_hba *hba,
+				  struct ufshcd_lrb *lrbp)
+{
+	struct utp_transfer_req_desc *req_desc;
+	u32 data_direction;
+	u32 dword_0, crypto;
+
+	req_desc = lrbp->utr_descriptor_ptr;
+	dword_0 = le32_to_cpu(req_desc->header.dword_0);
+	data_direction = dword_0 & (UTP_DEVICE_TO_HOST | UTP_HOST_TO_DEVICE);
+	crypto = dword_0 & UTP_REQ_DESC_CRYPTO_ENABLE_CMD;
+	if (!data_direction && crypto) {
+		dword_0 &= ~(UTP_REQ_DESC_CRYPTO_ENABLE_CMD);
+		req_desc->header.dword_0 = cpu_to_le32(dword_0);
+	}
+
+	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
+		if (!!lrbp->cmd)
+			ufshcd_update_common_event_trace(hba, UFS_TRACE_SEND, lrbp->task_tag);
+		else
+			ufshcd_update_common_event_trace(hba, UFS_TRACE_DEV_SEND, lrbp->task_tag);
+	}
 }
 
 
@@ -145,6 +170,7 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 	register_trace_android_vh_ufs_compl_command(ufs_sprd_vh_compl_cmd, NULL);
 	register_trace_android_vh_ufs_send_tm_command(ufs_sprd_vh_send_tm_cmd, NULL);
 	register_trace_android_vh_ufs_check_int_errors(ufs_sprd_vh_check_int_errors, NULL);
+	register_trace_android_vh_ufs_send_command(ufs_sprd_vh_send_cmd, NULL);
 
 	/* Perform generic probe */
 	of_id = of_match_node(ufs_sprd_of_match, pdev->dev.of_node);

@@ -12,6 +12,10 @@ struct ufs_sprd_host {
 	void *ufs_priv_data;
 
 	bool ffu_is_process;
+
+	bool debug_en;
+	/* Panic when UFS encounters an error. */
+	bool err_panic;
 };
 
 struct syscon_ufs {

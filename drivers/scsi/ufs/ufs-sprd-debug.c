@@ -12,20 +12,21 @@
 
 #include "ufs.h"
 #include "ufshcd.h"
+#include "ufs-sprd.h"
 #include "ufs-sprd-debug.h"
 
 #ifdef CONFIG_SPRD_DEBUG
 #define UFS_DBG_ACS_LVL 0660
-static bool ufs_debug_en = true;
 #else
 #define UFS_DBG_ACS_LVL 0440
-static bool ufs_debug_en;
 #endif
 
+/* CMD info buffer */
 static struct ufs_event_info ufs_event_info[UFS_CMD_RECORD_DEPTH];
 static int cmd_record_index = -1;
 static int exceed_max_depth;
 static spinlock_t ufs_debug_dump;
+/* Minidump buffer */
 static char *ufs_cmd_history_str;
 
 static const char *ufs_event_str[UFS_MAX_EVENT] = {
@@ -42,17 +43,28 @@ static const char *ufs_event_str[UFS_MAX_EVENT] = {
 	"Debug Trigger "
 };
 
-bool sprd_ufs_debug_is_supported(void)
+bool sprd_ufs_debug_is_supported(struct ufs_hba *hba)
 {
-	return ufs_debug_en;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	return host->debug_en;
+}
+
+void sprd_ufs_debug_err_dump(struct ufs_hba *hba)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	if (host->err_panic)
+		panic("ufs encountered an error!!!\n");
 }
 
 void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *data)
 {
 	int index;
 	unsigned long flags;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
-	if (ufs_debug_en == false)
+	if (!sprd_ufs_debug_is_supported(hba) && event != UFS_TRACE_DEBUG_TRIGGER)
 		return;
 
 	if (data == NULL && event < UFS_TRACE_RESET_AND_RESTORE)
@@ -68,9 +80,9 @@ void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *d
 	index = cmd_record_index;
 
 	ufs_event_info[index].event = event;
-	ufs_event_info[index].cpu = smp_processor_id();
+	ufs_event_info[index].cpu = current->cpu;
 	ufs_event_info[index].pid = current->pid;
-	ufs_event_info[index].time = ktime_get_boottime();
+	ufs_event_info[index].time = ktime_get();
 
 	switch (event) {
 	case UFS_TRACE_SEND:
@@ -90,7 +102,8 @@ void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *d
 		memcpy(&ufs_event_info[index].pkg, data, sizeof(struct ufs_uic_cmd_info));
 		break;
 	case UFS_TRACE_DEBUG_TRIGGER:
-		ufs_event_info[index].flag = ufs_debug_en;
+		ufs_event_info[index].flag = host->debug_en;
+		ufs_event_info[index].panic_f = host->err_panic;
 		break;
 	case UFS_TRACE_INT_ERROR:
 		ufs_event_info[index].pkg.ie.errors = hba->errors;
@@ -114,7 +127,7 @@ void ufshcd_update_common_event_trace(struct ufs_hba *hba,
 	struct ufs_cmd_info cmd_tmp = {};
 	struct ufs_devcmd_info devcmd_tmp = {};
 
-	if (ufs_debug_en == false)
+	if (!sprd_ufs_debug_is_supported(hba))
 		return;
 
 	if (lrbp->cmd) {
@@ -173,7 +186,7 @@ void ufshcd_update_common_event_trace(struct ufs_hba *hba,
 	}
 }
 
-static void ufs_sprd_dbg_dump_trace(u32 dump_req, struct seq_file *m, bool dump)
+static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bool dump)
 {
 	int ptr;
 	int i = 0;
@@ -181,6 +194,7 @@ static void ufs_sprd_dbg_dump_trace(u32 dump_req, struct seq_file *m, bool dump)
 	unsigned long flags;
 	char *dump_pos = NULL;
 	long long time_sec, time_ns;
+	ktime_t ktime;
 	ktime_t cur_time;
 	char b[120];
 	int k, n;
@@ -196,8 +210,12 @@ static void ufs_sprd_dbg_dump_trace(u32 dump_req, struct seq_file *m, bool dump)
 
 	if (exceed_max_depth == 1)
 		actual_dump_num = UFS_CMD_RECORD_DEPTH;
-	else
+	else if (cmd_record_index != -1)
 		actual_dump_num = cmd_record_index + 1;
+	else {
+		pr_info("%s: NO UFS cmd was recorded\n", __func__);
+		return;
+	}
 
 	if (dump_req)
 		actual_dump_num = min_t(u32, dump_req, actual_dump_num);
@@ -364,12 +382,13 @@ idn=0x%x,idx=0x%x,sel=0x%x. LAT=%lluns. OCS=0x%2x,TT=0x%2x,query_rsp=%4d\n",
 			break;
 		case UFS_TRACE_DEBUG_TRIGGER:
 			PRINT_SWITCH(m, dump_pos,
-			"[%lld.%09lld] [%s]-c[%d]-p[%5d]: debug is %s\n",
+			"[%lld.%09lld] [%s]-c[%d]-p[%5d]: debug_on=%d, err_panic=%d\n",
 			time_sec, time_ns,
 			ufs_event_str[ufs_event_info[ptr].event],
 			ufs_event_info[ptr].cpu,
 			ufs_event_info[ptr].pid,
-			ufs_event_info[ptr].flag ? "ON " : "OFF");
+			ufs_event_info[ptr].flag,
+			ufs_event_info[ptr].panic_f);
 			break;
 		case UFS_TRACE_INT_ERROR:
 			PRINT_SWITCH(m, dump_pos,
@@ -386,8 +405,10 @@ need to queue eh_work!!\n",
 			break;
 		}
 	}
+	ktime = ktime_get();
 	cur_time = ktime_get_boottime();
-	PRINT_SWITCH(m, dump_pos, "current time : %lld.%09lld\n",
+	PRINT_SWITCH(m, dump_pos, "time : %lld.%09lld, current time : %lld.%09lld\n",
+		     ktime / NSEC_PER_SEC, ktime % NSEC_PER_SEC,
 		     cur_time / NSEC_PER_SEC, cur_time % NSEC_PER_SEC);
 	if (dump == 1)
 		PRINT_SWITCH(m, dump_pos, "Dump buffer used : 0x%x / (0x%x)\n",
@@ -400,7 +421,7 @@ static int ufs_sprd_dbg_info_show(struct seq_file *m, void *v)
 {
 	seq_puts(m, "========== UFS Debug Dump START ==========\n\n");
 
-	ufs_sprd_dbg_dump_trace(UFS_CMD_RECORD_DEPTH, m, 0);
+	ufs_sprd_cmd_history_dump_trace(UFS_CMD_RECORD_DEPTH, m, 0);
 
 	seq_puts(m, "\n=========== UFS Debug Dump END ===========\n");
 
@@ -419,45 +440,70 @@ static const struct proc_ops ufs_debug_fops = {
 	.proc_release = single_release,
 };
 
-static int ufs_dbg_ctl_proc_show(struct seq_file *m, void *v)
+static int ufs_dbg_on_proc_show(struct seq_file *m, void *v)
 {
-	seq_printf(m, "debug control status : %d\n", ufs_debug_en);
+	struct ufs_sprd_host *host = m->private;
+
+	seq_printf(m, "debug status : %d\n", host->debug_en);
 	return 0;
 }
 
-static int ufs_dbg_ctl_proc_open(struct inode *inode, struct file *file)
+static int ufs_dbg_on_proc_open(struct inode *inode, struct file *file)
 {
-	return single_open(file, ufs_dbg_ctl_proc_show, inode->i_private);
+	return single_open(file, ufs_dbg_on_proc_show, PDE_DATA(inode));
 }
 
-static ssize_t ufs_dbg_ctl_proc_write(struct file *file,
+static ssize_t ufs_dbg_on_proc_write(struct file *file,
 				      const char __user *buffer,
 				      size_t count, loff_t *pos)
 {
-	char val[32];
-	unsigned long cmd = 0;
+	struct ufs_sprd_host *host = PDE_DATA(file_inode(file));
 
-	if (count == 0 || count > 32)
+	if (kstrtobool_from_user(buffer, count, &host->debug_en))
 		return -EINVAL;
 
-	if (copy_from_user(val, buffer, count))
-		return -EINVAL;
-
-	if (kstrtoul(val, 10, &cmd))
-		return -EINVAL;
-	if (cmd == 1)
-		ufs_debug_en = true;
-	else
-		ufs_debug_en = false;
-
-	ufshcd_common_trace(NULL, UFS_TRACE_DEBUG_TRIGGER, NULL);
-
+	ufshcd_common_trace(host->hba, UFS_TRACE_DEBUG_TRIGGER, NULL);
 	return count;
 }
 
-static const struct proc_ops ufs_debug_ctl_fops = {
-	.proc_open = ufs_dbg_ctl_proc_open,
-	.proc_write = ufs_dbg_ctl_proc_write,
+static const struct proc_ops ufs_debug_on_fops = {
+	.proc_open = ufs_dbg_on_proc_open,
+	.proc_write = ufs_dbg_on_proc_write,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
+};
+
+static int ufs_err_panic_proc_show(struct seq_file *m, void *v)
+{
+	struct ufs_sprd_host *host = m->private;
+
+	seq_puts(m, "When ufs encounters an error, system will trigger crash for debug.\n");
+	seq_printf(m, "UFS err panic status : %d\n", host->err_panic);
+	return 0;
+}
+
+static int ufs_err_panic_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, ufs_err_panic_proc_show, PDE_DATA(inode));
+}
+
+static ssize_t ufs_err_panic_proc_write(struct file *file,
+				      const char __user *buffer,
+				      size_t count, loff_t *pos)
+{
+	struct ufs_sprd_host *host = PDE_DATA(file_inode(file));
+
+	if (kstrtobool_from_user(buffer, count, &host->err_panic))
+		return -EINVAL;
+
+	ufshcd_common_trace(host->hba, UFS_TRACE_DEBUG_TRIGGER, NULL);
+	return count;
+}
+
+static const struct proc_ops ufs_err_panic_fops = {
+	.proc_open = ufs_err_panic_proc_open,
+	.proc_write = ufs_err_panic_proc_write,
 	.proc_read = seq_read,
 	.proc_lseek = seq_lseek,
 	.proc_release = single_release,
@@ -467,7 +513,7 @@ static int sprd_ufs_panic_handler(struct notifier_block *self,
 			       unsigned long val, void *reason)
 {
 	if (ufs_cmd_history_str)
-		ufs_sprd_dbg_dump_trace(UFS_CMD_RECORD_DEPTH, NULL, 1);
+		ufs_sprd_cmd_history_dump_trace(UFS_CMD_RECORD_DEPTH, NULL, 1);
 	return NOTIFY_DONE;
 }
 
@@ -480,11 +526,16 @@ int ufs_sprd_debug_proc_init(struct ufs_hba *hba)
 {
 	struct proc_dir_entry *ufs_dir;
 	struct proc_dir_entry *prEntry;
+	struct ufs_sprd_host *host;
 
 	if (!hba || !hba->priv) {
-		pr_info("%s: NULL host, exiting\n", __func__);
+		pr_info("%s: NULL host exiting\n", __func__);
 		return -EINVAL;
 	}
+	host = hba->priv;
+
+	host->err_panic = UFS_DEBUG_ERR_PANIC_DEF;
+	host->debug_en = UFS_DEBUG_ON_DEF;
 
 	spin_lock_init(&ufs_debug_dump);
 
@@ -495,15 +546,22 @@ int ufs_sprd_debug_proc_init(struct ufs_hba *hba)
 		return -1;
 	}
 
-	prEntry = proc_create("debug_info", 0440, ufs_dir, &ufs_debug_fops);
+	/* cmd_history */
+	prEntry = proc_create_data("cmd_history", 0440, ufs_dir, &ufs_debug_fops, host);
 	if (!prEntry)
 		pr_info("%s: failed to create /proc/ufs/debug_info\n",
 			__func__);
 
-	prEntry = proc_create("debug_control", UFS_DBG_ACS_LVL, ufs_dir,
-			      &ufs_debug_ctl_fops);
+	prEntry = proc_create_data("debug_on", UFS_DBG_ACS_LVL, ufs_dir,
+			      &ufs_debug_on_fops, host);
 	if (!prEntry)
-		pr_info("%s: failed to create /proc/ufs/debug_control\n",
+		pr_info("%s: failed to create /proc/ufs/debug_on\n",
+			__func__);
+
+	prEntry = proc_create_data("err_panic", UFS_DBG_ACS_LVL, ufs_dir,
+			      &ufs_err_panic_fops, host);
+	if (!prEntry)
+		pr_info("%s: failed to create /proc/ufs/err_panic\n",
 			__func__);
 
 	ufs_cmd_history_str = devm_kzalloc(hba->dev, DUMP_BUFFER_S, GFP_KERNEL);

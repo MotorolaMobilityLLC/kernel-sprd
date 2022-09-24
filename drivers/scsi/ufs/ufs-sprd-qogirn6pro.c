@@ -706,35 +706,10 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 
 static int ufs_sprd_device_reset(struct ufs_hba *hba)
 {
-	if (sprd_ufs_debug_is_supported() == TRUE)
+	if (sprd_ufs_debug_is_supported(hba) == TRUE)
 		ufshcd_common_trace(hba, UFS_TRACE_RESET_AND_RESTORE, NULL);
 
 	return 0;
-}
-
-static void ufs_sprd_setup_xfer_req(struct ufs_hba *hba, int task_tag, bool scsi_cmd)
-{
-	struct ufshcd_lrb *lrbp;
-	struct utp_transfer_req_desc *req_desc;
-	u32 data_direction;
-	u32 dword_0, crypto;
-
-	lrbp = &hba->lrb[task_tag];
-	req_desc = lrbp->utr_descriptor_ptr;
-	dword_0 = le32_to_cpu(req_desc->header.dword_0);
-	data_direction = dword_0 & (UTP_DEVICE_TO_HOST | UTP_HOST_TO_DEVICE);
-	crypto = dword_0 & UTP_REQ_DESC_CRYPTO_ENABLE_CMD;
-	if (!data_direction && crypto) {
-		dword_0 &= ~(UTP_REQ_DESC_CRYPTO_ENABLE_CMD);
-		req_desc->header.dword_0 = cpu_to_le32(dword_0);
-	}
-
-	if (sprd_ufs_debug_is_supported() == TRUE) {
-		if (scsi_cmd)
-			ufshcd_update_common_event_trace(hba, UFS_TRACE_SEND, task_tag);
-		else
-			ufshcd_update_common_event_trace(hba, UFS_TRACE_DEV_SEND, task_tag);
-	}
 }
 
 static void ufs_sprd_fixup_dev_quirks(struct ufs_hba *hba)
@@ -760,6 +735,11 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 	return 0;
 }
 
+static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
+{
+	sprd_ufs_debug_err_dump(hba);
+}
+
 const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops = {
 	.name = "sprd,ufshc-ums9620",
 	.init = ufs_sprd_init,
@@ -768,8 +748,8 @@ const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops = {
 	.hce_enable_notify = ufs_sprd_hce_enable_notify,
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
 	.hibern8_notify = ufs_sprd_hibern8_notify,
-	.setup_xfer_req = ufs_sprd_setup_xfer_req,
 	.fixup_dev_quirks = ufs_sprd_fixup_dev_quirks,
+	.dbg_register_dump = ufs_sprd_dbg_register_dump,
 	.device_reset = ufs_sprd_device_reset,
 	.suspend = ufs_sprd_suspend,
 };
