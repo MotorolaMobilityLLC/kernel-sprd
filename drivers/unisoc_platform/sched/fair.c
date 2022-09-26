@@ -332,17 +332,16 @@ static void rotation_task_init(void)
  * task.
  */
 static long walt_compute_energy(struct task_struct *p, int dst_cpu,
-				struct perf_domain *pd, struct pd_cache *pdc)
+				struct perf_domain *pd, struct cpumask *pd_cpus,
+				struct pd_cache *pdc)
 {
-	struct cpumask *pd_mask = perf_domain_span(pd);
-	unsigned long cpu_cap = arch_scale_cpu_capacity(cpumask_first(pd_mask));
-	unsigned long max_util = 0, sum_util = 0;
-	unsigned long _cpu_cap = cpu_cap;
-	unsigned long energy = 0;
+	unsigned long max_util = 0, sum_util = 0, energy = 0;
+	unsigned long cpu_cap;
 	unsigned long uclamp_util = uclamp_task_util(p);
 	int cpu;
 
-	_cpu_cap -= arch_scale_thermal_pressure(cpumask_first(pd_mask));
+	cpu_cap = arch_scale_cpu_capacity(cpumask_first(pd_cpus));
+	cpu_cap -= arch_scale_thermal_pressure(cpumask_first(pd_cpus));
 
 	/*
 	 * The capacity state of CPUs of the current rd can be driven by CPUs
@@ -353,7 +352,7 @@ static long walt_compute_energy(struct task_struct *p, int dst_cpu,
 	 * If an entire pd is outside of the current rd, it will not appear in
 	 * its pd list and will not be accounted by compute_energy().
 	 */
-	for_each_cpu_and(cpu, pd_mask, cpu_online_mask) {
+	for_each_cpu(cpu, pd_cpus) {
 		unsigned long cpu_util;
 		struct task_struct *tsk = NULL;
 
@@ -365,12 +364,12 @@ static long walt_compute_energy(struct task_struct *p, int dst_cpu,
 
 		cpu_util = walt_uclamp_rq_util_with(cpu_rq(cpu), cpu_util, tsk);
 
-		sum_util += min(cpu_util, _cpu_cap);
+		sum_util += min(cpu_util, cpu_cap);
 
-		max_util = max(max_util, min(cpu_util, _cpu_cap));
+		max_util = max(max_util, min(cpu_util, cpu_cap));
 	}
 
-	energy = em_cpu_energy(pd->em_pd, max_util, sum_util, _cpu_cap);
+	energy = em_cpu_energy(pd->em_pd, max_util, sum_util, cpu_cap);
 
 	return energy;
 }
@@ -494,7 +493,8 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 	unsigned int min_exit_lat = UINT_MAX;
 	struct cpuidle_state *idle;
 	struct perf_domain *pd;
-	struct pd_cache pdc[NR_CPUS];
+	struct pd_cache pdc[WALT_NR_CPUS];
+	struct cpumask cpus;
 
 	rcu_read_lock();
 	pd = rcu_dereference(rd->pd);
@@ -523,7 +523,12 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 		unsigned long base_energy_pd;
 		int max_spare_cap_cpu = -1;
 
-		for_each_cpu_and(cpu, perf_domain_span(pd), cpu_online_mask) {
+		cpumask_and(&cpus, perf_domain_span(pd), cpu_online_mask);
+
+		if (cpumask_empty(&cpus))
+			continue;
+
+		for_each_cpu(cpu, &cpus) {
 			bool big_is_idle = false;
 			unsigned int idle_exit_latency = UINT_MAX;
 
@@ -609,12 +614,12 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 			continue;
 
 		/* Compute the 'base' energy of the pd, without @p */
-		base_energy_pd = walt_compute_energy(p, -1, pd, pdc);
+		base_energy_pd = walt_compute_energy(p, -1, pd, &cpus, pdc);
 		base_energy += base_energy_pd;
 
 		/* Evaluate the energy impact of using prev_cpu. */
 		if (compute_prev_delta) {
-			prev_delta = walt_compute_energy(p, prev_cpu, pd, pdc);
+			prev_delta = walt_compute_energy(p, prev_cpu, pd, &cpus, pdc);
 			prev_delta -= base_energy_pd;
 			if (prev_delta < best_delta) {
 				best_delta = prev_delta;
@@ -624,7 +629,7 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 
 		/* Evaluate the energy impact of using max_spare_cap_cpu. */
 		if (max_spare_cap_cpu >= 0) {
-			cur_delta = walt_compute_energy(p, max_spare_cap_cpu, pd, pdc);
+			cur_delta = walt_compute_energy(p, max_spare_cap_cpu, pd, &cpus, pdc);
 			cur_delta -= base_energy_pd;
 
 			/* prefer small core when delta is equal, but it need
