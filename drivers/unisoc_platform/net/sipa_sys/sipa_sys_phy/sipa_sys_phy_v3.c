@@ -35,6 +35,14 @@
 #define SPRD_IPA_POWERON_POLL_US 50
 #define SPRD_IPA_POWERON_TIMEOUT 5000
 
+#define REG_APB_EB 0x0
+#define REG_ANALOG_USB31_PLL_V_USB31PLL_CTRL0 0x0
+#define REG_ANALOG_USB31_PLL_V_REG_SEL_CFG_0 0x0028
+
+#define MASK_USB31PLL_EB BIT(4)
+#define MASK_ANALOG_USB31_PLL_V_RG_USB31PLLV_PD BIT(30)
+#define MASK_DBG_SEL_ANALOG_USB31_PLL_V_RG_USB31PLLV_PD BIT(8)
+
 static const char * const reg_name_tb_v3[] = {
 	"ipa-sys-autoshutdownen",
 	"ipa-sys-dslpen",
@@ -77,6 +85,21 @@ static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
 			"Polling check power on reg timed out: %x\n", val);
 
 	return ret;
+}
+
+void ufs_cfg(struct sipa_sys_pd_drv *drv)
+{
+	regmap_update_bits(drv->dispc1_reg, REG_APB_EB,
+			   MASK_USB31PLL_EB, MASK_USB31PLL_EB);
+	regmap_update_bits(drv->anlg_reg,
+			   REG_ANALOG_USB31_PLL_V_REG_SEL_CFG_0,
+			   MASK_DBG_SEL_ANALOG_USB31_PLL_V_RG_USB31PLLV_PD,
+			   MASK_DBG_SEL_ANALOG_USB31_PLL_V_RG_USB31PLLV_PD);
+	regmap_update_bits(drv->anlg_reg,
+			   REG_ANALOG_USB31_PLL_V_USB31PLL_CTRL0,
+			   MASK_ANALOG_USB31_PLL_V_RG_USB31PLLV_PD,
+			   0);
+	regmap_update_bits(drv->dispc1_reg, REG_APB_EB, MASK_USB31PLL_EB, 0);
 }
 
 int sipa_sys_do_power_on_cb_v3(void *priv)
@@ -156,6 +179,10 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 		}
 		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_parent);
 	}
+
+	/*let ufs hibernate exit*/
+	ufs_cfg(drv);
+
 	return ret;
 }
 
@@ -265,6 +292,20 @@ int sipa_sys_parse_dts_cb_v3(void *priv)
 			drv->regs[i].rmap,
 			drv->regs[i].reg,
 			drv->regs[i].mask);
+	}
+
+	drv->dispc1_reg = syscon_regmap_lookup_by_phandle(np,
+							  "sprd,syscon-dispc1-glb");
+	if (IS_ERR(drv->dispc1_reg)) {
+		dev_err(drv->dev, "dispc1 syscon failed\n");
+		return PTR_ERR(drv->dispc1_reg);
+	}
+
+	drv->anlg_reg = syscon_regmap_lookup_by_phandle(np,
+							"sprd,syscon-anlg-phy");
+	if (IS_ERR(drv->anlg_reg)) {
+		dev_err(drv->dev, "anlg syscon failed\n");
+		return PTR_ERR(drv->anlg_reg);
 	}
 
 	return 0;
