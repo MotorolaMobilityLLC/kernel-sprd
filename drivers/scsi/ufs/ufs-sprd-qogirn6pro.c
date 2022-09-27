@@ -749,10 +749,12 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 	unsigned long flags;
 
 	/* disable auto h8 before ssu */
-	if (ufshcd_is_auto_hibern8_supported(hba)) {
-		spin_lock_irqsave(hba->host->host_lock, flags);
-		ufshcd_writel(hba, 0, REG_AUTO_HIBERNATE_IDLE_TIMER);
-		spin_unlock_irqrestore(hba->host->host_lock, flags);
+	if (status == PRE_CHANGE) {
+		if (ufshcd_is_auto_hibern8_supported(hba)) {
+			spin_lock_irqsave(hba->host->host_lock, flags);
+			ufshcd_writel(hba, 0, REG_AUTO_HIBERNATE_IDLE_TIMER);
+			spin_unlock_irqrestore(hba->host->host_lock, flags);
+		}
 	}
 
 	return 0;
