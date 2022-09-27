@@ -7,7 +7,10 @@
 &apahb {
 	sdio3: sdio@22200000 {
 		compatible = "sprd,sdhci-r11";
-		reg = <0x2200000 0x1000>;
+		reg = <0x2200000 0x300>,
+			<0x2200300 0x100>,
+			<0x22e0000 0x8020>;
+		reg-names = "host", "cqhci", "ice";
 		interrupts = <GIC_SPI 217 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "sdio", "enable";
 		clocks = <&ap_clk CLK_EMMC_2X>,

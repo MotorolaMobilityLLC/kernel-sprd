@@ -212,7 +212,7 @@
 			compatible = "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
-			ranges = <0 0 0x20000000 0x22d0040>;
+			ranges = <0 0 0x20000000 0x22f0000>;
 		};
 
 		apagcp: agcp{
