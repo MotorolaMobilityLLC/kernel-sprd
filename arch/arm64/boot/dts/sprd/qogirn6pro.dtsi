@@ -243,6 +243,12 @@
 			reg = <0 0x60050000 0 0x10000>;
 		};
 
+		anlg_phy_g0_regs: syscon@25304000 {
+			compatible = "sprd,ums9620-glbregs", "syscon";
+			#syscon-cells = <2>;
+			reg = <0 0x25304000 0 0x3000>;
+		};
+
 		anlg_phy_g0l_regs: syscon@64300000 {
 			compatible = "sprd,ums9620-glbregs", "syscon";
 			#syscon-cells = <2>;
@@ -2259,6 +2265,7 @@
 				sprd,syscon-dispc1-glb = <&ipa_dispc_glb_apb_regs>;
 				sprd,syscon-glb-apb = <&ipa_glb_apb_regs>;
 				sprd,syscon-apb = <&ipa_apb_regs>;
+				sprd,syscon-anlg-phy = <&anlg_phy_g0_regs>;
 
 				clocks = <&ipadispc_gate CLK_IPA_CKG_EB>,
 					<&ipa_clk CLK_IPA_AXI>,
