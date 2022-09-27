@@ -36,6 +36,7 @@
 		sprd,syscon-dispc1-glb = <&ipa_dispc_regs>;
 		sprd,syscon-glb-apb = <&ipa_glb_regs>;
 		sprd,syscon-apb = <&ipa_apb_regs>;
+		sprd,syscon-anlg-phy = <&anlg_phy_g0_regs>;
 
 		clocks = <&ipadispc_gate CLK_IPA_CKG_EB>,
 			<&ipa_clk CLK_IPA_AXI>,
