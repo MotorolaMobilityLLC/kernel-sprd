@@ -30,6 +30,7 @@ static struct ufs_event_info uei[UFS_CMD_RECORD_DEPTH];
 /* Minidump buffer */
 static char *ufs_cmd_history_str;
 static struct ufs_hba *hba_tmp;
+static struct ufs_err_cnt ufs_err_cnt;
 
 static const char *ufs_event_str[UFS_MAX_EVENT] = {
 	"SCSI Send     ",
@@ -67,6 +68,12 @@ void sprd_ufs_debug_err_dump(struct ufs_hba *hba)
 	if (host->err_panic)
 		panic("ufs encountered an error!!!\n");
 #endif
+}
+
+void sprd_ufs_print_err_cnt(struct ufs_hba *hba)
+{
+	dev_err(hba->dev, "sprd_reset: total cnt=%llu\n", ufs_err_cnt.sprd_reset_cnt);
+	dev_err(hba->dev, "line_reset: total cnt=%llu\n", ufs_err_cnt.line_reset_cnt);
 }
 
 void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *data)
@@ -495,6 +502,70 @@ static const struct proc_ops ufs_err_panic_fops = {
 	.proc_release = single_release,
 };
 
+void ufs_sprd_update_err_cnt(struct ufs_hba *hba, u32 reg, enum err_type type)
+{
+	switch (type) {
+	case UFS_SPRD_RESET:
+		ufs_err_cnt.sprd_reset_cnt++;
+		break;
+	case UFS_LINE_RESET:
+		if (reg & UIC_PHY_ADAPTER_LAYER_GENERIC_ERROR)
+			ufs_err_cnt.line_reset_cnt++;
+		break;
+	default:
+		break;
+	}
+}
+EXPORT_SYMBOL_GPL(ufs_sprd_update_err_cnt);
+
+static int uic_err_cnt_show(struct seq_file *m, void *v)
+{
+	struct ufs_hba *hba = m->private;
+
+	seq_printf(m, "pa_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_PA_ERR].cnt);
+	seq_printf(m, "dl_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_DL_ERR].cnt);
+	seq_printf(m, "nl_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_NL_ERR].cnt);
+	seq_printf(m, "tl_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_TL_ERR].cnt);
+	seq_printf(m, "dme_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_DME_ERR].cnt);
+	seq_printf(m, "auto_h8_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_AUTO_HIBERN8_ERR].cnt);
+	seq_printf(m, "fatal_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_FATAL_ERR].cnt);
+	seq_printf(m, "link_startup_fail:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_LINK_STARTUP_FAIL].cnt);
+	seq_printf(m, "resume_fail:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_RESUME_ERR].cnt);
+	seq_printf(m, "suspend_fail:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_SUSPEND_ERR].cnt);
+	seq_printf(m, "dev_reset:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_DEV_RESET].cnt);
+	seq_printf(m, "host_reset:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_HOST_RESET].cnt);
+	seq_printf(m, "task_abort:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_ABORT].cnt);
+	seq_printf(m, "sprd_reset:total cnt=%llu\n", ufs_err_cnt.sprd_reset_cnt);
+	seq_printf(m, "line_reset:total cnt=%llu\n", ufs_err_cnt.line_reset_cnt);
+
+	return 0;
+}
+
+static int uic_err_cnt_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, uic_err_cnt_show, inode->i_private);
+}
+
+static const struct proc_ops uic_err_cnt_fops = {
+	.proc_open = uic_err_cnt_proc_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
+};
+
 static int sprd_ufs_panic_handler(struct notifier_block *self,
 			       unsigned long val, void *reason)
 {
@@ -549,6 +620,11 @@ int ufs_sprd_debug_init(struct ufs_hba *hba)
 			      &ufs_err_panic_fops, host);
 	if (!prEntry)
 		pr_info("%s: failed to create /proc/ufs/err_panic\n",
+			__func__);
+
+	prEntry = proc_create("uic_ec", UFS_DBG_ACS_LVL, ufs_dir, &uic_err_cnt_fops);
+	if (!prEntry)
+		pr_info("%s: failed to create /proc/ufs/uic_ec\n",
 			__func__);
 
 	ufs_cmd_history_str = devm_kzalloc(hba->dev, DUMP_BUFFER_S, GFP_KERNEL);

@@ -760,6 +760,7 @@ static void ufs_sprd_fixup_dev_quirks(struct ufs_hba *hba)
 
 static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
 {
+	sprd_ufs_print_err_cnt(hba);
 	read_ufs_debug_bus(hba);
 	sprd_ufs_debug_err_dump(hba);
 }
@@ -779,6 +780,18 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 	return err;
 }
 
+static void ufs_sprd_update_evt_hist(struct ufs_hba *hba,
+		enum ufs_event_type evt, void *data)
+{
+	switch (evt) {
+	case UFS_EVT_PA_ERR:
+		ufs_sprd_update_err_cnt(hba, *(u32 *)data, UFS_LINE_RESET);
+		break;
+	default:
+		break;
+	}
+}
+
 const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops = {
 	.name = "sprd,ufshc-ums9621",
 	.init = ufs_sprd_init,
@@ -791,5 +804,6 @@ const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops = {
 	.fixup_dev_quirks = ufs_sprd_fixup_dev_quirks,
 	.dbg_register_dump = ufs_sprd_dbg_register_dump,
 	.device_reset = ufs_sprd_device_reset,
+	.event_notify = ufs_sprd_update_evt_hist,
 };
 EXPORT_SYMBOL(ufs_hba_sprd_ums9621_vops);

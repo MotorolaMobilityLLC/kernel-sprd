@@ -108,6 +108,16 @@ struct ufs_event_info {
 	} pkg;
 };
 
+enum err_type {
+	UFS_SPRD_RESET,
+	UFS_LINE_RESET,
+};
+
+struct ufs_err_cnt {
+	unsigned long long sprd_reset_cnt;
+	unsigned long long line_reset_cnt;
+};
+
 #define PRINT_SWITCH(m, d, fmt, args...) \
 do { \
 	if (m) \
@@ -129,3 +139,5 @@ void ufshcd_transfer_event_trace(struct ufs_hba *hba,
 void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *data);
 bool sprd_ufs_debug_is_supported(struct ufs_hba *hba);
 void sprd_ufs_debug_err_dump(struct ufs_hba *hba);
+void sprd_ufs_print_err_cnt(struct ufs_hba *hba);
+void ufs_sprd_update_err_cnt(struct ufs_hba *hba, u32 reg, enum err_type type);
