@@ -17122,8 +17122,8 @@ CONFIG_SPRD_PMIC_SMPL
 	[missing plat description] none
 	[function]
 CONFIG_SPRD_PMIC_SYSCON
-	[arch] arm64
-	[plat] sharkl5Pro
+	[arch] all
+	[plat] pike2,sharkl5Pro
 	[missing plat] sharkl3
 	[field]
 	[subsys]
