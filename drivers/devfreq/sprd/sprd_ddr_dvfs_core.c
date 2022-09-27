@@ -87,6 +87,7 @@ struct dvfs_data {
 	unsigned long *freq_table_display;
 	struct freq_para *paras;
 	unsigned int force_freq;
+	unsigned int request_freq;
 	struct dvfs_hw_callback *hw_callback;
 	struct completion reg_callback_done;
 	struct governor_callback *gov_callback;
@@ -316,7 +317,7 @@ static int dvfs_disable(void)
 	return err;
 }
 
-int dvfs_auto_enable(void)
+static int dvfs_auto_enable(void)
 {
 	int err = 0;
 	unsigned int data;
@@ -370,11 +371,43 @@ static int force_freq_request(unsigned int freq)
 	return err;
 }
 
-int force_top_freq(void)
+unsigned long get_max_freq(void)
+{
+	return g_dvfs_data->devfreq->scaling_max_freq;
+}
+
+int send_freq_request(unsigned int freq)
+{
+	int i;
+	int err;
+	unsigned long data;
+
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done == 0))
+		return -EINVAL;
+	for (i = g_dvfs_data->freq_num - 1; i >= 0; i--) {
+		err = g_dvfs_data->gov_callback->get_freq_table(&data, i);
+		if (!err && data > 0) {
+			if (freq == data)
+				break;
+		}
+	}
+	if (i == -1 && freq != 0)
+		return -EINVAL;
+	err = g_dvfs_data->hw_callback->dvfs_freq_request(freq);
+	if (err == 0) {
+		mutex_lock(&g_dvfs_data->sync_mutex);
+		g_dvfs_data->request_freq = freq;
+		mutex_unlock(&g_dvfs_data->sync_mutex);
+	}
+	return err;
+}
+
+int get_request_freq(unsigned int *data)
 {
 	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done == 0))
 		return -EINVAL;
-	return force_freq_request(g_dvfs_data->devfreq->scaling_max_freq);
+	*data = g_dvfs_data->request_freq;
+	return 0;
 }
 
 int send_vote_request(unsigned int freq)

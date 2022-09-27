@@ -11,6 +11,7 @@ struct dvfs_hw_callback {
 	int (*hw_dvfs_set_point)(const char *name, unsigned int freq);
 	int (*hw_dvfs_get_point_info)(char **name, unsigned int *freq,
 				      unsigned int *flag, int index);
+	int (*dvfs_freq_request)(unsigned int freq);
 };
 
 enum DDR_DFS_STATE_STEP {
@@ -65,8 +66,9 @@ int dvfs_core_init(struct platform_device *pdev);
 int dvfs_core_clear(struct platform_device *pdev);
 void dvfs_core_hw_callback_register(struct dvfs_hw_callback *hw_callback);
 void dvfs_core_hw_callback_clear(struct dvfs_hw_callback *hw_callback);
-int dvfs_auto_enable(void);
-int force_top_freq(void);
+unsigned long get_max_freq(void);
+int send_freq_request(unsigned int freq);
+int get_request_freq(unsigned int *data);
 int send_vote_request(unsigned int freq);
 
 /*EXPORT_SYMBOLs supoorted by governor for other kernel drivers*/

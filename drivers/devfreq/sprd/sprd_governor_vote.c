@@ -17,6 +17,40 @@ static unsigned int force_freq;
 static int backdoor_status;
 static struct devfreq *gov_devfreq;
 
+static ssize_t scaling_request_ddr_freq_show(struct device *dev,
+	struct device_attribute *attr,
+	char *buf)
+{
+	ssize_t count = 0;
+	unsigned int data;
+	int err;
+
+	err = get_request_freq(&data);
+	if (err < 0)
+		data = 0;
+	count = sprintf(buf, "%u\n", data);
+	return count;
+}
+
+static ssize_t scaling_request_ddr_freq_store(struct device *dev,
+	struct device_attribute *attr,
+	const char *buf, size_t count)
+{
+	unsigned int request_freq;
+	int err;
+
+	err = sscanf(buf, "%u\n", &request_freq);
+	if (err < 1) {
+		dev_warn(dev, "request freq para err: %d", err);
+		return count;
+	}
+	err = send_freq_request(request_freq);
+	if (err)
+		dev_err(dev, "request freq fail: %d", err);
+	return count;
+}
+static DEVICE_ATTR_RW(scaling_request_ddr_freq);
+
 static ssize_t scaling_force_ddr_freq_show(struct device *dev,
 	struct device_attribute *attr,
 	char *buf)
@@ -559,6 +593,7 @@ static ssize_t ddrinfo_dfs_step_show(struct device *dev,
 static DEVICE_ATTR_RO(ddrinfo_dfs_step);
 
 static struct attribute *dev_entries[] = {
+	&dev_attr_scaling_request_ddr_freq.attr,
 	&dev_attr_scaling_force_ddr_freq.attr,
 	&dev_attr_scaling_overflow.attr,
 	&dev_attr_scaling_underflow.attr,

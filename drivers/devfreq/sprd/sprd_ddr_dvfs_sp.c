@@ -21,6 +21,7 @@ struct vote_data {
 
 static struct vote_data *g_vote_data;
 static int scene_num;
+static unsigned int request_freq;
 spinlock_t lock;
 
 static struct vote_data *find_point(const char *name)
@@ -60,39 +61,43 @@ static void reset_freq(struct vote_data *point, unsigned int freq)
 	spin_unlock(&lock);
 }
 
-static int check_and_vote(void)
+static int check_and_vote(unsigned int target_freq)
 {
 	static unsigned int last_freq;
-	unsigned int target_freq = 0;
 	struct vote_data *point;
 	int err, i;
 
 	point = g_vote_data;
 	for (i = 0; i < scene_num; i++) {
-		if ((point->flag >= 1) && (point->freq > target_freq))
-			target_freq = point->freq;
+		if ((point->flag >= 1) && (point->freq > target_freq)) {
+			if (unlikely(point->freq == 0xbacd))
+				target_freq = get_max_freq();
+			else
+				target_freq = point->freq;
+		}
 		point++;
 	}
 
 	if (target_freq != last_freq) {
-		if (unlikely(target_freq == 0xbacd)) {
-			err = force_top_freq();
-			if (err)
-				return err;
-		} else {
-			if (unlikely(last_freq == 0xbacd)) {
-				err = dvfs_auto_enable();
-				if (err)
-					return err;
-			}
-			err = send_vote_request(target_freq);
-			if (err)
-				return err;
-
-		}
+		err = send_vote_request(target_freq);
+		if (err)
+			return err;
 		last_freq = target_freq;
 	}
 	return 0;
+}
+
+static int dvfs_freq_request(unsigned int freq)
+{
+	int err;
+
+	if (g_vote_data == NULL)
+		return -EINVAL;
+
+	err = check_and_vote(freq);
+	if (err == 0)
+		request_freq = freq;
+	return err;
 }
 
 static int dvfs_vote(const char *name)
@@ -107,7 +112,7 @@ static int dvfs_vote(const char *name)
 
 	set_flag(point);
 
-	return check_and_vote();
+	return check_and_vote(request_freq);
 }
 
 static int dvfs_unvote(const char *name)
@@ -122,7 +127,7 @@ static int dvfs_unvote(const char *name)
 
 	reset_flag(point);
 
-	return check_and_vote();
+	return check_and_vote(request_freq);
 }
 
 static int dvfs_set_point(const char *name, unsigned int freq)
@@ -137,7 +142,7 @@ static int dvfs_set_point(const char *name, unsigned int freq)
 
 	reset_freq(point, freq);
 
-	return check_and_vote();
+	return check_and_vote(request_freq);
 }
 
 static int dvfs_get_point_info(char **name, unsigned int *freq, unsigned int *flag, int index)
@@ -162,6 +167,7 @@ static struct dvfs_hw_callback callbacks = {
 	.hw_dvfs_unvote = dvfs_unvote,
 	.hw_dvfs_set_point = dvfs_set_point,
 	.hw_dvfs_get_point_info = dvfs_get_point_info,
+	.dvfs_freq_request = dvfs_freq_request,
 };
 
 static int dvfs_probe(struct platform_device *pdev)
