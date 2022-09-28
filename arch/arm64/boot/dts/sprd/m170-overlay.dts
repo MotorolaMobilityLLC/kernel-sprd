@@ -96,9 +96,9 @@
 				key-antcheck {
 					label = "antcheck";
 					linux,code = <KEY_ANT>;
-					gpios = <&ap_gpio 122 GPIO_ACTIVE_LOW>;
+					gpios = <&ap_gpio 122 GPIO_ACTIVE_HIGH>;
 					debounce-interval = <2>;
-					wakeup-source;
+					//wakeup-source;
 				};
 
 			};
