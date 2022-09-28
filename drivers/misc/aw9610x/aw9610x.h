@@ -247,6 +247,9 @@ struct aw9610x {
 	uint8_t cfg_name[20];
 	uint8_t cfg_vers[2];
 	uint8_t chip_type[9];
+	//wxm modify start by 2022/9/27
+	uint32_t firmvers;
+	//wxm modify end by 2022/9/27
 };
 
 struct aw9610x_cfg {
