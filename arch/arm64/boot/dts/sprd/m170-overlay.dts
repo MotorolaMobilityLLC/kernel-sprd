@@ -107,7 +107,7 @@
 				compatible = "simple-battery";
 				charge-full-design-microamp-hours = <4854000>;
 				charge-term-current-microamp = <242000>;
-				constant-charge-voltage-max-microvolt = <4328000>;
+				constant-charge-voltage-max-microvolt = <4428000>;
 				fullbatt-voltage-offset-microvolt = <45000>;
 				factory-internal-resistance-micro-ohms = <134000>;
 				voltage-min-design-microvolt = <3450000>;
@@ -218,7 +218,7 @@
 				compatible = "simple-battery";
 				charge-full-design-microamp-hours = <4685000>;
 				charge-term-current-microamp = <242000>;
-				constant-charge-voltage-max-microvolt = <4328000>;
+				constant-charge-voltage-max-microvolt = <4428000>;
 				fullbatt-voltage-offset-microvolt = <45000>;
 				factory-internal-resistance-micro-ohms = <130000>;
 				voltage-min-design-microvolt = <3450000>;
