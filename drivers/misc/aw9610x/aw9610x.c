@@ -35,7 +35,7 @@
 #include "aw9610x_reg.h"
 
 #define AW9610X_I2C_NAME "aw9610x_sar"
-#define AW9610X_DRIVER_VERSION "v1.1.0"
+#define AW9610X_DRIVER_VERSION "v1.1.0.2"
 
 #define CONFIG_AW9610X_MTK_CHARGER
 
@@ -800,16 +800,26 @@ static int32_t aw9610x_cfg_update(struct aw9610x *aw9610x)
 	AWLOGD(aw9610x->dev, "enter");
 
 	if (aw9610x->firmware_flag == true) {
-		snprintf(aw9610x->cfg_name, sizeof(aw9610x->cfg_name),
-					"aw9610x_%d.bin", aw9610x->sar_num);
-
+		//wxm modify start by 2022/9/27
+		if(aw9610x->firmvers == 0x46001000){
+			snprintf(aw9610x->cfg_name, sizeof(aw9610x->cfg_name),
+				"aw96103_%d.bin", aw9610x->sar_num);
+		}
+		else if(aw9610x->firmvers == 0x56001000){
+			snprintf(aw9610x->cfg_name, sizeof(aw9610x->cfg_name),
+				"aw96105_%d.bin", aw9610x->sar_num);
+		}
+		else
+			return -1;
+		//wxm modify end by 2022/9/27
 		request_firmware_nowait(THIS_MODULE, FW_ACTION_HOTPLUG,
 							aw9610x->cfg_name,
 							aw9610x->dev,
 							GFP_KERNEL,
 							aw9610x,
 							aw9610x_cfg_all_loaded);
-	} else {
+	} 
+	else {
 		aw9610x_para_loaded(aw9610x);
 	}
 
@@ -1876,10 +1886,12 @@ static int32_t aw9610x_version_init(struct aw9610x *aw9610x)
 {
 	uint32_t fw_ver = 0;
 	int32_t ret = 0;
-	uint32_t firmvers = 0;
+	//wxm modify start by 2022/9/27
+//	uint32_t firmvers = 0;
 
-	aw9610x_i2c_read(aw9610x, REG_FWVER, &firmvers);
-	AWLOGD(aw9610x->dev, "REG_FWVER = 0x%08x", firmvers);
+	aw9610x_i2c_read(aw9610x, REG_FWVER, &aw9610x->firmvers);
+	AWLOGD(aw9610x->dev, "REG_FWVER = 0x%08x", aw9610x->firmvers);
+	//wxm modify end by 2022/9/27
 
 	ret = aw9610x_i2c_read(aw9610x, REG_FWVER2, &fw_ver);
 	if (ret < 0) {
