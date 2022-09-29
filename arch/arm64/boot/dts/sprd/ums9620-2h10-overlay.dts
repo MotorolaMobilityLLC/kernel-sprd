@@ -588,10 +588,6 @@
 
 	/* if we need use fastcall for widevine, open the following config */
 	// sprd,widevine-use-fastcall;
-	sprd,vrr-supported;
-	sprd,supported-vfrefresh-count = <3>;
-	sprd,vrefresh-limit = <61 91 121>;
-	sprd,blend-layer-count-limit = <4 3 2>;
 };
 
 &lcd_nt36672e_truly_mipi_fhd {

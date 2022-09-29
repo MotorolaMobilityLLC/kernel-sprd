@@ -871,6 +871,20 @@
 				sprd,syscon-mm-ahb = <&mm_ahb_regs>;
 				sprd,syscon-anlg-phy-g7 = <&anlg_phy_g7_regs>;
 			};
+
+			socid: socid@402e00e0{
+				compatible = "sprd,soc-id";
+				chip_id = <&aon_apb_regs REG_AON_APB_AON_CHIP_ID0
+					MASK_AON_APB_AON_CHIP_ID0>;
+				plat_id = <&aon_apb_regs REG_AON_APB_AON_PLAT_ID0
+					MASK_AON_APB_AON_PLAT_ID0>;
+				implement_id = <&aon_apb_regs REG_AON_APB_AON_IMPL_ID
+					MASK_AON_APB_AON_IMPL_ID>;
+				manufacture_id = <&aon_apb_regs  REG_AON_APB_AON_MFT_ID
+					MASK_AON_APB_AON_MFT_ID>;
+				version_id = <&aon_apb_regs REG_AON_APB_AON_VER_ID
+					MASK_AON_APB_AON_VER_ID>;
+			};
 		};
 
 		mm {

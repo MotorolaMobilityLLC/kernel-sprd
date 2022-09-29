@@ -830,7 +830,7 @@ static enum power_supply_property eta6937_usb_props[] = {
 
 static const struct power_supply_desc eta6937_charger_desc = {
 	.name			= "eta6937_charger",
-	.type			= POWER_SUPPLY_TYPE_USB,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= eta6937_usb_props,
 	.num_properties		= ARRAY_SIZE(eta6937_usb_props),
 	.get_property		= eta6937_charger_usb_get_property,

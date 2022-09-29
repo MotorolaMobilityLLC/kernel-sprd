@@ -190,6 +190,18 @@ enum flag_emmc_or_ufs {
 	emmc = 1
 };
 
+struct wcn_debug_bus {
+	phys_addr_t base_addr;
+	u32	maxsz;
+	u8 *dbus_data_pool;
+
+	phys_addr_t phy_reg;
+	/*debug bus base reg */
+	void __iomem *dbus_reg_base;
+	u32 dbus_max_offset;
+	u64 curr_size;
+};
+
 struct wcn_device {
 	char	*name;
 	/* DTS info: */
@@ -259,6 +271,7 @@ struct wcn_device {
 	struct	work_struct load_wq;
 	struct	delayed_work cali_wq;
 	struct	completion download_done;
+	struct wcn_debug_bus dbus;
 };
 
 struct wcn_device_manage {

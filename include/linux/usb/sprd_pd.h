@@ -453,7 +453,7 @@ static inline unsigned int sprd_rdo_max_power(u32 rdo)
 #define SPRD_PD_T_SENDER_RESPONSE		60	/* 24 - 30 ms, relaxed */
 #define SPRD_PD_T_SOURCE_ACTIVITY		45
 #define SPRD_PD_T_SINK_ACTIVITY			135
-#define SPRD_PD_T_SINK_WAIT_CAP			240
+#define SPRD_PD_T_SINK_WAIT_CAP			460	/* 310 - 620 ms */
 #define SPRD_PD_T_PS_TRANSITION			500
 #define SPRD_PD_T_SRC_TRANSITION		35
 #define SPRD_PD_T_DRP_SNK			40

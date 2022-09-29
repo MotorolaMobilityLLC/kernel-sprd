@@ -547,8 +547,12 @@ static int sprdwl_tx_cmd(struct sprdwl_intf *intf, struct sprdwl_msg_list *list)
 				msgbuf->len);
 		if (ret) {
 			wl_err("%s, %d, tx cmd err:%d firstly\n", __func__, __LINE__, ret);
-			for (i = 0; i < 10; i++) {
-				msleep(50);
+			for (i = 0; i < 25; i++) {
+				if (intf->cp_asserted) {
+					wl_err("%s, %d, cp assert!\n", __func__, __LINE__);
+					break;
+				}
+				msleep(80);
 				ret = if_tx_cmd(intf, (unsigned char *)msgbuf->tran_data,
 					msgbuf->len);
 				if (ret)

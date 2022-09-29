@@ -922,6 +922,7 @@ static int musb_gadget_enable(struct usb_ep *ep,
 	u16		csr;
 	unsigned	tmp;
 	int		status = -EINVAL;
+	u8 flushcnt = 0;
 
 	if (!ep || !desc)
 		return -EINVAL;
@@ -1056,8 +1057,14 @@ static int musb_gadget_enable(struct usb_ep *ep,
 		musb_writew(regs, MUSB_RXCSR, csr);
 		musb_writew(regs, MUSB_RXCSR, csr);
 		/* workround, sometimes we can't flush fifo by only two times. */
-		while (musb_readw(regs, MUSB_RXCSR) & MUSB_RXCSR_RXPKTRDY)
+		while (musb_readw(regs, MUSB_RXCSR) & MUSB_RXCSR_RXPKTRDY) {
+			flushcnt++;
+			if (flushcnt > 20) {
+				dev_err(musb->controller, "fifo cannot be flushed in 20 times!\n");
+				break;
+			}
 			musb_writew(regs, MUSB_RXCSR, csr);
+		}
 	}
 
 	/* NOTE:  all the I/O code _should_ work fine without DMA, in case

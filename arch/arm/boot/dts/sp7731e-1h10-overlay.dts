@@ -207,7 +207,9 @@
 				charge-sdp-current-microamp = <500000 500000>;
 				charge-dcp-current-microamp = <1000000 1000000>;
 				charge-cdp-current-microamp = <1000000 1000000>;
-				charge-unknown-current-microamp = <500000 500000>;
+				charge-unknown-current-microamp = <1050000 1050000>;
+
+				cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
 
 				dcp-jeita-temp-table = <1000 1030 0 4350000>,
 					<1150 1180 700000 4350000>,
@@ -222,9 +224,9 @@
 					<1450 1420 1150000 4350000>,
 					<1600 1570 700000 4100000>;
 				unknown-jeita-temp-table = <1000 1030 0 4350000>,
-					<1150 1180 500000 4350000>,
-					<1450 1420 500000 4350000>,
-					<1600 1570 500000 4100000>;
+					<1150 1180 700000 4350000>,
+					<1450 1420 1050000 4350000>,
+					<1600 1570 700000 4100000>;
 				force-jeita-status = <2>;
 			};
 
@@ -511,6 +513,9 @@
 	first-calib-voltage = <3600000>;
 	first-calib-capacity = <50>;
 
+	sprd,capacity-sleep-calibration;
+	sprd,capacity-boot-calibration;
+
 	fgu-capacity-track;
 	phys = <&hsphy>;
 };
@@ -546,4 +551,12 @@
 
 &vddemmccore {
 	regulator-always-on;
+};
+
+&vddsim0 {
+	status = "disabled";
+};
+
+&vddsim1 {
+	status = "disabled";
 };

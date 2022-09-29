@@ -1128,6 +1128,6 @@
 	<&g5l_pll CLK_TGPLL_153M6>,
 	<&g5l_pll CLK_TGPLL_384M>,
 	<&g5l_pll CLK_TGPLL_512M>,
-	<&g5r_pll CLK_GPLL_680M>,
+	<&g5r_pll CLK_GPLL>,
 	<&g5r_pll CLK_GPLL_850M>;
 };

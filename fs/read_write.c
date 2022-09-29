@@ -25,6 +25,9 @@
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
 
+#if defined(CONFIG_SPRD_DEBUG)
+static int buf2[524288/sizeof(int)];
+#endif
 const struct file_operations generic_ro_fops = {
 	.llseek		= generic_file_llseek,
 	.read_iter	= generic_file_read_iter,
@@ -593,6 +596,27 @@ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count)
 			ppos = &pos;
 		}
 		ret = vfs_read(f.file, buf, count, ppos);
+#if defined(CONFIG_SPRD_DEBUG)
+		if (ret >= 0 && !strcmp(f.file->f_path.dentry->d_name.name, "SequenceRead_test_file") && count == 524288) {
+			if (!__copy_from_user(buf2, buf, 524288)) {
+				int i;
+				for (i = 0; i < 524288/sizeof(int); i += 4096/sizeof(int)) {
+					if ((*(buf2+i+1) - *(buf2+i) != 0x1) && (*(buf2+i+2) - *(buf2+i+1) != 0x1)) {
+						ppos = file_ppos(f.file);
+						if (ppos) {
+							pos = *ppos;
+							ppos = &pos;
+							printk("FS_DEBUG: current pos is 0x%llx\n", pos);
+						}
+						ret = vfs_read(f.file, buf, count, ppos);
+						BUG_ON(1);
+					}
+				}
+			} else {
+				printk("FS_DEBUG: __copy_from_user failed\n");
+			}
+		}
+#endif
 		if (ret >= 0 && ppos)
 			f.file->f_pos = pos;
 		fdput_pos(f);

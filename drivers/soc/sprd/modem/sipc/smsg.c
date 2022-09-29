@@ -362,6 +362,15 @@ void smsg_ipc_destroy(struct smsg_ipc *ipc)
 	smsg_ipcs[ipc->dst] = NULL;
 }
 
+#if IS_ENABLED(CONFIG_SPRD_SIPC)
+int senddie_callback(struct notifier_block *nb, unsigned long code, void *unused)
+{
+	smsg_senddie(SIPC_ID_LTE);
+	smsg_senddie(SIPC_ID_PM_SYS);
+	return 0;
+}
+#endif
+
 int sipc_get_wakeup_flag(void)
 {
 	return (int)g_wakeup_flag;
@@ -634,8 +643,6 @@ int smsg_senddie(u8 dst)
 		SIPC_WRITEL(SIPC_READL(ipc->txbuf_wrptr) + 1, ipc->txbuf_wrptr);
 
 	}
-	/* k5.4 send die msg in spi, sp soc dump need time, so here add delay */
-	mdelay(1000);
 
 send_failed:
 	sprd_pms_release_resource(ipc->sipc_pms);

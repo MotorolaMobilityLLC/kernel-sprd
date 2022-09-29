@@ -938,7 +938,7 @@ static enum power_supply_property sgm41511_usb_props[] = {
 
 static const struct power_supply_desc sgm41511_charger_desc = {
 	.name			= "sgm41511_charger",
-	.type			= POWER_SUPPLY_TYPE_USB,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= sgm41511_usb_props,
 	.num_properties		= ARRAY_SIZE(sgm41511_usb_props),
 	.get_property		= sgm41511_charger_usb_get_property,
@@ -948,7 +948,7 @@ static const struct power_supply_desc sgm41511_charger_desc = {
 
 static const struct power_supply_desc sgm41511_slave_charger_desc = {
 	.name			= "sgm41511_slave_charger",
-	.type			= POWER_SUPPLY_TYPE_USB,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= sgm41511_usb_props,
 	.num_properties		= ARRAY_SIZE(sgm41511_usb_props),
 	.get_property		= sgm41511_charger_usb_get_property,

@@ -18,7 +18,7 @@
 #include <dt-bindings/soc/sprd,pike2-regs.h>
 #include <linux/of_device.h>
 #include <linux/cpuidle-sprd.h>
-
+#include <linux/tick.h>
 #define SPRD_DIS_ALL			0xffffffff
 #define SPRD_FRC_LIGHT			0x3ffff
 #define	SPRD_INTCV_IRQ_EN		0x0008
@@ -54,7 +54,6 @@ struct regmap *cpuidle_syscon_ap_intc3;
 static u32 uart1_eb_temp;
 static int doze_flag_en;
 static void __iomem *sprd_ap_gic_base_vaddr;
-
 /* Enable Lightsleep Function */
 module_param_named(light_sleep, light_sleep, int, 0644);
 
@@ -75,6 +74,100 @@ module_param_named(test_power, test_power, int, 0644);
 
 /* Used to MCU_SYS_SLEEP debug */
 module_param_named(mcu_sleep_debug, mcu_sleep_debug, int, 0644);
+
+/**
+ *  purpose: get cpu load and check if need enter into idle sleep.
+ *  1 mean move to idle sleep ,0 mean not enter to idle sleep
+ */
+#ifdef arch_idle_time
+
+static u64 get_idle_time(int cpu)
+{
+	u64 idle;
+
+	idle = kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE];
+	if (cpu_online(cpu) && !nr_iowait_cpu(cpu))
+		idle += arch_idle_time(cpu);
+	return idle;
+}
+
+#else
+
+static u64 get_idle_time(int cpu)
+{
+	u64 idle, idle_time = -1ULL;
+
+	if (cpu_online(cpu))
+		idle_time = get_cpu_idle_time_us(cpu, NULL);
+
+	if (idle_time == -1ULL)
+		/* !NO_HZ or cpu offline so we can rely on cpustat.idle */
+		idle = kcpustat_cpu(cpu).cpustat[CPUTIME_IDLE];
+	else
+		idle = idle_time * NSEC_PER_USEC;
+
+	return idle;
+}
+
+#endif
+#define SLEEP_MAX_CPULOAD_THRESHOLD 10
+#define PIKE2_SLEEP_MAX_LOOP 1000
+static int ready_to_sleep;
+static clock_t last_cpu_stat[2] = {0};
+static int loop_wait_time;
+static int sprd_pike2_is_cpu_can_sleep(void)
+{
+	int i;
+	int cpuload;
+	clock_t delta[2], tmp = 0;
+
+	u64 user, nice, system, idle;
+	u64 total_time, busy_time;
+
+	user = 0;
+	nice = 0;
+	system = 0;
+	idle = 0;
+	cpuload = 0;
+
+	loop_wait_time++;
+	if (loop_wait_time < PIKE2_SLEEP_MAX_LOOP) {
+		return ready_to_sleep;
+	}
+	loop_wait_time = 0;
+	for_each_possible_cpu(i) {
+    user += kcpustat_cpu(i).cpustat[CPUTIME_USER];
+    nice += kcpustat_cpu(i).cpustat[CPUTIME_NICE];
+    system += kcpustat_cpu(i).cpustat[CPUTIME_SYSTEM];
+    system += kcpustat_cpu(i).cpustat[CPUTIME_IRQ];
+    system += kcpustat_cpu(i).cpustat[CPUTIME_SOFTIRQ];
+    system += kcpustat_cpu(i).cpustat[CPUTIME_STEAL];
+    idle += get_idle_time(i);
+	}
+
+	total_time = user + nice + system + idle;
+	busy_time = user + nice + system;
+
+	tmp = nsec_to_clock_t(busy_time);
+
+	delta[0] = tmp - last_cpu_stat[0];
+	last_cpu_stat[0] = tmp;
+
+	tmp = nsec_to_clock_t(total_time);
+
+	delta[1] = tmp - last_cpu_stat[1];
+	last_cpu_stat[1] = tmp;
+
+	if (delta[1] == 0)
+		return ready_to_sleep;
+
+	cpuload = 100 * delta[0] / delta[1];
+	pr_info("pike2 get cpuload is %d = %d/%d", cpuload, delta[0], delta[1]);
+	if (cpuload >= SLEEP_MAX_CPULOAD_THRESHOLD)
+       return 0;
+
+    return 1;
+}
 
 static void pm_ca7_core_auto_gate_enable(int enable)
 {
@@ -181,6 +274,7 @@ void sprd_pike2_light_en(void)
 	if (!light_sleep || smp_processor_id() != 0)
 		return;
 
+	ready_to_sleep = sprd_pike2_is_cpu_can_sleep();
 	regmap_read(cpuidle_syscon_apahb, REG_AP_AHB_MST_FRC_LSLP, &val);
 	if (val == 0)
 		regmap_write(cpuidle_syscon_apahb,
@@ -188,14 +282,14 @@ void sprd_pike2_light_en(void)
 			     SPRD_FRC_LIGHT);
 
 	regmap_read(cpuidle_syscon_apahb, REG_AP_AHB_AHB_EB, &val);
-	if (!val && (num_online_cpus() == 1))
+	if (!val && (ready_to_sleep == 1))
 		regmap_update_bits(cpuidle_syscon_apahb,
 				   REG_AP_AHB_MCU_PAUSE,
 				   MASK_AP_AHB_MCU_SYS_SLEEP_EN,
 				   MASK_AP_AHB_MCU_SYS_SLEEP_EN);
 
 	pm_sync_gic_intc();
-	if (num_online_cpus() == 1)
+	if (ready_to_sleep == 1)
 		pm_ca7_core_auto_gate_enable(1);
 	regmap_update_bits(cpuidle_syscon_apahb,
 			   REG_AP_AHB_MCU_PAUSE,
@@ -405,7 +499,8 @@ static void sprd_doze_sleep_exit(void)
 
 void sprd_pike2_doze_en(void)
 {
-	if (apsys_master_slave_check() == 0 && num_online_cpus() == 1)
+	ready_to_sleep = sprd_pike2_is_cpu_can_sleep();
+	if (apsys_master_slave_check() == 0 && ready_to_sleep == 1)
 		sprd_doze_sleep_enter();
 	else
 		sprd_pike2_light_en();

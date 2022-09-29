@@ -1411,7 +1411,7 @@ static enum power_supply_property bq25890_usb_props[] = {
 
 static const struct power_supply_desc bq25890_charger_desc = {
 	.name			= "bq25890_charger",
-	.type			= POWER_SUPPLY_TYPE_USB,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= bq25890_usb_props,
 	.num_properties		= ARRAY_SIZE(bq25890_usb_props),
 	.get_property		= bq25890_charger_usb_get_property,

@@ -770,7 +770,7 @@ static int sy65153_wl_charger_prop_is_writeable(struct power_supply *psy,
 
 static const struct power_supply_desc sy65153_wl_charger_desc = {
 	.name			= "sy65153_wireless_charger",
-	.type			= POWER_SUPPLY_TYPE_WIRELESS,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= sy65153_wireless_properties,
 	.num_properties		= ARRAY_SIZE(sy65153_wireless_properties),
 	.get_property		= sy65153_wl_charger_get_property,

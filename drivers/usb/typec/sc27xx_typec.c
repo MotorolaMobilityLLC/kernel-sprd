@@ -14,6 +14,7 @@
 #include <linux/of_device.h>
 #include <linux/extcon.h>
 #include <linux/kernel.h>
+#include <linux/random.h>
 #include <linux/nvmem-consumer.h>
 #include <linux/slab.h>
 #include <linux/of_gpio.h>
@@ -93,6 +94,13 @@
 
 /* modify sc2730 tcc debunce */
 #define SC27XX_TCC_DEBOUNCE_CNT		0xc7f
+/* modify sc27xx tdrp */
+#define SC2730_TDRP_CNT		0x48
+#define SC2721_TDRP_CNT		0x3C
+#define SC27XX_MIN_TDRP_CNT		0x63f
+#define SC27XX_MIN_TDRP_MS		50
+#define SC27XX_TDRP_RANGE		0x640
+#define SC27XX_TDRP_TIMER		32
 
 /* sc2730 registers definitions for controller REGS_TYPEC */
 #define SC2730_TYPEC_PD_CFG		0x08
@@ -373,6 +381,31 @@ static int sc27xx_typec_vconn_set(const struct typec_capability *cap,
 }
 #endif
 
+static int sc27xx_typec_random_tdrp(struct sc27xx_typec *sc)
+{
+	int ret = 0;
+	u32 rand;
+
+	/* workaround: the two devices are connected through CC cables and restarted
+	 * at the same time. there is no interruption in insertion and removal. Set
+	 * the toggle period 50~100 ms of two mobile phones at random.
+	 */
+	get_random_bytes(&rand, 4);
+	rand &= 0xfff;
+	rand = SC27XX_MIN_TDRP_CNT + rand % SC27XX_TDRP_RANGE;
+
+	if (sc->var_data->pmic_name == SC2730 || sc->var_data->pmic_name == UMP9620)
+		ret = regmap_write(sc->regmap, sc->base + SC2730_TDRP_CNT, rand);
+	else if (sc->var_data->pmic_name == SC2721)
+		ret = regmap_write(sc->regmap, sc->base + SC2721_TDRP_CNT, rand);
+
+	dev_info(sc->dev, "SC27XX_MIN_TERR_CNT = %d: %d ms\n", rand,
+				(rand - SC27XX_MIN_TDRP_CNT) / SC27XX_TDRP_TIMER +
+				SC27XX_MIN_TDRP_MS);
+
+	return ret;
+}
+
 static irqreturn_t sc27xx_typec_interrupt(int irq, void *data)
 {
 	struct sc27xx_typec *sc = data;
@@ -402,6 +435,9 @@ static irqreturn_t sc27xx_typec_interrupt(int irq, void *data)
 			dev_warn(sc->dev, "failed to register partner\n");
 	} else if (event & SC27XX_DETACH_INT) {
 		sc27xx_typec_disconnect(sc, sc->state);
+		ret = sc27xx_typec_random_tdrp(sc);
+		if (ret)
+			dev_warn(sc->dev, "failed to random tdrp\n");
 	}
 
 clear_ints:

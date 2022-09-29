@@ -740,13 +740,46 @@ static int sprd_ufs_pwmmode_change(struct ufs_hba *hba)
 
 	return ret;
 }
-static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
+int hibern8_exit_check(struct ufs_hba *hba,
 				enum uic_cmd_dme cmd,
 				enum ufs_notify_change_status status)
 {
 	int ret;
-	unsigned long flags;
 	u32 aon_ver_id = 0;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	ret = is_ufs_sprd_host_in_pwm(hba);
+	if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
+		sprd_get_soc_id(AON_VER_ID, &aon_ver_id, 1);
+		if (host->ioctl_cmd == UFS_IOCTL_AFC_EXIT ||
+				aon_ver_id == AON_VER_UFS) {
+			ret = sprd_ufs_pwrchange(hba);
+			if (ret) {
+				pr_err("ufs_pwm2hs err");
+			} else {
+				ret = is_ufs_sprd_host_in_pwm(hba);
+				if (ret == (SLOW_MODE|(SLOW_MODE<<4)) &&
+						((((hba->max_pwr_info.info.pwr_tx) << 4) |
+						  (hba->max_pwr_info.info.pwr_rx)) == HS_MODE_VAL))
+					pr_err("ufs_pwm2hs fail");
+				else {
+					pr_err("ufs_pwm2hs succ\n");
+					if (host->ioctl_cmd ==
+							UFS_IOCTL_AFC_EXIT)
+						complete(&host->hs_async_done);
+				}
+			}
+		}
+	}
+	return 0;
+
+}
+static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
+		enum uic_cmd_dme cmd,
+		enum ufs_notify_change_status status)
+{
+	int ret;
+	unsigned long flags;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
 	switch (status) {
@@ -767,27 +800,7 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 				else
 					complete(&host->pwm_async_done);
 			} else {
-				ret = is_ufs_sprd_host_in_pwm(hba);
-				if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
-					sprd_get_soc_id(AON_VER_ID, &aon_ver_id, 1);
-					if (aon_ver_id == AON_VER_UFS)
-						ufs_set_hstxsclk(hba);
-					ret = sprd_ufs_pwrchange(hba);
-					if (ret) {
-						pr_err("ufs_pwm2hs err");
-					} else {
-						ret = is_ufs_sprd_host_in_pwm(hba);
-						if (ret == (SLOW_MODE|(SLOW_MODE<<4)) &&
-						  ((((hba->max_pwr_info.info.pwr_tx) << 4) |
-						(hba->max_pwr_info.info.pwr_rx)) == HS_MODE_VAL))
-							pr_err("ufs_pwm2hs fail");
-						else {
-							pr_err("ufs_pwm2hs succ\n");
-							if (host->ioctl_cmd == UFS_IOCTL_AFC_EXIT)
-								complete(&host->hs_async_done);
-						}
-					}
-				}
+				hibern8_exit_check(hba, cmd, status);
 			}
 			hba->caps |= UFSHCD_CAP_CLK_GATING;
 			/* Set auto h8 ilde time to 10ms */

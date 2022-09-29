@@ -109,6 +109,12 @@ void wcn_dump_process(void)
 	WCN_INFO("%s dumpmem end\n", __func__);
 }
 
+bool wcn_is_assert(void)
+{
+	return mutex_is_locked(&mdbg_proc->mutex);
+}
+EXPORT_SYMBOL_GPL(wcn_is_assert);
+
 void wcn_assert_interface(enum wcn_source_type type, char *str)
 {
 	int reset_prop = wcn_sysfs_get_reset_prop();

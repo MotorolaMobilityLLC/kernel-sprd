@@ -688,7 +688,7 @@ static enum power_supply_property fan54015_usb_props[] = {
 
 static const struct power_supply_desc fan54015_charger_desc = {
 	.name			= "fan54015_charger",
-	.type			= POWER_SUPPLY_TYPE_USB,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= fan54015_usb_props,
 	.num_properties		= ARRAY_SIZE(fan54015_usb_props),
 	.get_property		= fan54015_charger_usb_get_property,
