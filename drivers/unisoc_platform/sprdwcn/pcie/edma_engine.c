@@ -494,6 +494,22 @@ int dscr_link_cpdu(int inout, struct desc *dscr, struct cpdu_head *cpdu)
 	return 0;
 }
 
+static void  n6pro_set_bit(unsigned int bit, unsigned long *status)
+{
+	unsigned long old;
+
+	old = *status;
+	*status = old | (1 << bit);
+}
+
+static void  n6pro_clear_bit(unsigned int bit, unsigned long *status)
+{
+	unsigned long old;
+
+	old = *status;
+	*status = old  & ~(1 << bit);
+}
+
 static int edma_pop_link(int chn, struct desc *__head, struct desc *__tail,
 		  void **head__, void **tail__, int *node)
 {
@@ -507,6 +523,12 @@ static int edma_pop_link(int chn, struct desc *__head, struct desc *__tail,
 	}
 	*head__ = *tail__ = NULL;
 	(*node) = 0;
+
+	if (edma->chn_sw[chn].dscr_ring.lock.irq_spinlock_p == NULL) {
+		WCN_INFO("[+]%s(%d) dscr_ring.lock.irq_spinlock_p =0x%p\n", __func__,
+			chn, edma->chn_sw[chn].dscr_ring.lock.irq_spinlock_p);
+		return -1;
+	}
 	spin_lock_irqsave(edma->chn_sw[chn].dscr_ring.lock.irq_spinlock_p,
 			edma->chn_sw[chn].dscr_ring.lock.flag);
 	do {
@@ -579,7 +601,7 @@ static int edma_hw_tx_req(int chn)
 	wcn_set_tx_complete_status(2);
 	edma->dma_chn_reg[chn].dma_tx_req.reg = 1;
 
-	set_bit(chn, &edma->cur_chn_status);
+	n6pro_set_bit(chn, &edma->cur_chn_status);
 
 	return 0;
 }
@@ -791,7 +813,11 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 	}
 	if (!atomic_read(&edma->pcie_info->is_suspending))
 		__pm_stay_awake(edma->edma_push_ws);
-
+	if (edma->chn_sw[chn].dscr_ring.lock.irq_spinlock_p == NULL) {
+		WCN_INFO("[+]%s(%d) dscr_ring.lock.irq_spinlock_p =0x%p\n", __func__,
+			chn, edma->chn_sw[chn].dscr_ring.lock.irq_spinlock_p);
+		return -1;
+	}
 	if (inout == TX)
 		edma_print_mbuf_data(chn, head, tail, __func__);
 
@@ -1262,7 +1288,7 @@ int msi_irq_handle(int irq)
 
 	if (edma->chn_sw[chn].inout == TX) {
 		wcn_set_tx_complete_status(1);
-		clear_bit(chn, &edma->cur_chn_status);
+		n6pro_clear_bit(chn, &edma->cur_chn_status);
 		del_timer(&edma->edma_tx_timer);
 		if (irq % 2 == 0) {
 			dma_int.bit.rf_chn_tx_pop_int_clr = 1;
@@ -1605,7 +1631,7 @@ int edma_chn_deinit(int chn)
 {
 	/*resolve mem leak*/
 	struct edma_info *edma = edma_info();
-
+	msleep(20);
 	/* TODO: need add more deinit operation */
 	dscr_ring_deinit(chn);
 
@@ -1717,7 +1743,7 @@ int edma_dump_glb_reg(void)
 	WCN_INFO("[arb_sel_sts] = 0x%08x\n",  value);
 
 	if ((value > 0) && (value < 31))
-		set_bit((value - 1), &edma->cur_chn_status);
+		n6pro_set_bit((value - 1), &edma->cur_chn_status);
 	else if (value == 0xffffffff) {
 		if (pdev->rc_pd)
 			sprd_pcie_dump_rc_regs(pdev->rc_pd);

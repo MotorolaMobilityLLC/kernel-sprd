@@ -863,7 +863,7 @@ void sprd_pcie_remove_card(void *wcn_dev)
 		WCN_ERR("%s: card exist!\n", __func__);
 
 	sprd_pcie_unconfigure_device(pdev);
-
+	priv->dev = NULL;
 	if (wait_for_completion_timeout(&priv->remove_done,
 					msecs_to_jiffies(5000)) == 0)
 		WCN_ERR("remove card time out\n");
