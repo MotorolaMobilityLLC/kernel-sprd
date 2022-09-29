@@ -592,10 +592,9 @@ static const struct clk_parent_data dispc0_dpi_parents[] = {
 	{ .hw = &twpll_96m.hw  },
 	{ .hw = &twpll_128m.hw  },
 	{ .hw = &twpll_153m6.hw  },
-	{ .hw = &twpll_192m.hw  },
 };
 static SPRD_COMP_CLK_DATA(dispc0_dpi, "dispc0-dpi", dispc0_dpi_parents,
-			  0x9c, 0, 3, 8, 4, 0);
+			  0x9c, 0, 2, 8, 4, 0);
 
 static const struct clk_parent_data dsi_apb_parents[] = {
 	{ .hw = &twpll_96m.hw  },
@@ -822,7 +821,7 @@ static SPRD_GATE_CLK_FW_NAME(apcpu_dap_mtck, "apcpu-dap-mtck", "ext-26m",
 			     0x28c, BIT(16), 0, 0);
 
 static const struct clk_parent_data apcpu_ts_parents[] = {
-	{ .fw_name = "ext-32m" },
+	{ .fw_name = "ext-32k" },
 	{ .fw_name = "ext-26m" },
 	{ .hw = &twpll_128m.hw  },
 	{ .hw = &twpll_153m6.hw  },
@@ -1739,9 +1738,9 @@ static const struct clk_parent_data mm_mtx_parents[] = {
 	{ .hw = &twpll_76m8.hw  },
 	{ .hw = &twpll_128m.hw  },
 	{ .hw = &twpll_256m.hw  },
+	{ .hw = &twpll_307m2.hw  },
 	{ .hw = &twpll_384m.hw  },
 	{ .hw = &isppll_468m.hw  },
-	{ .hw = &twpll_512m.hw  },
 };
 static SPRD_MUX_CLK_DATA(mm_mtx, "mm-mtx", mm_mtx_parents,
 			 0x24, 0, 3, UMS312_MUX_FLAG);
@@ -1791,16 +1790,15 @@ static const struct clk_parent_data dcam_if_parents[] = {
 	{ .hw = &twpll_256m.hw  },
 	{ .hw = &twpll_307m2.hw  },
 	{ .hw = &twpll_384m.hw  },
-	{ .hw = &isppll_468m.hw  },
 };
 static SPRD_MUX_CLK_DATA(dcam_if, "dcam-if", dcam_if_parents,
-			 0x40, 0, 3, UMS312_MUX_FLAG);
+			 0x40, 0, 2, UMS312_MUX_FLAG);
 
 static const struct clk_parent_data dcam_axi_parents[] = {
+	{ .hw = &twpll_192m.hw  },
 	{ .hw = &twpll_256m.hw  },
 	{ .hw = &twpll_307m2.hw  },
 	{ .hw = &twpll_384m.hw  },
-	{ .hw = &isppll_468m.hw  },
 };
 static SPRD_MUX_CLK_DATA(dcam_axi, "dcam-axi", dcam_axi_parents,
 			 0x44, 0, 2, UMS312_MUX_FLAG);
@@ -1810,10 +1808,9 @@ static const struct clk_parent_data isp_parents[] = {
 	{ .hw = &twpll_307m2.hw  },
 	{ .hw = &twpll_384m.hw  },
 	{ .hw = &isppll_468m.hw  },
-	{ .hw = &twpll_512m.hw  },
 };
 static SPRD_MUX_CLK_DATA(isp, "isp", isp_parents,
-			 0x48, 0, 3, UMS312_MUX_FLAG);
+			 0x48, 0, 2, UMS312_MUX_FLAG);
 
 static SPRD_GATE_CLK_HW(mipi_csi0, "mipi-csi0", &mm_eb.common.hw,
 			0x4c, BIT(16), CLK_IGNORE_UNUSED, 0);

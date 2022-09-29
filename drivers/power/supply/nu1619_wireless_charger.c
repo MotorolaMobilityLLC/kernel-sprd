@@ -1647,7 +1647,7 @@ static int nu1619_prop_is_writeable(struct power_supply *psy,
 
 static const struct power_supply_desc nu1619_wireless_charger_desc = {
 	.name			= "nu1619_wireless_charger",
-	.type			= POWER_SUPPLY_TYPE_WIRELESS,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= nu1619_wireless_properties,
 	.num_properties		= ARRAY_SIZE(nu1619_wireless_properties),
 	.get_property		= nu1619_wireless_get_property,

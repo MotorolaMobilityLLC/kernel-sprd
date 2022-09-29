@@ -655,7 +655,7 @@ static enum power_supply_property sc2721_usb_props[] = {
 
 static const struct power_supply_desc sc2721_charger_desc = {
 	.name			= "sc2721_charger",
-	.type			= POWER_SUPPLY_TYPE_USB,
+	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= sc2721_usb_props,
 	.num_properties		= ARRAY_SIZE(sc2721_usb_props),
 	.get_property		= sc2721_charger_usb_get_property,

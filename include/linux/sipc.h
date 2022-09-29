@@ -269,6 +269,10 @@ void smsg_callback_register(u8 dst, u8 channel,
 
 void smsg_callback_unregister(u8 dst, u8 channel);
 
+#if IS_ENABLED(CONFIG_SPRD_SIPC)
+int senddie_callback(struct notifier_block *nb, unsigned long code, void *unused);
+#endif
+
 /**
 * sipc_get_wakeup_flag
 * after the wakeup flag be set, the fist smsg will be print

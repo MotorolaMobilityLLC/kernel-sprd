@@ -662,6 +662,8 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 	case PRE_CHANGE:
 		memcpy(dev_req_params, dev_max_params,
 				       sizeof(struct ufs_pa_layer_attr));
+		if (dev_req_params->gear_rx == UFS_HS_G4)
+			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), 0x0);
 		break;
 	case POST_CHANGE:
 		/* Set auto h8 ilde time to 10ms */
@@ -698,12 +700,6 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 		}
 		break;
 	case POST_CHANGE:
-		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
-			ufshcd_writel(hba,
-				AUTO_H8_IDLE_TIME_10MS,
-				REG_AUTO_HIBERNATE_IDLE_TIMER);
-		}
-
 		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
 			regmap_update_bits(host->ufsdev_refclk_en.regmap,
 					   host->ufsdev_refclk_en.reg,
@@ -971,6 +967,26 @@ static inline void ufs_sprd_rpmb_remove(struct ufs_hba *hba)
 	host->sdev_ufs_rpmb = NULL;
 }
 
+void ufs_sprd_setup_xfer_req(struct ufs_hba *hba, int task_tag, bool scsi_cmd)
+{
+	struct ufshcd_lrb *lrbp;
+	struct utp_transfer_req_desc *req_desc;
+	u32 data_direction;
+	u32 dword_0, crypto;
+
+	lrbp = &hba->lrb[task_tag];
+	req_desc = lrbp->utr_descriptor_ptr;
+	dword_0 = le32_to_cpu(req_desc->header.dword_0);
+	data_direction = dword_0 & (UTP_DEVICE_TO_HOST | UTP_HOST_TO_DEVICE);
+	crypto = dword_0 & UTP_REQ_DESC_CRYPTO_ENABLE_CMD;
+	if (!data_direction && crypto) {
+		pr_err("ufs before dword_0 = %x,%x\n", dword_0, req_desc->header.dword_0);
+		dword_0 &= ~(UTP_REQ_DESC_CRYPTO_ENABLE_CMD);
+		req_desc->header.dword_0 = cpu_to_le32(dword_0);
+		pr_err("ufs after dword_0 = %x,%x\n", dword_0, req_desc->header.dword_0);
+	}
+}
+
 /*
  * struct ufs_hba_sprd_vops - UFS sprd specific variant operations
  *
@@ -987,6 +1003,7 @@ static struct ufs_hba_variant_ops ufs_hba_sprd_vops = {
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
 	.phy_initialization = ufs_sprd_phy_init,
 	.hibern8_notify = ufs_sprd_hibern8_notify,
+	.setup_xfer_req = ufs_sprd_setup_xfer_req,
 	.device_reset = ufs_sprd_device_reset,
 };
 

@@ -5390,7 +5390,7 @@ static int devm_sprd_tcpm_psy_register(struct sprd_tcpm_port *port)
 	snprintf(psy_name, psy_name_len, "%s%s", tcpm_psy_name_prefix,
 		 port_dev_name);
 	port->psy_desc.name = psy_name;
-	port->psy_desc.type = POWER_SUPPLY_TYPE_USB,
+	port->psy_desc.type = POWER_SUPPLY_TYPE_UNKNOWN,
 	port->psy_desc.usb_types = sprd_tcpm_psy_usb_types;
 	port->psy_desc.num_usb_types = ARRAY_SIZE(sprd_tcpm_psy_usb_types);
 	port->psy_desc.properties = sprd_tcpm_psy_props,

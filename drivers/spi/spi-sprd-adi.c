@@ -148,10 +148,6 @@
 /*Adi single soft multi hard*/
 #define SPRD_ADI_MAGIC_LEN_MAX          5
 
-#if IS_ENABLED(CONFIG_SPRD_SIPC)
-int (*senddie_callback)(u8 dst) = NULL;
-#endif
-
 struct sprd_adi_variant_data {
 	int (*read_check)(u32 val, u32 reg_paddr);
 	int (*write_wait)(void __iomem *adi_base);
@@ -442,15 +438,8 @@ static int sprd_adi_restart_handler(struct notifier_block *this,
 		reboot_mode = HWRST_STATUS_SLEEP;
 	else if (!strncmp(cmd, "bootloader", 10))
 		reboot_mode = HWRST_STATUS_FASTBOOT;
-	else if (!strncmp(cmd, "panic", 5)) {
+	else if (!strncmp(cmd, "panic", 5))
 		reboot_mode = HWRST_STATUS_PANIC;
-#if IS_ENABLED(CONFIG_SPRD_SIPC)
-		if (senddie_callback) {
-			senddie_callback(SIPC_ID_LTE);
-			senddie_callback(SIPC_ID_PM_SYS);
-		}
-#endif
-	}
 	else if (!strncmp(cmd, "special", 7))
 		reboot_mode = HWRST_STATUS_SPECIAL;
 	else if (!strncmp(cmd, "cftreboot", 9))
@@ -679,20 +668,6 @@ static int sprd_adi_remove(struct platform_device *pdev)
 	unregister_restart_handler(&sadi->restart_handler);
 	return 0;
 }
-
-#if IS_ENABLED(CONFIG_SPRD_SIPC)
-void spi_callback_register(int (*callback)(u8 dst))
-{
-	senddie_callback = callback;
-}
-EXPORT_SYMBOL(spi_callback_register);
-
-void spi_callback_unregister(void)
-{
-	senddie_callback = NULL;
-}
-EXPORT_SYMBOL(spi_callback_unregister);
-#endif
 
 static struct sprd_adi_variant_data sc9860_data = {
 	.read_check = sprd_adi_read_check,

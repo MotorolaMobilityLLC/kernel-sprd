@@ -14,7 +14,9 @@
 #include <linux/mutex.h>
 #include <linux/platform_device.h>
 #include <linux/pm_domain.h>
+#include <linux/pm_runtime.h>
 #include <linux/regmap.h>
+#include <linux/timer.h>
 #include <linux/slab.h>
 #include <linux/types.h>
 
@@ -24,6 +26,7 @@
 
 #define pr_fmt(fmt) "sprd-vpu-pd: " fmt
 #define __SPRD_VPU_TIMEOUT            (30 * 1000)
+#define PM_RUNTIME_DELAY_MS 3000
 
 enum {
 	PMU_VPU_AUTO_SHUTDOWN = 0,
@@ -46,6 +49,7 @@ struct sprd_vpu_pd {
 	struct device *dev;
 	struct generic_pm_domain gpd;
 	struct regmap *regmap[REG_MAX];
+	struct delayed_work delay_work;
 	unsigned int reg[REG_MAX];
 	unsigned int mask[REG_MAX];
 };
@@ -203,6 +207,16 @@ pw_off_exit:
 	return ret;
 }
 
+static void vpu_delay_work(struct work_struct *work)
+{
+	struct delayed_work *dw = container_of(work, struct delayed_work, work);
+	struct sprd_vpu_pd *pd = container_of(dw, struct sprd_vpu_pd, delay_work);
+
+	pm_runtime_set_autosuspend_delay(pd->dev, PM_RUNTIME_DELAY_MS);
+
+	dev_info(pd->dev, "vpu pd delay work done!\n");
+}
+
 static int vpu_pd_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -271,6 +285,21 @@ static int vpu_pd_probe(struct platform_device *pdev)
 			pr_info("%pOF has as child subdomain: %pOF.\n",
 				parent.np, child.np);
 	}
+
+	if (cali_mode) {
+		pm_runtime_set_active(dev);
+		pm_runtime_enable(dev);
+		return 0;
+	}
+
+	pm_runtime_set_active(dev);
+	pm_runtime_set_autosuspend_delay(dev, -1); //prevent auto suspend
+	pm_runtime_use_autosuspend(dev);
+	pm_runtime_enable(dev);
+
+	INIT_DELAYED_WORK(&pd->delay_work, vpu_delay_work);
+	schedule_delayed_work(&pd->delay_work, msecs_to_jiffies(10000)); //10s
+
 	return 0;
 }
 

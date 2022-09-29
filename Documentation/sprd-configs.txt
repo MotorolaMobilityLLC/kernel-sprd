@@ -11002,8 +11002,8 @@ CONFIG_MMC_BLOCK_MINORS
 	[missing plat description] none
 	[function] Number of minors per block device
 CONFIG_MMC_CRYPTO
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -14398,8 +14398,8 @@ CONFIG_PROBE_EVENTS
 	[missing plat description] none
 	[function] trace probe status bit
 CONFIG_PROCESS_RECLAIM
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -14697,6 +14697,15 @@ CONFIG_RATIONAL
 	[missing plat description] none
 	[function] Calculate best rational approximation for a given fraction
 		taking into account restricted register size.
+CONFIG_RCC
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_RCU_CPU_STALL_TIMEOUT
 	[arch] all
 	[plat] all
@@ -16670,8 +16679,8 @@ CONFIG_SPRD_AUTOTEST
 	[missing plat description] none
 	[function] Support Spreadtrum autotest
 CONFIG_SPRD_AUTOTEST_GPIO
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] menu,make
 	[subsys] soc
@@ -16679,8 +16688,8 @@ CONFIG_SPRD_AUTOTEST_GPIO
 	[missing plat description] none
 	[function] Spreadtrum gpio autotest support
 CONFIG_SPRD_AUTOTEST_PINCTRL
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] menu,make,code
 	[subsys] soc
@@ -17005,8 +17014,8 @@ CONFIG_SPRD_MEMDISK
 	[missing plat description] none
 	[function] Using reserved memory generate block device node.
 CONFIG_SPRD_MEM_OVERLAY_CHECK
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
@@ -18805,6 +18814,15 @@ CONFIG_UNISOC_MODEM_LOADER
 	[must]
 	[missing plat description] none
 	[function]
+CONFIG_UNISOC_MODEM_LOADER_RAM_VMAP
+	[arch] arm
+	[plat] pike2
+	[missing plat] none
+	[field]
+	[subsys]
+	[must]
+	[missing plat description] none
+	[function]
 CONFIG_UNISOC_SIPC_VIRT_BUS
 	[arch] all
 	[plat] all
@@ -20113,8 +20131,8 @@ CONFIG_WQ_POWER_EFFICIENT_DEFAULT
 	[missing plat description] none
 	[function] power efficient work queue
 CONFIG_WRITEBACK_SWAPCACHE
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field] mm
 	[subsys] swap

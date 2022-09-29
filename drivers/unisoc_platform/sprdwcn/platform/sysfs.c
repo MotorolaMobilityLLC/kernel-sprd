@@ -16,6 +16,9 @@
 #include "wcn_dbg.h"
 #include "wcn_glb.h"
 
+static bool from_ddr;
+extern int is_wcn_shutdown;
+
 struct wcn_sysfs_info {
 	void *p;
 	unsigned char len;
@@ -604,6 +607,108 @@ static DEVICE_ATTR(atcmd, 0644,
 		   wcn_sysfs_show_atcmd,
 		   wcn_sysfs_store_atcmd);
 
+static ssize_t wcn_sysfs_show_shutting_down(struct device *dev,
+					 struct device_attribute *attr,
+					 char *buf)
+{
+	ssize_t len = PAGE_SIZE;
+
+	len = snprintf(buf, len, "%d\n", is_wcn_shutdown);
+
+	return len;
+}
+
+static ssize_t wcn_sysfs_store_shutting_down(struct device *dev,
+					  struct device_attribute *attr,
+					  const char *buf, size_t count)
+{
+	WCN_INFO("%s: buf=%s, count=%lu\n", __func__, buf, count);
+
+	if (strncmp(buf, "shutting", strlen("shutting")) == 0) {
+		WCN_INFO("%s:Ready to shutdown\n", __func__);
+		is_wcn_shutdown = 1;
+	} else {
+		WCN_INFO("%s:Clear WCN shutdown flag\n", __func__);
+		is_wcn_shutdown = 0;
+	}
+
+	return count;
+}
+static DEVICE_ATTR(shutting_down, 0644,
+		   wcn_sysfs_show_shutting_down,
+		   wcn_sysfs_store_shutting_down);
+
+static ssize_t debugbus_show(struct device *dev,
+					struct device_attribute *attr, char *buf)
+{
+	ssize_t len = s_wcn_device.btwf_device->dbus.curr_size;
+	static int num;
+	ssize_t max_ret = PAGE_SIZE - 4;
+
+	if (len == 0) {
+		WCN_INFO("%s debugbus data not imported\n", __func__);
+		return 0;
+	}
+
+	WCN_INFO("%s from_ddr=%d, len=%lu, num=%d, max_ret=%lu\n", __func__, from_ddr,
+			len, num, max_ret);
+	if (len < (num + 1) * max_ret) {
+		/*
+		 * Because the maximum number of 'show' returns is PAGE_SIZE, so we use the method
+		 * of segmented transmission. If we execute here, we think that the last packet of
+		 * has been transmitted, and all the data should be spliced at the user layer.
+		 */
+		WCN_INFO("%s last debugbus info, length=%ld\n", __func__, len % max_ret);
+		if (!from_ddr) {
+			memcpy(buf, &(s_wcn_device.btwf_device->dbus.dbus_data_pool[max_ret * num]),
+					len % max_ret);
+		} else {
+			if (wcn_read_data_from_phy_addr(
+				s_wcn_device.btwf_device->dbus.base_addr + (max_ret * num),
+				buf, len % max_ret)) {
+				WCN_ERR("%s Fail to read(0x%llx,0x%lx)", __func__,
+					s_wcn_device.btwf_device->dbus.base_addr, len % max_ret);
+			}
+		}
+		num = 0;
+		return len % max_ret;
+	}
+
+	WCN_INFO("%s copy %lu(%d)\n", __func__, max_ret, num);
+	if (!from_ddr)
+		memcpy(buf, &s_wcn_device.btwf_device->dbus.dbus_data_pool[max_ret * num], max_ret);
+	else {
+		if (wcn_read_data_from_phy_addr(
+			s_wcn_device.btwf_device->dbus.base_addr + (max_ret * num), buf, max_ret)) {
+			WCN_ERR("%s Fail to read(0x%llx,0x%lx)", __func__,
+					s_wcn_device.btwf_device->dbus.base_addr, max_ret);
+		}
+	}
+	num++;
+
+	return max_ret;
+}
+
+static ssize_t debugbus_store(struct device *dev,
+					struct device_attribute *attr,
+					const char *buf, size_t count)
+{
+	WCN_INFO("%s: buf=%s, count=%lu\n", __func__, buf, count);
+
+	if (strncmp(buf, "ddr", strlen("ddr")) == 0) {
+		from_ddr = true;
+		WCN_INFO("%s:Read debugbus data from DDR\n", __func__);
+	} else if (strncmp(buf, "temp", strlen("temp")) == 0) {
+		WCN_INFO("%s:Read debugbus data from temporary array\n", __func__);
+		from_ddr = false;
+	} else
+		WCN_ERR("Invalid, valid strings:'ddr' and 'temp'!\n");
+
+	return count;
+}
+/* aiaiai: wcn_sys_show_debugbus to debugbus_show, wcn_sys_store_debugbus to debugbus_store */
+static DEVICE_ATTR_RW(debugbus);
+
 /*
  * ud710_3h10:/sys/devices/platform/sprd-marlin3 # ls
  * sleep_state driver driver_override fwlog hw_pg_ver modalias of_node power
@@ -778,6 +883,8 @@ static struct attribute *wcn_attrs[] = {
 	&dev_attr_loglevel.attr,
 	&dev_attr_reset_dump.attr,
 	&dev_attr_atcmd.attr,
+	&dev_attr_shutting_down.attr,
+	&dev_attr_debugbus.attr,
 	NULL,
 };
 

@@ -1807,7 +1807,7 @@ static int upm6710_psy_register(struct upm6710_charger_info *upm)
 	else
 		upm->psy_desc.name = "upm6710-standalone";
 
-	upm->psy_desc.type = POWER_SUPPLY_TYPE_MAINS;
+	upm->psy_desc.type = POWER_SUPPLY_TYPE_UNKNOWN;
 	upm->psy_desc.properties = upm6710_charger_props;
 	upm->psy_desc.num_properties = ARRAY_SIZE(upm6710_charger_props);
 	upm->psy_desc.get_property = upm6710_charger_get_property;

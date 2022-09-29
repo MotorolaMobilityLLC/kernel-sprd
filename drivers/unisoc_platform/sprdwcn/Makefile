@@ -59,6 +59,7 @@ wcn_bsp-y += sleep/slp_test.o
 wcn_bsp-y += boot/wcn_integrate.o
 wcn_bsp-y += boot/wcn_integrate_dev.o
 wcn_bsp-y += boot/wcn_integrate_boot.o
+wcn_bsp-y += boot/wcn_debug_bus.o
 
 #SIPC FILE
 wcn_bsp-y += sipc/wcn_sipc.o
