@@ -2006,8 +2006,7 @@ void ufshcd_send_command(struct ufs_hba *hba, unsigned int task_tag)
 	ufshcd_add_command_trace(hba, task_tag, "send");
 	ufshcd_clk_scaling_start_busy(hba);
 	__set_bit(task_tag, &hba->outstanding_reqs);
-	if ((hba->curr_dev_pwr_mode == UFS_SLEEP_PWR_MODE) ||
-	    (hba->curr_dev_pwr_mode == UFS_POWERDOWN_PWR_MODE))
+	if (hba->curr_dev_pwr_mode == UFS_POWERDOWN_PWR_MODE)
 		return ;
 
 	ufshcd_writel(hba, 1 << task_tag, REG_UTP_TRANSFER_REQ_DOOR_BELL);
@@ -8474,6 +8473,14 @@ out:
 	return ret;
 }
 
+static inline int scsi_status_is_check_condition(int status)
+{
+	if (status < 0)
+		return false;
+	status &= 0xfe;
+	return status == SAM_STAT_CHECK_CONDITION;
+}
+
 /**
  * ufshcd_set_dev_pwr_mode - sends START STOP UNIT command to set device
  *			     power mode
@@ -8490,7 +8497,7 @@ static int ufshcd_set_dev_pwr_mode(struct ufs_hba *hba,
 	struct scsi_sense_hdr sshdr;
 	struct scsi_device *sdp;
 	unsigned long flags;
-	int ret;
+	int ret, retries;
 
 	spin_lock_irqsave(hba->host->host_lock, flags);
 	sdp = hba->sdev_ufs_device;
@@ -8530,8 +8537,14 @@ static int ufshcd_set_dev_pwr_mode(struct ufs_hba *hba,
 	 * callbacks hence set the RQF_PM flag so that it doesn't resume the
 	 * already suspended childs.
 	 */
-	ret = scsi_execute(sdp, cmd, DMA_NONE, NULL, 0, NULL, &sshdr,
-			START_STOP_TIMEOUT, 0, 0, RQF_PM, NULL);
+	for (retries = 3; retries > 0; --retries) {
+		ret = scsi_execute(sdp, cmd, DMA_NONE, NULL, 0, NULL, &sshdr,
+				START_STOP_TIMEOUT, 0, 0, RQF_PM, NULL);
+		if (!scsi_status_is_check_condition(ret) ||
+				!scsi_sense_valid(&sshdr) ||
+				sshdr.sense_key != UNIT_ATTENTION)
+			break;
+	}
 	if (ret) {
 		sdev_printk(KERN_WARNING, sdp,
 			    "START_STOP failed for power mode: %d, result %x\n",
