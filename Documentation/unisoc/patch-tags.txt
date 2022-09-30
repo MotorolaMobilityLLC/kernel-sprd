@@ -191,6 +191,7 @@ thermal:sprd:
 time:
 trace:
 trusty:
+tty:
 
 unisoc_platform:
 unisoc_platform:soc:
