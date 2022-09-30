@@ -74,6 +74,14 @@
 					trip = <&cpu_target>;
 					contribution = <1024>;
 					cooling-device =
+					<&cpu0
+						THERMAL_NO_LIMIT
+						THERMAL_NO_LIMIT>;
+				};
+				map1 {
+					trip = <&cpu_target>;
+					contribution = <1024>;
+					cooling-device =
 					<&cluster0_cooling
 						THERMAL_NO_LIMIT
 						THERMAL_NO_LIMIT>;
