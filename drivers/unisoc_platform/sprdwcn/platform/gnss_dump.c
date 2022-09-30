@@ -36,6 +36,8 @@
 #include "gnss_dump.h"
 #include "wcn_gnss_dump.h"
 
+void debug_bus_show(char *show);
+
 #define GNSS_DUMP_END_STRING "gnss_memdump_finish"
 #ifdef CONFIG_WCN_INTEG
 #define GNSS_CP_START_ADDR	0x40A20000
@@ -589,6 +591,7 @@ static int gnss_integrated_dump_mem(void)
 		/*gnss dont dump unless pll switch done*/
 		if (gnss_pll_switch_flag == 0)
 			return ret;
+		debug_bus_show("GNSS DUMP READ DEBUGBUS");
 		gnss_hold_cpu();
 	}
 	ret = gnss_dump_share_memory(GNSS_SHARE_MEMORY_SIZE);

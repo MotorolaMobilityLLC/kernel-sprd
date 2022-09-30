@@ -15,6 +15,7 @@
 #include "../sdio/sdiohal.h"
 #include "wcn_dbg.h"
 #include "wcn_glb.h"
+#include "wcn_debug_bus.h"
 
 static bool from_ddr;
 extern int is_wcn_shutdown;
@@ -650,7 +651,7 @@ static ssize_t debugbus_show(struct device *dev,
 	static int num;
 	ssize_t max_ret = PAGE_SIZE - 4;
 
-	if (len == 0) {
+	if (len == 0 || (from_ddr && s_wcn_device.btwf_device->db_to_ddr_disable)) {
 		WCN_INFO("%s debugbus data not imported\n", __func__);
 		return 0;
 	}
@@ -714,6 +715,16 @@ static ssize_t debugbus_store(struct device *dev,
 /* aiaiai: wcn_sys_show_debugbus to debugbus_show, wcn_sys_store_debugbus to debugbus_store */
 static DEVICE_ATTR_RW(debugbus);
 
+
+static ssize_t debugbus_show_trigger_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	WCN_INFO("%s %s enter\n", buf, __func__);
+
+	debug_bus_show("debugbus_show_trigger_store");
+	return count;
+}
+static DEVICE_ATTR_WO(debugbus_show_trigger);
 /*
  * ud710_3h10:/sys/devices/platform/sprd-marlin3 # ls
  * sleep_state driver driver_override fwlog hw_pg_ver modalias of_node power
@@ -890,6 +901,7 @@ static struct attribute *wcn_attrs[] = {
 	&dev_attr_atcmd.attr,
 	&dev_attr_shutting_down.attr,
 	&dev_attr_debugbus.attr,
+	&dev_attr_debugbus_show_trigger.attr,
 	NULL,
 };
 

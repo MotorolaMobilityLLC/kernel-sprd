@@ -890,28 +890,29 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	wcn_dev->maxsz = res.end - res.start + 1;
 	WCN_INFO("cp base = %llu, size = 0x%x\n",
 		 (u64)wcn_dev->base_addr, wcn_dev->maxsz);
-
 	if (strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0) {
-		index = 1;
-		ret = of_address_to_resource(np, index, &res);
-		if (ret) {
-			WCN_INFO("Use temporary debugbus DDR\n");
-			wcn_dev->dbus.base_addr = DEBUGBUS_TO_DDR_BASE;
+		wcn_dev->db_to_ddr_disable = of_property_read_bool(np,
+				"sprd,debugbus-to-ddr-disable");
+		if (wcn_dev->db_to_ddr_disable == true) {
+			WCN_INFO("Debugbus data does not need to be saved to DDR\n");
+			wcn_dev->dbus.base_addr = 0xffffffff; /* invalid addr */
 			wcn_dev->dbus.maxsz = DEBUGBUS_TO_DDR_LEN;
 		} else {
-			wcn_dev->dbus.base_addr = res.start;
-			wcn_dev->dbus.maxsz = res.end - res.start + 1;
+			index++;
+			ret = of_address_to_resource(np, index, &res);
+			if (ret) {
+				WCN_INFO("Use temporary debugbus DDR\n");
+				wcn_dev->dbus.base_addr = DEBUGBUS_TO_DDR_BASE;
+				wcn_dev->dbus.maxsz = DEBUGBUS_TO_DDR_LEN;
+			} else {
+				wcn_dev->dbus.base_addr = res.start;
+				wcn_dev->dbus.maxsz = res.end - res.start + 1;
+			}
 		}
+		WCN_INFO("index = %d, dbus base = 0x%llx, size = 0x%x\n", index,
+				(u64)wcn_dev->dbus.base_addr, wcn_dev->dbus.maxsz);
 
-		WCN_INFO("dbus base = 0x%llx, size = 0x%x\n",
-			 (u64)wcn_dev->dbus.base_addr, wcn_dev->dbus.maxsz);
-		wcn_dev->dbus.dbus_data_pool = kzalloc(wcn_dev->dbus.maxsz, GFP_KERNEL);
-		if (!wcn_dev->dbus.dbus_data_pool) {
-			WCN_ERR("%s fail to malloc\n", __func__);
-			return -ENOMEM;
-		}
-
-		index = 2;
+		index++;
 		ret = of_address_to_resource(np, index, &res);
 		if (ret) {
 			WCN_INFO("Use temporary debugbus register\n");
@@ -925,7 +926,7 @@ static int wcn_parse_dt(struct platform_device *pdev,
 			wcn_dev->dbus.dbus_reg_base = of_iomap(np, index);
 		}
 
-		WCN_INFO("phy_reg=0x%llx,size=0x%x,map to dbus_reg_base=0x%p\n",
+		WCN_INFO("index = %d, phy_reg=0x%llx,size=0x%x,map to dbus_reg_base=0x%p\n", index,
 			(u64)wcn_dev->dbus.phy_reg, wcn_dev->dbus.dbus_max_offset,
 			wcn_dev->dbus.dbus_reg_base);
 	}
