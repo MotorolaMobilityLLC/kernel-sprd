@@ -148,7 +148,8 @@ static void sprd_write_print_buf(bool console, char *source, int size, int cpu)
 	int log_buf_pos;
 
 	if (!sprd_log_buf[cpu])
-		goto out;
+//		goto out;
+		return;
 
 	log_buf = sprd_log_buf[cpu];
 	log_buf_pos = sprd_log_buf_pos[cpu];
@@ -161,12 +162,13 @@ static void sprd_write_print_buf(bool console, char *source, int size, int cpu)
 		sprd_log_buf_pos[cpu] = log_buf_pos + size - SPRD_PRINT_BUF_LEN;
 		memcpy(log_buf, source, log_buf_pos);
 	}
-
+/*
 out:
 #if IS_ENABLED(CONFIG_SPRD_HANG_DEBUG_UART)
 	if (console)
 		sprd_hangd_console_write(source, size);
 #endif
+*/
 }
 
 static char wdh_tmp_buf[256];
