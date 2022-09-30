@@ -77,11 +77,11 @@
 #define BQ2560X_REG_EN_HIZ_MASK			GENMASK(7, 7)
 #define BQ2560X_REG_EN_HIZ_SHIFT		7
 
-#define BQ2560X_DISABLE_BATFET_RST_MASK         BIT(2)
+#define BQ2560X_DISABLE_BATFET_RST_MASK         GENMASK(2, 2)
 #define BQ2560X_DISABLE_BATFET_RST_SHIFT        2
 
-#define BQ2560X_EN_BATFET_MASK          BIT(5)
-#define BQ2560X_EN_BATFET_SHIFT        5
+#define BQ2560X_EN_BATFET_MASK          	GENMASK(5, 5)
+#define BQ2560X_EN_BATFET_SHIFT        		5
 
 #define BQ2560X_REG_LIMIT_CURRENT_MASK		GENMASK(4, 0)
 
@@ -461,9 +461,9 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "set bq2560x limit current failed\n");
 
-	ret = bq2560x_update_bits(info, BQ2560X_REG_7,
+	/* ret = bq2560x_update_bits(info, BQ2560X_REG_7,
 				  BQ2560X_DISABLE_BATFET_RST_MASK,
-				  0x0 << BQ2560X_DISABLE_BATFET_RST_SHIFT);
+				  0x0 << BQ2560X_DISABLE_BATFET_RST_SHIFT); */
 	if (ret)
 		dev_err(info->dev, "disable batfet_rst_en failed\n");
 
@@ -1328,29 +1328,40 @@ static ssize_t bq2560x_register_batfet_store(struct device *dev,
 	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
 	int ret ;
 	bool batfet;
+	u8 value =0;
 
 	if (!info) {
 		dev_err(dev, "%s bq2560x_sysfs->info is null\n", __func__);
 		return count;
 	}
 
+	dev_err(dev, "%s %s\n", __func__,buf);
 	ret =  kstrtobool(buf, &batfet);
 	if (ret) {
 		dev_err(info->dev, "batfet fail\n");
 		return count;
 	}
+	dev_err(dev, "%s %d\n", __func__,batfet);
 
+	ret = bq2560x_read(info, BQ2560X_REG_7, &value);
+	dev_err(dev, "%s %d\n", __func__,value);
 	if(batfet) {
-		ret = bq2560x_update_bits(info, BQ2560X_REG_7,
+		/* ret = bq2560x_update_bits(info, BQ2560X_REG_7,
 				  BQ2560X_EN_BATFET_SHIFT,
-				  0x1 << BQ2560X_EN_BATFET_SHIFT);
+				  0x1 << BQ2560X_EN_BATFET_SHIFT); */
+		value |= 0x1 << BQ2560X_EN_BATFET_SHIFT;
+		dev_err(dev, "%s %d\n", __func__,value);
+		ret = bq2560x_write(info, BQ2560X_REG_7, value);
 		if (ret)
 			dev_err(info->dev, "enter batfet mode failed\n");
 	}
 	else
 	{
-		ret = bq2560x_update_bits(info, BQ2560X_REG_7,
-				  BQ2560X_EN_BATFET_SHIFT,0);
+		/* ret = bq2560x_update_bits(info, BQ2560X_REG_7,
+				  BQ2560X_EN_BATFET_SHIFT,0); */
+		value &= ~(0x1 << BQ2560X_EN_BATFET_SHIFT);
+		dev_err(dev, "%s %d\n", __func__,value);
+		ret = bq2560x_write(info, BQ2560X_REG_7, value);
 		if (ret)
 			dev_err(info->dev, "exit batfet mode failed\n");
 	}
@@ -1373,7 +1384,9 @@ static ssize_t bq2560x_register_batfet_show(struct device *dev,
 		return snprintf(buf, PAGE_SIZE, "%s bq2560x_sysfs->info is null\n", __func__);
 
 	ret = bq2560x_read(info, BQ2560X_REG_7, &batfet);
+	dev_err(dev, "%s %d\n", __func__,batfet);
 	value = (batfet & BQ2560X_EN_BATFET_MASK) >> BQ2560X_EN_BATFET_SHIFT;
+	dev_err(dev, "%s %d\n", __func__,value);
 	return sprintf(buf, "%d\n", value);
 }
 
