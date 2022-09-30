@@ -770,7 +770,7 @@
 };
 
 &chosen {
-	bootargs_ext = "androidboot.hardware=m170 androidboot.dtbo_idx=0";
+	bootargs_ext = "androidboot.hardware=ums9230_1h10_go androidboot.dtbo_idx=0";
 };
 
 &reserved_memory {
