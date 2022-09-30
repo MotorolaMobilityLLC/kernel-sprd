@@ -178,7 +178,7 @@
 &pmic_fgu {
 	monitored-battery = <&bat>;
 	sprd,calib-resistance-micro-ohms = <4850>;
-	sprd,comp-resistance-mohm = <20>;
+	sprd,comp-resistance-mohm = <11>;
 
 	fgu-capacity-track;
 	phys = <&hsphy>;
