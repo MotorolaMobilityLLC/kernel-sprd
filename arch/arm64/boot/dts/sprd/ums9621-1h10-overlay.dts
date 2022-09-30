@@ -136,7 +136,7 @@
 	status = "disabled";
 };
 
-&vddmodem {
+&vddmm {
 	status = "disabled";
 };
 
@@ -160,7 +160,7 @@
 	regulator-always-on;
 };
 
-&vddmm {
+&vddmodem {
 	regulator-always-on;
 };
 
