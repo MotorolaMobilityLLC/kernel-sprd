@@ -268,67 +268,6 @@ static int sgm41511_set_acovp_threshold(struct sgm41511_charger_info *info, int 
 				    reg_val << REG06_OVP_SHIFT);
 }
 
-static int sgm41511_enable_batfet(struct sgm41511_charger_info *info)
-{
-	const u8 val = REG07_BATFET_ON << REG07_BATFET_DIS_SHIFT;
-
-	return sgm41511_update_bits(info, SGM4151X_REG_07, REG07_BATFET_DIS_MASK, val);
-}
-
-static int sgm41511_disable_batfet(struct sgm41511_charger_info *info)
-{
-	const u8 val = REG07_BATFET_OFF << REG07_BATFET_DIS_SHIFT;
-
-	return sgm41511_update_bits(info, SGM4151X_REG_07, REG07_BATFET_DIS_MASK, val);
-}
-
-static int sgm41511_set_batfet_delay(struct sgm41511_charger_info *info, uint8_t delay)
-{
-	u8 val;
-
-	if (delay == 0)
-		val = REG07_BATFET_DLY_0S;
-	else
-		val = REG07_BATFET_DLY_10S;
-
-	val <<= REG07_BATFET_DLY_SHIFT;
-
-	return sgm41511_update_bits(info, SGM4151X_REG_07, REG07_BATFET_DLY_MASK, val);
-}
-
-static int sgm41511_batfet_rst_en(struct sgm41511_charger_info *info)
-{
-	const u8 val = REG07_BATFET_RST_DISABLE << REG07_BATFET_RST_EN_SHIFT;
-
-	return sgm41511_update_bits(info, SGM4151X_REG_07, REG07_BATFET_RST_EN_MASK, val);
-}
-
-static int sgm41511_batfet_rst_disable(struct sgm41511_charger_info *info)
-{
-	const u8 val = REG07_BATFET_RST_DISABLE << REG07_BATFET_RST_EN_SHIFT;
-
-	return sgm41511_update_bits(info, SGM4151X_REG_07, REG07_BATFET_RST_EN_MASK, val);
-}
-
-static ssize_t sgm41511_store_disable_batfet(struct device *dev,
-					     struct device_attribute *attr,
-					     const char *buf,
-					     size_t count)
-{
-	struct sgm41511_charger_info *info = dev_get_drvdata(dev);
-
-	if (!info) {
-		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
-		return count;
-	}
-
-	sgm41511_set_batfet_delay(info, 1);
-	sgm41511_disable_batfet(info);
-	sgm41511_batfet_rst_disable(info);
-	return count;
-}
-static DEVICE_ATTR(disable_batfet, 0644, NULL, sgm41511_store_disable_batfet);
-
 static int sgm41511_enable_charger(struct sgm41511_charger_info *info)
 {
 	int ret;
@@ -461,9 +400,6 @@ static int sgm41511_charger_hw_init(struct sgm41511_charger_info *info)
 
 		voltage_max_microvolt = bat_info.constant_charge_voltage_max_uv / 1000;
 		sprd_battery_get_battery_info(info->psy_usb, &bat_info);
-		sgm41511_enable_batfet(info);
-		sgm41511_set_batfet_delay(info, 0);
-		sgm41511_batfet_rst_en(info);
 
 		ret = sgm41511_charger_set_safety_cur(info, info->cur.dcp_cur);
 		if (ret) {
@@ -1204,8 +1140,6 @@ static int sgm41511_charger_probe(struct i2c_client *client,
 	struct sgm41511_charger_info *info;
 	struct device_node *regmap_np;
 	struct platform_device *regmap_pdev;
-	struct class *sgm41511_class;
-	struct device *sgm41511_cmd_dev;
 	int ret;
 
 	if (!adapter) {
@@ -1339,17 +1273,6 @@ static int sgm41511_charger_probe(struct i2c_client *client,
 			goto out;
 		}
 	}
-
-	sgm41511_class = class_create(THIS_MODULE, "sgm41511_shipmode");
-	if (IS_ERR(sgm41511_class))
-		dev_err(info->dev, "failed to create class(sgm41511_shipmode)!\n");
-
-	sgm41511_cmd_dev = device_create(sgm41511_class, NULL, 0, NULL, "device");
-	if (IS_ERR(sgm41511_cmd_dev))
-		dev_err(info->dev, "failed to create class(sgm41511_cmd_dev)!\n");
-
-	if (device_create_file(sgm41511_cmd_dev, &dev_attr_disable_batfet) < 0)
-		dev_err(info->dev, "failed to create class(sgm41511_file)!\n");
 
 	mutex_unlock(&info->lock);
 

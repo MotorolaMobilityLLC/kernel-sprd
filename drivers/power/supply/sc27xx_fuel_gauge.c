@@ -487,7 +487,7 @@ static const char * const sc27xx_charger_supply_name[] = {
 	"bq25890_charger",
 	"bq25910_charger",
 	"eta6937_charger",
-	"sgm41511_charger"
+	"sgm41511_charger",
 	"sc2731_charger",
 	"sc2720_charger",
 	"sc2721_charger",
