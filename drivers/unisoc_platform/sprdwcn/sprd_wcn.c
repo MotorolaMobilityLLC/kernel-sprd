@@ -144,6 +144,7 @@ struct wcn_match_data *get_wcn_match_config(void)
 
 	return g_match_data;
 }
+EXPORT_SYMBOL_GPL(get_wcn_match_config);
 
 void module_bus_init(void)
 {

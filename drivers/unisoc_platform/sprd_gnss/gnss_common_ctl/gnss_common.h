@@ -41,6 +41,28 @@ enum wcn_gnss_sub_sys {
 };
 /* gnss defined locally end*/
 
+
+struct wcn_match_data {
+	bool unisoc_wcn_integrated;
+
+	bool unisoc_wcn_sipc;
+	bool unisoc_wcn_pcie;
+	bool unisoc_wcn_usb;
+
+	bool unisoc_wcn_sdio;
+	bool unisoc_wcn_slp;
+
+	bool unisoc_wcn_m3lite; //UMW2652
+	bool unisoc_wcn_m3; //SC2355
+	bool unisoc_wcn_m3e; // UMW2653
+
+	bool unisoc_wcn_swd; // add in dts
+
+	bool unisoc_wcn_marlin_only;
+	bool unisoc_wcn_gnss_only;
+};
+
+
 /* wcn bsp API begin */
 int wcn_write_data_to_phy_addr(phys_addr_t phy_addr, void *src_data, u32 size);
 int wcn_read_data_from_phy_addr(phys_addr_t phy_addr, void *tar_data, u32 size);
@@ -48,6 +70,9 @@ int wcn_read_data_from_phy_addr(phys_addr_t phy_addr, void *tar_data, u32 size);
 u32 wcn_platform_chip_type(void);
 
 phys_addr_t wcn_get_gnss_base_addr(void);
+
+struct wcn_match_data *get_wcn_match_config(void);
+
 /* wcn bsp API end */
 
 #define GNSS_STATUS_OFFSET                 (0x0014F004)
@@ -70,35 +95,61 @@ phys_addr_t wcn_get_gnss_base_addr(void);
 
 /* begin: PMIC configuration for marlin3lite */
 /* sharkl5 sharkl6 */
-#define SC2730_PIN_REG_BASE     0x0480
-#define PTEST0			0x0
-#define PTEST0_MASK		(BIT(4) | BIT(5))
-#define PTEST0_sel(x)		(((x)&0x3)<<4)
+#define PMIC_CHIPID_SC27XX  (0x2730)
+#define PMIC_CHIPID_UMP9622 (0x7522)
 
-#define REGS_ANA_APB_BASE	0x1800
-#define XTL_WAIT_CTRL0		0x378
-#define BIT_XTL_EN		BIT(8)
+#define SC2730_PIN_REG_BASE 0x0480
+#define PTEST0              0x0
+#define PTEST0_MASK         (BIT(4) | BIT(5))
+#define PTEST0_sel(x)       (((x)&0x3)<<4)
 
-#define TSEN_CTRL0		0x334
-#define BIT_TSEN_CLK_SRC_SEL	BIT(4)
-#define BIT_TSEN_ADCLDO_EN	BIT(15)
+#define REGS_ANA_APB_BASE 0x1800
+#define XTL_WAIT_CTRL0    0x378
+#define BIT_XTL_EN        BIT(8)
 
-#define TSEN_CTRL1		 0x338
-#define BIT_TSEN_CLK_EN		BIT(7)
-#define BIT_TSEN_SDADC_EN	BIT(11)
-#define BIT_TSEN_UGBUF_EN	BIT(14)
+#define TSEN_CTRL0           0x334
+#define BIT_TSEN_CLK_SRC_SEL BIT(4)
+#define BIT_TSEN_ADCLDO_EN   BIT(15)
 
-#define TSEN_CTRL2		0x33c
-#define TSEN_CTRL3		0x340
-#define BIT_TSEN_EN		BIT(0)
-#define BIT_TSEN_SEL_EN		BIT(3)
-#define BIT_TSEN_TIME_SEL_MASK  (BIT(4) | BIT(5))
-#define BIT_TSEN_TIME_sel(x)    (((x)&0x3)<<4)
+#define TSEN_CTRL1        0x338
+#define BIT_TSEN_CLK_EN   BIT(7)
+#define BIT_TSEN_SDADC_EN BIT(11)
+#define BIT_TSEN_UGBUF_EN BIT(14)
 
-#define TSEN_CTRL4		0x344
-#define TSEN_CTRL5		0x348
-#define CLK32KLESS_CTRL0	0x368
-#define M26_TSX_32KLESS		0x8010
+#define TSEN_CTRL2             0x33c
+#define TSEN_CTRL3             0x340
+#define BIT_TSEN_EN            BIT(0)
+#define BIT_TSEN_SEL_EN        BIT(3)
+#define BIT_TSEN_TIME_SEL_MASK (BIT(4) | BIT(5))
+#define BIT_TSEN_TIME_sel(x)   (((x)&0x3)<<4)
+
+#define TSEN_CTRL4       0x344
+#define TSEN_CTRL5       0x348
+#define CLK32KLESS_CTRL0 0x368
+#define M26_TSX_32KLESS  0x8010
+
+#define UMP7522_REGS_ANA_APB_BASE    0x2000
+
+#define UMP7522_XTL_WAIT_CTRL0       0x00E0
+#define UMP7522_BIT_XTL_EN           BIT(8)
+
+#define UMP7522_TSEN_CTRL0           0x00F8
+#define UMP7522_BIT_TSEN_CLK_SRC_SEL BIT(4)
+
+#define UMP7522_TSEN_CTRL1          0x00FC
+#define UMP7522_BIT_RG_CLK_26M_TSEN BIT(0)
+#define UMP7522_BIT_TESN_SDADC_EN   BIT(4)
+
+#define UMP7522_TSEN_CTRL3         0x0104
+#define UMP7522_BIT_TESE_ADCLDO_EN BIT(12)
+#define UMP7522_BIT_TSEN_UGBUF_EN  BIT(8)
+#define UMP7522_BIT_TSEN_EN        BIT(4)
+
+#define UMP7522_TSEN_CTRL6      0x0110
+#define UMP7522_BIT_TESN_SEL_EN BIT(6)
+
+#define UMP7522_TSEN_CTRL4 0x0108
+#define UMP7522_TSEN_CTRL5 0x010C
 
 enum{
 	TSEN_EXT,
