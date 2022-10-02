@@ -2220,14 +2220,21 @@ static int musb_schedule(
 	best_diff = 4096;
 	best_end = -1;
 #if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
-	if (musb->is_adaptive_in || musb->is_adaptive_out) {
+	if ((musb->is_adaptive_in && !musb->adaptive_in_configured) ||
+		(musb->is_adaptive_out && !musb->adaptive_out_configured)) {
 		dev_info(musb->controller,"adaptive mode, use fixed hardware EP1.\n");
 		goto adaptive;
 	}
-#endif
+
+	/* For adaptive device used the hardware EP1 */
+	for (epnum = 1, hw_ep = musb->endpoints + 2;
+			epnum < musb->nr_endpoints;
+			epnum++, hw_ep++) {
+#else
 	for (epnum = 1, hw_ep = musb->endpoints + 1;
 			epnum < musb->nr_endpoints;
 			epnum++, hw_ep++) {
+#endif
 		int	diff;
 
 		if (musb_ep_get_qh(hw_ep, is_in) != NULL)
@@ -2327,7 +2334,8 @@ static int musb_schedule(
 adaptive:
 	idle = 1;
 	qh->mux = 0;
-	if (musb->is_adaptive_in || musb->is_adaptive_out) {
+	if ((musb->is_adaptive_in && !musb->adaptive_in_configured) ||
+		(musb->is_adaptive_out && !musb->adaptive_out_configured)) {
 		hw_ep = musb->endpoints + ADAPTIVE_EP_NUM;
 		dev_info(musb->controller,
 			"Musb adaptive mode with fixed EP_%d.\n", hw_ep->epnum);
@@ -2694,12 +2702,12 @@ static void musb_adaptive_enable(struct musb *musb, int dir)
 	else
 		val |= BIT_USB_AUDIO_ADP_MODE |BIT_AWSIZE_ADP_MODE_L;
 	musb_writel(mbase, MUSB_DMA_FRAG_WAIT, val);
-	val  = musb_readl(mbase, MUSB_DMA_FRAG_WAIT);
+	val = musb_readl(mbase, MUSB_DMA_FRAG_WAIT);
 	dev_info(musb->controller, "%s MUSB_DMA_FRAG_WAIT:0x%x\n",
 		__func__, val);
 }
 
-static void musb_adaptive_disable(struct musb *musb)
+static void musb_stop_adaptive_dma(struct musb *musb)
 {
 	u32 val;
 	void __iomem *mbase = musb->mregs;
@@ -2710,6 +2718,12 @@ static void musb_adaptive_disable(struct musb *musb)
 	musb_writel(mbase, MUSB_DMA_FRAG_WAIT, val);
 	dev_info(musb->controller, "%s MUSB_DMA_FRAG_WAIT:0x%x\n",
 		__func__, val);
+}
+
+static void musb_adaptive_disable(struct musb *musb)
+{
+	musb_stop_adaptive_dma(musb);
+
 	musb->is_adaptive = false;
 	musb->is_adaptive_in = false;
 	musb->is_adaptive_out = false;
@@ -2735,9 +2749,6 @@ void musb_adaptive_config(struct usb_hcd *hcd, int ep_num, int mono,
 	u8 bchannel;
 	unsigned long flags;
 
-	if (!is_host_active(musb) || !musb->is_active)
-		return;
-
 	if (ep_num & 0x80) {
 		/* in endpoint */
 		dir = 0;
@@ -2762,10 +2773,11 @@ void musb_adaptive_config(struct usb_hcd *hcd, int ep_num, int mono,
 	spin_unlock_irqrestore(&musb->lock, flags);
 
 	dev_info(musb->controller,
-		"%s:ep:0x%x dir:%s mono:%d pcm:%d width:%d rate:%d adaptive_used:%d,"
-		"is_adaptive_in:%d, is_adaptive_out:%d\n",
-		__func__, ep_num, dir?"out":"in", mono, is_pcm_24, width, rate, adaptive_used,
-		musb->is_adaptive_in, musb->is_adaptive_out);
+		"%s:ep:0x%x dir:%s adaptive_used:%d, ",
+		__func__, ep_num, dir?"out":"in", adaptive_used);
+	dev_info(musb->controller,
+		"is_adaptive_in:%d,is_adaptive_out:%d,musb->adaptive_used:%d.\n",
+		musb->is_adaptive_in, musb->is_adaptive_out, musb->adaptive_used);
 
 	spin_lock_irqsave(&musb->lock, flags);
 
@@ -3006,14 +3018,14 @@ static int musb_urb_enqueue(
 
 #if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
 	if (musb->is_adaptive_in && !musb->adaptive_in_configured) {
-		musb->adaptive_in_configured= true;
+		musb->adaptive_in_configured = true;
 		dev_info(musb->controller,
-			"Musb running at adaptive in mode.\n");
+			"musb adaptive in mode configured.\n");
 		musb_giveback(musb, urb, -ESHUTDOWN);
 	} else if (musb->is_adaptive_out && !musb->adaptive_out_configured) {
-		musb->adaptive_out_configured= true;
+		musb->adaptive_out_configured = true;
 		dev_info(musb->controller,
-			"Musb running at adaptive out mode.\n");
+			"musb adaptive out mode configured.\n");
 		musb_giveback(musb, urb, -ESHUTDOWN);
 	}
 #endif
@@ -3070,6 +3082,26 @@ static int musb_cleanup_urb(struct urb *urb, struct musb_qh *qh)
 		if (is_dma_capable() && dma)
 			musb_platform_clear_ep_rxintr(musb, ep->epnum);
 	} else if (ep->epnum) {
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+		if (musb->adaptive_out_configured) {
+			if (ep->epnum == ADAPTIVE_EP_NUM) {
+				dev_info(musb->controller, "%s: stop adaptive out dma channel.\n",
+					__func__);
+				csr = musb_readw(epio, MUSB_TXCSR);
+				csr &= ~(MUSB_TXCSR_AUTOSET
+					| MUSB_TXCSR_DMAENAB
+					| MUSB_TXCSR_H_RXSTALL
+					| MUSB_TXCSR_H_NAKTIMEOUT
+					| MUSB_TXCSR_H_ERROR
+					| MUSB_TXCSR_TXPKTRDY);
+				musb_writew(epio, MUSB_TXCSR, csr);
+				/* REVISIT may need to clear FLUSHFIFO ... */
+				musb_writew(epio, MUSB_TXCSR, csr);
+				/* flush cpu writebuffer */
+				csr = musb_readw(epio, MUSB_TXCSR);
+			}
+		}
+#endif
 		musb_h_tx_flush_fifo(ep);
 		csr = musb_readw(epio, MUSB_TXCSR);
 		csr &= ~(MUSB_TXCSR_AUTOSET
@@ -3496,7 +3528,7 @@ int musb_host_alloc(struct musb *musb)
 	musb->hops.rx_dma_program = musb_rx_dma_sprd;
 
 #if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
-	musb->is_adaptive_in= false;
+	musb->is_adaptive_in = false;
 	musb->is_adaptive_out = false;
 	musb->adaptive_in_configured = false;
 	musb->adaptive_out_configured = false;

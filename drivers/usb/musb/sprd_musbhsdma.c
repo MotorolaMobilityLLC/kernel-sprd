@@ -118,8 +118,12 @@ static struct dma_channel *sprd_dma_channel_allocate(struct dma_controller *c,
 
 	/* Wait 9 more cycles for ensuring DMA can get USB request length */
 #if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
-	reg = musb_readl(controller->base, MUSB_DMA_FRAG_WAIT);
-	musb_writel(controller->base, MUSB_DMA_FRAG_WAIT, reg|0x8);
+	if ((musb->is_adaptive_in && !musb->adaptive_in_configured) ||
+		(musb->is_adaptive_out && !musb->adaptive_out_configured)) {
+		reg = musb_readl(controller->base, MUSB_DMA_FRAG_WAIT);
+		musb_writel(controller->base, MUSB_DMA_FRAG_WAIT, reg | 0x8);
+	} else
+		musb_writel(controller->base, MUSB_DMA_FRAG_WAIT, 0x8);
 #else
 	musb_writel(controller->base, MUSB_DMA_FRAG_WAIT, 0x8);
 #endif
@@ -159,7 +163,12 @@ static void sprd_configure_channel(struct dma_channel *channel,
 	if (transmit) {
 		/* enable linklist end interrupt */
 		csr = musb_readl(mbase, MUSB_DMA_CHN_INTR(bchannel));
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+		if (!musb->is_adaptive_out)
+			csr |= CHN_LLIST_INT_EN | CHN_CLEAR_INT_EN;
+#else
 		csr |= CHN_LLIST_INT_EN | CHN_CLEAR_INT_EN;
+#endif
 		musb_writel(mbase, MUSB_DMA_CHN_INTR(bchannel), csr);
 
 		/* set linklist pointer */
@@ -205,7 +214,12 @@ static void musb_prepare_node(struct sprd_musb_dma_channel *musb_channel,
 #if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
 	struct sprd_musb_dma_controller *controller = musb_channel->controller;
 	struct musb *musb = controller->private_data;
+
+	if ((musb->is_adaptive_in && !musb->adaptive_in_configured) ||
+		(musb->is_adaptive_out && !musb->adaptive_out_configured))
+		dev_info(musb->controller, "blk_len: %d.\n", len);
 #endif
+
 	musb_channel->free_slot++;
 
 	musb_channel->dma_linklist[index].addr = (unsigned int)dma_addr;
