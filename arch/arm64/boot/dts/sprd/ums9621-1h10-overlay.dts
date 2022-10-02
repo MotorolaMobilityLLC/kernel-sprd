@@ -234,7 +234,7 @@
 		vddcamd-supply = <&vddcamd1>;
 		reset-gpios = <&ap_gpio 40 0>;
 		power-down-gpios = <&ap_gpio 46 0>;
-		sprd,phyid = <2>;/*5*/
+		sprd,phyid = <5>;/*2 for 2p2*/
 		csi = <&csi2>;
 		power-domains = <&mm_domain>;
 	};
