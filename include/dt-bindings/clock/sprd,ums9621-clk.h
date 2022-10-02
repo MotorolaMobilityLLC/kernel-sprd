@@ -419,7 +419,7 @@
 #define CLK_SENSOR0		17
 #define CLK_SENSOR2		18
 #define CLK_SENSOR3		19
-#define CLK_MM_CLK_NUM		(CLK_SENSOR2 + 1)
+#define CLK_MM_CLK_NUM		(CLK_SENSOR3 + 1)
 
 #define CLK_DPU_EB		0
 #define CLK_DSI0_EB		1
