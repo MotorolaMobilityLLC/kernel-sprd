@@ -817,11 +817,14 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 	hba->rpm_lvl = UFS_PM_LVL_1;
 	hba->spm_lvl = UFS_PM_LVL_5;
 	hba->uic_link_state = UIC_LINK_OFF_STATE;
+
+	mdelay(30);
 	return 0;
 }
 
 static int ufs_sprd_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 {
+	udelay(100);
 	return 0;
 }
 
