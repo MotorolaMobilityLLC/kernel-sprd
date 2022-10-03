@@ -168,6 +168,10 @@
 	regulator-always-on;
 };
 
+&vddgpu {
+	regulator-always-on;
+};
+
 &dmabuf {
 	widevine-reserved {
 		label = "uncached_carveout_mm";
