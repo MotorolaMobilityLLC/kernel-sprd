@@ -159,6 +159,7 @@
 
 		sprd,sipa-bypass-mode = <1>;
 		sprd,sipa-sys-eb = <0>;
+		sprd,sipa-cpu-type = <2>;
 
 		fifo-names = "sprd,map0-out", "sprd,map1-out",
 			"sprd,map2-out", "sprd,map3-out",

@@ -159,6 +159,7 @@
 
 		sprd,sipa-bypass-mode = <1>;
 		sprd,sipa-sys-eb = <1>;
+		sprd,sipa-cpu-type = <1>;
 
 		power-domains = <&pd_ipa_sys>;
 
