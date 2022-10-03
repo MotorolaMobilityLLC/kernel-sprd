@@ -5,7 +5,7 @@
 #include <dt-bindings/clock/sprd,ums9621-clk.h>
 #include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
-#include "lcd/lcd_nt36672e_truly_mipi_fhd_bp.dtsi"
+#include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "reserved-memory/ums9621-1h10-overlay.dtsi"
 #include "touchscreen/ums9621-spi1-gpio13-14-tp.dtsi"
