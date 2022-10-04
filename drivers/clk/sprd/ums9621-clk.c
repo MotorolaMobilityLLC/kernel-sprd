@@ -2760,6 +2760,10 @@ static SPRD_SC_GATE_CLK_HW(dpu_ckg_eb, "dpu-ckg-eb", &dpu_vsp_eb.common.hw, 0x0,
 			0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(dpu_busmon_eb, "dpu-busmon-eb", &dpu_vsp_eb.common.hw, 0x0,
 			0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK_HW(dsc0_eb, "dsc0-eb", &dsc0_eb.common.hw, 0x0,
+			0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
+static SPRD_SC_GATE_CLK_HW(dsc1_eb, "dsc1-eb", &dsc1_eb.common.hw, 0x0,
+			0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
 static SPRD_GATE_CLK_HW(m_div6clk_gate_en, "m-div6clk-gate-en", &dpu_vsp_eb.common.hw,
 		     0xb0, BIT(3), CLK_IGNORE_UNUSED, 0);
 static SPRD_GATE_CLK_HW(s_div6clk_gate_en, "s-div6clk-gate-en", &dpu_vsp_eb.common.hw,
@@ -2776,6 +2780,8 @@ static struct sprd_clk_common *ums9621_dpu_vsp_gate[] = {
 	&dpu_dvfs_eb.common,
 	&dpu_ckg_eb.common,
 	&dpu_busmon_eb.common,
+	&dsc0_eb.common,
+	&dsc1_eb.common,
 	&m_div6clk_gate_en.common,
 	&s_div6clk_gate_en.common,
 };
@@ -2791,6 +2797,8 @@ static struct clk_hw_onecell_data ums9621_dpu_vsp_gate_hws = {
 		[CLK_DPU_DVFS_EB]	= &dpu_dvfs_eb.common.hw,
 		[CLK_DPU_CKG_EB]	= &dpu_ckg_eb.common.hw,
 		[CLK_DPU_BUSMON_EB]	= &dpu_busmon_eb.common.hw,
+		[CLK_DSC0_EB]		= &dsc0_eb.common.hw,
+		[CLK_DSC1_EB]		= &dsc1_eb.common.hw,
 		[CLK_M_DIV6CLK_GATE_EN]	= &m_div6clk_gate_en.common.hw,
 		[CLK_S_DIV6CLK_GATE_EN] = &s_div6clk_gate_en.common.hw,
 	},
