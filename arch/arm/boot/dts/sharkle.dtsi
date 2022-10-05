@@ -463,6 +463,7 @@
 				clock-names = "core_clk";
 				usb-phy = <&hsphy>;
 				phy-names = "usb";
+				sprd,usb-data-enable = <1>;
 			};
 
 			hsphy: hsphy@20e00000 {
