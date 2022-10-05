@@ -22,6 +22,7 @@
 #include "ufs-sprd-ioctl.h"
 #include "ufs-sprd-rpmb.h"
 #include "ufs-sprd-bootdevice.h"
+#include "ufs-sprd-debug.h"
 
 static int ufs_efuse_calib_data(struct platform_device *pdev,
 				const char *cell_name)
@@ -692,9 +693,11 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 	}
 }
 
-/* FOR writebooster */
 static int ufs_sprd_device_reset(struct ufs_hba *hba)
 {
+	if (sprd_ufs_debug_is_supported(hba) == TRUE)
+		ufshcd_common_trace(hba, UFS_TRACE_RESET_AND_RESTORE, NULL);
+
 	return 0;
 }
 
@@ -704,15 +707,37 @@ static void ufs_sprd_fixup_dev_quirks(struct ufs_hba *hba)
 	ufshcd_decode_ufs_uid(hba);
 }
 
+static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
+{
+	sprd_ufs_debug_err_dump(hba);
+}
+
+static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
+				 enum ufs_notify_change_status status)
+{
+	int err = 0;
+	struct ufs_clk_dbg clk_tmp = {};
+
+	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
+		clk_tmp.status = status;
+		clk_tmp.on = on;
+		ufshcd_common_trace(hba, UFS_TRACE_CLK_GATE, &clk_tmp);
+	}
+
+	return err;
+}
+
 const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops = {
 	.name = "sprd,ufshc-ums9621",
 	.init = ufs_sprd_init,
 	.exit = ufs_sprd_exit,
 	.get_ufs_hci_version = ufs_sprd_get_ufs_hci_version,
+	.setup_clocks = ufs_sprd_setup_clocks,
 	.hce_enable_notify = ufs_sprd_hce_enable_notify,
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
 	.hibern8_notify = ufs_sprd_hibern8_notify,
 	.fixup_dev_quirks = ufs_sprd_fixup_dev_quirks,
+	.dbg_register_dump = ufs_sprd_dbg_register_dump,
 	.device_reset = ufs_sprd_device_reset,
 };
 EXPORT_SYMBOL(ufs_hba_sprd_ums9621_vops);

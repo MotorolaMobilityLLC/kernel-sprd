@@ -30,6 +30,7 @@ enum ufs_event_list {
 	UFS_TRACE_TM_COMPLETED,
 	UFS_TRACE_UIC_SEND,
 	UFS_TRACE_UIC_CMPL,
+	UFS_TRACE_CLK_GATE,
 
 	UFS_TRACE_RESET_AND_RESTORE,
 	UFS_TRACE_INT_ERROR,
@@ -46,10 +47,15 @@ struct ufs_cmd_info {
 	u32 tag;
 	u32 transfer_len;
 	sector_t lba;
+	bool fua;
 	u64 time_cost;
+	unsigned short cmd_len;
 	char cmnd[UFS_CDB_SIZE];
 	int ocs;
-	struct utp_upiu_rsp rsp;
+	int trans_type;
+	int scsi_stat;
+	int sd_size;
+	char sense_data[UFS_SENSE_SIZE];
 };
 
 struct ufs_devcmd_info {
@@ -80,6 +86,11 @@ struct ufs_int_error {
 	u32 uic_error;
 };
 
+struct ufs_clk_dbg {
+	u32 status;
+	u32 on;
+};
+
 struct ufs_event_info {
 	enum ufs_event_list event;
 	pid_t pid;
@@ -93,6 +104,7 @@ struct ufs_event_info {
 		struct ufs_devcmd_info dmi;
 		struct ufs_tm_cmd_info tmi;
 		struct ufs_int_error ie;
+		struct ufs_clk_dbg cd;
 	} pkg;
 };
 
@@ -111,8 +123,8 @@ do { \
 		pr_info(fmt, ##args); \
 } while (0)
 
-int ufs_sprd_debug_proc_init(struct ufs_hba *hba);
-void ufshcd_update_common_event_trace(struct ufs_hba *hba,
+int ufs_sprd_debug_init(struct ufs_hba *hba);
+void ufshcd_transfer_event_trace(struct ufs_hba *hba,
 				      enum ufs_event_list event, unsigned int tag);
 void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *data);
 bool sprd_ufs_debug_is_supported(struct ufs_hba *hba);
