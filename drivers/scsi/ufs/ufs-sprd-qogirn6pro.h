@@ -117,4 +117,7 @@ struct ufs_sprd_host {
 
 #define UFSHCI_VERSION_30	0x00000300 /* 3.0 */
 
+/* Define debug bus register */
+#define REG_DEBUG_BUS_SYSSEL	0x7800A100
+
 #endif/* _UFS_SPRD_H_ */
