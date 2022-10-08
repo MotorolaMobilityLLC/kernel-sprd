@@ -18,10 +18,11 @@
 #include "../sys/apsys_dvfs_qogirn6lite.h"
 
 static struct ip_dvfs_map_cfg map_table[] = {
-	{0, VOLT60, GSP_CLK_INDEX_307M2, GSP_CLK307M2},
-	{1, VOLT65, GSP_CLK_INDEX_384M, GSP_CLK384M},
-	{2, VOLT70, GSP_CLK_INDEX_512M, GSP_CLK512M},
-	{3, VOLT75, GSP_CLK_INDEX_614M4, GSP_CLK614M4},
+	{0, VOLT60, GSP_CLK_INDEX_256M, GSP_CLK256M},
+	{1, VOLT60, GSP_CLK_INDEX_307M2, GSP_CLK307M2},
+	{2, VOLT65, GSP_CLK_INDEX_384M, GSP_CLK384M},
+	{3, VOLT70, GSP_CLK_INDEX_512M, GSP_CLK512M},
+	{4, VOLT75, GSP_CLK_INDEX_614M4, GSP_CLK614M4},
 };
 
 static void gsp_hw_dfs_en(struct gsp_dvfs *gsp, bool dfs_en)
