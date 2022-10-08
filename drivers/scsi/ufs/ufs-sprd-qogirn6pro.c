@@ -204,6 +204,57 @@ static int ufs_sprd_priv_pre_init(struct device *dev,
 	return ret;
 }
 
+void read_ufs_debug_bus(struct ufs_hba *hba)
+{
+	void __iomem *syssel_reg = NULL;
+	void __iomem *mod_reg = NULL;
+	void __iomem *sig_reg = NULL;
+	void __iomem *data_reg = NULL;
+	u32 sigsel, debugbus_data;
+
+	syssel_reg = ioremap(REG_DEBUG_BUS_SYSSEL, 4);
+	mod_reg = ioremap(REG_DEBUG_BUS_SYSSEL + 0xc, 4);
+	sig_reg = ioremap(REG_DEBUG_BUS_SYSSEL + 0x10, 4);
+	data_reg = ioremap(REG_DEBUG_BUS_SYSSEL + 0x208, 4);
+	if (!syssel_reg || !mod_reg || !sig_reg || !data_reg) {
+		dev_err(hba->dev, "read ufs debug bus io remap failed\n");
+		goto out;
+	}
+
+	/* read aon ufs mphy debugbus */
+	writel(0x6, syssel_reg);
+	writel(0xD, mod_reg);
+	dev_err(hba->dev, "aon ufs mphy debugbus_data as follow(syssel:0x6, mod_reg:0xD):\n");
+	for (sigsel = 0x1; sigsel <= 0x8; sigsel++) {
+		writel(sigsel, sig_reg);
+		debugbus_data = readl(data_reg);
+		dev_err(hba->dev, "sig_sel: 0x%x. debugbus_data: 0x%x\n", sigsel, debugbus_data);
+	}
+	dev_err(hba->dev, "aon ufs mphy debugbus_data end.\n");
+
+	/* read ap ufshcd debugbus */
+	writel(0x0, syssel_reg);
+	writel(0x0, mod_reg);
+	dev_err(hba->dev, "ap ufshcd debugbus_data as follow(syssel:0x0, mod_reg:0x0):\n");
+	for (sigsel = 0x10; sigsel <= 0x12; sigsel++) {
+		writel(sigsel, sig_reg);
+		debugbus_data = readl(data_reg);
+		dev_err(hba->dev, "sig_sel: 0x%x. debugbus_data: 0x%x\n", sigsel, debugbus_data);
+	}
+	for (sigsel = 0x16; sigsel <= 0x18; sigsel++) {
+		writel(sigsel, sig_reg);
+		debugbus_data = readl(data_reg);
+		dev_err(hba->dev, "sig_sel: 0x%x. debugbus_data: 0x%x\n", sigsel, debugbus_data);
+	}
+	dev_err(hba->dev, "ap ufshcd debugbus_data end.\n");
+
+out:
+	iounmap(syssel_reg);
+	iounmap(mod_reg);
+	iounmap(sig_reg);
+	iounmap(data_reg);
+}
+
 static int ufs_sprd_init(struct ufs_hba *hba)
 {
 	struct device *dev = hba->dev;
@@ -737,6 +788,7 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 
 static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
 {
+	read_ufs_debug_bus(hba);
 	sprd_ufs_debug_err_dump(hba);
 }
 

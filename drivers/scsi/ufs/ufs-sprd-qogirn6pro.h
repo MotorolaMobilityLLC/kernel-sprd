@@ -42,4 +42,7 @@ struct ufs_sprd_ums9620_data {
 
 #define VS_MPHYDISABLE		0xD0C1
 
+/* Define debug bus register */
+#define REG_DEBUG_BUS_SYSSEL	0x7800A100
+
 #endif/* _UFS_SPRD_QOGIRN6PRO_H_ */
