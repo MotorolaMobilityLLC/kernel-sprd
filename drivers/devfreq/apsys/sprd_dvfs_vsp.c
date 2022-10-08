@@ -57,7 +57,7 @@ static const struct sprd_vsp_dvfs_data qogirn6lite_vsp_data = {
 
 static const struct sprd_vsp_dvfs_data qogirn6lite_vpuenc_data = {
 	.ver = "vpuenc",
-	.max_freq_level = 4,
+	.max_freq_level = 5,
 	.dvfs_ops = &qogirn6lite_vpuenc_vsp_dvfs_ops,
 };
 
