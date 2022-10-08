@@ -21,6 +21,7 @@
 #define GSP_R9P0_FREQ_307_2M 307200000
 #define GSP_R9P0_FREQ_384M 384000000
 #define GSP_R9P0_FREQ_512M 512000000
+#define GSP_R9P0_FREQ_614_4M 614400000
 
 /*Original: B3B2B1B0*/
 enum gsp_r9p0_word_endian {
@@ -326,6 +327,7 @@ struct drm_gsp_r9p0_cfg_user {
 
 struct gsp_r9p0_capability {
 	struct gsp_capability common;
+	char board[32];
 	/* 1: means 1/16, 64 means 4*/
 	__u32 scale_range_up;
 	/* 1: means 1/16, 64 means 4*/
