@@ -7,6 +7,16 @@
  */
 
 &soc {
+	aon: aon {
+		ap_efuse: efuse@32240000 {
+			compatible = "sprd,ums312-efuse", "sprd,ums512-efuse";
+			reg = <0 0x32240000 0 0x10000>;
+			clock-names = "enable";
+			hwlocks = <&hwlock 8>;
+			clocks = <&aonapb_gate CLK_EFUSE_EB>;
+		};
+	};
+
 	cache_efuse: efuse@800 {
 		compatible = "sprd,ums312-cache-efuse", "sprd,ums512-cache-efuse";
 		#address-cells = <1>;
