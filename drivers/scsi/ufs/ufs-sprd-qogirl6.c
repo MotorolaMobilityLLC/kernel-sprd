@@ -336,15 +336,15 @@ int ufs_sprd_reset(struct ufs_sprd_host *host)
 			  0);
 
 	/* ufs soft reset */
-	ret = reset_control_assert(host->ap_apb_ufs_glb_rst);
+	ret = reset_control_assert(host->ap_apb_ufs_rst);
 	if (ret) {
-		dev_err(host->hba->dev, "assert ufs_glb_rst failed, ret = %d!\n", ret);
+		dev_err(host->hba->dev, "assert ufs_rst failed, ret = %d!\n", ret);
 		goto out;
 	}
 	usleep_range(10, 20);
-	ret = reset_control_deassert(host->ap_apb_ufs_glb_rst);
+	ret = reset_control_deassert(host->ap_apb_ufs_rst);
 	if (ret) {
-		dev_err(host->hba->dev, "deassert ufs_glb_rst failed, ret = %d!\n", ret);
+		dev_err(host->hba->dev, "deassert ufs_rst failed, ret = %d!\n", ret);
 		goto out;
 	}
 
