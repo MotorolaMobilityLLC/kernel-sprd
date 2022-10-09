@@ -70,6 +70,7 @@
 #define SGM41511_ICHG_CURRENT_MAX		3000
 
 #define SGM41511_WAKE_UP_MS			1000
+#define SGM41511_PROBE_TIMEOUT			msecs_to_jiffies(3000)
 
 static bool boot_calibration;
 
@@ -97,6 +98,7 @@ struct sgm41511_charger_info {
 	struct delayed_work otg_work;
 	struct delayed_work wdt_work;
 	struct regmap *pmic;
+	struct completion probe_init;
 	u32 charger_detect;
 	u32 charger_pd;
 	u32 charger_pd_mask;
@@ -110,6 +112,7 @@ struct sgm41511_charger_info {
 	bool otg_enable;
 	bool is_charger_online;
 	bool disable_power_path;
+	bool probe_initialized;
 };
 
 static void power_path_control(struct sgm41511_charger_info *info)
@@ -694,6 +697,21 @@ static int sgm41511_charger_set_status(struct sgm41511_charger_info *info, int v
 	return ret;
 }
 
+static bool sgm41511_probe_is_ready(struct sgm41511_charger_info *info)
+{
+	unsigned long timeout;
+
+	if (unlikely(!info->probe_initialized)) {
+		timeout = wait_for_completion_timeout(&info->probe_init, SGM41511_PROBE_TIMEOUT);
+		if (!timeout) {
+			dev_err(info->dev, "%s wait probe timeout\n", __func__);
+			return false;
+		}
+	}
+
+	return true;
+}
+
 static int sgm41511_charger_usb_get_property(struct power_supply *psy,
 					     enum power_supply_property psp,
 					     union power_supply_propval *val)
@@ -704,6 +722,11 @@ static int sgm41511_charger_usb_get_property(struct power_supply *psy,
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	if (!sgm41511_probe_is_ready(info)) {
+		dev_err(info->dev, "%s wait probe timeout\n", __func__);
 		return -EINVAL;
 	}
 
@@ -792,6 +815,11 @@ static int sgm41511_charger_usb_set_property(struct power_supply *psy,
 			input_vol = 0;
 			dev_err(info->dev, "failed to get charge voltage! ret = %d\n", ret);
 		}
+	}
+
+	if (!sgm41511_probe_is_ready(info)) {
+		dev_err(info->dev, "%s wait probe timeout\n", __func__);
+		return -EINVAL;
 	}
 
 	mutex_lock(&info->lock);
@@ -1002,8 +1030,10 @@ static int sgm41511_charger_enable_otg(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
-	mutex_lock(&info->lock);
-
+	if (!sgm41511_probe_is_ready(info)) {
+		dev_err(info->dev, "%s wait probe timeout\n", __func__);
+		return -EINVAL;
+	}
 	/*
 	 * Disable charger detection function in case
 	 * affecting the OTG timing sequence.
@@ -1012,14 +1042,14 @@ static int sgm41511_charger_enable_otg(struct regulator_dev *dev)
 				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
 	if (ret) {
 		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
-		goto out;
+		return ret;
 	}
 	ret = sgm41511_update_bits(info, SGM4151X_REG_01,
 				   REG01_OTG_CONFIG_MASK, REG01_OTG_ENABLE << REG01_OTG_CONFIG_SHIFT);
 	if (ret) {
 		dev_err(info->dev, "enable sgm41511 otg failed\n");
 		regmap_update_bits(info->pmic, info->charger_detect, BIT_DP_DM_BC_ENB, 0);
-		goto out;
+		return ret;
 	}
 
 	info->otg_enable = true;
@@ -1027,9 +1057,8 @@ static int sgm41511_charger_enable_otg(struct regulator_dev *dev)
 			      msecs_to_jiffies(SGM41511_FEED_WATCHDOG_VALID_MS));
 	schedule_delayed_work(&info->otg_work,
 			      msecs_to_jiffies(SGM41511_OTG_VALID_MS));
+	dev_info(info->dev, "%s:line%d:enable_otg\n", __func__, __LINE__);
 
-out:
-	mutex_unlock(&info->lock);
 	return ret;
 }
 
@@ -1043,7 +1072,11 @@ static int sgm41511_charger_disable_otg(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
-	mutex_lock(&info->lock);
+	if (!sgm41511_probe_is_ready(info)) {
+		dev_err(info->dev, "%s wait probe timeout\n", __func__);
+		return -EINVAL;
+	}
+
 	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
@@ -1053,16 +1086,15 @@ static int sgm41511_charger_disable_otg(struct regulator_dev *dev)
 				   REG01_OTG_DISABLE << REG01_OTG_CONFIG_SHIFT);
 	if (ret) {
 		dev_err(info->dev, "disable sgm41511 otg failed\n");
-		goto out;
+		return ret;
 	}
 
 	/* Enable charger detection function to identify the charger type */
 	ret = regmap_update_bits(info->pmic, info->charger_detect, BIT_DP_DM_BC_ENB, 0);
 	if (ret)
 		dev_err(info->dev, "enable BC1.2 failed\n");
+	dev_info(info->dev, "%s:line%d:disable_otg\n", __func__, __LINE__);
 
-out:
-	mutex_unlock(&info->lock);
 	return ret;
 }
 
@@ -1077,17 +1109,19 @@ static int sgm41511_charger_vbus_is_enabled(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
-	mutex_lock(&info->lock);
+	if (!sgm41511_probe_is_ready(info)) {
+		dev_err(info->dev, "%s wait probe timeout\n", __func__);
+		return -EINVAL;
+	}
+
 	ret = sgm41511_read(info, SGM4151X_REG_01, &val);
 	val &= REG01_OTG_CONFIG_MASK;
 	val = (val >> REG01_OTG_CONFIG_SHIFT) & 0x01;
 	if (ret) {
 		dev_err(info->dev, "failed to get sgm41511 otg status\n");
-		mutex_unlock(&info->lock);
 		return ret;
 	}
 
-	mutex_unlock(&info->lock);
 	return val;
 }
 
@@ -1231,7 +1265,7 @@ static int sgm41511_charger_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 	mutex_init(&info->lock);
-	mutex_lock(&info->lock);
+	init_completion(&info->probe_init);
 
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = dev->of_node;
@@ -1274,12 +1308,12 @@ static int sgm41511_charger_probe(struct i2c_client *client,
 		}
 	}
 
-	mutex_unlock(&info->lock);
+	info->probe_initialized = true;
+	complete_all(&info->probe_init);
 
 	return 0;
 
 out:
-	mutex_unlock(&info->lock);
 	mutex_destroy(&info->lock);
 	return ret;
 }
