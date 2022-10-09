@@ -9,6 +9,7 @@
 #include <linux/kmemleak.h>
 #include <linux/syscore_ops.h>
 
+#include <trace/hooks/cgroup.h>
 #include <trace/hooks/sched.h>
 #include <trace/hooks/topology.h>
 
