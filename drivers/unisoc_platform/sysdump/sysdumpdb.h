@@ -93,8 +93,6 @@ struct minidump_data_desc{
 };
 
 
-#define DEVICE_NAME_YLOG "ylog_buffer"
-#define YLOG_BUF_SIZE (1 * 1024 * 1024)
 #define EXCEPTION_INFO_SIZE_SHORT 256
 #define EXCEPTION_INFO_SIZE_MID 512
 #define EXCEPTION_INFO_SIZE_LONG  0x2000

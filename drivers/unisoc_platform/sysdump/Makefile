@@ -1,6 +1,7 @@
 sysdump-$(CONFIG_SPRD_SYSDUMP) += \
 		unisoc_sysdump.o \
-		unisoc_vmcoreinfo.o
+		unisoc_vmcoreinfo.o \
+		last_kmsg.o
 
 obj-$(CONFIG_SPRD_SYSDUMP) += sysdump.o
 
