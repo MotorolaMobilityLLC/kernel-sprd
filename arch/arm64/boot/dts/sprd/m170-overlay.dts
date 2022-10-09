@@ -112,8 +112,8 @@
 				factory-internal-resistance-micro-ohms = <134000>;
 				voltage-min-design-microvolt = <3450000>;
 				fast-charge-threshold-microvolt = <4100000>;
-				fullbatt-voltage = <4300000>;
-				fullbatt-current = <120000>;
+				fullbatt-voltage = <4428000>;
+				fullbatt-current = <242000>;
 				first-fullbatt-current = <150000>;
 				fullbatt-track-end-vol = <4295000>;
 				fullbatt-track-end-cur = <130000>;
@@ -223,8 +223,8 @@
 				factory-internal-resistance-micro-ohms = <130000>;
 				voltage-min-design-microvolt = <3450000>;
 				fast-charge-threshold-microvolt = <4100000>;
-				fullbatt-voltage = <4300000>;
-				fullbatt-current = <120000>;
+				fullbatt-voltage = <4428000>;
+				fullbatt-current = <242000>;
 				first-fullbatt-current = <150000>;
 				fullbatt-track-end-vol = <4295000>;
 				fullbatt-track-end-cur = <130000>;
@@ -383,8 +383,8 @@
 				cm-wireless-fast-charge-voltage-drop = <1000000>;
 
 				/* sprd_fchg parameter */
-				sprd,support-fchg;
-				sprd,support-pd-pps;
+				//sprd,support-fchg;
+				//sprd,support-pd-pps;
 				sprd,pd-fixed-max-microwatt = <18000000>;
 
 				cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
@@ -394,7 +394,7 @@
 
 				phys = <&hsphy>;
 				extcon = <&pmic_typec>, <&pmic_pd>;
-				pd-extcon-enable;
+				//pd-extcon-enable;
 
 			};
 
@@ -1182,12 +1182,12 @@
 };
 
 &pmic_fchg {
-	status = "okay";
+	status = "disable";
 	sprd,input-voltage-microvolt = <5000000>;
 };
 
 &pmic_pd {
-	status = "okay";
+	status = "disable";
 	usb_con: connector {
 		compatible = "usb-c-connector";
 		label = "USB-C";
