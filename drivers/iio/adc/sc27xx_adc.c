@@ -70,7 +70,6 @@
 
 #define SPRD_ADC_CELL_MAX		(2)
 #define SPRD_ADC_INVALID_DATA		(0XFFFFFFFF)
-#define SPRD_ADC_SCALE_MAX		(4)
 #define SPRD_ADC_INIT_MAGIC		(0xa7a77a7a)
 #define ADC_MESURE_NUMBER_SW		(15)
 #define ADC_MESURE_NUMBER_HW_DEF	(3)/* 2 << 3 = 8 times */
@@ -103,7 +102,7 @@ do {									\
 } while (0)
 
 
-#define SPRD_ADC_CHANNEL(index, mask) {			\
+#define SPRD_ADC_CHANNEL(index, mask) {				\
 	.type = IIO_VOLTAGE,					\
 	.channel = index,					\
 	.info_mask_separate = mask | BIT(IIO_CHAN_INFO_SCALE),	\
@@ -111,16 +110,31 @@ do {									\
 	.indexed = 1,						\
 }
 
-#define CH_DATA_INIT(sl, graph, filter, isen, r0, r1, r2, r3)	\
-{								\
-	.scale = sl,						\
-	.graph_index = graph,					\
-	.isen_info = isen,					\
-	.filter_info = filter,					\
-	.inited = SPRD_ADC_INIT_MAGIC,				\
-	.ratio = {r0, r1, r2, r3},				\
-	.volreq = 0,						\
+#define CH_DATA_INIT(sl, filter, isen, ratio)		\
+{							\
+	.scale = sl,					\
+	.isen_info = isen,				\
+	.filter_info = filter,				\
+	.ip_ratio = ratio,				\
+	.volreq = 0,					\
+	.inited = SPRD_ADC_INIT_MAGIC,			\
 }
+
+#define CALIB_INFO_INIT(ch, sl, gph)	\
+{					\
+	.channel = ch,			\
+	.scale = sl,			\
+	.graph = gph,			\
+	.inited = SPRD_ADC_INIT_MAGIC,	\
+}
+
+#define GRAPH_POINT_INIT(v0, a0, v1, a1)\
+					\
+	.volt0 = v0,			\
+	.adc0 = a0,			\
+	.volt1 = v1,			\
+	.adc1 = a1,			\
+	.inited = SPRD_ADC_INIT_MAGIC
 
 #define REG_BIT_INIT(b_base, reg_address, b_mask, b_offset, func, verse)	\
 {										\
@@ -142,14 +156,25 @@ enum SPRD_PMIC_TYPE {
 };
 
 enum SPRD_ADC_GRAPH_TYPE {
-	ONE_CELL_BIG_GRAPH0,
-	ONE_CELL_SMALL_GRAPH0,
-	ONE_CELL_BIG_GRAPH1,
-	ONE_CELL_SMALL_GRAPH1,
-	TWO_CELL_BIG_GRAPH,
-	TWO_CELL_SMALL_GRAPH,
-	TWO_CELL_VBAT_DET_GRAPH,
+	ONE_CELL_GRAPH0,
+	ONE_CELL_GRAPH1,
+	TWO_CELL_GRAPH,
 	SPRD_ADC_GRAPH_TYPE_MAX
+};
+
+enum SPRD_ADC_GRAPH_OFFSET {
+	GRAPH_BIG,
+	GRAPH_SMALL,
+	GRAPH_VBAT_DET,
+	GRAPH_MAX
+};
+
+enum SPRD_ADC_SCALE {
+	SCALE_00,
+	SCALE_01,
+	SCALE_10,
+	SCALE_11,
+	SPRD_ADC_SCALE_MAX
 };
 
 enum SPRD_ADC_REG_TYPE {
@@ -179,18 +204,27 @@ struct sprd_adc_pm_data {
 };
 
 /*bit[0-7]: scale
- *bit[7-15]: graph_index
+ *bit[7-15]: graph
  *bit[16-23]: filter_info(bit16: sw filter support, bit[17-23]: hw filter val(2<<n))
  *bit[24-31]: isen_info (bit24: isen support, bit[25-32]: isen val)
  */
 struct sprd_adc_channel_data {
 	int scale;
-	int graph_index;
+	int graph;
 	int isen_info;
 	int filter_info;
-	int inited;
-	int ratio[SPRD_ADC_SCALE_MAX];
+	int ip_ratio;
+	int ch_aux_ratio[SPRD_ADC_SCALE_MAX];
 	int volreq; /* use volreq to customerize adc volref, def 2.8v */
+	int inited;
+	bool calib_ch;
+};
+
+struct calib_info {
+	int channel;
+	int scale;
+	int graph;
+	int inited;
 };
 
 struct reg_bit {
@@ -224,7 +258,9 @@ struct sprd_adc_variant_data {
 	const struct reg_bit *const reg_list;
 	const u32 glb_reg_base;
 	const u32 adc_reg_base_offset;
-	const u32 calib_graphs_index[SPRD_ADC_GRAPH_TYPE_MAX];
+	const u32 graph_index;
+	const struct calib_info calib_infos[GRAPH_MAX];
+	const int aux_ratio[SPRD_ADC_SCALE_MAX];
 	void (*const ch_data_init)(struct sprd_adc_data *data);
 };
 
@@ -236,6 +272,11 @@ struct sprd_adc_linear_graph {
 	int adc0;
 	const int volt1;
 	int adc1;
+	const int inited;
+};
+
+struct sprd_adc_graphs {
+	struct sprd_adc_linear_graph adc_graphs[GRAPH_MAX];
 };
 
 static void sprd_adc_calib_with_one_cell(struct sprd_adc_linear_graph *graph);
@@ -254,62 +295,53 @@ static inline u32 GET_REG_ADDR(struct sprd_adc_data *data, int index)
  * should use the small-scale graph, and if more than 1.2v, we should use the
  * big-scale graph.
  */
-static struct sprd_adc_linear_graph sprd_adc_linear_graphs[] = {
-	[ONE_CELL_BIG_GRAPH0] = {/* SC2721_2731 */
-		.cell_names = {"big_scale_calib", NULL},
-		.calibrate = sprd_adc_calib_with_one_cell,
-		.volt0 =  4200,
-		.adc0  =  850,
-		.volt1 =  3600,
-		.adc1  =  728,
+static struct sprd_adc_graphs sprd_adc_graphs_array[] = {
+	[ONE_CELL_GRAPH0] = {/* SC2721_2731 */
+		.adc_graphs = {
+			[GRAPH_BIG] = {
+				.cell_names = {"big_scale_calib", NULL},
+				.calibrate = sprd_adc_calib_with_one_cell,
+				GRAPH_POINT_INIT(4200, 850, 3600, 728),
+			},
+			[GRAPH_SMALL] = {
+				.cell_names = {"small_scale_calib", NULL},
+				.calibrate = sprd_adc_calib_with_one_cell,
+				GRAPH_POINT_INIT(1000, 838, 100, 84),
+			},
+		},
 	},
-	[ONE_CELL_SMALL_GRAPH0] = {/* SC2721_2731 */
-		.cell_names = {"small_scale_calib", NULL},
-		.calibrate = sprd_adc_calib_with_one_cell,
-		.volt0 =  1000,
-		.adc0  =  838,
-		.volt1 =  100,
-		.adc1  =  84,
+	[ONE_CELL_GRAPH1] = {/* SC2720_2730 */
+		.adc_graphs = {
+			[GRAPH_BIG] = {
+				.cell_names = {"big_scale_calib", NULL},
+				.calibrate = sprd_adc_calib_with_one_cell,
+				GRAPH_POINT_INIT(4200, 856, 3600, 733),
+			},
+			[GRAPH_SMALL] = {
+				.cell_names = {"small_scale_calib", NULL},
+				.calibrate = sprd_adc_calib_with_one_cell,
+				GRAPH_POINT_INIT(1000, 833, 100, 80),
+			},
+		},
 	},
-	[ONE_CELL_BIG_GRAPH1] = {/* SC2720_2730 */
-		.cell_names = {"big_scale_calib", NULL},
-		.calibrate = sprd_adc_calib_with_one_cell,
-		.volt0 =  4200,
-		.adc0  =  856,
-		.volt1 =  3600,
-		.adc1  =  733,
-	},
-	[ONE_CELL_SMALL_GRAPH1] = {/* SC2720_2730 */
-		.cell_names = {"small_scale_calib", NULL},
-		.calibrate = sprd_adc_calib_with_one_cell,
-		.volt0 =  1000,
-		.adc0  =  833,
-		.volt1 =  100,
-		.adc1  =  80,
-	},
-	[TWO_CELL_BIG_GRAPH] = {
-		.cell_names = {"big_scale_calib1", "big_scale_calib2", NULL},
-		.calibrate = sprd_adc_calib_with_two_cell,
-		.volt0 =  4200,
-		.adc0  =  3310,
-		.volt1 =  3600,
-		.adc1  =  2832,
-	},
-	[TWO_CELL_SMALL_GRAPH] = {
-		.cell_names = {"small_scale_calib1", "small_scale_calib2", NULL},
-		.calibrate = sprd_adc_calib_with_two_cell,
-		.volt0 =  1000,
-		.adc0  =  3413,
-		.volt1 =  100,
-		.adc1  =  341,
-	},
-	[TWO_CELL_VBAT_DET_GRAPH] = {
-		.cell_names = {"vbat_det_cal1", "vbat_det_cal2", NULL},
-		.calibrate = sprd_adc_calib_with_two_cell,
-		.volt0 =  1400,
-		.adc0  =  3482,
-		.volt1 =  200,
-		.adc1  =  476,
+	[TWO_CELL_GRAPH] = {
+		.adc_graphs = {
+			[GRAPH_BIG] = {
+				.cell_names = {"big_scale_calib1", "big_scale_calib2", NULL},
+				.calibrate = sprd_adc_calib_with_two_cell,
+				GRAPH_POINT_INIT(4200, 3310, 3600, 2832),
+			},
+			[GRAPH_SMALL] = {
+				.cell_names = {"small_scale_calib1", "small_scale_calib2", NULL},
+				.calibrate = sprd_adc_calib_with_two_cell,
+				GRAPH_POINT_INIT(1000, 3413, 100, 341),
+			},
+			[GRAPH_VBAT_DET] = {
+				.cell_names = {"vbat_det_cal1", "vbat_det_cal2", NULL},
+				.calibrate = sprd_adc_calib_with_two_cell,
+				GRAPH_POINT_INIT(1400, 3482, 200, 476),
+			},
+		},
 	},
 };
 
@@ -399,13 +431,18 @@ static const struct iio_chan_spec sprd_channels[] = {
 
 static void sprd_adc_calib_with_one_cell(struct sprd_adc_linear_graph *graph)
 {
-	int calib_data = graph->cell_value[0];
+	int calib_data = graph->cell_value[0], adc0_calib, adc1_calib;
 
 	SPRD_ADC_DBG("calib before: adc0: %d:, adc1:%d, calib_data: %d\n",
 		     graph->adc0, graph->adc1, calib_data);
 
-	graph->adc0 = (((calib_data & 0xff) + graph->adc0 - 128) * 4);
-	graph->adc1 = ((((calib_data >> 8) & 0xff) + graph->adc1 - 128) * 4);
+	adc0_calib = (((calib_data & 0xff) + graph->adc0 - 128) * 4);
+	adc1_calib = ((((calib_data >> 8) & 0xff) + graph->adc1 - 128) * 4);
+
+	if (adc0_calib > 0 && adc1_calib > 0) {
+		graph->adc0 = adc0_calib;
+		graph->adc1 = adc1_calib;
+	}
 
 	SPRD_ADC_DBG("calib aft: adc0: %d:, adc1:%d, calib_data: %d\n",
 		     graph->adc0, graph->adc1, calib_data);
@@ -415,15 +452,123 @@ static void sprd_adc_calib_with_two_cell(struct sprd_adc_linear_graph *graph)
 {
 	int adc_calib_data0 = graph->cell_value[0];
 	int adc_calib_data1 = graph->cell_value[1];
+	int adc0_calib, adc1_calib;
 
 	SPRD_ADC_DBG("calib before: adc0: %d:, adc1:%d, calib_data0: %d, calib_data1: %d\n",
 		     graph->adc0, graph->adc1, adc_calib_data0, adc_calib_data1);
 
-	graph->adc0 = (adc_calib_data0 & 0xfff0) >> 4;
-	graph->adc1 = (adc_calib_data1 & 0xfff0) >> 4;
+	adc0_calib = (adc_calib_data0 & 0xfff0) >> 4;
+	adc1_calib = (adc_calib_data1 & 0xfff0) >> 4;
+
+	if (adc0_calib > 0 && adc1_calib > 0) {
+		graph->adc0 = adc0_calib;
+		graph->adc1 = adc1_calib;
+	}
 
 	SPRD_ADC_DBG("calib aft: adc0: %d:, adc1:%d, calib_data0: %d, calib_data1: %d\n",
 		     graph->adc0, graph->adc1, adc_calib_data0, adc_calib_data1);
+}
+
+static void sprd_adc_calib_ch_data_init(struct sprd_adc_data *data)
+{
+	u64 scale_ratio_d, scale_ratio_n, cscale_ratio_d, cscale_ratio_n, final_ratio;
+	int scale, cscale, calib_index, ch, *ch_aux_ratio;
+	const int *aux_ratio = data->var_data->aux_ratio;
+	const struct calib_info *calib_info;
+
+	for (calib_index = 0; calib_index < GRAPH_MAX; calib_index++) {
+		calib_info = &data->var_data->calib_infos[calib_index];
+		if (calib_info->inited != SPRD_ADC_INIT_MAGIC)
+			continue;
+
+		cscale = calib_info->scale;
+		ch = calib_info->channel;
+		data->ch_data[ch].graph = calib_info->graph;
+		data->ch_data[ch].ch_aux_ratio[cscale] = RATIO(1, 1);
+		data->ch_data[ch].calib_ch = true;
+
+		cscale_ratio_n = aux_ratio[cscale] >> SPRD_RATIO_NUMERATOR_OFFSET;
+		cscale_ratio_d = aux_ratio[cscale] & SPRD_RATIO_DENOMINATOR_MASK;
+
+		for (scale = 0; scale < SPRD_ADC_SCALE_MAX; scale++) {
+			if (scale == cscale)
+				continue;
+			scale_ratio_n = aux_ratio[scale] >> SPRD_RATIO_NUMERATOR_OFFSET;
+			scale_ratio_d = aux_ratio[scale] & SPRD_RATIO_DENOMINATOR_MASK;
+			ch_aux_ratio = data->ch_data[ch].ch_aux_ratio;
+			if (scale > cscale) {
+				final_ratio = (scale_ratio_d * cscale_ratio_n * 1000) /
+					(cscale_ratio_d * scale_ratio_n);
+				ch_aux_ratio[scale] = RATIO(1000, (int)final_ratio);
+			} else {
+				final_ratio = (cscale_ratio_d * scale_ratio_n * 1000) /
+					(scale_ratio_d * cscale_ratio_n);
+				ch_aux_ratio[scale] = RATIO((int)final_ratio, 1000);
+			}
+		}
+	}
+}
+
+static int sprd_adc_calib_index_get(struct sprd_adc_data *data, int graph)
+{
+	int calib_index;
+	const struct calib_info *calib_info;
+
+	for (calib_index = 0; calib_index < GRAPH_MAX; calib_index++) {
+		calib_info = &data->var_data->calib_infos[calib_index];
+		if (calib_info->inited != SPRD_ADC_INIT_MAGIC)
+			continue;
+
+		if (calib_info->graph == graph)
+			return calib_index;
+	}
+
+	return GRAPH_SMALL;
+}
+
+static inline void sprd_adc_ch_data_show(struct sprd_adc_channel_data *ch_data, int ch)
+{
+	SPRD_ADC_DBG("ch%d_d[(%d %d 0x%x 0x%x) | (%d/%d), (%d/%d), (%d/%d), (%d/%d), (%d/%d)]\n",
+		     ch, ch_data->scale, ch_data->graph, ch_data->isen_info, ch_data->filter_info,
+		     (int)(ch_data->ip_ratio >> SPRD_RATIO_NUMERATOR_OFFSET),
+		     (int)(ch_data->ip_ratio & SPRD_RATIO_DENOMINATOR_MASK),
+		     (int)(ch_data->ch_aux_ratio[0] >> SPRD_RATIO_NUMERATOR_OFFSET),
+		     (int)(ch_data->ch_aux_ratio[0] & SPRD_RATIO_DENOMINATOR_MASK),
+		     (int)(ch_data->ch_aux_ratio[1] >> SPRD_RATIO_NUMERATOR_OFFSET),
+		     (int)(ch_data->ch_aux_ratio[1] & SPRD_RATIO_DENOMINATOR_MASK),
+		     (int)(ch_data->ch_aux_ratio[2] >> SPRD_RATIO_NUMERATOR_OFFSET),
+		     (int)(ch_data->ch_aux_ratio[2] & SPRD_RATIO_DENOMINATOR_MASK),
+		     (int)(ch_data->ch_aux_ratio[3] >> SPRD_RATIO_NUMERATOR_OFFSET),
+		     (int)(ch_data->ch_aux_ratio[3] & SPRD_RATIO_DENOMINATOR_MASK));
+}
+
+static void sprd_adc_ch_data_merge(struct sprd_adc_data *data, struct sprd_adc_channel_data *d_diff,
+				   struct sprd_adc_channel_data *d_def)
+{
+	int ch, calib_small_index = sprd_adc_calib_index_get(data, GRAPH_SMALL);
+	const struct calib_info *calib_small = &data->var_data->calib_infos[calib_small_index];
+	struct sprd_adc_channel_data *ch_data;
+	struct sprd_adc_channel_data *ch_data_calib_s = &data->ch_data[calib_small->channel];
+
+	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++) {
+		ch_data = &data->ch_data[ch];
+		*ch_data = ((d_diff[ch].inited == SPRD_ADC_INIT_MAGIC) ? d_diff[ch] : *d_def);
+	}
+
+	sprd_adc_calib_ch_data_init(data);
+	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++) {
+		ch_data = &data->ch_data[ch];
+
+		if (ch_data->calib_ch) {
+			sprd_adc_ch_data_show(ch_data, ch);
+			continue;
+		}
+
+		ch_data->graph = ch_data_calib_s->graph;
+		memcpy(&ch_data->ch_aux_ratio[0], &ch_data_calib_s->ch_aux_ratio[0],
+		       sizeof(int) * SPRD_ADC_SCALE_MAX);
+		sprd_adc_ch_data_show(ch_data, ch);
+	}
 }
 
 static int adc_nvmem_cell_calib_data(struct sprd_adc_data *data, const char *cell_name)
@@ -457,25 +602,38 @@ static int adc_nvmem_cell_calib_data(struct sprd_adc_data *data, const char *cel
 
 static int sprd_adc_graphs_calibrate(struct sprd_adc_data *data)
 {
-	int i, j, index = 0;
-	struct sprd_adc_linear_graph *graphs = sprd_adc_linear_graphs;
+	int i, j;
+	struct sprd_adc_graphs *graphs;
+	struct sprd_adc_linear_graph *linear_graph;
 
-	for (i = 0; data->var_data->calib_graphs_index[i] != SPRD_ADC_INVALID_DATA; i++) {
-		index = data->var_data->calib_graphs_index[i];
-		for (j = 0; graphs[index].cell_names[j] != NULL; j++) {
-			graphs[index].cell_value[j] =
-				adc_nvmem_cell_calib_data(data, graphs[index].cell_names[j]);
-			if (graphs[index].cell_value[j] < 0) {
-				SPRD_ADC_ERR("calib err! %s:%d\n", graphs[index].cell_names[j],
-					     graphs[index].cell_value[j]);
-				return graphs[index].cell_value[j];
+	if (data->var_data->graph_index >= SPRD_ADC_GRAPH_TYPE_MAX)
+		return -1;
+
+	graphs = &sprd_adc_graphs_array[data->var_data->graph_index];
+	for (i = 0; i < GRAPH_MAX; i++) {
+
+		if (graphs->adc_graphs[i].inited != SPRD_ADC_INIT_MAGIC)
+			continue;
+
+		linear_graph = &graphs->adc_graphs[i];
+		for (j = 0; linear_graph->cell_names[j] != NULL; j++) {
+			linear_graph->cell_value[j] =
+				adc_nvmem_cell_calib_data(data, linear_graph->cell_names[j]);
+			if (linear_graph->cell_value[j] < 0) {
+				SPRD_ADC_ERR("calib err! %s:%d\n", linear_graph->cell_names[j],
+					     linear_graph->cell_value[j]);
+				return linear_graph->cell_value[j];
 			}
 		}
 	}
 
-	for (i = 0; data->var_data->calib_graphs_index[i] != SPRD_ADC_INVALID_DATA; i++) {
-		index = data->var_data->calib_graphs_index[i];
-		graphs[index].calibrate(&graphs[index]);
+	for (i = 0; i < GRAPH_MAX; i++) {
+
+		if (graphs->adc_graphs[i].inited != SPRD_ADC_INIT_MAGIC)
+			continue;
+
+		linear_graph = &graphs->adc_graphs[i];
+		linear_graph->calibrate(linear_graph);
 	}
 
 	return 0;
@@ -483,201 +641,98 @@ static int sprd_adc_graphs_calibrate(struct sprd_adc_data *data)
 
 static void sc2720_ch_data_init(struct sprd_adc_data *data)
 {
-	int ch;
-	struct sprd_adc_channel_data ch_data_def =
-		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0,
-			     RATIO(1, 1), RATIO(1000, 1955), RATIO(1000, 2586), RATIO(100, 406));
-
+	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1));
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
-		[1] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0,
-				   RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[5] = CH_DATA_INIT(3, ONE_CELL_BIG_GRAPH1, 0, 0,
-				   RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[7] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				   RATIO(1000, 2586), RATIO(100, 406)),
-		[9] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				   RATIO(1000, 2586), RATIO(100, 406)),
-		[13] = CH_DATA_INIT(1, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				    RATIO(1000, 2586), RATIO(100, 406)),
-		[14] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(68, 900),
-				    RATIO(68, 1760), RATIO(68, 2327), RATIO(68, 3654)),
-		[16] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(48, 100),
-				    RATIO(480, 1955), RATIO(480, 2586), RATIO(48, 406)),
-		[19] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				    RATIO(1000, 2586), RATIO(100, 406)),
-		[21] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
-				    RATIO(375, 2586), RATIO(300, 3248)),
-		[22] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
-				    RATIO(375, 2586), RATIO(300, 3248)),
-		[23] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
-				    RATIO(375, 2586), RATIO(300, 3248)),
-		[30] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				    RATIO(1000, 2586), RATIO(100, 406)),
-		[31] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				    RATIO(1000, 2586), RATIO(100, 406)),
+		[5] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[7] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
+		[9] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
+		[13] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
+		[14] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(68, 900)),
+		[16] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(48, 100)),
+		[19] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[21] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
+		[22] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
+		[23] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
+		[30] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[31] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
 	};
 
-	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++)
-		data->ch_data[ch] = ((ch_data[ch].inited == SPRD_ADC_INIT_MAGIC)
-				     ? ch_data[ch] : ch_data_def);
+	sprd_adc_ch_data_merge(data, ch_data, &ch_data_def);
 }
 
 static void sc2721_ch_data_init(struct sprd_adc_data *data)
 {
-	int ch;
-	struct sprd_adc_channel_data ch_data_def =
-		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0,
-			     RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1));
-
+	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1));
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
-		[2] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
-				   RATIO(400, 1025), RATIO(400, 1025)),
-		[3] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
-				   RATIO(400, 1025), RATIO(400, 1025)),
-		[4] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
-				   RATIO(400, 1025), RATIO(400, 1025)),
-		[5] = CH_DATA_INIT(1, ONE_CELL_BIG_GRAPH0, 0, 0, RATIO(1, 1), RATIO(1, 1),
-				   RATIO(1, 1), RATIO(1, 1)),
-		[7] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(100, 125),
-				   RATIO(100, 125), RATIO(100, 125)),
-		[9] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(100, 125),
-				   RATIO(100, 125), RATIO(100, 125)),
-		[14] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(68, 900), RATIO(68, 900),
-				    RATIO(68, 900), RATIO(68, 900)),
-		[16] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(48, 100), RATIO(48, 100),
-				   RATIO(48, 100), RATIO(48, 100)),
-		[19] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 3), RATIO(1, 3),
-				    RATIO(1, 3), RATIO(1, 3)),
+		[5] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
+		[14] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(68, 900)),
+		[16] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(48, 100)),
+		[19] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 3)),
 	};
 
-	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++)
-		data->ch_data[ch] = ((ch_data[ch].inited == SPRD_ADC_INIT_MAGIC)
-				     ? ch_data[ch] : ch_data_def);
+	sprd_adc_ch_data_merge(data, ch_data, &ch_data_def);
 
 	data->ch_data[30].volreq = data->ch_data[31].volreq = SPRD_ADC_REFVOL_VDD35;
 }
 
 static void sc2730_ch_data_init(struct sprd_adc_data *data)
 {
-	int ch;
-	struct sprd_adc_channel_data ch_data_def =
-		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0,
-			     RATIO(1, 1), RATIO(1000, 1955), RATIO(1000, 2586), RATIO(1000, 4060));
-
+	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1));
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
-		[1] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0,
-				   RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[3] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0x9, RATIO(1, 1),
-				   RATIO(1000, 1955), RATIO(1000, 2586), RATIO(1000, 4060)),
-		[5] = CH_DATA_INIT(3, ONE_CELL_BIG_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1, 1),
-				   RATIO(1, 1), RATIO(1, 1)),
-		[7] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				   RATIO(1000, 2586), RATIO(1000, 4060)),
-		[9] = CH_DATA_INIT(2, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				   RATIO(1000, 2586), RATIO(1000, 4060)),
-		[10] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				    RATIO(1000, 2586), RATIO(1000, 4060)),
-		[13] = CH_DATA_INIT(1, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				    RATIO(1000, 2586), RATIO(1000, 4060)),
-		[14] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(68, 900),
-				    RATIO(68, 1760), RATIO(68, 2327), RATIO(68, 3654)),
-		[15] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 3), RATIO(1000, 5865),
-				    RATIO(500, 3879), RATIO(500, 6090)),
-		[16] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(48, 100),
-				    RATIO(480, 1955), RATIO(480, 2586), RATIO(48, 406)),
-		[19] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				    RATIO(1000, 2586), RATIO(1000, 4060)),
-		[21] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
-				    RATIO(375, 2586), RATIO(300, 3248)),
-		[22] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
-				    RATIO(375, 2586), RATIO(300, 3248)),
-		[23] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(3, 8), RATIO(375, 1955),
-				    RATIO(375, 2586), RATIO(300, 3248)),
-		[30] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				    RATIO(1000, 2586), RATIO(1000, 4060)),
-		[31] = CH_DATA_INIT(3, ONE_CELL_SMALL_GRAPH1, 0, 0, RATIO(1, 1), RATIO(1000, 1955),
-				    RATIO(1000, 2586), RATIO(1000, 4060)),
+		[3] = CH_DATA_INIT(SCALE_00, 0, 0x9, RATIO(1, 1)),
+		[5] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[7] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
+		[9] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
+		[10] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[13] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
+		[14] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(68, 900)),
+		[15] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 3)),
+		[16] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(48, 100)),
+		[19] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[21] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
+		[22] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
+		[23] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
+		[30] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[31] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
 	};
 
-	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++)
-		data->ch_data[ch] = ((ch_data[ch].inited == SPRD_ADC_INIT_MAGIC)
-				     ? ch_data[ch] : ch_data_def);
+	sprd_adc_ch_data_merge(data, ch_data, &ch_data_def);
 }
 
 static void sc2731_ch_data_init(struct sprd_adc_data *data)
 {
-	int ch;
-	struct sprd_adc_channel_data ch_data_def =
-		CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0,
-			     RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1));
-
+	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1));
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
-		[2] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
-				   RATIO(400, 1025), RATIO(400, 1025)),
-		[3] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
-				   RATIO(400, 1025), RATIO(400, 1025)),
-		[4] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(400, 1025),
-				   RATIO(400, 1025), RATIO(400, 1025)),
-		[5] = CH_DATA_INIT(1, ONE_CELL_BIG_GRAPH0, 0, 0, RATIO(1, 1), RATIO(1, 1),
-				   RATIO(1, 1), RATIO(1, 1)),
-		[6] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(375, 9000),
-				   RATIO(375, 9000), RATIO(375, 9000), RATIO(375, 9000)),
-		[7] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(100, 125),
-				   RATIO(100, 125), RATIO(100, 125)),
-		[8] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 1), RATIO(100, 125),
-				   RATIO(100, 125), RATIO(100, 125)),
-		[19] = CH_DATA_INIT(0, ONE_CELL_SMALL_GRAPH0, 0, 0, RATIO(1, 3), RATIO(1, 3),
-				    RATIO(1, 3), RATIO(1, 3)),
+		[5] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
+		[6] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(375, 9000)),
+		[19] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 3)),
 	};
 
-	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++)
-		data->ch_data[ch] = ((ch_data[ch].inited == SPRD_ADC_INIT_MAGIC)
-				     ? ch_data[ch] : ch_data_def);
+	sprd_adc_ch_data_merge(data, ch_data, &ch_data_def);
 }
 
 static void ump9620_ch_data_init(struct sprd_adc_data *data)
 {
-	int ch;
-	struct sprd_adc_channel_data ch_data_def =
-		CH_DATA_INIT(0, TWO_CELL_SMALL_GRAPH, 0, 0,
-			     RATIO(1, 1), RATIO(1000, 1955), RATIO(1000, 2600), RATIO(1000, 4060));
-
+	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1));
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
-		[0] = CH_DATA_INIT(1, TWO_CELL_VBAT_DET_GRAPH, 0, 0,
-				   RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[5] = CH_DATA_INIT(0, TWO_CELL_SMALL_GRAPH, 0, 0x9, RATIO(1, 1),
-				   RATIO(1000, 1955), RATIO(1000, 2600), RATIO(1000, 4060)),
-		[7] = CH_DATA_INIT(2, TWO_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1),
-				   RATIO(1000, 1955), RATIO(1000, 2600), RATIO(1000, 4060)),
-		[9] = CH_DATA_INIT(2, TWO_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1),
-				   RATIO(1000, 1955), RATIO(1000, 2600), RATIO(1000, 4060)),
-		[10] = CH_DATA_INIT(3, TWO_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1),
-				    RATIO(1000, 1955), RATIO(1000, 2600), RATIO(1000, 4060)),
-		[11] = CH_DATA_INIT(0, TWO_CELL_BIG_GRAPH, 0, 0,
-				    RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[13] = CH_DATA_INIT(1, TWO_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1),
-				    RATIO(1000, 1955), RATIO(1000, 2600), RATIO(1000, 4060)),
-		[14] = CH_DATA_INIT(0, TWO_CELL_SMALL_GRAPH, 0, 0,
-				    RATIO(68, 900), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[15] = CH_DATA_INIT(0, TWO_CELL_SMALL_GRAPH, 0, 0,
-				    RATIO(1, 3), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[19] = CH_DATA_INIT(3, TWO_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1),
-				    RATIO(1000, 1955), RATIO(1000, 2600), RATIO(1000, 4060)),
-		[21] = CH_DATA_INIT(0, TWO_CELL_SMALL_GRAPH, 0, 0,
-				    RATIO(3, 8), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[22] = CH_DATA_INIT(0, TWO_CELL_SMALL_GRAPH, 0, 0,
-				    RATIO(3, 8), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[23] = CH_DATA_INIT(0, TWO_CELL_SMALL_GRAPH, 0, 0,
-				    RATIO(3, 8), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)),
-		[30] = CH_DATA_INIT(3, TWO_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1),
-				    RATIO(1000, 1955), RATIO(1000, 2600), RATIO(1000, 4060)),
-		[31] = CH_DATA_INIT(3, TWO_CELL_SMALL_GRAPH, 0, 0, RATIO(1, 1),
-				    RATIO(1000, 1955), RATIO(1000, 2600), RATIO(1000, 4060)),
+		[0] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
+		[5] = CH_DATA_INIT(SCALE_00, 0, 0x9, RATIO(1, 1)),
+		[7] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
+		[9] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
+		[10] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[11] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1)),
+		[13] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
+		[14] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(68, 900)),
+		[15] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 3)),
+		[19] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[21] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
+		[22] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
+		[23] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
+		[30] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[31] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
 	};
 
-	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++)
-		data->ch_data[ch] = ((ch_data[ch].inited == SPRD_ADC_INIT_MAGIC)
-				     ? ch_data[ch] : ch_data_def);
+	sprd_adc_ch_data_merge(data, ch_data, &ch_data_def);
 }
 
 static void sprd_adc_regs_dump(struct sprd_adc_data *data, int channel, int scale)
@@ -924,7 +979,7 @@ static int sprd_adc_read(struct sprd_adc_data *data, int channel, int scale, int
 	}
 
 	SPRD_ADC_DBG("ch_data[%d]: scale %d, graph %d, filter_info 0x%x, isen_info 0x%x\n",
-		     channel, data->ch_data[channel].scale, data->ch_data[channel].graph_index,
+		     channel, data->ch_data[channel].scale, data->ch_data[channel].graph,
 		     data->ch_data[channel].filter_info, data->ch_data[channel].isen_info);
 
 	ret = hwspin_lock_timeout_raw(data->hwlock, SPRD_ADC_HWLOCK_TIMEOUT);
@@ -999,16 +1054,18 @@ static int sprd_adc_calculate_volt_by_graph(struct sprd_adc_data *data, int chan
 					    int scale, int raw_adc)
 {
 	int tmp;
-	int graph_index = data->ch_data[channel].graph_index;
-	struct sprd_adc_linear_graph *graph = &sprd_adc_linear_graphs[graph_index];
+	struct sprd_adc_graphs *graphs = &sprd_adc_graphs_array[data->var_data->graph_index];
+	int graph_offset = data->ch_data[channel].graph;
+	struct sprd_adc_linear_graph *linear_graph = &graphs->adc_graphs[graph_offset];
 
-	tmp = (graph->volt0 - graph->volt1) * (raw_adc - graph->adc1);
-	tmp /= (graph->adc0 - graph->adc1);
-	tmp += graph->volt1;
+	tmp = (linear_graph->volt0 - linear_graph->volt1) * (raw_adc - linear_graph->adc1);
+	tmp /= (linear_graph->adc0 - linear_graph->adc1);
+	tmp += linear_graph->volt1;
 	tmp = (tmp < 0 ? 0 : tmp);
 
 	SPRD_ADC_DBG("by_graph_c%d: v0 %d a0 %d, v1 %d a1 %d, raw_adc 0x%x, vol_graph %d\n",
-		     channel, graph->volt0, graph->adc0, graph->volt1, graph->adc1, raw_adc, tmp);
+		     channel, linear_graph->volt0, linear_graph->adc0, linear_graph->volt1,
+		     linear_graph->adc1, raw_adc, tmp);
 
 	return tmp;
 }
@@ -1016,15 +1073,21 @@ static int sprd_adc_calculate_volt_by_graph(struct sprd_adc_data *data, int chan
 static int sprd_adc_calculate_volt_by_ratio(struct sprd_adc_data *data, int channel,
 					    int scale, int vol_graph)
 {
-	u32 numerator, denominator, ratio, vol_final;
+	u32 nmrtr0, nmrtr1, dmrtr0, dmrtr1, aux_ratio, ip_ratio, vol_final = vol_graph;
+	int pmic_type = data->var_data->pmic_type;
 
-	ratio = data->ch_data[channel].ratio[scale];
-	numerator = ratio >> SPRD_RATIO_NUMERATOR_OFFSET;
-	denominator = ratio & SPRD_RATIO_DENOMINATOR_MASK;
-	vol_final = ((vol_graph * denominator + numerator / 2) / numerator);
+	ip_ratio = data->ch_data[channel].ip_ratio;
+	nmrtr0 = ip_ratio >> SPRD_RATIO_NUMERATOR_OFFSET;
+	dmrtr0 = ip_ratio & SPRD_RATIO_DENOMINATOR_MASK;
+	vol_final = ((vol_final * dmrtr0 + nmrtr0 / 2) / nmrtr0);
 
-	SPRD_ADC_DBG("by_ratio_c%d: type %d, scale %d, nmrtr %d, dmrtr %d, vol_final %d\n",
-		     channel, data->var_data->pmic_type, scale, numerator, denominator, vol_final);
+	aux_ratio = data->ch_data[channel].ch_aux_ratio[scale];
+	nmrtr1 = aux_ratio >> SPRD_RATIO_NUMERATOR_OFFSET;
+	dmrtr1 = aux_ratio & SPRD_RATIO_DENOMINATOR_MASK;
+	vol_final = ((vol_final * dmrtr1 + nmrtr1 / 2) / nmrtr1);
+
+	SPRD_ADC_DBG("by_ratio_c%d: type %d, scale %d, ip_r[%d/%d], aux_r[%d/%d], vol_f %d\n",
+		     channel, pmic_type, scale, nmrtr0, dmrtr0, nmrtr1, dmrtr1, vol_final);
 
 	return vol_final;
 }
@@ -1047,19 +1110,17 @@ static int sprd_adc_read_processed(struct sprd_adc_data *data, int channel, int 
 static int sprd_adc_ch_data_encode(struct sprd_adc_data *data, int ch)
 {
 	int scale = data->ch_data[ch].scale & 0xff;
-	int graph_index = data->ch_data[ch].graph_index & 0xff;
 	int isen_info = data->ch_data[ch].isen_info & 0xff;
 	int filter_info = data->ch_data[ch].filter_info & 0xff;
 
-	return (scale | (graph_index << 8) | (filter_info << 16) | (isen_info << 24));
+	return (scale | (filter_info << 8) | (isen_info << 16));
 }
 
 static void sprd_adc_ch_data_decode(struct sprd_adc_data *data, int ch, int val)
 {
 	data->ch_data[ch].scale = (val & 0xff);
-	data->ch_data[ch].graph_index = ((val >> 8) & 0xff);
-	data->ch_data[ch].filter_info = ((val >> 16) & 0xff);
-	data->ch_data[ch].isen_info = ((val >> 24) & 0xff);
+	data->ch_data[ch].filter_info = ((val >> 8) & 0xff);
+	data->ch_data[ch].isen_info = ((val >> 16) & 0xff);
 }
 
 static int sprd_adc_read_raw(struct iio_dev *indio_dev, struct iio_chan_spec const *chan,
@@ -1368,7 +1429,11 @@ static const struct sprd_adc_variant_data sc2720_data = {
 	.glb_reg_base = 0xc00,
 	.adc_reg_base_offset = 0x4,
 	.reg_list = regs_sc2720,
-	.calib_graphs_index = {ONE_CELL_BIG_GRAPH1, ONE_CELL_SMALL_GRAPH1, SPRD_ADC_INVALID_DATA},
+	.graph_index = ONE_CELL_GRAPH1,
+	.calib_infos = {
+		CALIB_INFO_INIT(5, SCALE_11, GRAPH_BIG),
+		CALIB_INFO_INIT(1, SCALE_00, GRAPH_SMALL)},
+	.aux_ratio = {RATIO(1, 1), RATIO(1000, 1955), RATIO(1000, 2586), RATIO(100, 406)},
 	.ch_data_init = sc2720_ch_data_init,
 };
 
@@ -1377,7 +1442,11 @@ static const struct sprd_adc_variant_data sc2721_data = {
 	.glb_reg_base = 0xc00,
 	.adc_reg_base_offset = 0x0,
 	.reg_list = regs_sc2721,
-	.calib_graphs_index = {ONE_CELL_BIG_GRAPH0, ONE_CELL_SMALL_GRAPH0, SPRD_ADC_INVALID_DATA},
+	.graph_index = ONE_CELL_GRAPH0,
+	.calib_infos = {
+		CALIB_INFO_INIT(5, SCALE_01, GRAPH_BIG),
+		CALIB_INFO_INIT(1, SCALE_00, GRAPH_SMALL)},
+	.aux_ratio = {RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)},
 	.ch_data_init = sc2721_ch_data_init,
 };
 
@@ -1386,7 +1455,11 @@ static const struct sprd_adc_variant_data sc2730_data = {
 	.glb_reg_base = 0x1800,
 	.adc_reg_base_offset = 0x4,
 	.reg_list = regs_sc2730,
-	.calib_graphs_index = {ONE_CELL_BIG_GRAPH1, ONE_CELL_SMALL_GRAPH1, SPRD_ADC_INVALID_DATA},
+	.graph_index = ONE_CELL_GRAPH1,
+	.calib_infos = {
+		CALIB_INFO_INIT(5, SCALE_11, GRAPH_BIG),
+		CALIB_INFO_INIT(1, SCALE_00, GRAPH_SMALL)},
+	.aux_ratio = {RATIO(1, 1), RATIO(1000, 1955), RATIO(1000, 2586), RATIO(1000, 4060)},
 	.ch_data_init = sc2730_ch_data_init,
 };
 
@@ -1395,7 +1468,11 @@ static const struct sprd_adc_variant_data sc2731_data = {
 	.glb_reg_base = 0xc00,
 	.adc_reg_base_offset = 0x0,
 	.reg_list = regs_sc2731,
-	.calib_graphs_index = {ONE_CELL_BIG_GRAPH0, ONE_CELL_SMALL_GRAPH0, SPRD_ADC_INVALID_DATA},
+	.graph_index = ONE_CELL_GRAPH0,
+	.calib_infos = {
+		CALIB_INFO_INIT(5, SCALE_01, GRAPH_BIG),
+		CALIB_INFO_INIT(1, SCALE_00, GRAPH_SMALL)},
+	.aux_ratio = {RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)},
 	.ch_data_init = sc2731_ch_data_init,
 };
 
@@ -1404,8 +1481,12 @@ static const struct sprd_adc_variant_data ump9620_data = {
 	.glb_reg_base = 0x2000,
 	.adc_reg_base_offset = 0x4,
 	.reg_list = regs_ump9620,
-	.calib_graphs_index = {TWO_CELL_BIG_GRAPH, TWO_CELL_SMALL_GRAPH, TWO_CELL_VBAT_DET_GRAPH,
-			       SPRD_ADC_INVALID_DATA},
+	.graph_index = TWO_CELL_GRAPH,
+	.calib_infos = {
+		CALIB_INFO_INIT(11, SCALE_00, GRAPH_BIG),
+		CALIB_INFO_INIT(1, SCALE_00, GRAPH_SMALL),
+		CALIB_INFO_INIT(0, SCALE_01, GRAPH_VBAT_DET)},
+	.aux_ratio = {RATIO(1, 1), RATIO(100, 133), RATIO(1000, 2600), RATIO(1000, 4060)},
 	.ch_data_init = ump9620_ch_data_init,
 };
 
