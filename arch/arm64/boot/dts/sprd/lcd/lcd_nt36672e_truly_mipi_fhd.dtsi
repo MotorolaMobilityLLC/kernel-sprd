@@ -15,6 +15,9 @@
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
 
+					sprd,vrr-enabled;
+					sprd,vrr-max-layers = <2>;
+
 					sprd,slice-width = <540>;
 					sprd,slice-height = <8>;
 					sprd,output-bpc = <8>;
