@@ -91,9 +91,93 @@ struct dvfs_data {
 	struct completion reg_callback_done;
 	struct governor_callback *gov_callback;
 	unsigned int init_done;
+	struct mutex dfs_step_mutex;
 };
 static struct dvfs_data *g_dvfs_data;
 static char *default_governor = "sprd-governor";
+
+struct ddr_dfs_step_list_t *ddr_cur_step_g;
+struct ddr_dfs_step_list_t *ddr_dfs_step_s;
+struct ddr_dfs_step_list_t ddr_step_arr[DDR_DB_NODE_NUM] = {0};
+
+struct ddr_dfs_step_list_t *ddr_step_list_init(struct ddr_dfs_step_list_t ddr_step_arr[],
+					       u32 node_num)
+{
+	u32 i = 0;
+	struct ddr_dfs_step_list_t *head = ddr_step_arr;
+	struct ddr_dfs_step_list_t *p = head;
+
+	for (i = 1; i < node_num; i++) {
+		p->next = ddr_step_arr+i;
+		p = p->next;
+	}
+	p->next = head;
+	return p;
+}
+
+void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene, u32 buff, int pid)
+{
+	mutex_lock(&g_dvfs_data->dfs_step_mutex);
+	ddr_cur_step_g = ddr_cur_step_g->next;
+
+	ddr_cur_step_g->data.step = cur_step;
+	ddr_cur_step_g->data.status = status;
+
+	memset(ddr_cur_step_g->data.scene, 0, sizeof(ddr_cur_step_g->data.scene));
+	if (scene != NULL)
+		memcpy(ddr_cur_step_g->data.scene, scene, buff);
+
+	ddr_cur_step_g->data.buff = buff;
+	ddr_cur_step_g->data.pid = pid;
+	mutex_unlock(&g_dvfs_data->dfs_step_mutex);
+}
+
+static int ddrinfo_dfs_step_show(char **arg, char **step_status, char **scene,
+				 u32 *buff, int *pid, u32 i)
+{
+	if (i == 0)
+		ddr_dfs_step_s = ddr_cur_step_g;
+
+	ddr_dfs_step_s = ddr_dfs_step_s->next;
+	*scene = NULL;
+
+	switch (ddr_dfs_step_s->data.step) {
+	case 1:
+		*arg = "scenario_dfs_enter";
+		*scene = ddr_dfs_step_s->data.scene;
+		break;
+	case 2:
+		*arg = "exit_scene";
+		*scene = ddr_dfs_step_s->data.scene;
+		break;
+	case 3:
+		*arg = "auto_dfs_on_off";
+		break;
+	case 4:
+		*arg = "scaling_force_ddr_freq";
+		break;
+	case 5:
+		*arg = "scene_boost_enter";
+		break;
+	case 6:
+		*arg = "set_backdoor";
+		break;
+	default:
+		*arg = "NONE_STEP";
+		break;
+	}
+	if (ddr_dfs_step_s->data.status == 0)
+		*step_status = "pass";
+	else
+		*step_status = "fail";
+	*buff = ddr_dfs_step_s->data.buff;
+	*pid = ddr_dfs_step_s->data.pid;
+
+	if (i >= DDR_DB_NODE_NUM - 1)
+		return 1;
+	else
+		return 0;
+}
 
 static int dvfs_msg_recv(struct smsg *msg, int timeout)
 {
@@ -448,6 +532,8 @@ struct governor_callback g_gov_callback = {
 	.dvfs_auto_disable = dvfs_auto_disable,
 	.get_cur_freq = get_cur_freq,
 	.get_freq_table = get_freq_table,
+	.ddrinfo_dfs_step_show = ddrinfo_dfs_step_show,
+	.ddr_dfs_step_add = ddr_dfs_step_add,
 };
 
 static int dvfs_freq_target(struct device *dev, unsigned long *freq,
@@ -651,6 +737,9 @@ int dvfs_core_init(struct platform_device *pdev)
 	mutex_init(&g_dvfs_data->sync_mutex);
 	init_completion(&g_dvfs_data->reg_callback_done);
 	g_dvfs_data->gov_callback = &g_gov_callback;
+
+	mutex_init(&g_dvfs_data->dfs_step_mutex);
+	ddr_cur_step_g = ddr_step_list_init(ddr_step_arr, DDR_DB_NODE_NUM);
 
 	for (i = 0; i < g_dvfs_data->freq_num; i++) {
 		err = of_property_read_u32_index(node, "overflow",

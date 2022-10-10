@@ -13,6 +13,29 @@ struct dvfs_hw_callback {
 				      unsigned int *flag, int index);
 };
 
+enum DDR_DFS_STATE_STEP {
+	scenario_dfs_enter = 1,
+	exit_scene,
+	auto_dfs_on_off,
+	scaling_force_ddr_freq,
+	scene_boost_enter,
+	set_backdoor,
+};
+
+#define DDR_DB_NODE_NUM 50
+struct DDR_DFS_STEP_T {
+	enum DDR_DFS_STATE_STEP step;
+	int status;
+	u32 buff;
+	char scene[25];
+	int pid;
+};
+
+struct ddr_dfs_step_list_t {
+	struct ddr_dfs_step_list_t *next;
+	struct DDR_DFS_STEP_T data;
+};
+
 struct governor_callback {
 	int (*governor_vote)(const char *name);
 	int (*governor_unvote)(const char *name);
@@ -31,6 +54,10 @@ struct governor_callback {
 	int (*dvfs_auto_disable)(void);
 	int (*get_cur_freq)(unsigned int *data);
 	int (*get_freq_table)(unsigned long *data, unsigned int sel);
+	int (*ddrinfo_dfs_step_show)(char **arg, char **step_status,
+				     char **scene, u32 *buff, int *pid, u32 i);
+	void (*ddr_dfs_step_add)(enum DDR_DFS_STATE_STEP cur_step, int status,
+				 char *scene, u32 buff, int pid);
 };
 
 /*functions supportd by dvfs core to specific drivers*/
