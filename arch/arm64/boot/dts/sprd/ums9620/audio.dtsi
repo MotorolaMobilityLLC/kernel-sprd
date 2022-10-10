@@ -2,8 +2,8 @@
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 
 / {
-	audcp_iram_reserved: audcp-iram@a400 {
-		reg = <0x0 0xa400 0x0 0x1000>;
+	audcp_iram_reserved: audcp-iram@65006400 {
+		reg = <0x0 0x65006400 0x0 0x1000>;
 	};
 
 	sprd_pcm: sprd-pcm-audio {
