@@ -19,6 +19,7 @@
 #include <linux/device.h>
 #include <asm/pgalloc.h>
 #include <linux/init.h>
+#include <linux/kprobes.h>
 #include "sprd_past_record.h"
 
 int serror_debug_status;
@@ -33,6 +34,50 @@ EXPORT_SYMBOL(sprd_past_reg_record);
 #define SPRD_DS_DDR_TEST_FEATURE_CHAR 0xf0
 u8 *sprd_ds_ddr_test_array;
 #endif
+
+static struct kprobe past_do_serror_kp = {
+	.symbol_name	= "do_serror",
+};
+
+static struct kprobe past_panic_kp = {
+	.symbol_name	= "panic",
+};
+
+static int __kprobes past_do_serror_handler_pre(struct kprobe *p, struct pt_regs *regs)
+{
+#ifdef CONFIG_ARM64
+	pr_info("<%s> p->addr = 0x%p, x0 = 0x%lx, x1 = 0x%08lx\n",
+		p->symbol_name, p->addr, (long)regs->regs[0], (long)regs->regs[1]);
+	serror_debug_status = 0;
+	pr_info("sprd_serror_debug: do_serror hook handler");
+#endif
+#ifdef CONFIG_ARM
+	pr_info("<%s> p->addr = 0x%p, pc = 0x%lx, cpsr = 0x%lx\n",
+		p->symbol_name, p->addr, (long)regs->ARM_pc, (long)regs->ARM_cpsr);
+	serror_debug_status = 0;
+	pr_info("sprd_serror_debug: do_serror hook");
+#endif
+
+	return 0;
+}
+
+static int __kprobes past_panic_handler_pre(struct kprobe *p, struct pt_regs *regs)
+{
+#ifdef CONFIG_ARM64
+	pr_info("<%s> p->addr = 0x%p, pc = 0x%lx, pstate = 0x%lx\n",
+		p->symbol_name, p->addr, (long)regs->pc, (long)regs->pstate);
+	serror_debug_status = 0;
+	pr_info("sprd_serror_debug: panic hook handler");
+#endif
+#ifdef CONFIG_ARM
+	pr_info("<%s> p->addr = 0x%p, pc = 0x%lx, cpsr = 0x%lx\n",
+		p->symbol_name, p->addr, (long)regs->ARM_pc, (long)regs->ARM_cpsr);
+	serror_debug_status = 0;
+	pr_info("sprd_serror_debug: panic hook");
+#endif
+
+	return 0;
+}
 
 unsigned long sprd_debug_virt_to_phys(void __iomem *addr)
 {
@@ -233,6 +278,21 @@ static void sprd_debug_deep_sleep_tracing_free(void)
 static __init int past_record_sysctl_init(void)
 {
 	struct proc_dir_entry *serror_proc;
+	int ret;
+
+	past_do_serror_kp.pre_handler = past_do_serror_handler_pre;
+	pr_debug("sprd_serror_debug:do_serror hook start");
+	ret = register_kprobe(&past_do_serror_kp);
+	if (ret < 0)
+		pr_err("register do_serror kprobe failed, returned %d\n", ret);
+
+	past_panic_kp.pre_handler = past_panic_handler_pre;
+	pr_debug("sprd_serror_debug:panic hook start");
+	ret = register_kprobe(&past_panic_kp);
+	if (ret < 0) {
+		pr_err("register panic kprobe failed, returned %d\n", ret);
+		return ret;
+	}
 
 	serror_proc = proc_create("sprd_serror_debug", 0660, NULL, &serror_proc_fops);
 	if (!serror_proc)
@@ -253,6 +313,8 @@ static __init int past_record_sysctl_init(void)
 
 static __exit void past_record_sysctl_exit(void)
 {
+	unregister_kprobe(&past_do_serror_kp);
+	unregister_kprobe(&past_panic_kp);
 	remove_proc_entry("sprd_serror_debug", NULL);
 	sprd_debug_past_record_free();
 #if IS_ENABLED(CONFIG_ENABLE_SPRD_DEEP_SLEEP_TRACING)
