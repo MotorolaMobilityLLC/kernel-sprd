@@ -502,8 +502,6 @@ bool sfp_ipa_tbl_timeout(struct sfp_conn *sfp_ct)
 {
 	u32 ts, ts_orig_new, ts_repl_new;
 
-	if (TCP_CT(sfp_ct))
-		return false;
 #if IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
 	/* before we read timestamp,
 	 * we need to flush ipa cache back to ddr,
