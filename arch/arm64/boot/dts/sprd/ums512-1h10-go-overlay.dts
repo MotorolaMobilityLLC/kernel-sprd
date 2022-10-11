@@ -4,6 +4,7 @@
 #include <dt-bindings/clock/sprd,ums512-clk.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include "lcd/lcd_dummy_mipi.dtsi"
 #include "reserved-memory/ums512-1h10-go-overlay.dtsi"
 #include "battery/ums512-1h10-go-overlay.dtsi"
 #include "touchscreen/ums512-i2c3-gpio144-145-tp.dtsi"
@@ -24,6 +25,12 @@
 				compatible = "sprd,dtbo-test";
 				reg = <0x0 0x0 0x0 0x11>;
 			};
+
+			fingerprint@0 {
+				compatible = "microarray,afs121";
+				fpint-gpios = <&eic_async 13 0>;
+			};
+
 		};
 	};
 
