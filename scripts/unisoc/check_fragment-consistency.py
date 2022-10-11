@@ -19,6 +19,7 @@ ret = 0
 check_flag = 0
 
 config_whitelist=["CONFIG_ARCH_SPRD","CONFIG_WCN_BOOT","CONFIG_SC23XX","CONFIG_DYNAMIC_DEBUG","CONFIG_SPRD_HANG_DEBUG"]
+config_noeffect_gki=["CONFIG_MODULE_SIG_ALL"]
 
 def read_file(file_path, list_info):
 
@@ -81,7 +82,7 @@ def check_fragment_gki_config_consistency(fragment_gki_info, fragment_soc_info,c
                         print >> sys.stderr, "ERROR: " + config + " isn't the subset of sprd_gki.fragment soc"
                         check_flag = 1
                 elif fragment_soc_info[soc][config] == "n":
-                    if ( config in gki_config_info and gki_config_info[config] != "n" ) and ( config in gki_config_info and gki_config_info[config] != "m" ):
+                    if ( config in gki_config_info and gki_config_info[config] != "n" ) and ( config in gki_config_info and gki_config_info[config] != "m" ) and ( config not in config_noeffect_gki ) :
                         print >> sys.stderr, "ERROR: " + config + " should not be modify(gki_defconfig is defined " + gki_config_info[config] + " )!!!"
                         check_flag = 1
         print >> sys.stderr, "=========================== %s =========================" % soc
