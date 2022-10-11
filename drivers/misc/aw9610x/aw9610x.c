@@ -380,7 +380,6 @@ static int32_t aw9610x_filedata_deal(struct aw9610x *aw9610x)
 
 	return 0;
 }
-*/
 static int32_t
 aw9610x_store_spedata_to_file(struct aw9610x *aw9610x, char *buf)
 {
@@ -413,6 +412,7 @@ aw9610x_store_spedata_to_file(struct aw9610x *aw9610x, char *buf)
 	return 0;
 }
 
+*/
 /******************************************************
  *
  *configuration of special reg
@@ -482,12 +482,13 @@ static void aw9610x_get_calidata(struct aw9610x *aw9610x)
 		memcpy(buf + buf_size, temp_buf, strlen(temp_buf));
 		buf_size = strlen(buf);
 	}
+/*
 	ret = aw9610x_store_spedata_to_file(aw9610x, buf);
 	if (ret < 0) {
 		AWLOGE(aw9610x->dev, "store spedata failed");
 		return;
 	}
-
+*/
 	AWLOGD(aw9610x->dev, "successfully write_spereg_to_file");
 }
 /*
