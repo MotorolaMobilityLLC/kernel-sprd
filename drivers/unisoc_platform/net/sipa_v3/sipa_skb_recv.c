@@ -199,6 +199,12 @@ static void sipa_prepare_free_node(struct sipa_skb_receiver *receiver, u32 chan)
 			}
 
 			skb = build_skb(virt, SIPA_RECV_BUF_LEN);
+			if (!skb) {
+				dev_err(receiver->dev, "%s build skb fail!\n", __func__);
+				i--;
+				continue;
+			}
+
 			page_ref_inc(skb_mem->page);
 			sipa_put_recv_array_node(fill_arrays, skb,
 						 dma_addr, false);
@@ -276,6 +282,11 @@ static void sipa_fill_free_fifo_node(struct sipa_skb_receiver *receiver,
 			skb = build_skb((void *)(skb_mem->virt +
 						 j * SIPA_RECV_BUF_LEN),
 					SIPA_RECV_BUF_LEN);
+			if (!skb) {
+				dev_err(receiver->dev, "%s build skb fail\n", __func__);
+				break;
+			}
+
 			page_ref_inc(skb_mem->page);
 			dma_addr = skb_mem->dma_addr + j * SIPA_RECV_BUF_LEN;
 			if (!dma_addr) {
@@ -458,6 +469,11 @@ static int sipa_fill_remaining_node(struct sipa_skb_receiver *receiver,
 		skb = build_skb((void *)(skb_mem->virt +
 					 i * SIPA_RECV_BUF_LEN),
 				SIPA_RECV_BUF_LEN);
+		if (!skb) {
+			dev_err(receiver->dev, "%s build skb fail\n", __func__);
+			break;
+		}
+
 		page_ref_inc(skb_mem->page);
 		dma_addr = skb_mem->dma_addr + i * SIPA_RECV_BUF_LEN;
 		if (!dma_addr) {
