@@ -236,8 +236,7 @@
 &sprd_headset {
 	status = "okay";
 	extcon = <&pmic_typec>;
-	mic-gpios = <&ap_gpio 62 GPIO_ACTIVE_HIGH>;
-	lr-gpios = <&ap_gpio 61 GPIO_ACTIVE_HIGH>;
+	typec-i2c = <1>;
 	sprd,3pole-adc-threshold = <112>;
 	nvmem-cells = <&headset_adc_fir_1>, <&headset_adc_fir_2>,<&headset_adc_sec>;
 	nvmem-cell-names = "hp_adc_fir_calib_1","hp_adc_fir_calib_2", "hp_adc_sec_calib";
