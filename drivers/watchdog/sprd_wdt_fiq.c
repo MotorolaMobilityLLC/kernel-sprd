@@ -86,23 +86,10 @@ struct sprd_wdt_fiq {
 	struct mutex *lock;
 	struct alarm sleep_tmr;
 	bool sleep_en;
-	const struct sprd_wdt_fiq_data *data;
-};
-
-struct sprd_wdt_fiq_data {
-	bool eb_always_on;
 };
 
 static DEFINE_MUTEX(sprd_wdt_mutex);
 struct sprd_wdt_fiq *wdt_fiq;
-
-static struct sprd_wdt_fiq_data sprd_wdt_fiq_common = {
-	.eb_always_on = false,
-};
-
-static struct sprd_wdt_fiq_data sprd_wdt_fiq_sharkl3 = {
-	.eb_always_on = true,
-};
 
 static bool sprd_dswdt_fiq_en(void)
 {
@@ -354,17 +341,9 @@ int sprd_wdt_fiq_syscore_suspend(void)
 		return -ENODEV;
 
 	if (wdt_fiq->sleep_en) {
-		if (watchdog_active(&wdt_fiq->wdd)) {
-			sprd_wdt_fiq_load_value(wdt_fiq, SPRD_WDT_SLEEP_TIMEOUT, SPRD_WDT_SLEEP_PRETIMEOUT);
-		} else {
-			sprd_wdt_fiq_disable(wdt_fiq);
-		}
-	} else {
 		if (watchdog_active(&wdt_fiq->wdd))
-			sprd_wdt_fiq_stop(&wdt_fiq->wdd);
-
-		if (!wdt_fiq->data->eb_always_on)
-			sprd_wdt_fiq_disable(wdt_fiq);
+			sprd_wdt_fiq_load_value(wdt_fiq, SPRD_WDT_SLEEP_TIMEOUT,
+						SPRD_WDT_SLEEP_PRETIMEOUT);
 	}
 #endif
 	return 0;
@@ -391,13 +370,8 @@ void sprd_wdt_fiq_syscore_resume(void)
 			return;
 	}
 
-	if (watchdog_active(&wdt_fiq->wdd)) {
+	if (watchdog_active(&wdt_fiq->wdd))
 		ret = sprd_wdt_fiq_start(&wdt_fiq->wdd);
-		if (ret) {
-			sprd_wdt_fiq_disable(wdt_fiq);
-			return;
-		}
-	}
 #endif
 }
 EXPORT_SYMBOL(sprd_wdt_fiq_syscore_resume);
@@ -469,12 +443,6 @@ static int sprd_wdt_fiq_probe(struct platform_device *pdev)
 	if (!wdt)
 		return -ENOMEM;
 
-	wdt->data = of_device_get_match_data(&pdev->dev);
-	if (!wdt->data) {
-		dev_err(&pdev->dev, "can not get private data!\n");
-		return -ENODEV;
-	}
-
 	wdt->lock = &sprd_wdt_mutex;
 	mutex_init(wdt->lock);
 
@@ -532,16 +500,6 @@ static int sprd_wdt_fiq_probe(struct platform_device *pdev)
 
 static int __maybe_unused sprd_wdt_fiq_pm_suspend(struct device *dev)
 {
-#ifndef SPRD_WDT_SYSCORE_SUSPEND_RESUME
-	struct watchdog_device *wdd = dev_get_drvdata(dev);
-	struct sprd_wdt_fiq *wdt = dev_get_drvdata(dev);
-
-	if (watchdog_active(wdd))
-		sprd_wdt_fiq_stop(&wdt->wdd);
-
-	if (!wdt_fiq->data->eb_always_on)
-		sprd_wdt_fiq_disable(wdt_fiq);
-#endif
 	return 0;
 }
 
@@ -556,13 +514,8 @@ static int __maybe_unused sprd_wdt_fiq_pm_resume(struct device *dev)
 	if (ret)
 		return ret;
 
-	if (watchdog_active(wdd)) {
+	if (watchdog_active(wdd))
 		ret = sprd_wdt_fiq_start(&wdt->wdd);
-		if (ret) {
-			sprd_wdt_fiq_disable(wdt);
-			return ret;
-		}
-	}
 #endif
 	return 0;
 }
@@ -575,14 +528,7 @@ static const struct dev_pm_ops sprd_wdt_fiq_pm_ops = {
 };
 
 static const struct of_device_id sprd_wdt_fiq_match_table[] = {
-	{
-		.compatible = "sprd,wdt-r2p0-fiq",
-		.data = &sprd_wdt_fiq_common,
-	},
-	{
-		.compatible = "sprd,wdt-r2p0-fiq-sharkl3",
-		.data = &sprd_wdt_fiq_sharkl3,
-	},
+	{ .compatible = "sprd,wdt-r2p0-fiq", },
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_wdt_fiq_match_table);
