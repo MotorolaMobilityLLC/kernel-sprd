@@ -141,3 +141,5 @@ bool sprd_ufs_debug_is_supported(struct ufs_hba *hba);
 void sprd_ufs_debug_err_dump(struct ufs_hba *hba);
 void sprd_ufs_print_err_cnt(struct ufs_hba *hba);
 void ufs_sprd_update_err_cnt(struct ufs_hba *hba, u32 reg, enum err_type type);
+void ufs_sprd_sysfs_add_nodes(struct ufs_hba *hba);
+

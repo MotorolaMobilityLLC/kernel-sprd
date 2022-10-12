@@ -6,13 +6,18 @@
  *
  */
 
+#include <linux/err.h>
+#include <linux/string.h>
+#include <asm/unaligned.h>
 #include <linux/proc_fs.h>
 #include <linux/panic_notifier.h>
 #include <../drivers/unisoc_platform/sysdump/unisoc_sysdump.h>
 
 #include "ufs.h"
 #include "ufshcd.h"
+#include "unipro.h"
 #include "ufs-sprd.h"
+#include "ufs-sysfs.h"
 #include "ufs-sprd-debug.h"
 
 #ifdef CONFIG_SPRD_DEBUG
@@ -520,7 +525,7 @@ EXPORT_SYMBOL_GPL(ufs_sprd_update_err_cnt);
 
 static int uic_err_cnt_show(struct seq_file *m, void *v)
 {
-	struct ufs_hba *hba = m->private;
+	struct ufs_hba *hba = dev_get_drvdata((struct device *)m->private);
 
 	seq_printf(m, "pa_err:total cnt=%llu\n",
 			hba->ufs_stats.event[UFS_EVT_PA_ERR].cnt);
@@ -556,7 +561,7 @@ static int uic_err_cnt_show(struct seq_file *m, void *v)
 
 static int uic_err_cnt_proc_open(struct inode *inode, struct file *file)
 {
-	return single_open(file, uic_err_cnt_show, inode->i_private);
+	return single_open(file, uic_err_cnt_show, PDE_DATA(inode));
 }
 
 static const struct proc_ops uic_err_cnt_fops = {
@@ -622,7 +627,8 @@ int ufs_sprd_debug_init(struct ufs_hba *hba)
 		pr_info("%s: failed to create /proc/ufs/err_panic\n",
 			__func__);
 
-	prEntry = proc_create("uic_ec", UFS_DBG_ACS_LVL, ufs_dir, &uic_err_cnt_fops);
+	prEntry = proc_create_data("uic_ec", UFS_DBG_ACS_LVL, ufs_dir,
+				&uic_err_cnt_fops, hba->dev);
 	if (!prEntry)
 		pr_info("%s: failed to create /proc/ufs/uic_ec\n",
 			__func__);
@@ -646,3 +652,61 @@ int ufs_sprd_debug_init(struct ufs_hba *hba)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(ufs_sprd_debug_init);
+
+#define UFS_DME_GET(_name, _attr_sel, _peer)					\
+static ssize_t _name##_show(struct device *dev,					\
+	   struct device_attribute *attr, char *buf)				\
+{										\
+	struct ufs_hba *hba = dev_get_drvdata(dev);				\
+	int ret;								\
+	u32 mib_val;								\
+										\
+	ret = ufshcd_dme_get_attr(hba, UIC_ARG_MIB(_attr_sel), &mib_val, _peer);\
+	if (ret)								\
+		return -EINVAL;							\
+										\
+	return sprintf(buf, "0x%08x\n", mib_val);				\
+}										\
+static DEVICE_ATTR_RO(_name)
+
+UFS_DME_GET(host_gear_tx, PA_TXGEAR, 1);
+UFS_DME_GET(host_gear_rx, PA_RXGEAR, 1);
+UFS_DME_GET(host_lanes_tx, PA_ACTIVETXDATALANES, 1);
+UFS_DME_GET(host_lanes_rx, PA_ACTIVERXDATALANES, 1);
+UFS_DME_GET(peer_gear_tx, PA_TXGEAR, 0);
+UFS_DME_GET(peer_gear_rx, PA_RXGEAR, 0);
+UFS_DME_GET(peer_lanes_tx, PA_ACTIVETXDATALANES, 0);
+UFS_DME_GET(peer_lanes_rx, PA_ACTIVERXDATALANES, 0);
+
+static struct attribute *ufs_sysfs_power_mode[] = {
+	&dev_attr_host_gear_tx.attr,
+	&dev_attr_host_gear_rx.attr,
+	&dev_attr_host_lanes_tx.attr,
+	&dev_attr_host_lanes_rx.attr,
+	&dev_attr_peer_gear_tx.attr,
+	&dev_attr_peer_gear_rx.attr,
+	&dev_attr_peer_lanes_tx.attr,
+	&dev_attr_peer_lanes_rx.attr,
+	NULL,
+};
+
+static const struct attribute_group ufs_sysfs_power_mode_group = {
+	.name = "pwr_modes",
+	.attrs = ufs_sysfs_power_mode,
+};
+
+static const struct attribute_group *ufs_sysfs_group[] = {
+	&ufs_sysfs_power_mode_group,
+	NULL,
+};
+
+void ufs_sprd_sysfs_add_nodes(struct ufs_hba *hba)
+{
+	int ret;
+
+	ret = sysfs_create_groups(&hba->dev->kobj, ufs_sysfs_group);
+	if (ret)
+		dev_err(hba->dev, "%s: sprd sysfs groups creation failed(err = %d)\n",
+				__func__, ret);
+}
+EXPORT_SYMBOL_GPL(ufs_sprd_sysfs_add_nodes);

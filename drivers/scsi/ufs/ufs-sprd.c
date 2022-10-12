@@ -126,6 +126,12 @@ static void ufs_sprd_vh_check_int_errors(void *data,
 		ufshcd_common_trace(hba, UFS_TRACE_INT_ERROR, NULL);
 }
 
+static void ufs_sprd_vh_update_sysfs(void *data,
+					struct ufs_hba *hba)
+{
+		ufs_sprd_sysfs_add_nodes(hba);
+}
+
 static void ufs_sprd_vh_send_cmd(void *data,
 				  struct ufs_hba *hba,
 				  struct ufshcd_lrb *lrbp)
@@ -172,6 +178,7 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 	register_trace_android_vh_ufs_send_tm_command(ufs_sprd_vh_send_tm_cmd, NULL);
 	register_trace_android_vh_ufs_check_int_errors(ufs_sprd_vh_check_int_errors, NULL);
 	register_trace_android_vh_ufs_send_command(ufs_sprd_vh_send_cmd, NULL);
+	register_trace_android_vh_ufs_update_sysfs(ufs_sprd_vh_update_sysfs, NULL);
 
 	/* Perform generic probe */
 	of_id = of_match_node(ufs_sprd_of_match, pdev->dev.of_node);
