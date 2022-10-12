@@ -1,6 +1,6 @@
 &reserved_memory {
 	widevine_reserved: widevine@e3800000 {
-		reg = <0x0 0xe3800000 0x0 0x0c800000>;
+		reg = <0x0 0xd9800000 0x0 0x16800000>;
 	};
 
 	fd_reserved: faceid-mem@ff9f0000 {
