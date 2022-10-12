@@ -58,7 +58,7 @@
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
 			#cooling-cells = <2>;
-			dynamic-power-coefficient = <153>;
+			dynamic-power-coefficient = <76>;
 			sugov_slack_timer;
 		};
 		CPU1: cpu@100 {
@@ -69,7 +69,7 @@
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
 			#cooling-cells = <2>;
-			dynamic-power-coefficient = <153>;
+			dynamic-power-coefficient = <76>;
 		};
 		CPU2: cpu@200 {
 			device_type = "cpu";
@@ -79,7 +79,7 @@
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
 			#cooling-cells = <2>;
-			dynamic-power-coefficient = <153>;
+			dynamic-power-coefficient = <76>;
 		};
 		CPU3: cpu@300 {
 			device_type = "cpu";
@@ -89,7 +89,7 @@
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
 			#cooling-cells = <2>;
-			dynamic-power-coefficient = <153>;
+			dynamic-power-coefficient = <76>;
 		};
 		CPU4: cpu@400 {
 			device_type = "cpu";
@@ -99,7 +99,7 @@
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
 			#cooling-cells = <2>;
-			dynamic-power-coefficient = <153>;
+			dynamic-power-coefficient = <76>;
 		};
 		CPU5: cpu@500 {
 			device_type = "cpu";
@@ -109,7 +109,7 @@
 			cpu-idle-states = <&LIT_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <420>;
 			#cooling-cells = <2>;
-			dynamic-power-coefficient = <153>;
+			dynamic-power-coefficient = <76>;
 		};
 		CPU6: cpu@600 {
 			device_type = "cpu";
@@ -119,7 +119,7 @@
 			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <1024>;
 			#cooling-cells = <2>;
-			dynamic-power-coefficient = <673>;
+			dynamic-power-coefficient = <336>;
 		};
 		CPU7: cpu@700 {
 			device_type = "cpu";
@@ -129,7 +129,7 @@
 			cpu-idle-states = <&MID_CORE_PD &CLUSTER_PD>;
 			capacity-dmips-mhz = <1024>;
 			#cooling-cells = <2>;
-			dynamic-power-coefficient = <673>;
+			dynamic-power-coefficient = <336>;
 		};
 	};
 
