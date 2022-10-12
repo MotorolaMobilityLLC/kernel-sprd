@@ -9363,5 +9363,6 @@
 #define MASK_TOP_DVFS_APB_DCDC_SRAM1_OVER_VOL_INT_RAW                     0xFFFFFFFF
 #define MASK_TOP_DVFS_APB_DCDC_SRAM1_INT_REQ_DVFS_TOP_RAW                 0xFFFFFFFF
 #define MASK_TOP_DVFS_APB_TOP_DVFS_CLK_APCPU_CGM_EN                       0x0001
+#define MASK_GPU_CLK_CORE_GPU_EB                                          0x0004
 
 #endif /* __DT_BINDINGS_SPRD_QOGIRN6LITE_MASK_H */

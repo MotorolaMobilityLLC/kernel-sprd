@@ -2322,5 +2322,6 @@
 #define REG_TOP_DVFS_APB_SRAM1OVER_VOL_INT_RAW                           0x0FD0
 #define REG_TOP_DVFS_APB_SRAM1_INT_REQ_DVFS_TOP_RAW                      0x0FD4
 #define REG_TOP_DVFS_APB_TOP_DVFS_CLK_APCPU_CGM_EN_CFG                   0x0FD8
+#define REG_GPU_APB_RST                                                  0x0000
 
 #endif /* __DT_BINDINGS_SPRD_QOGIRN6LITE_REGS_H */
