@@ -232,6 +232,8 @@ struct sdiohal_data_t {
 	bool debug_iq;
 
 	struct sdiohal_list_t tx_list_head;
+	/* data list that is being sent*/
+	struct sdiohal_list_t *data_list_tx;
 	/* for pop after used list */
 	struct sdiohal_list_t *list_tx[SDIO_CHN_TX_NUM];
 	/* for dispatch received rx data list */
@@ -402,6 +404,8 @@ int sdiohal_runtime_put(void);
 void sdiohal_register_scan_notify(void *func);
 int sdiohal_scan_card(void *wcn_dev);
 void sdiohal_remove_card(void *wcn_dev);
+
+int sdiohal_remove_datalist_invalid_data(struct mchn_ops_t *ops, struct sdiohal_list_t *data_list);
 
 extern unsigned long long tm_enter_tx_thread;
 extern unsigned long long tm_exit_tx_thread;
