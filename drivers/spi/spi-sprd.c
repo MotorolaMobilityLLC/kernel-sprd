@@ -955,7 +955,7 @@ static int sprd_spi_transfer_one(struct spi_controller *sctlr,
 	if (sctlr->can_dma(sctlr, sdev, t)) {
 		/* Align trans_len to fragmens_len */
 		ss->dma_trans_len = round_up(t->len, ss->dma.fragmens_len);
-		ss->trans_len = round_up(ss->trans_len, ss->dma.fragmens_len);
+		ss->trans_len = round_up(ss->trans_len, SPRD_SPI_DMA_STEP);
 		ret = sprd_spi_dma_txrx_bufs(sdev, t);
 	} else
 		ret = sprd_spi_txrx_bufs(sdev, t);
