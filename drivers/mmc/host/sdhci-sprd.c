@@ -40,6 +40,9 @@
 #include "sdhci-sprd-tuning.h"
 #include "sdhci-sprd-tuning.c"
 
+#include "sdhci-sprd-ffu.h"
+#include "sdhci-sprd-ffu.c"
+
 #define DRIVER_NAME "sprd-sdhci"
 #define SDHCI_SPRD_DUMP(f, x...) \
 	pr_err("%s: " DRIVER_NAME ": " f, mmc_hostname(host->mmc), ## x)
@@ -1765,6 +1768,12 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			goto err_cleanup_host;
 	}
 
+	if (!of_property_read_bool(node, "no-ffu")) {
+		ret = mmc_ffu_init(host);
+		if (ret)
+			goto err_cleanup_host;
+	}
+
 	/* disable polling scan for sdiocard */
 	if ((host->mmc->caps2 & MMC_CAP2_NO_SD)
 			&& (host->mmc->caps2 & MMC_CAP2_NO_MMC)) {
@@ -1807,6 +1816,7 @@ static int sdhci_sprd_remove(struct platform_device *pdev)
 	struct sdhci_host *host = platform_get_drvdata(pdev);
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 
+	mmc_ffu_remove(host);
 	sdhci_remove_host(host, 0);
 
 	clk_disable_unprepare(sprd_host->clk_sdio);
