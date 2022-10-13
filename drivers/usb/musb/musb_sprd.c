@@ -47,10 +47,12 @@
 #define B_SUSPEND		2
 #define A_SUSPEND		3
 #define A_RECOVER		4
+#define B_DATA_DISABLED		5
 
 #define CHARGER_DETECT_DELAY			(msecs_to_jiffies(1000))
 #define VBUS_REG_CHECK_DELAY			(msecs_to_jiffies(1000))
 #define MUSB_RUNTIME_CHECK_DELAY		(msecs_to_jiffies(200))
+#define MUSB_DATA_ENABLE_CHECK_DELAY		(msecs_to_jiffies(200))
 #define MUSB_SPRD_CHG_MAX_REDETECT_COUNT	3
 
 /* Pls keep the same definition as PHY */
@@ -65,6 +67,7 @@ enum musb_drd_state {
 	DRD_STATE_HOST_IDLE,
 	DRD_STATE_HOST,
 	DRD_STATE_HOST_RECOVER,
+	DRD_STATE_PERIPHERAL_DATA_DIS,
 };
 
 enum usb_chg_detect_state {
@@ -82,6 +85,7 @@ static const char *const state_names[] = {
 	[DRD_STATE_PERIPHERAL_SUSPEND] = "peripheral_suspend",
 	[DRD_STATE_HOST_IDLE] = "host_idle",
 	[DRD_STATE_HOST] = "host",
+	[DRD_STATE_PERIPHERAL_DATA_DIS] = "peripheral_data_disabled",
 };
 
 static void musb_sprd_release_all_request(struct musb *musb);
@@ -128,7 +132,7 @@ struct sprd_glue {
 	u32				usb_pub_slp_poll_offset;
 	u32				usb_pub_slp_poll_mask;
 
-	bool		retry_charger_detect;
+	bool				retry_charger_detect;
 
 	unsigned long			inputs;
 	struct workqueue_struct		*musb_wq;
@@ -142,6 +146,7 @@ struct sprd_glue {
 	enum usb_charger_type		chg_type;
 	int				retry_chg_detect_count;
 	int				start_host_retry_count;
+	int				usb_data_enabled;
 	bool				gadget_suspend;
 	bool				host_recover;
 	bool				in_restart;
@@ -197,7 +202,9 @@ static void sprd_musb_enable(struct musb *musb)
 		musb->context.devctl = devctl;
 	} else {
 		pwr = musb_readb(musb->mregs, MUSB_POWER);
-		if (musb->gadget_driver && !is_host_active(musb)) {
+		if (musb->gadget_driver &&
+			!is_host_active(musb) &&
+			(glue->usb_data_enabled == 1)) {
 			pwr |= MUSB_POWER_SOFTCONN;
 			dev_info(glue->dev, "sprd_musb_enable:SOFTCONN\n");
 		} else {
@@ -247,6 +254,20 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 			 musb_readw(musb->mregs, MUSB_INTRTX),
 			 musb_readw(musb->mregs, MUSB_INTRRXE),
 			 musb_readw(musb->mregs, MUSB_INTRRX));
+		return retval;
+	}
+
+	/* USB data is disabled, but cable is still connected,
+	 * musb IRQ may happen during this period.
+	 * In this case: USB handler clear IRQ & SOFT_CONN.
+	 */
+	if (glue->drd_state == DRD_STATE_PERIPHERAL_DATA_DIS) {
+		spin_unlock(&glue->lock);
+		mask8 = musb_readb(musb->mregs, MUSB_POWER);
+		mask8 &= ~MUSB_POWER_SOFTCONN;
+		musb_writeb(musb->mregs, MUSB_POWER, mask8);
+		dev_info(musb->controller,
+			"interrupt is cleared where USB data disabled!\n");
 		return retval;
 	}
 
@@ -985,6 +1006,104 @@ static struct attribute *musb_sprd_attrs[] = {
 };
 ATTRIBUTE_GROUPS(musb_sprd);
 
+static struct class *usb_notify_class;
+static struct device *usb_notify_dev;
+
+static ssize_t usb_data_enabled_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct sprd_glue *glue = dev_get_drvdata(dev);
+
+	return sprintf(buf, "%d\n", glue->usb_data_enabled);
+}
+
+static ssize_t usb_data_enabled_store(struct device *dev,
+				struct device_attribute *attr, const char *buf,
+				size_t count)
+{
+	int value = 0;
+	int ret = 0;
+	unsigned long flags;
+	struct sprd_glue *glue = dev_get_drvdata(dev);
+
+	ret = kstrtoint(buf, 10, &value);
+	if (ret) {
+		dev_err(dev, "input err:%d\n", ret);
+		return count;
+	}
+	spin_lock_irqsave(&glue->lock, flags);
+	dev_info(dev, "usb_data_enabled input: %d current: %d\n",
+			value, glue->usb_data_enabled);
+
+	if (glue->usb_data_enabled != value) {
+		glue->usb_data_enabled = value;
+		queue_work(glue->musb_wq, &glue->resume_work);
+	}
+
+	spin_unlock_irqrestore(&glue->lock, flags);
+
+	return count;
+}
+
+static DEVICE_ATTR_RW(usb_data_enabled);
+
+static struct attribute *usb_data_control_attrs[] = {
+	&dev_attr_usb_data_enabled.attr,
+	NULL
+};
+
+static const struct attribute_group usb_data_control_group = {
+	.attrs = usb_data_control_attrs,
+};
+
+static int musb_sprd_usb_notify_init(struct platform_device *pdev, void *data)
+{
+	int ret = 0;
+
+	usb_notify_class = class_create(THIS_MODULE, "usb_notify");
+	if (IS_ERR_OR_NULL(usb_notify_class)) {
+		dev_err(&pdev->dev, "usb_notify class create err.\n");
+		ret = PTR_ERR(usb_notify_class);
+		goto out;
+	}
+
+	usb_notify_dev =
+		device_create(usb_notify_class, &pdev->dev, 0, NULL, "usb_control");
+	if (IS_ERR_OR_NULL(usb_notify_dev)) {
+		dev_err(&pdev->dev, "usb_notify class create err.\n");
+		ret = PTR_ERR(usb_notify_dev);
+		class_destroy(usb_notify_class);
+		goto out;
+	}
+
+	ret = sysfs_create_group(&usb_notify_dev->kobj, &usb_data_control_group);
+	if (ret) {
+		dev_err(&pdev->dev, "sysfs create err. ret:%d\n", ret);
+		device_destroy(usb_notify_class, usb_notify_dev->devt);
+		class_destroy(usb_notify_class);
+		goto out;
+	}
+
+	dev_set_drvdata(usb_notify_dev, data);
+	dev_info(&pdev->dev, "[%s] --\n", __func__);
+
+out:
+	return ret;
+}
+
+static void musb_sprd_usb_notify_exit(struct platform_device *pdev)
+{
+	if (usb_notify_dev) {
+		sysfs_remove_group(&usb_notify_dev->kobj, &usb_data_control_group);
+		device_destroy(usb_notify_class, usb_notify_dev->devt);
+	}
+
+	if (usb_notify_class)
+		class_destroy(usb_notify_class);
+
+	dev_info(&pdev->dev, "[%s] --\n", __func__);
+}
+
 /**
  * musb_sprd_otg_start_peripheral -  bind/unbind the peripheral controller.
  *
@@ -1030,10 +1149,11 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 
 		dev_info(glue->dev, "%s: turn off gadget %s\n", __func__, musb->g.name);
 
-		musb_sprd_release_all_request(musb);
 		devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
-		usb_gadget_set_state(&musb->g, USB_STATE_NOTATTACHED);
 		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl & ~MUSB_DEVCTL_SESSION);
+		musb_sprd_release_all_request(musb);
+		usb_gadget_set_state(&musb->g, USB_STATE_NOTATTACHED);
+
 		musb->is_active = 0;
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
@@ -1300,9 +1420,10 @@ static void musb_sprd_ext_event_notify(struct sprd_glue *glue)
 	flush_delayed_work(&glue->sm_work);
 
 	dev_info(glue->dev,
-			"ext event: id %d, vbus %d, b_susp %d, a_recover %d\n",
+			"ext event: id %d, vbus %d, b_susp %d, a_recover %d, b_data %d\n",
 			glue->id_state, glue->vbus_active,
-			glue->gadget_suspend, glue->host_recover);
+			glue->gadget_suspend, glue->host_recover,
+			glue->usb_data_enabled);
 
 	if (glue->id_state == MUSB_ID_FLOAT)
 		set_bit(ID, &glue->inputs);
@@ -1323,6 +1444,11 @@ static void musb_sprd_ext_event_notify(struct sprd_glue *glue)
 		set_bit(A_RECOVER, &glue->inputs);
 		glue->host_recover = false;
 	}
+
+	if (glue->usb_data_enabled == 0)
+		set_bit(B_DATA_DISABLED, &glue->inputs);
+	else
+		clear_bit(B_DATA_DISABLED, &glue->inputs);
 
 	queue_delayed_work(glue->sm_usb_wq, &glue->sm_work, 0);
 }
@@ -1409,6 +1535,16 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 		glue->drd_state = DRD_STATE_IDLE;
 		fallthrough;
 	case DRD_STATE_IDLE:
+		/* if /sys/class/usb_notify/usb_control/usb_data_enabled is
+		 * 0, don't setup usb connection.
+		 */
+		if (test_bit(B_DATA_DISABLED, &glue->inputs)) {
+			dev_dbg(glue->dev, "USB data disabled, wait\n");
+			rework = true;
+			delay = MUSB_DATA_ENABLE_CHECK_DELAY;
+			break;
+		}
+
 		if (!test_bit(ID, &glue->inputs)) {
 			dev_dbg(glue->dev, "!id\n");
 			if (glue->is_audio_dev && !pm_runtime_suspended(glue->dev)) {
@@ -1447,6 +1583,13 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 			 */
 			pm_runtime_put_sync(glue->dev);
 			rework = true;
+		} else if (test_bit(B_DATA_DISABLED, &glue->inputs)) {
+			dev_info(glue->dev, "usb data disabled\n");
+			glue->drd_state = DRD_STATE_PERIPHERAL_DATA_DIS;
+			musb_sprd_otg_start_peripheral(glue, 0);
+			pm_runtime_put_sync(glue->dev);
+			MUSB_HST_MODE(glue->musb);
+			rework = true;
 		} else if (test_bit(B_SUSPEND, &glue->inputs) &&
 			test_bit(B_SESS_VLD, &glue->inputs)) {
 			dev_dbg(glue->dev, "BPER bsv && susp\n");
@@ -1460,6 +1603,23 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 			 */
 			pm_runtime_mark_last_busy(glue->dev);
 			pm_runtime_put_autosuspend(glue->dev);
+		}
+		break;
+	case DRD_STATE_PERIPHERAL_DATA_DIS:
+		if (!test_bit(B_SESS_VLD, &glue->inputs) ||
+			!test_bit(ID, &glue->inputs) ||
+			!test_bit(B_DATA_DISABLED, &glue->inputs)) {
+			dev_dbg(glue->dev, "!id || !bsv || !B_DATA_DISABLED\n");
+			if (!pm_runtime_suspended(glue->dev)) {
+				dev_info(glue->dev,
+						"waiting glue suspended in data disabled mode\n");
+				rework = true;
+				delay = MUSB_RUNTIME_CHECK_DELAY;
+			} else {
+				glue->drd_state = DRD_STATE_IDLE;
+				MUSB_DEV_MODE(glue->musb);
+				rework = true;
+			}
 		}
 		break;
 	case DRD_STATE_PERIPHERAL_SUSPEND:
@@ -1722,6 +1882,11 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		}
 	}
 
+	glue->usb_data_enabled = 1;
+	ret = musb_sprd_usb_notify_init(pdev, glue);
+	if (ret)
+		dev_err(glue->dev, "usb_notify_init err %d\n", ret);
+
 	glue->audio_nb.notifier_call = musb_sprd_audio_notifier;
 	ret = register_sprd_usbm_notifier(&glue->audio_nb, SPRD_USBM_EVENT_HOST_MUSB);
 	if (ret) {
@@ -1773,6 +1938,7 @@ static int musb_sprd_remove(struct platform_device *pdev)
 	struct sprd_glue *glue = platform_get_drvdata(pdev);
 	struct musb *musb = glue->musb;
 
+	musb_sprd_usb_notify_exit(pdev);
 	/* this gets called on rmmod.
 	 *  - Host mode: host may still be active
 	 *  - Peripheral mode: peripheral is deactivated (or never-activated)
