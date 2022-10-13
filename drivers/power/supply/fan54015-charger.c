@@ -858,7 +858,6 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
 {
 	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
-	unsigned long timeout;
 	int ret;
 	u8 val;
 
@@ -867,13 +866,6 @@ static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
-	if (unlikely(!info->probe_initialized)) {
-		timeout = wait_for_completion_timeout(&info->probe_init, FAN54015_PROBE_TIMEOUT);
-		if (!timeout) {
-			dev_err(info->dev, "%s wait probe timeout\n", __func__);
-			return -ETIMEDOUT;
-		}
-	}
 	ret = fan54015_read(info, FAN54015_REG_1, &val);
 	if (ret) {
 		dev_err(info->dev, "failed to get fan54015 otg status\n");

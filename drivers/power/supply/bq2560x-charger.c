@@ -1604,11 +1604,6 @@ static int bq2560x_charger_vbus_is_enabled(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
-	if (!bq2560x_probe_is_ready(info)) {
-		dev_err(info->dev, "%s wait probe timeout\n", __func__);
-		return -EINVAL;
-	}
-
 	ret = bq2560x_read(info, BQ2560X_REG_1, &val);
 	if (ret) {
 		dev_err(info->dev, "failed to get bq2560x otg status\n");

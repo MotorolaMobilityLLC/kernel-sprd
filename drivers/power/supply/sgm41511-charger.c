@@ -1109,11 +1109,6 @@ static int sgm41511_charger_vbus_is_enabled(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
-	if (!sgm41511_probe_is_ready(info)) {
-		dev_err(info->dev, "%s wait probe timeout\n", __func__);
-		return -EINVAL;
-	}
-
 	ret = sgm41511_read(info, SGM4151X_REG_01, &val);
 	val &= REG01_OTG_CONFIG_MASK;
 	val = (val >> REG01_OTG_CONFIG_SHIFT) & 0x01;
