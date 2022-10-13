@@ -1079,6 +1079,9 @@
   __traceiter_android_rvh_finish_prio_fork
   __traceiter_android_rvh_is_cpu_allowed
   __traceiter_android_rvh_migrate_queued_task
+  __traceiter_android_rvh_mmc_partition_status
+  __traceiter_android_rvh_mmc_sd_cmdline_timing
+  __traceiter_android_rvh_mmc_sd_dataline_timing
   __traceiter_android_rvh_new_task_stats
   __traceiter_android_rvh_prepare_prio_fork
   __traceiter_android_rvh_psci_cpu_suspend
@@ -1108,6 +1111,7 @@
   __traceiter_android_vh_atomic_remove_fb
   __traceiter_android_vh_audio_usb_offload_connect
   __traceiter_android_vh_audio_usb_offload_ep_action
+  __traceiter_android_vh_audio_usb_offload_suspend
   __traceiter_android_vh_audio_usb_offload_synctype
   __traceiter_android_vh_binder_restore_priority
   __traceiter_android_vh_binder_set_priority
@@ -1121,6 +1125,7 @@
   __traceiter_android_vh_get_thermal_zone_device
   __traceiter_android_vh_ipi_stop
   __traceiter_android_vh_mmc_check_status
+  __traceiter_android_vh_mmc_ffu_update_cid
   __traceiter_android_vh_mmc_sd_update_cmdline_timing
   __traceiter_android_vh_mmc_sd_update_dataline_timing
   __traceiter_android_vh_mmc_update_partition_status
@@ -1161,6 +1166,9 @@
   __tracepoint_android_rvh_finish_prio_fork
   __tracepoint_android_rvh_is_cpu_allowed
   __tracepoint_android_rvh_migrate_queued_task
+  __tracepoint_android_rvh_mmc_partition_status
+  __tracepoint_android_rvh_mmc_sd_cmdline_timing
+  __tracepoint_android_rvh_mmc_sd_dataline_timing
   __tracepoint_android_rvh_new_task_stats
   __tracepoint_android_rvh_prepare_prio_fork
   __tracepoint_android_rvh_psci_cpu_suspend
@@ -1190,6 +1198,7 @@
   __tracepoint_android_vh_atomic_remove_fb
   __tracepoint_android_vh_audio_usb_offload_connect
   __tracepoint_android_vh_audio_usb_offload_ep_action
+  __tracepoint_android_vh_audio_usb_offload_suspend
   __tracepoint_android_vh_audio_usb_offload_synctype
   __tracepoint_android_vh_binder_restore_priority
   __tracepoint_android_vh_binder_set_priority
@@ -1203,6 +1212,7 @@
   __tracepoint_android_vh_get_thermal_zone_device
   __tracepoint_android_vh_ipi_stop
   __tracepoint_android_vh_mmc_check_status
+  __tracepoint_android_vh_mmc_ffu_update_cid
   __tracepoint_android_vh_mmc_sd_update_cmdline_timing
   __tracepoint_android_vh_mmc_sd_update_dataline_timing
   __tracepoint_android_vh_mmc_update_partition_status
@@ -1775,6 +1785,7 @@
   _totalram_pages
   __traceiter_android_rvh_report_bug
   __traceiter_android_rvh_tk_based_time_sync
+  __traceiter_android_vh_dma_buf_release
   __traceiter_android_vh_printk_caller
   __traceiter_android_vh_printk_caller_id
   __traceiter_android_vh_printk_ext_header
@@ -2238,6 +2249,7 @@
 # required by sdhci-sprd.ko
   clk_round_rate
   mmc_free_host
+  mmc_get_ext_csd
   mmc_of_parse
   mmc_regulator_set_ocr
   mmc_regulator_set_vqmmc
@@ -3081,6 +3093,10 @@
   irq_work_queue
   kobject_init_and_add
 
+# required by unisoc_ursp.ko
+  raw_notifier_chain_unregister
+  sock_i_uid
+
 # required by usb-storage.ko
   blk_queue_bounce_limit
   blk_queue_max_hw_sectors
@@ -3119,6 +3135,7 @@
   usb_unlink_urb
 
 # required by usb_f_mtp.ko
+  config_group_init_type_name
   usb_os_desc_prepare_interf_dir
   usb_string_id
 
