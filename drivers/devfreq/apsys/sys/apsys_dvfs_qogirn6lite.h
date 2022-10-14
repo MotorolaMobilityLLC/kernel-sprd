@@ -80,7 +80,7 @@ struct dpu_vspsys_dvfs_reg {
 	u32 dispc_index5_map;
 	u32 dispc_index6_map;
 	u32 dispc_index7_map;
-	u32 reserved_0x1fc_0x790[358];
+	u32 reserved_0x1f4_0x790[360];
 	u32 vpu_mtx_dvfs_index_cfg;
 	u32 vpu_mtx_dvfs_index_idle_cfg;
 	u32 vpu_enc_dvfs_index_cfg;
