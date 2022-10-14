@@ -43,7 +43,7 @@
 
 #define BQ2560X_BATTERY_NAME			"sc27xx-fgu"
 #define BIT_DP_DM_BC_ENB			BIT(0)
-#define BQ2560X_OTG_ALARM_TIMER_MS		15000
+#define BQ2560X_OTG_ALARM_TIMER_S		15
 
 #define	BQ2560X_REG_IINLIM_BASE			100
 
@@ -1887,11 +1887,37 @@ static int bq2560x_charger_remove(struct i2c_client *client)
 }
 
 #if IS_ENABLED(CONFIG_PM_SLEEP)
-static int bq2560x_charger_suspend(struct device *dev)
+static int bq2560x_charger_alarm_prepare(struct device *dev)
 {
 	struct bq2560x_charger_info *info = dev_get_drvdata(dev);
 	ktime_t now, add;
-	unsigned int wakeup_ms = BQ2560X_OTG_ALARM_TIMER_MS;
+
+	if (!info) {
+		pr_err("%s: info is null!\n", __func__);
+		return 0;
+	}
+
+	now = ktime_get_boottime();
+	add = ktime_set(BQ2560X_OTG_ALARM_TIMER_S, 0);
+	alarm_start(&info->otg_timer, ktime_add(now, add));
+	return 0;
+}
+
+static void bq2560x_charger_alarm_complete(struct device *dev)
+{
+	struct bq2560x_charger_info *info = dev_get_drvdata(dev);
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
+	alarm_cancel(&info->otg_timer);
+}
+
+static int bq2560x_charger_suspend(struct device *dev)
+{
+	struct bq2560x_charger_info *info = dev_get_drvdata(dev);
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -1905,11 +1931,6 @@ static int bq2560x_charger_suspend(struct device *dev)
 
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->cur_work);
-
-	now = ktime_get_boottime();
-	add = ktime_set(wakeup_ms / MSEC_PER_SEC,
-			(wakeup_ms % MSEC_PER_SEC) * NSEC_PER_MSEC);
-	alarm_start(&info->otg_timer, ktime_add(now, add));
 
 	return 0;
 }
@@ -1929,8 +1950,6 @@ static int bq2560x_charger_resume(struct device *dev)
 	if (!info->otg_enable)
 		return 0;
 
-	alarm_cancel(&info->otg_timer);
-
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
 	schedule_delayed_work(&info->cur_work, 0);
 
@@ -1939,6 +1958,8 @@ static int bq2560x_charger_resume(struct device *dev)
 #endif
 
 static const struct dev_pm_ops bq2560x_charger_pm_ops = {
+	.prepare = bq2560x_charger_alarm_prepare,
+	.complete = bq2560x_charger_alarm_complete,
 	SET_SYSTEM_SLEEP_PM_OPS(bq2560x_charger_suspend,
 				bq2560x_charger_resume)
 };

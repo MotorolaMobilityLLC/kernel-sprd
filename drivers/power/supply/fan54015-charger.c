@@ -36,7 +36,7 @@
 #define BIT_DP_DM_BC_ENB				BIT(0)
 #define FAN54015_OTG_VALID_MS				500
 #define FAN54015_FEED_WATCHDOG_VALID_MS			50
-#define FAN54015_WDG_TIMER_MS			15000
+#define FAN54015_WDG_TIMER_S				15
 
 #define FAN54015_REG_FAULT_MASK				0x7
 #define FAN54015_OTG_TIMER_FAULT			0x6
@@ -1083,11 +1083,37 @@ static int fan54015_charger_remove(struct i2c_client *client)
 }
 
 #if IS_ENABLED(CONFIG_PM_SLEEP)
-static int fan54015_charger_suspend(struct device *dev)
+static int fan54015_charger_alarm_prepare(struct device *dev)
 {
 	struct fan54015_charger_info *info = dev_get_drvdata(dev);
 	ktime_t now, add;
-	unsigned int wakeup_ms = FAN54015_WDG_TIMER_MS;
+
+	if (!info) {
+		pr_err("%s: info is null!\n", __func__);
+		return 0;
+	}
+
+	now = ktime_get_boottime();
+	add = ktime_set(FAN54015_WDG_TIMER_S, 0);
+	alarm_start(&info->wdg_timer, ktime_add(now, add));
+	return 0;
+}
+
+static void fan54015_charger_alarm_complete(struct device *dev)
+{
+	struct fan54015_charger_info *info = dev_get_drvdata(dev);
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
+	alarm_cancel(&info->wdg_timer);
+}
+
+static int fan54015_charger_suspend(struct device *dev)
+{
+	struct fan54015_charger_info *info = dev_get_drvdata(dev);
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -1102,11 +1128,6 @@ static int fan54015_charger_suspend(struct device *dev)
 		return 0;
 
 	cancel_delayed_work_sync(&info->wdt_work);
-
-	now = ktime_get_boottime();
-	add = ktime_set(wakeup_ms / MSEC_PER_SEC,
-			(wakeup_ms % MSEC_PER_SEC) * NSEC_PER_MSEC);
-	alarm_start(&info->wdg_timer, ktime_add(now, add));
 
 	return 0;
 }
@@ -1127,7 +1148,6 @@ static int fan54015_charger_resume(struct device *dev)
 	if (!info->otg_enable)
 		return 0;
 
-	alarm_cancel(&info->wdg_timer);
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
 
 	return 0;
@@ -1135,6 +1155,8 @@ static int fan54015_charger_resume(struct device *dev)
 #endif
 
 static const struct dev_pm_ops fan54015_charger_pm_ops = {
+	.prepare = fan54015_charger_alarm_prepare,
+	.complete = fan54015_charger_alarm_complete,
 	SET_SYSTEM_SLEEP_PM_OPS(fan54015_charger_suspend, fan54015_charger_resume)
 };
 
