@@ -353,7 +353,7 @@
 				cm-battery-temp-diff = <100>;
 
 				/* Allow charging for 6hr */
-				cm-charging-max = <21600000>;
+				cm-charging-max = <72000000>;
 				/* recovery charging after stop charging 45min */
 				cm-discharging-max = <2700000>;
 
@@ -364,7 +364,7 @@
 				cm-shutdown-voltage = <3400000>;
 
 				/* when 99% of the time is exceeded, it will be forced to 100% */
-				cm-tickle-time-out = <1500>;
+				cm-tickle-time-out = <200>;
 
 				/* how much time to allow capacity change */
 				cm-one-cap-time = <30>;
@@ -387,14 +387,14 @@
 				//sprd,support-pd-pps;
 				sprd,pd-fixed-max-microwatt = <18000000>;
 
-				cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
+				//cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 
 				monitored-battery = <&bat &bat2>;
 				cm-keep-awake;
 
 				phys = <&hsphy>;
 				extcon = <&pmic_typec>, <&pmic_pd>;
-				//pd-extcon-enable;
+				pd-extcon-enable;
 
 			};
 
@@ -1142,8 +1142,8 @@
 };
 &pmic_fgu {
 	monitored-battery = <&bat &bat2>;
-	sprd,calib-resistance-micro-ohms = <4850>;
-	sprd,comp-resistance-mohm = <13>;
+	sprd,calib-resistance-micro-ohms = <5000>;
+	sprd,comp-resistance-mohm = <15>;
 
 	fgu-capacity-track;
 	phys = <&hsphy>;
@@ -1187,7 +1187,7 @@
 };
 
 &pmic_pd {
-	status = "disable";
+	status = "okay";
 	usb_con: connector {
 		compatible = "usb-c-connector";
 		label = "USB-C";
