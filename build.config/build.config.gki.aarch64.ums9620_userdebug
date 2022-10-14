@@ -78,9 +78,12 @@ export BSP_BOARD_CAMERA_MODULE_DVFS="qogirn6pro"
 
 DTC_FLAGS+="-@"
 
-MAKE_GOALS="${MAKE_GOALS}
-dtbs
-"
+if [[ $BSP_KOONLY_CONFIG == "true" ]]; then
+	MAKE_GOALS="$BSP_MAKE_GOALS"
+	BUILD_GKI_ARTIFACTS=""
+else
+	MAKE_GOALS="${MAKE_GOALS} dtbs"
+fi
 
 FILES="${FILES}
 arch/arm64/boot/dts/sprd/ums9620-base.dtb
