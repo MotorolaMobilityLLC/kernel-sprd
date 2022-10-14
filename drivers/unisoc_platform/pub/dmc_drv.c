@@ -21,6 +21,7 @@
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
+#include <linux/panic_notifier.h>
 #include <linux/platform_device.h>
 #include <linux/proc_fs.h>
 #include <linux/regmap.h>
@@ -57,6 +58,7 @@ struct pub_monitor_dbg {
 struct dmc_data {
 	u32 proc_res;
 	u32 mon_res;
+	u32 dmc_res;
 	u32 size_l_offset;
 	u32 size_h_offset;
 	u32 type_offset;
@@ -70,6 +72,7 @@ struct dmc_drv_data {
 	struct proc_dir_entry *property;
 	struct proc_dir_entry *info;
 	void __iomem *mon_base;
+	void __iomem *dmc_base;
 	int pub_mon_enabled;
 	u32 type;
 	u32 mr_val[DDR_MAX_SUPPORT_CS_NUM];
@@ -86,6 +89,7 @@ struct dmc_drv_data {
 static const struct dmc_data pub_dmc_data = {
 	.proc_res = 0,
 	.mon_res = 1,
+	.dmc_res = 2,
 	.size_l_offset = PUB_DMC_SIZE_L_OFFSET,
 	.size_h_offset = PUB_DMC_SIZE_H_OFFSET,
 	.type_offset = PUB_DMC_TYPE_OFFSET,
@@ -107,6 +111,8 @@ static const char *const ddr_type_to_str[] = {
 	"LPDDR4Y",
 	"LPDDR5",
 };
+
+static u32 g_ddr_cur_freq;
 
 #ifdef CONFIG_PROC_FS
 static int sprd_ddr_size_show(struct seq_file *m, void *v)
@@ -189,6 +195,26 @@ static int sprd_ddr_proc_creat(void)
 	return 0;
 }
 #endif
+
+static int sprd_get_ddr_cur_freq(struct notifier_block *nb,
+				 unsigned long action, void *data)
+{
+	g_ddr_cur_freq = (readl_relaxed(drv_data.dmc_base + 0x12c) >> 8) & 0x7;
+	pr_info("ddr_cur_freq: %d\n", g_ddr_cur_freq);
+
+	return 0;
+}
+
+static struct notifier_block dmc_panic_event_nb = {
+	.notifier_call  = sprd_get_ddr_cur_freq,
+	.priority       = INT_MAX,
+};
+
+static void sprd_get_panic_freq_init(void)
+{
+	pr_info("register ddr painc_callback func\n");
+	atomic_notifier_chain_register(&panic_notifier_list, &dmc_panic_event_nb);
+}
 
 static void sprd_pub_monitor_reg_get(void)
 {
@@ -410,6 +436,17 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 			return (int)PTR_ERR(drv_data.mon_base);
 		sprd_pub_monitor_init();
 	}
+
+	if (pdata->dmc_res != INVALID_RES_IDX) {
+		res = platform_get_resource(pdev, IORESOURCE_MEM, pdata->dmc_res);
+		if (res != NULL) {
+			drv_data.dmc_base = devm_ioremap_resource(&pdev->dev, res);
+			if (IS_ERR(drv_data.dmc_base))
+				return (int)PTR_ERR(drv_data.dmc_base);
+			sprd_get_panic_freq_init();
+		}
+	}
+
 	return 0;
 }
 
