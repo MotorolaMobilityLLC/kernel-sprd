@@ -38,7 +38,6 @@ config UCLAMP_MIN_TO_BOOST
 	bool "Transform uclamp_min to schedtune.boost"
 	depends on SCHED_WALT
 	depends on UCLAMP_TASK
-	default n
 	help
 	This feature would transform the uclamp_min to stune.boost.
 	Meantime, add sysctl to let users could disable the feature and using
