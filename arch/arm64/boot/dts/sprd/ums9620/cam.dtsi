@@ -86,6 +86,8 @@
 				MASK_MM_AHB_ISP_ALL_SOFT_RST>;
 		reset = <&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
 				MASK_MM_AHB_ISP_SOFT_RST>;
+		sys_h2p_db_soft_rst = <&mm_ahb_regs REG_MM_AHB_SYS_SOFT_RST
+				MASK_MM_AHB_SYS_H2P_DB_SOFT_RST>;
 		clock-names = "isp_eb",
 				"isp_mtx_en",
 				"isp_tck_en",
