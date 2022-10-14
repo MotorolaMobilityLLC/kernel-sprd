@@ -32,9 +32,15 @@ void wcn_debug_bus_show(struct wcn_device *wcn_dev, char *show)
 	if (wcn_dev == NULL)
 		wcn_dev = s_wcn_device.btwf_device;
 
-	debugbus_data = (u32 *)wcn_dev->dbus.dbus_data_pool;
-	if (debugbus_data == NULL)
+	if (wcn_dev->dbus.maxsz == 0)
 		return;
+
+	wcn_dev->dbus.dbus_data_pool = kzalloc(wcn_dev->dbus.maxsz, GFP_KERNEL);
+	if (!wcn_dev->dbus.dbus_data_pool) {
+		WCN_ERR("%s fail to malloc\n", __func__);
+		return;
+	}
+	debugbus_data = (u32 *)wcn_dev->dbus.dbus_data_pool;
 
 	sysbase = wcn_dev->dbus.dbus_reg_base;
 	WCN_INFO("phyaddr:0x%llx, sysbase:0x%p\n", wcn_dev->dbus.phy_reg, sysbase);
@@ -306,13 +312,32 @@ void wcn_debug_bus_show(struct wcn_device *wcn_dev, char *show)
 	wcn_dev->dbus.curr_size = i * sizeof(*debugbus_data);
 	WCN_INFO("Phy_add(0x%llx) clear, len=0x%llx\n", wcn_dev->dbus.base_addr,
 			wcn_dev->dbus.curr_size);
-	wcn_write_zero_to_phy_addr(wcn_dev->dbus.base_addr, wcn_dev->dbus.maxsz);
 
-	WCN_INFO("Debug bus Write to 0x%llx, len=0x%llx\n", wcn_dev->dbus.base_addr,
-			wcn_dev->dbus.curr_size);
-	if (wcn_write_data_to_phy_addr(wcn_dev->dbus.base_addr,
-				debugbus_data, wcn_dev->dbus.curr_size) < 0) {
-		WCN_INFO("%s Fail to write\n", __func__);
+	if (!wcn_dev->db_to_ddr_disable) {
+		wcn_write_zero_to_phy_addr(wcn_dev->dbus.base_addr, wcn_dev->dbus.maxsz);
+		WCN_INFO("Debug bus Write to 0x%llx, len=0x%llx\n", wcn_dev->dbus.base_addr,
+				wcn_dev->dbus.curr_size);
+		if (wcn_write_data_to_phy_addr(wcn_dev->dbus.base_addr,
+					debugbus_data, wcn_dev->dbus.curr_size) < 0) {
+			WCN_INFO("%s Fail to write\n", __func__);
+		}
 	}
+
+	memset(wcn_dev->dbus.db_temp, 0, ARRAY_SIZE(wcn_dev->dbus.db_temp));
+	if (wcn_dev->dbus.curr_size <= sizeof(wcn_dev->dbus.db_temp))
+		memcpy(wcn_dev->dbus.db_temp, debugbus_data, wcn_dev->dbus.curr_size);
+	else
+		WCN_ERR("debugbus data cannot be backed up\n");
+
+	debugbus_data = NULL;
+	kzfree(wcn_dev->dbus.dbus_data_pool);
+	/* Debugbus data backup */
+	wcn_dev->dbus.dbus_data_pool = wcn_dev->dbus.db_temp;
 }
 EXPORT_SYMBOL_GPL(wcn_debug_bus_show);
+
+void debug_bus_show(char *show)
+{
+	wcn_debug_bus_show(NULL, show);
+}
+EXPORT_SYMBOL_GPL(debug_bus_show);

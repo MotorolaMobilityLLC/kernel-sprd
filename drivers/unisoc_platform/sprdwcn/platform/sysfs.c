@@ -15,6 +15,7 @@
 #include "../sdio/sdiohal.h"
 #include "wcn_dbg.h"
 #include "wcn_glb.h"
+#include "wcn_debug_bus.h"
 
 static bool from_ddr;
 extern int is_wcn_shutdown;
@@ -35,6 +36,7 @@ struct wcn_sysfs_info {
 	unsigned char loglevel;
 };
 
+bool isInAtCmd;
 static struct wcn_sysfs_info sysfs_info;
 
 void wcn_send_atcmd_lock(void)
@@ -291,9 +293,12 @@ static ssize_t wcn_sysfs_show_sw_ver(struct device *dev,
 {
 	size_t len = 0;
 	char a[] = "at+spatgetcp2info\r\n";
+	isInAtCmd = true;
 
+	WCN_INFO("%s \n", __func__);
 	if (!marlin_get_module_status()) {
 		memcpy(buf, sysfs_info.sw_ver_buf, sysfs_info.sw_ver_len);
+		isInAtCmd = false;
 		return sysfs_info.sw_ver_len;
 	}
 
@@ -307,6 +312,7 @@ static ssize_t wcn_sysfs_show_sw_ver(struct device *dev,
 	/* because cp2 pass wrong len */
 	len = strlen(buf);
 	WCN_INFO("show:len=%zd\n", len);
+	isInAtCmd = false;
 
 	return len;
 }
@@ -559,10 +565,10 @@ static ssize_t wcn_sysfs_store_reset_dump(struct device *dev,
 
 	if (strncmp(buf, "dump", 4) == 0) {
 		atomic_set(&sysfs_info.is_reset, WCN_ASSERT_ONLY_DUMP);
-	} else if (strncmp(buf, "reset", 5) == 0) {
-		atomic_set(&sysfs_info.is_reset, WCN_ASSERT_ONLY_RESET);
 	} else if (strncmp(buf, "reset_dump", 10) == 0) {
 		atomic_set(&sysfs_info.is_reset, WCN_ASSERT_BOTH_RESET_DUMP);
+	} else if (strncmp(buf, "reset", 5) == 0) {
+		atomic_set(&sysfs_info.is_reset, WCN_ASSERT_ONLY_RESET);
 	} else if (strncmp(buf, "manual_dump", 11) == 0) {
 		sprdwcn_bus_set_carddump_status(true);
 		wcn_assert_interface(WCN_SOURCE_BTWF, "dumpmem");
@@ -645,7 +651,7 @@ static ssize_t debugbus_show(struct device *dev,
 	static int num;
 	ssize_t max_ret = PAGE_SIZE - 4;
 
-	if (len == 0) {
+	if (len == 0 || (from_ddr && s_wcn_device.btwf_device->db_to_ddr_disable)) {
 		WCN_INFO("%s debugbus data not imported\n", __func__);
 		return 0;
 	}
@@ -709,6 +715,16 @@ static ssize_t debugbus_store(struct device *dev,
 /* aiaiai: wcn_sys_show_debugbus to debugbus_show, wcn_sys_store_debugbus to debugbus_store */
 static DEVICE_ATTR_RW(debugbus);
 
+
+static ssize_t debugbus_show_trigger_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count)
+{
+	WCN_INFO("%s %s enter\n", buf, __func__);
+
+	debug_bus_show("debugbus_show_trigger_store");
+	return count;
+}
+static DEVICE_ATTR_WO(debugbus_show_trigger);
 /*
  * ud710_3h10:/sys/devices/platform/sprd-marlin3 # ls
  * sleep_state driver driver_override fwlog hw_pg_ver modalias of_node power
@@ -885,6 +901,7 @@ static struct attribute *wcn_attrs[] = {
 	&dev_attr_atcmd.attr,
 	&dev_attr_shutting_down.attr,
 	&dev_attr_debugbus.attr,
+	&dev_attr_debugbus_show_trigger.attr,
 	NULL,
 };
 

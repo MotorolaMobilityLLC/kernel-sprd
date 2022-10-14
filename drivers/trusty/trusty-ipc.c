@@ -794,6 +794,8 @@ int tipc_chan_shutdown(struct tipc_chan *chan)
 			       __func__, err);
 		}
 	} else {
+		pr_err("%s: not connected. chan->state (%d)\n",
+			       __func__, chan->state);
 		err = -ENOTCONN;
 	}
 	chan->state = TIPC_STALE;
@@ -802,6 +804,7 @@ int tipc_chan_shutdown(struct tipc_chan *chan)
 	if (err) {
 		/* release buffer */
 		tipc_chan_put_txbuf(chan, txbuf);
+		kfree(msg_buf_list);
 	}
 err_out:
 	return err;

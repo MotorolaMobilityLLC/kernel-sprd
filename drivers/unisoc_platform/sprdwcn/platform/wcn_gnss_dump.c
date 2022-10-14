@@ -21,6 +21,7 @@
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <linux/wait.h>
+#include <linux/vmalloc.h>
 
 #define GNSS_RING_R			0
 #define GNSS_RING_W			1
@@ -135,17 +136,17 @@ static struct gnss_ring_t *gnss_ring_init(unsigned long size,
 	}
 
 	do {
-		pring = kmalloc(sizeof(struct gnss_ring_t), GFP_KERNEL);
+		pring = vmalloc(sizeof(struct gnss_ring_t));
 		if (!pring) {
 			pr_err("Ring malloc Failed\n");
 			break;
 		}
-		pring->pbuff = kmalloc(size, GFP_KERNEL);
+		pring->pbuff = vmalloc(size);
 		if (!pring->pbuff) {
 			pr_err("Ring buff malloc Failed\n");
 			break;
 		}
-		pring->plock = kmalloc(sizeof(struct mutex), GFP_KERNEL);
+		pring->plock = vmalloc(sizeof(struct mutex));
 		if (!pring->plock) {
 			pr_err("Ring lock malloc Failed\n");
 			break;

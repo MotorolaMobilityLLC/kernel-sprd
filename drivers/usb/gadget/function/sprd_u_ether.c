@@ -601,7 +601,7 @@ static int process_rx_w(void *data)
 		} while ((skb = skb_dequeue(&dev->rx_frames)));
 
 		if (netif_running(dev->net))
-			rx_fill(dev, GFP_KERNEL);
+			rx_fill(dev, GFP_KERNEL | __GFP_HIGHMEM);
 	}
 	return 0;
 }

@@ -19,6 +19,7 @@
 #include "loopcheck.h"
 #include "../include/wcn_dbg.h"
 #include "gnss_dump.h"
+#include "wcn_debug_bus.h"
 
 /* SUB_NAME len not more than 15 bytes */
 #define UMW2631_WCN_DUMP_VERSION_SUB_NAME "SIPC_26xx"
@@ -764,6 +765,10 @@ static int btwf_dump_mem(void)
 
 void mdbg_dump_mem_integ(void)
 {
+	/* print debugbus information beforce dump for debugging */
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+		debug_bus_show("WCN Assert");
+
 	/* dump gnss */
 	gnss_dump_mem(0);
 

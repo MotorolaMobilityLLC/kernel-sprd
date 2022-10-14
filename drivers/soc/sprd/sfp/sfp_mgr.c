@@ -1149,6 +1149,7 @@ static int __init init_sfp_module(void)
 
 	status = sfp_mgr_init();
 	nf_sfp_conntrack_init();
+	sfp_netlink_init();
 	sysctl_sfp_init();
 	if (status != SFP_OK)
 		return -EPERM;
@@ -1159,6 +1160,7 @@ static void __exit exit_sfp_module(void)
 {
 	sfp_mgr_disable();
 	nfp_proc_exit();
+	sfp_netlink_exit();
 	sysctl_sfp_exit();
 }
 

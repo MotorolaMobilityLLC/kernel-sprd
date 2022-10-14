@@ -17122,8 +17122,8 @@ CONFIG_SPRD_PMIC_SMPL
 	[missing plat description] none
 	[function]
 CONFIG_SPRD_PMIC_SYSCON
-	[arch] arm64
-	[plat] sharkl5Pro
+	[arch] all
+	[plat] pike2,sharkl5Pro
 	[missing plat] sharkl3
 	[field]
 	[subsys]
@@ -19583,8 +19583,8 @@ CONFIG_USB_XHCI_PLATFORM
 	[missing plat description] none
 	[function]
 CONFIG_USERFAULTFD
-	[arch] arm64
-	[plat] sharkl3,sharkl5Pro
+	[arch] all
+	[plat] all
 	[missing plat] none
 	[field]
 	[subsys]
