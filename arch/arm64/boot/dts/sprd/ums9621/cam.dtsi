@@ -134,6 +134,10 @@
 			MASK_CAMERASYS_GLB_DCAM0_SOFT_RST>;
 		dcam1_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
 			MASK_CAMERASYS_GLB_DCAM1_SOFT_RST>;
+		dcam0_mipi_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_MIPI_CSI0_SOFT_RST>;
+		dcam1_mipi_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_MIPI_CSI1_SOFT_RST>;
 
 		clock-names = "dcam_eb",
 			"dcam_blk_cfg_en",
@@ -201,6 +205,10 @@
 			MASK_CAMERASYS_GLB_DCAM2_SOFT_RST>;
 		lite1_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
 			MASK_CAMERASYS_GLB_DCAM3_SOFT_RST>;
+		lite0_mipi_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_MIPI_CSI2_SOFT_RST>;
+		lite1_mipi_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_MIPI_CSI3_SOFT_RST>;
 		clock-names = "dcam_lite_eb",
 			"dcam_lite_mtx_en",
 			"dcam_lite_clk",
