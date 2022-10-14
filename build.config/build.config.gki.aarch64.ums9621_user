@@ -40,6 +40,7 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/platform/compr_2stage_dma
 ../modules/kernel5.15/audio/sprd/dai/vbc/v4/vbc_dai
 ../modules/kernel5.15/audio/sprd/dai/vbc/v4/fe_dai
+../modules/kernel5.15/vender/audio/fsa4480
 ../modules/kernel5.15/audio/sprd/codec/dummy-codec
 ../modules/kernel5.15/audio/sprd/codec/sprd/ump9620/codec
 ../modules/kernel5.15/audio/sprd/codec/sprd/ump9620/power
