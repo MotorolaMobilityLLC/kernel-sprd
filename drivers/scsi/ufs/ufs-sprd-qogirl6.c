@@ -336,15 +336,15 @@ int ufs_sprd_reset(struct ufs_sprd_host *host)
 			  0);
 
 	/* ufs soft reset */
-	ret = reset_control_assert(host->ap_apb_ufs_glb_rst);
+	ret = reset_control_assert(host->ap_apb_ufs_rst);
 	if (ret) {
-		dev_err(host->hba->dev, "assert ufs_glb_rst failed, ret = %d!\n", ret);
+		dev_err(host->hba->dev, "assert ufs_rst failed, ret = %d!\n", ret);
 		goto out;
 	}
 	usleep_range(10, 20);
-	ret = reset_control_deassert(host->ap_apb_ufs_glb_rst);
+	ret = reset_control_deassert(host->ap_apb_ufs_rst);
 	if (ret) {
-		dev_err(host->hba->dev, "deassert ufs_glb_rst failed, ret = %d!\n", ret);
+		dev_err(host->hba->dev, "deassert ufs_rst failed, ret = %d!\n", ret);
 		goto out;
 	}
 
@@ -817,11 +817,14 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 	hba->rpm_lvl = UFS_PM_LVL_1;
 	hba->spm_lvl = UFS_PM_LVL_5;
 	hba->uic_link_state = UIC_LINK_OFF_STATE;
+
+	mdelay(30);
 	return 0;
 }
 
 static int ufs_sprd_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 {
+	udelay(100);
 	return 0;
 }
 

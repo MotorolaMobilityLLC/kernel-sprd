@@ -50,6 +50,7 @@ struct sipa_sys_pd_drv {
 	struct regmap *dispc1_reg;
 	struct regmap *glb_apb_reg;
 	struct regmap *apb_reg;
+	struct regmap *anlg_reg;
 	struct sipa_sys_register regs[0];
 };
 

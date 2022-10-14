@@ -47,8 +47,10 @@
 				sprd,ctrl-shutdown-us-delay = <10>;
 				sprd,ctrl-shutdown-type = <0xa>;
 				reg = <0x0 0x87000000 0x0 0x200000
-					0x0 0x87210000 0x0 0x2800 /* Debug bus to DDR */
+					/* Debug bus to DDR */
+					/* 0x0 0x87210000 0x0 0x2800 */
 					0x0 0x7C00A000 0x0 0x74>; /* Debug bus REG */
+				sprd,debugbus-to-ddr-disable;
 				sprd,file-name ="/dev/block/platform/soc/soc:ap-apb/201d0000.sdio/by-name/wcnmodem";
 				sprd,file-name-ufs ="/dev/block/platform/soc/soc:ap-apb/20200000.ufs/by-name/wcnmodem";
 				sprd,firmware-path = "/vendor/firmware/";

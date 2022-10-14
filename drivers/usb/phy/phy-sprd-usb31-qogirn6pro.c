@@ -25,10 +25,12 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
-#include <linux/power/ump9620-usb-charger.h>
+#include <linux/kthread.h>
+#include <linux/power/ump96xx-usb-charger.h>
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 #include <linux/usb/phy.h>
+#include <uapi/linux/sched/types.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
 #include <linux/usb/sprd_usbm.h>
@@ -45,6 +47,9 @@ struct sprd_ssphy {
 	struct regmap		*ana_g0l;
 	struct regmap           *pmic;
 	struct regulator	*vdd;
+	struct kthread_worker bc1p2_kworker;
+	struct kthread_work bc1p2_kwork;
+	struct task_struct *bc1p2_thread;
 	u32			vdd_vol;
 	u32			host_eye_pattern;
 	u32			device_eye_pattern;
@@ -54,6 +59,9 @@ struct sprd_ssphy {
 	atomic_t		inited;
 	atomic_t		susped;
 	bool			is_host;
+	spinlock_t		vbus_event_lock;
+	bool vbus_events;
+	struct mutex lock;
 };
 
 #define PHY_INIT_TIMEOUT 500
@@ -135,8 +143,6 @@ struct sprd_ssphy {
 
 #define DEFAULT_DEVICE_EYE_PATTERN			0x067bd1c0
 #define DEFAULT_HOST_EYE_PATTERN			0x067bd1c0
-
-#define SC27XX_CHG_REDET_DELAY_MS			960
 
 /* Rest USB Core*/
 static inline void sprd_ssphy_reset_core(struct sprd_ssphy *phy)
@@ -671,6 +677,53 @@ static struct attribute *usb_ssphy_attrs[] = {
 };
 ATTRIBUTE_GROUPS(usb_ssphy);
 
+static void sprd_ssphy_get_bc1p2_type_work(struct kthread_work *work)
+{
+	struct sprd_ssphy *phy = container_of(work, struct sprd_ssphy, bc1p2_kwork);
+	struct usb_phy *usb_phy;
+	bool vbus_events;
+
+	if (!phy) {
+		pr_err("%s:line%d: phy NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
+	usb_phy = &phy->phy;
+	if (!usb_phy) {
+		pr_err("%s:line%d: usb_phy NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
+	mutex_lock(&phy->lock);
+	spin_lock(&phy->vbus_event_lock);
+	while (phy->vbus_events) {
+		vbus_events = phy->vbus_events;
+		phy->vbus_events = false;
+		spin_unlock(&phy->vbus_event_lock);
+		if (vbus_events)
+			sprd_bc1p2_notify_charger(usb_phy);
+		spin_lock(&phy->vbus_event_lock);
+	}
+
+	spin_unlock(&phy->vbus_event_lock);
+	mutex_unlock(&phy->lock);
+}
+
+static void sprd_ssphy_usb_changed(struct sprd_ssphy *phy, enum usb_charger_state state)
+{
+	struct usb_phy *usb_phy = &phy->phy;
+
+	spin_lock(&phy->vbus_event_lock);
+	phy->vbus_events = true;
+
+	usb_phy->chg_state = state;
+
+	spin_unlock(&phy->vbus_event_lock);
+
+	if (phy->bc1p2_thread)
+		kthread_queue_work(&phy->bc1p2_kworker, &phy->bc1p2_kwork);
+}
+
 static int sprd_ssphy_vbus_notify(struct notifier_block *nb,
 				unsigned long event, void *data)
 {
@@ -687,55 +740,19 @@ static int sprd_ssphy_vbus_notify(struct notifier_block *nb,
 		return 0;
 	}
 
-	if (event) {
-		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
-	} else {
-		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
-	}
+	if (event)
+		sprd_ssphy_usb_changed(phy, USB_CHARGER_PRESENT);
+	else
+		sprd_ssphy_usb_changed(phy, USB_CHARGER_ABSENT);
 
 	return 0;
 }
 
-static enum usb_charger_type sprd_ssphy_retry_charger_detect(struct usb_phy *x)
-{
-	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
-	enum usb_charger_type type = UNKNOWN_TYPE;
-	int ret = 0;
-
-	if (!phy->pmic)
-		return UNKNOWN_TYPE;
-
-	ret = sc27xx_charger_phy_redetect_trigger(phy->pmic, SC27XX_CHG_REDET_DELAY_MS);
-	if (ret) {
-		dev_err(x->dev, "trigger charger phy redetect failed, error %d\n", ret);
-		return UNKNOWN_TYPE;
-	}
-
-	type = sc27xx_charger_detect(phy->pmic);
-
-	dev_info(x->dev, "charger redetect type:0x%x\n", type);
-
-	if (type != UNKNOWN_TYPE) {
-		x->chg_type = type;
-		schedule_work(&x->chg_work);
-	}
-	return type;
-}
-
 static enum usb_charger_type sprd_ssphy_charger_detect(struct usb_phy *x)
 {
-	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
 	enum usb_charger_type type = UNKNOWN_TYPE;
 
-	if (!phy->pmic)
-		return UNKNOWN_TYPE;
-
-	type = sc27xx_charger_detect(phy->pmic);
-	dev_info(x->dev, "charger type:0x%x\n", type);
-	if (type == UNKNOWN_TYPE) {
-		type = sprd_ssphy_retry_charger_detect(x);
-		dev_info(x->dev, "retry detected charger type:0x%x\n", type);
-	}
+	type = sprd_bc1p2_charger_detect(x);
 
 	return type;
 }
@@ -806,6 +823,7 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	struct sprd_ssphy *phy;
 	struct device *dev = &pdev->dev;
 	struct resource *res;
+	struct sched_param param = { .sched_priority = 1 };
 	int ret;
 	u32 reg, msk;
 
@@ -945,6 +963,19 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	 */
 	phy->phy.notify_connect			= sprd_ssphy_notify_connect;
 	phy->phy.notify_disconnect		= sprd_ssphy_notify_disconnect;
+	mutex_init(&phy->lock);
+	spin_lock_init(&phy->vbus_event_lock);
+	kthread_init_worker(&phy->bc1p2_kworker);
+	kthread_init_work(&phy->bc1p2_kwork, sprd_ssphy_get_bc1p2_type_work);
+	phy->bc1p2_thread = kthread_run(kthread_worker_fn, &phy->bc1p2_kworker,
+					"ssphy_bc1p2_worker");
+	if (IS_ERR(phy->bc1p2_thread)) {
+		phy->bc1p2_thread = NULL;
+		dev_err(dev, "failed to run bc1p2_thread\n");
+	} else {
+		sched_setscheduler(phy->bc1p2_thread, SCHED_FIFO, &param);
+	}
+
 	ret = usb_add_phy_dev(&phy->phy);
 	if (ret) {
 		dev_err(dev, "fail to add phy\n");
@@ -958,7 +989,7 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 	pm_runtime_enable(dev);
 
 	if (extcon_get_state(phy->phy.edev, EXTCON_USB) > 0)
-		usb_phy_set_charger_state(&phy->phy, USB_CHARGER_PRESENT);
+		sprd_ssphy_usb_changed(phy, USB_CHARGER_PRESENT);
 
 	return 0;
 }
@@ -967,6 +998,11 @@ static int sprd_ssphy_remove(struct platform_device *pdev)
 {
 	struct sprd_ssphy *phy = platform_get_drvdata(pdev);
 
+	if (phy->bc1p2_thread) {
+		kthread_flush_worker(&phy->bc1p2_kworker);
+		kthread_stop(phy->bc1p2_thread);
+		phy->bc1p2_thread = NULL;
+	}
 	sysfs_remove_groups(&pdev->dev.kobj, usb_ssphy_groups);
 	usb_remove_phy(&phy->phy);
 	if (regulator_is_enabled(phy->vdd))

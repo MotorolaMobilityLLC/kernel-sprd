@@ -859,11 +859,11 @@ void sprd_pcie_remove_card(void *wcn_dev)
 	WCN_INFO("%s: rc node name: %s\n",
 			__func__, dev->of_node->name);
 
-	if (!priv->dev || priv->dev)
+	if (!priv->dev)
 		WCN_ERR("%s: card exist!\n", __func__);
 
 	sprd_pcie_unconfigure_device(pdev);
-
+	priv->dev = NULL;
 	if (wait_for_completion_timeout(&priv->remove_done,
 					msecs_to_jiffies(5000)) == 0)
 		WCN_ERR("remove card time out\n");
@@ -1030,6 +1030,7 @@ static int sprd_pcie_probe(struct pci_dev *pdev,
 
 	wcn_bus_change_state(priv, WCN_BUS_UP);
 	atomic_set(&priv->xmit_cnt, 0x0);
+	atomic_set(&priv->is_suspending, 0);
 	complete(&priv->scan_done);
 
 	edma_init(priv);
@@ -1098,6 +1099,7 @@ static int sprd_ep_suspend(struct device *dev)
 	struct wcn_pcie_info *priv = pci_get_drvdata(pdev);
 
 	wcn_bus_change_state(priv, WCN_BUS_DOWN);
+	atomic_set(&priv->is_suspending, 1);
 
 	for (chn = 0; chn < 16; chn++) {
 		ops = mchn_ops(chn);
@@ -1106,13 +1108,17 @@ static int sprd_ep_suspend(struct device *dev)
 			if (ret != 0) {
 				WCN_INFO("[%s] chn:%d suspend fail\n",
 					 __func__, chn);
+				atomic_set(&priv->is_suspending, 0);
+				wcn_bus_change_state(priv, WCN_BUS_UP);
 				return ret;
 			}
 		}
 	}
 
-	if (edma_hw_pause() < 0)
+	if (edma_hw_pause() < 0) {
+		atomic_set(&priv->is_suspending, 0);
 		return -1;
+	}
 
 	WCN_INFO("%s[+]\n", __func__);
 
@@ -1159,6 +1165,7 @@ static int sprd_ep_resume(struct device *dev)
 	edma_hw_restore();
 
 	wcn_bus_change_state(priv, WCN_BUS_UP);
+	atomic_set(&priv->is_suspending, 0);
 	for (chn = 0; chn < 16; chn++) {
 		ops = mchn_ops(chn);
 		if ((ops != NULL) && (ops->power_notify != NULL)) {
@@ -1166,10 +1173,12 @@ static int sprd_ep_resume(struct device *dev)
 			if (ret != 0) {
 				WCN_INFO("[%s] chn:%d resume fail\n",
 					 __func__, chn);
+				wcn_bus_change_state(priv, WCN_BUS_DOWN);
 				return ret;
 			}
 		}
 	}
+	WCN_INFO("%s[-]\n", __func__);
 	return 0;
 }
 

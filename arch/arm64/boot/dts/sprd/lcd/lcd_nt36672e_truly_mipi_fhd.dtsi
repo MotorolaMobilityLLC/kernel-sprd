@@ -31,7 +31,7 @@
 					sprd,esd-check-value = <0x9C>;
 
 					sprd,reset-on-sequence = <1 15>, <0 15>, <1 15>;
-					sprd,reset-off-sequence = <0 5>;
+					sprd,reset-off-sequence = <1 5>;
 
 					sprd,use-gen-write;
 
@@ -374,6 +374,7 @@
 					sprd,sleep-in-command = [
 						13 0A 00 01 28
 						13 78 00 01 10
+						23 0a 00 02 4f 01
 						];
 					sprd,sleep-out-command = [
 						13 78 00 01 11

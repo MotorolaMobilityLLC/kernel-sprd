@@ -2443,6 +2443,31 @@ int wcn_poweron_device(struct wcn_device *wcn_dev)
 	return 0;
 }
 
+int btwf_sys_wait_cp2_wfi(struct wcn_device *wcn_dev)
+{
+	phys_addr_t cp2_sleep_status_phy_addr;
+	u32 cp2_sleep_status = 0;
+	ktime_t time_end;
+	bool cp2_deepsleep = false;
+
+	cp2_sleep_status_phy_addr = wcn_dev->base_addr +
+		(phys_addr_t)&qogirl6_s_wssm_phy_offset_p->cp2_sleep_status;
+	time_end = ktime_add_ms(ktime_get(), 500);
+
+	do {
+		wcn_read_data_from_phy_addr(cp2_sleep_status_phy_addr,
+			&cp2_sleep_status, sizeof(cp2_sleep_status));
+		if (cp2_sleep_status == BTWF_SW_DEEP_SLEEP_MAGIC) {
+			cp2_deepsleep = true;
+			break;
+		}
+	} while (!ktime_after(ktime_get(), time_end));
+
+	WCN_INFO("%s BTWF CP2 deepsleep:%s\n", __func__, cp2_deepsleep ? "yes" : "no");
+
+	return cp2_deepsleep;
+}
+
 /* wait BTWF SYS enter deep sleep and then set it auto shutdown.
  * after this operate, BTWF SYS will enter shutdown mode.
  */
@@ -2459,6 +2484,8 @@ int btwf_sys_shutdown(struct wcn_device *wcn_dev)
 	/* btwf_ss_arm_sys_pd_auto_en Bit[12] default 1=>1
 	 * maybe the value is cleared.
 	 */
+	/* Wait CP2 deepsleep Prevent register write conflicts */
+	btwf_sys_wait_cp2_wfi(wcn_dev);
 	wcn_regmap_read(wcn_dev->rmap[REGMAP_WCN_AON_APB],
 				 0x0098, &reg_val);
 	WCN_INFO("REG 0x4080c098:val=0x%x!\n",
@@ -2600,7 +2627,7 @@ int gnss_sys_shutdown(struct wcn_device *wcn_dev)
 			  reg_val);
 
 	/* workround1 use after chip eco D-die sys dosen't sleep*/
-	wcn_ip_allow_sleep(wcn_dev, true);
+	/* wcn_ip_allow_sleep(wcn_dev, true); */
 	return 0;
 }
 
@@ -3952,6 +3979,15 @@ unlock_out:
 
 	return 0;
 }
+
+bool wcn_is_power_busy(void)
+{
+	if (wcn_platform_chip_type() != WCN_PLATFORM_TYPE_QOGIRL6)
+		return 0;
+
+	return mutex_is_locked(&marlin_lock);
+}
+EXPORT_SYMBOL_GPL(wcn_is_power_busy);
 
 int stop_integrate_wcn(u32 subsys)
 {

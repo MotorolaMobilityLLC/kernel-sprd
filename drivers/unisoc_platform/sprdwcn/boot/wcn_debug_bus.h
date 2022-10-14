@@ -42,7 +42,8 @@
 #define SYSSEL_CFG4_OFFSET	0x28
 #define SYSSEL_CFG5_OFFSET	0x74
 #define PAD_DBUS_DATA_OUT_OFFSET	0x50
-;
+
 void wcn_debug_bus_show(struct wcn_device *wcn_dev, char *show);
+void debug_bus_show(char *show);
 
 #endif

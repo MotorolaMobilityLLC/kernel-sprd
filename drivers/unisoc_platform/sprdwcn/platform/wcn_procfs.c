@@ -944,6 +944,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 			WCN_ERR("%s:PCIE device link error\n", __func__);
 			return -1;
 		}
+		wcn_set_tx_complete_status(0);
 		/* make sure don't send at cmd to pcie when chip has power off */
 		if ((strncmp(mdbg_proc->write_buf, "at+loopcheck", 12) == 0)) {
 			if (atomic_inc_return(&pcie_dev->xmit_cnt) >=

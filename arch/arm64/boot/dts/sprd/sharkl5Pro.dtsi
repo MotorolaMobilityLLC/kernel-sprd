@@ -1478,6 +1478,7 @@
 				phy-names = "usb";
 				dr-mode = "peripheral";
 				multipoint = "true";
+				sprd,usb-data-enable = <1>;
 				wakeup-source;
 			};
 

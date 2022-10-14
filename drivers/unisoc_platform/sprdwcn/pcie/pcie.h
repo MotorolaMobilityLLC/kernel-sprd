@@ -16,6 +16,7 @@
 
 #include <linux/pci.h>
 #include <misc/wcn_bus.h>
+#include  <linux/platform_device.h>
 
 #define DRVER_NAME      "wcn_pcie"
 
@@ -125,6 +126,7 @@ struct wcn_pcie_info {
 	atomic_t edma_ready;
 	atomic_t tx_complete;
 	atomic_t card_exist;
+	atomic_t is_suspending;
 	struct mutex pm_lock;
 };
 

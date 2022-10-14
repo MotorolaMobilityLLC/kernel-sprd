@@ -93,6 +93,21 @@ static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
 	return ret;
 }
 
+void ufs_cfg(struct sipa_sys_pd_drv *drv)
+{
+	regmap_update_bits(drv->dispc1_reg, REG_APB_EB,
+			   MASK_USB31PLL_EB, MASK_USB31PLL_EB);
+	regmap_update_bits(drv->anlg_reg,
+			   REG_ANALOG_USB31_PLL_V_REG_SEL_CFG_0,
+			   MASK_DBG_SEL_ANALOG_USB31_PLL_V_RG_USB31PLLV_PD,
+			   MASK_DBG_SEL_ANALOG_USB31_PLL_V_RG_USB31PLLV_PD);
+	regmap_update_bits(drv->anlg_reg,
+			   REG_ANALOG_USB31_PLL_V_USB31PLL_CTRL0,
+			   MASK_ANALOG_USB31_PLL_V_RG_USB31PLLV_PD,
+			   0);
+	regmap_update_bits(drv->dispc1_reg, REG_APB_EB, MASK_USB31PLL_EB, 0);
+}
+
 int sipa_sys_do_power_on_cb_v3(void *priv)
 {
 	u32 val = 0;
@@ -170,6 +185,10 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 		}
 		clk_set_parent(drv->ipa_core_clk, drv->ipa_core_parent);
 	}
+
+	/*let ufs hibernate exit*/
+	ufs_cfg(drv);
+
 	return ret;
 }
 
@@ -346,6 +365,12 @@ int sipa_sys_parse_dts_cb_v3(void *priv)
 	if (IS_ERR(drv->apb_reg)) {
 		dev_err(drv->dev, "ipa-apb syscon failed\n");
 		return PTR_ERR(drv->apb_reg);
+	}
+
+	drv->anlg_reg = syscon_regmap_lookup_by_phandle(np, "sprd,syscon-anlg-phy");
+	if (IS_ERR(drv->anlg_reg)) {
+		dev_err(drv->dev, "anlg syscon failed\n");
+		return PTR_ERR(drv->anlg_reg);
 	}
 
 	return 0;

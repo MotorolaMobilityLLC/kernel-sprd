@@ -236,9 +236,16 @@ config USB_ULPI_VIEWPORT
 	  Provides read/write operations to the ULPI phy register set for
 	  controllers with a viewport register (e.g. Chipidea/ARC controllers).
 
+config SPRD_UMP96xx_BC1P2
+	tristate "Spreadtrum Ump96xx USB BC1P2 support"
+	select USB_PHY
+	help
+	  Enable this to support the sprd Ump96xx USB BC1P2.
+
 config SPRD_QOGIRN6PRO_USB2_PHY
 	tristate "Spreadtrum Qogirn6pro USB2 PHY Driver"
 	select USB_PHY
+	select SPRD_UMP96xx_BC1P2
 	help
 	  Enable this to support the SPRD QOGIRN6PRO USB2 PHY that is part of SOC.
 	  This driver takes care of all the PHY functionality, normally paired with
@@ -247,6 +254,7 @@ config SPRD_QOGIRN6PRO_USB2_PHY
 config SPRD_QOGIRN6PRO_USB31_PHY
 	tristate "Unisoc QOGIRN6PRO PHY Driver"
 	select USB_PHY
+	select SPRD_UMP96xx_BC1P2
 	depends on USB_DWC3_SPRD ||  COMPILE_TEST
 	help
 	  Enable this to support QOGIRN6PRO USB3 PHY that is part of SOC. This

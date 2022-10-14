@@ -190,11 +190,12 @@ enum flag_emmc_or_ufs {
 	emmc = 1
 };
 
+#define DEBUGBUS_VALID_LEN 5100
 struct wcn_debug_bus {
 	phys_addr_t base_addr;
-	u32	maxsz;
+	u32 maxsz;
 	u8 *dbus_data_pool;
-
+	u8 db_temp[DEBUGBUS_VALID_LEN];
 	phys_addr_t phy_reg;
 	/*debug bus base reg */
 	void __iomem *dbus_reg_base;
@@ -272,6 +273,7 @@ struct wcn_device {
 	struct	delayed_work cali_wq;
 	struct	completion download_done;
 	struct wcn_debug_bus dbus;
+	bool db_to_ddr_disable;
 };
 
 struct wcn_device_manage {

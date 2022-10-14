@@ -7,6 +7,7 @@
 #include <linux/workqueue.h>
 #include <linux/rtc.h>
 #include <linux/timekeeping.h>
+#include <misc/wcn_bus.h>
 
 #include "wcn_glb.h"
 #include "wcn_misc.h"
@@ -27,6 +28,7 @@ struct wcn_loopcheck {
 };
 
 static struct wcn_loopcheck loopcheck;
+extern bool isInAtCmd;
 
 #ifdef BUILD_WCN_PCIE
 static int loopcheck_send_pcie(char *cmd, unsigned int len)
@@ -40,9 +42,22 @@ static int loopcheck_send_pcie(char *cmd, unsigned int len)
 	static int at_buf_flag;
 	struct wcn_pcie_info *pcie_dev;
 
+	WCN_INFO("%s enter\n", __func__);
 	pcie_dev = get_wcn_device_info();
 	if (!pcie_dev) {
 		WCN_ERR("%s:PCIE device link error\n", __func__);
+		return -1;
+	}
+	if (atomic_read(&pcie_dev->is_suspending)) {
+		WCN_ERR("%s:PCIE dev is suspending\n", __func__);
+		return -1;
+	}
+	if (pcie_dev->pci_status == WCN_BUS_DOWN) {
+		WCN_ERR("%s:PCIE wcn bus down\n", __func__);
+		return -1;
+	}
+	if (isInAtCmd) {
+		WCN_ERR("%s: PCIE is In AT CMD... \n", __func__);
 		return -1;
 	}
 
@@ -147,6 +162,7 @@ static void loopcheck_work_queue(struct work_struct *work)
 	struct timespec64 ts;
 	struct rtc_time tm;
 	static unsigned int loopcheck_cnt;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	loopcheck_tx_ns = local_clock();
 	marlin_boot_t = marlin_bootup_time_get();
@@ -167,30 +183,36 @@ static void loopcheck_work_queue(struct work_struct *work)
 
 	if (sprdwcn_rx_cnt_a == sprdwcn_rx_cnt_b) {
 		wcn_send_atcmd_lock();
-		loopcheck_send(a, strlen(a));
-		timeleft = wait_for_completion_timeout(&loopcheck.completion, (4 * HZ));
-		wcn_send_atcmd_unlock();
-		if (!test_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
+		ret = loopcheck_send(a, strlen(a));
+		if (g_match_config && g_match_config->unisoc_wcn_pcie && (ret == -1)) {
+			WCN_ERR("pcie is not ok, need to wait!\n");
+			ret = queue_delayed_work(loopcheck.workqueue, &loopcheck.work,
+				 LOOPCHECK_TIMER_INTERVAL * HZ);
+		} else {
+			timeleft = wait_for_completion_timeout(&loopcheck.completion, (4 * HZ));
+			wcn_send_atcmd_unlock();
+			if (!test_bit(WCN_LOOPCHECK_OPEN, &loopcheck.status))
 			return;
-		if (loopcheck_cnt++ % 25 == 0) {
-			ktime_get_real_ts64(&ts);
-			ts.tv_sec -= sys_tz.tz_minuteswest * 60;
-			rtc_time64_to_tm(ts.tv_sec, &tm);
-			WCN_INFO("loopcheck(%u) %04d-%02d-%02d_%02d:%02d:%02d.%ld", loopcheck_cnt,
-				tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
-				tm.tm_min, tm.tm_sec, ts.tv_nsec);
+			if (loopcheck_cnt++ % 25 == 0) {
+				ktime_get_real_ts64(&ts);
+				ts.tv_sec -= sys_tz.tz_minuteswest * 60;
+				rtc_time64_to_tm(ts.tv_sec, &tm);
+				WCN_INFO("loopcheck(%u) %04d-%02d-%02d_%02d:%02d:%02d.%ld", loopcheck_cnt,
+					tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
+					tm.tm_min, tm.tm_sec, ts.tv_nsec);
+			}
+			if (!timeleft) {
+				set_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status);
+				WCN_ERR("didn't get loopcheck ack, printk=%d\n", console_loglevel);
+				mdbg_assert_interface("WCN loopcheck erro!");
+				clear_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status);
+				return;
+			}
 		}
-		if (!timeleft) {
-			set_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status);
-			WCN_ERR("didn't get loopcheck ack, printk=%d\n", console_loglevel);
-			mdbg_assert_interface("WCN loopcheck erro!");
-			clear_bit(WCN_LOOPCHECK_FAIL, &loopcheck.status);
-			return;
-		}
-	}
 
 	ret = queue_delayed_work(loopcheck.workqueue, &loopcheck.work,
 				 LOOPCHECK_TIMER_INTERVAL * HZ);
+	}
 }
 
 void start_loopcheck(void)

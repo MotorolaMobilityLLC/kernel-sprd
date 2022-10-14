@@ -313,6 +313,7 @@ extern struct sprdwcn_bus_ops *get_wcn_bus_ops(void);
 extern void wcn_assert_interface(enum wcn_source_type, char *str);
 extern bool wcn_is_assert(void);
 bool wcn_push_list_condition_check(struct mbuf_t *head, struct mbuf_t *tail, int num);
+extern bool wcn_is_power_busy(void);
 
 static inline
 int sprdwcn_bus_preinit(void)
