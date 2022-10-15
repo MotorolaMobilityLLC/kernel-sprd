@@ -1420,7 +1420,8 @@ static bool cm_primary_charger_enable(struct charger_manager *cm, bool enable)
 
 	return true;
 }
-
+#define FIX_FULL_BAT_SOC_UA 10000
+#define FIX_FULL_BAT_SOC_MIN 970
 /**
  * is_full_charged - Returns true if the battery is fully charged.
  * @cm: the Charger Manager representing the battery.
@@ -1431,6 +1432,7 @@ static bool is_full_charged(struct charger_manager *cm)
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
 	bool is_full = false;
+	static bool fix_full = false;
 	int ret = 0;
 	int uV, uA;
 
@@ -1485,6 +1487,12 @@ static bool is_full_charged(struct charger_manager *cm)
 			desc->first_trigger_cnt = 0;
 		}
 
+		if (uV >= desc->fullbatt_uV && uA <= desc->fullbatt_uA + FIX_FULL_BAT_SOC_UA && uA >= 0 && cm->desc->cap > FIX_FULL_BAT_SOC_MIN && !fix_full) {
+			dev_info(cm->dev,"vbat fix full\n");
+			adjust_fuel_cap(cm, CM_FORCE_SET_FUEL_CAP_FULL);
+		}else{
+			fix_full = false;
+		}
 		if (uV >= desc->fullbatt_uV && uA <= desc->fullbatt_uA && uA >= 0) {
 			if (++desc->trigger_cnt > 1) {
 				if (cm->desc->cap >= CM_CAP_FULL_PERCENT) {
