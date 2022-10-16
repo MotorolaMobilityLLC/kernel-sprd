@@ -295,6 +295,18 @@
 						39 14 00 01 29
 						];  
 
+					sprd,cabc-on-command = [
+						39 00 00 02 FF 10
+						39 00 00 02 FB 01
+						39 00 00 02 55 02
+						];
+
+					sprd,cabc-off-command = [
+						39 00 00 02 FF 10
+						39 00 00 02 FB 01
+						39 00 00 02 55 00
+						];
+
 					oled-backlight {
 						default-brightness = <900>;
 						sprd,max-level = <4095>;
