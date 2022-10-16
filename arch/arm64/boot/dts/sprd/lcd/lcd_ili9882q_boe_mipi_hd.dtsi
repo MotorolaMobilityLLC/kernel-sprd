@@ -26,7 +26,7 @@
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
 
-					sprd,esd-check-enable = <0>;
+					sprd,esd-check-enable = <1>;
 					sprd,esd-check-mode = <0>;
 					sprd,esd-check-period = <2000>;
 					sprd,esd-check-regs = <0xA>;
@@ -106,6 +106,16 @@
 						39 78 00 01 11
 						39 14 00 01 29
 						];  
+
+					sprd,cabc-on-command = [
+						39 00 00 04 FF 98 82 00
+						39 00 00 02 55 02
+						];
+
+					sprd,cabc-off-command = [
+						39 00 00 04 FF 98 82 00
+						39 00 00 02 55 00
+						];
 
 					oled-backlight {
 						default-brightness = <900>;
