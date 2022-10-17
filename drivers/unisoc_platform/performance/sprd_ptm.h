@@ -38,7 +38,10 @@
 #define PTM_CORESIGHT_LAR		0xfb0
 
 /* PTM_EN */
+#ifndef CONFIG_SPRD_PTM_R6P2
+#define PTM_TRACE_LTCY_IDLE_EN		BIT(16)
 #define PTM_TRACE_BW_IDLE_EN		BIT(15)
+#endif
 #define PTM_BW_LTCY_ALL_TRACE_EN	BIT(5)
 #define PTM_TRACE_AREN			BIT(4)
 #define PTM_TRACE_AWEN			BIT(3)
@@ -66,7 +69,13 @@
 
 #define PTM_LTCY_MOD_OFFSET		7
 #define PTM_TRACE_MOD_OFFSET		9
+#ifdef CONFIG_SPRD_PTM_R6P2
+#define PTM_USRID_MSK_OFFSET		16
+#define PTM_USRID_MSK			GENMASK(9, 0)
+#else
+#define PTM_USRID_MSK_OFFSET		8
 #define PTM_USRID_MSK			GENMASK(8, 0)
+#endif
 #define PTM_MASTERID_MSK		GENMASK(15, 0)
 #define PTM_REG_MAX			GENMASK(31, 0)
 
@@ -81,6 +90,9 @@ struct bm_per_info {
 	u32 tmp1;
 	u32 tmp2;
 	u32 perf_data[BM_CHN_MAX][BM_CHN_PARA];
+#ifdef CONFIG_SPRD_PTM_DIFF_R6P1
+	u32 dpu_dcam_ovf[2][10];
+#endif
 };
 
 #define BM_DATA_COUNT			5
@@ -170,14 +182,33 @@ struct ptm_pvt_para {
 	u32				trace_usr_base;
 	u32				usrid_base;
 	u32				grp_sel;
+#ifdef CONFIG_SPRD_PTM_DIFF_R6P1
+	u32				dpu_dcam_ovf_base;
+#endif
 };
 
 static struct ptm_pvt_para ptm_v1_data[] = {
 	{0x80, 0x9c, 0xc0, 0xdc, 0x100, 0x11c, 0x140, 0x15c, 0x160, 0xfac688},
 };
 
+#ifndef CONFIG_SPRD_PTM_DIFF_R6P1
 static struct ptm_pvt_para ptm_v2_data[] = {
 	{0x80, 0xa0, 0xc0, 0xe0, 0x100, 0x120, 0x140, 0x240, 0x160, 0x7fac688},
 };
+
+static struct ptm_pvt_para ptm_v3_data[] = {
+	{0x80, 0xa0, 0xc0, 0xe0, 0x100, 0x120, 0x140, 0x240, 0x160, 0x76543210},
+};
+#else
+static struct ptm_pvt_para ptm_v2_data[] = {
+	{0x80, 0xa0, 0xc0, 0xe0, 0x100, 0x120, 0x140, 0x240, 0x160, 0x7fac688,
+	 0x410},
+};
+
+static struct ptm_pvt_para ptm_v3_data[] = {
+	{0x80, 0xa0, 0xc0, 0xe0, 0x100, 0x120, 0x140, 0x240, 0x160, 0x76543210,
+	 0x410},
+};
+#endif
 
 #endif
