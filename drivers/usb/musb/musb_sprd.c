@@ -550,7 +550,7 @@ static struct musb_hdrc_config sprd_musb_hdrc_config_single = {
 };
 #pragma GCC diagnostic pop
 
-extern bool USB_detect_flag;
+extern __attribute__((weak)) bool USB_detect_flag;
 static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 				unsigned long event, void *data)
 {

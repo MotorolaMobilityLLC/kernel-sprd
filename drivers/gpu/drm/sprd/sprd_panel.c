@@ -29,6 +29,8 @@
 #define SPRD_MIPI_DSI_FMT_DSC 0xff
 static DEFINE_MUTEX(panel_lock);
 
+void __attribute__((weak)) cts_tp_rst(void) { }
+
 typedef enum tagLcd
 {
     NotLCD,

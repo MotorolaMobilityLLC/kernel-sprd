@@ -1367,7 +1367,7 @@ int _atoi(char * str)
 	return sign * value;
 }
 
-static char *get_bootdevice()
+static char *get_bootdevice(void)
 {
 	static char bootdevice[BUF_SIZE] = {0};
 	if ( ! *bootdevice )
