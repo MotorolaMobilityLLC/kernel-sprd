@@ -19,6 +19,7 @@
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
+#include <linux/sysfs.h>
 #include <linux/usb.h>
 #include <linux/usb/sprd_pd.h>
 #include <linux/usb/sprd_pd_ado.h>
@@ -295,6 +296,16 @@ struct sprd_pd_pps_data {
 	bool active;
 };
 
+struct sprd_tcpm_sysfs {
+	char *name;
+	struct attribute_group attr_g;
+	struct device_attribute attr_log_level_ctl;
+	struct device_attribute attr_log_ctl;
+	struct attribute *attrs[3];
+
+	struct sprd_tcpm_port *port;
+};
+
 struct sprd_tcpm_port {
 	struct device *dev;
 
@@ -443,6 +454,7 @@ struct sprd_tcpm_port {
 	struct mutex logbuffer_lock;	/* log buffer access lock */
 	struct delayed_work log2printk;
 	struct mutex logprintk_lock;	/* log buffer printk lock */
+	struct sprd_tcpm_sysfs *sysfs;
 	int logbuffer_head;
 	int logbuffer_tail;
 	int logbuffer_last;
@@ -451,7 +463,8 @@ struct sprd_tcpm_port {
 	int logbuffer_show_last;
 	bool logbuffer_show_full;
 	u8 *logbuffer[SPRD_LOG_BUFFER_ENTRIES];
-	bool tcpm_log_disable;
+	bool enable_tcpm_log;
+	bool enbale_log_level_ctl;
 };
 
 struct sprd_pd_rx_event {
@@ -532,9 +545,6 @@ static const char *sprd_tcpm_log_tag = "[sprd_tcpm_log]";
 #define SPRD_LOG_BUFFER_NEED_PRINT_NUM_FULL	300
 #define SPRD_LOG_BUFFER_NEED_PRINT_NUM	200
 
-static void (*sprd_tcpm_log)(struct sprd_tcpm_port *port, const char *fmt, ...);
-static void (*sprd_tcpm_log_force)(struct sprd_tcpm_port *port, const char *fmt, ...);
-
 static bool sprd_tcpm_log_full(struct sprd_tcpm_port *port)
 {
 	return port->logbuffer_tail ==
@@ -593,9 +603,12 @@ abort:
 	mutex_unlock(&port->logbuffer_lock);
 }
 
-static void sprd_tcpm_log_do(struct sprd_tcpm_port *port, const char *fmt, ...)
+static void sprd_tcpm_log(struct sprd_tcpm_port *port, const char *fmt, ...)
 {
 	va_list args;
+
+	if (!port->enable_tcpm_log)
+		return;
 
 	/* Do not log while disconnected and unattached */
 	if (sprd_tcpm_port_is_disconnected(port) &&
@@ -608,23 +621,16 @@ static void sprd_tcpm_log_do(struct sprd_tcpm_port *port, const char *fmt, ...)
 	va_end(args);
 }
 
-static void sprd_tcpm_log_do_nothing(struct sprd_tcpm_port *port, const char *fmt, ...)
-{
-
-}
-
-static void sprd_tcpm_log_force_do(struct sprd_tcpm_port *port, const char *fmt, ...)
+static void sprd_tcpm_log_force(struct sprd_tcpm_port *port, const char *fmt, ...)
 {
 	va_list args;
+
+	if (!port->enable_tcpm_log)
+		return;
 
 	va_start(args, fmt);
 	_sprd_tcpm_log(port, fmt, args, sprd_tcpm_log_tag);
 	va_end(args);
-}
-
-static void sprd_tcpm_log_force_do_nothing(struct sprd_tcpm_port *port, const char *fmt, ...)
-{
-
 }
 
 void sprd_tcpm_log_do_outside(struct sprd_tcpm_port *port, const char *dev_tag,
@@ -633,16 +639,12 @@ void sprd_tcpm_log_do_outside(struct sprd_tcpm_port *port, const char *dev_tag,
 	if (!port)
 		return;
 
+	if (!port->enable_tcpm_log)
+		return;
+
 	_sprd_tcpm_log(port, fmt, args, dev_tag);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_log_do_outside);
-
-void sprd_tcpm_log_do_nothing_outside(struct sprd_tcpm_port *port, const char *dev_tag,
-				      const char *fmt, va_list args)
-{
-
-}
-EXPORT_SYMBOL_GPL(sprd_tcpm_log_do_nothing_outside);
 
 static void sprd_tcpm_log_buffer_free(struct sprd_tcpm_port *port)
 {
@@ -674,7 +676,7 @@ static void sprd_tcpm_log_print_work(struct work_struct *work)
 		return;
 	}
 
-	if (console_loglevel >= LOGLEVEL_INFO) {
+	if (port->enbale_log_level_ctl && console_loglevel >= LOGLEVEL_INFO) {
 		if (need_log) {
 			pr_info("%s:console_loglevel=%d, don't log\n", __func__, console_loglevel);
 			need_log = false;
@@ -756,7 +758,7 @@ static void sprd_tcpm_log_source_caps(struct sprd_tcpm_port *port)
 {
 	int i;
 
-	if (port->tcpm_log_disable)
+	if (!port->enable_tcpm_log)
 		return;
 
 	for (i = 0; i < port->nr_source_caps; i++) {
@@ -988,7 +990,7 @@ static struct dentry *rootdir;
 
 static void sprd_tcpm_debugfs_init(struct sprd_tcpm_port *port)
 {
-	if (port->tcpm_log_disable)
+	if (!port->enable_tcpm_log)
 		return;
 	/* /sys/kernel/debug/tcpm/usbcX */
 	if (!rootdir)
@@ -1003,7 +1005,7 @@ static void sprd_tcpm_debugfs_exit(struct sprd_tcpm_port *port)
 {
 	int i;
 
-	if (port->tcpm_log_disable)
+	if (!port->enable_tcpm_log)
 		return;
 
 	mutex_lock(&port->logbuffer_lock);
@@ -1022,8 +1024,136 @@ static void sprd_tcpm_debugfs_exit(const struct sprd_tcpm_port *port) { }
 
 #endif
 
+static ssize_t sprd_tcpm_log_level_show(struct device *dev,
+					struct device_attribute *attr,
+					char *buf)
+{
+	struct sprd_tcpm_sysfs *tcpm_sysfs =
+		container_of(attr, struct sprd_tcpm_sysfs, attr_log_level_ctl);
+	struct sprd_tcpm_port *port = tcpm_sysfs->port;
+
+	if (!port)
+		return snprintf(buf, PAGE_SIZE, "%s tcpm_sysfs->port is null\n", __func__);
+
+	return snprintf(buf, PAGE_SIZE, "1(enable), 0(disable), current state = %d\n",
+			port->enbale_log_level_ctl);
+}
+
+static ssize_t sprd_tcpm_log_level_store(struct device *dev,
+					 struct device_attribute *attr,
+					 const char *buf, size_t count)
+{
+	struct sprd_tcpm_sysfs *tcpm_sysfs =
+		container_of(attr, struct sprd_tcpm_sysfs, attr_log_level_ctl);
+	struct sprd_tcpm_port *port = tcpm_sysfs->port;
+	int ret;
+	bool enbale_log_level_ctl;
+
+	if (!port) {
+		pr_err("%s tcpm_sysfs->port is null\n", __func__);
+		return count;
+	}
+
+	ret =  kstrtobool(buf, &enbale_log_level_ctl);
+	if (ret) {
+		pr_err("%s: store log level ctl fail\n", __func__);
+		return count;
+	}
+
+	port->enbale_log_level_ctl = enbale_log_level_ctl;
+
+	pr_info("%s store enbale_log_level_ctl = %d success\n", __func__, enbale_log_level_ctl);
+	return count;
+}
+
+static ssize_t sprd_tcpm_log_ctl_show(struct device *dev,
+				      struct device_attribute *attr,
+				      char *buf)
+{
+	struct sprd_tcpm_sysfs *tcpm_sysfs =
+		 container_of(attr, struct sprd_tcpm_sysfs, attr_log_ctl);
+	struct sprd_tcpm_port *port = tcpm_sysfs->port;
+
+	if (!port)
+		return snprintf(buf, PAGE_SIZE, "%s tcpm_sysfs->port is null\n", __func__);
+
+	return snprintf(buf, PAGE_SIZE, "1(enable), 0(disable), enable_tcpm_log = %d\n",
+			port->enable_tcpm_log);
+}
+
+static ssize_t sprd_tcpm_log_ctl_store(struct device *dev,
+				       struct device_attribute *attr,
+				       const char *buf, size_t count)
+{
+	struct sprd_tcpm_sysfs *tcpm_sysfs =
+		container_of(attr, struct sprd_tcpm_sysfs, attr_log_ctl);
+	struct sprd_tcpm_port *port = tcpm_sysfs->port;
+	int ret;
+	bool enbale_log_ctl;
+
+	if (!port) {
+		pr_err("%s tcpm_sysfs->port is null\n", __func__);
+		return count;
+	}
+
+	ret = kstrtobool(buf, &enbale_log_ctl);
+	if (ret) {
+		pr_err("%s: store log ctl fail\n", __func__);
+		return count;
+	}
+
+	if (enbale_log_ctl && !port->enable_tcpm_log) {
+		port->enable_tcpm_log = true;
+		schedule_delayed_work(&port->log2printk, msecs_to_jiffies(15000));
+	} else if (!enbale_log_ctl && port->enable_tcpm_log) {
+		port->enable_tcpm_log = false;
+	}
+
+	pr_info("%s store enbale_log_ctl = %d success\n", __func__, enbale_log_ctl);
+	return count;
+}
+
+static int sprd_tcpm_debug_log_register_sysfs(struct sprd_tcpm_port *port)
+{
+	struct sprd_tcpm_sysfs *tcpm_sysfs;
+	int ret;
+
+	tcpm_sysfs = devm_kzalloc(port->dev, sizeof(*tcpm_sysfs), GFP_KERNEL);
+	if (!tcpm_sysfs)
+		return -ENOMEM;
+
+	port->sysfs = tcpm_sysfs;
+	tcpm_sysfs->name = "sprd_tcpm_sysfs";
+	tcpm_sysfs->port = port;
+	tcpm_sysfs->attrs[0] = &tcpm_sysfs->attr_log_level_ctl.attr;
+	tcpm_sysfs->attrs[1] = &tcpm_sysfs->attr_log_ctl.attr;
+	tcpm_sysfs->attrs[2] = NULL;
+	tcpm_sysfs->attr_g.name = "debug";
+	tcpm_sysfs->attr_g.attrs = tcpm_sysfs->attrs;
+
+	sysfs_attr_init(&tcpm_sysfs->attr_log_level_ctl.attr);
+	tcpm_sysfs->attr_log_level_ctl.attr.name = "log_level_ctl";
+	tcpm_sysfs->attr_log_level_ctl.attr.mode = 0644;
+	tcpm_sysfs->attr_log_level_ctl.show = sprd_tcpm_log_level_show;
+	tcpm_sysfs->attr_log_level_ctl.store = sprd_tcpm_log_level_store;
+
+	sysfs_attr_init(&tcpm_sysfs->attr_log_ctl.attr);
+	tcpm_sysfs->attr_log_ctl.attr.name = "log_ctl";
+	tcpm_sysfs->attr_log_ctl.attr.mode = 0644;
+	tcpm_sysfs->attr_log_ctl.show = sprd_tcpm_log_ctl_show;
+	tcpm_sysfs->attr_log_ctl.store = sprd_tcpm_log_ctl_store;
+
+	/* file node: /sys/class/power_supply/sprd-tcpm-source-psy-sc27xx-pd/debug */
+	ret = sysfs_create_group(&port->psy->dev.kobj, &tcpm_sysfs->attr_g);
+	if (ret < 0)
+		pr_err("%s:Cannot create sysfs , ret = %d\n", __func__, ret);
+
+	return ret;
+}
+
 static void sprd_tcpm_debug_log_init(struct sprd_tcpm_port *port)
 {
+	port->enbale_log_level_ctl = true;
 	mutex_init(&port->logbuffer_lock);
 	mutex_init(&port->logprintk_lock);
 	INIT_DELAYED_WORK(&port->log2printk, sprd_tcpm_log_print_work);
@@ -1031,7 +1161,7 @@ static void sprd_tcpm_debug_log_init(struct sprd_tcpm_port *port)
 
 static void sprd_tcpm_debug_init_schedule_work(struct sprd_tcpm_port *port)
 {
-	if (port->tcpm_log_disable)
+	if (!port->enable_tcpm_log)
 		return;
 
 	schedule_delayed_work(&port->log2printk, msecs_to_jiffies(15000));
@@ -1056,12 +1186,9 @@ static int sprd_tcpm_debug_log_switch(struct sprd_tcpm_port *port)
 	 */
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
-	sprd_tcpm_log = sprd_tcpm_log_do;
-	sprd_tcpm_log_force = sprd_tcpm_log_force_do;
+	port->enable_tcpm_log = true;
 #else
-	port->tcpm_log_disable = true;
-	sprd_tcpm_log = sprd_tcpm_log_do_nothing;
-	sprd_tcpm_log_force = sprd_tcpm_log_force_do_nothing;
+	port->enable_tcpm_log = false;
 #endif
 
 	if (!port->dev || !port->dev->of_node) {
@@ -1072,17 +1199,13 @@ static int sprd_tcpm_debug_log_switch(struct sprd_tcpm_port *port)
 #if IS_ENABLED(CONFIG_DEBUG_FS)
 	ret = of_property_read_bool(port->dev->of_node, "userdebug-pd-log-disable");
 	if (ret) {
-		sprd_tcpm_log = sprd_tcpm_log_do_nothing;
-		sprd_tcpm_log_force = sprd_tcpm_log_force_do_nothing;
-		port->tcpm_log_disable = true;
+		port->enable_tcpm_log = false;
 		pr_info("[%s]userdebug-pd-log-disable\n", __func__);
 	}
 #else
 	ret = of_property_read_bool(port->dev->of_node, "user-pd-log-enable");
 	if (ret) {
-		port->tcpm_log_disable = false;
-		sprd_tcpm_log = sprd_tcpm_log_do;
-		sprd_tcpm_log_force = sprd_tcpm_log_force_do;
+		port->enable_tcpm_log = true;
 		pr_info("[%s]user-pd-log-enable\n", __func__);
 	}
 #endif
@@ -3224,7 +3347,7 @@ static void sprd_tcpm_reset_port(struct sprd_tcpm_port *port)
 
 static void sprd_tcpm_detach(struct sprd_tcpm_port *port)
 {
-	if (!port->tcpm_log_disable) {
+	if (port->enable_tcpm_log) {
 		sprd_tcpm_log_force(port, "tcpm detach start call log printk");
 		cancel_delayed_work(&port->log2printk);
 		schedule_delayed_work(&port->log2printk, 0);
@@ -4110,7 +4233,7 @@ done:
 
 static void sprd_tcpm_cc_change_log_check(struct sprd_tcpm_port *port)
 {
-	if (!port->tcpm_log_disable && !sprd_tcpm_port_is_disconnected(port)) {
+	if (port->enable_tcpm_log && !sprd_tcpm_port_is_disconnected(port)) {
 		sprd_tcpm_log_force(port, "tcpm cc connected call log printk start");
 		cancel_delayed_work(&port->log2printk);
 		schedule_delayed_work(&port->log2printk, msecs_to_jiffies(10000));
@@ -5534,6 +5657,8 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 			paltmode++;
 		}
 	}
+
+	sprd_tcpm_debug_log_register_sysfs(port);
 
 	mutex_lock(&port->lock);
 	sprd_tcpm_init(port);

@@ -332,7 +332,6 @@ struct sc27xx_pd {
 	bool typec_online;
 	bool pd_attached;
 	bool shutdown_flag;
-	bool pd_log_disable;
 };
 
 /*
@@ -353,49 +352,6 @@ static void sprd_pd_log(struct sc27xx_pd *pd, const char *fmt, ...)
 	va_start(args, fmt);
 	sprd_pd_tcpm_log(pd->sprd_tcpm_port, sprd_pd_log_tag, fmt, args);
 	va_end(args);
-}
-
-static int sc27xx_pd_debug_log_switch(struct sc27xx_pd *pd)
-{
-	int ret;
-
-	/*
-	 * the userdebug version pd log enable by default,
-	 * you can define userdebug-pd-log-disable in dts
-	 * if you don't use this function.
-	 * the user version pd log disable by default,
-	 * you can define user-pd-log-enable in dts
-	 * if you want to use this function.
-	 */
-#if IS_ENABLED(CONFIG_DEBUG_FS)
-	sprd_pd_tcpm_log = sprd_tcpm_log_do_outside;
-#else
-	pd->pd_log_disable = true;
-	sprd_pd_tcpm_log = sprd_tcpm_log_do_nothing_outside;
-#endif
-
-	if (!pd || !pd->dev || !pd->dev->of_node) {
-		pr_err("%s:line%d null pointer\n", __func__, __LINE__);
-		return 0;
-	}
-
-#if IS_ENABLED(CONFIG_DEBUG_FS)
-	ret = of_property_read_bool(pd->dev->of_node, "userdebug-pd-log-disable");
-	if (ret) {
-		sprd_pd_tcpm_log = sprd_tcpm_log_do_nothing_outside;
-		pd->pd_log_disable = true;
-		dev_info(pd->dev, "[%s]userdebug-pd-log-disable", __func__);
-	}
-#else
-	ret = of_property_read_bool(pd->dev->of_node, "user-pd-log-enable");
-	if (ret) {
-		pd->pd_log_disable = false;
-		sprd_pd_tcpm_log = sprd_tcpm_log_do_outside;
-		dev_info(pd->dev, "[%s]user-pd-log-enable", __func__);
-	}
-#endif
-
-	return 0;
 }
 
 static inline struct sc27xx_pd *tcpc_to_sc27xx_pd(struct tcpc_dev *tcpc)
@@ -1750,7 +1706,7 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	}
 
 	pd->dev = &pdev->dev;
-	sc27xx_pd_debug_log_switch(pd);
+	sprd_pd_tcpm_log = sprd_tcpm_log_do_outside;
 	pd->regmap = dev_get_regmap(pdev->dev.parent, NULL);
 	if (!pd->regmap) {
 		dev_err(&pdev->dev, "failed to get pd regmap\n");
