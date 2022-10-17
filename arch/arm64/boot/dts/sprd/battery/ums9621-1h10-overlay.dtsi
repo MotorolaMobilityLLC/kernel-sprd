@@ -117,7 +117,6 @@
 
 	/* sprd_fchg parameter */
 	sprd,support-fchg;
-	sprd,support-pd-pps;
 	sprd,pd-fixed-max-microwatt = <18000000>;
 
 	cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
