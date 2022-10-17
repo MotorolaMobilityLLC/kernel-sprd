@@ -2760,9 +2760,9 @@ static SPRD_SC_GATE_CLK_HW(dpu_ckg_eb, "dpu-ckg-eb", &dpu_vsp_eb.common.hw, 0x0,
 			0x1000, BIT(9), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_HW(dpu_busmon_eb, "dpu-busmon-eb", &dpu_vsp_eb.common.hw, 0x0,
 			0x1000, BIT(10), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK_HW(dsc0_eb, "dsc0-eb", &dsc0_eb.common.hw, 0x0,
+static SPRD_SC_GATE_CLK_HW(dsc0_eb, "dsc0-eb", &dpu_vsp_eb.common.hw, 0x0,
 			0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
-static SPRD_SC_GATE_CLK_HW(dsc1_eb, "dsc1-eb", &dsc1_eb.common.hw, 0x0,
+static SPRD_SC_GATE_CLK_HW(dsc1_eb, "dsc1-eb", &dpu_vsp_eb.common.hw, 0x0,
 			0x1000, BIT(12), CLK_IGNORE_UNUSED, 0);
 static SPRD_GATE_CLK_HW(m_div6clk_gate_en, "m-div6clk-gate-en", &dpu_vsp_eb.common.hw,
 		     0xb0, BIT(3), CLK_IGNORE_UNUSED, 0);
