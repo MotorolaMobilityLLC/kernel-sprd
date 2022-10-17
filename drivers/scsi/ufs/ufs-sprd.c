@@ -216,9 +216,81 @@ static int ufs_sprd_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static int ufs_sprd_system_suspend(struct device *dev)
+{
+	struct ufs_hba *hba = dev_get_drvdata(dev);
+	int ret;
+
+	ret = ufshcd_system_suspend(dev);
+	if (ret)
+		return ret;
+
+	/* Makesure that VCC drop below 0.1V after turning off */
+	if (hba->vreg_info.vcc->enabled == false)
+		usleep_range(30000, 31000);
+
+	return 0;
+}
+
+static int ufs_sprd_system_resume(struct device *dev)
+{
+	struct ufs_hba *hba = dev_get_drvdata(dev);
+	bool vcc_state;
+	int ret;
+
+	if (hba->vreg_info.vcc->enabled == false)
+		vcc_state = false;
+
+	ret = ufshcd_system_resume(dev);
+	if (ret)
+		return ret;
+
+	/* Makesure UFS VCC power up */
+	if (vcc_state == false && hba->vreg_info.vcc->enabled == true)
+		usleep_range(100, 200);
+
+	return 0;
+}
+
+static int ufs_sprd_runtime_suspend(struct device *dev)
+{
+	struct ufs_hba *hba = dev_get_drvdata(dev);
+	int ret;
+
+	ret = ufshcd_runtime_suspend(dev);
+	if (ret)
+		return ret;
+
+	/* Makesure that VCC drop below 0.1V after turning off */
+	if (hba->vreg_info.vcc->enabled == false)
+		usleep_range(30000, 31000);
+
+	return 0;
+}
+
+static int ufs_sprd_runtime_resume(struct device *dev)
+{
+	struct ufs_hba *hba = dev_get_drvdata(dev);
+	bool vcc_state;
+	int ret;
+
+	if (hba->vreg_info.vcc->enabled == false)
+		vcc_state = false;
+
+	ret = ufshcd_runtime_resume(dev);
+	if (ret)
+		return ret;
+
+	/* Makesure UFS VCC power up */
+	if (vcc_state == false && hba->vreg_info.vcc->enabled == true)
+		usleep_range(100, 200);
+
+	return 0;
+}
+
 static const struct dev_pm_ops ufs_sprd_pm_ops = {
-	SET_SYSTEM_SLEEP_PM_OPS(ufshcd_system_suspend, ufshcd_system_resume)
-	SET_RUNTIME_PM_OPS(ufshcd_runtime_suspend, ufshcd_runtime_resume, NULL)
+	SET_SYSTEM_SLEEP_PM_OPS(ufs_sprd_system_suspend, ufs_sprd_system_resume)
+	SET_RUNTIME_PM_OPS(ufs_sprd_runtime_suspend, ufs_sprd_runtime_resume, NULL)
 	.prepare	 = ufshcd_suspend_prepare,
 	.complete	 = ufshcd_resume_complete,
 };
