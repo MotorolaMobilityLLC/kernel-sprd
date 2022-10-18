@@ -337,19 +337,27 @@ bq2560x_charger_set_ovp(struct bq2560x_charger_info *info, u32 vol)
 				   BQ2560X_REG_OVP_MASK,
 				   reg_val << BQ2560X_REG_OVP_SHIFT);
 }
-
+#define SC89601D_CHIP_ID
 static int
 bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 {
 	u8 reg_val;
-
+#ifdef SC89601D_CHIP_ID
+	if (vol < 3847)
+		reg_val = 0x0;
+	else if (vol >= 4615)
+		reg_val = 0x18;
+	else
+		reg_val = (vol - 3847) / 32;
+	dev_err(info->dev, "sc89601d set terminal voltage, the reg_val 0x%02x value is %d\n", reg_val, reg_val * 32 + 3847);
+#else /* SC89601D_CHIP_ID */
 	if (vol < 3500)
 		reg_val = 0x0;
 	else if (vol >= 4440)
 		reg_val = 0x2e;
 	else
 		reg_val = (vol - 3856) / 32;
-
+#endif /* SC89601D_CHIP_ID */
 	return bq2560x_update_bits(info, BQ2560X_REG_4,
 				   BQ2560X_REG_TERMINAL_VOLTAGE_MASK,
 				   reg_val << BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT);
