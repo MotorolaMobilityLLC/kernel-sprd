@@ -25,7 +25,7 @@
 					sprd,dsc-enable = <0>;
 					sprd,dual-dsi-enable = <0>;
 
-					sprd,esd-check-enable = <0>;
+					sprd,esd-check-enable = <1>;
 					sprd,esd-check-mode = <0>;  // 0:Reg mode 1:TE mode
 					sprd,esd-check-period = <1000>;
 					sprd,esd-check-register = <0x0A>;
