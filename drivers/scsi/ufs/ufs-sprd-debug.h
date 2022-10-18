@@ -6,14 +6,13 @@
  *
  */
 
-/* Default OFF!!! */
-#define UFS_DEBUG_ERR_PANIC_DEF false
-
 #ifdef CONFIG_SPRD_DEBUG
 /* Userdebug ver default ON!!! */
 #define UFS_DEBUG_ON_DEF true
+#define UFS_DEBUG_ERR_PANIC_DEF true
 #else
 #define UFS_DEBUG_ON_DEF false
+#define UFS_DEBUG_ERR_PANIC_DEF false
 #endif
 
 #define UFS_CMD_RECORD_DEPTH (300)
@@ -23,11 +22,13 @@
 enum ufs_event_list {
 	UFS_TRACE_SEND,
 	UFS_TRACE_COMPLETED,
+	UFS_TREAC_SCSI_TIME_OUT,
 	/* QUERY \ NOP_OUT&IN \ REJECT CMD */
 	UFS_TRACE_DEV_SEND,
 	UFS_TRACE_DEV_COMPLETED,
 	UFS_TRACE_TM_SEND,
 	UFS_TRACE_TM_COMPLETED,
+	UFS_TRACE_TM_ERR,
 	UFS_TRACE_UIC_SEND,
 	UFS_TRACE_UIC_CMPL,
 	UFS_TRACE_CLK_GATE,

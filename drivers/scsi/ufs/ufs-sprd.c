@@ -107,13 +107,18 @@ static void ufs_sprd_vh_send_tm_cmd(void *data, struct ufs_hba *hba,
 
 	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
 		tm_tmp.tm_func = (u8) (__be32_to_cpu(descp->header.dword_1) >> 16);
-		tm_tmp.param1 = descp->upiu_req.input_param1;
-		tm_tmp.param2 = descp->upiu_req.input_param2;
-		if (str == UFS_TM_SEND)
+		if (str == UFS_TM_SEND) {
+			tm_tmp.param1 = descp->upiu_req.input_param1;
+			tm_tmp.param2 = descp->upiu_req.input_param2;
 			ufshcd_common_trace(hba, UFS_TRACE_TM_SEND, &tm_tmp);
-		else {
+		} else {
 			tm_tmp.ocs = le32_to_cpu(descp->header.dword_2) & MASK_OCS;
-			ufshcd_common_trace(hba, UFS_TRACE_TM_COMPLETED, &tm_tmp);
+			tm_tmp.param1 = descp->upiu_rsp.output_param1;
+			tm_tmp.param2 = 0;
+			if (str == UFS_TM_ERR)
+				ufshcd_common_trace(hba, UFS_TRACE_TM_ERR, &tm_tmp);
+			else
+				ufshcd_common_trace(hba, UFS_TRACE_TM_COMPLETED, &tm_tmp);
 		}
 	}
 }

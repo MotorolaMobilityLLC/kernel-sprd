@@ -40,10 +40,12 @@ static struct ufs_err_cnt ufs_err_cnt;
 static const char *ufs_event_str[UFS_MAX_EVENT] = {
 	"SCSI Send     ",
 	"SCSI Complete ",
+	"SCSI TIMEOUT!!",
 	"DM Send       ",
 	"DM Complete   ",
 	"TM Send       ",
 	"TM Complete   ",
+	"TM ERR!!!     ",
 	"UIC Send      ",
 	"UIC Complete  ",
 	"CLK GATE!     ",
@@ -111,6 +113,7 @@ void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *d
 	switch (event) {
 	case UFS_TRACE_TM_SEND:
 	case UFS_TRACE_TM_COMPLETED:
+	case UFS_TRACE_TM_ERR:
 		memcpy(&uei[idx].pkg, data, sizeof(struct ufs_tm_cmd_info));
 		break;
 	case UFS_TRACE_UIC_SEND:
@@ -141,8 +144,8 @@ void ufshcd_transfer_event_trace(struct ufs_hba *hba,
 	unsigned long flags;
 	u32 crypto;
 	struct ufshcd_lrb *lrbp = &hba->lrb[tag];
-	struct scsi_cmnd *cmd = lrbp->cmd;
-	struct request *rq = scsi_cmd_to_rq(cmd);
+	struct scsi_cmnd *cmd;
+	struct request *rq;
 
 	if (!sprd_ufs_debug_is_supported(hba))
 		return;
@@ -160,8 +163,9 @@ void ufshcd_transfer_event_trace(struct ufs_hba *hba,
 	uei[idx].event = event;
 	uei[idx].cpu = current->cpu;
 	uei[idx].pid = current->pid;
-
 	if (lrbp->cmd) {
+		cmd = lrbp->cmd;
+		rq = scsi_cmd_to_rq(cmd);
 		uei[idx].pkg.ci.opcode = cmd->cmnd[0];
 		uei[idx].pkg.ci.tag = tag;
 		uei[idx].pkg.ci.lun = lrbp->lun;
@@ -208,7 +212,11 @@ void ufshcd_transfer_event_trace(struct ufs_hba *hba,
 			uei[idx].pkg.ci.crypto_en = crypto ? 1 : 0;
 			uei[idx].pkg.ci.keyslot = crypto ? hba->lrb[tag].crypto_key_slot : 0;
 
-			uei[idx].time = lrbp->issue_time_stamp;
+			if (event == UFS_TRACE_SEND)
+				uei[idx].time = lrbp->issue_time_stamp;
+			else
+				/* UFS_TREAC_SCSI_TIME_OUT */
+				uei[idx].time = ktime_get();
 		}
 	} else if (lrbp->command_type == UTP_CMD_TYPE_DEV_MANAGE ||
 		   lrbp->command_type == UTP_CMD_TYPE_UFS_STORAGE) {
@@ -283,6 +291,7 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 
 		switch (uei[ptr].event) {
 		case UFS_TRACE_SEND:
+		case UFS_TREAC_SCSI_TIME_OUT:
 			/* CDB info */
 			if (!((uei[ptr].pkg.ci.opcode == READ_10) ||
 				(uei[ptr].pkg.ci.opcode == WRITE_10) ||
@@ -364,6 +373,7 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 			uei[ptr].pkg.tmi.param2);
 			break;
 		case UFS_TRACE_TM_COMPLETED:
+		case UFS_TRACE_TM_ERR:
 			PRINT_SWITCH(m, dump_pos,
 			"tm_func:0x%2x,param1:0x%8x,param2:0x%8x,OCS:0x%2x\n",
 			uei[ptr].pkg.tmi.tm_func,
@@ -584,6 +594,20 @@ static struct notifier_block sprd_ufs_event_nb = {
 	.priority	= INT_MAX,
 };
 
+static enum blk_eh_timer_return ufs_sprd_eh_timed_out(struct scsi_cmnd *scmd)
+{
+	int tag = scsi_cmd_to_rq(scmd)->tag;
+	struct Scsi_Host *host = scmd->device->host;
+	struct ufs_hba *hba = shost_priv(host);
+
+	if (sprd_ufs_debug_is_supported(hba) == TRUE)
+		ufshcd_transfer_event_trace(hba, UFS_TREAC_SCSI_TIME_OUT, tag);
+
+	sprd_ufs_debug_err_dump(hba);
+
+	return BLK_EH_DONE;
+}
+
 int ufs_sprd_debug_init(struct ufs_hba *hba)
 {
 	struct proc_dir_entry *ufs_dir;
@@ -597,11 +621,15 @@ int ufs_sprd_debug_init(struct ufs_hba *hba)
 	host = hba->priv;
 	hba_tmp = hba;
 
+	/* UFS eh_timed_out callback register */
+	hba->host->hostt->eh_timed_out = ufs_sprd_eh_timed_out;
+
 	host->err_panic = UFS_DEBUG_ERR_PANIC_DEF;
 	host->debug_en = UFS_DEBUG_ON_DEF;
 
 	spin_lock_init(&ufs_debug_dump);
 
+	/* UFS debug procfs register */
 	ufs_dir = proc_mkdir("ufs", NULL);
 	if (!ufs_dir) {
 		pr_err("%s: failed to create /proc/ufs\n",
@@ -609,7 +637,6 @@ int ufs_sprd_debug_init(struct ufs_hba *hba)
 		return -1;
 	}
 
-	/* cmd_history */
 	prEntry = proc_create_data("cmd_history", 0440, ufs_dir, &ufs_debug_fops, host);
 	if (!prEntry)
 		pr_info("%s: failed to create /proc/ufs/debug_info\n",
@@ -640,12 +667,14 @@ int ufs_sprd_debug_init(struct ufs_hba *hba)
 		return -ENOMEM;
 	}
 
+	/* UFS minidump register */
 	if (minidump_save_extend_information("ufs_cmd_history",
 					     __pa(ufs_cmd_history_str),
 					     __pa(ufs_cmd_history_str + DUMP_BUFFER_S)))
 		pr_info("%s: failed to link ufs_cmd_history to minidump\n",
 			__func__);
 
+	/* UFS panic callback register */
 	atomic_notifier_chain_register(&panic_notifier_list,
 				       &sprd_ufs_event_nb);
 
