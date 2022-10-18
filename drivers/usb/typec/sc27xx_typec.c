@@ -251,7 +251,7 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 		vconn_role = TYPEC_SOURCE;
 		break;
 	default:
-		break;
+		return 0;
 	}
 
 	desc.usb_pd = 0;
@@ -393,12 +393,7 @@ static irqreturn_t sc27xx_typec_interrupt(int irq, void *data)
 
 	sc->state &= sc->var_data->state_mask;
 
-	if ((event & SC27XX_ATTACH_INT) && (event & SC27XX_DETACH_INT)) {
-		/* The pmic may report both attach and detach states, which
-		 * is abnormal phenomenon. */
-		dev_err(sc->dev, "ERROR status: %d state, event %d",
-				sc->state, event);
-	} else if (event & SC27XX_ATTACH_INT) {
+	if (event & SC27XX_ATTACH_INT) {
 		ret = sc27xx_typec_connect(sc, sc->state);
 		if (ret)
 			dev_warn(sc->dev, "failed to register partner\n");
