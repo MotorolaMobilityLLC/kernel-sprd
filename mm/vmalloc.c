@@ -2897,6 +2897,10 @@ vm_area_alloc_pages(gfp_t gfp, int nid,
 		if (unlikely(!page))
 			break;
 
+#ifdef CONFIG_SPRD_PAGE_OWNER
+		SetPagePrivate(page);
+#endif
+
 		/*
 		 * Careful, we allocate and map page-order pages, but
 		 * tracking is done per PAGE_SIZE page so as to keep the

@@ -1045,6 +1045,9 @@ static void create_page_chain(struct size_class *class, struct zspage *zspage,
 				SetPageHugeObject(page);
 		} else {
 			prev_page->freelist = page;
+#ifdef CONFIG_SPRD_PAGE_OWNER
+			SetPagePrivate(page);
+#endif
 		}
 		prev_page = page;
 	}
