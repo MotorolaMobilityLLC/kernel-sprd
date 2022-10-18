@@ -164,6 +164,8 @@
 			"clk_dpu_dpi",
 			"clk_dpu_dsc",
 			"clk_dpuvsp_eb",
+			"clk_dpu_dsc0_eb",
+			"clk_dpu_dsc1_eb",
 			"clk_dpuvsp_disp_eb",
 			"clk_master_div6_eb";
 
@@ -182,6 +184,8 @@
 		<&dpu_vsp_clk CLK_DISPC0_DPI>,
 		<&dpu_vsp_clk CLK_DISPC0_DSC>,
 		<&aonapb_gate CLK_DPU_VSP_EB>,
+		<&dpu_vsp_gate CLK_DSC0_EB>,
+		<&dpu_vsp_gate CLK_DSC1_EB>,
 		<&dpu_vsp_gate CLK_DPU_EB>,
 		<&dpu_vsp_gate CLK_M_DIV6CLK_GATE_EN>;
 };

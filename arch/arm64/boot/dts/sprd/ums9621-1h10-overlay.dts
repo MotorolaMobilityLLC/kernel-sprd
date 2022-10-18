@@ -5,7 +5,7 @@
 #include <dt-bindings/clock/sprd,ums9621-clk.h>
 #include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
-#include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
+#include "lcd/lcd_nt36672e_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "reserved-memory/ums9621-1h10-overlay.dtsi"
 #include "touchscreen/ums9621-spi1-gpio13-14-tp.dtsi"
@@ -351,9 +351,39 @@
 	status = "okay";
 };
 
-&lcd_nt36672e_truly_mipi_fhd_nodsc {
+&lcd_nt36672e_truly_mipi_fhd {
+	sprd,dsc-enable = <1>;
+
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
+
+	sprd,esd-check-enable = <1>;
+
+	display-timings {
+		nt36672e_truly_timing1: timing1 {
+			clock-frequency = <384000000>;
+			hactive = <1080>;
+			vactive = <2408>; /*2408*/
+			hback-porch = <56>;
+			hfront-porch = <130>;
+			vback-porch = <30>;
+			vfront-porch = <890>;
+			hsync-len = <12>;
+			vsync-len = <10>;
+		};
+
+		nt36672e_truly_timing2: timing2 {
+			clock-frequency = <384000000>;
+			hactive = <1080>;
+			vactive = <2408>; /*2408*/
+			hback-porch = <56>;
+			hfront-porch = <130>;
+			vback-porch = <30>;
+			vfront-porch = <46>;
+			hsync-len = <12>;
+			vsync-len = <10>;
+		};
+	};
 };
 
 &lcd_g40396_truly_mipi_fhd {
