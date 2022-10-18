@@ -154,6 +154,11 @@
 		compatible = "sprd,autotest";
 		sprd,pinctrl = <&pin_controller>;
 	};
+
+	rebootescrow@0 {
+		compatible = "pmem-region";
+		reg = <0x0 0xfff70000 0x0 0x00010000>;
+	};
 };
 
 &uart0 {
