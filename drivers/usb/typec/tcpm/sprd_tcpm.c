@@ -392,6 +392,8 @@ struct sprd_tcpm_port {
 	/* Local capabilities */
 	u32 src_pdo[SPRD_PDO_MAX_OBJECTS];
 	unsigned int nr_src_pdo;
+	u32 src_pdo_ext[SPRD_PDO_MAX_OBJECTS];
+	unsigned int nr_src_pdo_ext;
 	u32 snk_pdo[SPRD_PDO_MAX_OBJECTS];
 	unsigned int nr_snk_pdo;
 	u32 snk_default_pdo[SPRD_PDO_MAX_OBJECTS];
@@ -402,6 +404,7 @@ struct sprd_tcpm_port {
 	unsigned int operating_snk_mw;
 	unsigned int operating_snk_default_mw;
 	bool update_sink_caps;
+	bool update_ext_src_caps;
 
 	/* Requested current / voltage to the port partner */
 	u32 req_current_limit;
@@ -465,6 +468,7 @@ struct sprd_tcpm_port {
 	u8 *logbuffer[SPRD_LOG_BUFFER_ENTRIES];
 	bool enable_tcpm_log;
 	bool enbale_log_level_ctl;
+	bool xts_limit_cur;
 };
 
 struct sprd_pd_rx_event {
@@ -1452,15 +1456,29 @@ static int sprd_tcpm_pd_send_source_caps(struct sprd_tcpm_port *port)
 					       port->negotiated_rev,
 					       port->message_id, 0);
 	} else {
-		msg.header = SPRD_PD_HEADER_LE(SPRD_PD_DATA_SOURCE_CAP,
-					       port->pwr_role,
-					       port->data_role,
-					       port->negotiated_rev,
-					       port->message_id,
-					       port->nr_src_pdo);
+		if (!port->update_ext_src_caps) {
+			msg.header = SPRD_PD_HEADER_LE(SPRD_PD_DATA_SOURCE_CAP,
+						       port->pwr_role,
+						       port->data_role,
+						       port->negotiated_rev,
+						       port->message_id,
+						       port->nr_src_pdo);
+		} else {
+			msg.header = SPRD_PD_HEADER_LE(SPRD_PD_DATA_SOURCE_CAP,
+						       port->pwr_role,
+						       port->data_role,
+						       port->negotiated_rev,
+						       port->message_id,
+						       port->nr_src_pdo_ext);
+		}
 	}
-	for (i = 0; i < port->nr_src_pdo; i++)
-		msg.payload[i] = cpu_to_le32(port->src_pdo[i]);
+	if (!port->update_ext_src_caps) {
+		for (i = 0; i < port->nr_src_pdo; i++)
+			msg.payload[i] = cpu_to_le32(port->src_pdo[i]);
+	} else {
+		for (i = 0; i < port->nr_src_pdo_ext; i++)
+			msg.payload[i] = cpu_to_le32(port->src_pdo_ext[i]);
+	}
 
 	return sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
 }
@@ -3322,6 +3340,8 @@ static void sprd_tcpm_reset_port(struct sprd_tcpm_port *port)
 	port->attached = false;
 	port->pd_capable = false;
 	port->pps_data.supported = false;
+	port->update_ext_src_caps = false;
+	port->xts_limit_cur = false;
 
 	/*
 	 * First Rx ID should be 0; set this to a sentinel of -1 so that
@@ -3480,6 +3500,27 @@ static enum typec_pwr_opmode sprd_tcpm_get_pwr_opmode(enum sprd_typec_cc_status 
 	case SPRD_TYPEC_CC_RP_DEF:
 	default:
 		return TYPEC_PWR_MODE_USB;
+	}
+}
+
+static void sprd_tcpm_update_limit_current(struct sprd_tcpm_port *port)
+{
+	if (port->nr_source_caps == 1) {
+		u32 pdo = port->source_caps[0];
+		int max_mv, ma;
+		enum sprd_pd_pdo_type type = sprd_pdo_type(pdo);
+
+		if (type == SPRD_PDO_TYPE_FIXED) {
+			max_mv = sprd_pdo_fixed_voltage(pdo);
+			ma = sprd_pdo_max_current(pdo);
+			if (max_mv == 5000 && ma <= 100 && ma > 0) {
+				port->xts_limit_cur = true;
+				power_supply_changed(port->psy);
+			} else if (port->xts_limit_cur && max_mv == 5000 && ma > 100) {
+				port->xts_limit_cur = false;
+				power_supply_changed(port->psy);
+			}
+		}
 	}
 }
 
@@ -3664,6 +3705,8 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		port->hard_reset_count = 0;
 #endif
 		port->try_src_count = 0;
+		if (port->update_ext_src_caps)
+			port->update_ext_src_caps = false;
 
 		sprd_tcpm_swap_complete(port, 0);
 		sprd_tcpm_typec_connect(port);
@@ -3877,6 +3920,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 			port->pwr_opmode = TYPEC_PWR_MODE_PD;
 		}
 
+		sprd_tcpm_update_limit_current(port);
 		sprd_tcpm_swap_complete(port, 0);
 		sprd_tcpm_typec_connect(port);
 		sprd_tcpm_check_send_discover(port);
@@ -5170,6 +5214,29 @@ int sprd_tcpm_update_sink_capabilities(struct sprd_tcpm_port *port, const u32 *p
 	return 0;
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_update_sink_capabilities);
+
+int sprd_tcpm_update_ext_source_capabilities(struct sprd_tcpm_port *port,
+					     const u32 *pdo,
+					     unsigned int nr_pdo)
+{
+	int ret = 0;
+
+	mutex_lock(&port->lock);
+	port->nr_src_pdo_ext = sprd_tcpm_copy_pdos(port->src_pdo_ext, pdo, nr_pdo);
+	sprd_tcpm_log_force(port, "%s:state %s", __func__, sprd_tcpm_states[port->state]);
+	switch (port->state) {
+	case SRC_READY:
+		port->update_ext_src_caps = true;
+		sprd_tcpm_set_state(port, SRC_SEND_CAPABILITIES, 0);
+		break;
+	default:
+		ret = -EINVAL;
+		break;
+	}
+	mutex_unlock(&port->lock);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(sprd_tcpm_update_ext_source_capabilities);
 
 void sprd_tcpm_get_source_capabilities(struct sprd_tcpm_port *port,
 				       struct adapter_power_cap *pd_source_cap)

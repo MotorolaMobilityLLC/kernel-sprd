@@ -167,7 +167,9 @@ void sprd_tcpm_unregister_port(struct sprd_tcpm_port *port);
 int sprd_tcpm_update_sink_capabilities(struct sprd_tcpm_port *port, const u32 *pdo,
 				       unsigned int nr_pdo,
 				       unsigned int operating_snk_mw);
-
+int sprd_tcpm_update_ext_source_capabilities(struct sprd_tcpm_port *port,
+					     const u32 *pdo,
+					     unsigned int nr_pdo);
 void sprd_tcpm_get_source_capabilities(struct sprd_tcpm_port *port,
 				       struct adapter_power_cap *pd_source_cap);
 
