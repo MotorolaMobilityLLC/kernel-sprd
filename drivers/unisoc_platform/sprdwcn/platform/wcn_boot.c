@@ -76,6 +76,10 @@ module_param(slot_suffix, charp, 0444);
 #define WCN_CLKTYPE "marlin.clktype="
 #endif
 
+#ifndef WCN_CLKTYPE1
+#define WCN_CLKTYPE1 "crystal="
+#endif
+
 #ifndef REG_PMU_APB_XTL_WAIT_CNT0
 #define REG_PMU_APB_XTL_WAIT_CNT0 0xe42b00ac
 #endif
@@ -1121,6 +1125,32 @@ static inline int wcn_wifipa_bound_xtl(bool enable)
 	return wcn_pmic_do_bound(&marlin_dev->avdd33_bound_wbreq, enable);
 }
 
+static enum wcn_clock_type crystal_check(const char *cmd_line)
+{
+	char *parse_cmdline = NULL;
+
+	parse_cmdline = strstr(cmd_line, WCN_CLKTYPE1);
+
+	if (parse_cmdline) {
+		pr_info("crystal %s\n", parse_cmdline);
+		parse_cmdline += strlen(WCN_CLKTYPE1);
+		switch (*parse_cmdline) {
+		case '2':/*TSX*/
+		case '7':/*M52_TSX*/
+			return WCN_CLOCK_TYPE_TSX;
+		case '3':/*TCXO*/
+		case '4':/*M26_TCXO*/
+		case '5':/*M52_TCXO*/
+			return WCN_CLOCK_TYPE_TCXO;
+		default:
+			return WCN_CLOCK_TYPE_UNKNOWN;
+		}
+
+	}
+
+	return WCN_CLOCK_TYPE_UNKNOWN;
+}
+
 static int marlin_parse_dt(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -1364,7 +1394,7 @@ static int marlin_parse_dt(struct platform_device *pdev)
 						clk->type = WCN_CLOCK_TYPE_TCXO;
 					else if (!strncmp
 						 (parse_cmdline + strlen(WCN_CLKTYPE), "1", 1))
-						clk->type = WCN_CLOCK_TYPE_TSX;
+						clk->type = crystal_check(cmd_line);
 				}
 			}
 		}
