@@ -67,7 +67,7 @@ export BSP_BOARD_CAMERA_MODULE_DVFS="qogirn6l"
 
 DTC_FLAGS+="-@"
 
-if [[ $BSP_KOONLY_CONFIG == "true" ]]; then
+if [[ $BSP_KOONLY_CONFIG == "true" && $BSP_USER_PREBUILTS_FLAG == "true" ]]; then
 	MAKE_GOALS="$BSP_MAKE_GOALS"
 	BUILD_GKI_ARTIFACTS=""
 else
