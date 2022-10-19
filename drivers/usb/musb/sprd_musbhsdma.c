@@ -767,7 +767,8 @@ static void musb_host_channel_abort(struct musb *musb,
 		urb = next_urb(qh);
 		if (urb)
 			urb->status = -ECONNRESET;
-		channel->status = MUSB_DMA_STATUS_FREE;
+		if (list_empty(&qh->hep->urb_list))
+			channel->status = MUSB_DMA_STATUS_FREE;
 	}
 }
 #else

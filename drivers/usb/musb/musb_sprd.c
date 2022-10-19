@@ -2080,11 +2080,6 @@ static int musb_sprd_pm_resume(struct device *dev)
 
 	dev_info(glue->dev, "%s: enter\n", __func__);
 
-	if (!atomic_read(&glue->pm_suspended)) {
-		dev_info(glue->dev, "musb sprd pm is not suspended\n");
-		return 0;
-	}
-
 	if (musb->is_offload && !musb->offload_used) {
 		if (glue->vbus) {
 			dev_info(glue->dev, "enable vbus regulator\n");
@@ -2099,6 +2094,11 @@ static int musb_sprd_pm_resume(struct device *dev)
 					   glue->usb_pub_slp_poll_offset,
 					   msk, 0);
 		}
+	}
+
+	if (!atomic_read(&glue->pm_suspended)) {
+		dev_info(glue->dev, "musb sprd pm is not suspended\n");
+		return 0;
 	}
 
 	flush_work(&glue->resume_work);
