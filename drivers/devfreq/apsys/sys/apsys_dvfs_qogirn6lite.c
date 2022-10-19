@@ -120,6 +120,8 @@ char *qogirn6lite_vpuenc_val_to_freq(u32 val)
 		return "384M";
 	case 3:
 		return "512M";
+	case 4:
+		return "614.4M";
 	default:
 		pr_err("invalid frequency value %u\n", val);
 		return "N/A";
@@ -138,7 +140,7 @@ char *qogirn6lite_vpudec_val_to_freq(u32 val)
 	case 3:
 		return "512M";
 	case 4:
-		return "680M";
+		return "614.4M";
 	default:
 		pr_err("invalid frequency value %u\n", val);
 		return "N/A";

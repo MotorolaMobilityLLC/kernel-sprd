@@ -171,7 +171,7 @@ static void get_vsp_dvfs_status(struct vsp_dvfs *vsp, struct ip_dvfs_status *ip_
 	ip_status->vsp_vote_volt =
 		qogirn6lite_vpu_val_to_volt(reg->dpu_vsp_dvfs_voltage_dbg >> 12 & 0xf);
 	ip_status->vpuenc_cur_freq =
-		qogirn6lite_vpuenc_val_to_freq(reg->dpu_vsp_vpu_enc_dvfs_cgm_cfg_dbg & 0x3);
+		qogirn6lite_vpuenc_val_to_freq(reg->dpu_vsp_vpu_enc_dvfs_cgm_cfg_dbg & 0x7);
 	ip_status->vsp_cur_freq =
 		qogirn6lite_vpudec_val_to_freq(reg->dpu_vsp_vpu_dec_dvfs_cgm_cfg_dbg & 0x7);
 	mutex_unlock(&vsp->apsys->reg_lock);
