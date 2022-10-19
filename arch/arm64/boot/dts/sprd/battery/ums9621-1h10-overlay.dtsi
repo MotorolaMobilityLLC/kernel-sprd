@@ -190,6 +190,8 @@
 	sprd,capacity-sleep-calibration;
 
 	sprd,capacity-boot-calibration;
+	sprd,capacity-charge-cycle;
+	sprd,basp;
 };
 
 &pmic_fchg {
