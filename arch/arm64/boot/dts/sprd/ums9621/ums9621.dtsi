@@ -557,5 +557,6 @@
 #include "socid.dtsi"
 #include "usb.dtsi"
 #include "vpu.dtsi"
+#include "wdt.dtsi"
 //#include "sipa-sys.dtsi"
 #include "sipa.dtsi"
