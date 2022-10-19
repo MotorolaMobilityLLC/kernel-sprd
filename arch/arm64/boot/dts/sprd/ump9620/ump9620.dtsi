@@ -112,6 +112,12 @@
 			nvmem-cell-names = "pdrc_calib", "pddelta_calib";
 		};
 
+		pmic_smpl: smpl@2000 {
+			compatible = "sprd,ump9620-smpl", "sprd,sc27xx-smpl";
+			reg = <0x2000>;
+			sprd,smpl-timer-threshold = <900>;
+		};
+
 		syscon@2000 {
 			compatible = "sprd,ump962x-syscon";
 			reg = <0x2000>, <0x23a0>, <0x2398>;
