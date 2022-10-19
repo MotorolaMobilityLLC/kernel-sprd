@@ -11,3 +11,4 @@ obj-$(CONFIG_TRUSTY_LOG) += trusty-log.o
 obj-$(CONFIG_TRUSTY_VIRTIO) += trusty-virtio.o
 obj-$(CONFIG_TRUSTY_VIRTIO_IPC) += trusty-ipc.o
 obj-$(CONFIG_SPRD_TSHM) += sprd_shm.o
+obj-$(CONFIG_TRUSTY_TUI) += trusty-tui.o
