@@ -138,6 +138,8 @@
 			MASK_CAMERASYS_GLB_MIPI_CSI0_SOFT_RST>;
 		dcam1_mipi_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
 			MASK_CAMERASYS_GLB_MIPI_CSI1_SOFT_RST>;
+		dcam01_fmcu_soft_reset = <&mm_ahb_regs REG_CAMERASYS_GLB_DCAM_BLK_SOFT_RST
+			MASK_CAMERASYS_GLB_DCAM0_1_FMCU_SOFT_RST>;
 
 		clock-names = "dcam_eb",
 			"dcam_blk_cfg_en",
