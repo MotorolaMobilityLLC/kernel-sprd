@@ -164,7 +164,7 @@ static void sprd_configure_channel(struct dma_channel *channel,
 		/* enable linklist end interrupt */
 		csr = musb_readl(mbase, MUSB_DMA_CHN_INTR(bchannel));
 #if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
-		if (!musb->is_adaptive_out)
+		if (!musb->is_adaptive_out || musb->adaptive_out_configured)
 			csr |= CHN_LLIST_INT_EN | CHN_CLEAR_INT_EN;
 #else
 		csr |= CHN_LLIST_INT_EN | CHN_CLEAR_INT_EN;
@@ -188,7 +188,7 @@ static void sprd_configure_channel(struct dma_channel *channel,
 		csr = musb_readl(mbase, MUSB_DMA_CHN_INTR(bchannel));
 
 #if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
-		if (!musb->is_adaptive_in)
+		if (!musb->is_adaptive_in || musb->adaptive_in_configured)
 			csr |= CHN_USBRX_INT_EN | CHN_LLIST_INT_EN | CHN_CLEAR_INT_EN;
 #else
 		csr |= CHN_USBRX_INT_EN | CHN_LLIST_INT_EN | CHN_CLEAR_INT_EN;
