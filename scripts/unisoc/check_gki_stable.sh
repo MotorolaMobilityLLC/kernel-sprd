@@ -221,13 +221,17 @@ if [ -d ${clang_path} ]; then
 			echo ${symbols_to_google_array[i]} >> ${DIST_DIR}/diff_whitelist.report
 		done
 	fi
-	cat ${DIST_DIR}/diff_whitelist.report
-	echo "++++ list the new symbol belong to ko module name ++++"
-	for symb in $(cat ${DIST_DIR}/diff_whitelist.report |grep -v "^+++")
-	do
-		symb_line=$(grep "$symb" ${DIST_DIR}/${whitelist_out_file} -n|awk -F':' '{print $1}')
-		echo "        ${symb}    $(head ${DIST_DIR}/${whitelist_out_file} -n ${symb_line}| grep "^# required by" |tail -1)"
-	done
+	if [ ${#symbols_to_sprd_array[@]} -ne 0 ] || [ ${#symbols_to_google_array[@]} -ne 0 ]; then
+		cat ${DIST_DIR}/diff_whitelist.report
+		echo "++++ list the new symbol belong to ko module name ++++"
+		for symb in $(cat ${DIST_DIR}/diff_whitelist.report |grep -v "^+++")
+		do
+			symb_line=$(grep "$symb" ${DIST_DIR}/${whitelist_out_file} -n|\
+				awk -F':' '{print $1}')
+			echo "        ${symb}    $(head ${DIST_DIR}/${whitelist_out_file} -n \
+				${symb_line}| grep "^# required by" |tail -1)"
+		done
+	fi
 else
 	check_whitelist_flag=4
 fi
