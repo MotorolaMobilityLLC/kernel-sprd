@@ -22,6 +22,7 @@
 #include <linux/suspend.h>
 #include <linux/types.h>
 #include <linux/uaccess.h>
+#include <linux/workqueue.h>
 
 #define SPRD_REG_INFO_PER_MAX (128)
 #define SPRD_LOG_BUF_MAX      (SPRD_REG_INFO_PER_MAX*PDBG_INFO_MAX)
@@ -29,7 +30,7 @@
 #define PDBG_IGNORE_MAGIC    (0xEEDDCCBBAA998877)
 #define WAKEUP_NAME_NUM      (2)
 #define PDBG_INFO_NUM        (4)
-#define IRQ_DOMAIN_RETRY_CNT        (10)
+#define IRQ_DOMAIN_RETRY_CNT (10)
 #define DATA_INVALID    (0xFFFFFFFFU)
 
 #define SLP_FMT       "[SLP_STATE] deep: 0x%llx, light: 0x%llx\n"
@@ -70,6 +71,7 @@ struct power_debug {
 	struct notifier_block pm_notifier_block;
 	struct notifier_block cpu_pm_notifier_block;
 	struct list_head ws_irq_domain_list;
+	struct delayed_work irq_domain_work;
 	rwlock_t rw_lock;
 	char *wakeup_source[WAKEUP_NAME_NUM];
 	u64 r_value[PDBG_INFO_NUM+1];
@@ -83,6 +85,8 @@ struct power_debug {
 	bool module_log_enable;
 	bool is_32b_machine;
 	char log_buf[SPRD_LOG_BUF_MAX];
+	int irq_domain_retry_cnt;
+	int last_nr_irqs;
 };
 
 struct ws_irq_domain {
@@ -423,31 +427,50 @@ static void sprd_pdbg_get_dt_irq_domain_names(struct power_debug *pdbg)
 	}
 }
 
-static int sprd_pdbg_irq_domain_init(void)
+static void sprd_pdbg_parse_irq_domain_work(struct work_struct *work)
 {
-	int i, irq;
+	int irq, j;
 	struct irq_desc *desc;
-	struct irq_chip *chip;
+	bool match_done = false;
 	struct power_debug *pdbg = sprd_pdbg_get_instance();
 
-	sprd_pdbg_get_dt_irq_domain_names(pdbg);
-
-	for_each_irq_desc(irq, desc) {
-		chip = irq_desc_get_chip(desc);
-		if (!chip)
+	irq = pdbg->last_nr_irqs;
+	pdbg->last_nr_irqs = nr_irqs;
+	for (; irq < nr_irqs; irq++) {
+		desc = irq_to_desc(irq);
+		if (!desc || !desc->irq_data.chip)
 			continue;
-		for (i = 0; i < SPRD_PDBG_WS_DOMAIN_ID_MAX; i++) {
-			if (!pdbg->irq_domain_names[i])
+
+		match_done = true;
+		for (j = 0; j < SPRD_PDBG_WS_DOMAIN_ID_MAX; j++) {
+			if (!pdbg->irq_domain_names[j])
 				continue;
-			if (!strcmp(pdbg->irq_domain_names[i], chip->name)) {
-				sprd_pdbg_irq_domain_add(i, desc->irq_data.domain);
-				SPRD_PDBG_INFO("match irq domain[%d:%d][%s]\n",
-					      irq, i, pdbg->irq_domain_names[i]);
-				pdbg->irq_domain_names[i] = NULL;
+			match_done = false;
+			if (!strcmp(pdbg->irq_domain_names[j], desc->irq_data.chip->name)) {
+				sprd_pdbg_irq_domain_add(j, desc->irq_data.domain);
+				SPRD_PDBG_INFO("match irq domain[%s]\n",
+					       pdbg->irq_domain_names[j]);
+				pdbg->irq_domain_names[j] = NULL;
 				break;
 			}
 		}
+		if (match_done)
+			break;
 	}
+
+	if (!match_done && pdbg->irq_domain_retry_cnt++ < IRQ_DOMAIN_RETRY_CNT)
+		schedule_delayed_work(&pdbg->irq_domain_work, msecs_to_jiffies(2000));
+}
+
+static int sprd_pdbg_irq_domain_init(void)
+{
+	struct power_debug *pdbg = sprd_pdbg_get_instance();
+
+	sprd_pdbg_get_dt_irq_domain_names(pdbg);
+	INIT_DELAYED_WORK(&pdbg->irq_domain_work, sprd_pdbg_parse_irq_domain_work);
+	pdbg->last_nr_irqs = 0;
+	pdbg->irq_domain_retry_cnt = 0;
+	schedule_delayed_work(&pdbg->irq_domain_work, 0);
 
 	return 0;
 }
