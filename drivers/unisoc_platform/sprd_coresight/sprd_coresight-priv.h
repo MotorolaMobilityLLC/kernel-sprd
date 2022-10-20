@@ -351,7 +351,7 @@ sprd_coresight_register(struct coresight_desc *desc);
 extern void sprd_coresight_unregister(struct coresight_device *csdev);
 extern int sprd_coresight_enable(struct coresight_device *csdev);
 extern void sprd_coresight_disable(struct coresight_device *csdev);
-extern int sprd_coresight_timeout(struct csdev_access *csa, u32 offset,
+extern int sprd_coresight_timeout(void __iomem *addr, u32 offset,
 			     int position, int value);
 
 extern int sprd_coresight_claim_device(struct coresight_device *csdev);
@@ -383,7 +383,7 @@ static inline int
 sprd_coresight_enable(struct coresight_device *csdev) { return -ENOSYS; }
 static inline void sprd_coresight_disable(struct coresight_device *csdev) {}
 
-static inline int sprd_coresight_timeout(struct csdev_access *csa, u32 offset,
+static inline int sprd_coresight_timeout(void __iomem *addr, u32 offset,
 				    int position, int value)
 {
 	return 1;

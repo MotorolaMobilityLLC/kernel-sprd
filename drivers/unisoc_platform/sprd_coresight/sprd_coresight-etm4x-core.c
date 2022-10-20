@@ -407,7 +407,7 @@ static int etm4_enable_hw(struct etmv4_drvdata *drvdata)
 		isb();
 
 	/* wait for TRCSTATR.IDLE to go up */
-	if (sprd_coresight_timeout(csa, TRCSTATR, TRCSTATR_IDLE_BIT, 1))
+	if (sprd_coresight_timeout(drvdata->base/*csa*/, TRCSTATR, TRCSTATR_IDLE_BIT, 1))
 		dev_err(etm_dev,
 			"timeout while waiting for Idle Trace Status\n");
 	if (drvdata->nr_pe)
@@ -498,7 +498,7 @@ static int etm4_enable_hw(struct etmv4_drvdata *drvdata)
 		isb();
 
 	/* wait for TRCSTATR.IDLE to go back down to '0' */
-	if (sprd_coresight_timeout(csa, TRCSTATR, TRCSTATR_IDLE_BIT, 0))
+	if (sprd_coresight_timeout(drvdata->base/*csa*/, TRCSTATR, TRCSTATR_IDLE_BIT, 0))
 		dev_err(etm_dev,
 			"timeout while waiting for Idle Trace Status\n");
 
@@ -824,7 +824,7 @@ static void etm4_disable_hw(void *info)
 	etm4x_relaxed_write32(csa, control, TRCPRGCTLR);
 
 	/* wait for TRCSTATR.PMSTABLE to go to '1' */
-	if (sprd_coresight_timeout(csa, TRCSTATR, TRCSTATR_PMSTABLE_BIT, 1))
+	if (sprd_coresight_timeout(drvdata->base/*csa*/, TRCSTATR, TRCSTATR_PMSTABLE_BIT, 1))
 		dev_err(etm_dev,
 			"timeout while waiting for PM stable Trace Status\n");
 	/* read the status of the single shot comparators */
@@ -1623,7 +1623,7 @@ static int __etm4_cpu_save(struct etmv4_drvdata *drvdata)
 	etm4_os_lock(drvdata);
 
 	/* wait for TRCSTATR.PMSTABLE to go up */
-	if (sprd_coresight_timeout(csa, TRCSTATR, TRCSTATR_PMSTABLE_BIT, 1)) {
+	if (sprd_coresight_timeout(drvdata->base/*csa*/, TRCSTATR, TRCSTATR_PMSTABLE_BIT, 1)) {
 		dev_err(etm_dev,
 			"timeout while waiting for PM Stable Status\n");
 		etm4_os_unlock(drvdata);
@@ -1713,7 +1713,7 @@ static int __etm4_cpu_save(struct etmv4_drvdata *drvdata)
 		state->trcpdcr = etm4x_read32(csa, TRCPDCR);
 
 	/* wait for TRCSTATR.IDLE to go up */
-	if (sprd_coresight_timeout(csa, TRCSTATR, TRCSTATR_IDLE_BIT, 1)) {
+	if (sprd_coresight_timeout(drvdata->base/*csa*/, TRCSTATR, TRCSTATR_IDLE_BIT, 1)) {
 		dev_err(etm_dev,
 			"timeout while waiting for Idle Trace Status\n");
 		etm4_os_unlock(drvdata);

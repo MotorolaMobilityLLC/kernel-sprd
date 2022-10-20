@@ -1504,14 +1504,15 @@ static void coresight_remove_conns(struct coresight_device *csdev)
  * Return: 0 as soon as the bit has taken the desired state or -EAGAIN if
  * TIMEOUT_US has elapsed, which ever happens first.
  */
-int sprd_coresight_timeout(struct csdev_access *csa, u32 offset,
+int sprd_coresight_timeout(void __iomem *addr, u32 offset,
 		      int position, int value)
 {
 	int i;
 	u32 val;
 
 	for (i = TIMEOUT_US; i > 0; i--) {
-		val = csdev_access_read32(csa, offset);
+		//val = csdev_access_read32(csa, offset);
+		val = __raw_readl(addr + offset);
 		/* waiting on the bit to go from 0 to 1 */
 		if (value) {
 			if (val & BIT(position))

@@ -33,20 +33,21 @@ DEFINE_CORESIGHT_DEVLIST(etf_devs, "tmc_etf");
 
 void sprd_tmc_wait_for_tmcready(struct tmc_drvdata *drvdata)
 {
-	struct coresight_device *csdev = drvdata->csdev;
-	struct csdev_access *csa = &csdev->access;
+//	struct coresight_device *csdev = drvdata->csdev;
+//	struct csdev_access *csa = &csdev->access;
 
 	/* Ensure formatter, unformatter and hardware fifo are empty */
-	if (sprd_coresight_timeout(csa, TMC_STS, TMC_STS_TMCREADY_BIT, 1)) {
-		dev_err(&csdev->dev,
-			"timeout while waiting for TMC to be Ready\n");
+	if (sprd_coresight_timeout(drvdata->base/*csa*/, TMC_STS, TMC_STS_TMCREADY_BIT, 1)) {
+//		dev_err(&csdev->dev,
+//			"timeout while waiting for TMC to be Ready\n");
+		pr_err("timeout while waiting for TMC to be Ready\n");
 	}
 }
 
 void sprd_tmc_flush_and_stop(struct tmc_drvdata *drvdata)
 {
-	struct coresight_device *csdev = drvdata->csdev;
-	struct csdev_access *csa = &csdev->access;
+//	struct coresight_device *csdev = drvdata->csdev;
+//	struct csdev_access *csa = &csdev->access;
 	u32 ffcr;
 
 	ffcr = readl_relaxed(drvdata->base + TMC_FFCR);
@@ -54,10 +55,16 @@ void sprd_tmc_flush_and_stop(struct tmc_drvdata *drvdata)
 	writel_relaxed(ffcr, drvdata->base + TMC_FFCR);
 	ffcr |= BIT(TMC_FFCR_FLUSHMAN_BIT);
 	writel_relaxed(ffcr, drvdata->base + TMC_FFCR);
+
+//	pr_info("sprd_tmc_flush_and_stop 0x%08x\n", drvdata->base);
+//	pr_info("sprd_tmc_flush_and_stop csa=0x%08x\n", csa);
+//	pr_info("sprd_tmc_flush_and_stop 0x%08x\n", csa->base);
+
 	/* Ensure flush completes */
-	if (sprd_coresight_timeout(csa, TMC_FFCR, TMC_FFCR_FLUSHMAN_BIT, 0)) {
-		dev_err(&csdev->dev,
-		"timeout while waiting for completion of Manual Flush\n");
+	if (sprd_coresight_timeout(drvdata->base/*csa*/, TMC_FFCR, TMC_FFCR_FLUSHMAN_BIT, 0)) {
+//		dev_err(&csdev->dev,
+//		"timeout while waiting for completion of Manual Flush\n");
+		pr_err("timeout while waiting for completion of Manual Flush\n");
 	}
 
 	sprd_tmc_wait_for_tmcready(drvdata);
