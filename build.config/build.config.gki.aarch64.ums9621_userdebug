@@ -15,6 +15,9 @@ PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/
 ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${UMS9621_BASE_CONFIG} ${ROOT_DIR}/${FRAGMENT_CONFIG}"
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
 
+if [[ $BSP_SPECIFIED_KO_CONFIG == "true" && $BSP_UD_PREBUILTS_FLAG == "true" ]]; then
+	EXT_MODULES="$BSP_EXT_MODULES"
+else
 EXT_MODULES="
 ../modules/kernel5.15/sample
 ../modules/kernel5.15/gpu/natt
@@ -65,6 +68,7 @@ EXT_MODULES="
 ../modules/common/camera/sensor
 ../modules/common/camera/mmdvfs
 "
+fi
 #camera module version config
 export BSP_BOARD_CAMERA_MODULE_ISP_VERSION="isp2.6"
 export BSP_BOARD_CAMERA_MODULE_ISP_ADAPT_VERSION="qogirn6l"
@@ -74,7 +78,7 @@ export BSP_BOARD_CAMERA_MODULE_DVFS="qogirn6l"
 
 DTC_FLAGS+="-@"
 
-if [[ $BSP_KOONLY_CONFIG == "true" && $BSP_UD_PREBUILTS_FLAG == "true" ]]; then
+if ([[ $BSP_SPECIFIED_KO_CONFIG == "true" ]] || [[ $BSP_KOONLY_CONFIG == "true" ]]) && ([[ $BSP_UD_PREBUILTS_FLAG == "true" ]]); then
 	MAKE_GOALS="$BSP_MAKE_GOALS"
 	BUILD_GKI_ARTIFACTS=""
 else
