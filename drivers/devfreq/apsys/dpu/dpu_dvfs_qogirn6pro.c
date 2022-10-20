@@ -93,6 +93,12 @@ static void set_dpu_work_freq(struct dpu_dvfs *dpu, u32 freq)
 			break;
 		}
 	}
+
+	/* FIXME:
+	 * The dpu idle freq config will be cleanup when dpu_vsp power off,
+	 * so, reconfigure idle index when dpu_vsp power on.
+	 */
+	reg->dispc_dvfs_index_idle_cfg = dpu->dvfs_coffe.idle_index_def;
 }
 
 static u32 get_dpu_work_freq(struct dpu_dvfs *dpu)
@@ -122,6 +128,7 @@ static void set_dpu_idle_freq(struct dpu_dvfs *dpu, u32 freq)
 	for (i = 0; i < ARRAY_SIZE(map_table); i++) {
 		if (map_table[i].clk_rate == freq) {
 			reg->dispc_dvfs_index_idle_cfg = i;
+			dpu->dvfs_coffe.idle_index_def = i;
 			break;
 		}
 	}
@@ -167,6 +174,7 @@ static void set_dpu_idle_index(struct dpu_dvfs *dpu, int index)
 		(struct dpu_vspsys_dvfs_reg *)dpu->apsys->apsys_base;
 
 	reg->dispc_dvfs_index_idle_cfg = index;
+	dpu->dvfs_coffe.idle_index_def = index;
 }
 
 static int get_dpu_idle_index(struct dpu_dvfs *dpu)
