@@ -748,6 +748,14 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 		}
 	}
 
+	if (cluster->id == 0) {
+		ret = cluster->dvfs_debug_init();
+		if (ret) {
+			pr_err("dvfs debug init error\n");
+			return ret;
+		}
+	}
+
 	ret = of_property_match_string(cluster->node, "nvmem-cell-names", "dvfs_bin");
 	if (ret == -EINVAL) { /* No definition is allowed */
 		pr_warn("Warning: no 'dvfs_bin' appointed\n");
@@ -811,6 +819,7 @@ static int sprd_cluster_ops_init(struct cluster_info *cluster)
 	cluster->bin_set = ops->bin_set;
 	cluster->version_set = ops->version_set;
 	cluster->dvfs_init = ops->dvfs_init;
+	cluster->dvfs_debug_init = ops->dvfs_debug_init;
 
 	return 0;
 }

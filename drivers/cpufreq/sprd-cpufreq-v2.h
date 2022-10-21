@@ -60,6 +60,8 @@ struct cluster_info {
 
 	int (*dvfs_init)(u32 flag);
 
+	int (*dvfs_debug_init)(void);
+
 	int (*dvfs_enable)(u32 cluster);
 
 	u32 voltage_step;

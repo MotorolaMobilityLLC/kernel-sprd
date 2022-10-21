@@ -233,6 +233,12 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x060b))
 
+#define SPRD_SIP_SVC_DVFS_DEBUG_INIT					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x060c))
+
 /* SIP npu operations */
 #define SPRD_SIP_SVC_NPU_REV						\
 	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
@@ -560,6 +566,16 @@ static int sprd_sip_svc_dvfs_init(u32 flag)
 	return sprd_sip_remap_err(res.a0);
 }
 
+static int sprd_sip_svc_dvfs_debug_init(void)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_DVFS_DEBUG_INIT,
+		      0, 0, 0, 0, 0, 0, 0, &res);
+
+	return sprd_sip_remap_err(res.a0);
+}
+
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 static int sprd_sip_svc_storage_ufs_crypto_enable(void)
 {
@@ -701,6 +717,7 @@ static int __init sprd_sip_svc_init(void)
 	sprd_sip_svc_handle.dvfs_ops.bin_set = sprd_sip_svc_dvfs_bin_set;
 	sprd_sip_svc_handle.dvfs_ops.version_set = sprd_sip_svc_dvfs_version_set;
 	sprd_sip_svc_handle.dvfs_ops.dvfs_init = sprd_sip_svc_dvfs_init;
+	sprd_sip_svc_handle.dvfs_ops.dvfs_debug_init = sprd_sip_svc_dvfs_debug_init;
 
 	pr_notice("SPRD SIP SVC DVFS:v%d.%d detected in firmware.\n",
 		  sprd_sip_svc_handle.dvfs_ops.rev.major_ver,

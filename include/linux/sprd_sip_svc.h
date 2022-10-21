@@ -125,6 +125,7 @@ struct sprd_sip_svc_dvfs_ops {
 	int (*bin_set)(u32 cluster, u32 bin);
 	int (*version_set)(u32 cluster, u64 *ver);
 	int (*dvfs_init)(u32 flag);
+	int (*dvfs_debug_init)(void);
 };
 
 /**
