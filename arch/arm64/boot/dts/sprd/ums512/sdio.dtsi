@@ -63,6 +63,7 @@
 	no-mmc;
 	sd-uhs-sdr104;
 	sd-uhs-sdr50;
+	sprd,name = "sdio_sd";
 	status = "okay";
 };
 
@@ -74,6 +75,7 @@
 	bus-width = <4>;
 	no-sd;
 	no-mmc;
+	sprd,name = "sdio_wifi";
 	status = "okay";
 };
 
@@ -94,6 +96,7 @@
 	mmc-ddr-1_8v;
 	no-sdio;
 	no-sd;
+	sprd,name = "sdio_emmc";
 	status = "okay";
 	supports-swcq;
 };
