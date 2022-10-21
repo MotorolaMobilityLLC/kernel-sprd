@@ -3250,7 +3250,8 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 	qh->is_ready = 0;
 	if (musb_ep_get_qh(qh->hw_ep, is_in) == qh) {
 		urb = next_urb(qh);
-
+		if (!urb)
+			goto exit;
 		/* make software (then hardware) stop ASAP */
 		if (!urb->unlinked)
 			urb->status = -ESHUTDOWN;
@@ -3274,6 +3275,8 @@ musb_h_disable(struct usb_hcd *hcd, struct usb_host_endpoint *hep)
 		while (!list_empty(&hep->urb_list))
 			musb_giveback(musb, next_urb(qh), -ESHUTDOWN);
 
+		if (musb_ep_get_qh(qh->hw_ep, !is_in) == qh)
+			musb_ep_set_qh(qh->hw_ep, !is_in, NULL);
 		hep->hcpriv = NULL;
 		list_del(&qh->ring);
 		kfree(qh);
