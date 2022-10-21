@@ -2845,7 +2845,7 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 	cp->vbus_uV = 0;
 	cp->ibat_uA = 0;
 
-	if (cp->cp_running) {
+	if (cp->cp_running && cm->desc->enable_fast_charge) {
 		if (get_cp_ibus_uA(cm, &cp->ibus_uA)) {
 			cp->ibus_uA = 0;
 			dev_err(cm->dev, "get ibus current error.\n");
