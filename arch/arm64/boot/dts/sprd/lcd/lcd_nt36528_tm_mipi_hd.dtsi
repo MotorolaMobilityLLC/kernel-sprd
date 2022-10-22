@@ -18,7 +18,7 @@
 					sprd,dsi-lane-number = <4>;
 					sprd,dsi-color-format = "rgb888";
 
-					sprd,phy-bit-clock = <700000>;	/* kbps */
+					sprd,phy-bit-clock = <905000>;	/* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
 
 					sprd,power-gpio-delay = <20>;/* ms */
