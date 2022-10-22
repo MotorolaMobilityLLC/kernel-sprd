@@ -2057,6 +2057,15 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	mutex_init(&info->lock);
 	mutex_lock(&info->lock);
 
+	/* check if bq2560x chip present */
+	ret = bq2560x_update_bits(info, BQ2560X_REG_B,
+				  BQ2560X_REG_RESET_MASK,
+				  BQ2560X_REG_RESET_MASK);
+	if (ret) {
+		dev_err(info->dev, "reset bq2560x failed\n");
+		goto err_regmap_exit;
+	}
+
 	charger_cfg.drv_data = info;
 	charger_cfg.of_node = dev->of_node;
 	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
@@ -2142,6 +2151,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 error_sysfs:
 	sysfs_remove_group(&info->psy_usb->dev.kobj, &info->sysfs->attr_g);
 err_psy_usb:
+	//power_supply_unregister(info->psy_usb);
 	if (info->irq_gpio)
 		gpio_free(info->irq_gpio);
 err_regmap_exit:
