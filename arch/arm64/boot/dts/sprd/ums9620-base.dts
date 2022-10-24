@@ -63,7 +63,7 @@
 			    loop.max_part=7 loglevel=1 log_buf_len=1M
 			    firmware_class.path=/vendor/firmware,/odm/firmware
 			    init=/init root=/dev/ram0 rw printk.devkmsg=on pcie_ports=compat
-			    swiotlb=1 initcall_debug=1 nosoftlock kfence.sample_interval=0";
+			    swiotlb=1 initcall_debug=1 nosoftlock";
 	};
 
 	pwm_backlight: backlight {
