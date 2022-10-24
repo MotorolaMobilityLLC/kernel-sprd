@@ -86,6 +86,8 @@ struct sprd_wdt_fiq {
 	struct mutex *lock;
 	struct alarm sleep_tmr;
 	bool sleep_en;
+	u32 wdt_ctrl;
+	u64 wdt_load;
 };
 
 static DEFINE_MUTEX(sprd_wdt_mutex);
@@ -159,8 +161,9 @@ static int sprd_wdt_fiq_load_value(struct sprd_wdt_fiq *wdt, u32 timeout,
 	u32 tmr_step = timeout * SPRD_WDT_FIQ_CNT_STEP;
 	u32 prtmr_step = pretimeout * SPRD_WDT_FIQ_CNT_STEP;
 
-	pr_info("sprd_wdt: sprd wdt load value timeout =%d, pretimeout =%d\n",
+	pr_err("sprd_wdt_fiq: sprd wdt load value timeout =%d, pretimeout =%d\n",
 	       timeout, pretimeout);
+	wdt->wdt_load = jiffies;
 	sprd_wdt_fiq_unlock(wdt);
 	writel_relaxed((tmr_step >> SPRD_WDT_FIQ_CNT_HIGH_SHIFT) &
 		      SPRD_WDT_FIQ_LOW_VALUE_MASK,
@@ -247,7 +250,6 @@ static int sprd_wdt_fiq_start(struct watchdog_device *wdd)
 	u32 val;
 	int ret;
 
-	pr_err("ap watchdog sprd_wdt_fiq start: timeout = %d, pretimeout = %d\n", wdd->timeout, wdd->pretimeout);
 	ret = sprd_wdt_fiq_load_value(wdt, wdd->timeout, wdd->pretimeout);
 	if (ret)
 		return ret;
@@ -261,6 +263,7 @@ static int sprd_wdt_fiq_start(struct watchdog_device *wdd)
 	writel_relaxed(val, wdt->base + SPRD_WDT_FIQ_CTRL);
 	set_bit(WDOG_HW_RUNNING, &wdd->status);
 	set_bit(WDOG_ACTIVE, &wdd->status);
+	wdt_fiq->wdt_ctrl = readl_relaxed(wdt->base + SPRD_WDT_FIQ_CTRL);
 	sprd_wdt_fiq_lock(wdt);
 
 
