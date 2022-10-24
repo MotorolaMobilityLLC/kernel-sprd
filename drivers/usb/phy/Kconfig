@@ -186,6 +186,15 @@ config SPRD_USB_DUMMY_PHY
 	  Enable this to support the SPRD USB DUMMY PHY that is needed for
 	  usb (DWC3/MUSB) switch function.
 
+config SPRD_UMP96XX_BC1P2
+	tristate "Spreadtrum Ump96xx USB BC1P2 support"
+	select USB_PHY
+	help
+	  Added this to support the sprd Ump96xx USB
+	  BC1P2. This driver provides secondary BC1P2
+	  detection. This driver is supported by
+	  default.
+
 config SPRD_QOGIRN6PRO_USB2_PHY
 	tristate "Spreadtrum Qogirn6pro USB2 PHY Driver"
 	select USB_PHY
