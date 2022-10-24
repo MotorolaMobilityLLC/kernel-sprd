@@ -128,6 +128,7 @@
 /* Definition of PMIC reset status register */
 #define HWRST_STATUS_SECURITY		0x02
 #define HWRST_STATUS_SECBOOT		0x03
+#define HWRST_STATUS_BOOTLOADER_PANIC   0x10
 #define HWRST_STATUS_RECOVERY		0x20
 #define HWRST_STATUS_NORMAL		0x40
 #define HWRST_STATUS_ALARM		0x50
