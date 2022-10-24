@@ -8,6 +8,9 @@ PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/
 ${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig ${ROOT_DIR}/${FRAGMENT_CONFIG}"
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
 
+if [[ $BSP_SPECIFIED_KO_CONFIG == "true" && $BSP_USER_PREBUILTS_FLAG == "true" ]]; then
+	EXT_MODULES="$BSP_EXT_MODULES"
+else
 EXT_MODULES="
 ../modules/kernel5.15/sample
 ../modules/kernel5.15/input/fingerprint/microarray
@@ -54,7 +57,7 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/codec/sprd/sc2730/power_dev
 ../modules/kernel5.15/audio/sprd/codec/sprd/ucp1301
 "
-
+fi
 #camera module version config
 export BSP_BOARD_CAMERA_MODULE_ISP_VERSION="isp2.6"
 export BSP_BOARD_CAMERA_MODULE_ISP_ADAPT_VERSION="sharkl5pro"
@@ -65,7 +68,7 @@ export BSP_BOARD_CAMERA_MODULE_DVFS="sharkl5pro"
 
 DTC_FLAGS+="-@"
 
-if [[ $BSP_KOONLY_CONFIG == "true" && $BSP_USER_PREBUILTS_FLAG == "true" ]]; then
+if ([[ $BSP_SPECIFIED_KO_CONFIG == "true" ]] || [[ $BSP_KOONLY_CONFIG == "true" ]]) && ([[ $BSP_USER_PREBUILTS_FLAG == "true" ]]); then
 	MAKE_GOALS="$BSP_MAKE_GOALS"
 	BUILD_GKI_ARTIFACTS=""
 else
