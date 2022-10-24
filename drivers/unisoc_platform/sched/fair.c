@@ -697,7 +697,7 @@ static void walt_select_task_rq_fair(void *data, struct task_struct *p, int prev
 {
 	int sync;
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	/* just record the last cpu */
@@ -755,7 +755,7 @@ static void walt_migrate_queued_task(void *data, struct rq *rq,
 				     struct rq_flags *rf, struct task_struct *p,
 				     int new_cpu, int *detached)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	/*
@@ -779,7 +779,7 @@ static void walt_can_migrate_task(void *data, struct task_struct *p,
 {
 	struct uni_rq *uni_rq = (struct uni_rq *) task_rq(p)->android_vendor_data1;
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	/* Don't detach task if it is under active migration */
@@ -792,7 +792,7 @@ static void walt_find_busiest_group(void *data, struct sched_group *busiest,
 {
 	int busiest_cpu;
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	if (!busiest)
@@ -824,7 +824,7 @@ static void walt_find_busiest_group(void *data, struct sched_group *busiest,
 static void walt_nohz_balancer_kick(void *data, struct rq *rq,
 					unsigned int *flags, int *done)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	if (rq->nr_running >= 2 && (cpu_overutilized(rq->cpu) ||
@@ -844,7 +844,7 @@ static void walt_find_new_ilb(void *data, struct cpumask *nohz_idle_cpus_mask,
 	unsigned long best_cap, best_cap_cpu = -1;
 	int is_small_cpu;
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	cpumask_and(&idle_cpus, nohz_idle_cpus_mask,
@@ -970,7 +970,7 @@ static void android_vh_scheduler_tick(void *unused, struct rq *rq)
 	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 	int ret;
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	if (!is_fair_task(p) || !rq->misfit_task_load ||
@@ -1023,7 +1023,7 @@ out_unlock:
 
 static void walt_cpu_overutilzed(void *data, int cpu, int *overutilized)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	*overutilized = cpu_overutilized(cpu);
@@ -1035,7 +1035,7 @@ static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 	struct uni_task_struct *uni_tsk;
 	struct uni_rq *uni_rq;
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	*need_update = false;

@@ -1191,11 +1191,11 @@ static void walt_sched_init_rq(struct rq *rq)
 	uni_rq->curr_runnable_sum = uni_rq->prev_runnable_sum = 0;
 }
 
-DEFINE_STATIC_KEY_TRUE(walt_disabled);
+bool walt_disabled = true;
 
 static void android_rvh_cpu_cgroup_online(void *data, struct cgroup_subsys_state *css)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	walt_update_task_group(css);
@@ -1203,7 +1203,7 @@ static void android_rvh_cpu_cgroup_online(void *data, struct cgroup_subsys_state
 
 static void android_rvh_build_perf_domains(void *data, bool *eas_check)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	*eas_check = true;
@@ -1214,7 +1214,7 @@ static void android_rvh_sched_cpu_starting(void *data, int cpu)
 	unsigned long flags;
 	struct rq *rq = cpu_rq(cpu);
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	raw_spin_rq_lock_irqsave(rq, flags);
@@ -1227,7 +1227,7 @@ static void android_rvh_sched_cpu_dying(void *data, int cpu)
 	struct rq *rq = cpu_rq(cpu);
 	struct rq_flags rf;
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	rq_lock_irqsave(rq, &rf);
@@ -1237,7 +1237,7 @@ static void android_rvh_sched_cpu_dying(void *data, int cpu)
 
 static void android_rvh_sched_fork_init(void *data, struct task_struct *p)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	__sched_fork_init(p);
@@ -1245,7 +1245,7 @@ static void android_rvh_sched_fork_init(void *data, struct task_struct *p)
 
 static void android_rvh_wake_up_new_task(void *data, struct task_struct *p)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	walt_init_new_task_load(p);
@@ -1253,7 +1253,7 @@ static void android_rvh_wake_up_new_task(void *data, struct task_struct *p)
 
 static void android_rvh_new_task_stats(void *data, struct task_struct *p)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	walt_mark_task_starting(p);
@@ -1261,7 +1261,7 @@ static void android_rvh_new_task_stats(void *data, struct task_struct *p)
 
 static void android_rvh_set_task_cpu(void *data, struct task_struct *p, unsigned int new_cpu)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	walt_fixup_busy_time(p, new_cpu);
@@ -1274,7 +1274,7 @@ static void android_rvh_try_to_wake_up(void *data, struct task_struct *p)
 	struct rq_flags rf;
 	u64 wallclock;
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	rq_lock_irqsave(rq, &rf);
@@ -1284,16 +1284,9 @@ static void android_rvh_try_to_wake_up(void *data, struct task_struct *p)
 	rq_unlock_irqrestore(rq, &rf);
 }
 
-static void android_rvh_try_to_wake_up_success(void *data, struct task_struct *p)
-{
-	if (static_branch_unlikely(&walt_disabled))
-		return;
-	//reserved
-}
-
 static void android_rvh_enqueue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	walt_inc_cumulative_runnable_avg(rq, p);
@@ -1306,7 +1299,7 @@ static void android_rvh_after_enqueue_task(void *data, struct rq *rq, struct tas
 	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
 	u64 wallclock = walt_ktime_clock();
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	uni_tsk->last_enqueue_ts = wallclock;
@@ -1316,7 +1309,7 @@ static void android_rvh_after_enqueue_task(void *data, struct rq *rq, struct tas
 
 static void android_rvh_dequeue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	walt_dec_cumulative_runnable_avg(rq, p);
@@ -1326,7 +1319,7 @@ static void android_rvh_dequeue_task(void *data, struct rq *rq, struct task_stru
 
 static void android_rvh_after_dequeue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
 {
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	walt_cpufreq_update_util(rq, 0);
@@ -1336,7 +1329,7 @@ static void android_rvh_tick_entry(void *data, struct rq *rq)
 {
 	lockdep_assert_rq_held(rq);
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	walt_set_window_start(rq);
@@ -1347,7 +1340,7 @@ static void android_rvh_tick_entry(void *data, struct rq *rq)
 
 static void android_rvh_account_irq_end(void *data, struct task_struct *curr, int cpu, s64 delta)
 {
-	if (static_branch_unlikely(&walt_disabled) ||
+	if (unlikely(walt_disabled) ||
 				unlikely(!sysctl_walt_account_irq_time))
 		return;
 
@@ -1360,7 +1353,7 @@ static void android_rvh_schedule(void *data, struct task_struct *prev,
 	struct uni_task_struct *prev_uni_tsk = (struct uni_task_struct *)prev->android_vendor_data1;
 	u64 wallclock = walt_ktime_clock();
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	if (likely(prev != next)) {
@@ -1383,7 +1376,7 @@ static void walt_effective_cpu_util(void *data, int cpu, unsigned long util_cfs,
 	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 	u64 prev_runnable_sum;
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	walt_cpu_util = uni_rq->cumulative_runnable_avg;
@@ -1414,7 +1407,6 @@ static void register_walt_vendor_hooks(void)
 	register_trace_android_rvh_new_task_stats(android_rvh_new_task_stats, NULL);
 	register_trace_android_rvh_set_task_cpu(android_rvh_set_task_cpu, NULL);
 	register_trace_android_rvh_try_to_wake_up(android_rvh_try_to_wake_up, NULL);
-	register_trace_android_rvh_try_to_wake_up_success(android_rvh_try_to_wake_up_success, NULL);
 	register_trace_android_rvh_enqueue_task(android_rvh_enqueue_task, NULL);
 	register_trace_android_rvh_after_enqueue_task(android_rvh_after_enqueue_task, NULL);
 	register_trace_android_rvh_dequeue_task(android_rvh_dequeue_task, NULL);
@@ -1460,11 +1452,12 @@ static int walt_init_stop_handler(void *data)
 
 	walt_update_cluster_topology();
 
-	static_branch_disable(&walt_disabled);
+	walt_disabled = false;
 
 	for_each_possible_cpu(cpu) {
 		raw_spin_rq_unlock(cpu_rq(cpu));
 	}
+
 	read_unlock(&tasklist_lock);
 
 	return 0;

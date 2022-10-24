@@ -17,7 +17,7 @@
 #define WALT_NR_CPUS	8
 #define MAX_CLUSTERS	3
 
-DECLARE_STATIC_KEY_TRUE(walt_disabled);
+extern bool walt_disabled;
 
 extern __read_mostly unsigned int walt_ravg_window;
 

@@ -72,7 +72,7 @@ static void walt_rt_filter_energy_cpu(void *data, struct task_struct *task,
 	unsigned long min_util = UINT_MAX;
 	struct cpuidle_state *idle;
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	if (!ret)
@@ -158,7 +158,7 @@ static void walt_select_task_rq_rt(void *data, struct task_struct *p, int cpu,
 	bool may_not_preempt;
 	int ret;
 
-	if (static_branch_unlikely(&walt_disabled))
+	if (unlikely(walt_disabled))
 		return;
 
 	/* For anything but wake ups, just return the task_cpu */
