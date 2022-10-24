@@ -1284,11 +1284,11 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 	unsigned long delay = 0;
 	bool rework = false;
 
+	if (!glue->vbus_active)
+		return;
+
 	switch (glue->chg_state) {
 	case USB_CHG_STATE_UNDETECT:
-		if (!glue->vbus_active)
-			break;
-
 		if (boot_charging) {
 			dev_info(glue->dev, "boot charging mode enter!\n");
 			glue->charging_mode = true;
@@ -1298,15 +1298,11 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 		glue->chg_state = USB_CHG_STATE_DETECT;
 		fallthrough;
 	case USB_CHG_STATE_DETECT:
-		if (!glue->vbus_active)
-			break;
 		if (usb_phy->charger_detect)
 			glue->chg_type = usb_phy->charger_detect(usb_phy);
 		glue->chg_state = USB_CHG_STATE_DETECTED;
 		fallthrough;
 	case USB_CHG_STATE_DETECTED:
-		if (!glue->vbus_active)
-			break;
 		dev_info(glue->dev, "charger = %d\n", glue->chg_type);
 		if (glue->chg_type == UNKNOWN_TYPE) {
 			if (usb_phy->flags & CHARGER_2NDDETECT_ENABLE) {
@@ -1329,15 +1325,11 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 		}
 		break;
 	case USB_CHG_STATE_RETRY_DETECT:
-		if (!glue->vbus_active)
-			break;
 		if (extcon_get_state(glue->edev, EXTCON_USB))
 			glue->chg_type = musb_sprd_retry_charger_detect(glue);
 		glue->chg_state = USB_CHG_STATE_RETRY_DETECTED;
 		fallthrough;
 	case USB_CHG_STATE_RETRY_DETECTED:
-		if (!glue->vbus_active)
-			break;
 		dev_info(glue->dev, "redetected charger = %d\n", glue->chg_type);
 		if (glue->chg_type == UNKNOWN_TYPE) {
 			dev_info(glue->dev, "charge retry_detect finished\n");
