@@ -463,9 +463,6 @@ bool sipa_dummy_set_rps_cpus(u8 rps_cpus)
 
 	pr_info("start to set rps, rps_cpus 0x%x\n", rps_cpus);
 
-	if (rps_cpus < 0x0 || rps_cpus > 0xFF)
-		pr_err("invalid rps_cpus = %d\n", rps_cpus);
-
 	snprintf(buf, len, "%x", rps_cpus);
 
 	netdev = sipa_dummy_ndev_arr[SIPA_DUMMY_ETH0].ndev;
