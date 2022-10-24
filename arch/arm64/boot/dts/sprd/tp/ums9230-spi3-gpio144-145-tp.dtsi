@@ -12,10 +12,10 @@
 		/*------------------ilitek_9882q------------------*/
 		spi-max-frequency = <10000000>;	
 		touch,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
-		touch,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		touch,irq-gpio = <&eic_async 16 0>;
 
 		novatek,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
-		novatek,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
+		novatek,irq-gpio = <&eic_async 16 0>;
 
 		/* 672A, 525B, 675, 526, 672C, 523 */
 		novatek,swrst-n8-addr = <0x03F0FE>;
