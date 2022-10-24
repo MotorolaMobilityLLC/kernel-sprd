@@ -469,8 +469,8 @@ static SPRD_PLL_HW(phyr8pll, "phyr8pll", &phyr8pll_gate.common.hw, 0x90,
 static SPRD_PLL_FW_NAME(pixelpll, "pixelpll", "ext-26m", 0xa8,
 				   3, pixelpll_ftable, f_pixelpll, 240,
 				   1000, 1000, 1, 1600000000);
-static CLK_FIXED_FACTOR_HW(pixelpll_200m, "pixelpll-200m", &pixelpll.common.hw, 42, 5, 0);
-static CLK_FIXED_FACTOR_HW(pixelpll_400m, "pixelpll-400m", &pixelpll.common.hw, 21, 5, 0);
+static CLK_FIXED_FACTOR_HW(pixelpll_200m, "pixelpll-200m", &pixelpll.common.hw, 16, 1, 0);
+static CLK_FIXED_FACTOR_HW(pixelpll_400m, "pixelpll-400m", &pixelpll.common.hw, 8, 1, 0);
 static CLK_FIXED_FACTOR_HW(pixelpll_420m, "pixelpll-420m", &pixelpll.common.hw, 4, 1, 0);
 
 static struct sprd_clk_common *ums9621_g5r_pll_clks[] = {
