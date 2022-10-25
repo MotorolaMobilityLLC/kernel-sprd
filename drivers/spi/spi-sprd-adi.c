@@ -17,6 +17,8 @@
 #include <linux/reboot.h>
 #include <linux/spi/spi.h>
 #include <linux/sizes.h>
+#include <linux/seq_buf.h>
+#include <../drivers/unisoc_platform/sysdump/unisoc_sysdump.h>
 
 /* Registers definitions for ADI controller */
 #define REG_ADI_CTRL0			0x4
@@ -148,6 +150,17 @@
 #define WDG_LOAD_VAL			((50 * 32768) / 1000)
 #define WDG_LOAD_MASK			GENMASK(15, 0)
 #define WDG_UNLOCK_KEY			0xe551
+#define SPRD_PRINT_BUF_LEN              10240
+
+#define ADI_printf(m, x...)			\
+	do {                                              \
+		if (!m)                                   \
+			pr_debug(x);                      \
+		else if (seq_buf_printf(m, x)) {         \
+			seq_buf_clear(m);                 \
+			seq_buf_printf(m, x);             \
+		}                                         \
+} while (0)
 
 struct sprd_adi_data {
 	u32 slave_offset;
@@ -173,6 +186,8 @@ struct sprd_adi {
 	const struct sprd_adi_data *data;
 };
 
+static char *sprd_adi_buf;
+static struct seq_buf *sprd_adi_seq_buf;
 static char panic_reason[1024] = {0};
 static int adi_panic_event(struct notifier_block *self, unsigned long val, void
 			   *reason)
@@ -221,7 +236,7 @@ static int sprd_adi_drain_fifo(struct sprd_adi *sadi)
 	} while (--timeout);
 
 	if (timeout == 0) {
-		dev_err(sadi->dev, "drain write fifo timeout\n");
+		ADI_printf(sprd_adi_seq_buf, "ADI drain write fifo timeout\n");
 		return -EBUSY;
 	}
 
@@ -260,7 +275,7 @@ static int sprd_adi_write_wait(void __iomem *adi_base)
 	} while (--write_timeout);
 
 	if (write_timeout == 0) {
-		pr_err("ADI write fail\n");
+		ADI_printf(sprd_adi_seq_buf, "ADI write fail\n");
 		return -EBUSY;
 	}
 
@@ -319,7 +334,7 @@ static int sprd_adi_read(struct sprd_adi *sadi, u32 reg, u32 *read_val)
 	} while (--read_timeout);
 
 	if (read_timeout == 0) {
-		dev_err(sadi->dev, "ADI read timeout\n");
+		ADI_printf(sprd_adi_seq_buf, "ADI read timeout\n");
 		ret = -EBUSY;
 		goto out;
 	}
@@ -383,7 +398,7 @@ static int sprd_adi_write(struct sprd_adi *sadi, u32 reg, u32 val)
 	} while (--timeout);
 
 	if (timeout == 0) {
-		dev_err(sadi->dev, "write fifo is full\n");
+		ADI_printf(sprd_adi_seq_buf, "ADI write fifo is full\n");
 		ret = -EBUSY;
 		goto out;
 	}
@@ -630,6 +645,30 @@ static int sprd_adi_probe(struct platform_device *pdev)
 		goto put_ctlr;
 	}
 
+	sprd_adi_buf = kzalloc(SPRD_PRINT_BUF_LEN, GFP_KERNEL);
+	if (!sprd_adi_buf) {
+		ret = -ENOMEM;
+		goto put_ctlr;
+	}
+
+	sprd_adi_seq_buf = kzalloc(sizeof(*sprd_adi_seq_buf), GFP_KERNEL);
+	if (!sprd_adi_seq_buf) {
+		ret = -ENOMEM;
+		goto free_adi_buf;
+	}
+
+	ret = minidump_save_extend_information("spi_sprd_adi",
+					__pa((unsigned long)(sprd_adi_buf)),
+					 __pa((unsigned long)(sprd_adi_buf) +
+					      SPRD_PRINT_BUF_LEN));
+
+	if (ret) {
+		dev_err(&pdev->dev, "alloc adi fail\n");
+		goto free_seq_buf;
+	}
+
+	seq_buf_init(sprd_adi_seq_buf, sprd_adi_buf, SPRD_PRINT_BUF_LEN);
+
 	sadi->restart_handler.notifier_call = sprd_adi_restart_handler;
 	sadi->restart_handler.priority = 130;
 	ret = register_restart_handler(&sadi->restart_handler);
@@ -640,6 +679,10 @@ static int sprd_adi_probe(struct platform_device *pdev)
 
 	return 0;
 
+free_seq_buf:
+	kfree(sprd_adi_seq_buf);
+free_adi_buf:
+	kfree(sprd_adi_buf);
 put_ctlr:
 	spi_controller_put(ctlr);
 	return ret;
