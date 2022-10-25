@@ -1418,6 +1418,8 @@ static void register_walt_vendor_hooks(void)
 	register_trace_android_rvh_cpu_cgroup_online(android_rvh_cpu_cgroup_online, NULL);
 }
 
+static DEFINE_RAW_SPINLOCK(init_lock);
+
 static int walt_init_stop_handler(void *data)
 {
 	int cpu;
@@ -1425,14 +1427,12 @@ static int walt_init_stop_handler(void *data)
 	u64 window_start_ns, nr_windows;
 	struct uni_rq *uni_rq;
 
-	read_lock(&tasklist_lock);
-	for_each_possible_cpu(cpu) {
-		raw_spin_rq_lock(cpu_rq(cpu));
-	}
+	raw_spin_lock(&init_lock);
 
-	do_each_thread(g, p) {
-		walt_init_existing_task_load(p);
-	} while_each_thread(g, p);
+	if (!walt_disabled)
+		goto unlock;
+
+	read_lock(&tasklist_lock);
 
 	window_start_ns = ktime_get_ns();
 	nr_windows = div64_u64(window_start_ns, walt_ravg_window);
@@ -1441,6 +1441,8 @@ static int walt_init_stop_handler(void *data)
 	for_each_possible_cpu(cpu) {
 		struct rq *rq = cpu_rq(cpu);
 
+		raw_spin_rq_lock(rq);
+
 		/* Create task members for idle thread */
 		walt_init_new_task_load(rq->idle);
 
@@ -1448,17 +1450,19 @@ static int walt_init_stop_handler(void *data)
 
 		uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 		uni_rq->window_start = window_start_ns;
-	}
 
-	walt_update_cluster_topology();
-
-	walt_disabled = false;
-
-	for_each_possible_cpu(cpu) {
 		raw_spin_rq_unlock(cpu_rq(cpu));
 	}
 
+	do_each_thread(g, p) {
+		walt_init_existing_task_load(p);
+	} while_each_thread(g, p);
+
+	walt_disabled = false;
+
 	read_unlock(&tasklist_lock);
+unlock:
+	raw_spin_unlock(&init_lock);
 
 	return 0;
 }
@@ -1482,6 +1486,7 @@ static void walt_init(struct work_struct *work)
 	register_walt_vendor_hooks();
 	walt_rt_init();
 	walt_fair_init();
+	walt_update_cluster_topology();
 
 	stop_machine(walt_init_stop_handler, NULL, NULL);
 
