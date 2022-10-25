@@ -230,11 +230,6 @@ static void apsys_top_dvfs_init(struct apsys_dev *apsys)
 
 	apsys->top_base = (unsigned long)base;
 
-	writel_relaxed(0x00d000d0, base + 0x3d0);
-	temp = readl_relaxed(base + 0xd84);
-	temp &= 0xfffffffe;
-	writel_relaxed(temp, base + 0xd84);
-
 	regmap_np = of_find_matching_node_and_match(NULL, sprd_dvfs_of_match,
 			&dev_id);
 	if (!regmap_np) {
@@ -253,8 +248,6 @@ static void apsys_top_dvfs_init(struct apsys_dev *apsys)
 	/*0xa158 pmic mm dvfs enable register*/
 	temp |= BIT(2);
 	regmap_write(regmap, 0xa158, temp);
-	writel_relaxed(0x00d000d0, base + 0x3d0);
-	writel_relaxed(0x0, base + 0x39c);
 }
 
 static int dcdc_modem_cur_volt(struct apsys_dev *apsys)

@@ -328,7 +328,9 @@ static int dpu_dvfs_parse_dt(struct dpu_dvfs *dpu,
 
 static int dpu_dvfs_init(struct dpu_dvfs *dpu)
 {
+	void __iomem *base = (void __iomem *)dpu->apsys->top_base;
 	char chip_type[HWFEATURE_STR_SIZE_LIMIT];
+	u32 temp;
 
 	pr_info("%s()\n", __func__);
 
@@ -346,6 +348,12 @@ static int dpu_dvfs_init(struct dpu_dvfs *dpu)
 	set_dpu_idle_index(dpu, dpu->dvfs_coffe.idle_index_def);
 
 	sprd_kproperty_get("auto/chipid", chip_type, "-1");
+
+	writel_relaxed(0x00d000d0, base + 0x3d0);
+	temp = readl_relaxed(base + 0xd84);
+	temp &= 0xfffffffe;
+	writel_relaxed(temp, base + 0xd84);
+	writel_relaxed(0x0, base + 0x39c);
 
 	dpu->dvfs_coffe.hw_dfs_en = 1;
 
