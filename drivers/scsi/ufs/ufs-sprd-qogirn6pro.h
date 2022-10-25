@@ -21,6 +21,7 @@ struct ufs_sprd_ums9620_data {
 	struct reset_control *aon_apb_ufs_rst;
 	uint32_t ufs_lane_calib_data0;
 	uint32_t ufs_lane_calib_data1;
+	void __iomem *syssel_reg;
 };
 
 /*
