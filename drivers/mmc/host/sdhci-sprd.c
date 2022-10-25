@@ -1089,6 +1089,17 @@ static u32 sdhci_sprd_cqe_irq(struct sdhci_host *host, u32 intmask)
 	return 0;
 }
 
+void sdhci_sprd_reset(struct sdhci_host *host, u8 mask)
+{
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+
+	if (sprd_host->support_cqe && (host->mmc->caps2 & MMC_CAP2_CQE) && (mask & SDHCI_RESET_ALL)
+	    && host->mmc->cqe_private)
+		cqhci_deactivate(host->mmc);
+
+	sdhci_reset(host, mask);
+}
+
 static struct sdhci_ops sdhci_sprd_ops = {
 	.read_l = sdhci_sprd_readl,
 	.write_l = sdhci_sprd_writel,
@@ -1099,7 +1110,7 @@ static struct sdhci_ops sdhci_sprd_ops = {
 	.get_max_clock = sdhci_sprd_get_max_clock,
 	.get_min_clock = sdhci_sprd_get_min_clock,
 	.set_bus_width = sdhci_set_bus_width,
-	.reset = sdhci_reset,
+	.reset = sdhci_sprd_reset,
 	.set_uhs_signaling = sdhci_sprd_set_uhs_signaling,
 	.hw_reset = sdhci_sprd_hw_reset,
 	.get_max_timeout_count = sdhci_sprd_get_max_timeout_count,
