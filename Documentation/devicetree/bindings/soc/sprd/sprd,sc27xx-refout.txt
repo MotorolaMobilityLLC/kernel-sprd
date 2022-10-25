@@ -1,0 +1,18 @@
+UNISCO sc27xx refout bindings
+
+This node is used to control pmic refout by other code.
+
+Required properties:
+- compatible:
+  -"sprd,sc27xx-refout" for sc27xx refout
+
+- regsw: Specifies the physical address of the refout control register.
+
+- refnum: The number of pmic refout.
+
+Example:
+refout@1800 {
+    compatible = "sprd,sc27xx-refout";
+    regsw = <0x1AEC>;
+    refnum = <5>;
+};

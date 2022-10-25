@@ -52,6 +52,12 @@ config SPRD_MEMDISK_PARTITION
 	  This option will divide memdisk into multiple partitions,
 	  used to load different android images on the haps platform.
 
+config SPRD_PMIC_REFOUT
+	tristate "Spreadtrum PMIC refout driver"
+	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	help
+	  Enable this configuration option to enable pmic refout driver.
+
 config SPRD_SYSTIMER
 	tristate "Spreadtrum system timer driver (systimer/sysfrt)"
 	depends on ARCH_SPRD
