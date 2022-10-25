@@ -900,8 +900,8 @@
 	pn544:pn544@28{
 		compatible = "nxp,pn544";
 		reg = <0x28>;
-		clock-names = "nfc_clk","source","enable";
-		clocks = <&aon_clk CLK_AUX2>,<&ext_26m>,<&aonapb_gate CLK_AUX2_EB>;
+		//clock-names = "nfc_clk","source","enable";
+		//clocks = <&aon_clk CLK_AUX2>,<&ext_26m>,<&aonapb_gate CLK_AUX2_EB>;
 		nxp,pn544-ven = <&ap_gpio 63 0>;
 		nxp,pn544-irq = <&ap_gpio 126 0>;
 		nxp,pn544-fw-dwnld = <&ap_gpio 132 0>;

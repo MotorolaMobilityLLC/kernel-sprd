@@ -46,6 +46,7 @@
 #include <linux/ioctl.h>
 #include <linux/miscdevice.h>
 #include <linux/i2c.h>
+#include <linux/sprd_pmic.h>
 
 #include "nfc.h"
 #include "sn1xx.h"
@@ -63,6 +64,7 @@
 
 static int nfc_clk_select(struct nfc_dev *nfc_dev)
 {
+/*
     int ret = 0;
     nfc_dev->clk_26m = devm_clk_get(&nfc_dev->client->dev, "nfc_clk");
     if (IS_ERR(nfc_dev->clk_26m)) {
@@ -87,6 +89,10 @@ static int nfc_clk_select(struct nfc_dev *nfc_dev)
     ret = clk_prepare_enable(nfc_dev->clk_enable);
     if(ret)
         return -2;
+*/
+    pr_info("before open refout4 1026_4");
+    pmic_refout_update(4, 1);
+    pr_info("after open refout4 1026_4");
 
     return 0;
 }
@@ -481,8 +487,11 @@ static int nfc_remove(struct i2c_client *client)
     struct nfc_dev *nfc_dev;
     pr_info("%s: remove device\n", __func__);
     nfc_dev = i2c_get_clientdata(client);
-    clk_disable_unprepare(nfc_dev->clk_26m);
-    clk_disable_unprepare(nfc_dev->clk_parent);
+    // clk_disable_unprepare(nfc_dev->clk_26m);
+    // clk_disable_unprepare(nfc_dev->clk_parent);
+    pr_info("before close refout4");
+    pmic_refout_update(4, 0);
+    pr_info("after close refout4");
     if (!nfc_dev) {
         pr_err("%s: device doesn't exist anymore\n", __func__);
         ret = -ENODEV;
