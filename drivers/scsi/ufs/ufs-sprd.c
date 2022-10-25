@@ -21,6 +21,7 @@
 #include "ufs-sprd-rpmb.h"
 #include "ufs-sprd-bootdevice.h"
 #include "ufs-sprd-debug.h"
+#include "ufshpb.h"
 
 int ufs_sprd_get_syscon_reg(struct device_node *np, struct syscon_ufs *reg,
 			    const char *name)
@@ -141,6 +142,10 @@ static void ufs_sprd_vh_send_cmd(void *data,
 	struct utp_transfer_req_desc *req_desc;
 	u32 data_direction;
 	u32 dword_0, crypto;
+	unsigned char *cdb = NULL;
+	struct scsi_cmnd *cmd = lrbp->cmd;
+	struct utp_upiu_req *ucd_req_ptr = lrbp->ucd_req_ptr;
+	unsigned short cdb_len;
 
 	req_desc = lrbp->utr_descriptor_ptr;
 	dword_0 = le32_to_cpu(req_desc->header.dword_0);
@@ -149,6 +154,19 @@ static void ufs_sprd_vh_send_cmd(void *data,
 	if (!data_direction && crypto) {
 		dword_0 &= ~(UTP_REQ_DESC_CRYPTO_ENABLE_CMD);
 		req_desc->header.dword_0 = cpu_to_le32(dword_0);
+	}
+
+	if (lrbp->cmd) {
+		cdb = lrbp->cmd->cmnd;
+		if (cdb && cdb[0] == UFSHPB_READ) {
+			cdb[0] = READ_16;
+			cdb[15] = cdb[14];
+			cdb[14] = 0;
+			cdb[1] = 0x0;
+			cdb_len = min_t(unsigned short, cmd->cmd_len, UFS_CDB_SIZE);
+			memset(ucd_req_ptr->sc.cdb, 0, UFS_CDB_SIZE);
+			memcpy(ucd_req_ptr->sc.cdb, cmd->cmnd, cdb_len);
+		}
 	}
 
 	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
