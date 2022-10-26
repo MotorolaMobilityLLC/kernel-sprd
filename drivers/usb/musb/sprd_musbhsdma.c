@@ -685,7 +685,7 @@ static int sprd_dma_channel_program(struct dma_channel *channel,
 				      MUSB_RXCSR_DMAENAB;
 			csr = musb_readw(epio, MUSB_RXCSR);
 			if ((csr & dma_setting) != dma_setting)
-				musb_writew(epio, MUSB_RXCSR, dma_setting);
+				musb_writew(epio, MUSB_RXCSR, dma_setting | csr);
 		} else {
 			dma_setting = MUSB_TXCSR_AUTOSET |
 				      MUSB_TXCSR_DMAMODE |
