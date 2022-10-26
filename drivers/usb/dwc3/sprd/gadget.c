@@ -3117,6 +3117,7 @@ static void dwc3_gadget_free_endpoints(struct dwc3 *dwc)
 {
 	struct dwc3_ep			*dep;
 	u8				epnum;
+	struct dentry			*d_dep;
 
 	for (epnum = 0; epnum < DWC3_ENDPOINTS_NUM; epnum++) {
 		dep = dwc->eps[epnum];
@@ -3136,9 +3137,9 @@ static void dwc3_gadget_free_endpoints(struct dwc3 *dwc)
 			list_del(&dep->endpoint.ep_list);
 		}
 
-		debugfs_remove_recursive(debugfs_lookup(dep->name,
-				debugfs_lookup(dev_name(dep->dwc->dev),
-					       usb_debug_root)));
+		d_dep = debugfs_lookup(dep->name, dwc->root);
+		debugfs_remove_recursive(d_dep);
+		dput(d_dep);
 		kfree(dep);
 	}
 }
