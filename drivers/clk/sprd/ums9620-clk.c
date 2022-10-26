@@ -2206,7 +2206,7 @@ static const struct clk_parent_data mid_core_parents[] = {
 	{ .fw_name = "ext-26m" },
 	{ .hw = &tgpll_768m.hw },
 	{ .hw = &v4nrpll_1228m8.hw },
-	{ .fw_name = "tgpll-1536m" },
+	{ .hw = &tgpll.common.hw },
 	{ .hw = &mpllm.common.hw },
 };
 static SPRD_COMP_CLK_DATA(core4, "core4", mid_core_parents, 0xe08,
@@ -2219,7 +2219,7 @@ static SPRD_COMP_CLK_DATA(core6, "core6", mid_core_parents, 0xe08,
 static const struct clk_parent_data big_core_parents[] = {
 	{ .fw_name = "ext-26m" },
 	{ .hw = &v4nrpll_1228m8.hw },
-	{ .fw_name = "tgpll-1536m" },
+	{ .hw = &tgpll.common.hw },
 	{ .hw = &mpllb.common.hw },
 };
 static SPRD_COMP_CLK_DATA(core7, "core7", big_core_parents, 0xe08,
