@@ -300,7 +300,7 @@ static void shub_cm4_read_callback(struct shub_data *sensor,
 }
 
 static int shub_sipc_read(struct shub_data *sensor,
-			  u8 reg_addr, u8 *data, u8 len)
+			  u8 reg_addr, u8 *data, u32 len)
 {
 	int err = 0;
 	int wait_ret;
@@ -830,32 +830,13 @@ static ssize_t raw_data_ps_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(raw_data_ps);
 
-static ssize_t sensor_info_store(struct device *dev,
-				     struct device_attribute *attr,
-				     const char *buf, size_t count)
-{
-	struct shub_data *sensor = dev_get_drvdata(dev);
-	int err = 0;
-
-	g_sensor->sensor_info_count = 0;
-	err = shub_send_command(sensor, HANDLE_MAX,
-				SHUB_GET_SENSORINFO_SUBTYPE,
-				NULL, 0);
-	if (err < 0) {
-		dev_err(&sensor->sensor_pdev->dev, "get sensor info Fail\n");
-		return err;
-	}
-
-	return count;
-}
-
 static ssize_t sensor_info_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
 	int i, len = 0;
 	struct shub_data *sensor = dev_get_drvdata(dev);
 
-	for (i = 0; i < ARRAY_SIZE(sensor->sensor_info_list); i++) {
+	for (i = 0; i < DRV_SENSOR_COUNT; i++) {
 		if (sensor->sensor_info_list[i].name[0] != 0)
 			len += snprintf(buf + len, PAGE_SIZE - len,
 			"name:%s vendor:%s version:%d\n",
@@ -865,7 +846,85 @@ static ssize_t sensor_info_show(struct device *dev,
 	}
 	return len;
 }
-static DEVICE_ATTR_RW(sensor_info);
+static DEVICE_ATTR_RO(sensor_info);
+
+static ssize_t sensorlist_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	int err;
+	u32 number = 0;
+	u32 len = 0;
+	u8 data[DRV_SENSOR_COUNT * sizeof(struct sensor_info_t)];
+
+	struct shub_data *sensor = dev_get_drvdata(dev);
+
+	err = shub_sipc_read(sensor, SHUB_GET_SENSORINFO_SUBTYPE, data, sizeof(number));
+	if (err >= 0) {
+		memcpy(&number, data, sizeof(number));
+		len = number * sizeof(struct sensor_info_t);
+		err = shub_sipc_read(sensor, SHUB_GET_SENSORINFO_SUBTYPE, data, len);
+		if (err >= 0) {
+			memcpy(buf, data, len);
+			memcpy(&sensor->sensor_info_list, data, len);
+		} else {
+			dev_info(&sensor->sensor_pdev->dev,
+					"sipc read sensorlist fail, err = %d\n", err);
+			return err;
+		}
+	} else {
+		dev_info(&sensor->sensor_pdev->dev,
+				"sipc read sensorlist support number fail, err = %d\n", err);
+		return err;
+	}
+
+	if (len > MAX_STRING_SIZE) {
+		dev_info(&sensor->sensor_pdev->dev,
+				"the sensorlist len is out of read length, len = %d\n", len);
+		return -EFBIG;
+	}
+
+	return len;
+}
+static DEVICE_ATTR_RO(sensorlist);
+
+static ssize_t virtual_handle_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	int err;
+	u32 number = 0;
+	u32 len = 0;
+	u8 data[ANDROID_SENSORS_ID_END * sizeof(int)];
+
+	struct shub_data *sensor = dev_get_drvdata(dev);
+
+	err = shub_sipc_read(sensor, SHUB_GET_VIRTUAL_HANDLE_SUBTYPE, data, sizeof(number));
+	if (err >= 0) {
+		memcpy(&number, data, sizeof(number));
+		len = number * sizeof(number);
+		err = shub_sipc_read(sensor, SHUB_GET_VIRTUAL_HANDLE_SUBTYPE, data, len);
+		if (err >= 0) {
+			memcpy(buf, data, len);
+		} else {
+			dev_info(&sensor->sensor_pdev->dev,
+					"sipc read virtual handle fail, err = %d\n", err);
+			return err;
+		}
+	} else {
+		dev_info(&sensor->sensor_pdev->dev,
+				"sipc read support virtual handle number fail, err = %d\n", err);
+		return err;
+	}
+
+
+	if (len > MAX_STRING_SIZE) {
+		dev_info(&sensor->sensor_pdev->dev,
+				"the virtual len is out of read length, len = %d\n", len);
+		return -EFBIG;
+	}
+
+	return len;
+}
+static DEVICE_ATTR_RO(virtual_handle);
 
 static ssize_t cm4_operate_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
@@ -992,6 +1051,8 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_raw_data_als.attr,
 	&dev_attr_raw_data_ps.attr,
 	&dev_attr_sensor_info.attr,
+	&dev_attr_sensorlist.attr,
+	&dev_attr_virtual_handle.attr,
 	&dev_attr_cm4_operate.attr,
 	&dev_attr_cm4_spi_set.attr,
 	&dev_attr_cm4_spi_sync.attr,

@@ -28,6 +28,8 @@
 #define SIPC_PM_BUFID1			1
 #define SHUB_IIO_CHN_BITS		64
 
+#define MAX_STRING_SIZE			1200
+
 /* ms,-1 is wait  forever */
 #define SIPC_WRITE_TIMEOUT		-1
 
@@ -227,8 +229,7 @@ struct shub_data {
 	struct notifier_block early_suspend;
 	struct notifier_block shub_reboot_notifier;
 	u8 cm4_operate_data[6];
-	struct sensor_info_t sensor_info_list[20];
-	u32 sensor_info_count;
+	struct sensor_info_t sensor_info_list[DRV_SENSOR_COUNT];
 };
 
 /* hw sensor id */
