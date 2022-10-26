@@ -4,6 +4,8 @@
 #include <dt-bindings/clock/sprd,ums512-clk.h>
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "reserved-memory/ums512-1h10-go-overlay.dtsi"
 #include "battery/ums512-1h10-go-overlay.dtsi"
@@ -204,4 +206,14 @@
 		flash-en-gpios = <&ap_gpio 137 0>;
 		flash-sync-gpios = <&ap_gpio 138 0>;
 	};
+};
+
+&lcd_td4310_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1440>;
+};
+
+&lcd_ssd2092_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1440>;
 };

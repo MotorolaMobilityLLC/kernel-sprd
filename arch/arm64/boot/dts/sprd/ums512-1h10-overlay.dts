@@ -2,6 +2,8 @@
 /plugin/;
 #include <dt-bindings/clock/sprd,ums512-clk.h>
 #include <dt-bindings/gpio/gpio.h>
+#include "lcd/lcd_td4310_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_ssd2092_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "reserved-memory/ums512-1h10-overlay.dtsi"
 #include "battery/ums512-1h10-overlay.dtsi"
@@ -240,4 +242,14 @@
 
 &sdio0 {
 	cd-gpios = <&eic_sync 19 GPIO_ACTIVE_HIGH>;
+};
+
+&lcd_td4310_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1440>;
+};
+
+&lcd_ssd2092_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1440>;
 };
