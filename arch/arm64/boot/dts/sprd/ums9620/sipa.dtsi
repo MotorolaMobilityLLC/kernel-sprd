@@ -132,51 +132,58 @@
 };
 
 &soc {
-	sipa: sipa@25220000 {
-		compatible = "sprd,qogirn6pro-sipa";
-		reg = <0 0x25220000 0 0x00002000>;
-		reg-names = "ipa-base";
-		interrupts = <GIC_SPI 137 IRQ_TYPE_LEVEL_HIGH>,
-			<GIC_SPI 136 IRQ_TYPE_LEVEL_HIGH>,
-			<GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH>,
-			<GIC_SPI 134 IRQ_TYPE_LEVEL_HIGH>,
-			<GIC_SPI 133 IRQ_TYPE_LEVEL_HIGH>,
-			<GIC_SPI 132 IRQ_TYPE_LEVEL_HIGH>,
-			<GIC_SPI 131 IRQ_TYPE_LEVEL_HIGH>,
-			<GIC_SPI 130 IRQ_TYPE_LEVEL_HIGH>,
-			<GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "ipa_irq0", "ipa_irq1",
-				"ipa_irq2", "ipa_irq3",
-				"ipa_irq4", "ipa_irq5",
-				"ipa_irq6", "ipa_irq7",
-				"ipa_general";
-		enable-ipa = <&ipa_glb_regs
-			REG_IPA_GLB_APB_IPA_IP_EB
-			MASK_IPA_GLB_APB_IPA_EB>;
-		enable-tft = <&ipa_glb_regs
-			REG_IPA_GLB_APB_IPA_IP_EB
-			MASK_IPA_GLB_APB_TFT_EB>;
+	ipa-apb {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
 
-		sprd,sipa-bypass-mode = <1>;
-		sprd,sipa-sys-eb = <1>;
-		sprd,sipa-cpu-type = <1>;
+		sipa: sipa@25220000 {
+			compatible = "sprd,qogirn6pro-sipa";
+			reg = <0 0x25220000 0 0x00002000>;
+			reg-names = "ipa-base";
+			interrupts = <GIC_SPI 137 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 136 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 135 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 134 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 133 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 132 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 131 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 130 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 138 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "ipa_irq0", "ipa_irq1",
+					"ipa_irq2", "ipa_irq3",
+					"ipa_irq4", "ipa_irq5",
+					"ipa_irq6", "ipa_irq7",
+					"ipa_general";
+			enable-ipa = <&ipa_glb_regs
+				REG_IPA_GLB_APB_IPA_IP_EB
+				MASK_IPA_GLB_APB_IPA_EB>;
+			enable-tft = <&ipa_glb_regs
+				REG_IPA_GLB_APB_IPA_IP_EB
+				MASK_IPA_GLB_APB_TFT_EB>;
 
-		power-domains = <&pd_ipa_sys>;
+			sprd,sipa-bypass-mode = <1>;
+			sprd,sipa-sys-eb = <1>;
+			sprd,sipa-cpu-type = <1>;
 
-		fifo-names = "sprd,map0-out", "sprd,map1-out",
-			"sprd,map2-out", "sprd,map3-out",
-			"sprd,map4-out", "sprd,map5-out",
-			"sprd,map6-out", "sprd,map7-out";
-		fifo-sizes = <0 8192 0 8192>, <0 8192 0 8192>,
-			<0 8192 0 8192>, <0 8192 0 8192>,
-			<0 8192 0 8192>, <0 8192 0 8192>,
-			<0 8192 0 8192>, <0 8192 0 8192>;
-	};
+			power-domains = <&pd_ipa_sys>;
 
-	ipa_delegate: sipa-dele {
-		compatible = "sprd,orca-sipa-delegate";
+			fifo-names = "sprd,map0-out", "sprd,map1-out",
+				"sprd,map2-out", "sprd,map3-out",
+				"sprd,map4-out", "sprd,map5-out",
+				"sprd,map6-out", "sprd,map7-out";
+			fifo-sizes = <0 8192 0 8192>, <0 8192 0 8192>,
+				<0 8192 0 8192>, <0 8192 0 8192>,
+				<0 8192 0 8192>, <0 8192 0 8192>,
+				<0 8192 0 8192>, <0 8192 0 8192>;
+		};
 
-		sprd,sipa-sys-eb = <1>;
-		power-domains = <&pd_ipa_sys>;
+		ipa_delegate: sipa-dele {
+			compatible = "sprd,orca-sipa-delegate";
+
+			sprd,sipa-sys-eb = <1>;
+			power-domains = <&pd_ipa_sys>;
+		};
 	};
 };
