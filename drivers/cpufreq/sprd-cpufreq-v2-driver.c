@@ -284,14 +284,13 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 
 		pr_debug("add %lluHz/%lluuV to opp\n", freq, vol);
 
+		if (policy->freq_table)
+			dev_pm_opp_remove(cpu, freq);
+
 		ret = dev_pm_opp_add(cpu, freq, vol);
 		if (ret) {
-			dev_pm_opp_remove(cpu, freq);
-			ret = dev_pm_opp_add(cpu, freq, vol);
-			if (ret) {
-				pr_err("add %lluHz/%lluuV pair to opp error(%d)\n", freq, vol, ret);
-				return ret;
-			}
+			pr_err("add %lluHz/%lluuV pair to opp error(%d)\n", freq, vol, ret);
+			return ret;
 		}
 	}
 
