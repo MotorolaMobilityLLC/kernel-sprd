@@ -1175,6 +1175,9 @@ static int eta6937_charger_alarm_prepare(struct device *dev)
 		return 0;
 	}
 
+	if (!info->otg_enable)
+		return 0;
+
 	now = ktime_get_boottime();
 	add = ktime_set(ETA6937_WDG_TIMER_S, 0);
 	alarm_start(&info->wdg_timer, ktime_add(now, add));
@@ -1189,6 +1192,9 @@ static void eta6937_charger_alarm_complete(struct device *dev)
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return;
 	}
+
+	if (!info->otg_enable)
+		return;
 
 	alarm_cancel(&info->wdg_timer);
 }

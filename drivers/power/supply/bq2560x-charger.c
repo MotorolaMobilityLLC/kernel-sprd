@@ -1920,6 +1920,9 @@ static int bq2560x_charger_alarm_prepare(struct device *dev)
 		return 0;
 	}
 
+	if (!info->otg_enable)
+		return 0;
+
 	now = ktime_get_boottime();
 	add = ktime_set(BQ2560X_OTG_ALARM_TIMER_S, 0);
 	alarm_start(&info->otg_timer, ktime_add(now, add));
@@ -1934,6 +1937,9 @@ static void bq2560x_charger_alarm_complete(struct device *dev)
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return;
 	}
+
+	if (!info->otg_enable)
+		return;
 
 	alarm_cancel(&info->otg_timer);
 }
