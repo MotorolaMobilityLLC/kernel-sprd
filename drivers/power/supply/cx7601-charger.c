@@ -87,7 +87,6 @@ struct cx7601_charger_info {
 	bool need_disable_Q1;
 	u32 term_voltage;
 	bool charge_enable;
-	bool otg_enable;
 };
 
 #include <ontim/ontim_dev_dgb.h>
@@ -267,7 +266,6 @@ static int cx7601_enable_otg(struct cx7601_charger_info *info)
         pr_info("cx7601_enable_otg enter\n");
 //	return cx7601_update_bits(info, CX7601_REG_01,
 //				REG01_OTG_CONFIG_MASK, val);
-	info->otg_enable = true;
 	 cx7601_write(info, CX7601_REG_01, 0x3b);
 
 	return 0;
@@ -280,8 +278,6 @@ static int cx7601_disable_otg(struct cx7601_charger_info *info)
 //	u8 val = REG01_OTG_DISABLE << REG01_OTG_CONFIG_SHIFT;
 //	return cx7601_update_bits(info, CX7601_REG_01,
 //				   REG01_OTG_CONFIG_MASK, val);
-
-	info->otg_enable = false;
 
 	 cx7601_write(info, CX7601_REG_01, 0x1b);
 
@@ -373,16 +369,7 @@ static int cx7601_reset_watchdog_timer(struct cx7601_charger_info *info)
 {
 	u8 val = REG01_WDT_RESET << REG01_WDT_RESET_SHIFT;
 
-	if( info->otg_enable )
-		val = 0x7b;
-	else		
-		val =0x5b;
-
-	cx7601_write(info, CX7601_REG_01, val);
-
-	return 0;
-
-//	return cx7601_update_bits(info, CX7601_REG_01, REG01_WDT_RESET_MASK, val);
+	return cx7601_update_bits(info, CX7601_REG_01, REG01_WDT_RESET_MASK, val);
 }
 
 #ifdef TEST_CX7601
