@@ -994,8 +994,8 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 //		cx7601_update_bits(info,CX7601_REG_07,0x20,0x00);
 
 	}
-	
-	/*cx7601_read(info, &reg, CX7601_REG_05 );
+
+	cx7601_read(info, &reg, CX7601_REG_05 );
 	if((reg & 0x30 ) == 0x10)
 	{
 		dev_err(info->dev,"%s  05 reg=%x;",__func__,reg);
@@ -1003,7 +1003,7 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 		cx7601_charger_set_termina_vol(info, info->term_voltage);
 		cx7601_charger_set_limit_current(info, info->last_limit_current);
 		cx7601_charger_set_current(info, info->last_current);
-	}*/
+	}
 
 	if(info->set_limit_current_reg != info->get_limit_current_reg)
 	{
