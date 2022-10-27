@@ -322,6 +322,33 @@ static int fan54015_charger_hw_init(struct fan54015_charger_info *info)
 	return ret;
 }
 
+static void fan54015_charger_dump_register(struct fan54015_charger_info *info)
+{
+	int ret, len, idx = 0;
+	u8 reg_val, addr;
+	char buf[256];
+
+	memset(buf, '\0', sizeof(buf));
+	for (addr = FAN54015_REG_0; addr < FAN54015_REG_6; addr++) {
+		ret = fan54015_read(info, addr, &reg_val);
+		if (ret == 0) {
+			len = snprintf(buf + idx, sizeof(buf) - idx,
+				       "[REG_0x%.2x]=0x%.2x  ", addr, reg_val);
+			idx += len;
+		}
+	}
+
+	addr = FAN54015_REG_10;
+	ret = fan54015_read(info, addr, &reg_val);
+	if (ret == 0) {
+		len = snprintf(buf + idx, sizeof(buf) - idx,
+			       "[REG_0x%.2x]=0x%.2x  ", addr, reg_val);
+		idx += len;
+	}
+
+	dev_info(info->dev, "%s: %s", __func__, buf);
+}
+
 static int fan54015_charger_start_charge(struct fan54015_charger_info *info)
 {
 	int ret;
@@ -802,7 +829,7 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
-	dev_dbg(info->dev, "%s:line%d:enable_otg\n", __func__, __LINE__);
+	dev_info(info->dev, "%s:line%d:enable_otg\n", __func__, __LINE__);
 	info->otg_enable = true;
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(FAN54015_FEED_WATCHDOG_VALID_MS));
@@ -850,7 +877,7 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 	if (ret)
 		dev_err(info->dev, "enable BC1.2 failed\n");
 
-	dev_dbg(info->dev, "%s:line%d:disable_otg\n", __func__, __LINE__);
+	dev_info(info->dev, "%s:line%d:disable_otg\n", __func__, __LINE__);
 
 	return ret;
 }
@@ -1040,6 +1067,9 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 
 	info->probe_initialized = true;
 	complete_all(&info->probe_init);
+
+	fan54015_charger_dump_register(info);
+
 	return 0;
 
 err_regmap_exit:

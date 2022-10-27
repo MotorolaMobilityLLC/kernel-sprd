@@ -712,6 +712,33 @@ static bool sgm41511_probe_is_ready(struct sgm41511_charger_info *info)
 	return true;
 }
 
+static int sgm41511_charger_check_power_path_status(struct sgm41511_charger_info *info)
+{
+	int ret = 0;
+	u8 val;
+
+	if (info->disable_power_path)
+		return 0;
+
+	ret = sgm41511_read(info, SGM4151X_REG_00, &val);
+	if (ret < 0) {
+		dev_err(info->dev, "%s:line%d, failed to get reg0(%d)\n", __func__, __LINE__, ret);
+		return ret;
+	}
+
+	if (val & REG00_ENHIZ_MASK) {
+		dev_info(info->dev, "%s:line%d, exit hiz mode\n", __func__, __LINE__);
+		ret = sgm41511_exit_hiz_mode(info);
+		if (ret < 0) {
+			dev_err(info->dev, "%s:line%d, failed to exit hiz(%d)\n",
+				__func__, __LINE__, ret);
+			return ret;
+		}
+	}
+
+	return ret;
+}
+
 static int sgm41511_charger_usb_get_property(struct power_supply *psy,
 					     enum power_supply_property psp,
 					     union power_supply_propval *val)
@@ -1285,6 +1312,7 @@ static int sgm41511_charger_probe(struct i2c_client *client,
 		goto out;
 
 	sgm41511_charger_stop_charge(info);
+	sgm41511_charger_check_power_path_status(info);
 
 	device_init_wakeup(info->dev, true);
 
@@ -1305,6 +1333,8 @@ static int sgm41511_charger_probe(struct i2c_client *client,
 
 	info->probe_initialized = true;
 	complete_all(&info->probe_init);
+
+	sgm41511_dump_register(info);
 
 	return 0;
 
