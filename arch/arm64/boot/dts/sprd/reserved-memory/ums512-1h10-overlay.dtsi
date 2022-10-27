@@ -1,6 +1,6 @@
 &reserved_memory {
-	oemcrypto_reserved: oemcrypto@e2700000 {
-		reg = <0x0 0xe2700000 0x0 0x01100000>;
+	oemcrypto_reserved: oemcrypto@9a100000 {
+		reg = <0x0 0x9a100000 0x0 0x01100000>;
 	};
 	widevine_reserved: widevine@e3800000 {
 		reg = <0x0 0xe3800000 0x0 0x0c800000>;
