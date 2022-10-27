@@ -78,7 +78,7 @@
 	cm-cp-taper-current = <1000000>;
 
 	cm-chargers = "sgm41511_charger";
-	cm-charge-pumps = "bq2597x-standalone";
+	cm-charge-pumps = "hl7139-standalone";
 	cm-fuel-gauge = "sc27xx-fgu";
 
 	/* in deci centigrade */
@@ -117,6 +117,7 @@
 
 	/* sprd_fchg parameter */
 	sprd,support-fchg;
+	sprd,support-pd-pps;
 	sprd,pd-fixed-max-microwatt = <18000000>;
 
 	cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
@@ -145,35 +146,35 @@
 		};
 	};
 
-	bq2597x_chg: charger@65 {
-		compatible = "ti,bq2597x-standalone";
-		reg = <0x65>;
-		irq-gpio = <&ap_gpio 193 GPIO_ACTIVE_LOW>;
+	hl7139_chg: charger@55 {
+		compatible = "hl,hl7139-standalone";
+		reg = <0x55>;
+		hl,hl7139,interrupt_gpios = <&ap_gpio 193 GPIO_ACTIVE_LOW>;
 
-		ti,bq2597x,bus-therm-disable = <1>;
-		ti,bq2597x,regulation-disable = <1>;
+		hl,hl7139,bat-ovp-threshold = <4400>;
+		hl,hl7139,bat-ovp-alarm-threshold = <4340>;
+		hl,hl7139,vbat-regulation-threshold = <4300>;
 
-		ti,bq2597x,bat-ovp-threshold = <4400>;
-		ti,bq2597x,bat-ovp-alarm-threshold = <4340>;
-		ti,bq2597x,bat-ocp-threshold = <5500>;
-		ti,bq2597x,bat-ocp-alarm-threshold = <5000>;
-		ti,bq2597x,bus-ovp-threshold = <11500>;
-		ti,bq2597x,bus-ovp-alarm-threshold = <10500>;
-		ti,bq2597x,bus-ocp-threshold = <3000>;
-		ti,bq2597x,bus-ocp-alarm-threshold = <2700>;
-		ti,bq2597x,bat-ucp-alarm-threshold = <1000>;
-		ti,bq2597x,bat-therm-threshold = <0x15>;
-		ti,bq2597x,bus-therm-threshold = <0x15>;
-		ti,bq2597x,die-therm-threshold = <0xc8>;
-		ti,bq2597x,ac-ovp-threshold = <13>;
-		ti,bq2597x,sense-resistor-mohm = <5>;
-		ti,bq2597x,adc-sample-bits = <13>;
-		ti,bq2597x,ibat-regulation-threshold = <300>;
-		ti,bq2597x,vbat-regulation-threshold = <100>;
-		ti,bq2597x,vdrop-threshold = <400>;
-		ti,bq2597x,vdrop-deglitch = <5000>;
-		ti,bq2597x,ss-timeout = <100000>;
-		ti,bq2597x,watchdog-timer = <30000>;
+		hl,hl7139,bat-ocp-threshold = <5500>;
+		hl,hl7139,bat-ocp-alarm-threshold = <5000>;
+		hl,hl7139,ibat-regulation-threshold = <5000>;
+		hl,hl7139,bat-ucp-alarm-threshold = <1000>;
+
+		hl,hl7139,bus-ovp-threshold = <11500>;
+		hl,hl7139,bus-ovp-alarm-threshold = <10500>;
+		hl,hl7139,bus-ocp-threshold = <3000>;
+		hl,hl7139,bus-ocp-alarm-threshold = <2700>;
+
+		hl,hl7139,ac-ovp-threshold = <13>;
+
+		hl,hl7139,die-tmp-reg-threshold = <100>;
+
+		hl,hl7139,track-ov-delta-threshold = <900>;
+		hl,hl7139,track-uv-delta-threshold = <250>;
+
+		hl,hl7139,watchdog-timer = <30000>;
+
+		hl,hl7139,sense-resistor-mohm = <2>;
 	};
 };
 
