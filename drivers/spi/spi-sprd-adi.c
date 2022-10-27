@@ -130,6 +130,7 @@
 /* Definition of PMIC reset status register */
 #define HWRST_STATUS_SECURITY		0x02
 #define HWRST_STATUS_SECBOOT		0x03
+#define HWRST_STATUS_SML_PANIC          0x04
 #define HWRST_STATUS_BOOTLOADER_PANIC   0x10
 #define HWRST_STATUS_RECOVERY		0x20
 #define HWRST_STATUS_NORMAL		0x40
@@ -454,7 +455,7 @@ static int sprd_adi_restart_handler(struct notifier_block *this, unsigned long m
 {
 	struct sprd_adi *sadi = container_of(this, struct sprd_adi,
 					     restart_handler);
-	u32 val, reboot_mode = 0;
+	u32 val = 0, reboot_mode = 0, sml_mode;
 
 	if (!cmd) {
 		if (strlen(panic_reason)) {
@@ -497,9 +498,12 @@ static int sprd_adi_restart_handler(struct notifier_block *this, unsigned long m
 
 	/* Record the reboot mode */
 	sprd_adi_read(sadi, sadi->data->rst_sts, &val);
-	val &= ~0xFF;
-	val |= reboot_mode;
-	sprd_adi_write(sadi, sadi->data->rst_sts, val);
+	sml_mode = val & 0xFF;
+	if (sml_mode != HWRST_STATUS_SML_PANIC && sml_mode != HWRST_STATUS_SECURITY) {
+		val &= ~0xFF;
+		val |= reboot_mode;
+		sprd_adi_write(sadi, sadi->data->rst_sts, val);
+	}
 
 	/*enable register reboot mode*/
 	sprd_adi_read(sadi, sadi->data->swrst_base, &val);
