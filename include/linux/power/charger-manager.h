@@ -453,7 +453,7 @@ struct cm_thermal_info {
 };
 
 struct cm_jeita_info {
-	bool jeita_size_changed;
+	bool jeita_changed;
 	int jeita_status;
 	int jeita_temperature;
 	int temp_up_trigger;

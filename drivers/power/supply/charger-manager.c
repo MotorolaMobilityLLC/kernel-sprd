@@ -1553,59 +1553,63 @@ static bool cm_update_current_jeita_status(struct charger_manager *cm)
 	 * Note that it need to vote for ibat before the caller of this function
 	 * if does not define jeita table
 	 */
-	if (desc->jeita_tab_size) {
-		if (unlikely(desc->jeita_disabled)) {
-			cur_jeita_status = desc->force_jeita_status;
-			dev_info(cm->dev, "current-last jeita status: Disable jeita and force jeita_status: %d-%d,  temperature: %d\n",
-			cur_jeita_status, jeita_info->jeita_status, desc->temperature);
-		} else {
-			ret = cm_get_battery_temperature(cm, &desc->temperature);
-			if (ret) {
-				dev_err(cm->dev, "failed to get battery temperature\n");
-				return false;
-			}
+	if (!desc->jeita_tab_size)
+		return true;
 
-			cur_jeita_status = cm_manager_get_jeita_status(cm, desc->temperature);
+	if (unlikely(desc->jeita_disabled)) {
+		cur_jeita_status = desc->force_jeita_status;
+	} else {
+		ret = cm_get_battery_temperature(cm, &desc->temperature);
+		if (ret) {
+			dev_err(cm->dev, "failed to get battery temperature\n");
+			return false;
 		}
 
-		if (jeita_info->jeita_size_changed) {
+		cur_jeita_status = cm_manager_get_jeita_status(cm, desc->temperature);
+	}
+
+	if (jeita_info->jeita_changed) {
+		if (desc->jeita_disabled)
+			dev_info(cm->dev, "current-last jeita status: Disable jeita and force jeita_status: %d-%d, temperature: %d\n",
+				 cur_jeita_status, desc->force_jeita_status, desc->temperature);
+		else
 			dev_info(cm->dev, "current-last jeita status: %s %d-%d, temperature: %d\n",
-			__func__, cur_jeita_status, jeita_info->jeita_status, desc->temperature);
+				 __func__, cur_jeita_status, jeita_info->jeita_status,
+				 desc->temperature);
+		jeita_info->jeita_status = cur_jeita_status;
+		jeita_info->jeita_temperature = desc->temperature;
+		is_normal = cm_manager_adjust_current(cm, jeita_info->jeita_status);
+		jeita_info->jeita_changed = false;
+		return is_normal;
+	}
+
+	if (cur_jeita_status > jeita_info->jeita_status) {
+		jeita_info->temp_down_trigger = 0;
+
+		if (++jeita_info->temp_up_trigger > 1) {
+			is_normal = cm_manager_adjust_current(cm, cur_jeita_status);
+			dev_info(cm->dev, "current-last jeita status: %s %d-%d, temperature: %d\n",
+				 __func__, cur_jeita_status, jeita_info->jeita_status,
+				 desc->temperature);
 			jeita_info->jeita_status = cur_jeita_status;
 			jeita_info->jeita_temperature = desc->temperature;
-			is_normal = cm_manager_adjust_current(cm, jeita_info->jeita_status);
-			jeita_info->jeita_size_changed = false;
-			return is_normal;
+			jeita_info->temp_up_trigger = 0;
 		}
+	} else if (cur_jeita_status < jeita_info->jeita_status) {
+		jeita_info->temp_up_trigger = 0;
 
-		if (cur_jeita_status > jeita_info->jeita_status) {
-			jeita_info->temp_down_trigger = 0;
-
-			if (++jeita_info->temp_up_trigger > 1) {
-				is_normal = cm_manager_adjust_current(cm, cur_jeita_status);
-				dev_info(cm->dev, "current-last jeita status: %s %d-%d, temperature: %d\n",
-					 __func__, cur_jeita_status, jeita_info->jeita_status,
-					 desc->temperature);
-				jeita_info->jeita_status = cur_jeita_status;
-				jeita_info->jeita_temperature = desc->temperature;
-				jeita_info->temp_up_trigger = 0;
-			}
-		} else if (cur_jeita_status < jeita_info->jeita_status) {
-			jeita_info->temp_up_trigger = 0;
-
-			if (++jeita_info->temp_down_trigger > 1) {
-				is_normal = cm_manager_adjust_current(cm, cur_jeita_status);
-				dev_info(cm->dev, "current-last jeita status: %s %d-%d, temperature: %d\n",
-					 __func__, cur_jeita_status, jeita_info->jeita_status,
-					 desc->temperature);
-				jeita_info->jeita_status = cur_jeita_status;
-				jeita_info->jeita_temperature = desc->temperature;
-				jeita_info->temp_down_trigger = 0;
-			}
-		} else {
-			jeita_info->temp_up_trigger = 0;
+		if (++jeita_info->temp_down_trigger > 1) {
+			is_normal = cm_manager_adjust_current(cm, cur_jeita_status);
+			dev_info(cm->dev, "current-last jeita status: %s %d-%d, temperature: %d\n",
+				 __func__, cur_jeita_status, jeita_info->jeita_status,
+				 desc->temperature);
+			jeita_info->jeita_status = cur_jeita_status;
+			jeita_info->jeita_temperature = desc->temperature;
 			jeita_info->temp_down_trigger = 0;
 		}
+	} else {
+		jeita_info->temp_up_trigger = 0;
+		jeita_info->temp_down_trigger = 0;
 	}
 
 	return is_normal;
@@ -1778,7 +1782,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 	}
 
 	if (desc->jeita_tab_size && desc->jeita_tab_size != last_jeita_tab_size)
-		desc->jeita_info.jeita_size_changed = true;
+		desc->jeita_info.jeita_changed = true;
 
 	mutex_unlock(&cm->desc->charge_info_mtx);
 
@@ -1786,12 +1790,12 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		thm_info->thm_adjust_cur = (int)(thm_info->thm_pwr /
 			thm_info->adapter_default_charge_vol) * 1000;
 
-	dev_info(cm->dev, "%s, chgr type= %d, fchg_en= %d, cp_running= %d, cp_recovery= %d, max chg_lmt_cur= %duA, max inpt_lmt_cur= %duA, max chg_volt= %duV, chg_volt_drop= %d, adapter_chg_volt= %dmV, thm_cur= %d, chg_info_cmd= 0x%x, jeita_size= %d, jeita_size_changed= %d, force_jeita_status= %d\n",
+	dev_info(cm->dev, "%s, chgr type= %d, fchg_en= %d, cp_running= %d, cp_recovery= %d, max chg_lmt_cur= %duA, max inpt_lmt_cur= %duA, max chg_volt= %duV, chg_volt_drop= %d, adapter_chg_volt= %dmV, thm_cur= %d, chg_info_cmd= 0x%x, jeita_size= %d, jeita_changed= %d, force_jeita_status= %d\n",
 		 __func__, desc->charger_type, desc->enable_fast_charge, desc->cp.cp_running,
 		 desc->cp.recovery, desc->charge_limit_cur, desc->input_limit_cur,
 		 desc->charge_voltage_max, desc->charge_voltage_drop,
 		 thm_info->adapter_default_charge_vol * 1000, thm_info->thm_adjust_cur, cmd,
-		 desc->jeita_tab_size, desc->jeita_info.jeita_size_changed,
+		 desc->jeita_tab_size, desc->jeita_info.jeita_changed,
 		 desc->force_jeita_status);
 
 	if (!cm->cm_charge_vote || !cm->cm_charge_vote->vote) {
@@ -1826,6 +1830,7 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 	}
 
 	if (cmd & CM_CHARGE_INFO_JEITA_LIMIT) {
+		desc->jeita_info.jeita_changed = true;
 		cm_update_current_jeita_status(cm);
 		if (cm->charging_status & (CM_CHARGE_TEMP_OVERHEAT | CM_CHARGE_TEMP_COLD))
 			mod_delayed_work(cm_wq, &cm_monitor_work, 0);
@@ -4187,6 +4192,15 @@ static void cm_jeita_temp_goes_up(struct charger_desc *desc, int status,
 		*jeita_status = status;
 }
 
+static void jeita_info_init(struct cm_jeita_info *jeita_info)
+{
+	jeita_info->temp_up_trigger = 0;
+	jeita_info->temp_down_trigger = 0;
+	jeita_info->jeita_changed = true;
+	jeita_info->jeita_status = 0;
+	jeita_info->jeita_temperature = -200;
+}
+
 static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 {
 	struct charger_desc *desc = cm->desc;
@@ -4223,11 +4237,11 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 
 	recovery_temp_status = i + 1;
 
-	if (jeita_info->jeita_size_changed) {
+	if (jeita_info->jeita_changed) {
 		jeita_status = 0;
-		jeita_info->jeita_temperature = -200;
-		dev_info(cm->dev, "%s: jeita_size_changed= %d\n", __func__,
-			 jeita_info->jeita_size_changed);
+		jeita_info_init(&desc->jeita_info);
+		dev_info(cm->dev, "%s: jeita_changed= %d\n", __func__,
+			 jeita_info->jeita_changed);
 	}
 
 	/* temperature goes down */
@@ -4245,50 +4259,26 @@ out:
 	return jeita_status;
 }
 
-static void jeita_info_init(struct cm_jeita_info *jeita_info)
-{
-	jeita_info->temp_up_trigger = 0;
-	jeita_info->temp_down_trigger = 0;
-	jeita_info->jeita_size_changed = false;
-	jeita_info->jeita_status = 0;
-	jeita_info->jeita_temperature = -200;
-}
-
-static int cm_manager_jeita_current_monitor(struct charger_manager *cm)
-{
-	struct charger_desc *desc = cm->desc;
-	static bool is_normal = true;
-
-	if (!is_ext_pwr_online(cm)) {
-		jeita_info_init(&desc->jeita_info);
-		return 0;
-	}
-
-	is_normal = cm_update_current_jeita_status(cm);
-
-	if (!is_normal)
-		return -EAGAIN;
-
-	return 0;
-}
-
 /**
  * cm_get_target_status - Check current status and get next target status.
  * @cm: the Charger Manager representing the battery.
  */
 static int cm_get_target_status(struct charger_manager *cm)
 {
-	int ret;
+	bool is_normal = true;
+
+	if (!is_ext_pwr_online(cm))
+		return POWER_SUPPLY_STATUS_DISCHARGING;
 
 	/*
 	 * Adjust the charging current according to current battery
 	 * temperature jeita table.
 	 */
-	ret = cm_manager_jeita_current_monitor(cm);
-	if (ret)
+	is_normal = cm_update_current_jeita_status(cm);
+	if (!is_normal)
 		dev_warn(cm->dev, "Errors orrurs when adjusting charging current\n");
 
-	if (!is_ext_pwr_online(cm) || (!is_batt_present(cm) && !allow_charger_enable))
+	if (!is_batt_present(cm) && !allow_charger_enable)
 		return POWER_SUPPLY_STATUS_DISCHARGING;
 
 	if (cm_check_thermal_status(cm))
@@ -5621,6 +5611,8 @@ static ssize_t jeita_control_store(struct device *dev,
 	if (ret)
 		return ret;
 
+	if (desc->jeita_disabled == enabled)
+		desc->jeita_info.jeita_changed = true;
 	desc->jeita_disabled = !enabled;
 
 	return count;
@@ -6260,11 +6252,6 @@ static int cm_init_jeita_table(struct sprd_battery_info *info,
 		}
 
 		desc->max_current_jeita_index[i] = info->max_current_jeita_index[i];
-		if (!desc->max_current_jeita_index[i]) {
-			dev_warn(dev, "%s max_current_jeita_index is zero\n",
-				 sprd_battery_jeita_type_names[i]);
-			continue;
-		}
 
 		desc->jeita_tab_array[i] = devm_kmemdup(dev, info->jeita_table[i],
 							desc->jeita_size[i] *
@@ -6279,7 +6266,7 @@ static int cm_init_jeita_table(struct sprd_battery_info *info,
 
 	desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_UNKNOWN];
 	desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_UNKNOWN];
-	desc->jeita_info.jeita_size_changed = true;
+	jeita_info_init(&desc->jeita_info);
 
 	return 0;
 }
