@@ -90,7 +90,7 @@ struct sprdwcn_gnss_ops *gnss_ops;
 static struct completion find_tsx_completion;
 static const struct firmware *tsx_firmware;
 static bool is_tsx_found = true;
-
+static bool is_boot_ufs;
 unsigned char  flag_reset;
 char functionmask[8];
 static unsigned int reg_val;
@@ -1072,12 +1072,47 @@ static int wcn_pmic_do_bound(struct wcn_pmic_config *pmic, bool bound)
 
 static inline int wcn_avdd12_parent_bound_chip(bool enable)
 {
-	return wcn_pmic_do_bound(&marlin_dev->avdd12_parent_bound_chip, enable);
+	if (marlin_dev->need_to_check_ufs) {
+		pr_info("is_boot_ufs=%d enable=%d", is_boot_ufs, enable);
+		if (!is_boot_ufs) {
+			pr_info("is emmc\n");
+			return wcn_pmic_do_bound(&marlin_dev->avdd12_parent_bound_chip, enable);
+		}
+		return 0;
+	} else {
+		return wcn_pmic_do_bound(&marlin_dev->avdd12_parent_bound_chip, enable);
+	}
 }
 
 static inline int wcn_avdd12_bound_xtl(bool enable)
 {
 	return wcn_pmic_do_bound(&marlin_dev->avdd12_bound_wbreq, enable);
+}
+
+static int get_boot_device(void)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line;
+	int ret;
+
+	is_boot_ufs = 0;
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+	if (ret) {
+		pr_err("Can not get bootargs \r\n");
+		return ret;
+	}
+
+	if (marlin_dev->need_to_check_ufs) {
+		if (strstr(cmd_line, "ufs")) {
+			is_boot_ufs = 1;
+			pr_info("boot from ufs\n");
+			return 0;
+		}
+		pr_info("boot from emmc\n");
+		return 0;
+	}
+	return 0;
 }
 
 /* wifipa bound XTLEN3, gnss not need wifipa bound */
@@ -1229,6 +1264,17 @@ static int marlin_parse_dt(struct platform_device *pdev)
 		pr_info("cp base = 0x%llx, size = 0x%x\n",
 			 (u64)marlin_dev->base_addr_gnss,
 			 marlin_dev->maxsz_gnss);
+	}
+
+	/* check emmc or ufs */
+	ret = of_property_read_string(np, "sprd,check-emmc-ufs",
+		(const char **)&marlin_dev->emmc_ufs);
+	if (!ret) {
+		marlin_dev->need_to_check_ufs = true;
+		pr_info("need to check emmc or ufs\n");
+	} else {
+		marlin_dev->need_to_check_ufs = false;
+		pr_info("Don't need to check emmc or ufs\n");
 	}
 
 	pr_info("BTWF_FIRMWARE_PATH len=%ld\n",
@@ -2918,6 +2964,7 @@ int marlin_probe(struct platform_device *pdev)
 
 	/* register ops */
 	wcn_bus_init();
+	get_boot_device();
 	bus_ops = get_wcn_bus_ops();
 	bus_ops->start_wcn = start_marlin;
 	bus_ops->stop_wcn = stop_marlin;
