@@ -450,16 +450,23 @@ static inline unsigned int sprd_rdo_max_power(u32 rdo)
 #define SPRD_PD_T_NO_RESPONSE			5000	/* 4.5 - 5.5 seconds */
 #define SPRD_PD_T_DB_DETECT			10000	/* 10 - 15 seconds */
 #define SPRD_PD_T_SEND_SOURCE_CAP		200	/* 100 - 200 ms */
+#define SPRD_PD_T_SEND_SOURCE_CAP_RESET		700
 #define SPRD_PD_T_SENDER_RESPONSE		60	/* 24 - 30 ms, relaxed */
+#define SPRD_PD_T_SENDER_RESPONSE_DR		200	/* 24 - 30 ms, relaxed */
+#define SPRD_PD_T_SENDER_RESPONSE_PR		150	/* 24 - 30 ms, relaxed */
+#define SPRD_PD_T_SENDER_RESPONSE_RESET		700
 #define SPRD_PD_T_SOURCE_ACTIVITY		45
 #define SPRD_PD_T_SINK_ACTIVITY			135
 #define SPRD_PD_T_SINK_WAIT_CAP			460	/* 310 - 620 ms */
+#define SPRD_PD_T_SINK_WAIT_CAP_PR		620	/* 310 - 620 ms */
 #define SPRD_PD_T_PS_TRANSITION			500
 #define SPRD_PD_T_SRC_TRANSITION		35
 #define SPRD_PD_T_DRP_SNK			40
 #define SPRD_PD_T_DRP_SRC			30
 #define SPRD_PD_T_PS_SOURCE_OFF			920
-#define SPRD_PD_T_PS_SOURCE_ON			480
+#define SPRD_PD_T_PS_SOURCE_ON			100 /* allow cc debounce, send source caps later */
+#define SPRD_PD_T_PS_SOURCE_ON_RESET		5
+#define SPRD_PD_T_PS_SOURCE_ON_SWAP		1000 /* 390 - 480 ms, relaxed, other side set vbus may long */
 #define SPRD_PD_T_PS_HARD_RESET			30
 #define SPRD_PD_T_SRC_RECOVER			760
 #define SPRD_PD_T_SRC_RECOVER_MAX		1000
@@ -468,14 +475,16 @@ static inline unsigned int sprd_rdo_max_power(u32 rdo)
 #define SPRD_PD_T_VCONN_SOURCE_ON		100
 #define SPRD_PD_T_SINK_REQUEST			100	/* 100 ms minimum */
 #define SPRD_PD_T_ERROR_RECOVERY		100	/* minimum 25 is insufficient */
-#define SPRD_PD_T_SRCSWAPSTDBY			625     /* Maximum of 650ms */
+#define SPRD_PD_T_SRCSWAPSTDBY			200     /* Maximum of 650ms */
 #define SPRD_PD_T_NEWSRC			250     /* Maximum of 275ms */
-#define SPRD_PD_T_SWAP_SRC_START		20	/* Minimum of 20ms */
+#define SPRD_PD_T_NEWSRC_SWAP			150     /* Maximum of 275ms */
+#define SPRD_PD_T_SWAP_SRC_START		50	/* Minimum of 20ms */
 
 #define SPRD_PD_T_DRP_TRY			100	/* 75 - 150 ms */
 #define SPRD_PD_T_DRP_TRYWAIT			600	/* 400 - 800 ms */
 
-#define SPRD_PD_T_CC_DEBOUNCE			100	/* 100 - 200 ms */
+#define SPRD_PD_T_CC_DEBOUNCE			5	/* 100 - 200 ms */
+#define SPRD_PD_T_CC_DEBOUNCE_SWAP		100	/* 100 - 200 ms */
 #define SPRD_PD_T_PD_DEBOUNCE			20	/* 10 - 20 ms */
 
 #define SPRD_PD_N_CAPS_COUNT			(SPRD_PD_T_NO_RESPONSE / SPRD_PD_T_SEND_SOURCE_CAP)
