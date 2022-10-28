@@ -6,6 +6,16 @@
 #ifndef __LINUX_USB_SPRD_TCPM_H
 #define __LINUX_USB_SPRD_TCPM_H
 
+#include <linux/power_supply.h>
+#include <linux/usb.h>
+#include <linux/usb/sprd_pd.h>
+#include <linux/usb/sprd_pd_ado.h>
+#include <linux/usb/sprd_pd_bdo.h>
+#include <linux/usb/sprd_pd_ext_sdb.h>
+#include <linux/usb/sprd_pd_vdo.h>
+#include <linux/usb/role.h>
+#include <linux/usb/typec_altmode.h>
+
 #include <linux/bitops.h>
 #include <linux/usb/typec.h>
 #include "sprd_pd.h"
@@ -25,7 +35,7 @@ enum sprd_typec_cc_polarity {
 };
 
 /* Time to wait for TCPC to complete transmit */
-#define SPRD_PD_T_TCPC_TX_TIMEOUT		100		/* in ms */
+#define SPRD_PD_T_TCPC_TX_TIMEOUT		200		/* in ms */
 #define SPRD_PD_ROLE_SWAP_TIMEOUT		(MSEC_PER_SEC * 10)
 #define SPRD_PD_CTRL_TIMEOUT			(MSEC_PER_SEC * 3)
 #define SPRD_PD_PPS_CTRL_TIMEOUT		(MSEC_PER_SEC * 10)
@@ -133,6 +143,10 @@ struct tcpc_dev {
 	int (*set_cc)(struct tcpc_dev *dev, enum sprd_typec_cc_status cc);
 	int (*get_cc)(struct tcpc_dev *dev, enum sprd_typec_cc_status *cc1,
 		      enum sprd_typec_cc_status *cc2);
+	int (*set_swap)(struct tcpc_dev *dev, bool en, bool role);
+	int (*set_typec_role)(struct tcpc_dev *tcpc,
+			      enum typec_port_type role,
+			      enum typec_data_role data);
 	int (*set_polarity)(struct tcpc_dev *dev,
 			    enum sprd_typec_cc_polarity polarity);
 	int (*set_vconn)(struct tcpc_dev *dev, bool on);
@@ -150,6 +164,31 @@ struct tcpc_dev {
 	int (*dp_altmode_notify)(struct tcpc_dev *dev, u32 vdo);
 };
 
+struct sprd_typec_device_ops {
+	const char *name;
+
+	int (*set_typec_int_clear)(void);
+	int (*set_typec_int_disable)(void);
+	int (*set_typec_int_enable)(void);
+	int (*typec_set_pd_dr_swap_flag)(u8 flag);
+	int (*typec_set_pr_swap_flag)(u8 flag);
+	int (*typec_set_pd_swap_event)(u8 pd_swap_flag);
+};
+
+struct sprd_charger_ops {
+	const char *name;
+
+	void (*update_ac_usb_online)(bool is_pd_hub);
+};
+
+enum sprd_tcpm_typec_pd_swap {
+	TCPM_TYPEC_NO_SWAP,
+	TCPM_TYPEC_SOURCE_TO_SINK,
+	TCPM_TYPEC_SINK_TO_SOURCE,
+	TCPM_TYPEC_HOST_TO_DEVICE,
+	TCPM_TYPEC_DEVICE_TO_HOST,
+};
+
 struct adapter_power_cap {
 	uint8_t type[SPRD_PDO_MAX_OBJECTS];
 	int max_mv[SPRD_PDO_MAX_OBJECTS];
@@ -159,7 +198,472 @@ struct adapter_power_cap {
 	uint8_t nr_source_caps;
 };
 
+enum sprd_tcpm_state {
+	INVALID_STATE = 0,
+	TOGGLING,
+	SRC_UNATTACHED,
+	SRC_ATTACH_WAIT,
+	SRC_ATTACHED,
+	SRC_STARTUP = 5,
+	SRC_SEND_CAPABILITIES,
+	SRC_SEND_CAPABILITIES_TIMEOUT,
+	SRC_NEGOTIATE_CAPABILITIES,
+	SRC_TRANSITION_SUPPLY,
+	SRC_READY = 10,
+	SRC_WAIT_NEW_CAPABILITIES,
+
+	SNK_UNATTACHED,
+	SNK_ATTACH_WAIT,
+	SNK_DEBOUNCED,
+	SNK_ATTACHED = 15,
+	SNK_STARTUP,
+	SNK_DISCOVERY,
+	SNK_DISCOVERY_DEBOUNCE,
+	SNK_DISCOVERY_DEBOUNCE_DONE,
+	SNK_WAIT_CAPABILITIES = 20,
+	SNK_NEGOTIATE_CAPABILITIES,
+	SNK_NEGOTIATE_PPS_CAPABILITIES,
+	SNK_TRANSITION_SINK,
+	SNK_TRANSITION_SINK_VBUS,
+	SNK_READY = 25,
+
+	ACC_UNATTACHED,
+	DEBUG_ACC_ATTACHED,
+	AUDIO_ACC_ATTACHED,
+	AUDIO_ACC_DEBOUNCE,
+
+	HARD_RESET_SEND = 30,
+	HARD_RESET_START,
+	SRC_HARD_RESET_VBUS_OFF,
+	SRC_HARD_RESET_VBUS_ON,
+	SNK_HARD_RESET_SINK_OFF,
+	SNK_HARD_RESET_WAIT_VBUS = 35,
+	SNK_HARD_RESET_SINK_ON,
+
+	SOFT_RESET,
+	SOFT_RESET_SEND,
+
+	DR_SWAP_ACCEPT,
+	DR_SWAP_SEND = 40,
+	DR_SWAP_SEND_TIMEOUT,
+	DR_SWAP_CANCEL,
+	DR_SWAP_CHANGE_DR,
+
+	PR_SWAP_ACCEPT,
+	PR_SWAP_SEND = 45,
+	PR_SWAP_SEND_TIMEOUT,
+	PR_SWAP_CANCEL,
+	PR_SWAP_START,
+	PR_SWAP_SRC_SNK_TRANSITION_OFF,
+	PR_SWAP_SRC_SNK_SOURCE_OFF = 50,
+	PR_SWAP_SRC_SNK_SOURCE_OFF_CC_DEBOUNCED,
+	PR_SWAP_SRC_SNK_SINK_ON,
+	PR_SWAP_SNK_SRC_SINK_OFF,
+	PR_SWAP_SNK_SRC_SOURCE_ON,
+	PR_SWAP_SNK_SRC_SOURCE_ON_VBUS_RAMPED_UP = 55,
+
+	VCONN_SWAP_ACCEPT,
+	VCONN_SWAP_SEND,
+	VCONN_SWAP_SEND_TIMEOUT,
+	VCONN_SWAP_CANCEL,
+	VCONN_SWAP_START = 60,
+	VCONN_SWAP_WAIT_FOR_VCONN,
+	VCONN_SWAP_TURN_ON_VCONN,
+	VCONN_SWAP_TURN_OFF_VCONN,
+
+	SNK_TRY,
+	SNK_TRY_WAIT = 65,
+	SNK_TRY_WAIT_DEBOUNCE,
+	SNK_TRY_WAIT_DEBOUNCE_CHECK_VBUS,
+	SRC_TRYWAIT,
+	SRC_TRYWAIT_DEBOUNCE,
+	SRC_TRYWAIT_UNATTACHED = 70,
+
+	SRC_TRY,
+	SRC_TRY_WAIT,
+	SRC_TRY_DEBOUNCE,
+	SNK_TRYWAIT,
+	SNK_TRYWAIT_DEBOUNCE = 75,
+	SNK_TRYWAIT_VBUS,
+	BIST_RX,
+
+	GET_STATUS_SEND,
+	GET_STATUS_SEND_TIMEOUT,
+	GET_PPS_STATUS_SEND = 80,
+	GET_PPS_STATUS_SEND_TIMEOUT,
+
+	ERROR_RECOVERY,
+	PORT_RESET,
+	PORT_RESET_WAIT_OFF,
+};
+
+static const char * const sprd_tcpm_states[] = {
+	"INVALID_STATE",				/* = 0 */
+	"TOGGLING",
+	"SRC_UNATTACHED",
+	"SRC_ATTACH_WAIT",
+	"SRC_ATTACHED",
+	"SRC_STARTUP",					/* = 5 */
+	"SRC_SEND_CAPABILITIES",
+	"SRC_SEND_CAPABILITIES_TIMEOUT",
+	"SRC_NEGOTIATE_CAPABILITIES",
+	"SRC_TRANSITION_SUPPLY",
+	"SRC_READY",					/* = 10 */
+	"SRC_WAIT_NEW_CAPABILITIES",
+
+	"SNK_UNATTACHED",
+	"SNK_ATTACH_WAIT",
+	"SNK_DEBOUNCED",
+	"SNK_ATTACHED",					/* = 15 */
+	"SNK_STARTUP",
+	"SNK_DISCOVERY",
+	"SNK_DISCOVERY_DEBOUNCE",
+	"SNK_DISCOVERY_DEBOUNCE_DONE",
+	"SNK_WAIT_CAPABILITIES",			/* = 20 */
+	"SNK_NEGOTIATE_CAPABILITIES",
+	"SNK_NEGOTIATE_PPS_CAPABILITIES",
+	"SNK_TRANSITION_SINK",
+	"SNK_TRANSITION_SINK_VBUS",
+	"SNK_READY",					/* = 25 */
+
+	"ACC_UNATTACHED",
+	"DEBUG_ACC_ATTACHED",
+	"AUDIO_ACC_ATTACHED",
+	"AUDIO_ACC_DEBOUNCE",
+
+	"HARD_RESET_SEND",				/* = 30 */
+	"HARD_RESET_START",
+	"SRC_HARD_RESET_VBUS_OFF",
+	"SRC_HARD_RESET_VBUS_ON",
+	"SNK_HARD_RESET_SINK_OFF",
+	"SNK_HARD_RESET_WAIT_VBUS",			/* = 35 */
+	"SNK_HARD_RESET_SINK_ON",
+
+	"SOFT_RESET",
+	"SOFT_RESET_SEND",
+
+	"DR_SWAP_ACCEPT",
+	"DR_SWAP_SEND",					/* = 40 */
+	"DR_SWAP_SEND_TIMEOUT",
+	"DR_SWAP_CANCEL",
+	"DR_SWAP_CHANGE_DR",
+
+	"PR_SWAP_ACCEPT",
+	"PR_SWAP_SEND",					/* = 45 */
+	"PR_SWAP_SEND_TIMEOUT",
+	"PR_SWAP_CANCEL",
+	"PR_SWAP_START",
+	"PR_SWAP_SRC_SNK_TRANSITION_OFF",
+	"PR_SWAP_SRC_SNK_SOURCE_OFF",			/* = 50 */
+	"PR_SWAP_SRC_SNK_SOURCE_OFF_CC_DEBOUNCED",
+	"PR_SWAP_SRC_SNK_SINK_ON",
+	"PR_SWAP_SNK_SRC_SINK_OFF",
+	"PR_SWAP_SNK_SRC_SOURCE_ON",
+	"PR_SWAP_SNK_SRC_SOURCE_ON_VBUS_RAMPED_UP",	/* = 55 */
+
+	"VCONN_SWAP_ACCEPT",
+	"VCONN_SWAP_SEND",
+	"VCONN_SWAP_SEND_TIMEOUT",
+	"VCONN_SWAP_CANCEL",
+	"VCONN_SWAP_START",				/* = 60 */
+	"VCONN_SWAP_WAIT_FOR_VCONN",
+	"VCONN_SWAP_TURN_ON_VCONN",
+	"VCONN_SWAP_TURN_OFF_VCONN",
+
+	"SNK_TRY",
+	"SNK_TRY_WAIT",					/* = 65 */
+	"SNK_TRY_WAIT_DEBOUNCE",
+	"SNK_TRY_WAIT_DEBOUNCE_CHECK_VBUS",
+	"SRC_TRYWAIT",
+	"SRC_TRYWAIT_DEBOUNCE",
+	"SRC_TRYWAIT_UNATTACHED",			/* = 70 */
+
+	"SRC_TRY",
+	"SRC_TRY_WAIT",
+	"SRC_TRY_DEBOUNCE",
+	"SNK_TRYWAIT",
+	"SNK_TRYWAIT_DEBOUNCE",				/* = 75 */
+	"SNK_TRYWAIT_VBUS",
+	"BIST_RX",
+
+	"GET_STATUS_SEND",
+	"GET_STATUS_SEND_TIMEOUT",
+	"GET_PPS_STATUS_SEND",				/* = 80 */
+	"GET_PPS_STATUS_SEND_TIMEOUT",
+
+	"ERROR_RECOVERY",
+	"PORT_RESET",
+	"PORT_RESET_WAIT_OFF",
+};
+
+enum sprd_vdm_states {
+	VDM_STATE_ERR_BUSY = -3,
+	VDM_STATE_ERR_SEND = -2,
+	VDM_STATE_ERR_TMOUT = -1,
+	VDM_STATE_DONE = 0,
+	/* Anything >0 represents an active state */
+	VDM_STATE_READY = 1,
+	VDM_STATE_BUSY = 2,
+	VDM_STATE_WAIT_RSP_BUSY = 3,
+};
+
+enum sprd_pd_msg_request {
+	PD_MSG_NONE = 0,
+	PD_MSG_CTRL_REJECT,
+	PD_MSG_CTRL_WAIT,
+	PD_MSG_CTRL_NOT_SUPP,
+	PD_MSG_DATA_SINK_CAP,
+	PD_MSG_DATA_SOURCE_CAP,
+};
+
+/* Events from low level driver */
+
+#define SPRD_TCPM_CC_EVENT		BIT(0)
+#define SPRD_TCPM_VBUS_EVENT		BIT(1)
+#define SPRD_TCPM_RESET_EVENT		BIT(2)
+
+#define SPRD_LOG_BUFFER_ENTRIES		2048
+#define SPRD_LOG_BUFFER_ENTRY_SIZE	128
+
+/* Alternate mode support */
+
+#define SPRD_SVID_DISCOVERY_MAX		16
+#define SPRD_ALTMODE_DISCOVERY_MAX	(SPRD_SVID_DISCOVERY_MAX * MODE_DISCOVERY_MAX)
+
+struct sprd_pd_mode_data {
+	int svid_index;		/* current SVID index		*/
+	int nsvids;
+	u16 svids[SPRD_SVID_DISCOVERY_MAX];
+	int altmodes;		/* number of alternate modes	*/
+	struct typec_altmode_desc altmode_desc[SPRD_ALTMODE_DISCOVERY_MAX];
+};
+
+/*
+ * @min_volt: Actual min voltage at the local port
+ * @req_min_volt: Requested min voltage to the port partner
+ * @max_volt: Actual max voltage at the local port
+ * @req_max_volt: Requested max voltage to the port partner
+ * @max_curr: Actual max current at the local port
+ * @req_max_curr: Requested max current of the port partner
+ * @req_out_volt: Requested output voltage to the port partner
+ * @req_op_curr: Requested operating current to the port partner
+ * @supported: Parter has atleast one APDO hence supports PPS
+ * @active: PPS mode is active
+ */
+struct sprd_pd_pps_data {
+	u32 min_volt;
+	u32 req_min_volt;
+	u32 max_volt;
+	u32 req_max_volt;
+	u32 max_curr;
+	u32 req_max_curr;
+	u32 req_out_volt;
+	u32 req_op_curr;
+	bool supported;
+	bool active;
+};
+
+struct sprd_tcpm_sysfs {
+	char *name;
+	struct attribute_group attr_g;
+	struct device_attribute attr_log_level_ctl;
+	struct device_attribute attr_log_ctl;
+	struct attribute *attrs[3];
+
+	struct sprd_tcpm_port *port;
+};
+
+struct sprd_tcpm_port {
+	struct device *dev;
+
+	struct mutex lock;		/* tcpm state machine lock */
+	struct workqueue_struct *wq;
+
+	struct typec_capability typec_caps;
+	struct typec_port *typec_port;
+
+	struct tcpc_dev	*tcpc;
+	struct usb_role_switch *role_sw;
+
+	enum typec_role vconn_role;
+	enum typec_role pwr_role;
+	enum typec_data_role data_role;
+	enum typec_pwr_opmode pwr_opmode;
+
+	struct usb_pd_identity partner_ident;
+	struct typec_partner_desc partner_desc;
+	struct typec_partner *partner;
+
+	enum sprd_typec_cc_status cc_req;
+
+	enum sprd_typec_cc_status cc1;
+	enum sprd_typec_cc_status cc2;
+	enum sprd_typec_cc_polarity polarity;
+
+	bool attached;
+	bool connected;
+	enum typec_port_type port_type;
+	bool vbus_present;
+	bool vbus_never_low;
+	bool vbus_source;
+	bool vbus_charge;
+
+	bool send_discover;
+	bool op_vsafe5v;
+
+	int try_role;
+	int try_snk_count;
+	int try_src_count;
+
+	enum sprd_pd_msg_request queued_message;
+
+	enum sprd_tcpm_state enter_state;
+	enum sprd_tcpm_state prev_state;
+	enum sprd_tcpm_state state;
+	enum sprd_tcpm_state delayed_state;
+	unsigned long delayed_runtime;
+	unsigned long delay_ms;
+
+	spinlock_t pd_event_lock;
+	u32 pd_events;
+
+	struct work_struct event_work;
+	struct delayed_work state_machine;
+	struct delayed_work vdm_state_machine;
+	struct delayed_work role_swap_work;
+	bool state_machine_running;
+
+	struct completion tx_complete;
+	enum sprd_tcpm_transmit_status tx_status;
+
+	struct mutex swap_lock;		/* swap command lock */
+	bool swap_pending;
+	bool non_pd_role_swap;
+	struct completion swap_complete;
+	int swap_status;
+
+	unsigned int negotiated_rev;
+	unsigned int message_id;
+	unsigned int caps_count;
+	unsigned int hard_reset_count;
+	unsigned int power_role_send_psrdy_count;
+	bool pd_capable;
+	bool explicit_contract;
+	unsigned int rx_msgid;
+
+	/* Partner capabilities/requests */
+	u32 sink_request;
+	u32 source_caps[SPRD_PDO_MAX_OBJECTS];
+	unsigned int nr_source_caps;
+	u32 sink_caps[SPRD_PDO_MAX_OBJECTS];
+	unsigned int nr_sink_caps;
+
+	/* Local capabilities */
+	u32 src_pdo[SPRD_PDO_MAX_OBJECTS];
+	unsigned int nr_src_pdo;
+	u32 snk_pdo[SPRD_PDO_MAX_OBJECTS];
+	unsigned int nr_snk_pdo;
+	u32 snk_default_pdo[SPRD_PDO_MAX_OBJECTS];
+	unsigned int nr_snk_default_pdo;
+	u32 snk_vdo[SPRD_VDO_MAX_OBJECTS];
+	unsigned int nr_snk_vdo;
+
+	unsigned int operating_snk_mw;
+	unsigned int operating_snk_default_mw;
+	bool update_sink_caps;
+
+	/* Requested current / voltage to the port partner */
+	u32 req_current_limit;
+	u32 req_supply_voltage;
+	/* Actual current / voltage limit of the local port */
+	u32 current_limit;
+	u32 supply_voltage;
+
+	/* Requested fixed PD voltage */
+	bool fixed_pd_pending;
+	u32 fixed_pd_voltage;
+	struct completion fixed_pd_complete;
+
+	/* Used to export TA voltage and current */
+	struct power_supply *psy;
+	struct power_supply_desc psy_desc;
+	enum power_supply_usb_type usb_type;
+	enum power_supply_usb_type last_usb_type;
+
+	u32 bist_request;
+
+	/* PD state for Vendor Defined Messages */
+	enum sprd_vdm_states vdm_state;
+	u32 vdm_retries;
+	/* next Vendor Defined Message to send */
+	u32 vdo_data[SPRD_VDO_MAX_SIZE];
+	u8 vdo_count;
+	/* VDO to retry if UFP responder replied busy */
+	u32 vdo_retry;
+
+	/* PPS */
+	struct sprd_pd_pps_data pps_data;
+	struct completion pps_complete;
+	bool pps_pending;
+	int pps_status;
+
+	/* Alternate mode data */
+	struct sprd_pd_mode_data mode_data;
+	struct typec_altmode *partner_altmode[SPRD_ALTMODE_DISCOVERY_MAX];
+	struct typec_altmode *port_altmode[SPRD_ALTMODE_DISCOVERY_MAX];
+
+	/* Deadline in jiffies to exit src_try_wait state */
+	unsigned long max_wait;
+
+	/* port belongs to a self powered device */
+	bool self_powered;
+
+	/* power or data role swap */
+	bool role_swap_flag;
+	bool disable_typec_int;
+	bool swap_notify_typec;
+	bool power_role_swap;
+	bool data_role_swap;
+	bool drs_not_vdm;
+	bool power_role_swap_hard_reset;
+	bool can_power_data_role_swap;
+	unsigned int data_role_send_count;
+
+	/* tcpm debug log*/
+	struct dentry *dentry;
+	struct mutex logbuffer_lock;	/* log buffer access lock */
+	struct delayed_work log2printk;
+	struct mutex logprintk_lock;	/* log buffer printk lock */
+	struct sprd_tcpm_sysfs *sysfs;
+	int logbuffer_head;
+	int logbuffer_tail;
+	int logbuffer_last;
+	bool logbuffer_full;
+	int logbuffer_idle_count;
+	int logbuffer_show_last;
+	bool logbuffer_show_full;
+	u8 *logbuffer[SPRD_LOG_BUFFER_ENTRIES];
+	bool enable_tcpm_log;
+	bool enbale_log_level_ctl;
+  	bool tcpm_log_disable;
+};
+
 struct sprd_tcpm_port;
+#if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
+int sprd_tcpm_typec_device_ops_register(struct sprd_typec_device_ops *ops);
+int sprd_tcpm_charger_ops_register(struct sprd_charger_ops *ops);
+#else
+static inline
+int sprd_tcpm_typec_device_ops_register(struct sprd_typec_device_ops *ops)
+{
+	return 0;
+}
+static inline
+int sprd_tcpm_charger_ops_register(struct sprd_charger_ops *ops)
+{
+	return 0;
+}
+#endif
 
 struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_dev *tcpc);
 void sprd_tcpm_unregister_port(struct sprd_tcpm_port *port);
