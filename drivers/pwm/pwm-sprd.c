@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (C) 2019 Spreadtrum Communications Inc.
+ * Copyright (C) 2022 Spreadtrum Communications Inc.
  */
 
 #include <linux/clk.h>
@@ -17,10 +17,16 @@
 #define SPRD_PWM_DUTY		0x8
 #define SPRD_PWM_ENABLE		0x18
 
-#define SPRD_PWM_MOD_MAX	GENMASK(9, 0)
+#define SPRD_PWM_MOD_MAX	GENMASK(15, 0)
 #define SPRD_PWM_DUTY_MSK	GENMASK(15, 0)
 #define SPRD_PWM_PRESCALE_MSK	GENMASK(7, 0)
 #define SPRD_PWM_ENABLE_BIT	BIT(0)
+
+#define SPRD_PWM_MOD_8BIT	GENMASK(7, 0)
+#define SPRD_PWM_MOD_9BIT	GENMASK(8, 0)
+#define SPRD_PWM_MOD_10BIT	GENMASK(9, 0)
+#define SPRD_PWM_MOD_11BIT	GENMASK(10, 0)
+#define SPRD_PWM_MOD_12BIT	GENMASK(11, 0)
 
 #define SPRD_PWM_CHN_NUM	4
 #define SPRD_PWM_CHN_CLKS_NUM	2
@@ -42,6 +48,7 @@ struct sprd_pwm_chip {
 	const struct sprd_pwd_data *pdata;
 	int num_pwms;
 	struct sprd_pwm_chn chn[SPRD_PWM_CHN_NUM];
+	char const *counter_bit[SPRD_PWM_CHN_NUM];
 };
 
 static const struct sprd_pwd_data sharkl5pro_data = {
@@ -115,7 +122,8 @@ static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 	 */
 	val = sprd_pwm_read(spc, pwm->hwpwm, SPRD_PWM_PRESCALE);
 	prescale = val & SPRD_PWM_PRESCALE_MSK;
-	tmp = (prescale + 1) * NSEC_PER_SEC * SPRD_PWM_MOD_MAX;
+	val = sprd_pwm_read(spc, pwm->hwpwm, SPRD_PWM_MOD);
+	tmp = (prescale + 1) * NSEC_PER_SEC * val;
 	state->period = DIV_ROUND_CLOSEST_ULL(tmp, chn->clk_rate);
 
 	val = sprd_pwm_read(spc, pwm->hwpwm, SPRD_PWM_DUTY);
@@ -132,7 +140,7 @@ static int sprd_pwm_config(struct sprd_pwm_chip *spc, struct pwm_device *pwm,
 			   int duty_ns, int period_ns)
 {
 	struct sprd_pwm_chn *chn = &spc->chn[pwm->hwpwm];
-	u32 prescale, duty;
+	u32 prescale, duty, mod;
 	u64 tmp;
 
 	/*
@@ -145,11 +153,32 @@ static int sprd_pwm_config(struct sprd_pwm_chip *spc, struct pwm_device *pwm,
 	 * gets the maximal length not bigger than the requested one with the
 	 * given settings (MOD = SPRD_PWM_MOD_MAX and input clock).
 	 */
-	duty = duty_ns * SPRD_PWM_MOD_MAX / period_ns;
+
+	if (spc->counter_bit[pwm->hwpwm] != NULL) {
+		if (!strcmp(spc->counter_bit[pwm->hwpwm], "8bit"))
+			mod = SPRD_PWM_MOD_8BIT;
+		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "9bit"))
+			mod = SPRD_PWM_MOD_9BIT;
+		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "10bit"))
+			mod = SPRD_PWM_MOD_10BIT;
+		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "11bit"))
+			mod = SPRD_PWM_MOD_11BIT;
+		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "12bit"))
+			mod = SPRD_PWM_MOD_12BIT;
+		else
+			mod = SPRD_PWM_MOD_8BIT;
+	} else
+		mod = SPRD_PWM_MOD_8BIT;
+
+	duty = duty_ns * mod / period_ns;
 
 	tmp = (u64)chn->clk_rate * period_ns;
 	do_div(tmp, NSEC_PER_SEC);
-	prescale = DIV_ROUND_CLOSEST_ULL(tmp, SPRD_PWM_MOD_MAX) - 1;
+	prescale = DIV_ROUND_CLOSEST_ULL(tmp, mod);
+	if (prescale < 1)
+		prescale = 1;
+	prescale--;
+
 	if (prescale > SPRD_PWM_PRESCALE_MSK)
 		prescale = SPRD_PWM_PRESCALE_MSK;
 
@@ -162,7 +191,7 @@ static int sprd_pwm_config(struct sprd_pwm_chip *spc, struct pwm_device *pwm,
 	 * before changing a new configuration to avoid mixed settings.
 	 */
 	sprd_pwm_write(spc, pwm->hwpwm, SPRD_PWM_PRESCALE, prescale);
-	sprd_pwm_write(spc, pwm->hwpwm, SPRD_PWM_MOD, SPRD_PWM_MOD_MAX);
+	sprd_pwm_write(spc, pwm->hwpwm, SPRD_PWM_MOD, mod);
 	sprd_pwm_write(spc, pwm->hwpwm, SPRD_PWM_DUTY, duty);
 
 	return 0;
@@ -259,6 +288,20 @@ static int sprd_pwm_clk_init(struct sprd_pwm_chip *spc)
 	return 0;
 }
 
+static int sprd_pwm_counter_set(struct platform_device *pdev)
+{
+	struct sprd_pwm_chip *spc = platform_get_drvdata(pdev);
+	int i = SPRD_PWM_CHN_NUM;
+	int ret;
+
+	ret = of_property_read_string_array(pdev->dev.of_node,
+					"counter-bits", spc->counter_bit, i);
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
 static int sprd_pwm_probe(struct platform_device *pdev)
 {
 	struct sprd_pwm_chip *spc;
@@ -286,6 +329,10 @@ static int sprd_pwm_probe(struct platform_device *pdev)
 	ret = sprd_pwm_clk_init(spc);
 	if (ret)
 		return ret;
+
+	ret = sprd_pwm_counter_set(pdev);
+	if (ret)
+		dev_err(&pdev->dev, "get pwm counter bits failed!\n");
 
 	spc->chip.dev = &pdev->dev;
 	spc->chip.ops = &sprd_pwm_ops;
