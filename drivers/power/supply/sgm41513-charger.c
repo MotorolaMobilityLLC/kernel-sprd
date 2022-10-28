@@ -199,6 +199,7 @@ struct sgm41513_charger_info {
 
 	int reg_id;
 	bool disable_power_path;
+	bool use_typec_extcon;
 };
 
 struct sgm41513_charger_reg_tab {
@@ -247,6 +248,7 @@ static enum power_supply_property sgm41513_usb_props[] = {
         POWER_SUPPLY_PROP_HEALTH,
         POWER_SUPPLY_PROP_USB_TYPE,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
+	POWER_SUPPLY_PROP_CALIBRATE,
 };
 
 static void power_path_control(struct sgm41513_charger_info *info)
@@ -1206,6 +1208,7 @@ static int sgm41513_charger_set_status(struct sgm41513_charger_info *info,
 		sgm41513_check_wireless_charge(info, false);
 		sgm41513_charger_stop_charge(info);
 		info->charging = false;
+		pr_err("%s:line info->charging = false val->intval =%d \n", __func__, val);
 	} else if (val && !info->charging) {
 		sgm41513_check_wireless_charge(info, true);
 		ret = sgm41513_charger_start_charge(info);
@@ -1213,6 +1216,7 @@ static int sgm41513_charger_set_status(struct sgm41513_charger_info *info,
 			dev_err(info->dev, "start charge failed\n");
 		else
 			info->charging = true;
+		pr_err("%s:line info->charging = true val->intval =%d \n", __func__, val);
 	}
 
 	return ret;
@@ -1325,7 +1329,7 @@ static int sgm41513_charger_usb_get_property(struct power_supply *psy,
 					    union power_supply_propval *val)
 {
 	struct sgm41513_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur, online, health ;
+	u32 cur, online, health, enabled = 0;
 	enum usb_charger_type type;
 	int ret = 0;
 
@@ -1338,10 +1342,14 @@ static int sgm41513_charger_usb_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
+            /*
 		if (info->limit || info->is_wireless_charge)
 			val->intval = sgm41513_charger_get_status(info);
 		else
 			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
+                 */
+		val->intval = sgm41513_charger_get_status(info);
+		pr_err("%s:line val->intval =%d \n", __func__, val->intval);
 		break;
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
@@ -1410,6 +1418,21 @@ static int sgm41513_charger_usb_get_property(struct power_supply *psy,
 		}
 
 		break;
+  
+          case POWER_SUPPLY_PROP_CALIBRATE:
+            if (info->role == SGM41513_ROLE_MASTER_DEFAULT) {
+              ret = regmap_read(info->pmic, info->charger_pd, &enabled);
+              if (ret) {
+                dev_err(info->dev, "get sgm41513 charge status failed\n");
+                goto out;
+              }
+              val->intval = !(enabled & info->charger_pd_mask);
+            } else if (info->role == SGM41513_ROLE_SLAVE) {
+              enabled = gpiod_get_value_cansleep(info->gpiod);
+              val->intval = !enabled;
+            }
+
+            break;
 
 #ifndef OTG_USE_REGULATOR
 	case POWER_SUPPLY_PROP_SCOPE:
@@ -1436,12 +1459,22 @@ static int sgm41513_charger_usb_set_property(struct power_supply *psy,
 {
 	struct sgm41513_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
+	u32 input_vol;
+	bool bat_present;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
 	}
 
+	if (psp == POWER_SUPPLY_PROP_STATUS || psp == POWER_SUPPLY_PROP_CALIBRATE) {
+		bat_present = sgm41513_charger_is_bat_present(info);
+		ret = sgm41513_charger_get_charge_voltage(info, &input_vol);
+		if (ret) {
+			input_vol = 0;
+			dev_err(info->dev, "failed to get charge voltage! ret = %d\n", ret);
+		}
+	}
 	mutex_lock(&info->lock);
 
 	switch (psp) {
@@ -1507,6 +1540,21 @@ static int sgm41513_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "failed to set fast charge ovp\n");
 
 		break;
+	
+	case POWER_SUPPLY_PROP_CALIBRATE:
+		if (val->intval == true) {
+			sgm41513_check_wireless_charge(info, true);
+			ret = sgm41513_charger_start_charge(info);
+			if (ret)
+				dev_err(info->dev, "start charge failed\n");
+			else
+				info->charging = true;
+		} else if (val->intval == false) {
+			sgm41513_check_wireless_charge(info, false);
+			sgm41513_charger_stop_charge(info);
+			info->charging = false;
+		}
+		break;
 
 #ifndef OTG_USE_REGULATOR
 	case POWER_SUPPLY_PROP_SCOPE:
@@ -1533,6 +1581,7 @@ static int sgm41513_charger_property_is_writeable(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+        case POWER_SUPPLY_PROP_CALIBRATE:
 	case POWER_SUPPLY_PROP_TYPE:
 	case POWER_SUPPLY_PROP_STATUS:
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
@@ -2047,11 +2096,13 @@ static int sgm41513_charger_enable_otg(struct regulator_dev *dev)
 	 * Disable charger detection function in case
 	 * affecting the OTG timing sequence.
 	 */
-	ret = regmap_update_bits(info->pmic, info->charger_detect,
-				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
-	if (ret) {
-		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
-		goto out;
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+		if (ret) {
+			dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
+			goto out;
+		}
 	}
 
 	ret = sgm41513_update_bits(info, SGM41513_REG_1,
@@ -2100,11 +2151,11 @@ static int sgm41513_charger_disable_otg(struct regulator_dev *dev)
 		goto out;
 	}
 
-	/* Enable charger detection function to identify the charger type */
-	ret = regmap_update_bits(info->pmic, info->charger_detect,
-				  BIT_DP_DM_BC_ENB, 0);
-	if (ret)
-		dev_err(info->dev, "enable BC1.2 failed\n");
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect, BIT_DP_DM_BC_ENB, 0);
+		if (ret)
+			dev_err(info->dev, "enable BC1.2 failed\n");
+	}
 
 out:
 	mutex_unlock(&info->lock);
@@ -2203,11 +2254,13 @@ static int sgm41513_charger_enable_otg(struct sgm41513_charger_info *info)
 	 * Disable charger detection function in case
 	 * affecting the OTG timing sequence.
 	 */
-	ret = regmap_update_bits(info->pmic, info->charger_detect,
-				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
-	if (ret) {
-		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
-		goto out;
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+		if (ret) {
+			dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
+			goto out;
+		}
 	}
 
 	ret = sgm41513_update_bits(info, SGM41513_REG_1,
@@ -2256,10 +2309,11 @@ static int sgm41513_charger_disable_otg(struct sgm41513_charger_info *info)
 	}
 
 	/* Enable charger detection function to identify the charger type */
-	ret = regmap_update_bits(info->pmic, info->charger_detect,
-				  BIT_DP_DM_BC_ENB, 0);
-	if (ret)
-		dev_err(info->dev, "enable BC1.2 failed\n");
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect, BIT_DP_DM_BC_ENB, 0);
+		if (ret)
+			dev_err(info->dev, "enable BC1.2 failed\n");
+	}
 
 out:
 	//mutex_unlock(&info->lock);
@@ -2378,6 +2432,8 @@ static int sgm41513_charger_probe(struct i2c_client *client,
 		dev_err(dev, "sc27xx_fgu not ready.\n");
 		return -EPROBE_DEFER;
 	}
+
+	info->use_typec_extcon = device_property_read_bool(dev, "use-typec-extcon");
 
 	ret = device_property_read_bool(dev, "role-slave");
 	if (ret)
