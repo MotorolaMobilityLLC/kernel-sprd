@@ -222,6 +222,13 @@ config SPRD_QOGIRL6_USB2_PHY
       This driver takes care of all the PHY functionality, normally paired with
       DesignWare USB20 (DRD) Controller.
 
+config SPRD_COMMONPHY
+	tristate "Spreadtrum COMMON PHY EVENT Driver"
+	depends on ARCH_SPRD || COMPILE_TEST
+	select USB_PHY
+	help
+	  Enable this to support the SPRD USB PHY that is part of data role switch.
+
 config USB_ULPI
 	bool "Generic ULPI Transceiver Driver"
 	depends on ARM || ARM64

@@ -34,3 +34,4 @@ obj-$(CONFIG_SPRD_QOGIRL6_USB2_PHY)	+= phy-sprd-qogirl6.o
 obj-$(CONFIG_SPRD_UMP96xx_BC1P2)	+= ump96xx-usb-charger.o
 obj-$(CONFIG_SPRD_QOGIRN6PRO_USB2_PHY)  += phy-sprd-qogirn6pro.o
 obj-$(CONFIG_SPRD_QOGIRN6PRO_USB31_PHY)	+= phy-sprd-usb31-qogirn6pro.o
+obj-$(CONFIG_SPRD_COMMONPHY)		+= phy-sprd-commonphy.o
