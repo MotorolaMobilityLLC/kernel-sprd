@@ -138,6 +138,13 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 
 	clk_set_parent(priv->hclk, priv->hclk_source);
 
+	priv->rco_100M = devm_clk_get(&pdev->dev, "ufs_rco_100M");
+	if (IS_ERR(priv->rco_100M)) {
+		dev_warn(&pdev->dev,
+			 "can't get the clock dts config: rco_100M\n");
+			 priv->rco_100M = NULL;
+	}
+
 	priv->aon_apb_ufs_rst = devm_reset_control_get(dev, "ufsdev_soft_rst");
 	if (IS_ERR(priv->aon_apb_ufs_rst)) {
 		dev_err(dev, "%s get ufsdev_soft_rst failed, err%ld\n",
@@ -712,6 +719,9 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 			set &= ~UIC_COMMAND_COMPL;
 			ufshcd_writel(hba, set, REG_INTERRUPT_ENABLE);
 			spin_unlock_irqrestore(hba->host->host_lock, flags);
+
+			clk_set_parent(priv->hclk, priv->rco_100M);
+			ufshcd_writel(hba, 0x64, REG_HCLKDIV);
 		}
 
 		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
@@ -724,6 +734,8 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 				   priv->usb31pllv_ref2mphy_en.reg,
 				   priv->usb31pllv_ref2mphy_en.mask,
 				   priv->usb31pllv_ref2mphy_en.mask);
+			clk_set_parent(priv->hclk, priv->hclk_source);
+			ufshcd_writel(hba, 0x100, REG_HCLKDIV);
 		}
 		break;
 	case POST_CHANGE:
