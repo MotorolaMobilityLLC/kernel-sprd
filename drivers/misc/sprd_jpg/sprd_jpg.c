@@ -442,9 +442,10 @@ static long jpg_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 static int jpg_nocache_mmap(struct file *filp, struct vm_area_struct *vma)
 {
 	size_t memsize = vma->vm_end - vma->vm_start;
+	//unsigned long memsize = vma->vm_end - vma->vm_start;
 
 	if (memsize > SPRD_JPG_MAP_SIZE) {
-		pr_err("%s, need:%lx should be:%x ", __func__, memsize, SPRD_JPG_MAP_SIZE);
+		pr_err("%s, need:%x should be:%x ", __func__, memsize, SPRD_JPG_MAP_SIZE);
 		return -EINVAL;
 	}
 
