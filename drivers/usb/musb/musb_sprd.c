@@ -24,6 +24,7 @@
 #include <linux/platform_device.h>
 #include <linux/regulator/consumer.h>
 #include <linux/soc/sprd/sprd_usbpinmux.h>
+#include <linux/timer.h>
 #include <linux/usb.h>
 #include <linux/usb/phy.h>
 #include <linux/usb/usb_phy_generic.h>
@@ -31,7 +32,10 @@
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 #include <linux/usb/sprd_usbm.h>
+#include <linux/usb/sprd_typec.h>
 #include <linux/power_supply.h>
+#include <linux/usb/sprd_commonphy.h>
+#include <linux/usb/sprd_typec.h>
 
 #include "musb_core.h"
 #include "sprd_musbhsdma.h"
@@ -45,6 +49,10 @@
 /* Pls keep the same definition as PHY */
 #define CHARGER_2NDDETECT_ENABLE	BIT(30)
 #define CHARGER_2NDDETECT_SELECT	BIT(31)
+#define CHARGER_C2C_WAIT_PD_HARDRESET	BIT(29)
+#define CHARGER_C2C_WAIT_ENABLE	BIT(28)
+#define WAIT_TIME_1S	1000
+#define REBOOT_WAIT_VBUS_TIME (20*WAIT_TIME_1S)
 
 struct sprd_glue {
 	struct device		*dev;
@@ -84,6 +92,7 @@ struct sprd_glue {
 	bool		retry_charger_detect;
 	int		usb_data_enabled;
 	enum usb_dr_mode		last_mode;
+	bool		use_pdhub_c2c;
 };
 
 static int boot_charging;
@@ -102,6 +111,7 @@ int dwc3_sprd_probe_finish(void)
 }
 #endif
 static void musb_sprd_release_all_request(struct musb *musb);
+static bool sprd_musb_get_dpdm_from_usb(struct sprd_glue *glue);
 static void sprd_musb_enable(struct musb *musb)
 {
 	struct sprd_glue *glue = dev_get_drvdata(musb->controller->parent);
@@ -462,18 +472,40 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 	struct sprd_glue *glue = container_of(nb, struct sprd_glue, vbus_nb);
 	unsigned long flags;
 
+	dev_info(glue->dev, "%s event:%d!\n", __func__, event);
 	if (is_slave) {
 		dev_info(glue->dev, "%s, event(%ld) ignored in slave mode\n", __func__, event);
 		return 0;
 	}
 
+	if (glue->use_pdhub_c2c &&
+		sc27xx_get_dr_swap_executing() &&
+		sc27xx_get_current_status_detach_or_attach())
+		flush_work(&glue->work);
+
 	if (event) {
 		spin_lock_irqsave(&glue->lock, flags);
-		if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_HOST) {
-			spin_unlock_irqrestore(&glue->lock, flags);
-			dev_info(glue->dev,
-				"ignore device connection detected from VBUS GPIO.\n");
-			return 0;
+		if (glue->use_pdhub_c2c) {
+			if (glue->vbus_active == 1) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"ignore device connection detected from VBUS GPIO.\n");
+				return 0;
+			}
+			if (sc27xx_get_dr_swap_executing() &&
+				!sc27xx_get_current_status_detach_or_attach()) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"dr_swap ignore device connection detected from VBUS GPIO\n");
+				return 0;
+			}
+		} else {
+			if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_HOST) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"ignore device connection detected from VBUS GPIO.\n");
+				return 0;
+			}
 		}
 		glue->vbus_active = 1;
 		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
@@ -483,11 +515,27 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 			"device connection detected from VBUS GPIO.\n");
 	} else {
 		spin_lock_irqsave(&glue->lock, flags);
-		if (glue->vbus_active == 0 || glue->dr_mode == USB_DR_MODE_HOST) {
-			spin_unlock_irqrestore(&glue->lock, flags);
-			dev_info(glue->dev,
-				"ignore device disconnect detected from VBUS GPIO.\n");
-			return 0;
+		if (glue->use_pdhub_c2c) {
+			if (glue->vbus_active == 0) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"ignore device disconnect detected from VBUS GPIO.\n");
+				return 0;
+			}
+			if (sc27xx_get_dr_swap_executing() &&
+				!sc27xx_get_current_status_detach_or_attach()) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"dr_swap ignore device disconnect detected from VBUS GPIO\n");
+				return 0;
+			}
+		} else {
+			if (glue->vbus_active == 0 || glue->dr_mode == USB_DR_MODE_HOST) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"ignore device disconnect detected from VBUS GPIO.\n");
+				return 0;
+			}
 		}
 
 		glue->vbus_active = 0;
@@ -507,19 +555,41 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 	struct sprd_glue *glue = container_of(nb, struct sprd_glue, id_nb);
 	unsigned long flags;
 
+	dev_info(glue->dev, "%s event:%d!\n", __func__, event);
 	if (is_slave) {
 		dev_info(glue->dev, "%s, event(%ld) ignored in slave mode\n", __func__, event);
 		return 0;
 	}
+	/* typec is attach and drswap happen, ensure that the process is completed */
+	if (glue->use_pdhub_c2c &&
+		sc27xx_get_dr_swap_executing() &&
+		sc27xx_get_current_status_detach_or_attach())
+		flush_work(&glue->work);
 
 	if (event) {
 		spin_lock_irqsave(&glue->lock, flags);
-		if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
-			spin_unlock_irqrestore(&glue->lock, flags);
-			dev_info(glue->dev,
-				"ignore host connection detected from ID GPIO.\n");
-			return 0;
-		}
+		if (glue->use_pdhub_c2c) {
+			if (glue->vbus_active == 1) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"ignore host connection detected from ID GPIO.\n");
+				return 0;
+			}
+			if (sc27xx_get_dr_swap_executing() &&
+				!sc27xx_get_current_status_detach_or_attach()) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"dr_swap ignore host connection detected from ID GPIO\n");
+				return 0;
+			}
+		} else {
+			if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"ignore host connection detected from ID GPIO.\n");
+				return 0;
+			}
+ 		}
 
 		glue->vbus_active = 1;
 		glue->wq_mode = USB_DR_MODE_HOST;
@@ -529,12 +599,28 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 			"host connection detected from ID GPIO.\n");
 	} else {
 		spin_lock_irqsave(&glue->lock, flags);
-		if (glue->vbus_active == 0 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
-			spin_unlock_irqrestore(&glue->lock, flags);
-			dev_info(glue->dev,
-				"ignore host disconnect detected from ID GPIO.\n");
-			return 0;
-		}
+		if (glue->use_pdhub_c2c) {
+			if (glue->vbus_active == 0) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"ignore host disconnect detected from ID GPIO.\n");
+				return 0;
+			}
+			if (sc27xx_get_dr_swap_executing() &&
+				!sc27xx_get_current_status_detach_or_attach()) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"dr_swap ignore host disconnect detected from ID GPIO\n");
+				return 0;
+			}
+		} else {
+			if (glue->vbus_active == 0 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+					"ignore host disconnect detected from ID GPIO.\n");
+				return 0;
+			}
+ 		}
 
 		glue->vbus_active = 0;
 		glue->wq_mode = USB_DR_MODE_HOST;
@@ -629,7 +715,7 @@ musb_sprd_retry_charger_detect(struct sprd_glue *glue)
 	unsigned long flags;
 	u8 pwr;
 
-	dev_dbg(glue->dev, "%s enter\n", __func__);
+	dev_info(glue->dev, "%s enter\n", __func__);
 	spin_lock_irqsave(&glue->lock, flags);
 	glue->retry_charger_detect = true;
 	spin_unlock_irqrestore(&glue->lock, flags);
@@ -665,9 +751,25 @@ musb_sprd_retry_charger_detect(struct sprd_glue *glue)
 static bool musb_sprd_is_connect_host(struct sprd_glue *glue)
 {
 	struct usb_phy *usb_phy = glue->xceiv;
-	enum usb_charger_type type = usb_phy->charger_detect(usb_phy);
+	enum usb_charger_type type = UNKNOWN_TYPE;
+	u64 curr;
+	static bool reboot;
 
-	dev_dbg(glue->dev, "%s type = %d\n", __func__, (int)type);
+	if (!reboot) {
+		reboot = 1;
+		curr = ktime_to_ms(ktime_get());
+		dev_info(glue->dev, "%s time %llu\n", __func__, curr);
+		if (curr > REBOOT_WAIT_VBUS_TIME)
+			type = usb_phy->charger_detect(usb_phy);
+		else {
+			usb_phy->flags |= CHARGER_C2C_WAIT_PD_HARDRESET;
+			type = usb_phy->charger_detect(usb_phy);
+		}
+	} else {
+		type = usb_phy->charger_detect(usb_phy);
+	}
+
+	dev_info(glue->dev, "%s type = %d\n", __func__, (int)type);
 	if ((type == UNKNOWN_TYPE) && (usb_phy->flags & CHARGER_2NDDETECT_ENABLE)) {
 		if (extcon_get_state(glue->edev, EXTCON_USB))
 			type = musb_sprd_retry_charger_detect(glue);
@@ -698,6 +800,19 @@ static void musb_sprd_charger_mode(void)
 		boot_charging = 1;
 	else
 		boot_charging = 0;
+}
+
+static bool sprd_musb_get_dpdm_from_usb(struct sprd_glue *glue)
+{
+	struct usb_phy *usb_phy = glue->xceiv;
+	struct sprd_common_hsphy *common_phy = container_of(usb_phy,
+				 struct sprd_common_hsphy, phy);
+	bool res = false;
+
+	if (common_phy->ops.get_dpdm_from_phy)
+		res = common_phy->ops.get_dpdm_from_phy(usb_phy);
+
+	return res;
 }
 
 static void sprd_musb_recover_work(struct work_struct *work)
@@ -742,6 +857,7 @@ static void sprd_musb_work(struct work_struct *work)
 	int ret;
 	int cnt = 100;
 
+	dev_info(glue->dev, "%s enter!\n", __func__);
 	spin_lock_irqsave(&glue->lock, flags);
 	current_mode = glue->wq_mode;
 	current_state = (glue->vbus_active && glue->usb_data_enabled);
@@ -794,16 +910,30 @@ static void sprd_musb_work(struct work_struct *work)
 		 * If the charger type is not SDP or CDP type, it does
 		 * not need to resume the device, just charging.
 		 */
-		if ((glue->dr_mode == USB_DR_MODE_PERIPHERAL &&
-			!musb_sprd_is_connect_host(glue)) || boot_charging) {
-			spin_lock_irqsave(&glue->lock, flags);
-			glue->charging_mode = true;
-			spin_unlock_irqrestore(&glue->lock, flags);
+		if (glue->use_pdhub_c2c) {
+			if ((glue->dr_mode == USB_DR_MODE_PERIPHERAL &&
+				!sprd_musb_get_dpdm_from_usb(glue) &&
+				!musb_sprd_is_connect_host(glue)) || boot_charging) {
+				spin_lock_irqsave(&glue->lock, flags);
+				glue->charging_mode = true;
+				spin_unlock_irqrestore(&glue->lock, flags);
+				dev_info(glue->dev,
+				 "Don't need resume musb device in charging mode!\n");
+				goto end;
+			}
+		} else {
+			if ((glue->dr_mode == USB_DR_MODE_PERIPHERAL &&
+				!musb_sprd_is_connect_host(glue)) || boot_charging) {
+				spin_lock_irqsave(&glue->lock, flags);
+				glue->charging_mode = true;
+				spin_unlock_irqrestore(&glue->lock, flags);
 
-			dev_info(glue->dev,
-			 "Don't need resume musb device in charging mode!\n");
-			goto end;
-		}
+				dev_info(glue->dev,
+				 "Don't need resume musb device in charging mode!\n");
+				goto end;
+			}
+                }
+
 		/* For charging mode, we don't set usb state to USB_STATE_ATTACHED
 		 * to ignore unnecessary interaction
 		 */
@@ -811,7 +941,9 @@ static void sprd_musb_work(struct work_struct *work)
 			usb_gadget_set_state(&musb->g, USB_STATE_ATTACHED);
 
 		sprd_musb_reset_context(musb);
-
+		if (glue->use_pdhub_c2c)
+			call_sprd_usbphy_event_notifiers(SPRD_USBPHY_EVENT_TYPEC,
+				true, NULL);
 		cnt = 100;
 		while (!pm_runtime_suspended(musb->controller)
 			&& (--cnt > 0))
@@ -843,26 +975,34 @@ static void sprd_musb_work(struct work_struct *work)
 					goto end;
 				}
 			}
-			ret = regulator_enable(glue->vbus);
-			if (ret) {
-				dev_err(glue->dev,
-					"Failed to enable vbus: %d\n", ret);
-				goto end;
-			}
-#else
-			if (glue->chg_psy == NULL) {
-				glue->chg_psy = power_supply_get_by_name("charger");
-				if (glue->chg_psy == NULL) {
-					dev_err(glue->dev, "get charger power supply failed\n");
+			if (!glue->use_pdhub_c2c) {
+				if (!regulator_is_enabled(glue->vbus)) {
+					ret = regulator_enable(glue->vbus);
+					if (ret) {
+						dev_err(glue->dev,
+						 "Failed to enable vbus: %d\n",
+						 ret);
+						goto end;
+					}
 				}
-			}
-			if (glue->chg_psy) {
-				union power_supply_propval val;
-				val.intval = 1;
-				ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
-				if (ret) {
-					dev_err(glue->dev, "failed to enable vbus\n");
-					goto end;
+ 			}
+#else
+			if (!glue->use_pdhub_c2c) {
+				if (glue->chg_psy == NULL) {
+					glue->chg_psy = power_supply_get_by_name("charger");
+					if (glue->chg_psy == NULL) {
+						dev_err(glue->dev, "get charger power supply failed\n");
+					}
+				}
+				
+				if (glue->chg_psy) {
+					union power_supply_propval val;
+					val.intval = 1;
+					ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
+					if (ret) {
+						dev_err(glue->dev, "failed to enable vbus\n");
+						goto end;
+					}
 				}
 			}
 #endif
@@ -926,28 +1066,35 @@ static void sprd_musb_work(struct work_struct *work)
 		}
 
 #ifdef OTG_USE_REGULATOR
-		if (glue->dr_mode == USB_DR_MODE_HOST && glue->vbus) {
-			ret = regulator_disable(glue->vbus);
-			if (ret) {
-				dev_err(glue->dev,
-					"Failed to disable vbus: %d\n", ret);
-				goto end;
-			}
-		}
+		if (!glue->use_pdhub_c2c) {
+			if (glue->dr_mode == USB_DR_MODE_HOST && glue->vbus) {
+				if (regulator_is_enabled(glue->vbus)) {
+					ret = regulator_disable(glue->vbus);
+					if (ret) {
+						dev_err(glue->dev,
+						 "Failed to disable vbus: %d\n",
+							ret);
+						goto end;
+					}
+				}
+ 			}
+ 		}		
 #else
-		if (glue->chg_psy == NULL) {
-			glue->chg_psy = power_supply_get_by_name("charger");
+		if (!glue->use_pdhub_c2c) {
 			if (glue->chg_psy == NULL) {
-				dev_err(glue->dev, "get charger power supply failed\n");
+				glue->chg_psy = power_supply_get_by_name("charger");
+				if (glue->chg_psy == NULL) {
+					dev_err(glue->dev, "get charger power supply failed\n");
+				}
 			}
-		}
-		if (glue->dr_mode == USB_DR_MODE_HOST && glue->chg_psy) {
-			union power_supply_propval val;
-			val.intval = 0;
-			ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
-			if (ret) {
-				dev_err(glue->dev, "failed to disable vbus\n");
-				goto end;
+			if (glue->dr_mode == USB_DR_MODE_HOST && glue->chg_psy) {
+				union power_supply_propval val;
+				val.intval = 0;
+				ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
+				if (ret) {
+					dev_err(glue->dev, "failed to disable vbus\n");
+					goto end;
+				}
 			}
 		}
 #endif
@@ -1298,6 +1445,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	pdata.platform_ops = &sprd_musb_ops;
 	pdata.config = &sprd_musb_hdrc_config;
 	glue->power_always_on = of_property_read_bool(node, "wakeup-source");
+	glue->use_pdhub_c2c = of_property_read_bool(node, "use_pdhub_c2c");
 	pdata.board_data = &glue->power_always_on;
 	glue->is_suspend = false;
 	memset(&pinfo, 0, sizeof(pinfo));
