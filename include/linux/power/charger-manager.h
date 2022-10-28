@@ -713,6 +713,8 @@ struct charger_desc {
 	struct mutex charger_type_mtx;
 	struct mutex charge_info_mtx;
 	struct mutex keep_awake_mtx;
+
+	u32 pd_port_partner;
 };
 
 #define PSY_NAME_MAX	30

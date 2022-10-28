@@ -65,6 +65,20 @@ static void sprd_vchg_work(struct work_struct *data)
 {
 	struct sprd_vchg_info *info = container_of(data, struct sprd_vchg_info,
 						   sprd_vchg_work);
+	int retry_cnt = 12;
+
+	if (info->use_typec_extcon && info->limit) {
+		/* if use typec extcon notify charger,
+		 * wait for BC1.2 detect charger type.
+		 */
+		while (retry_cnt > 0 && info->limit) {
+			if (info->usb_phy->chg_type != UNKNOWN_TYPE)
+				break;
+			retry_cnt--;
+			msleep(50);
+		}
+		dev_info(info->dev, "retry_cnt = %d\n", retry_cnt);
+	}
 
 	dev_info(info->dev, "%s: charger type = %d, limit = %d\n",
 		 SPRD_VCHG_TAG, info->usb_phy->chg_type, info->limit);
@@ -113,22 +127,41 @@ static int sprd_vchg_change(struct notifier_block *nb, unsigned long limit, void
 	return NOTIFY_OK;
 }
 
+#define SPRD_VCHG_EXTCON_SINK		3
+
 static void sprd_vchg_detect_status(struct sprd_vchg_info *info)
 {
 	unsigned int min, max;
+	int state = 0;
 
-	/*
-	 * If the USB charger status has been USB_CHARGER_PRESENT before
-	 * registering the notifier, we should start to charge with getting
-	 * the charge current.
-	 */
-	if (info->usb_phy->chg_state != USB_CHARGER_PRESENT)
-		return;
+	if (info->use_typec_extcon) {
+		state = extcon_get_state(info->typec_extcon, SPRD_VCHG_EXTCON_SINK);
+		if (state < 0)
+			return;
 
-	usb_phy_get_charger_current(info->usb_phy, &min, &max);
-	info->limit = min;
+		if (state == 0)
+			return;
 
-	schedule_work(&info->sprd_vchg_work);
+		info->is_sink = state;
+
+		if (info->is_sink)
+			info->limit = 500;
+
+		schedule_work(&info->sprd_vchg_work);
+	} else {
+		/*
+		 * If the USB charger status has been USB_CHARGER_PRESENT before
+		 * registering the notifier, we should start to charge with getting
+		 * the charge current.
+		 */
+		if (info->usb_phy->chg_state != USB_CHARGER_PRESENT)
+			return;
+
+		usb_phy_get_charger_current(info->usb_phy, &min, &max);
+		info->limit = min;
+
+		schedule_work(&info->sprd_vchg_work);
+	}
 }
 
 #if IS_ENABLED(CONFIG_SC27XX_PD)
@@ -162,11 +195,38 @@ static int sprd_vchg_pd_extcon_event(struct notifier_block *nb, unsigned long ev
 static int sprd_vchg_typec_extcon_event(struct notifier_block *nb, unsigned long event, void *param)
 {
 	struct sprd_vchg_info *info = container_of(nb, struct sprd_vchg_info, typec_extcon_nb);
+	int state = 0;
 
 	if (info->typec_online) {
 		dev_info(info->dev, "%s: typec status change.\n", SPRD_VCHG_TAG);
 		schedule_delayed_work(&info->typec_extcon_work, 0);
 	}
+
+	if (info->use_typec_extcon && !info->typec_online) {
+		dev_info(info->dev, "%s:line%d, typec_online = %d\n", __func__, __LINE__, info->typec_online);
+		state = extcon_get_state(info->typec_extcon, SPRD_VCHG_EXTCON_SINK);
+		if (state < 0) {
+			dev_err(info->dev, "failed to get extcon sink state, state = %d\n", state);
+			return NOTIFY_OK;
+		}
+
+		if (info->is_sink == state) {
+			dev_err(info->dev, "info->is_sink = %d, state = %d\n", info->is_sink, state);
+			return NOTIFY_OK;
+		}
+
+		info->is_sink = state;
+
+		if (info->is_sink)
+			info->limit = 500;
+		else
+			info->limit = 0;
+
+		__pm_wakeup_event(info->sprd_vchg_ws, SPRD_VCHG_WAKE_UP_MS);
+
+		schedule_work(&info->sprd_vchg_work);
+	}
+
 	return NOTIFY_OK;
 }
 
@@ -230,6 +290,8 @@ static int sprd_vchg_detect_parse_dts(struct sprd_vchg_info *info)
 		return -ENOMEM;
 	}
 
+	info->use_typec_extcon = device_property_read_bool(info->dev, "use-typec-extcon");
+
 	info->usb_phy = devm_usb_get_phy_by_phandle(info->dev, "phys", 0);
 	if (IS_ERR(info->usb_phy)) {
 		dev_err(info->dev, "%s: failed to find USB phy\n", SPRD_VCHG_TAG);
@@ -258,12 +320,14 @@ static int sprd_vchg_detect_init(struct sprd_vchg_info *info, struct power_suppl
 	info->psy = psy;
 	INIT_WORK(&info->sprd_vchg_work, sprd_vchg_work);
 
-	info->usb_notify.notifier_call = sprd_vchg_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-	if (ret) {
-		dev_err(dev, "%s:failed to register notifier:%d\n", SPRD_VCHG_TAG, ret);
-		ret = -EINVAL;
-		goto remove_wakeup;
+	if (!info->use_typec_extcon) {
+		info->usb_notify.notifier_call = sprd_vchg_change;
+		ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
+		if (ret) {
+			dev_err(dev, "%s:failed to register notifier:%d\n", SPRD_VCHG_TAG, ret);
+			ret = -EINVAL;
+			goto remove_wakeup;
+		}
 	}
 
 #if IS_ENABLED(CONFIG_SC27XX_PD)

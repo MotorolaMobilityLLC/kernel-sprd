@@ -374,6 +374,14 @@ struct sc27xx_fgu_data {
 	struct delayed_work fgu_work;
 	struct delayed_work cap_track_work;
 
+	/* typec extcon */
+	struct extcon_dev *edev;
+	struct notifier_block pd_swap_notify;
+	struct notifier_block extcon_nb;
+	struct work_struct typec_extcon_work;
+	bool is_sink;
+	bool use_typec_extcon;
+
 	/* multi resistance */
 	int *target_rbat_table;
 	int **rbat_table;
@@ -3284,6 +3292,78 @@ static int sc27xx_fgu_calibration(struct sc27xx_fgu_data *data)
 	return 0;
 }
 
+static void sc27xx_fgu_typec_extcon_work(struct work_struct *data)
+{
+	struct sc27xx_fgu_data *fgu_data =
+		container_of(data, struct sc27xx_fgu_data, typec_extcon_work);
+	int retry_cnt = 12;
+
+	if (fgu_data->use_typec_extcon && fgu_data->online) {
+		/* if use typec extcon notify charger,
+		 * wait for BC1.2 detect charger type.
+		 */
+		while (retry_cnt > 0 && fgu_data->online) {
+			if (fgu_data->usb_phy->chg_type != UNKNOWN_TYPE)
+				break;
+			retry_cnt--;
+			msleep(50);
+		}
+		dev_info(fgu_data->dev, "retry_cnt = %d\n", retry_cnt);
+
+	}
+
+	switch (fgu_data->usb_phy->chg_type) {
+	case SDP_TYPE:
+		fgu_data->chg_type = POWER_SUPPLY_USB_TYPE_SDP;
+		break;
+
+	case DCP_TYPE:
+		fgu_data->chg_type = POWER_SUPPLY_USB_TYPE_DCP;
+		break;
+
+	case CDP_TYPE:
+		fgu_data->chg_type = POWER_SUPPLY_USB_TYPE_CDP;
+		break;
+
+	default:
+		fgu_data->chg_type = POWER_SUPPLY_USB_TYPE_UNKNOWN;
+	}
+
+	dev_info(fgu_data->dev, "charger type = %d\n", fgu_data->usb_phy->chg_type);
+}
+
+#define SC27XX_FGU_EXTCON_SINK		3
+
+static int sc27xx_fgu_extcon_event(struct notifier_block *nb,
+				unsigned long event, void *param)
+{
+	struct sc27xx_fgu_data *data =
+		container_of(nb, struct sc27xx_fgu_data, extcon_nb);
+	int state = 0;
+
+	if (!data) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return NOTIFY_OK;
+	}
+
+	state = extcon_get_state(data->edev, SC27XX_FGU_EXTCON_SINK);
+	if (state < 0)
+		return NOTIFY_OK;
+
+	if (data->is_sink == state)
+		return NOTIFY_OK;
+
+	data->is_sink = state;
+
+	if (data->is_sink)
+		data->online = true;
+	else
+		data->online = false;
+
+	schedule_work(&data->typec_extcon_work);
+	return NOTIFY_OK;
+}
+
 static int sc27xx_fgu_usb_change(struct notifier_block *nb,
 				       unsigned long limit, void *info)
 {
@@ -4588,6 +4668,8 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	data->use_typec_extcon = device_property_read_bool(dev, "use-typec-extcon");
+
 	data->regmap = dev_get_regmap(dev->parent, NULL);
 	if (!data->regmap) {
 		dev_err(dev, "failed to get regmap\n");
@@ -4756,11 +4838,28 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 
 	/* init capacity track function */
 	if (data->track.cap_tracking) {
-		data->usb_notify.notifier_call = sc27xx_fgu_usb_change;
-		ret = usb_register_notifier(data->usb_phy, &data->usb_notify);
-		if (ret) {
-			dev_err(dev, "failed to register notifier:%d\n", ret);
-			goto err;
+		if (data->use_typec_extcon) {
+			data->edev = extcon_get_edev_by_phandle(data->dev, 0);
+			if (IS_ERR(data->edev)) {
+				dev_err(dev, "failed to find vbus extcon device, ret = %d.\n", PTR_ERR(data->edev));
+				return -EPROBE_DEFER;
+			}
+			INIT_WORK(&data->typec_extcon_work, sc27xx_fgu_typec_extcon_work);
+			data->extcon_nb.notifier_call = sc27xx_fgu_extcon_event;
+			ret = devm_extcon_register_notifier_all(dev,
+								data->edev,
+								&data->extcon_nb);
+			if (ret) {
+				dev_err(dev, "Can't register extcon, ret = %d\n", ret);
+				return -EPROBE_DEFER;
+			}
+		} else {
+			data->usb_notify.notifier_call = sc27xx_fgu_usb_change;
+			ret = usb_register_notifier(data->usb_phy, &data->usb_notify);
+			if (ret) {
+				dev_err(dev, "failed to register notifier:%d\n", ret);
+				goto err;
+			}
 		}
 
 		data->track.state = CAP_TRACK_INIT;
