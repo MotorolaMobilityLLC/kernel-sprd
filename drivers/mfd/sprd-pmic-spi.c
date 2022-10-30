@@ -13,6 +13,8 @@
 #include <linux/regmap.h>
 #include <linux/spi/spi.h>
 #include <uapi/linux/usb/charger.h>
+#include <linux/seq_buf.h>
+#include <../drivers/unisoc_platform/sysdump/unisoc_sysdump.h>
 
 #define SPRD_PMIC_INT_MASK_STATUS	0x0
 #define SPRD_PMIC_INT_RAW_STATUS	0x4
@@ -32,6 +34,13 @@
 #define SPRD_UMP9621_SLAVE_ID           0x8000
 #define SPRD_UMP9622_SLAVE_ID           0xc000
 
+#define SPRD_PMIC_EIC_IE		0x18
+#define SPRD_PMIC_EIC_RIS		0x1c
+#define SPRD_PMIC_EIC_MIS		0x20
+#define SPRD_SC2731_EIC_BASE		0x300
+#define SPRD_SC2730_EIC_BASE		0x280
+#define SPRD_UMP9620_EIC_BASE		0x280
+
 /* PMIC charger detection definition */
 #define SPRD_PMIC_CHG_DET_DELAY_US	200000
 #define SPRD_PMIC_CHG_DET_TIMEOUT	2000000
@@ -40,6 +49,17 @@
 #define SPRD_PMIC_DCP_TYPE		BIT(6)
 #define SPRD_PMIC_CDP_TYPE		BIT(5)
 #define SPRD_PMIC_CHG_TYPE_MASK		GENMASK(7, 5)
+
+#define SPRD_PRINT_BUF_LEN              8192
+#define PMICINT_printf(m, x...)			\
+	do {                                              \
+		if (!m)                                   \
+			pr_debug(x);                      \
+		else if (seq_buf_printf(m, x)) {         \
+			seq_buf_clear(m);                 \
+			seq_buf_printf(m, x);             \
+		}                                         \
+} while (0)
 
 struct sprd_pmic {
 	struct regmap *regmap;
@@ -54,6 +74,7 @@ struct sprd_pmic {
 struct sprd_pmic_data {
 	u32 slave_id;
 	u32 irq_base;
+	u32 eic_base;
 	u32 num_irqs;
 	u32 charger_det;
 };
@@ -66,6 +87,7 @@ struct sprd_pmic_data {
 static const struct sprd_pmic_data sc2730_data = {
 	.slave_id = SPRD_SC2730_SLAVE_ID,
 	.irq_base = SPRD_SC2730_IRQ_BASE,
+	.eic_base = SPRD_SC2730_EIC_BASE,
 	.num_irqs = SPRD_SC2730_IRQ_NUMS,
 	.charger_det = SPRD_SC2730_CHG_DET,
 };
@@ -73,6 +95,7 @@ static const struct sprd_pmic_data sc2730_data = {
 static const struct sprd_pmic_data sc2731_data = {
 	.slave_id = SPRD_SC2731_SLAVE_ID,
 	.irq_base = SPRD_SC2731_IRQ_BASE,
+	.eic_base = SPRD_SC2731_EIC_BASE,
 	.num_irqs = SPRD_SC2731_IRQ_NUMS,
 	.charger_det = SPRD_SC2731_CHG_DET,
 };
@@ -80,6 +103,7 @@ static const struct sprd_pmic_data sc2731_data = {
 static const struct sprd_pmic_data ump9620_data = {
 	.slave_id = SPRD_UMP9620_SLAVE_ID,
 	.irq_base = SPRD_UMP9620_IRQ_BASE,
+	.eic_base = SPRD_UMP9620_EIC_BASE,
 	.num_irqs = SPRD_UMP9620_IRQ_NUMS,
 };
 
@@ -127,6 +151,52 @@ enum usb_charger_type sprd_pmic_detect_charger_type(struct device *dev)
 	return type;
 }
 EXPORT_SYMBOL_GPL(sprd_pmic_detect_charger_type);
+
+/* SPRD PMIC INT MT SUPPORT */
+static char *sprd_pmicint_buf;
+static struct seq_buf *sprd_pmicint_seq_buf;
+static char pmicint_temp_buf[256];
+
+static int sprd_pmic_handle_pre_irq(void *irq_drv_data)
+{
+	struct sprd_pmic *ddata = irq_drv_data;
+	u32 mask_status = 0, raw_status = 0;
+	u32 eic_mis_status = 0, eic_ris_status = 0;
+	int j;
+
+	if (regmap_read(ddata->regmap, ddata->pdata->irq_base + SPRD_PMIC_INT_MASK_STATUS,
+			&mask_status) < 0) {
+		pr_err("failed to get pmicint mask\n");
+	}
+
+	if (regmap_read(ddata->regmap, ddata->pdata->irq_base + SPRD_PMIC_INT_RAW_STATUS,
+			&raw_status) < 0) {
+		pr_err("failed to get pmicint raw\n");
+	}
+
+	if (regmap_read(ddata->regmap, ddata->pdata->eic_base + SPRD_PMIC_EIC_MIS,
+			&eic_mis_status) < 0) {
+		pr_err("failed to get eic_mis_status\n");
+	}
+
+	if (regmap_read(ddata->regmap, ddata->pdata->eic_base + SPRD_PMIC_EIC_RIS,
+			&eic_ris_status) < 0) {
+		pr_err("failed to get eic_ris_status\n");
+	}
+
+	j = snprintf(pmicint_temp_buf, sizeof(pmicint_temp_buf),
+			"INT-mask=%d raw=%d * EIC-mis=%d ris=%d\n", mask_status, raw_status,
+			eic_mis_status, eic_ris_status);
+
+	return 0;
+}
+
+static int sprd_pmic_handle_post_irq(void *irq_drv_data)
+{
+	PMICINT_printf(sprd_pmicint_seq_buf, pmicint_temp_buf);
+	return 0;
+}
+/* SPRD PMIC INT MT SUPPORT */
 
 static int sprd_pmic_spi_write(void *context, const void *data, size_t count)
 {
@@ -228,6 +298,31 @@ static int sprd_pmic_probe(struct spi_device *spi)
 	spi_set_drvdata(spi, ddata);
 	ddata->dev = &spi->dev;
 	ddata->pdata = pdata;
+
+	if (pdata->irq_base) {
+		sprd_pmicint_buf = devm_kzalloc(&spi->dev, sizeof(*sprd_pmicint_buf),
+				GFP_KERNEL);
+		if (!sprd_pmicint_buf)
+			ret = -ENOMEM;
+
+		sprd_pmicint_seq_buf = devm_kzalloc(&spi->dev, sizeof(*sprd_pmicint_seq_buf),
+				GFP_KERNEL);
+		if (!sprd_pmicint_seq_buf)
+			ret = -ENOMEM;
+
+		ret = minidump_save_extend_information("sprd-pmic-spi",
+				__pa((unsigned long)(sprd_pmicint_buf)),
+				__pa((unsigned long)(sprd_pmicint_buf) +
+					SPRD_PRINT_BUF_LEN));
+
+		if (ret) {
+			dev_err(&spi->dev, "alloc sprd-pmic-spi fail\n");
+			kfree(sprd_pmicint_seq_buf);
+		}
+
+		seq_buf_init(sprd_pmicint_seq_buf, sprd_pmicint_buf, SPRD_PRINT_BUF_LEN);
+	}
+
 	if (spi->irq) {
 		ddata->irq = spi->irq;
 
@@ -239,6 +334,9 @@ static int sprd_pmic_probe(struct spi_device *spi)
 		ddata->irq_chip.num_regs = 1;
 		ddata->irq_chip.num_irqs = pdata->num_irqs;
 		ddata->irq_chip.mask_invert = true;
+		ddata->irq_chip.handle_pre_irq = sprd_pmic_handle_pre_irq;
+		ddata->irq_chip.handle_post_irq = sprd_pmic_handle_post_irq;
+		ddata->irq_chip.irq_drv_data = ddata;
 
 		ddata->irqs = devm_kcalloc(&spi->dev, pdata->num_irqs, sizeof(struct regmap_irq), GFP_KERNEL);
 		if (!ddata->irqs)
@@ -335,3 +433,4 @@ module_exit(sprd_pmic_exit);
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("Spreadtrum SC27xx PMICs driver");
 MODULE_AUTHOR("Baolin Wang <baolin.wang@spreadtrum.com>");
+
