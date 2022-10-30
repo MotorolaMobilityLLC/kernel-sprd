@@ -29,10 +29,8 @@
 #include "sdhci-sprd-swcq.c"
 #endif
 
-#if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
-#include "emmc_write_protect.h"
-#include "emmc_write_protect.c"
-#endif
+#include "sdhci-sprd-powp.h"
+#include "sdhci-sprd-powp.c"
 
 #include "sdhci-sprd-tuning.h"
 #include "sdhci-sprd-tuning.c"
@@ -176,18 +174,12 @@ static const struct sdhci_sprd_phy_cfg sdhci_sprd_phy_cfgs[] = {
 
 #define TO_SPRD_HOST(host) sdhci_pltfm_priv(sdhci_priv(host))
 
-#if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
-static unsigned int powp_init_flag;
-static void sdhci_sprd_init_card(struct mmc_host *mmc, struct mmc_card *card)
-{
-	struct sdhci_host *host = mmc_priv(mmc);
 
-	if (strcmp(mmc_hostname(host->mmc), "mmc0"))
-		return;
-	mmc->card = card;
-	powp_init_flag = 1;
+static void sdhci_sprd_set_powp(struct mmc_host *mmc, struct mmc_card *card)
+{
+	mmc_set_powp(card);
 }
-#endif
+
 
 static void sdhci_sprd_init_config(struct sdhci_host *host)
 {
@@ -371,24 +363,6 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 {
 	bool en = false, clk_changed = false;
-
-#if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
-	struct mmc_host *mmc = host->mmc;
-	u32 err = 0;
-
-	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && clock <= 52000000) {
-		if (powp_init_flag) {
-			err = set_power_on_write_protect(mmc->card);
-			if (err)
-				pr_err("%s: The write protection set fail!\n",
-						mmc_hostname(host->mmc));
-			else
-				pr_info("%s: The write protection set successfully\n",
-						mmc_hostname(host->mmc));
-			powp_init_flag = 0;
-		}
-	}
-#endif
 
 	if (clock == 0) {
 		sdhci_writew(host, 0, SDHCI_CLOCK_CONTROL);
@@ -1262,9 +1236,7 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	host->dma_mask = DMA_BIT_MASK(64);
 	pdev->dev.dma_mask = &host->dma_mask;
 	host->mmc_host_ops.request = sdhci_sprd_request;
-#if IS_ENABLED(CONFIG_MMC_WRITE_PROTECT)
-	host->mmc_host_ops.init_card = sdhci_sprd_init_card;
-#endif
+
 	host->mmc_host_ops.hs400_enhanced_strobe =
 		sdhci_sprd_hs400_enhanced_strobe;
 	/*
@@ -1421,6 +1393,13 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 		goto err_cleanup_host;
 #endif
 
+	if (!mmc_check_wp_fn(host->mmc)) {
+		host->mmc_host_ops.init_card = sdhci_sprd_set_powp;
+		ret = mmc_wp_init(host->mmc);
+		if (ret)
+			goto err_cleanup_host;
+	}
+
 	/* disable polling scan for sdiocard */
 	if ((host->mmc->caps2 & MMC_CAP2_NO_SD)
 			&& (host->mmc->caps2 & MMC_CAP2_NO_MMC)) {
@@ -1458,6 +1437,9 @@ static int sdhci_sprd_remove(struct platform_device *pdev)
 {
 	struct sdhci_host *host = platform_get_drvdata(pdev);
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+
+	if (!mmc_check_wp_fn(host->mmc))
+		mmc_wp_remove(host->mmc);
 
 	sdhci_remove_host(host, 0);
 
