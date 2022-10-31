@@ -87,7 +87,7 @@ int add_in_sfp_fwd_table(const struct sfp_mgr_fwd_tuple_hash *fwd_hash_entry,
 			fwd_hash_entry->ssfp_fwd_tuple.fwd_flags;
 	hlist_add_head_rcu(&new_entry->entry_lst, &sfp_fwd_entries[hash]);
 	status = SFP_OK;
-	FP_PRT_DBG(FP_PRT_DEBUG, "add sfp_fwd_entries %s %d [%u]\n",
+	FP_PRT_DBG(FP_PRT_ERR, "add sfp_fwd_entries %s %d [%u]\n",
 		   __func__, __LINE__, hash);
 
 	return status;

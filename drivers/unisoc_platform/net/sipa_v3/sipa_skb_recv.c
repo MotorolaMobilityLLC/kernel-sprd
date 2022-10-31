@@ -636,7 +636,7 @@ static void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 }
 
 struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
-			      int *netid, u32 *src_id, u32 index, int fifoid)
+			      int *netid, u32 *src_id, u32 *dst_id, u32 index, int fifoid)
 {
 	dma_addr_t addr;
 	bool need_unmap = false;
@@ -735,6 +735,7 @@ check_again:
 
 	*netid = node->net_id;
 	*src_id = node->src;
+	*dst_id = node->dst;
 
 	if (node->checksum == 0xffff)
 		recv_skb->ip_summed = CHECKSUM_UNNECESSARY;

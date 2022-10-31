@@ -127,7 +127,9 @@ static unsigned int ipv4_sfp_pre_routing(void *priv,
 					 struct sk_buff *skb,
 					 const struct nf_hook_state *state)
 {
-	if (sysctl_net_sfp_enable == 1 && sysctl_net_sfp_tether_scheme == 1)
+	if (sysctl_net_sfp_enable == 1 &&
+	    (get_sfp_tether_scheme() == SFP_SOFT_PATH ||
+	     get_sfp_tether_scheme() == SFP_HALF_PATH))
 		return nf_soft_fastpath_process(skb);
 	return NF_ACCEPT;
 }
@@ -137,7 +139,9 @@ static unsigned int ipv6_sfp_pre_routing(void *priv,
 					 const struct nf_hook_state *state)
 {
 
-	if (sysctl_net_sfp_enable == 1 && sysctl_net_sfp_tether_scheme == 1)
+	if (sysctl_net_sfp_enable == 1 &&
+	    (get_sfp_tether_scheme() == SFP_SOFT_PATH ||
+	     get_sfp_tether_scheme() == SFP_HALF_PATH))
 		return nf_soft_fastpath_process(skb);
 	return NF_ACCEPT;
 }
