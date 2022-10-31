@@ -10,6 +10,7 @@
 #include <linux/regmap.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/of_regulator.h>
+#include <linux/sched.h>
 
 #define UMP9621_REGULATOR_BASE		0x2000
 
@@ -54,6 +55,8 @@
 #define UMP9621_DCDC_CPU0_VOL_MASK		GENMASK(8, 0)
 #define UMP9621_DCDC_MM_VOL_MASK		GENMASK(8, 0)
 
+#define SPRD_MIN_VOLTAGE_UV	300000
+
 enum ump9621_regulator_id {
 	UMP9621_DCDC_SRAM1,
 	UMP9621_DCDC_SRAM2,
@@ -66,13 +69,31 @@ enum ump9621_regulator_id {
 
 static struct dentry *debugfs_root;
 
+static int regulator_set_voltage_sel_sprd(struct regulator_dev *rdev, unsigned int sel)
+{
+	if (!rdev->desc->min_uV) {
+		if (sel < (SPRD_MIN_VOLTAGE_UV / rdev->desc->uV_step)) {
+			char kevent[] = "kevent_begin:{\"event_id\":\"107000001\",\"event_time\"";
+			char *pr_str[2];
+
+			pr_str[0] = kasprintf(GFP_KERNEL,
+					      "%s:%ld,\"task\":%s,\"PID\":%d,\"%s[0x%04x]\":0x%04x}:kevent_end\n",
+					      kevent, jiffies, current->comm, current->pid,
+					      rdev->desc->name, rdev->desc->vsel_reg, sel);
+			pr_str[1] = NULL;
+			kobject_uevent_env(&rdev->dev.kobj, KOBJ_CHANGE, pr_str);
+		}
+	}
+	return regulator_set_voltage_sel_regmap(rdev, sel);
+};
+
 static const struct regulator_ops ump9621_regu_linear_ops = {
 	.enable = regulator_enable_regmap,
 	.disable = regulator_disable_regmap,
 	.is_enabled = regulator_is_enabled_regmap,
 	.list_voltage = regulator_list_voltage_linear,
 	.get_voltage_sel = regulator_get_voltage_sel_regmap,
-	.set_voltage_sel = regulator_set_voltage_sel_regmap,
+	.set_voltage_sel = regulator_set_voltage_sel_sprd,
 };
 
 #define UMP9621_REGU_LINEAR(_id, en_reg, en_mask, vreg, vmask,	\
