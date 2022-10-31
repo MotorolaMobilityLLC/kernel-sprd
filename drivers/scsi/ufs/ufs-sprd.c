@@ -240,11 +240,8 @@ static int ufs_sprd_system_suspend(struct device *dev)
 static int ufs_sprd_system_resume(struct device *dev)
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
-	bool vcc_state;
+	bool vcc_state = hba->vreg_info.vcc->enabled;
 	int ret;
-
-	if (hba->vreg_info.vcc->enabled == false)
-		vcc_state = false;
 
 	ret = ufshcd_system_resume(dev);
 	if (ret)
@@ -276,11 +273,8 @@ static int ufs_sprd_runtime_suspend(struct device *dev)
 static int ufs_sprd_runtime_resume(struct device *dev)
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
-	bool vcc_state;
+	bool vcc_state = hba->vreg_info.vcc->enabled;
 	int ret;
-
-	if (hba->vreg_info.vcc->enabled == false)
-		vcc_state = false;
 
 	ret = ufshcd_runtime_resume(dev);
 	if (ret)
