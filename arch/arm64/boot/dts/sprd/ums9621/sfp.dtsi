@@ -8,6 +8,6 @@
 	sfp: sfp-unisoc {
 		compatible = "sprd,sfp";
 		sprd,sfp = <0>;
-		tether_scheme = <1>;
+		tether_scheme = <2>;
 	};
 };
