@@ -566,9 +566,9 @@ static ssize_t ddrinfo_dfs_step_show(struct device *dev,
 	unsigned int i = 0;
 	char *arg = "NONE_STEP";
 	char *step_status = "NONE_STATUS";
-	char *scene;
-	int err, pid;
-	int buff;
+	char *scene = NULL;
+	int err = 0, pid = -1;
+	int buff = 0;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
