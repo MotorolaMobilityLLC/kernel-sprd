@@ -3760,6 +3760,25 @@ static void try_wireless_charger_enable(struct charger_manager *cm, bool enable)
 		dev_err(cm->dev, "enable wl charger fail, ret = %d\n", ret);
 }
 
+
+static int cm_set_charging_status(struct charger_manager *cm, bool enable)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret = 0;
+
+	val.intval = enable ? POWER_SUPPLY_STATUS_CHARGING : POWER_SUPPLY_STATUS_DISCHARGING;
+
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENOMEM;
+
+	ret = power_supply_set_property(fuel_gauge, POWER_SUPPLY_PROP_STATUS, &val);
+	power_supply_put(fuel_gauge);
+
+	return ret;
+}
+
 /**
  * try_charger_enable - Enable/Disable chargers altogether
  * @cm: the Charger Manager representing the battery.
@@ -3772,7 +3791,7 @@ static void try_wireless_charger_enable(struct charger_manager *cm, bool enable)
  */
 static int try_charger_enable(struct charger_manager *cm, bool enable)
 {
-	int err = 0;
+	int err = 0, ret = 0;
 
 	/* Ignore if it's redundant command */
 	if (enable == cm->charger_enabled)
@@ -3797,6 +3816,11 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		cm->charging_end_time = 0;
 
 		err = try_charger_enable_by_psy(cm, enable);
+		if (!err) {
+			ret = cm_set_charging_status(cm, enable);
+			if (ret)
+				dev_err(cm->dev, "failed set charging status, ret = %d\n", ret);
+		}
 		mutex_lock(&cm->desc->keep_awake_mtx);
 		if (!err)
 			cm->charger_enabled = enable;
@@ -3819,6 +3843,11 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		cm_fixed_fchg_control_switch(cm, enable);
 		cm_ir_compensation_enable(cm, enable);
 		err = try_charger_enable_by_psy(cm, enable);
+		if (!err) {
+			ret = cm_set_charging_status(cm, enable);
+			if (ret)
+				dev_err(cm->dev, "failed set discharging status, ret = %d\n", ret);
+		}
 		mutex_lock(&cm->desc->keep_awake_mtx);
 		if (!err)
 			cm->charger_enabled = enable;
@@ -3831,6 +3860,7 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 
 	if (!err)
 		power_supply_changed(cm->charger_psy);
+
 	return err;
 }
 
