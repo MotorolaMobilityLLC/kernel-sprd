@@ -27,6 +27,25 @@ config UNISOC_7SRESET
 	help
 	  This driver support for 7Sreset of PMIC(2731,2730)
 
+config SPRD_MEMDISK
+	tristate "SPRD memdisk driver"
+	depends on ARCH_SPRD
+	default n
+	help
+		This option can support sprd memdisk driver,
+		which can use a block of DDR memory as a disk.
+		we can load the android image to this disk when
+		mmc driver is not ready, for example in vdk and FPGA platform.
+
+config SPRD_MEMDISK_PARTITION
+	tristate "SPRD memdisk partition driver"
+	depends on SPRD_MEMDISK
+	default y
+	help
+		This option will divide memdisk
+		into multiple partitions,
+		used to load different android images
+		on the haps platform.
 
 # NOTE: Keep order __alphabetically__ PLEASE!! #
 
