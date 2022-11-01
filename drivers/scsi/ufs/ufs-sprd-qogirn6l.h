@@ -17,12 +17,17 @@ struct ufs_sprd_ums9621_data {
 
 	struct clk *hclk_source;
 	struct clk *hclk;
+	struct clk *rco_100M;
 	struct reset_control *ap_ahb_ufs_rst;
 	struct reset_control *aon_apb_ufs_rst;
 	uint32_t ufs_lane_calib_data0;
 	uint32_t ufs_lane_calib_data1;
 	void __iomem *syssel_reg;
 };
+
+
+/*ufs hclk register*/
+#define REG_HCLKDIV    0xFC
 
 /*
  * Synopsys common M-PHY Attributes
