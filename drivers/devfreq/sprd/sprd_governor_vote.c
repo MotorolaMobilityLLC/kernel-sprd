@@ -66,24 +66,38 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 	const char *buf, size_t count)
 {
 	int err, pid = -1;
+	unsigned int i, freq_num = 0;
+	unsigned long  data = 0;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 	struct task_struct *dfs_task;
 
+	err = gov_callback->get_freq_num(&freq_num);
+	if (err < 0) {
+		dev_warn(dev->parent, "get ddr freq num err: %d", err);
+		return count;
+	}
 	err = sscanf(buf, "%u\n", &force_freq);
 
 	if (err < 1) {
 		dev_warn(dev->parent, "get scaling force ddr freq err: %d", err);
 		return count;
 	}
-	mutex_lock(&devfreq->lock);
-	err = update_devfreq(devfreq);
-	mutex_unlock(&devfreq->lock);
+	for (i = 0; i < freq_num; i++) {
+		err = gov_callback->get_freq_table(&data, i);
+		if (!err && (data > 0))
+			if (force_freq == data) {
+				mutex_lock(&devfreq->lock);
+				err = update_devfreq(devfreq);
+				mutex_unlock(&devfreq->lock);
+				break;
+			}
+	}
 	dfs_task = get_current();
 	if (dfs_task)
 		pid = dfs_task->pid;
-	if (err)
+	if ((i == freq_num) || err)
 		dev_err(dev->parent, "force freq %u fail: %d, PID: %d",
 			force_freq, err, pid);
 	else
