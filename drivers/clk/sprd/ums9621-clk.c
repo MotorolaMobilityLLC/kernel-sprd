@@ -2994,7 +2994,7 @@ static SPRD_SC_GATE_CLK_HW(audcp_vbc_24m_eb, "audcp-vbc-24m-eb", &access_aud_en.
 			0x0, 0x1000, BIT(23), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_tmr_26m_eb, "audcp-tmr-26m-eb", &access_aud_en.common.hw,
 			0x0, 0x1000, BIT(24), CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
-static SPRD_SC_GATE_CLK_HW(audcp_dvfs_ashb_eb, "audcp-dvfs-ashb-eb",
+static SPRD_SC_GATE_CLK_HW(audcp_dvfs_aspb_eb, "audcp-dvfs-aspb-eb",
 			&access_aud_en.common.hw, 0x0, 0x1000, BIT(25),
 			CLK_IGNORE_UNUSED, SPRD_GATE_NON_AON);
 static SPRD_SC_GATE_CLK_HW(audcp_matrix_cfg_en, "audcp-matrix-cfg-en",
@@ -3030,7 +3030,7 @@ static struct sprd_clk_common *ums9621_audcpglb_gate[] = {
 	&audif_ckg_auto_en.common,
 	&audcp_vbc_24m_eb.common,
 	&audcp_tmr_26m_eb.common,
-	&audcp_dvfs_ashb_eb.common,
+	&audcp_dvfs_aspb_eb.common,
 	&audcp_matrix_cfg_en.common,
 	&audcp_tdm_hf_eb.common,
 	&audcp_tdm_eb.common,
@@ -3058,7 +3058,7 @@ static struct clk_hw_onecell_data ums9621_audcpglb_gate_hws = {
 		[CLK_AUDIF_CKG_AUTO_EN]		= &audif_ckg_auto_en.common.hw,
 		[CLK_AUDCP_VBC_24M_EB]		= &audcp_vbc_24m_eb.common.hw,
 		[CLK_AUDCP_TMR_26M_EB]		= &audcp_tmr_26m_eb.common.hw,
-		[CLK_AUDCP_DVFS_ASHB_EB]	= &audcp_dvfs_ashb_eb.common.hw,
+		[CLK_AUDCP_DVFS_ASPB_EB]	= &audcp_dvfs_aspb_eb.common.hw,
 		[CLK_AUDCP_MATRIX_CFG_EN]	= &audcp_matrix_cfg_en.common.hw,
 		[CLK_AUDCP_TDM_HF_EB]		= &audcp_tdm_hf_eb.common.hw,
 		[CLK_AUDCP_TDM_EB]		= &audcp_tdm_eb.common.hw,
