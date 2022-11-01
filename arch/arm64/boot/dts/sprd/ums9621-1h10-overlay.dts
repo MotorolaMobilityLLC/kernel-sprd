@@ -356,6 +356,10 @@
 	status = "okay";
 };
 
+&dpu {
+	sprd,dpi-clk-pixelpll;
+};
+
 &lcd_nt36672e_truly_mipi_fhd {
 	sprd,phy-bit-clock = <1106000>;
 	sprd,dsc-enable = <1>;
@@ -364,8 +368,6 @@
 	sprd,sr-height = <1600>;
 
 	sprd,esd-check-enable = <1>;
-
-	sprd,dpi-src-is-pixelpll;
 
 	display-timings {
 		nt36672e_truly_timing1: timing1 {

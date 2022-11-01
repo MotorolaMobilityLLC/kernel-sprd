@@ -149,21 +149,21 @@
 };
 
 &dpu {
-	clock-names = "clk_src_200m", /* variable output, div16 of pixelpll */
+	clock-names = "clk_src_200m", /* div16 of top pixelpll, 100M ~ 200M */
 			"clk_src_256m",
 			"clk_src_307m2",
 			"clk_src_312m5",
 			"clk_src_384m",
-			"clk_src_400m", /* variable output, div8 of pixelpll */
+			"clk_src_400m", /* div8 of top pixelpll, 200M ~ 400M */
 			"clk_src_409m6",
 			"clk_src_416m7",
-			"clk_src_420m", /* pixelpll clk, 1600M ~ 3200M */
+			"clk_src_420m", /* div4 of top pixelpll, 400M ~ 800M */
 			"clk_src_512m",
 			"clk_src_614m4",
 			"clk_dpu_core",
 			"clk_dpu_dpi",
 			"clk_dpu_dsc",
-			"clk_dpu_pixelpll", /* pixelpll clk, 1600M ~ 3200M */
+			"clk_dpi_pixelpll", /* top pixelpll, 1600M ~ 3200M */
 			"clk_dpuvsp_eb",
 			"clk_dpu_dsc0_eb",
 			"clk_dpu_dsc1_eb",
