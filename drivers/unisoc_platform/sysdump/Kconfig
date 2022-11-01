@@ -37,3 +37,11 @@ config UNISOC_DUMP_IO
 	tristate "Enable UNISOC dump io handler"
 	help
 		This option enables dump io which provide all io requests info at that time
+
+config SPRD_CLOSE_CRASH_KEY
+	bool "Disable crash_key trigger kernel panic"
+	depends on SPRD_SYSDUMP
+	default n
+	help
+		This option disables Spreatrum crash_key which tigger kernel panic
+		to debug.

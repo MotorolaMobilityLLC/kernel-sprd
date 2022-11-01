@@ -270,7 +270,7 @@ static struct sysdump_config sysdump_conf = {
 static int sprd_sysdump_init;
 static int sprd_sysdump_shash_init;
 
-int sysdump_status;
+atomic_t sysdump_status;
 struct regmap *regmap;
 static int set_sysdump_enable(int on);
 
@@ -319,8 +319,15 @@ void sprd_debug_check_crash_key(unsigned int code, int value)
 				pr_info("%s: Crash key count : %d,vol_pressed:%ld\n", __func__,
 					++loopcount, vol_pressed);
 				if (time_before(jiffies, vol_pressed + 5 * HZ)) {
+#if (!defined CONFIG_SPRD_DEBUG && defined CONFIG_SPRD_CLOSE_CRASH_KEY)
+					if ((loopcount == 2) && (atomic_read(&sysdump_status) == 1))
+						panic("Crash Key");
+					else
+						pr_info("On user version and sysdump is disabled, crash key do not trigger panic.\n");
+#else
 					if (loopcount == 2)
 						panic("Crash Key");
+#endif
 				} else {
 					pr_info("%s: exceed 5s(%u) between power key and volup/voldn key\n",
 						__func__, jiffies_to_msecs(jiffies - vol_pressed));
@@ -982,7 +989,7 @@ static void sysdump_disconnect(struct input_handle *handle)
 
 static int sprd_sysdump_read(struct seq_file *s, void *v)
 {
-	seq_printf(s, "sysdump_status = %d\n", sysdump_status);
+	seq_printf(s, "sysdump_status = %d\n", atomic_read(&sysdump_status));
 	return 0;
 }
 
@@ -1139,28 +1146,29 @@ error_pmic_node:
 
 static int set_sysdump_enable(int on)
 {
-	unsigned int val = 0;
+
+//	unsigned int val = 0;
 
 
-	if (!regmap) {
-		pr_err("can not %s sysdump because of regmap is NULL\n",
-			on ? "enable" : "disable");
-		return -1;
-	}
+//	if (!regmap) {
+//		pr_err("can not %s sysdump because of regmap is NULL\n",
+//			on ? "enable" : "disable");
+//		return -1;
+//	}
 
-	regmap_read(regmap, pmic_reg, &val);
-	pr_info("%s: get rst mode  value is = %x\n", __func__, val);
+//	regmap_read(regmap, pmic_reg, &val);
+//	pr_info("%s: get rst mode  value is = %x\n", __func__, val);
 
 	if (on) {
 		pr_info("%s: enable sysdump!\n", __func__);
-		val |= HWRST_STATUS_SYSDUMP;
-		regmap_write(regmap, pmic_reg, val);
-		sysdump_status = 1;
+//		val |= HWRST_STATUS_SYSDUMP;
+//		regmap_write(regmap, pmic_reg, val);
+		atomic_set(&sysdump_status, 1);
 	} else {
 		pr_info("%s: disable sysdump!\n", __func__);
-		val &= ~(HWRST_STATUS_SYSDUMP);
-		regmap_write(regmap, pmic_reg, val);
-		sysdump_status = 0;
+//		val &= ~(HWRST_STATUS_SYSDUMP);
+//		regmap_write(regmap, pmic_reg, val);
+		atomic_set(&sysdump_status, 0);
 	}
 
 	return 0;
