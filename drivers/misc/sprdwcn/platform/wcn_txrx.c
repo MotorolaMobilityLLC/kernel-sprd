@@ -121,8 +121,9 @@ static long int mdbg_comm_write(char *buf,
 
 	str = strstr(send_buf + PUB_HEAD_RSV, SMP_HEAD_STR);
 	if (!str)
-		str = strstr(send_buf + PUB_HEAD_RSV + ARMLOG_HEAD,
-			     SMP_HEAD_STR);
+		if (len > ARMLOG_HEAD - 1)
+			str = strstr(send_buf + PUB_HEAD_RSV + ARMLOG_HEAD,
+				     SMP_HEAD_STR);
 
 	if (str) {
 		int ret;
