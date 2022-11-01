@@ -93,6 +93,7 @@ struct dvfs_data {
 	struct governor_callback *gov_callback;
 	unsigned int init_done;
 	struct mutex dfs_step_mutex;
+	struct delayed_work topfreq_unvote_work;
 };
 static struct dvfs_data *g_dvfs_data;
 static char *default_governor = "sprd-governor";
@@ -612,6 +613,13 @@ static void dvfs_exit(struct device *dev)
 		dev_err(dev, "disable fail: %d\n", err);
 }
 
+void topfreq_unvote_work_handler(struct work_struct *work)
+{
+	struct device *dev = g_dvfs_data->dev;
+
+	scene_exit("boot-opt");
+	dev_info(dev, "dfs_init boot-opt scene cancel\n");
+}
 
 static void set_profile(struct devfreq_dev_profile *profile)
 {
@@ -717,6 +725,12 @@ static int dvfs_smsg_thread(void *value)
 	}
 	wait_for_completion(&data->reg_callback_done);
 	data->init_done = 1;
+
+	scene_dfs_request("boot-opt");
+	dev_info(dev, "dfs_init scene set boot-opt\n");
+	//delay 30s to cancel topfreq vote
+	schedule_delayed_work(&g_dvfs_data->topfreq_unvote_work, msecs_to_jiffies(30000));
+
 	return 0;
 
 remove_device:
@@ -788,6 +802,8 @@ int dvfs_core_init(struct platform_device *pdev)
 			break;
 		}
 	}
+
+	INIT_DELAYED_WORK(&g_dvfs_data->topfreq_unvote_work, topfreq_unvote_work_handler);
 
 	set_profile(g_dvfs_data->profile);
 	g_dvfs_data->dvfs_smsg_ch_open = kthread_run(dvfs_smsg_thread, g_dvfs_data, "dvfs-init");
