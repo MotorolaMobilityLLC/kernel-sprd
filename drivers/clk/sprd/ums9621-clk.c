@@ -29,6 +29,7 @@
 	(CLK_GET_RATE_NOCACHE | CLK_SET_RATE_NO_REPARENT)
 
 /* pll gate clock */
+static CLK_FIXED_FACTOR_FW_NAME(clk_52m, "clk-52m", "ext-26m", 1, 2, 0);
 static CLK_FIXED_FACTOR_FW_NAME(clk_26m_aud, "clk-26m-aud", "ext-26m", 1, 1, 0);
 static CLK_FIXED_FACTOR_FW_NAME(clk_13m, "clk-13m", "ext-26m", 2, 1, 0);
 static CLK_FIXED_FACTOR_FW_NAME(clk_6m5, "clk-6m5", "ext-26m", 4, 1, 0);
@@ -97,6 +98,7 @@ static struct sprd_clk_common *ums9621_pmu_gate_clks[] = {
 
 static struct clk_hw_onecell_data ums9621_pmu_gate_hws = {
 	.hws	= {
+		[CLK_52M]		= &clk_52m.hw,
 		[CLK_26M_AUD]		= &clk_26m_aud.hw,
 		[CLK_13M]		= &clk_13m.hw,
 		[CLK_6M5]		= &clk_6m5.hw,
@@ -1316,8 +1318,8 @@ static const struct clk_parent_data aux_parents[] = {
 	{ .hw = &rco_100m_25m.hw },
 	{ .fw_name = "rco-60m" },
 	{ .fw_name = "rco-6m" },
-	{ .fw_name = "clk-52m-a2d" },
-	{ .fw_name = "clk-26m-a2d" },
+	{ .hw = &clk_52m.hw },
+	{ .fw_name = "ext-26m" },
 	{ .hw = &clk_26m_aud.hw },
 	{ .fw_name = "gpll-53m5" },
 	{ .fw_name = "aipll-30m87" },
@@ -1793,7 +1795,7 @@ static SPRD_MUX_CLK_DATA(debug_ts, "debug-ts", debug_ts_parents, 0x154,
 
 static const struct clk_parent_data pri_sbi_parents[] = {
 	{ .fw_name = "ext-26m" },
-	{ .fw_name = "ext-52m" },
+	{ .hw = &clk_52m.hw },
 	{ .hw = &tgpll_96m.hw },
 };
 static SPRD_MUX_CLK_DATA(pri_sbi, "pri-sbi", pri_sbi_parents, 0x160,
@@ -1801,21 +1803,21 @@ static SPRD_MUX_CLK_DATA(pri_sbi, "pri-sbi", pri_sbi_parents, 0x160,
 
 static const struct clk_parent_data xo_sel_parents[] = {
 	{ .fw_name = "ext-26m" },
-	{ .fw_name = "ext-52m" },
+	{ .hw = &clk_52m.hw },
 };
 static SPRD_MUX_CLK_DATA(xo_sel, "xo-sel", xo_sel_parents, 0x16c,
 		    0, 1, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data rfti_lth_parents[] = {
 	{ .fw_name = "ext-26m" },
-	{ .fw_name = "ext-52m" },
+	{ .hw = &clk_52m.hw },
 };
 static SPRD_MUX_CLK_DATA(rfti_lth, "rfti-lth", rfti_lth_parents, 0x178,
 		    0, 1, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data afc_lth_parents[] = {
 	{ .fw_name = "ext-26m" },
-	{ .fw_name = "ext-52m" },
+	{ .hw = &clk_52m.hw },
 };
 static SPRD_MUX_CLK_DATA(afc_lth, "afc-lth", afc_lth_parents, 0x184,
 		    0, 1, UMS9621_MUX_FLAG);
