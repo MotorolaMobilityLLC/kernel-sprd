@@ -175,6 +175,29 @@ static int cx7601_update_bits(struct cx7601_charger_info *info, u8 reg,
 	return cx7601_write(info, reg, v);
 }
 
+static int cx7601_write_reg40(struct cx7601_charger_info *info)
+{
+	int ret,try_count=10;
+	u8 read_val;
+	
+	while(try_count--)
+	{
+		ret=i2c_smbus_write_byte_data(info->client, 0x40, 0x00);
+		ret=i2c_smbus_write_byte_data(info->client, 0x40, 0x50);
+		ret=i2c_smbus_write_byte_data(info->client, 0x40, 0x57);
+		ret=i2c_smbus_write_byte_data(info->client, 0x40, 0x44);
+		
+		read_val = i2c_smbus_read_byte_data(info->client, 0x40);
+		if(0x03 == read_val)
+		{
+			ret=1;
+			break;
+		}
+	}
+	return ret;
+}
+
+
 static void cx7601_dump_regs(struct cx7601_charger_info *info)
 {
 
@@ -331,7 +354,7 @@ static int cx7601_set_prechg_current(struct cx7601_charger_info *info, int curr)
 	return cx7601_update_bits(info, CX7601_REG_03, REG03_IPRECHG_MASK,
 				iprechg << REG03_IPRECHG_SHIFT);
 }
-#ifdef TEST_CX7601
+//#ifdef TEST_CX7601
 static int cx7601_set_watchdog_timer(struct cx7601_charger_info *info, u8 timeout)
 {
 	u8 temp;
@@ -340,15 +363,8 @@ static int cx7601_set_watchdog_timer(struct cx7601_charger_info *info, u8 timeou
 
 	return cx7601_update_bits(info, CX7601_REG_05, REG05_WDT_MASK, temp);
 }
-#endif
+//#endif
 
-static int cx7601_disable_watchdog_timer(struct cx7601_charger_info *info)
-{
-	u8 val = REG05_WDT_DISABLE << REG05_WDT_SHIFT;
-
-	return cx7601_update_bits(info, CX7601_REG_05, REG05_WDT_MASK, val);
-}
-#ifdef TEST_CX7601
 static int cx7601_reset_watchdog_timer(struct cx7601_charger_info *info)
 {
 	u8 val = REG01_WDT_RESET << REG01_WDT_RESET_SHIFT;
@@ -356,6 +372,13 @@ static int cx7601_reset_watchdog_timer(struct cx7601_charger_info *info)
 	return cx7601_update_bits(info, CX7601_REG_01, REG01_WDT_RESET_MASK, val);
 }
 
+#ifdef TEST_CX7601
+static int cx7601_disable_watchdog_timer(struct cx7601_charger_info *info)
+{
+	u8 val = REG05_WDT_DISABLE << REG05_WDT_SHIFT;
+
+	return cx7601_update_bits(info, CX7601_REG_05, REG05_WDT_MASK, val);
+}
 static int cx7601_reset_chip(struct cx7601_charger_info *info)
 {
 	int ret;
@@ -582,6 +605,7 @@ static int cx7601_disable_safety_timer(struct cx7601_charger_info *info)
 static int cx7601_trim(struct cx7601_charger_info *info)
 {
 	int ret;
+        u8 val;
 //	u8 data;
 	
 //	ret = cx7601_write(info, 0x40, 0x50);
@@ -598,6 +622,31 @@ static int cx7601_trim(struct cx7601_charger_info *info)
 //	ret = cx7601_update_bits(info,0x84,0x03, 0x02);
 //	ret = cx7601_write(info, 0x40, 0x00);
 	ret = cx7601_update_bits(info, CX7601_REG_0C, 0x20, 0x20); //BAT_LOADEN=1
+	//ret = cx7601_update_bits(info, CX7601_REG_0B, 0x80, 0x80);
+/*	cx7601_write(info, 0x40, 0x00);
+		cx7601_read(info, &val, 0x40);
+		dev_err(dev, "%s;enter;0x40=%x;\n",__func__,val);
+		cx7601_write(info, 0x40, 0x50);
+		cx7601_read(info, &val, 0x40);
+		dev_err(dev, "%s;enter;0x40=%x;\n",__func__,val);
+		cx7601_write(info, 0x40, 0x57);
+		cx7601_read(info, &val, 0x40);
+		dev_err(dev, "%s;enter;0x40=%x;\n",__func__,val);
+		cx7601_write(info, 0x40, 0x44);
+		cx7601_read(info, &val, 0x40);
+		dev_err(dev, "%s;enter;0x40=%x;\n",__func__,val);
+		*/
+		
+	ret=cx7601_write_reg40(info);
+	if(ret==1)
+		dev_err(info->dev, "%s;write reg40 successfully;\n",__func__);
+	ret = cx7601_write(info, 0x41, 0x00);
+	ret = cx7601_write(info, 0x86, 0x01);
+	cx7601_read(info, &val, 0x41);
+	dev_err(info->dev, "%s;enter;0x41=%x;\n",__func__,val);
+	cx7601_read(info, &val, 0x86);
+	dev_err(info->dev, "%s;enter;0x86=%x;\n",__func__,val);
+	ret = cx7601_write(info, 0x40, 0x00);
 	return ret;
 }
 
@@ -606,7 +655,8 @@ static int cx7601_init_device(struct cx7601_charger_info *info)
 	int ret;
 
 	cx7601_trim(info);
-	cx7601_disable_watchdog_timer(info);
+//	cx7601_disable_watchdog_timer(info);
+      cx7601_set_watchdog_timer(info,40);
 	cx7601_charger_set_vindpm(info,4520);
     cx7601_disable_safety_timer(info);     //modified
     cx7601_enable_term(info,false);
@@ -922,7 +972,7 @@ static int cx7601_charger_feed_watchdog(struct cx7601_charger_info *info,
 	static u8 ovp=0;
 	u32 terminate_vol;
 
-//	cx7601_reset_watchdog_timer(info);
+	cx7601_reset_watchdog_timer(info);
 	cx7601_read(info, &reg, CX7601_REG_09 );
 	cx7601_read(info, &reg07, CX7601_REG_07 );
 	if((ovp==0) &&  ((reg & 0x08) == 0x08)) //ovp
@@ -1319,7 +1369,7 @@ cx7601_charger_feed_watchdog_work(struct work_struct *work)
 							 struct cx7601_charger_info,
 							 wdt_work);
 
-//	cx7601_reset_watchdog_timer(info);
+	cx7601_reset_watchdog_timer(info);
 
 	cx7601_dump_regs(info);
 
@@ -1503,13 +1553,24 @@ static int cx7601_charger_probe(struct i2c_client *client,
 
 	info->charge_enable =false;
 
+	/*
+	cx7601_write(info, 0x40, 0x00);
 	cx7601_write(info, 0x40, 0x50);
 	cx7601_write(info, 0x40, 0x57);
-	cx7601_write(info, 0x40, 0x44);
+	cx7601_write(info, 0x40, 0x44);*/
+	ret=cx7601_write_reg40(info);
+	if(ret==1)
+		dev_err(dev, "%s;write reg40 successfully;\n",__func__);
 	cx7601_write(info, 0x83, 0x2D);
 	cx7601_read(info, &val, 0x83);
 	dev_err(dev, "%s;enter;0x83=%x;\n",__func__,val);
 	ret = cx7601_update_bits(info,0x84,0x03, 0x01);
+	ret = cx7601_update_bits(info,0x41,0x02, 0x00);
+	ret = cx7601_update_bits(info,0x86,0x01, 0x01);
+	cx7601_read(info, &val, 0x41);
+	dev_err(dev, "%s;enter;0x41=%x;\n",__func__,val);
+	cx7601_read(info, &val, 0x86);
+	dev_err(dev, "%s;enter;0x86=%x;\n",__func__,val);
 //	ret = cx7601_write(info, 0x41, 0x04);  //avoid VBAT OVP
 	ret = cx7601_write(info, 0x40, 0x00);
 
