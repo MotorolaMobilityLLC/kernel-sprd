@@ -988,7 +988,7 @@ static SPRD_COMP_CLK_DATA_OFFSET(ufs_tx, "ufs-tx", ufs_tx_rx_parents,
 static SPRD_COMP_CLK_DATA_OFFSET(ufs_rx, "ufs-rx", ufs_tx_rx_parents,
 			    0x148, 0, 2, 0, 2, 0);
 static SPRD_COMP_CLK_DATA_OFFSET(ufs_rx_1, "ufs-rx-1", ufs_tx_rx_parents,
-			    0x148, 0, 2, 0, 2, 0);
+			    0x154, 0, 2, 0, 2, 0);
 
 static const struct clk_parent_data ufs_cfg_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -2171,7 +2171,7 @@ static const struct clk_parent_data mid_core_parents[] = {
 	{ .fw_name = "ext-26m" },
 	{ .hw = &tgpll_768m.hw },
 	{ .hw = &v4nrpll_1228m8.hw },
-	{ .fw_name = "tgpll-1536m" },
+	{ .hw = &tgpll.common.hw },
 	{ .hw = &mpllm.common.hw },
 };
 static SPRD_COMP_CLK_DATA(core6, "core6", mid_core_parents, 0xe08,
@@ -2181,7 +2181,7 @@ static const struct clk_parent_data mid1_core_parents[] = {
 	{ .fw_name = "ext-26m" },
 	{ .hw = &tgpll_768m.hw },
 	{ .hw = &v4nrpll_1228m8.hw },
-	{ .fw_name = "tgpll-1536m" },
+	{ .hw = &tgpll.common.hw },
 	{ .hw = &mpllm1.common.hw },
 };
 static SPRD_COMP_CLK_DATA(core7, "core7", mid1_core_parents, 0xe08,
@@ -2577,36 +2577,19 @@ static const struct clk_parent_data mipi_csi0_parents[] = {
 static SPRD_MUX_CLK_DATA(mipi_csi0, "mipi-csi0", mipi_csi0_parents, 0x100,
 		    0, 3, UMS9621_MUX_FLAG);
 
-static const struct clk_parent_data mipi_csi1_1_parents[] = {
-	{ .hw = &tgpll_128m.hw },
-	{ .hw = &tgpll_192m.hw },
-	{ .hw = &tgpll_256m.hw },
-	{ .hw = &tgpll_307m2.hw },
-};
 /*
-* Note:N6L deleted csi1.
-* Modify the name of csi0/1/2 to csi0/2/3.
-*/
-static SPRD_MUX_CLK_DATA(mipi_csi2_1, "mipi-csi2_1",  mipi_csi1_1_parents,
-		    0x118, 0, 2, UMS9621_MUX_FLAG);
-
-static const struct clk_parent_data mipi_csi1_2_parents[] = {
-	{ .hw = &tgpll_128m.hw },
-	{ .hw = &tgpll_192m.hw },
-	{ .hw = &tgpll_256m.hw },
-	{ .hw = &tgpll_307m2.hw },
-};
-static SPRD_MUX_CLK_DATA(mipi_csi2_2, "mipi-csi2_2",  mipi_csi1_2_parents,
-		    0x124, 0, 2, UMS9621_MUX_FLAG);
-
+ * Note:N6L deleted csi1.
+ * Modify the name of csi0/1/2 to csi0/2/3.
+ */
 static const struct clk_parent_data mipi_csi2_1_parents[] = {
 	{ .hw = &tgpll_128m.hw },
 	{ .hw = &tgpll_192m.hw },
 	{ .hw = &tgpll_256m.hw },
 	{ .hw = &tgpll_307m2.hw },
 };
-static SPRD_MUX_CLK_DATA(mipi_csi3_1, "mipi-csi3_1",  mipi_csi2_1_parents,
-		    0x130, 0, 2, UMS9621_MUX_FLAG);
+
+static SPRD_MUX_CLK_DATA(mipi_csi2_1, "mipi-csi2_1",  mipi_csi2_1_parents,
+		    0x118, 0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data mipi_csi2_2_parents[] = {
 	{ .hw = &tgpll_128m.hw },
@@ -2614,7 +2597,25 @@ static const struct clk_parent_data mipi_csi2_2_parents[] = {
 	{ .hw = &tgpll_256m.hw },
 	{ .hw = &tgpll_307m2.hw },
 };
-static SPRD_MUX_CLK_DATA(mipi_csi3_2, "mipi-csi3_2",  mipi_csi2_2_parents,
+static SPRD_MUX_CLK_DATA(mipi_csi2_2, "mipi-csi2_2",  mipi_csi2_2_parents,
+		    0x124, 0, 2, UMS9621_MUX_FLAG);
+
+static const struct clk_parent_data mipi_csi3_1_parents[] = {
+	{ .hw = &tgpll_128m.hw },
+	{ .hw = &tgpll_192m.hw },
+	{ .hw = &tgpll_256m.hw },
+	{ .hw = &tgpll_307m2.hw },
+};
+static SPRD_MUX_CLK_DATA(mipi_csi3_1, "mipi-csi3_1",  mipi_csi3_1_parents,
+		    0x130, 0, 2, UMS9621_MUX_FLAG);
+
+static const struct clk_parent_data mipi_csi3_2_parents[] = {
+	{ .hw = &tgpll_128m.hw },
+	{ .hw = &tgpll_192m.hw },
+	{ .hw = &tgpll_256m.hw },
+	{ .hw = &tgpll_307m2.hw },
+};
+static SPRD_MUX_CLK_DATA(mipi_csi3_2, "mipi-csi3_2",  mipi_csi3_2_parents,
 		    0x13c, 0, 2, UMS9621_MUX_FLAG);
 
 static const struct clk_parent_data dcam_mtx_parents[] = {
