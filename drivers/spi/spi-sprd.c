@@ -15,6 +15,7 @@
 #include <linux/of_gpio.h>
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
+#include <linux/reset.h>
 #include <linux/spi/spi.h>
 
 #define SPRD_SPI_TXD			0x0
@@ -172,6 +173,7 @@ struct sprd_spi {
 	phys_addr_t phy_base;
 	struct device *dev;
 	struct clk *clk;
+	struct reset_control *rst;
 	int irq;
 	u32 src_clk;
 	u32 hw_mode;
@@ -266,6 +268,10 @@ static int sprd_spi_wait_for_rx_end(struct sprd_spi *ss, struct spi_transfer *t)
 					 val & SPRD_SPI_RX_END_IRQ, 0, us);
 	if (ret) {
 		dev_err(ss->dev, "SPI error, spi rx timeout!\n");
+		if (readl_relaxed(ss->base + SPRD_SPI_STS8) && ss->rst) {
+			reset_control_reset(ss->rst);
+			dev_err(ss->dev, "SPI error, reset spi controller!\n");
+		}
 		return ret;
 	}
 
@@ -1034,6 +1040,12 @@ static int sprd_spi_clk_init(struct platform_device *pdev, struct sprd_spi *ss)
 	if (IS_ERR(ss->clk)) {
 		dev_err(&pdev->dev, "can't get the enable clock\n");
 		return PTR_ERR(ss->clk);
+	}
+
+	ss->rst = devm_reset_control_get(&pdev->dev, "spi-rst");
+	if (IS_ERR(ss->rst)) {
+		dev_err(&pdev->dev, "can't get the reset function\n");
+		ss->rst = NULL;
 	}
 
 	if (!clk_set_parent(clk_spi, clk_parent))
