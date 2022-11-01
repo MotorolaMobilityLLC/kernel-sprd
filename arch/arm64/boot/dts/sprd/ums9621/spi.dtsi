@@ -17,6 +17,8 @@
 		clock-names = "enable", "spi", "source";
 		clocks = <&apapb_gate CLK_SPI0_EB>,
 			<&aonapb_clk CLK_SPI0>, <&g5l_pll CLK_TGPLL_192M>;
+		reset-names = "spi-rst";
+		resets = <&apapb_gate RESET_AP_APB_SPI0_SOFT_RST>;
 		status = "disabled";
 	};
 	spi1: spi@70000{
@@ -29,6 +31,8 @@
 		clock-names = "enable", "spi", "source";
 		clocks = <&apapb_gate CLK_SPI1_EB>,
 			<&aonapb_clk CLK_SPI1>, <&g5l_pll CLK_TGPLL_192M>;
+		reset-names = "spi-rst";
+		resets = <&apapb_gate RESET_AP_APB_SPI1_SOFT_RST>;
 		status = "disabled";
 	};
 	spi2: spi@80000{
@@ -41,6 +45,8 @@
 		clock-names = "enable", "spi", "source";
 		clocks = <&apapb_gate CLK_SPI2_EB>,
 			<&aonapb_clk CLK_SPI2>, <&g5l_pll CLK_TGPLL_192M>;
+		reset-names = "spi-rst";
+		resets = <&apapb_gate RESET_AP_APB_SPI2_SOFT_RST>;
 		status = "disabled";
 	};
 
