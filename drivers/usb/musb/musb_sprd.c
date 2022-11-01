@@ -202,7 +202,8 @@ static void sprd_musb_enable(struct musb *musb)
 		musb->context.devctl = devctl;
 	} else {
 		pwr = musb_readb(musb->mregs, MUSB_POWER);
-		if (musb->gadget_driver &&
+		if (glue->vbus_active &&
+			musb->gadget_driver &&
 			!is_host_active(musb) &&
 			(glue->usb_data_enabled == 1)) {
 			pwr |= MUSB_POWER_SOFTCONN;
