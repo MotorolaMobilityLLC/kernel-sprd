@@ -395,6 +395,7 @@
 				phys = <&hsphy>;
 				extcon = <&pmic_typec>, <&pmic_pd>;
 				pd-extcon-enable;
+				use-typec-extcon;
 
 			};
 
@@ -929,6 +930,7 @@
                 monitored-battery = <&bat &bat2>;
 		extcon = <&extcon_gpio>;
                 irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
+		use-typec-extcon;
 /*
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
@@ -943,6 +945,7 @@
 		monitored-battery = <&bat &bat2>;
 		extcon = <&extcon_gpio>;
 		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
+		use-typec-extcon;
 /*
 		vddvbus1:otg-vbus {
 			regulator-name = "vddvbus1";
@@ -1049,18 +1052,23 @@
 
 &hsphy {
 	vdd-supply = <&vddusb33>;
-	extcon = <&extcon_gpio>;
+	extcon = <&pmic_typec>;
 	sprd,hsphy-device-eye-pattern = <0x0693d1c0>;
 	sprd,hsphy-host-eye-pattern = <0x0693d1c0>;
 	status = "okay";
 };
 
 &usb {
-	extcon = <&extcon_gpio>, <&pmic_typec>;
+	extcon = <&pmic_typec>, <&pmic_typec>;
 	//vbus-supply = <&vddvbus>;
 	//vbus1-supply = <&vddvbus1>;
 	status = "okay";
+	use_pdhub_c2c;
 };
+
+&pmic_typec {
+	use_pdhub_c2c;
+ };
 
 &sdio0 {
 	cd-gpios = <&eic_sync 35 GPIO_ACTIVE_HIGH>;
@@ -1155,6 +1163,7 @@
 	sprd,capacity-boot-calibration;
 	sprd,capacity-charge-cycle;
 	sprd,basp;
+	use-pdhub-c2c;
 
 };
 
@@ -1188,12 +1197,13 @@
 
 &pmic_pd {
 	status = "okay";
+	use-pdhub-c2c;
 	usb_con: connector {
 		compatible = "usb-c-connector";
 		label = "USB-C";
 		power-role = "dual";
 		try-power-role = "sink";
-		source-pdos = <PDO_FIXED(5000, 400, PDO_FIXED_USB_COMM)>;
+		source-pdos = <PDO_FIXED(5000, 400, PDO_FIXED_USB_COMM |PDO_FIXED_DUAL_ROLE | PDO_FIXED_DATA_SWAP)>;
 		sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
 		op-sink-microwatt = <10000000>;
 	};
