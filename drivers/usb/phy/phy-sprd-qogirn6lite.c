@@ -703,7 +703,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	phy->phy.type = USB_PHY_TYPE_USB2;
 	phy->phy.vbus_nb.notifier_call = sprd_hsphy_vbus_notify;
 	phy->phy.charger_detect = sprd_hsphy_charger_detect;
-	phy->phy.flags |= CHARGER_2NDDETECT_ENABLE;
+	phy->phy.flags &= ~CHARGER_2NDDETECT_ENABLE;
 	otg->usb_phy = &phy->phy;
 
 	platform_set_drvdata(pdev, phy);

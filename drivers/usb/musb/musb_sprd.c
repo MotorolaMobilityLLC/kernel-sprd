@@ -825,6 +825,8 @@ musb_sprd_retry_charger_detect(struct sprd_glue *glue)
 	spin_lock_irqsave(&glue->lock, flags);
 	glue->retry_charger_detect = true;
 	spin_unlock_irqrestore(&glue->lock, flags);
+
+	pm_runtime_disable(glue->dev);
 	if (!clk_prepare_enable(glue->clk)) {
 		usb_phy_init(glue->xceiv);
 		musb_writeb(musb->mregs, MUSB_INTRUSBE, 0);
@@ -851,6 +853,9 @@ musb_sprd_retry_charger_detect(struct sprd_glue *glue)
 		usb_phy_shutdown(glue->xceiv);
 		clk_disable_unprepare(glue->clk);
 	}
+	pm_runtime_enable(glue->dev);
+	pm_runtime_mark_last_busy(glue->dev);
+
 	return glue->chg_type;
 }
 
