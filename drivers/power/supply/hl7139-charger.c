@@ -1058,12 +1058,15 @@ static int hl7139_get_ibat_now_mA(struct hl7139 *hl, int *batt_ma)
 		if (!fuel_gauge)
 			return -ENODEV;
 
+		fgu_val.intval = CM_IBAT_CURRENT_NOW_CMD;
 		ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CURRENT_NOW,
 						&fgu_val);
+		power_supply_put(fuel_gauge);
 		if (ret) {
 			dev_err(hl->dev, "%s, get batt_ma error, ret=%d\n", __func__, ret);
 			return ret;
 		}
+
 		*batt_ma = DIV_ROUND_CLOSEST(fgu_val.intval, 1000);
 	} else {
 		ret = hl7139_get_adc_data(hl, ADC_IBAT, batt_ma);
@@ -1643,9 +1646,9 @@ static ssize_t registers_store(struct device *dev,
 
 static DEVICE_ATTR_RW(registers);
 
-static void hl7139_create_device_node(struct device *dev)
+static int hl7139_create_device_node(struct device *dev)
 {
-	device_create_file(dev, &dev_attr_registers);
+	return device_create_file(dev, &dev_attr_registers);
 }
 
 static enum power_supply_property hl7139_charger_props[] = {
@@ -1754,7 +1757,7 @@ static int hl7139_get_alarm_status(struct hl7139 *hl)
 	    vbus_mv > hl->cfg->bus_ovp_alm_th)
 		hl->bus_ovp_alarm = true;
 
-	if (!hl->cfg->bat_ocp_alm_disable && hl->cfg->bat_ocp_alm_th > 0 &&
+	if (!hl->cfg->bus_ocp_alm_disable && hl->cfg->bus_ocp_alm_th > 0 &&
 	    ibus_ma > hl->cfg->bus_ocp_alm_th)
 		hl->bus_ocp_alarm = true;
 
@@ -1786,6 +1789,11 @@ static int hl7139_charger_get_property(struct power_supply *psy,
 	struct hl7139 *hl = power_supply_get_drvdata(psy);
 	int result = 0;
 	int ret, cmd;
+
+	if (!hl) {
+		pr_err("%s[%d], NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	dev_dbg(hl->dev, ">>>>>psp = %d\n", psp);
 
@@ -1905,8 +1913,10 @@ static int hl7139_charger_set_property(struct power_supply *psy,
 	struct hl7139 *hl = power_supply_get_drvdata(psy);
 	int ret;
 
-	if (!hl)
+	if (!hl) {
+		pr_err("%s[%d], NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
+	}
 
 	dev_dbg(hl->dev, "<<<<<prop = %d\n", prop);
 
@@ -1917,10 +1927,16 @@ static int hl7139_charger_set_property(struct power_supply *psy,
 			cancel_delayed_work_sync(&hl->wdt_work);
 		}
 
-		hl7139_enable_charge(hl, val->intval);
-		hl7139_check_charge_enabled(hl, &hl->charge_enabled);
-		dev_info(hl->dev, "POWER_SUPPLY_PROP_CHARGING_ENABLED: %s\n",
-			 val->intval ? "enable" : "disable");
+		ret = hl7139_enable_charge(hl, val->intval);
+		if (ret)
+			dev_err(hl->dev, "%s, failed to %s charge\n",
+				__func__, val->intval ? "enable" : "disable");
+
+		if (hl7139_check_charge_enabled(hl, &hl->charge_enabled))
+			dev_err(hl->dev, "%s, failed to check charge enabled\n", __func__);
+
+		dev_info(hl->dev, "%s, %s charge %s\n", __func__,
+			 val->intval ? "enable" : "disable", !ret ? "successfully" : "failed");
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		if (val->intval == CM_USB_PRESENT_CMD)
@@ -2184,7 +2200,11 @@ static int hl7139_charger_probe(struct i2c_client *client,
 	}
 
 	i2c_set_clientdata(client, hl);
-	hl7139_create_device_node(&(client->dev));
+	ret = hl7139_create_device_node(&(client->dev));
+	if (ret) {
+		dev_err(hl->dev, "failed to create device node, ret = %d\n", ret);
+		return ret;
+	}
 
 	match = of_match_node(hl7139_charger_match_table, node);
 	if (match == NULL) {
@@ -2208,6 +2228,8 @@ static int hl7139_charger_probe(struct i2c_client *client,
 				hl->cfg->psy_fuel_gauge);
 			return -EPROBE_DEFER;
 		}
+
+		power_supply_put(fuel_gauge);
 		dev_info(hl->dev, "Get battery information from FGU\n");
 	}
 

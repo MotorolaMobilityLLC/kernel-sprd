@@ -738,12 +738,15 @@ static int sc8551_get_ibat_now_mA(struct sc8551 *sc, int *batt_ma)
 		if (!fuel_gauge)
 			return -ENODEV;
 
+		fgu_val.intval = CM_IBAT_CURRENT_NOW_CMD;
 		ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CURRENT_NOW,
 						&fgu_val);
+		power_supply_put(fuel_gauge);
 		if (ret) {
 			dev_err(sc->dev, "%s, get batt_ma error, ret=%d\n", __func__, ret);
 			return ret;
 		}
+
 		*batt_ma = DIV_ROUND_CLOSEST(fgu_val.intval, 1000);
 	} else {
 		ret = sc8551_get_adc_data(sc, ADC_IBAT, batt_ma);
@@ -1381,9 +1384,9 @@ static ssize_t sc8551_store_register(struct device *dev,
 }
 static DEVICE_ATTR(registers, 0644, sc8551_show_registers, sc8551_store_register);
 
-static void sc8551_create_device_node(struct device *dev)
+static int sc8551_create_device_node(struct device *dev)
 {
-	device_create_file(dev, &dev_attr_registers);
+	return device_create_file(dev, &dev_attr_registers);
 }
 
 static enum power_supply_property sc8551_charger_props[] = {
@@ -1513,7 +1516,7 @@ static int sc8551_get_alarm_status(struct sc8551 *sc)
 	    vbus_mv > sc->cfg->bus_ovp_alm_th)
 		sc->bus_ovp_alarm = true;
 
-	if (!sc->cfg->bat_ocp_alm_disable && sc->cfg->bat_ocp_alm_th > 0 &&
+	if (!sc->cfg->bus_ocp_alm_disable && sc->cfg->bus_ocp_alm_th > 0 &&
 	    ibus_ma > sc->cfg->bus_ocp_alm_th)
 		sc->bus_ocp_alarm = true;
 
@@ -1545,6 +1548,11 @@ static int sc8551_charger_get_property(struct power_supply *psy,
 	int result = 0;
 	int ret, cmd;
 	u8 reg_val;
+
+	if (!sc) {
+		pr_err("%s[%d], NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	dev_dbg(sc->dev, ">>>>>psp = %d\n", psp);
 
@@ -1673,8 +1681,10 @@ static int sc8551_charger_set_property(struct power_supply *psy,
 	struct sc8551 *sc = power_supply_get_drvdata(psy);
 	int ret;
 
-	if (!sc)
+	if (!sc) {
+		pr_err("%s[%d], NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
+	}
 
 	dev_dbg(sc->dev, "<<<<<prop = %d\n", prop);
 
@@ -1685,10 +1695,16 @@ static int sc8551_charger_set_property(struct power_supply *psy,
 			cancel_delayed_work_sync(&sc->wdt_work);
 		}
 
-		sc8551_enable_charge(sc, val->intval);
-		sc8551_check_charge_enabled(sc, &sc->charge_enabled);
-		dev_info(sc->dev, "POWER_SUPPLY_PROP_CHARGING_ENABLED: %s\n",
-			 val->intval ? "enable" : "disable");
+		ret = sc8551_enable_charge(sc, val->intval);
+		if (ret)
+			dev_err(sc->dev, "%s, failed to %s charge\n",
+				__func__, val->intval ? "enable" : "disable");
+
+		if (sc8551_check_charge_enabled(sc, &sc->charge_enabled))
+			dev_err(sc->dev, "%s, failed to check charge enabled\n", __func__);
+
+		dev_info(sc->dev, "%s, %s charge %s\n", __func__,
+			 val->intval ? "enable" : "disable", !ret ? "successfully" : "failed");
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		if (val->intval == CM_USB_PRESENT_CMD)
@@ -1965,7 +1981,11 @@ static int sc8551_charger_probe(struct i2c_client *client,
 	}
 
 	i2c_set_clientdata(client, sc);
-	sc8551_create_device_node(&(client->dev));
+	ret = sc8551_create_device_node(&(client->dev));
+	if (ret) {
+		dev_err(sc->dev, "failed to create device node, ret = %d\n", ret);
+		return ret;
+	}
 
 	match = of_match_node(sc8551_charger_match_table, node);
 	if (match == NULL) {
@@ -1991,6 +2011,8 @@ static int sc8551_charger_probe(struct i2c_client *client,
 				sc->cfg->psy_fuel_gauge);
 			return -EPROBE_DEFER;
 		}
+
+		power_supply_put(fuel_gauge);
 		dev_info(sc->dev, "Get battery information from FGU\n");
 	}
 

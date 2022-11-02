@@ -1613,8 +1613,10 @@ static int bq2597x_charger_get_property(struct power_supply *psy,
 	int ret, cmd;
 	u8 reg_val;
 
-	if (!bq)
+	if (!bq) {
+		pr_err("%s[%d], NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
+	}
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CALIBRATE:
@@ -1733,8 +1735,10 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 	struct bq2597x_charger_info *bq = power_supply_get_drvdata(psy);
 	int ret, value;
 
-	if (!bq)
+	if (!bq) {
+		pr_err("%s[%d], NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
+	}
 
 	switch (prop) {
 	case POWER_SUPPLY_PROP_CALIBRATE:
@@ -1743,10 +1747,17 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 			bq2597x_enable_adc(bq, false);
 			cancel_delayed_work_sync(&bq->wdt_work);
 		}
-		bq2597x_enable_charge(bq, val->intval);
-		bq2597x_check_charge_enabled(bq, &bq->charge_enabled);
-		dev_info(bq->dev, "POWER_SUPPLY_PROP_CHARGING_ENABLED: %s\n",
-			 val->intval ? "enable" : "disable");
+
+		ret = bq2597x_enable_charge(bq, val->intval);
+		if (ret)
+			dev_err(bq->dev, "%s, failed to %s charge\n",
+				__func__, val->intval ? "enable" : "disable");
+
+		if (bq2597x_check_charge_enabled(bq, &bq->charge_enabled))
+			dev_err(bq->dev, "%s, failed to check charge enabled\n", __func__);
+
+		dev_info(bq->dev, "%s, %s charge %s\n", __func__,
+			 val->intval ? "enable" : "disable", !ret ? "successfully" : "failed");
 		break;
 
 	case POWER_SUPPLY_PROP_PRESENT:

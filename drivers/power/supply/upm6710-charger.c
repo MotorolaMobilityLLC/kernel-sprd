@@ -1621,8 +1621,10 @@ static int upm6710_charger_get_property(struct power_supply *psy,
 	int ret, cmd;
 	u8 reg_val;
 
-	if (!upm)
+	if (!upm) {
+		pr_err("%s[%d], NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
+	}
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CALIBRATE:
@@ -1741,8 +1743,10 @@ static int upm6710_charger_set_property(struct power_supply *psy,
 	struct upm6710_charger_info *upm = power_supply_get_drvdata(psy);
 	int ret, value;
 
-	if (!upm)
+	if (!upm) {
+		pr_err("%s[%d], NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
+	}
 
 	switch (prop) {
 	case POWER_SUPPLY_PROP_CALIBRATE:
@@ -1751,10 +1755,16 @@ static int upm6710_charger_set_property(struct power_supply *psy,
 			cancel_delayed_work_sync(&upm->wdt_work);
 		}
 
-		upm6710_enable_charge(upm, val->intval);
-		upm6710_check_charge_enabled(upm, &upm->charge_enabled);
-		dev_info(upm->dev, "POWER_SUPPLY_PROP_CHARGING_ENABLED: %s\n",
-			 val->intval ? "enable" : "disable");
+		ret = upm6710_enable_charge(upm, val->intval);
+		if (ret)
+			dev_err(upm->dev, "%s, failed to %s charge\n",
+				__func__, val->intval ? "enable" : "disable");
+
+		if (upm6710_check_charge_enabled(upm, &upm->charge_enabled))
+			dev_err(upm->dev, "%s, failed to check charge enabled\n", __func__);
+
+		dev_info(upm->dev, "%s, %s charge %s\n", __func__,
+			 val->intval ? "enable" : "disable", !ret ? "successfully" : "failed");
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		if (val->intval == CM_USB_PRESENT_CMD)
