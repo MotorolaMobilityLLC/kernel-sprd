@@ -102,6 +102,7 @@
 	bus-width = <8>;
 	non-removable;
 	cap-mmc-hw-reset;
+	mmc-hs400-enhanced-strobe;
 	mmc-hs400-1_8v;
 	mmc-hs200-1_8v;
 	mmc-ddr-1_8v;
@@ -110,6 +111,5 @@
 	no-sdio;
 	no-sd;
 	status = "okay";
-	supports-cqe;
-	supports-ice;
+	supports-swcq;
 };
