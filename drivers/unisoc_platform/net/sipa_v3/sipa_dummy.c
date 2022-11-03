@@ -426,22 +426,26 @@ bool sipa_dummy_set_rps_mode(int rps_mode)
 		pr_err("fail to get eth dev\n");
 		return false;
 	}
-	//get rx-0
+	/* get rx-0 */
 	queue = netdev->_rx + 0;
 	kobj = &queue->kobj;
 	if (!kobj) {
-		pr_err("kobj is NULL!\n");
+		pr_err("kobj is null\n");
 		return false;
 	}
 
-	//need check again
+	/*
+	 * in kernel5.15 default_attrs in not initialized,
+	 * it replaced by attrs in default_groups
+	 */
 	attr = (*kobj->ktype->default_groups)->attrs;
 	if (!attr) {
-		pr_err("attr is NULL!\n");
+		pr_err("attr is null\n");
 		return false;
 	}
 
-	/* get rx_queue_default_attrs[] => rps_cpus_attribute
+	/*
+	 * get rx_queue_default_attrs[] => rps_cpus_attribute
 	 * and "store_rps_map" func is invoked
 	 */
 	rc = kobj->ktype->sysfs_ops->store(kobj, attr[0], buf, len);
@@ -470,12 +474,26 @@ bool sipa_dummy_set_rps_cpus(u8 rps_cpus)
 		pr_err("fail to get eth dev\n");
 		return false;
 	}
-	//get rx-0
+	/* get rx-0 */
 	queue = netdev->_rx + 0;
 	kobj = &queue->kobj;
-	attr = kobj->ktype->default_attrs;
+	if (!kobj) {
+		pr_err("kobj is null\n");
+		return false;
+	}
 
-	/* get rx_queue_default_attrs[] => rps_cpus_attribute
+	/*
+	 * in kernel5.15 default_attrs in not initialized,
+	 * it replaced by attrs in default_groups
+	 */
+	attr = (*kobj->ktype->default_groups)->attrs;
+	if (!attr) {
+		pr_err("attr is null\n");
+		return false;
+	}
+
+	/*
+	 * get rx_queue_default_attrs[] => rps_cpus_attribute
 	 * and "store_rps_map" func is invoked
 	 */
 	rc = kobj->ktype->sysfs_ops->store(kobj, attr[0], buf, len);
