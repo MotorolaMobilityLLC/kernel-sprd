@@ -18,7 +18,7 @@ fragment_soc_without_m_config_info = {}
 ret = 0
 check_flag = 0
 
-config_whitelist=["CONFIG_ARCH_SPRD","CONFIG_WCN_BOOT","CONFIG_SC23XX","CONFIG_DYNAMIC_DEBUG","CONFIG_SPRD_HANG_DEBUG"]
+config_whitelist=["CONFIG_ARCH_SPRD","CONFIG_WCN_BOOT","CONFIG_SC23XX","CONFIG_DYNAMIC_DEBUG","CONFIG_SPRD_HANG_DEBUG","CONFIG_ZRAM_WRITEBACK","CONFIG_ZRAM_DEDUP"]
 config_noeffect_gki=["CONFIG_MODULE_SIG_ALL"]
 
 def read_file(file_path, list_info):
