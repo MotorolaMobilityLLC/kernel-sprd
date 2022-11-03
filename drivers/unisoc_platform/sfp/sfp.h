@@ -47,6 +47,12 @@
 extern unsigned int sfp_stats_bytes;
 
 enum {
+	SFP_HARD_PATH,
+	SFP_SOFT_PATH,
+	SFP_HALF_PATH
+};
+
+enum {
 	IP_L4_PROTO_NULL = 0,
 	IP_L4_PROTO_ICMP = 1,
 	IP_L4_PROTO_TCP	= 6,    /* Transmission Control Protocol        */
@@ -580,5 +586,8 @@ bool sfp_ipa_ipv6_check(const struct sk_buff *skb,
 
 struct device *sfp_get_ipa_dev(void);
 u32 hash_conntrack(const struct nf_conntrack_tuple *tuple);
+
+int get_sfp_tether_scheme(void);
+void set_sfp_tether_scheme(int tether_scheme);
 
 #endif
