@@ -479,22 +479,6 @@ int sipa_nic_open(enum sipa_term_type src, int netid,
 }
 EXPORT_SYMBOL(sipa_nic_open);
 
-void sipa_nic_set_bypass_mode(bool is_bypass)
-{
-	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
-
-	if (ipa->enable_cnt) {
-		ipa->is_bypass = is_bypass;
-		ipa->glb_ops.set_work_mode(ipa->glb_virt_base,
-					   is_bypass);
-	} else if (!sipa_set_enabled(true)) {
-		ipa->is_bypass = is_bypass;
-		ipa->glb_ops.set_work_mode(ipa->glb_virt_base,
-					   is_bypass);
-	}
-}
-EXPORT_SYMBOL(sipa_nic_set_bypass_mode);
-
 /**
  * sipa_nic_close() - close the specified nic device.
  * @nic_id: the id of the nic device to be closed.
@@ -590,7 +574,7 @@ EXPORT_SYMBOL(sipa_nic_tx);
  * returns NULL, which means the fifo is empty.
  */
 int sipa_nic_rx(struct sk_buff **out_skb, int *netid,
-		u32 *src, u32 *dst, u32 index, int fifoid)
+		u32 *src, u32 index, int fifoid)
 {
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
@@ -599,7 +583,7 @@ int sipa_nic_rx(struct sk_buff **out_skb, int *netid,
 		return -EINVAL;
 	}
 
-	*out_skb = sipa_recv_skb(ipa->receiver, netid, src, dst, index, fifoid);
+	*out_skb = sipa_recv_skb(ipa->receiver, netid, src, index, fifoid);
 
 	if (*out_skb) {
 		ipa->fifo_rate[fifoid]++;

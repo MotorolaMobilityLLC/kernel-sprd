@@ -920,5 +920,5 @@ void sipa_init_free_fifo(struct sipa_skb_receiver *receiver, u32 cnt,
 void sipa_reinit_recv_array(struct device *dev);
 
 struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
-			      int *netid, u32 *src_id, u32 *dst_id, u32 index, int fifoid);
+			      int *netid, u32 *src_id, u32 index, int fifoid);
 #endif /* _SIPA_PRIV_H_ */

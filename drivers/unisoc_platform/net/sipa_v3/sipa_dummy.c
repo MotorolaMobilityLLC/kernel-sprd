@@ -162,7 +162,7 @@ static char *sipa_dummy_ndev2str(int ndev_id)
 	}
 }
 
-static void sipa_dummy_prepare_skb(struct sk_buff *skb, u32 src_id, u32 dst_id)
+static void sipa_dummy_prepare_skb(struct sk_buff *skb, u32 src_id)
 {
 	struct iphdr *iph;
 	struct ethhdr *peth;
@@ -180,15 +180,8 @@ static void sipa_dummy_prepare_skb(struct sk_buff *skb, u32 src_id, u32 dst_id)
 	case SIPA_TERM_VCP:
 		skb_reset_mac_header(skb);
 		peth = eth_hdr(skb);
-		/* for half soft-half hard scheme */
-		if (!dst_id) {
-			ether_addr_copy(peth->h_source, dummy_mac_src);
-			ether_addr_copy(peth->h_dest, dummy_mac_dst);
-			skb->pkt_type = PACKET_HOST;
-		} else {
-			skb->pkt_type = PACKET_OTHERHOST;
-			pr_err("set skb to PACKET_OTHERHOST\n");
-		}
+		ether_addr_copy(peth->h_source, dummy_mac_src);
+		ether_addr_copy(peth->h_dest, dummy_mac_dst);
 
 		skb_set_network_header(skb, ETH_HLEN);
 		iph = ip_hdr(skb);
@@ -301,7 +294,7 @@ static int sipa_dummy_rx_clean(struct sipa_dummy *dummy, int budget,
 			       struct napi_struct *napi, int fifoid)
 {
 	int netid = 0;
-	u32 src_id, dst_id;
+	u32 src_id;
 	int skb_cnt = 0;
 	int ret1, ret2;
 	struct sk_buff *skb;
@@ -310,7 +303,7 @@ static int sipa_dummy_rx_clean(struct sipa_dummy *dummy, int budget,
 	struct sipa_usb *sipa_usb;
 
 	while (skb_cnt < budget) {
-		ret1 = sipa_nic_rx(&skb, &netid, &src_id, &dst_id, skb_cnt, fifoid);
+		ret1 = sipa_nic_rx(&skb, &netid, &src_id, skb_cnt, fifoid);
 		if (unlikely(ret1)) {
 			if (ret1 == -EINVAL)
 				stats->rx_errors++;
@@ -332,7 +325,7 @@ static int sipa_dummy_rx_clean(struct sipa_dummy *dummy, int budget,
 		if (src_id == SIPA_TERM_WIFI1 || src_id == SIPA_TERM_WIFI2)
 			continue;
 
-		sipa_dummy_prepare_skb(skb, src_id, dst_id);
+		sipa_dummy_prepare_skb(skb, src_id);
 		sipa_dummy_update_stats(skb, dummy);
 
 		switch (src_id) {
@@ -907,10 +900,6 @@ static int sipa_dummy_netdev_event_handler(struct notifier_block *nb,
 	case NETDEV_REGISTER:
 		ret = NOTIFY_OK;
 		sipa_dummy_netdev_join(ndev);
-
-		if (!strncmp(ndev->name, "usb0", 4))
-			sipa_nic_set_bypass_mode(false);
-
 		break;
 	case NETDEV_UP:
 		ret = NOTIFY_OK;
@@ -920,10 +909,6 @@ static int sipa_dummy_netdev_event_handler(struct notifier_block *nb,
 	case NETDEV_UNREGISTER:
 		ret = NOTIFY_OK;
 		sipa_dummy_netdev_set_state(ndev, false);
-
-		if (!strncmp(ndev->name, "usb0", 4))
-			sipa_nic_set_bypass_mode(true);
-
 		break;
 	default:
 		break;

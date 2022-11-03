@@ -375,15 +375,13 @@ void sipa_reclaim_wiap_ul_cmn_fifo(void);
 int sipa_nic_open(enum sipa_term_type src, int netid,
 		  sipa_notify_cb cb, void *priv);
 
-void sipa_nic_set_bypass_mode(bool is_bypass);
-
 void sipa_nic_close(enum sipa_nic_id nic_id);
 
 int sipa_nic_tx(enum sipa_nic_id nic_id, enum sipa_term_type dst,
 		int netid, struct sk_buff *skb);
 
 int sipa_nic_rx(struct sk_buff **out_skb, int *net_id,
-		u32 *src, u32 *dst, u32 index, int fifoid);
+		u32 *src, u32 index, int fifoid);
 
 int sipa_nic_trigger_flow_ctrl_work(enum sipa_nic_id, int err);
 

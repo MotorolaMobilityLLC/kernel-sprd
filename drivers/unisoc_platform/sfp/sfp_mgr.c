@@ -76,7 +76,6 @@ static const char * const ipa_netdev[IPA_TERM_MAX] = {
 				    [1] = "sipa_usb",
 				    [2] = "wlan",
 				    [6] = "sipa_eth",
-				    [25] = "usb",
 				  };
 
 #define IPA_BAN_MAX 4
@@ -163,7 +162,6 @@ int sfp_mgr_fwd_entry_delete(const struct nf_conntrack_tuple *tuple)
 	struct sfp_conn *sfp_ct;
 	struct sfp_mgr_fwd_tuple_hash *orig_tuplehash;
 	struct sfp_mgr_fwd_tuple_hash *reply_tuplehash;
-	int cur_tether_scheme;
 
 	hash = sfp_hash_conntrack(tuple);
 	rcu_read_lock_bh();
@@ -178,34 +176,17 @@ int sfp_mgr_fwd_entry_delete(const struct nf_conntrack_tuple *tuple)
 		orig_tuplehash = &sfp_ct->tuplehash[IP_CT_DIR_ORIGINAL];
 		reply_tuplehash = &sfp_ct->tuplehash[IP_CT_DIR_REPLY];
 
-		cur_tether_scheme = get_sfp_tether_scheme();
-
-		switch (cur_tether_scheme) {
-		case SFP_HARD_PATH:
+		if (!get_sfp_tether_scheme()) {
 			spin_lock_bh(&fwd_tbl.sp_lock);
 			sfp_ipa_fwd_delete(orig_tuplehash,
 					   sfp_ct->hash[IP_CT_DIR_ORIGINAL]);
 			sfp_ipa_fwd_delete(reply_tuplehash,
 					   sfp_ct->hash[IP_CT_DIR_REPLY]);
 			spin_unlock_bh(&fwd_tbl.sp_lock);
-			break;
-		case SFP_SOFT_PATH:
+		} else {
 			delete_in_sfp_fwd_table(orig_tuplehash);
 			delete_in_sfp_fwd_table(reply_tuplehash);
-			break;
-		case SFP_HALF_PATH:
-			spin_lock_bh(&fwd_tbl.sp_lock);
-			sfp_ipa_fwd_delete(orig_tuplehash,
-					   sfp_ct->hash[IP_CT_DIR_ORIGINAL]);
-			sfp_ipa_fwd_delete(reply_tuplehash,
-					   sfp_ct->hash[IP_CT_DIR_REPLY]);
-			spin_unlock_bh(&fwd_tbl.sp_lock);
-
-			delete_in_sfp_fwd_table(orig_tuplehash);
-			delete_in_sfp_fwd_table(reply_tuplehash);
-			break;
-		};
-
+		}
 		hlist_del_rcu(&orig_tuplehash->entry_lst);
 		call_rcu(&orig_tuplehash->rcu,
 			 sfp_mgr_fwd_entry_free);
@@ -223,7 +204,6 @@ int sfp_mgr_fwd_entry_delete(const struct nf_conntrack_tuple *tuple)
 //static void sfp_mgr_fwd_death_by_timeout(unsigned long ul_fwd_entry_conn)
 static void sfp_mgr_fwd_death_by_timeout(struct timer_list *t)
 {
-	int cur_tether_scheme;
 	struct sfp_conn *sfp_entry = from_timer(sfp_entry, t, timeout);
 	//sfp_entry = (struct sfp_conn *)ul_fwd_entry_conn;
 	struct sfp_mgr_fwd_tuple_hash *tuplehash_original;
@@ -240,10 +220,7 @@ static void sfp_mgr_fwd_death_by_timeout(struct timer_list *t)
 	FP_PRT_DBG(FP_PRT_DEBUG, "SFP:<<check death by timeout(%p)>>.\n",
 		   sfp_entry);
 
-	cur_tether_scheme = get_sfp_tether_scheme();
-
-	switch (cur_tether_scheme) {
-	case SFP_HARD_PATH:
+	if (!get_sfp_tether_scheme()) {
 		spin_lock_bh(&fwd_tbl.sp_lock);
 		if (!sfp_ipa_tbl_timeout(sfp_entry)) {
 			spin_unlock_bh(&fwd_tbl.sp_lock);
@@ -258,31 +235,11 @@ static void sfp_mgr_fwd_death_by_timeout(struct timer_list *t)
 				   sfp_entry->hash[IP_CT_DIR_REPLY]);
 		spin_unlock_bh(&fwd_tbl.sp_lock);
 		spin_lock_bh(&mgr_lock);
-		break;
-	case SFP_SOFT_PATH:
+	} else {
 		spin_lock_bh(&mgr_lock);
 		delete_in_sfp_fwd_table(&sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL]);
 		delete_in_sfp_fwd_table(&sfp_entry->tuplehash[IP_CT_DIR_REPLY]);
-		break;
-	case SFP_HALF_PATH:
-		spin_lock_bh(&fwd_tbl.sp_lock);
-		if (!sfp_ipa_tbl_timeout(sfp_entry)) {
-			spin_unlock_bh(&fwd_tbl.sp_lock);
-			return;
-		}
-
-		FP_PRT_DBG(FP_PRT_DEBUG, "time out: delete ipa entry %p\n",
-			   sfp_entry);
-		sfp_ipa_fwd_delete(&sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL],
-				   sfp_entry->hash[IP_CT_DIR_ORIGINAL]);
-		sfp_ipa_fwd_delete(&sfp_entry->tuplehash[IP_CT_DIR_REPLY],
-				   sfp_entry->hash[IP_CT_DIR_REPLY]);
-		spin_unlock_bh(&fwd_tbl.sp_lock);
-		spin_lock_bh(&mgr_lock);
-		delete_in_sfp_fwd_table(&sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL]);
-		delete_in_sfp_fwd_table(&sfp_entry->tuplehash[IP_CT_DIR_REPLY]);
-		break;
-	};
+	}
 
 	fp_prt_tuple_info(FP_PRT_DEBUG,
 			   &sfp_entry->tuplehash[IP_CT_DIR_ORIGINAL].tuple);
@@ -685,20 +642,10 @@ static int create_mgr_fwd_entries_in_forward(struct sk_buff *skb,
 
 	if (l4proto == IP_L4_PROTO_UDP ||
 	    l4proto == IP_L4_PROTO_ICMP || l4proto == IP_L4_PROTO_ICMP6) {
-		int cur_tether_scheme = get_sfp_tether_scheme();
-
-		switch (cur_tether_scheme) {
-		case SFP_HARD_PATH:
+		if (!get_sfp_tether_scheme())
 			sfp_ipa_hash_add(new_sfp_ct);
-			break;
-		case SFP_SOFT_PATH:
+		else
 			sfp_fwd_hash_add(new_sfp_ct);
-			break;
-		case SFP_HALF_PATH:
-			sfp_ipa_hash_add(new_sfp_ct);
-			sfp_fwd_hash_add(new_sfp_ct);
-			break;
-		};
 	}
 
 	if (l4proto == IP_L4_PROTO_TCP) {
@@ -775,7 +722,6 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 	int out_ipaifindex, in_ipaifindex;
 	u8  l4proto;
 	int dir;
-	int cur_tether_scheme;
 
 	if (!get_sfp_enable())
 		return 0;
@@ -803,8 +749,7 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 	rt = skb_rtable(skb);
 
 	/* wifi/bt-pan does not support IPA due to their hardware drawback */
-	cur_tether_scheme = get_sfp_tether_scheme();
-	if (cur_tether_scheme == SFP_HARD_PATH || cur_tether_scheme == SFP_HALF_PATH) {
+	if (!get_sfp_tether_scheme()) {
 		if (is_banned_ipa_netdev(skb->dev) ||
 		    is_banned_ipa_netdev(rt->dst.dev)) {
 			FP_PRT_DBG(FP_PRT_DEBUG,
@@ -972,7 +917,6 @@ int sfp_mgr_fwd_ct_tcp_sure(struct nf_conn *ct)
 	struct sfp_conn *sfp_ct;
 	u32 hash;
 	u8 dir;
-	int cur_tether_scheme;
 
 	tuple =
 	(struct nf_conntrack_tuple *)&ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple;
@@ -997,22 +941,10 @@ int sfp_mgr_fwd_ct_tcp_sure(struct nf_conn *ct)
 				fp_prt_tuple_info(FP_PRT_DEBUG,
 						   &target_hash->tuple);
 				sfp_ct->tcp_sure_flag = 1;
-
-				cur_tether_scheme = get_sfp_tether_scheme();
-
-				switch (cur_tether_scheme) {
-				case SFP_HARD_PATH:
+				if (!get_sfp_tether_scheme())
 					sfp_ipa_hash_add(sfp_ct);
-					break;
-				case SFP_SOFT_PATH:
+				else
 					sfp_fwd_hash_add(sfp_ct);
-					break;
-				case SFP_HALF_PATH:
-					sfp_ipa_hash_add(sfp_ct);
-					sfp_fwd_hash_add(sfp_ct);
-					break;
-				};
-
 			}
 			break;
 		}
@@ -1144,26 +1076,14 @@ int sfp_mgr_proc_enable(void)
 
 void sfp_mgr_proc_disable(void)
 {
-	int cur_tether_scheme;
 	unregister_netdevice_notifier(&sfp_if_netdev_notifier_blk);
 	FP_PRT_DBG(FP_PRT_DEBUG, "Network Fast Processing Disabled\n");
 
-	cur_tether_scheme = get_sfp_tether_scheme();
-
-	switch (cur_tether_scheme) {
-	case SFP_HARD_PATH:
+	if (!get_sfp_tether_scheme())
 		sfp_ipa_fwd_clear();
-		break;
-	case SFP_SOFT_PATH:
+	else
 		/*Clear fwd table*/
 		clear_sfp_fwd_table();
-		break;
-	case SFP_HALF_PATH:
-		sfp_ipa_fwd_clear();
-		clear_sfp_fwd_table();
-		break;
-	};
-
 	/*Clear mgr table*/
 	clear_sfp_mgr_table();
 }
@@ -1172,25 +1092,14 @@ void sfp_mgr_proc_disable(void)
 static void sfp_entries_hash_init(void)
 {
 	int i;
-	int cur_tether_scheme;
 
 	FP_PRT_DBG(FP_PRT_DEBUG, "initializing sfp entries hash table.\n");
 	for (i = 0; i < SFP_ENTRIES_HASH_SIZE; i++) {
 		INIT_HLIST_HEAD(&mgr_fwd_entries[i]);
-		cur_tether_scheme = get_sfp_tether_scheme();
-
-		switch (cur_tether_scheme) {
-		case SFP_HARD_PATH:
+		if (!get_sfp_tether_scheme())
 			INIT_HLIST_HEAD(&fwd_tbl.sfp_fwd_entries[i]);
-			break;
-		case SFP_SOFT_PATH:
+		else
 			INIT_HLIST_HEAD(&sfp_fwd_entries[i]);
-			break;
-		case SFP_HALF_PATH:
-			INIT_HLIST_HEAD(&fwd_tbl.sfp_fwd_entries[i]);
-			INIT_HLIST_HEAD(&sfp_fwd_entries[i]);
-			break;
-		};
 	}
 }
 
@@ -1204,22 +1113,14 @@ struct device *sfp_get_ipa_dev(void)
 static int sfp_parse_dt(struct device *dev)
 {
 	int ret;
-	u32 data;
+	s32 sdata;
 	struct device_node *np = dev->of_node;
 
-	ret = of_property_read_u32(np, "sprd,sfp", &data);
+	ret = of_property_read_s32(np, "sprd,sfp", &sdata);
 	if (ret) {
 		dev_err(dev, "read sprd,sfp fail ret %d\n", ret);
 		return ret;
 	}
-
-	ret = of_property_read_u32(np, "tether_scheme", &data);
-	if (ret) {
-		dev_info(dev, "fail to read tether_scheme, %d\n", ret);
-		return 0;
-	}
-
-	set_sfp_tether_scheme(data);
 
 	return 0;
 }
@@ -1228,15 +1129,17 @@ static int sfp_ipa_plat_drv_probe(struct platform_device *pdev)
 {
 	int ret;
 
-	if (pdev->dev.of_node) {
-		ret = sfp_parse_dt(&pdev->dev);
-		if (ret) {
-			dev_err(&pdev->dev, "failed to parse device tree, ret=%d\n", ret);
-			return ret;
+	if (!get_sfp_tether_scheme()) {
+		if (pdev->dev.of_node) {
+			ret = sfp_parse_dt(&pdev->dev);
+			if (ret) {
+				dev_err(&pdev->dev, "failed to parse device tree, ret=%d\n", ret);
+				return ret;
+			}
+			memset(&sfp_ipa_dev, 0, sizeof(struct device));
+			sfp_ipa_dev = pdev->dev;
+			sfp_ipa_init();
 		}
-		memset(&sfp_ipa_dev, 0, sizeof(struct device));
-		sfp_ipa_dev = pdev->dev;
-		sfp_ipa_init();
 	}
 
 	return 0;

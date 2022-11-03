@@ -31,29 +31,19 @@
 #include "sfp.h"
 
 int sysctl_net_sfp_enable  __read_mostly = 1;
-
+/*
+ * sysctl_net_sfp_tether_scheme default value is 0
+ * roc1+orca only supports usb tether, so it should use IPA.
+ * orca cpe supports both pcie tether/usb tether,
+ * so 0 stands for IPA, 1 stands for SFP.
+ */
+#if IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
 int sysctl_net_sfp_tether_scheme  __read_mostly;
-
+#else
+int sysctl_net_sfp_tether_scheme  __read_mostly = 1;
+#endif
 int sysctl_tcp_aging_time  __read_mostly = DEFAULT_SFP_TCP_AGING_TIME;
 int sysctl_udp_aging_time  __read_mostly = DEFAULT_SFP_UDP_AGING_TIME;
-
-int get_sfp_tether_scheme(void)
-{
-	return sysctl_net_sfp_tether_scheme;
-}
-EXPORT_SYMBOL(get_sfp_tether_scheme);
-
-void set_sfp_tether_scheme(int tether_scheme)
-{
-	if (tether_scheme < SFP_HARD_PATH || tether_scheme > SFP_HALF_PATH) {
-		FP_PRT_DBG(FP_PRT_ERR, "illegal tether_scheme %d\n", tether_scheme);
-		return;
-	}
-
-	FP_PRT_DBG(FP_PRT_INFO, "set tether_scheme to %d\n", tether_scheme);
-	sysctl_net_sfp_tether_scheme = tether_scheme;
-}
-EXPORT_SYMBOL(set_sfp_tether_scheme);
 
 static struct ctl_table net_sfp_table[] = {
 #if IS_ENABLED(CONFIG_NET)

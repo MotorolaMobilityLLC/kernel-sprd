@@ -179,8 +179,8 @@ static void procdebugprint_fwd_info_2(struct seq_file *seq,
 	}
 	seq_puts(seq, "\tL4 Info:\t");
 	seq_printf(seq, "proto:%u\t", tuple->trans_info.l4_proto);
-	seq_printf(seq, "dst:%u\t", ntohs(tuple->trans_info.dst_l4_info.all));
-	seq_printf(seq, "src:%u\t", ntohs(tuple->trans_info.src_l4_info.all));
+	seq_printf(seq, "dst:%u\t", tuple->trans_info.dst_l4_info.all);
+	seq_printf(seq, "src:%u\t", tuple->trans_info.src_l4_info.all);
 	seq_printf(seq, "COUNT=%u\t", tuple->count);
 	seq_printf(seq, "FLAGS: %d\t", tuple->fwd_flags);
 	seq_printf(seq, "(IN-OUT)-(%u-%u)\n", tuple->in_ifindex,
@@ -499,9 +499,15 @@ static const struct proc_ops proc_mgr_sfp_file_fwd_ops = {
 	.proc_release = seq_release
 };
 
+int get_sfp_tether_scheme(void)
+{
+	return sysctl_net_sfp_tether_scheme;
+}
+EXPORT_SYMBOL(get_sfp_tether_scheme);
+
 static int sfp_net_tether_scheme_proc_show(struct seq_file *seq, void *v)
 {
-	seq_printf(seq, "tether scheme: %d\n", get_sfp_tether_scheme());
+	seq_puts(seq, sysctl_net_sfp_tether_scheme ? "1\n" : "0\n");
 	return 0;
 }
 
@@ -517,19 +523,17 @@ static ssize_t sfp_net_tether_scheme_proc_write(struct file *file,
 						loff_t *pos)
 {
 	char mode;
+	int status = 0;
 
 	if (count > 0) {
 		if (get_user(mode, buffer))
 			return -EFAULT;
 
-		if (mode == '0')
-			set_sfp_tether_scheme(SFP_HARD_PATH);
-		else if (mode == '1')
-			set_sfp_tether_scheme(SFP_SOFT_PATH);
-		else if (mode == '2')
-			set_sfp_tether_scheme(SFP_HALF_PATH);
-		else
-			FP_PRT_DBG(FP_PRT_ERR, "unsupport tether scheme\n");
+		status = (mode != '0');
+		if (status == 1 && sysctl_net_sfp_tether_scheme == 0)
+			sysctl_net_sfp_tether_scheme = 1;
+		else if (status == 0 && sysctl_net_sfp_tether_scheme == 1)
+			sysctl_net_sfp_tether_scheme = 0;
 	}
 	return count;
 }
@@ -605,11 +609,8 @@ static int sfp_ipa_proc_show(struct seq_file *seq, void *v)
 	int i;
 	u8 *v_hash;
 	struct fwd_entry *cur_entry;
-	int cur_tether_scheme;
 
-	cur_tether_scheme = get_sfp_tether_scheme();
-
-	if (cur_tether_scheme == SFP_HARD_PATH || cur_tether_scheme == SFP_HALF_PATH) {
+	if (!get_sfp_tether_scheme()) {
 		seq_printf(seq, "T0: entry_cnt %d\n",
 			   atomic_read(&fwd_tbl.entry_cnt));
 

@@ -27,7 +27,6 @@
 #include "sfp.h"
 #include "sfp_hash.h"
 
-#define SFP_SPECIAL_TTL_MINUS 2
 #define DEFAULT_BUFFER_PREFIX_OFFSET 14
 
 unsigned int sfp_stats_bytes;
@@ -334,20 +333,13 @@ static bool sfp_update_pkt_header(int ifindex,
 		iphhdr = (struct iphdr *)l3data;
 		iphhdr->daddr = ret_info.trans_info.dst_ip.ip;
 		iphhdr->saddr = ret_info.trans_info.src_ip.ip;
-		/* make it special, easy to distinguish */
-		if (iphhdr->ttl > SFP_SPECIAL_TTL_MINUS)
-			iphhdr->ttl -= SFP_SPECIAL_TTL_MINUS;
-		else
-			iphhdr->ttl--;
+		iphhdr->ttl--;
 		ip_send_check(iphhdr);
 		peth->h_proto = htons(ETH_P_IP);
 		break;
 	case NFPROTO_IPV6:
 		ip6hdr = (struct ipv6hdr *)l3data;
-		if (ip6hdr->hop_limit > SFP_SPECIAL_TTL_MINUS)
-			ip6hdr->hop_limit -= SFP_SPECIAL_TTL_MINUS;
-		else
-			ip6hdr->hop_limit--;
+		ip6hdr->hop_limit--;
 		peth->h_proto = htons(ETH_P_IPV6);
 		break;
 	default:
