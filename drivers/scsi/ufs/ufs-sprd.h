@@ -27,8 +27,13 @@ struct syscon_ufs {
 #define AUTO_H8_IDLE_TIME_10MS 0x1001
 
 #define UFSHCI_VERSION_30	0x00000300 /* 3.0 */
+#define UFSHCI_VERSION_21	0x00000210 /* 2.1 */
 
 int ufs_sprd_get_syscon_reg(struct device_node *np,
 			    struct syscon_ufs *reg, const char *name);
+
+extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops;
+extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops;
+extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9230_vops;
 
 #endif/* _UFS_SPRD_H_ */
