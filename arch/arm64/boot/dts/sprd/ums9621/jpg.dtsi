@@ -12,7 +12,8 @@
 		interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
 		reset-syscon = <&mm_ahb_regs
 			REG_CAMERASYS_GLB_SYS_SOFT_RST
-			MASK_CAMERASYS_GLB_JPG_SOFT_RST>;
+			(MASK_CAMERASYS_GLB_JPG_SOFT_RST |
+			MASK_CAMERASYS_GLB_JPG_VAU_SOFT_RST)>;
 		aon-apb-eb-syscon = <&aon_apb_regs
 			REG_AON_APB_APB_EB0
 			MASK_AON_APB_MM_EB>;
