@@ -2191,6 +2191,8 @@ static int mmc_rescan_try_freq(struct mmc_host *host, unsigned freq)
 
 	mmc_power_up(host, host->ocr_avail);
 
+	if (!(host->caps2 & MMC_CAP2_NO_SD)) msleep(2000);
+
 	/*
 	 * Some eMMCs (with VCCQ always on) may not be reset after power up, so
 	 * do a hardware reset if possible.
