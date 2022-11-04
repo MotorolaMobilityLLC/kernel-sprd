@@ -3,22 +3,14 @@
  * Copyright (C) 2020, Unisoc Inc.
  */
 
-/ {
-reserved_memory: reserved-memory {
+#include "modem-4g-common.dtsi"
 
-	#address-cells = <2>;
-	#size-cells = <2>;
-	ranges;
-
-	ddrbist_reserved: ddrbist-mem@0x80000000 {
-		reg = <0x0 0x80000000 0x0 0x00001000>;
+&reserved_memory {
+	wcn_reserved: wcn-mem@87000000 {
+		reg = <0x0 0x87000000 0x0 0x00800000>;
 	};
 
-	sysdump_reserved: sysdumpinfo-mem@80001000 {
-		reg = <0x0 0x80001000 0x0 0x00001000>;
-	};
-
-	sp_ddr_reserved: sp-ddr-mem@88000000 {
+	sp_ddr_reserved: sp_ddr-mem@88000000 {
 		reg = <0x0 0x88000000 0x0 0x00300000>;
 	};
 
@@ -26,70 +18,7 @@ reserved_memory: reserved-memory {
 		reg = <0x0 0x89000000 0x0 0x00600000>;
 	};
 
-	cp_reserved: cp-modem@89600000 {
-		reg = <0x0 0x89600000 0x0 0x04900000>;
-	};
-
-	/* must be 64M aligned */
-	smem_reserved: sipc-mem@8e000000{
-		reg = <0x0 0x8e000000 0x0 0x00900000>;
-	};
-
-	/* Only used for iq, will be removed in normal mode by uboot */
-	iq_reserved: iq-mem@90000000{
-		compatible = "sprd,iq-mem";
-		reg = <0x0 0x90000000 0x0 0x4000000>;
-	};
-
 	audio_reserved: audio-mem@94100000 {
 		reg = <0x0 0x94100000 0x0 0x00300000>;
 	};
-
-	/* The uboot_log_reserved node is added in uboot. base:0x9de8 0000, size:0x80000 */
-	uboot_log_reserved: uboot_log-mem {
-		reg = <0x0 0x9de80000 0x0 0x00080000>;
-	};
-
-	/* Only for userdebug, will be removed in user mode by uboot */
-	uboot_reserved: sysdump-uboot@9f000000 {
-		reg = <0x0 0x9f000000 0x0 0x01000000>;
-	};
-
-	sml_reserved: sml-mem@b0000000 {
-	/* the reg valus may be not accurate,
-	 * they have been fixed in uboot !!!
-	 */
-		reg = <0x0 0xb0000000 0x0 0x00040000>;
-	};
-
-	tos_reserved: tos-mem@b0040000 {
-	/* the reg valus may be not accurate,
-	 * they have been fixed in uboot !!!
-	 */
-		reg = <0x0 0xb0040000 0x0 0x05fc0000>;
-	};
-
-	tos_shm_reserved: sh-mem@b6000000{
-		reg = <0x0 0xb6000000 0x0 0x00100000>;
-	};
-
-	cma_reserved: cma_share@f00000000 {
-		compatible = "shared-dma-pool";
-		reg = <0x0 0xf0000000 0x0 0x03000000>;
-		reusable;
-		linux,cma-default;
-	};
-
-	rebootescrow@0xfff70000 {
-		no-map;
-		reg = <0x0 0xfff70000 0x0 0x00010000>; /* 64K */
-	};
-
-	pstore_reserved: ramoops@fff80000 {
-		compatible = "ramoops";
-		reg = <0x0 0xfff80000 0x0 0x00040000>;
-		record-size = <0x8000>;
-		console-size = <0x8000>;
-		pmsg-size = <0x8000>;
-	};
-};};
+};

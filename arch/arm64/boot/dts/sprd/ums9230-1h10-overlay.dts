@@ -13,6 +13,7 @@
 #include "touchscreen/ums9230-spi3-gpio144-145-tp.dtsi"
 #include "battery/ums9230-1h10-overlay.dtsi"
 #include "wcn/wcn-integrate-ums2631-register.dtsi"
+#include "reserved-memory/ums9230-1h10-overlay.dtsi"
 
 / {
 
@@ -184,30 +185,6 @@
 
 &chosen {
 	bootargs_ext = "androidboot.hardware=ums9230_1h10 androidboot.dtbo_idx=0";
-};
-
-&reserved_memory {
-	#address-cells = <2>;
-	#size-cells = <2>;
-	wcn_reserved: wcn-mem@87000000 {
-		reg = <0x0 0x87000000 0x0 0x00800000>;
-	};
-
-	logo_reserved: logobuffer@9e000000{
-		reg = <0x0 0x9e000000 0x0 0x00ab0000>;
-	};
-	/* Encrypt and decrypt widevine video */
-	oemcrypto_reserved: oemcrypto@b6100000 {
-		reg = <0x0 0xb6100000 0x0 0x01100000>;
-	};
-
-	widevine_reserved: widevine@e4c00000 {
-		reg = <0x0 0xe4c00000 0x0 0x0b400000>;
-	};
-
-	fd_reserved: faceid-mem@ffa70000 {
-		reg = <0x0 0xffa70000 0x0 0x00500000>;
-	};
 };
 
 &thm_zone {
