@@ -96,7 +96,6 @@
 #define SC27XX_FGU_DEFAULT_CAP		GENMASK(11, 0)
 #define SC27XX_FGU_NORMAL_POWERON	0x5
 #define SC27XX_FGU_RTC2_RESET_VALUE	0xA05
-#define SC27XX_FGU_NORMAL_TO_FIRST_POWERON	0xA
 
 #define SC27XX_FGU_CUR_BASIC_ADC	8192
 #define SC27XX_FGU_POCV_VOLT_THRESHOLD	3400
@@ -1207,8 +1206,7 @@ static bool sc27xx_fgu_is_first_poweron(struct sc27xx_fgu_data *data)
 	 * default value (0xffff), which can be used to valid if the system is
 	 * first power on or not.
 	 */
-	if (mode == SC27XX_FGU_FIRST_POWERON || cap == SC27XX_FGU_DEFAULT_CAP ||
-	    mode == SC27XX_FGU_NORMAL_TO_FIRST_POWERON)
+	if (mode == SC27XX_FGU_FIRST_POWERON || cap == SC27XX_FGU_DEFAULT_CAP)
 		return true;
 
 	return false;
