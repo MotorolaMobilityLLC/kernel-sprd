@@ -74,8 +74,8 @@ struct mmc_debug_info {
 	u32 arg;
 	u32 blocks;
 	u32 cnt_time;
-	u32 read_total_blocks;
-	u32 write_total_blocks;
+	u64 read_total_blocks;
+	u64 write_total_blocks;
 	struct mmc_request *mrq;
 	ktime_t start_time;
 	ktime_t end_time;
@@ -98,8 +98,8 @@ static struct mmc_debug_info mmc_debug[3] = {
 
 void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host)
 {
-	u32 read_speed = 0;
-	u32 write_speed = 0;
+	u64 read_speed = 0;
+	u64 write_speed = 0;
 #if IS_ENABLED(CONFIG_MMC_SWCQ)
 	bool flag = true;
 #endif
@@ -115,7 +115,7 @@ void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host)
 		rq_log(info->cmd_2_end, "|__c2e%9s", info->name);
 		rq_log(info->data_2_end, "|__d2e%9s", info->name);
 		rq_log(info->block_len, "|__blocks%6s", info->name);
-		pr_info("|__speed%7s: read= %d.%d M/s, write= %d.%d M/s, r_blk= %d, w_blk= %d\n",
+		pr_info("|__speed%7s: r= %lld.%lld M/s, w= %lld.%lld M/s, r_blk= %d, w_blk= %d\n",
 			info->name, read_speed / 100, read_speed % 100, write_speed / 100,
 			write_speed % 100, info->read_total_blocks, info->write_total_blocks);
 #if IS_ENABLED(CONFIG_MMC_SWCQ)

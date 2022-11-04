@@ -215,11 +215,11 @@ void dump_cmd_history(struct mmc_swcq *swcq)
 		if (swcq->cmd_history[j].time_sec == 0)
 			continue;
 
-		pr_info("[%d] time_sec:%lld time_usec:%lld type:%d CMD%d arg:0x%x, "
+		pr_info("[%d] time_sec:%lld time_usec:%lld type:%d CMD%d arg:0x%x blk:%d "
 			"skip:%d pid:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x tsk_idx:0x%x",
 			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
-			swcq->cmd_history[j].type,
-			swcq->cmd_history[j].cmd, swcq->cmd_history[j].arg,
+			swcq->cmd_history[j].type, swcq->cmd_history[j].cmd,
+			swcq->cmd_history[j].arg, swcq->cmd_history[j].blocks,
 			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
 			swcq->cmd_history[j].mrq, swcq->cmd_history[j].qcnt,
 			swcq->cmd_history[j].cmdq_cnt, swcq->cmd_history[j].flags,
@@ -1680,7 +1680,7 @@ static bool mmc_swcq_is_busy(struct mmc_host *mmc)
 	bool busy;
 
 	if (!swcq->cmdq_support || !swcq->cmdq_mode)
-		busy = mq ? (mq->in_flight[MMC_ISSUE_ASYNC] > 2) : false;
+		busy = mq ? (mq->in_flight[MMC_ISSUE_ASYNC] > 3) : false;
 	else
 		busy = mq ? (mq->in_flight[MMC_ISSUE_ASYNC] >
 			(swcq->cmdq_depth - 4)) : false;
