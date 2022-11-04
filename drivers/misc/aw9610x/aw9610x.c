@@ -51,6 +51,8 @@
 #define USB_POWER_SUPPLY_NAME   "usb"
 #endif
 #endif
+static uint32_t suspend_flag = 0;
+static struct completion pm_completion;
 
 static uint32_t attr_buf[] = {
 	8, 10,
@@ -1520,7 +1522,16 @@ static void aw9610x_interrupt_clear(struct aw9610x *aw9610x)
 {
 	int32_t ret = 0;
 
-	AWLOGD(aw9610x->dev, "enter");
+	AWLOGD(aw9610x->dev, "enter suspend_flag = %d", suspend_flag);
+
+	if( suspend_flag == 1 ) {
+			AWLOGI(aw9610x->dev, "suspend_flag 0 wait for completed");
+				/* Waiting for pm resume completed */
+			ret = wait_for_completion_timeout(&pm_completion, msecs_to_jiffies(700));
+			if (!ret) {
+				AWLOGE(aw9610x->dev, "system(spi) can't finished resuming procedure.");
+			}
+	}
 
 	ret = aw9610x_i2c_read(aw9610x, REG_IRQSRC, &aw9610x->irq_status);
 	if (ret < 0) {
@@ -2037,6 +2048,9 @@ aw9610x_i2c_probe(struct i2c_client *i2c, const struct i2c_device_id *id)
 		goto err_malloc;
 	}
 
+	suspend_flag = 0;
+	init_completion(&pm_completion);
+
 	aw9610x_i2c_set(i2c, aw9610x);
 
 #ifdef AW_POWER_ON
@@ -2201,8 +2215,9 @@ static int aw9610x_suspend(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct aw9610x *aw9610x = i2c_get_clientdata(client);
-
-	AWLOGD(aw9610x->dev, "suspend enter");
+	suspend_flag = 1;
+	reinit_completion(&pm_completion);
+	AWLOGD(aw9610x->dev, "suspend enter, suspend_flag = %d", suspend_flag);
 
 	return 0;
 }
@@ -2211,8 +2226,9 @@ static int aw9610x_resume(struct device *dev)
 {
 	struct i2c_client *client = to_i2c_client(dev);
 	struct aw9610x *aw9610x = i2c_get_clientdata(client);
-
-	AWLOGD(aw9610x->dev, "resume enter");
+	suspend_flag = 0;
+	complete(&pm_completion);
+	AWLOGD(aw9610x->dev, "resume enter, suspend_flag = %d", suspend_flag);
 
 	return 0;
 }
