@@ -109,14 +109,52 @@ struct sk_buff *sipa_find_sent_skb(dma_addr_t addr)
 }
 EXPORT_SYMBOL(sipa_find_sent_skb);
 
+static bool sipa_do_free_skb(struct sipa_node_desc_tag *node)
+{
+	int retry_cnt = 10;
+	unsigned long flags;
+	struct sipa_skb_dma_addr_pair *iter, *_iter;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	struct sipa_skb_sender *sender = ipa->sender;
+
+	spin_lock_irqsave(&sender->send_lock, flags);
+
+check_again:
+	list_for_each_entry_safe(iter, _iter,
+				 &sender->sending_list, list) {
+		if (iter->dma_addr == node->address) {
+			list_del(&iter->list);
+			list_add_tail(&iter->list,
+				      &sender->pair_free_list);
+
+			if (iter->need_unmap) {
+				iter->need_unmap = false;
+				dma_unmap_single(sender->dev, iter->dma_addr,
+						 iter->skb->len +
+						 skb_headroom(iter->skb),
+						 DMA_TO_DEVICE);
+			}
+			dev_kfree_skb_any(iter->skb);
+			spin_unlock_irqrestore(&sender->send_lock, flags);
+
+			return true;
+		}
+	}
+
+	if (retry_cnt-- != 0)
+		goto check_again;
+
+	spin_unlock_irqrestore(&sender->send_lock, flags);
+
+	return false;
+}
+
 static void sipa_free_sent_items(void)
 {
-	bool status = false;
-	unsigned long flags;
-	u32 i, num = 0, success_cnt = 0, retry_cnt = 10;
+	u32 i, num = 0, success_cnt = 0;
+	int ret;
 	struct sipa_node_desc_tag *node = NULL;
 	struct sipa_skb_sender *sender;
-	struct sipa_skb_dma_addr_pair *iter, *_iter;
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
 	if (!ipa)
@@ -126,70 +164,32 @@ static void sipa_free_sent_items(void)
 	sipa_hal_cmn_fifo_get_filled_depth(sender->dev,
 					   sender->ep->send_fifo.idx,
 					   NULL, &num);
-	if (!num)
+	if (!num || list_empty(&sender->sending_list))
 		return;
 
 	sipa_hal_sync_node_from_tx_fifo(sender->dev,
 					sender->ep->send_fifo.idx, num);
+
 	for (i = 0; i < num; i++) {
 		node = sipa_hal_get_tx_node_rptr(sender->dev,
 						 sender->ep->send_fifo.idx, i);
-
 		if (!node) {
 			dev_err(sender->dev, "sender node is null\n");
-			sipa_hal_add_tx_fifo_rptr(sender->dev,
-						  sender->ep->send_fifo.idx,
-						  1);
 			return;
 		}
 
-		while (!node->address && retry_cnt--)
-			udelay(1);
-
-		if (node->err_code || !retry_cnt)
-			dev_err(sender->dev,
-				"node->address = 0x%llx, have node transfer err = %d retry_cnt = %d\n",
-				(u64)node->address, node->err_code, retry_cnt);
-
-		retry_cnt = 10;
-check_again:
-		spin_lock_irqsave(&sender->send_lock, flags);
-		if (list_empty(&sender->sending_list)) {
-			dev_err(sender->dev,
-				"fifo id %d: send list is empty i = %d num = %d\n",
-				sender->ep->send_fifo.idx, i, num);
-			spin_unlock_irqrestore(&sender->send_lock, flags);
-			continue;
-		}
-
-		list_for_each_entry_safe(iter, _iter,
-					 &sender->sending_list, list) {
-			if (iter->dma_addr == node->address) {
-				list_del(&iter->list);
-				list_add_tail(&iter->list,
-					      &sender->pair_free_list);
-				status = true;
-				break;
-			}
-		}
-		spin_unlock_irqrestore(&sender->send_lock, flags);
-		if (status) {
-			if (iter->need_unmap) {
-				iter->need_unmap = false;
-				dma_unmap_single(sender->dev, iter->dma_addr,
-						 iter->skb->len +
-						 skb_headroom(iter->skb),
-						 DMA_TO_DEVICE);
-			}
-
-			dev_kfree_skb_any(iter->skb);
+		ret = sipa_do_free_skb(node);
+		if (ret)
 			success_cnt++;
-			status = false;
-		} else if (!status && retry_cnt--) {
-			udelay(1);
-			goto check_again;
-		}
+		else
+			break;
 	}
+
+	if (success_cnt != num)
+		dev_err(sender->dev,
+			"skb can not free, recv num = %d release num = %d\n",
+			num, success_cnt);
+
 	sipa_hal_add_tx_fifo_rptr(sender->dev,
 				  sender->ep->send_fifo.idx, num);
 	atomic_add(success_cnt, &sender->left_cnt);
@@ -199,10 +199,6 @@ check_again:
 		sender->free_notify_net = false;
 		sipa_inform_evt_to_nics(sender, SIPA_LEAVE_FLOWCTRL);
 	}
-	if (num != success_cnt || i != num)
-		dev_err(sender->dev,
-			"i = %d recv num = %d release num = %d\n",
-			i, num, success_cnt);
 }
 
 static bool sipa_sender_ck_unfree(struct sipa_skb_sender *sender)
