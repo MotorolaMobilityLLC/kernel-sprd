@@ -295,7 +295,7 @@
 			};
 
 			ufs: ufs@20200000 {
-				compatible  = "sprd,ufshc";
+				compatible  = "sprd,ufshc-ums9230";
 				vcc-supply = <&vddemmccore>;
 				vcc-fixed-regulator;
 				clock-names = "ufs_reg_eb", "ufs_en",
