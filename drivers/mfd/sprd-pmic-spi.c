@@ -300,7 +300,7 @@ static int sprd_pmic_probe(struct spi_device *spi)
 	ddata->pdata = pdata;
 
 	if (pdata->irq_base) {
-		sprd_pmicint_buf = devm_kzalloc(&spi->dev, sizeof(*sprd_pmicint_buf),
+		sprd_pmicint_buf = devm_kzalloc(&spi->dev, SPRD_PRINT_BUF_LEN,
 				GFP_KERNEL);
 		if (!sprd_pmicint_buf)
 			ret = -ENOMEM;
