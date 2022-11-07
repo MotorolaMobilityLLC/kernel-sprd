@@ -78,6 +78,8 @@ static void walt_rt_filter_energy_cpu(void *data, struct task_struct *task,
 	if (!ret)
 		return; /* No targets found */
 
+	cpumask_and(lowest_mask, lowest_mask, cpu_active_mask);
+
 	/* fast path for prev_cpu */
 	if (cpumask_test_cpu(prev_cpu, lowest_mask) && is_idle_cpu(prev_cpu) &&
 	    is_min_capacity_cpu(prev_cpu)) {
@@ -85,7 +87,7 @@ static void walt_rt_filter_energy_cpu(void *data, struct task_struct *task,
 		return;
 	}
 
-	for_each_cpu_and(cpu, lowest_mask, cpu_online_mask) {
+	for_each_cpu(cpu, lowest_mask) {
 		unsigned long cpu_util;
 		unsigned long cpu_cap;
 		unsigned int idle_exit_latency;

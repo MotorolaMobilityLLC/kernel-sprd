@@ -1366,6 +1366,19 @@ static void android_rvh_schedule(void *data, struct task_struct *prev,
 		walt_update_task_ravg(prev, rq, TASK_UPDATE, wallclock, 0);
 	}
 }
+static void android_rvh_rto_next_cpu(void *data, int rto_cpu,
+					struct cpumask *rto_mask, int *cpu)
+{
+	struct cpumask tmp_cpumask;
+	int curr_cpu = smp_processor_id();
+
+	cpumask_and(&tmp_cpumask, rto_mask, cpu_active_mask);
+
+	if (rto_cpu == -1 && cpumask_weight(&tmp_cpumask) == 1 &&
+			     cpumask_test_cpu(curr_cpu, &tmp_cpumask))
+		*cpu = -1;
+
+}
 
 static void walt_effective_cpu_util(void *data, int cpu, unsigned long util_cfs,
 				    unsigned long max, int type,
@@ -1508,6 +1521,8 @@ static __init int walt_module_init(void)
 	UNI_VENDOR_DATA_TEST(struct uni_task_struct, struct task_struct);
 	UNI_VENDOR_DATA_TEST(struct uni_rq, struct rq);
 	UNI_VENDOR_DATA_TEST(struct uni_task_group, struct task_group);
+
+	register_trace_android_rvh_rto_next_cpu(android_rvh_rto_next_cpu, NULL);
 
 	register_trace_android_vh_update_topology_flags_workfn(
 			android_vh_update_topology_flags_workfn, NULL);

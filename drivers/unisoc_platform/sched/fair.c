@@ -523,7 +523,7 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 		unsigned long base_energy_pd;
 		int max_spare_cap_cpu = -1;
 
-		cpumask_and(&cpus, perf_domain_span(pd), cpu_online_mask);
+		cpumask_and(&cpus, perf_domain_span(pd), cpu_active_mask);
 
 		if (cpumask_empty(&cpus))
 			continue;
