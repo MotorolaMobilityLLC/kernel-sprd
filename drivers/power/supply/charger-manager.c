@@ -55,27 +55,35 @@
 #define CM_CAPACITY_LEVEL_NORMAL		85
 #define CM_CAPACITY_LEVEL_FULL			100
 #define CM_CAPACITY_LEVEL_CRITICAL_VOLTAGE	3200000
-#define CM_FAST_CHARGE_ENABLE_BATTERY_VOLTAGE	3400000
+
+/* Fast charge public parameters */
 #define CM_FAST_CHARGE_ENABLE_CURRENT		1200000
 #define CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT	1000000
-#define CM_FAST_CHARGE_DISABLE_BATTERY_VOLTAGE	3400000
-#define CM_FAST_CHARGE_DISABLE_CURRENT		1000000
-#define CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A	1500000
 #define CM_FAST_CHARGE_CURRENT_2A		2000000
 #define CM_FAST_CHARGE_VOLTAGE_20V		20000000
 #define CM_FAST_CHARGE_VOLTAGE_15V		15000000
 #define CM_FAST_CHARGE_VOLTAGE_12V		12000000
 #define CM_FAST_CHARGE_VOLTAGE_9V		9000000
 #define CM_FAST_CHARGE_VOLTAGE_5V		5000000
-#define CM_FAST_CHARGE_VOLTAGE_5V_THRESHOLD	6500000
 #define CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD	3520000
 #define CM_FAST_CHARGE_START_VOLTAGE_HTHRESHOLD	4200000
-#define CM_FAST_CHARGE_ENABLE_COUNT		3
-#define CM_FAST_CHARGE_DISABLE_COUNT		2
 
+/* Fixed fast charge parameters */
+#define CM_FIXED_FCHG_DISABLE_BATTERY_VOLTAGE	3400000
+#define CM_FIXED_FCHG_DISABLE_CURRENT		1000000
+#define CM_FIXED_FCHG_TRANSITION_CURRENT_1P5A	1500000
+#define CM_FIXED_FCHG_VOLTAGE_5V_THRESHOLD	6500000
+#define CM_FIXED_FCHG_ENABLE_COUNT		3
+#define CM_FIXED_FCHG_DISABLE_COUNT		2
+#define CM_FIXED_FCHG_CHK_DIS_WORK_MS		5000
+#define CM_FIXED_FCHG_TRY_DIS_WORK_MS		100
+
+/* Dynamic fast charge parameters */
 #define CM_CP_VSTEP				20000
 #define CM_CP_ISTEP				50000
 #define CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT	20
+#define CM_CP_TAPER_DELTA_VBAT_THRESHOLD	50000
+#define CM_CP_TAPER_UCP_THRESHOLD		5
 #define CM_CP_IBAT_UCP_THRESHOLD		8
 #define CM_CP_ADJUST_VOLTAGE_THRESHOLD		(5 * 1000 / CM_CP_WORK_TIME_MS)
 #define CM_CP_ACC_VBAT_HTHRESHOLD		3850000
@@ -104,8 +112,6 @@
 #define CM_IR_COMPENSATION_TIME			3
 
 #define CM_CP_WORK_TIME_MS			500
-#define CM_CHK_DIS_FCHG_WORK_MS			5000
-#define CM_TRY_DIS_FCHG_WORK_MS			100
 #define MAX_STATE                               1
 
 #define CM_CAP_ONE_TIME_24S			24
@@ -645,7 +651,7 @@ static int get_ibat_now_uA(struct charger_manager *cm, int *uA)
 	if (!fuel_gauge)
 		return -ENODEV;
 
-	val.intval = CM_IBAT_CURRENT_NOW_CMD;
+	val.intval = 0;
 	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CURRENT_NOW, &val);
 	power_supply_put(fuel_gauge);
 	if (ret)
@@ -1907,7 +1913,7 @@ static void cm_sprd_vote_callback(struct sprd_vote *vote_gov, int vote_type,
 	}
 }
 
-static int cm_get_adapter_max_voltage(struct charger_manager *cm, int *max_vol)
+static int cm_get_fchg_adapter_max_voltage(struct charger_manager *cm, int *max_vol)
 {
 	int ret;
 
@@ -1925,7 +1931,7 @@ static int cm_get_adapter_max_voltage(struct charger_manager *cm, int *max_vol)
 	return ret;
 }
 
-static int cm_get_adapter_max_current(struct charger_manager *cm, int input_vol, int *max_cur)
+static int cm_get_fchg_adapter_max_current(struct charger_manager *cm, int input_vol, int *max_cur)
 {
 	int ret;
 
@@ -2033,8 +2039,28 @@ static int cm_adjust_fchg_voltage(struct charger_manager *cm, int vol)
 
 static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 {
-	int batt_ocv, batt_uA, fchg_ocv_threshold, thm_cur;
+	int ret, adapter_max_vbus, batt_ocv, batt_uA, fchg_ocv_threshold, thm_cur;
 	int cur_jeita_status, target_cur;
+
+	/*
+	 * Eg: Failure to obtain the voltage of the charging device for
+	 *     the first time when the charging type changes.
+	 */
+	if (cm->desc->adapter_max_vbus == 0) {
+		ret = cm_get_fchg_adapter_max_voltage(cm, &adapter_max_vbus);
+		if (ret) {
+			dev_err(cm->dev, "%s, failed to obtain the adapter max voltage, ret=%d\n",
+				__func__, ret);
+			return false;
+		}
+
+		cm->desc->adapter_max_vbus = adapter_max_vbus;
+	}
+
+	if (cm->desc->adapter_max_vbus <= CM_PPS_5V_PROG_MAX) {
+		dev_dbg(cm->dev, "no need to require voltage, %d\n", cm->desc->adapter_max_vbus);
+		return false;
+	}
 
 	if (get_batt_ocv(cm, &batt_ocv)) {
 		dev_err(cm->dev, "get_batt_ocv error.\n");
@@ -2107,22 +2133,6 @@ static int cm_fixed_fchg_enable(struct charger_manager *cm)
 		return 0;
 	}
 
-	if (cm->desc->adapter_max_vbus == CM_FAST_CHARGE_VOLTAGE_5V) {
-		dev_dbg(cm->dev, "no need to require voltage, %d\n", cm->desc->adapter_max_vbus);
-		return 0;
-	}
-
-	ret = cm_get_adapter_max_voltage(cm, &adapter_max_vbus);
-	if (ret) {
-		dev_err(cm->dev, "failed to obtain the adapter max voltage\n");
-		return ret;
-	}
-
-	if (adapter_max_vbus == CM_FAST_CHARGE_VOLTAGE_5V) {
-		cm->desc->adapter_max_vbus = adapter_max_vbus;
-		return 0;
-	}
-
 	/*
 	 * cm->desc->enable_fast_charge should be set to true when the transient
 	 * current is voting, otherwise the current of the parallel charging
@@ -2136,7 +2146,7 @@ static int cm_fixed_fchg_enable(struct charger_manager *cm)
 	cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
 				 SPRD_VOTE_TYPE_IBUS,
 				 SPRD_VOTE_TYPE_IBUS_ID_FCHG_FIXED_TRANSITION,
-				 SPRD_VOTE_CMD_MIN, CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A, cm);
+				 SPRD_VOTE_CMD_MIN, CM_FIXED_FCHG_TRANSITION_CURRENT_1P5A, cm);
 
 	cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
 				   CM_CHARGE_INFO_INPUT_LIMIT |
@@ -2159,6 +2169,11 @@ static int cm_fixed_fchg_enable(struct charger_manager *cm)
 	/*
 	 * adjust fast charger output voltage from 5V to 9V
 	 */
+	ret = cm_get_fchg_adapter_max_voltage(cm, &adapter_max_vbus);
+	if (ret) {
+		dev_err(cm->dev, "failed to obtain the adapter max voltage\n");
+		goto ovp_err;
+	}
 
 	if (adapter_max_vbus > CM_FAST_CHARGE_VOLTAGE_9V)
 		adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_9V;
@@ -2194,7 +2209,7 @@ out:
 	cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
 				 SPRD_VOTE_TYPE_IBUS,
 				 SPRD_VOTE_TYPE_IBUS_ID_FCHG_FIXED_TRANSITION,
-				 SPRD_VOTE_CMD_MIN, CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A, cm);
+				 SPRD_VOTE_CMD_MIN, CM_FIXED_FCHG_TRANSITION_CURRENT_1P5A, cm);
 	return ret;
 }
 
@@ -2214,7 +2229,7 @@ static int cm_fixed_fchg_disable(struct charger_manager *cm)
 	cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
 				 SPRD_VOTE_TYPE_IBUS,
 				 SPRD_VOTE_TYPE_IBUS_ID_FCHG_FIXED_TRANSITION,
-				 SPRD_VOTE_CMD_MIN, CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A, cm);
+				 SPRD_VOTE_CMD_MIN, CM_FIXED_FCHG_TRANSITION_CURRENT_1P5A, cm);
 
 	/*
 	 * If defined psy_charger_stat[1], then disable the second
@@ -2279,7 +2294,7 @@ out:
 	cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
 				 SPRD_VOTE_TYPE_IBUS,
 				 SPRD_VOTE_TYPE_IBUS_ID_FCHG_FIXED_TRANSITION,
-				 SPRD_VOTE_CMD_MIN, CM_FAST_CHARGE_TRANSITION_CURRENT_1P5A, cm);
+				 SPRD_VOTE_CMD_MIN, CM_FIXED_FCHG_TRANSITION_CURRENT_1P5A, cm);
 	return ret;
 }
 
@@ -2307,17 +2322,17 @@ static bool cm_is_disable_fixed_fchg_check(struct charger_manager *cm, int *dela
 	if (ret)
 		dev_err(cm->dev, "%s, get chg_vol error, ret=%d\n", __func__, ret);
 
-	if (batt_uV < CM_FAST_CHARGE_DISABLE_BATTERY_VOLTAGE ||
-	    batt_uA < CM_FAST_CHARGE_DISABLE_CURRENT ||
-	    (!ret && chg_vol < CM_FAST_CHARGE_VOLTAGE_5V_THRESHOLD)) {
+	if (batt_uV < CM_FIXED_FCHG_DISABLE_BATTERY_VOLTAGE ||
+	    batt_uA < CM_FIXED_FCHG_DISABLE_CURRENT ||
+	    (!ret && chg_vol < CM_FIXED_FCHG_VOLTAGE_5V_THRESHOLD)) {
 		cm->desc->fast_charge_disable_count++;
-		*delay_work_ms = CM_CHK_DIS_FCHG_WORK_MS;
-		pm_wakeup_event(cm->dev, CM_CHK_DIS_FCHG_WORK_MS + 500);
+		*delay_work_ms = CM_FIXED_FCHG_CHK_DIS_WORK_MS;
+		pm_wakeup_event(cm->dev, CM_FIXED_FCHG_CHK_DIS_WORK_MS + 500);
 	} else {
 		cm->desc->fast_charge_disable_count = 0;
 	}
 
-	if (cm->desc->fast_charge_disable_count < CM_FAST_CHARGE_DISABLE_COUNT)
+	if (cm->desc->fast_charge_disable_count < CM_FIXED_FCHG_DISABLE_COUNT)
 		return false;
 
 	dev_info(cm->dev, "%s, vbat: %d, ibat: %d, vbus: %d, exit fixed fchg\n",
@@ -2510,7 +2525,7 @@ static void cm_fixed_fchg_work(struct work_struct *work)
 
 	/*
 	 * Effects:
-	 *   1. Prevent CM_FAST_CHARGE_ENABLE_COUNT from becoming PPS
+	 *   1. Prevent CM_FIXED_FCHG_ENABLE_COUNT from becoming PPS
 	 *      within the time and enable the fast charge status.
 	 */
 	if (!cm->charger_enabled || cm->desc->fast_charger_type != CM_CHARGER_TYPE_FAST)
@@ -2521,7 +2536,7 @@ static void cm_fixed_fchg_work(struct work_struct *work)
 	 *                      charger PD2.0 and PPS follow closely.
 	 */
 	if (cm->desc->fast_charger_type == CM_CHARGER_TYPE_FAST &&
-	    cm->desc->fast_charge_enable_count < CM_FAST_CHARGE_ENABLE_COUNT) {
+	    cm->desc->fast_charge_enable_count < CM_FIXED_FCHG_ENABLE_COUNT) {
 		cm->desc->fast_charge_enable_count++;
 		delay_work_ms = CM_CP_WORK_TIME_MS;
 	} else if (cm->desc->enable_fast_charge) {
@@ -2545,7 +2560,7 @@ stop_fixed_fchg:
 	if (ret) {
 		dev_err(cm->dev, "%s, failed to disable fixed fchg, try again!\n", __func__);
 		schedule_delayed_work(&cm->fixed_fchg_work,
-				      msecs_to_jiffies(CM_TRY_DIS_FCHG_WORK_MS));
+				      msecs_to_jiffies(CM_FIXED_FCHG_TRY_DIS_WORK_MS));
 		return;
 	}
 	cm->desc->fixed_fchg_running = false;
@@ -3086,7 +3101,32 @@ static int cm_cp_ibus_step_algo(struct charger_manager *cm)
 	return ibus_step;
 }
 
-static bool cm_cp_tune_algo(struct charger_manager *cm)
+static bool cm_cp_is_taper_done(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	bool is_taper_done = false;
+
+	/* check taper done*/
+	if (cp->vbat_uV >= cp->cp_target_vbat - CM_CP_TAPER_DELTA_VBAT_THRESHOLD) {
+		if (cp->ibat_uA < cp->cp_taper_current) {
+			if (cp->cp_taper_trigger_cnt++ > CM_CP_TAPER_UCP_THRESHOLD) {
+				is_taper_done = true;
+				cp->cp_taper_trigger_cnt = 0;
+				dev_info(cm->dev, "%s, vbatt = %duV, cp_target_vbat = %duV, cp_taper_trigger_cnt=%d\n",
+					 __func__, cp->vbat_uV, cp->cp_target_vbat,
+					 cp->cp_taper_trigger_cnt);
+				return is_taper_done;
+			}
+		} else {
+			cp->cp_taper_trigger_cnt = 0;
+		}
+	}
+
+	return is_taper_done;
+}
+
+static void cm_cp_tune_algo(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 
@@ -3095,20 +3135,6 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 	int vbus_step = 0;
 	int ibus_step = 0;
 	int alarm_step = 0;
-	bool is_taper_done = false;
-
-	/* check taper done*/
-	if (cp->vbat_uV >= cp->cp_target_vbat - 50000) {
-		if (cp->ibat_uA < cp->cp_taper_current) {
-			if (cp->cp_taper_trigger_cnt++ > 5) {
-				is_taper_done = true;
-				cp->cp_taper_trigger_cnt = 0;
-				return is_taper_done;
-			}
-		} else {
-			cp->cp_taper_trigger_cnt = 0;
-		}
-	}
 
 	/* check battery voltage*/
 	vbat_step = cm_cp_vbat_step_algo(cm);
@@ -3120,7 +3146,6 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 	vbus_step = cm_cp_vbus_step_algo(cm);
 
 	/* check bus current*/
-	cm_check_target_ibus(cm);
 	ibus_step = cm_cp_ibus_step_algo(cm);
 
 	/* check alarm status*/
@@ -3146,7 +3171,7 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 					  vbus_step), ibus_step), alarm_step);
 	cm_check_target_vbus(cm);
 
-	dev_info(cm->dev, "%s vbatt = %duV, ibatt = %duA, vbus = %duV, ibus = %duA, "
+	dev_info(cm->dev, "%s, vbatt = %duV, ibatt = %duA, vbus = %duV, ibus = %duA, "
 		 "cp_target_vbat = %duV, cp_target_ibat = %duA, cp_target_vbus = %duV, "
 		 "cp_target_ibus = %duA, cp_taper_current = %duA, taper_cnt = %d, "
 		 "vbat_step = %d, ibat_step = %d, vbus_step = %d, ibus_step = %d, alarm_step = %d, "
@@ -3157,7 +3182,19 @@ static bool cm_cp_tune_algo(struct charger_manager *cm)
 		 vbat_step, ibat_step, vbus_step, ibus_step, alarm_step,
 		 cp->adapter_max_vbus, cp->adapter_max_ibus, cp->cp_ibat_ucp_cnt);
 
-	return is_taper_done;
+	if (cp->cp_last_target_vbus != cp->cp_target_vbus) {
+		if (cm_adjust_fchg_voltage(cm, cp->cp_target_vbus)) {
+			dev_info(cm->dev, "%s, failed to adjust volatge, vol=%d\n",
+				 __func__, cp->cp_target_vbus);
+			cp->cp_target_vbus = cp->cp_last_target_vbus;
+		} else {
+			cp->cp_last_target_vbus = cp->cp_target_vbus;
+			cp->cp_adjust_cnt = 0;
+		}
+	} else if (cp->cp_adjust_cnt++ > CM_CP_ADJUST_VOLTAGE_THRESHOLD) {
+		if (!cm_adjust_fchg_voltage(cm, cp->cp_target_vbus))
+			cp->cp_adjust_cnt = 0;
+	}
 }
 
 static bool cm_cp_check_ibat_ucp_status(struct charger_manager *cm)
@@ -3175,7 +3212,7 @@ static bool cm_cp_check_ibat_ucp_status(struct charger_manager *cm)
 	if (!cp->cp_ibat_ucp_cnt)
 		return status;
 
-	if (cp->vbat_uV >= cp->cp_target_vbat - 50000) {
+	if (cp->vbat_uV >= cp->cp_target_vbat - CM_CP_TAPER_DELTA_VBAT_THRESHOLD) {
 		cp->cp_ibat_ucp_cnt = 0;
 		return status;
 	}
@@ -3214,6 +3251,13 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
 	       cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
+	if (cp->vbat_uV < cm->desc->shutdown_voltage) {
+		dev_err(cm->dev, "%s, the vbat_uV %d obtained by cp state machine is abnormal!!!\n",
+			__func__, cp->vbat_uV);
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+		return;
+	}
+
 	cm->desc->cm_check_fault = false;
 	cm_fast_enable_pps(cm, false);
 	if (cm_fast_enable_pps(cm, true)) {
@@ -3234,12 +3278,7 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 		return;
 	}
 
-	if (cm_get_adapter_max_voltage(cm, &cp->adapter_max_vbus)) {
-		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
-		return;
-	}
-
-	if (cm_get_adapter_max_current(cm, 0, &cp->adapter_max_ibus)) {
+	if (cm_get_fchg_adapter_max_voltage(cm, &cp->adapter_max_vbus)) {
 		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
 		return;
 	}
@@ -3255,6 +3294,18 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 		dev_info(cm->dev, "%s, APDO max_vol %d can't start the cp, exit pps!!!\n",
 			 __func__, cp->adapter_max_vbus);
 		cm->desc->force_pps_diasbled = true;
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+		return;
+	}
+
+	if (cm_get_fchg_adapter_max_current(cm, 0, &cp->adapter_max_ibus)) {
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+		return;
+	}
+
+	if (cp->adapter_max_ibus <= 0) {
+		dev_info(cm->dev, "%s, APDO ibus %d is abnormal, exit pps!!!\n",
+			 __func__, cp->adapter_max_ibus);
 		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
 		return;
 	}
@@ -3275,10 +3326,9 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	primary_charger_dis_retry = 0;
 	cp->cp_ibat_ucp_cnt = 0;
 
-	cp->cp_target_ibus = cp->cp_max_ibus;
-
 	if (cp->vbat_uV <= CM_CP_ACC_VBAT_HTHRESHOLD)
-		cp->cp_target_vbus =  CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV) + 10 * CM_CP_VSTEP;
+		cp->cp_target_vbus = (CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV) +
+				      CM_CP_VBUS_ERRORHI_THRESHOLD(cp->vbat_uV)) / 2;
 	else
 		cp->cp_target_vbus =  CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV) + 2 * CM_CP_VSTEP;
 
@@ -3382,22 +3432,13 @@ static void cm_cp_state_tune(struct charger_manager *cm)
 	} else if (cm_cp_check_ibat_ucp_status(cm)) {
 		dev_err(cm->dev, "cp_ibat_ucp_cnt =%d, exit cp!\n", cp->cp_ibat_ucp_cnt);
 		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+	} else if (cm_cp_is_taper_done(cm)) {
+		dev_info(cm->dev, "taper done, exit cp machine\n");
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+		cp->recovery = false;
 	} else {
 		dev_info(cm->dev, "cp is ok, fine tune\n");
-		if (cm_cp_tune_algo(cm)) {
-			dev_info(cm->dev, "taper done, exit cp machine\n");
-			cm_cp_state_change(cm, CM_CP_STATE_EXIT);
-			cp->recovery = false;
-		} else {
-			if (cp->cp_last_target_vbus != cp->cp_target_vbus) {
-				cm_adjust_fchg_voltage(cm, cp->cp_target_vbus);
-				cp->cp_last_target_vbus = cp->cp_target_vbus;
-				cp->cp_adjust_cnt = 0;
-			} else if (cp->cp_adjust_cnt++ > CM_CP_ADJUST_VOLTAGE_THRESHOLD) {
-				cm_adjust_fchg_voltage(cm, cp->cp_target_vbus);
-				cp->cp_adjust_cnt = 0;
-			}
-		}
+		cm_cp_tune_algo(cm);
 	}
 
 	if (cp->cp_soft_alarm_event)
@@ -3422,7 +3463,11 @@ static void cm_cp_state_exit(struct charger_manager *cm)
 	 * And PDO_FIXED defined in dts is 5V/2A or 5V/3A, so
 	 * we does not need requeset 5V/2A or 5V/3A when exit cp
 	 */
-	cm_fast_enable_pps(cm, false);
+	if (cm_fast_enable_pps(cm, false)) {
+		/* At the next EXIT state, try to close pps */
+		dev_err(cm->dev, "%s, failed to disable pps\n", __func__);
+		return;
+	}
 
 	if (!cp->recovery)
 		cp->cp_running = false;
@@ -3532,6 +3577,11 @@ static bool cm_is_need_start_cp(struct charger_manager *cm)
 	    cm->desc->fast_charger_type != CM_CHARGER_TYPE_ADAPTIVE)
 		return false;
 
+	if (cp->cp_max_ibus <= 0 || cp->cp_max_ibat <= 0) {
+		dev_err(cm->dev, "%s, cp_max_ibus and cp_max_ibat do not exist!!!\n", __func__);
+		return false;
+	}
+
 	/*
 	 * Before starting the cp state machine, you need to turn
 	 * off fixed_fchg. If the shutdown fails, the next charging
@@ -3549,8 +3599,8 @@ static bool cm_is_need_start_cp(struct charger_manager *cm)
 	cm_charger_is_support_fchg(cm);
 	dev_info(cm->dev, "%s, check_cp_threshold = %d, pps_running = %d, fast_charger_type = %d\n",
 		 __func__, cp->check_cp_threshold, cp->cp_running, cm->desc->fast_charger_type);
-	if (cp->check_cp_threshold && !cp->cp_running &&
-	    cm_is_reach_fchg_threshold(cm) && cm->charger_enabled)
+	if (cp->check_cp_threshold && !cp->cp_running && cm->charger_enabled &&
+	    cm_is_reach_fchg_threshold(cm))
 		need = true;
 
 	return need;
@@ -4613,11 +4663,22 @@ static int cm_charger_pd_limit_current(struct charger_manager *cm)
 static void fast_charge_handler(struct charger_manager *cm)
 {
 	bool ext_pwr_online;
+	int ret, adapter_max_vbus;
 
 	if (cm_suspended)
 		device_set_wakeup_capable(cm->dev, true);
 
 	cm_charger_is_support_fchg(cm);
+	if (cm->desc->fast_charger_type == CM_CHARGER_TYPE_FAST ||
+	    cm->desc->fast_charger_type == CM_CHARGER_TYPE_ADAPTIVE) {
+		ret = cm_get_fchg_adapter_max_voltage(cm, &adapter_max_vbus);
+		if (ret)
+			dev_err(cm->dev, "%s, failed to obtain the adapter max voltage, ret=%d\n",
+				__func__, ret);
+		else
+			cm->desc->adapter_max_vbus = adapter_max_vbus;
+	}
+
 	if (cm_charger_pd_limit_current(cm) > 0) {
 		dev_info(cm->dev, "%s, xts update limit cur\n", __func__);
 		return;
@@ -5013,7 +5074,7 @@ static void cm_get_voltage_max(struct charger_manager *cm, int *voltage_max)
 		else if (cm->desc->fast_charge_voltage_max > CM_FAST_CHARGE_VOLTAGE_9V)
 			chg_type_max_vbus = CM_FAST_CHARGE_VOLTAGE_9V;
 
-		ret = cm_get_adapter_max_voltage(cm, &adapter_max_vbus);
+		ret = cm_get_fchg_adapter_max_voltage(cm, &adapter_max_vbus);
 		if (ret) {
 			adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
 			dev_err(cm->dev,
@@ -5034,7 +5095,7 @@ static void cm_get_voltage_max(struct charger_manager *cm, int *voltage_max)
 		else if (cm->desc->flash_charge_voltage_max > CM_FAST_CHARGE_VOLTAGE_9V)
 			chg_type_max_vbus = CM_PPS_VOLTAGE_11V;
 
-		ret = cm_get_adapter_max_voltage(cm, &adapter_max_vbus);
+		ret = cm_get_fchg_adapter_max_voltage(cm, &adapter_max_vbus);
 		if (ret) {
 			adapter_max_vbus = CM_FAST_CHARGE_VOLTAGE_5V;
 			dev_err(cm->dev,
@@ -5092,7 +5153,7 @@ static void cm_get_current_max(struct charger_manager *cm, int *current_max)
 	case CM_CHARGER_TYPE_FAST:
 		chg_type_max_ibus = cm->desc->cur.fchg_limit;
 		cm_get_voltage_max(cm, &opt_max_vbus);
-		ret = cm_get_adapter_max_current(cm, opt_max_vbus, &adapter_max_ibus);
+		ret = cm_get_fchg_adapter_max_current(cm, opt_max_vbus, &adapter_max_ibus);
 		if (ret) {
 			adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A;
 			dev_err(cm->dev,
@@ -5103,7 +5164,7 @@ static void cm_get_current_max(struct charger_manager *cm, int *current_max)
 	case CM_CHARGER_TYPE_ADAPTIVE:
 		chg_type_max_ibus = cm->desc->cur.flash_limit;
 		cm_get_voltage_max(cm, &opt_max_vbus);
-		ret = cm_get_adapter_max_current(cm, opt_max_vbus, &adapter_max_ibus);
+		ret = cm_get_fchg_adapter_max_current(cm, opt_max_vbus, &adapter_max_ibus);
 		if (ret) {
 			adapter_max_ibus = CM_FAST_CHARGE_CURRENT_2A;
 			dev_err(cm->dev,
@@ -6439,7 +6500,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	num_cp_psys = of_property_count_strings(np, "cm-alt-cp-power-supplys");
 	dev_info(dev, "%s num_cp_psys = %d\n", __func__, num_cp_psys);
 	if (num_cp_psys > 0) {
-		desc->psy_cp_nums = num_cp_psys;
+		desc->alt_cp_nums = num_cp_psys;
 		/* Allocate empty bin at the tail of array */
 		desc->psy_alt_cp_adpt_stat = devm_kzalloc(dev, sizeof(char *)
 						* (num_cp_psys + 1), GFP_KERNEL);
@@ -7064,7 +7125,7 @@ static int cm_check_alt_cp_psy_ready_status(struct charger_manager *cm)
 		}
 	}
 
-	if (i == desc->psy_cp_nums) {
+	if (i == desc->alt_cp_nums) {
 		dev_err(cm->dev, "%s, cannot find all cp\n", __func__);
 		return -EPROBE_DEFER;
 	}
@@ -7192,7 +7253,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 		power_supply_put(psy);
 	}
 
-	if (desc->enable_alt_cp_adapt && (desc->psy_cp_nums > 0)) {
+	if (desc->enable_alt_cp_adapt && (desc->alt_cp_nums > 0)) {
 		ret = cm_check_alt_cp_psy_ready_status(cm);
 		if (ret < 0) {
 			dev_err(&pdev->dev, "can't find cp\n");

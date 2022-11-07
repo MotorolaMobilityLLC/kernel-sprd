@@ -694,9 +694,8 @@ struct charger_desc {
 	bool force_pps_diasbled;
 	u32 fast_charge_enable_count;
 	u32 fast_charge_disable_count;
-	u32 double_ic_total_limit_current;
 	u32 cp_nums;
-	u32 psy_cp_nums;
+	u32 alt_cp_nums;
 	bool enable_alt_cp_adapt;
 
 	bool cm_check_int;

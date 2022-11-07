@@ -52,7 +52,6 @@ struct sprd_fchg_info {
 	struct adapter_power_cap pd_source_cap;
 	const char *customized_fchg_psy;
 	u32 fchg_type;
-	int input_vol;
 	int pd_fixed_max_uw;
 	bool chg_online;
 	bool pd_extcon;

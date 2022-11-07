@@ -1058,7 +1058,7 @@ static int hl7139_get_ibat_now_mA(struct hl7139 *hl, int *batt_ma)
 		if (!fuel_gauge)
 			return -ENODEV;
 
-		fgu_val.intval = CM_IBAT_CURRENT_NOW_CMD;
+		fgu_val.intval = 0;
 		ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CURRENT_NOW,
 						&fgu_val);
 		power_supply_put(fuel_gauge);
