@@ -39,7 +39,7 @@
 
 #include "debug.h"
 
-#define DWC3_DEFAULT_AUTOSUSPEND_DELAY	5000 /* ms */
+#define DWC3_DEFAULT_AUTOSUSPEND_DELAY	500 /* ms */
 
 /**
  * dwc3_get_dr_mode - Validates and sets dr_mode
@@ -1984,9 +1984,14 @@ static int dwc3_runtime_checks(struct dwc3 *dwc)
 {
 	switch (dwc->current_dr_role) {
 	case DWC3_GCTL_PRTCAP_DEVICE:
+		/* glue layer will control runtime correctly,
+		 * connected value is set in reset cmd handler,
+		 * it not means device is connected actually,
+		 * this value sometimes is not right.
 		if (dwc->connected)
 			return -EBUSY;
 		break;
+		*/
 	case DWC3_GCTL_PRTCAP_HOST:
 	default:
 		/* do nothing */
@@ -2001,8 +2006,10 @@ static int dwc3_runtime_suspend(struct device *dev)
 	struct dwc3     *dwc = dev_get_drvdata(dev);
 	int		ret;
 
-	if (dwc3_runtime_checks(dwc))
+	if (dwc3_runtime_checks(dwc)) {
+		dev_info(dev, "dwc3 runtime suspend checks busy\n");
 		return -EBUSY;
+	}
 
 	ret = dwc3_suspend_common(dwc, PMSG_AUTO_SUSPEND);
 	if (ret)
@@ -2045,8 +2052,10 @@ static int dwc3_runtime_idle(struct device *dev)
 
 	switch (dwc->current_dr_role) {
 	case DWC3_GCTL_PRTCAP_DEVICE:
-		if (dwc3_runtime_checks(dwc))
+		if (dwc3_runtime_checks(dwc)) {
+			dev_info(dev, "dwc3 runtime idle checks busy\n");
 			return -EBUSY;
+		}
 		break;
 	case DWC3_GCTL_PRTCAP_HOST:
 	default:
