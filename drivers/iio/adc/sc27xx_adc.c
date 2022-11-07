@@ -3,6 +3,7 @@
 
 #include <linux/hwspinlock.h>
 #include <linux/iio/iio.h>
+#include <linux/math64.h>
 #include <linux/mfd/syscon.h>
 #include <linux/module.h>
 #include <linux/nvmem-consumer.h>
@@ -61,6 +62,8 @@
 #define SPRD_RATIO_NUMERATOR_OFFSET	16
 #define SPRD_RATIO_DENOMINATOR_MASK	GENMASK(15, 0)
 #define RATIO(n, d)			(((n) << SPRD_RATIO_NUMERATOR_OFFSET) | (d))
+#define R_INVALID			(0xffffffff)
+#define RATIO_DEF			RATIO(1, 1)
 
 /* ADC specific channel reference voltage 3.5V */
 #define SPRD_ADC_REFVOL_VDD35		3500000
@@ -101,6 +104,10 @@ do {									\
 		pr_err("[%s] "pr_fmt(fmt), "SPRD_ADC", ##__VA_ARGS__);	\
 } while (0)
 
+enum SPRD_ADC_AUX_VER {
+	AUX_R_VER_P0 = 0x10,
+	AUX_R_VER_P2
+};
 
 #define SPRD_ADC_CHANNEL(index, mask) {				\
 	.type = IIO_VOLTAGE,					\
@@ -110,22 +117,45 @@ do {									\
 	.indexed = 1,						\
 }
 
-#define CH_DATA_INIT(sl, filter, isen, ratio)		\
+#define CH_DATA_INIT_P0(sl, filter, isen, ip_r)		\
 {							\
 	.scale = sl,					\
 	.isen_info = isen,				\
 	.filter_info = filter,				\
-	.ip_ratio = ratio,				\
+	.ip_ratio = ip_r,				\
+	.ch_aux_ratio = {0, 0, 0, 0},			\
+	.aux_r_ver = AUX_R_VER_P0,			\
 	.volreq = 0,					\
 	.inited = SPRD_ADC_INIT_MAGIC,			\
 }
 
-#define CALIB_INFO_INIT(ch, sl, gph)	\
+#define CH_DATA_INIT_P2(sl, filter, isen, ip_r, aux_r0, aux_r1)	\
+{								\
+	.scale = sl,						\
+	.isen_info = isen,					\
+	.filter_info = filter,					\
+	.ip_ratio = ip_r,					\
+	.ch_aux_ratio = {aux_r0, aux_r1, R_INVALID, R_INVALID},	\
+	.aux_r_ver = AUX_R_VER_P2,				\
+	.volreq = 0,						\
+	.inited = SPRD_ADC_INIT_MAGIC,				\
+}
+
+#define CALIB_INFO_INIT_P0(ch, sl, gph)	\
 {					\
 	.channel = ch,			\
 	.scale = sl,			\
 	.graph = gph,			\
 	.inited = SPRD_ADC_INIT_MAGIC,	\
+}
+
+#define CALIB_INFO_INIT_P2(ch, sl, gph, aux_r0, aux_r1)		\
+{								\
+	.channel = ch,						\
+	.scale = sl,						\
+	.graph = gph,						\
+	.ch_aux_ratio = {aux_r0, aux_r1, R_INVALID, R_INVALID},	\
+	.inited = SPRD_ADC_INIT_MAGIC,				\
 }
 
 #define GRAPH_POINT_INIT(v0, a0, v1, a1)\
@@ -153,6 +183,7 @@ enum SPRD_PMIC_TYPE {
 	SC2730_ADC,
 	SC2731_ADC,
 	UMP9620_ADC,
+	UMP518_ADC,
 };
 
 enum SPRD_ADC_GRAPH_TYPE {
@@ -204,9 +235,8 @@ struct sprd_adc_pm_data {
 };
 
 /*bit[0-7]: scale
- *bit[7-15]: graph
- *bit[16-23]: filter_info(bit16: sw filter support, bit[17-23]: hw filter val(2<<n))
- *bit[24-31]: isen_info (bit24: isen support, bit[25-32]: isen val)
+ *bit[8-15]: filter_info(bit8: sw filter support, bit[9-15]: hw filter val(2<<n))
+ *bit[16-23]: isen_info (bit16: isen support, bit[17-23]: isen val)
  */
 struct sprd_adc_channel_data {
 	int scale;
@@ -215,15 +245,16 @@ struct sprd_adc_channel_data {
 	int filter_info;
 	int ip_ratio;
 	int ch_aux_ratio[SPRD_ADC_SCALE_MAX];
+	int aux_r_ver;
 	int volreq; /* use volreq to customerize adc volref, def 2.8v */
 	int inited;
-	bool calib_ch;
 };
 
 struct calib_info {
 	int channel;
 	int scale;
 	int graph;
+	int ch_aux_ratio[SPRD_ADC_SCALE_MAX];
 	int inited;
 };
 
@@ -260,7 +291,7 @@ struct sprd_adc_variant_data {
 	const u32 adc_reg_base_offset;
 	const u32 graph_index;
 	const struct calib_info calib_infos[GRAPH_MAX];
-	const int aux_ratio[SPRD_ADC_SCALE_MAX];
+	const int aux_ratio_comm[SPRD_ADC_SCALE_MAX];
 	void (*const ch_data_init)(struct sprd_adc_data *data);
 };
 
@@ -469,11 +500,9 @@ static void sprd_adc_calib_with_two_cell(struct sprd_adc_linear_graph *graph)
 		     graph->adc0, graph->adc1, adc_calib_data0, adc_calib_data1);
 }
 
-static void sprd_adc_calib_ch_data_init(struct sprd_adc_data *data)
+static const struct calib_info *sprd_adc_calib_info_get(struct sprd_adc_data *data, int ch)
 {
-	u64 scale_ratio_d, scale_ratio_n, cscale_ratio_d, cscale_ratio_n, final_ratio;
-	int scale, cscale, calib_index, ch, *ch_aux_ratio;
-	const int *aux_ratio = data->var_data->aux_ratio;
+	int calib_index, calib_small;
 	const struct calib_info *calib_info;
 
 	for (calib_index = 0; calib_index < GRAPH_MAX; calib_index++) {
@@ -481,53 +510,67 @@ static void sprd_adc_calib_ch_data_init(struct sprd_adc_data *data)
 		if (calib_info->inited != SPRD_ADC_INIT_MAGIC)
 			continue;
 
-		cscale = calib_info->scale;
-		ch = calib_info->channel;
-		data->ch_data[ch].graph = calib_info->graph;
-		data->ch_data[ch].ch_aux_ratio[cscale] = RATIO(1, 1);
-		data->ch_data[ch].calib_ch = true;
+		if (calib_info->graph == GRAPH_SMALL)
+			calib_small = calib_index;
 
-		cscale_ratio_n = aux_ratio[cscale] >> SPRD_RATIO_NUMERATOR_OFFSET;
-		cscale_ratio_d = aux_ratio[cscale] & SPRD_RATIO_DENOMINATOR_MASK;
+		if (calib_info->channel == ch)
+			return calib_info;
+	}
 
-		for (scale = 0; scale < SPRD_ADC_SCALE_MAX; scale++) {
-			if (scale == cscale)
-				continue;
-			scale_ratio_n = aux_ratio[scale] >> SPRD_RATIO_NUMERATOR_OFFSET;
-			scale_ratio_d = aux_ratio[scale] & SPRD_RATIO_DENOMINATOR_MASK;
-			ch_aux_ratio = data->ch_data[ch].ch_aux_ratio;
-			if (scale > cscale) {
-				final_ratio = (scale_ratio_d * cscale_ratio_n * 1000) /
-					(cscale_ratio_d * scale_ratio_n);
-				ch_aux_ratio[scale] = RATIO(1000, (int)final_ratio);
-			} else {
-				final_ratio = (cscale_ratio_d * scale_ratio_n * 1000) /
-					(scale_ratio_d * cscale_ratio_n);
-				ch_aux_ratio[scale] = RATIO((int)final_ratio, 1000);
-			}
+	return &data->var_data->calib_infos[calib_small];
+}
+
+static void sprd_adc_aux_ratio_init(struct sprd_adc_data *data, int ch)
+{
+	u64 scale_ratio_d, scale_ratio_n, cscale_ratio_d, cscale_ratio_n, final_ratio;
+	int scale, *aux_ratio_ch, aux_ratio_tmp[SPRD_ADC_SCALE_MAX];
+	const struct calib_info *calib_match = sprd_adc_calib_info_get(data, ch);
+	const int *aux_ratio_calib;
+
+	data->ch_data[ch].graph = calib_match->graph;
+	aux_ratio_ch = data->ch_data[ch].ch_aux_ratio;
+
+	if (data->ch_data[ch].aux_r_ver == AUX_R_VER_P0) {
+		aux_ratio_calib = &data->var_data->aux_ratio_comm[0];
+		memcpy(&aux_ratio_tmp[0], aux_ratio_calib, sizeof(int) * SPRD_ADC_SCALE_MAX);
+	} else {
+		aux_ratio_calib = &calib_match->ch_aux_ratio[0];
+		memcpy(&aux_ratio_tmp[0], &aux_ratio_ch[0], sizeof(int) * SPRD_ADC_SCALE_MAX);
+	}
+
+	cscale_ratio_n = aux_ratio_calib[calib_match->scale] >> SPRD_RATIO_NUMERATOR_OFFSET;
+	cscale_ratio_d = aux_ratio_calib[calib_match->scale] & SPRD_RATIO_DENOMINATOR_MASK;
+
+	for (scale = 0; scale < SPRD_ADC_SCALE_MAX; scale++) {
+
+		if (ch == calib_match->channel && scale == calib_match->scale) {
+			aux_ratio_ch[scale] = RATIO_DEF;
+			continue;
+		}
+
+		if (aux_ratio_tmp[scale] == R_INVALID || aux_ratio_calib[scale] == R_INVALID) {
+			aux_ratio_ch[scale] = RATIO_DEF;
+			continue;
+		}
+
+		scale_ratio_n = aux_ratio_tmp[scale] >> SPRD_RATIO_NUMERATOR_OFFSET;
+		scale_ratio_d = aux_ratio_tmp[scale] & SPRD_RATIO_DENOMINATOR_MASK;
+		if (scale > calib_match->scale) {
+			final_ratio = div_u64(scale_ratio_d * cscale_ratio_n * 1000,
+					      cscale_ratio_d * scale_ratio_n);
+			aux_ratio_ch[scale] = RATIO(1000, (int)final_ratio);
+		} else {
+			final_ratio = div_u64(cscale_ratio_d * scale_ratio_n * 1000,
+					      scale_ratio_d * cscale_ratio_n);
+			aux_ratio_ch[scale] = RATIO((int)final_ratio, 1000);
 		}
 	}
 }
 
-static int sprd_adc_calib_index_get(struct sprd_adc_data *data, int graph)
+static inline void sprd_adc_ch_data_show(struct sprd_adc_data *data, int ch)
 {
-	int calib_index;
-	const struct calib_info *calib_info;
+	struct sprd_adc_channel_data *ch_data = &data->ch_data[ch];
 
-	for (calib_index = 0; calib_index < GRAPH_MAX; calib_index++) {
-		calib_info = &data->var_data->calib_infos[calib_index];
-		if (calib_info->inited != SPRD_ADC_INIT_MAGIC)
-			continue;
-
-		if (calib_info->graph == graph)
-			return calib_index;
-	}
-
-	return GRAPH_SMALL;
-}
-
-static inline void sprd_adc_ch_data_show(struct sprd_adc_channel_data *ch_data, int ch)
-{
 	SPRD_ADC_DBG("ch%d_d[(%d %d 0x%x 0x%x) | (%d/%d), (%d/%d), (%d/%d), (%d/%d), (%d/%d)]\n",
 		     ch, ch_data->scale, ch_data->graph, ch_data->isen_info, ch_data->filter_info,
 		     (int)(ch_data->ip_ratio >> SPRD_RATIO_NUMERATOR_OFFSET),
@@ -545,29 +588,17 @@ static inline void sprd_adc_ch_data_show(struct sprd_adc_channel_data *ch_data, 
 static void sprd_adc_ch_data_merge(struct sprd_adc_data *data, struct sprd_adc_channel_data *d_diff,
 				   struct sprd_adc_channel_data *d_def)
 {
-	int ch, calib_small_index = sprd_adc_calib_index_get(data, GRAPH_SMALL);
-	const struct calib_info *calib_small = &data->var_data->calib_infos[calib_small_index];
 	struct sprd_adc_channel_data *ch_data;
-	struct sprd_adc_channel_data *ch_data_calib_s = &data->ch_data[calib_small->channel];
+	int ch;
 
 	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++) {
 		ch_data = &data->ch_data[ch];
 		*ch_data = ((d_diff[ch].inited == SPRD_ADC_INIT_MAGIC) ? d_diff[ch] : *d_def);
 	}
 
-	sprd_adc_calib_ch_data_init(data);
 	for (ch = 0; ch < SPRD_ADC_CHANNEL_MAX; ch++) {
-		ch_data = &data->ch_data[ch];
-
-		if (ch_data->calib_ch) {
-			sprd_adc_ch_data_show(ch_data, ch);
-			continue;
-		}
-
-		ch_data->graph = ch_data_calib_s->graph;
-		memcpy(&ch_data->ch_aux_ratio[0], &ch_data_calib_s->ch_aux_ratio[0],
-		       sizeof(int) * SPRD_ADC_SCALE_MAX);
-		sprd_adc_ch_data_show(ch_data, ch);
+		sprd_adc_aux_ratio_init(data, ch);
+		sprd_adc_ch_data_show(data, ch);
 	}
 }
 
@@ -641,20 +672,20 @@ static int sprd_adc_graphs_calibrate(struct sprd_adc_data *data)
 
 static void sc2720_ch_data_init(struct sprd_adc_data *data)
 {
-	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1));
+	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO_DEF);
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
-		[5] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
-		[7] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
-		[9] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
-		[13] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
-		[14] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(68, 900)),
-		[16] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(48, 100)),
-		[19] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
-		[21] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
-		[22] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
-		[23] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
-		[30] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
-		[31] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[5] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
+		[7] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
+		[9] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
+		[13] = CH_DATA_INIT_P0(SCALE_01, 0, 0, RATIO_DEF),
+		[14] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(68, 900)),
+		[16] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(48, 100)),
+		[19] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
+		[21] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(3, 8)),
+		[22] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(3, 8)),
+		[23] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(3, 8)),
+		[30] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
+		[31] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
 	};
 
 	sprd_adc_ch_data_merge(data, ch_data, &ch_data_def);
@@ -662,12 +693,19 @@ static void sc2720_ch_data_init(struct sprd_adc_data *data)
 
 static void sc2721_ch_data_init(struct sprd_adc_data *data)
 {
-	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1));
+	struct sprd_adc_channel_data ch_data_def =
+		CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO_DEF);
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
-		[5] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
-		[14] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(68, 900)),
-		[16] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(48, 100)),
-		[19] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 3)),
+		[1]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
+		[2]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
+		[3]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
+		[4]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
+		[5] = CH_DATA_INIT_P2(SCALE_01, 0, 0, RATIO(1, 1), RATIO(7, 29), RATIO(7, 29)),
+		[7]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(100, 125)),
+		[9]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(100, 125)),
+		[14] = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO(68, 900), RATIO_DEF, RATIO_DEF),
+		[16] = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO(48, 100), RATIO_DEF, RATIO_DEF),
+		[19] = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO(1, 3), RATIO_DEF, RATIO_DEF),
 	};
 
 	sprd_adc_ch_data_merge(data, ch_data, &ch_data_def);
@@ -677,23 +715,23 @@ static void sc2721_ch_data_init(struct sprd_adc_data *data)
 
 static void sc2730_ch_data_init(struct sprd_adc_data *data)
 {
-	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1));
+	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO_DEF);
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
-		[3] = CH_DATA_INIT(SCALE_00, 0, 0x9, RATIO(1, 1)),
-		[5] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
-		[7] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
-		[9] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
-		[10] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
-		[13] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
-		[14] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(68, 900)),
-		[15] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 3)),
-		[16] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(48, 100)),
-		[19] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
-		[21] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
-		[22] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
-		[23] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
-		[30] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
-		[31] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[3] = CH_DATA_INIT_P0(SCALE_00, 0, 0x9, RATIO_DEF),
+		[5] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
+		[7] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
+		[9] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
+		[10] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
+		[13] = CH_DATA_INIT_P0(SCALE_01, 0, 0, RATIO_DEF),
+		[14] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(68, 900)),
+		[15] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(1, 3)),
+		[16] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(48, 100)),
+		[19] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
+		[21] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(3, 8)),
+		[22] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(3, 8)),
+		[23] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(3, 8)),
+		[30] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
+		[31] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
 	};
 
 	sprd_adc_ch_data_merge(data, ch_data, &ch_data_def);
@@ -701,11 +739,18 @@ static void sc2730_ch_data_init(struct sprd_adc_data *data)
 
 static void sc2731_ch_data_init(struct sprd_adc_data *data)
 {
-	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1));
+	struct sprd_adc_channel_data ch_data_def =
+		CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO_DEF);
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
-		[5] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
-		[6] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(375, 9000)),
-		[19] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 3)),
+		[1]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
+		[2]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
+		[3]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
+		[4]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
+		[5] = CH_DATA_INIT_P2(SCALE_01, 0, 0, RATIO(1, 1), RATIO(7, 29), RATIO(7, 29)),
+		[6] = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO(375, 9000), RATIO_DEF, RATIO_DEF),
+		[7]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(100, 125)),
+		[8]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(100, 125)),
+		[19] = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO(1, 3), RATIO_DEF, RATIO_DEF),
 	};
 
 	sprd_adc_ch_data_merge(data, ch_data, &ch_data_def);
@@ -713,23 +758,23 @@ static void sc2731_ch_data_init(struct sprd_adc_data *data)
 
 static void ump9620_ch_data_init(struct sprd_adc_data *data)
 {
-	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1));
+	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO_DEF);
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
-		[0] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
-		[5] = CH_DATA_INIT(SCALE_00, 0, 0x9, RATIO(1, 1)),
-		[7] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
-		[9] = CH_DATA_INIT(SCALE_10, 0, 0, RATIO(1, 1)),
-		[10] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
-		[11] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 1)),
-		[13] = CH_DATA_INIT(SCALE_01, 0, 0, RATIO(1, 1)),
-		[14] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(68, 900)),
-		[15] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(1, 3)),
-		[19] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
-		[21] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
-		[22] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
-		[23] = CH_DATA_INIT(SCALE_00, 0, 0, RATIO(3, 8)),
-		[30] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
-		[31] = CH_DATA_INIT(SCALE_11, 0, 0, RATIO(1, 1)),
+		[0] = CH_DATA_INIT_P0(SCALE_01, 0, 0, RATIO_DEF),
+		[5] = CH_DATA_INIT_P0(SCALE_00, 0, 0x9, RATIO_DEF),
+		[7] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
+		[9] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
+		[10] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
+		[11] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO_DEF),
+		[13] = CH_DATA_INIT_P0(SCALE_01, 0, 0, RATIO_DEF),
+		[14] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(68, 900)),
+		[15] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(1, 3)),
+		[19] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
+		[21] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(3, 8)),
+		[22] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(3, 8)),
+		[23] = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO(3, 8)),
+		[30] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
+		[31] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
 	};
 
 	sprd_adc_ch_data_merge(data, ch_data, &ch_data_def);
@@ -817,7 +862,7 @@ static int sprd_adc_isen_disable(struct sprd_adc_data *data, int channel)
 		val = (data->var_data->reg_list[i].reverse ? mask : val);
 		ret = regmap_update_bits(data->regmap, reg_addr, mask, val);
 		ret |= regmap_read(data->regmap, reg_addr, &read_val);
-		SPRD_ADC_DBG("isen_diable: reg 0x%x, mask: 0x%x, val: 0x%x, read_val: 0x%x\n",
+		SPRD_ADC_DBG("isen_disable: reg 0x%x, mask: 0x%x, val: 0x%x, read_val: 0x%x\n",
 			     reg_addr, mask, val, read_val);
 		if (ret) {
 			SPRD_ADC_ERR("isen config err: reg[%d], ret %d\n", i, ret);
@@ -1118,9 +1163,20 @@ static int sprd_adc_ch_data_encode(struct sprd_adc_data *data, int ch)
 
 static void sprd_adc_ch_data_decode(struct sprd_adc_data *data, int ch, int val)
 {
-	data->ch_data[ch].scale = (val & 0xff);
-	data->ch_data[ch].filter_info = ((val >> 8) & 0xff);
-	data->ch_data[ch].isen_info = ((val >> 16) & 0xff);
+	int scale_override, filter_override, isen_override;
+
+	scale_override = (val & 0xff);
+	filter_override = ((val >> 8) & 0xff);
+	isen_override = ((val >> 16) & 0xff);
+
+	if (scale_override < SPRD_ADC_SCALE_MAX && scale_override != data->ch_data[ch].scale)
+		data->ch_data[ch].scale = scale_override;
+
+	if (data->ch_data[ch].filter_info != filter_override)
+		data->ch_data[ch].filter_info = filter_override;
+
+	if (data->ch_data[ch].isen_info != isen_override)
+		data->ch_data[ch].isen_info = isen_override;
 }
 
 static int sprd_adc_read_raw(struct iio_dev *indio_dev, struct iio_chan_spec const *chan,
@@ -1231,11 +1287,11 @@ static int sprd_adc_ch_data_init(struct sprd_adc_data *data)
 {
 	struct device_node *np = data->dev->of_node;
 	int size, ret, ch, ch_data_val, i;
-	u32 *ch_data_overide;
+	u32 *ch_data_override;
 
 	data->var_data->ch_data_init(data);
 
-	size = of_property_count_elems_of_size(np, "ch_data_overide", sizeof(u32));
+	size = of_property_count_elems_of_size(np, "ch_data_override", sizeof(u32));
 	if (size <= 0)
 		return 0;
 
@@ -1244,23 +1300,23 @@ static int sprd_adc_ch_data_init(struct sprd_adc_data *data)
 		return -EINVAL;
 	}
 
-	ch_data_overide = devm_kcalloc(data->dev, size, sizeof(u32), GFP_KERNEL);
-	if (!ch_data_overide)
+	ch_data_override = devm_kcalloc(data->dev, size, sizeof(u32), GFP_KERNEL);
+	if (!ch_data_override)
 		return -ENOMEM;
 
-	ret = of_property_read_u32_array(np, "ch_data_overide", ch_data_overide, size);
+	ret = of_property_read_u32_array(np, "ch_data_override", ch_data_override, size);
 	if (ret < 0) {
 		SPRD_ADC_ERR("Failed to read ch data from dt: %d\n", ret);
 		return ret;
 	}
 
 	for (i = 0; i < size; i += 2) {
-		ch = ch_data_overide[i];
-		ch_data_val = ch_data_overide[i+1];
+		ch = ch_data_override[i];
+		ch_data_val = ch_data_override[i+1];
 		sprd_adc_ch_data_decode(data, ch, ch_data_val);
 	}
 
-	devm_kfree(data->dev, ch_data_overide);
+	devm_kfree(data->dev, ch_data_override);
 
 	return 0;
 }
@@ -1431,9 +1487,10 @@ static const struct sprd_adc_variant_data sc2720_data = {
 	.reg_list = regs_sc2720,
 	.graph_index = ONE_CELL_GRAPH1,
 	.calib_infos = {
-		CALIB_INFO_INIT(5, SCALE_11, GRAPH_BIG),
-		CALIB_INFO_INIT(1, SCALE_00, GRAPH_SMALL)},
-	.aux_ratio = {RATIO(1, 1), RATIO(1000, 1955), RATIO(1000, 2586), RATIO(100, 406)},
+		CALIB_INFO_INIT_P0(5, SCALE_11, GRAPH_BIG),
+		CALIB_INFO_INIT_P0(1, SCALE_00, GRAPH_SMALL)
+	},
+	.aux_ratio_comm = {RATIO_DEF, RATIO(1000, 1955), RATIO(1000, 2586), RATIO(100, 406)},
 	.ch_data_init = sc2720_ch_data_init,
 };
 
@@ -1444,9 +1501,9 @@ static const struct sprd_adc_variant_data sc2721_data = {
 	.reg_list = regs_sc2721,
 	.graph_index = ONE_CELL_GRAPH0,
 	.calib_infos = {
-		CALIB_INFO_INIT(5, SCALE_01, GRAPH_BIG),
-		CALIB_INFO_INIT(1, SCALE_00, GRAPH_SMALL)},
-	.aux_ratio = {RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)},
+		CALIB_INFO_INIT_P2(5, SCALE_01, GRAPH_BIG, RATIO(7, 29), RATIO(7, 29)),
+		CALIB_INFO_INIT_P2(1, SCALE_00, GRAPH_SMALL, RATIO_DEF, RATIO(400, 1025))
+	},
 	.ch_data_init = sc2721_ch_data_init,
 };
 
@@ -1457,9 +1514,10 @@ static const struct sprd_adc_variant_data sc2730_data = {
 	.reg_list = regs_sc2730,
 	.graph_index = ONE_CELL_GRAPH1,
 	.calib_infos = {
-		CALIB_INFO_INIT(5, SCALE_11, GRAPH_BIG),
-		CALIB_INFO_INIT(1, SCALE_00, GRAPH_SMALL)},
-	.aux_ratio = {RATIO(1, 1), RATIO(1000, 1955), RATIO(1000, 2586), RATIO(1000, 4060)},
+		CALIB_INFO_INIT_P0(5, SCALE_11, GRAPH_BIG),
+		CALIB_INFO_INIT_P0(1, SCALE_00, GRAPH_SMALL)
+	},
+	.aux_ratio_comm = {RATIO_DEF, RATIO(1000, 1955), RATIO(1000, 2586), RATIO(1000, 4060)},
 	.ch_data_init = sc2730_ch_data_init,
 };
 
@@ -1470,9 +1528,9 @@ static const struct sprd_adc_variant_data sc2731_data = {
 	.reg_list = regs_sc2731,
 	.graph_index = ONE_CELL_GRAPH0,
 	.calib_infos = {
-		CALIB_INFO_INIT(5, SCALE_01, GRAPH_BIG),
-		CALIB_INFO_INIT(1, SCALE_00, GRAPH_SMALL)},
-	.aux_ratio = {RATIO(1, 1), RATIO(1, 1), RATIO(1, 1), RATIO(1, 1)},
+		CALIB_INFO_INIT_P2(5, SCALE_01, GRAPH_BIG, RATIO(7, 29), RATIO(7, 29)),
+		CALIB_INFO_INIT_P2(1, SCALE_00, GRAPH_SMALL, RATIO_DEF, RATIO(400, 1025))
+	},
 	.ch_data_init = sc2731_ch_data_init,
 };
 
@@ -1483,10 +1541,26 @@ static const struct sprd_adc_variant_data ump9620_data = {
 	.reg_list = regs_ump9620,
 	.graph_index = TWO_CELL_GRAPH,
 	.calib_infos = {
-		CALIB_INFO_INIT(11, SCALE_00, GRAPH_BIG),
-		CALIB_INFO_INIT(1, SCALE_00, GRAPH_SMALL),
-		CALIB_INFO_INIT(0, SCALE_01, GRAPH_VBAT_DET)},
-	.aux_ratio = {RATIO(1, 1), RATIO(100, 133), RATIO(1000, 2600), RATIO(1000, 4060)},
+		CALIB_INFO_INIT_P0(11, SCALE_00, GRAPH_BIG),
+		CALIB_INFO_INIT_P0(1, SCALE_00, GRAPH_SMALL),
+		CALIB_INFO_INIT_P0(0, SCALE_01, GRAPH_VBAT_DET)
+	},
+	.aux_ratio_comm = {RATIO_DEF, RATIO(100, 133), RATIO(1000, 2600), RATIO(1000, 4060)},
+	.ch_data_init = ump9620_ch_data_init,
+};
+
+static const struct sprd_adc_variant_data ump518_data = {
+	.pmic_type = UMP518_ADC,
+	.glb_reg_base = 0x1800,
+	.adc_reg_base_offset = 0x4,
+	.reg_list = regs_sc2730,
+	.graph_index = TWO_CELL_GRAPH,
+	.calib_infos = {
+		CALIB_INFO_INIT_P0(11, SCALE_00, GRAPH_BIG),
+		CALIB_INFO_INIT_P0(1, SCALE_00, GRAPH_SMALL),
+		CALIB_INFO_INIT_P0(0, SCALE_01, GRAPH_VBAT_DET)
+	},
+	.aux_ratio_comm = {RATIO_DEF, RATIO(100, 133), RATIO(1000, 2600), RATIO(1000, 4060)},
 	.ch_data_init = ump9620_ch_data_init,
 };
 
@@ -1496,6 +1570,7 @@ static const struct of_device_id sprd_adc_of_match[] = {
 	{ .compatible = "sprd,sc2721-adc", .data = &sc2721_data},
 	{ .compatible = "sprd,sc2720-adc", .data = &sc2720_data},
 	{ .compatible = "sprd,ump9620-adc", .data = &ump9620_data},
+	{ .compatible = "sprd,ump518-adc", .data = &ump518_data},
 	{ }
 };
 
