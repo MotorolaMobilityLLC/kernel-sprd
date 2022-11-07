@@ -28,6 +28,7 @@
 
 struct sprd_usbm_event {
 	int max_supported;
+	struct mutex	serialize;
 	struct raw_notifier_head nh[SPRD_USBM_EVENT_MAX];
 };
 
@@ -100,6 +101,34 @@ void sprd_usbm_ssphy_set_onoff(int onoff)
 	atomic_set(&ssphy_onoff, onoff);
 }
 EXPORT_SYMBOL(sprd_usbm_ssphy_set_onoff);
+
+/* set mutex lock */
+void sprd_usbm_mutex_lock(void)
+{
+	struct sprd_usbm_event *usb_event = usb_event_sprd;
+
+	if (!usb_event) {
+		pr_info("usb_event is null when do mutex lock\n");
+		return;
+	}
+
+	mutex_lock(&usb_event->serialize);
+}
+EXPORT_SYMBOL(sprd_usbm_mutex_lock);
+
+/* set mutex unlock */
+void sprd_usbm_mutex_unlock(void)
+{
+	struct sprd_usbm_event *usb_event = usb_event_sprd;
+
+	if (!usb_event) {
+		pr_info("usb_event is null when do mutex unlock\n");
+		return;
+	}
+
+	mutex_unlock(&usb_event->serialize);
+}
+EXPORT_SYMBOL(sprd_usbm_mutex_unlock);
 
 /* define our own notifier_chain_register func */
 int register_sprd_usbm_notifier(struct notifier_block *nb, unsigned int id)
@@ -175,6 +204,8 @@ static int __init sprd_usbm_event_driver_init(void)
 		return -ENOMEM;
 
 	usb_event->max_supported = SPRD_USBM_EVENT_MAX;
+
+	mutex_init(&usb_event->serialize);
 
 	for (index = 0; index < usb_event->max_supported; index++)
 		RAW_INIT_NOTIFIER_HEAD(&usb_event->nh[index]);

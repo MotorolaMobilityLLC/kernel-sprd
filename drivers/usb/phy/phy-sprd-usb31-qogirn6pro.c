@@ -297,6 +297,8 @@ static int sprd_ssphy_init(struct usb_phy *x)
 		return 0;
 	}
 
+	sprd_usbm_mutex_lock();
+
 	ptn38003a_mode_usb32_set(1);
 
 	/*
@@ -308,6 +310,7 @@ static int sprd_ssphy_init(struct usb_phy *x)
 		if (ret) {
 			dev_err(x->dev,
 				"Failed to enable phy->vdd: %d\n", ret);
+			sprd_usbm_mutex_unlock();
 			return ret;
 		}
 	}
@@ -486,6 +489,7 @@ static int sprd_ssphy_init(struct usb_phy *x)
 
 	atomic_set(&phy->inited, 1);
 
+	sprd_usbm_mutex_unlock();
 	return ret;
 }
 
@@ -500,6 +504,7 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 		return;
 	}
 
+	sprd_usbm_mutex_lock();
 	dev_info(x->dev, "[%s]enter usbm_event_is_active(%d), usbm_hsphy_get_onoff(%d)\n",
 		__func__, sprd_usbm_event_is_active(), sprd_usbm_hsphy_get_onoff());
 
@@ -561,6 +566,7 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 
 	atomic_set(&phy->inited, 0);
 	atomic_set(&phy->reset, 0);
+	sprd_usbm_mutex_unlock();
 }
 
 static ssize_t hsphy_device_eye_pattern_show(struct device *dev,

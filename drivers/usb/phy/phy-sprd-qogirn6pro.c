@@ -257,11 +257,15 @@ static int sprd_hsphy_init(struct usb_phy *x)
 		return 0;
 	}
 
+	sprd_usbm_mutex_lock();
+
 	/* Turn On VDD */
 	regulator_set_voltage(phy->vdd, phy->vdd_vol, phy->vdd_vol);
 	ret = regulator_enable(phy->vdd);
-	if (ret)
+	if (ret) {
+		sprd_usbm_mutex_unlock();
 		return ret;
+	}
 
 	sprd_usbm_hsphy_set_onoff(1);
 
@@ -324,7 +328,7 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	}
 
 	atomic_set(&phy->inited, 1);
-
+	sprd_usbm_mutex_unlock();
 	return ret;
 }
 
@@ -338,6 +342,7 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		return;
 	}
 
+	sprd_usbm_mutex_lock();
 	dev_info(x->dev, "[%s]enter usbm_event_is_active(%d), usbm_ssphy_get_onoff(%d)\n",
 		__func__, sprd_usbm_event_is_active(), sprd_usbm_ssphy_get_onoff());
 
@@ -380,6 +385,7 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 
 	atomic_set(&phy->inited, 0);
 	atomic_set(&phy->reset, 0);
+	sprd_usbm_mutex_unlock();
 }
 
 static int __maybe_unused sprd_hsphy_post_init(struct usb_phy *x)

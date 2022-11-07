@@ -43,6 +43,8 @@ extern int sprd_usbm_hsphy_get_onoff(void);
 extern void sprd_usbm_hsphy_set_onoff(int onoff);
 extern int sprd_usbm_ssphy_get_onoff(void);
 extern void sprd_usbm_ssphy_set_onoff(int onoff);
+extern void sprd_usbm_mutex_lock(void);
+extern void sprd_usbm_mutex_unlock(void);
 #else
 static inline int call_sprd_usbm_event_notifiers(unsigned int id, unsigned long val, void *v)
 {
@@ -75,6 +77,12 @@ static inline int sprd_usbm_ssphy_get_onoff(void)
 static inline void sprd_usbm_ssphy_set_onoff(int onoff)
 {
 	return;
+}
+static inline void sprd_usbm_mutex_lock(void)
+{
+}
+static inline void sprd_usbm_mutex_unlock(void)
+{
 }
 #endif /* IS_ENABLED(CONFIG_SPRD_USBM) */
 
