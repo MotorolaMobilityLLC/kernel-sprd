@@ -1996,7 +1996,6 @@ static int cm_enable_second_charger(struct charger_manager *cm, bool enable)
 	if (!psy) {
 		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
 			desc->psy_charger_stat[1]);
-		power_supply_put(psy);
 		return -ENODEV;
 	}
 
