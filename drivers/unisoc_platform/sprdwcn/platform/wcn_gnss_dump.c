@@ -275,7 +275,8 @@ static int gnss_memcpy_rd(char *dest, char *src, size_t count)
 
 static int gnss_memcpy_wr(char *dest, char *src, size_t count)
 {
-	return copy_from_user(dest, src, count);
+	memcpy(dest, src, count);
+	return 0;
 }
 
 static int gnss_device_init(void)
@@ -324,22 +325,10 @@ static ssize_t wcn_gnss_dump_read(struct file *filp,
 	return len;
 }
 
-static ssize_t wcn_gnss_dump_write(struct file *filp, const char __user *buf,
-			      size_t count, loff_t *pos)
-{
-	ssize_t len = 0;
-
-	len = gnss_ring_write(gnss_rx_ring, (char *)buf, count);
-	if (len > 0)
-		wake_up_interruptible(&gnss_dev->rxwait);
-
-	return len;
-}
-
 static const struct file_operations wcn_gnss_dump_fops = {
 	.owner = THIS_MODULE,
 	.read = wcn_gnss_dump_read,
-	.write = wcn_gnss_dump_write,
+	//.write = wcn_gnss_dump_write,
 	.open = wcn_gnss_dump_open,
 	.release = wcn_gnss_dump_release,
 };
