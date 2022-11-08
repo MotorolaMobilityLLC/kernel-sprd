@@ -2243,7 +2243,7 @@ static int musb_schedule(
 	}
 
 	/* For adaptive device used the hardware EP1 */
-	for (epnum = 1, hw_ep = musb->endpoints + 2;
+	for (epnum = 2, hw_ep = musb->endpoints + 2;
 			epnum < musb->nr_endpoints;
 			epnum++, hw_ep++) {
 #else
