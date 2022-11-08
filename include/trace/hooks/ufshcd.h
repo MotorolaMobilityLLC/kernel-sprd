@@ -26,6 +26,10 @@ DECLARE_HOOK(android_vh_ufs_fill_prdt,
 		 unsigned int segments, int *err),
 	TP_ARGS(hba, lrbp, segments, err));
 
+DECLARE_RESTRICTED_HOOK(android_rvh_ufs_complete_init,
+			TP_PROTO(struct ufs_hba *hba),
+			TP_ARGS(hba), 1);
+
 DECLARE_RESTRICTED_HOOK(android_rvh_ufs_reprogram_all_keys,
 			TP_PROTO(struct ufs_hba *hba, int *err),
 			TP_ARGS(hba, err), 1);
@@ -127,6 +131,10 @@ DECLARE_HOOK(android_vh_ufs_mcq_clear_cmd,
 DECLARE_HOOK(android_vh_ufs_mcq_clear_pending,
 	TP_PROTO(struct ufs_hba *hba, int *ret),
 	TP_ARGS(hba, ret));
+
+DECLARE_HOOK(android_vh_ufs_mcq_retry_complete,
+	TP_PROTO(struct ufs_hba *hba),
+	TP_ARGS(hba));
 
 #endif /* _TRACE_HOOK_UFSHCD_H */
 /* This part must be outside protection */
