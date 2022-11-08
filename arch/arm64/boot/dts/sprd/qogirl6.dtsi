@@ -1383,8 +1383,8 @@
 			};
 
 			adi_bus: spi@64200000 {
-				compatible = "sprd,qogirl6-adi",
-						"sprd,sharkl5pro-adi";
+				compatible = "sprd,ums9230-adi",
+						"sprd,ums512-adi";
 				reg = <0 0x64200000 0 0x100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
