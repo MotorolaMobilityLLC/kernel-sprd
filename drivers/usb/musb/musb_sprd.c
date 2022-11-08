@@ -2094,7 +2094,6 @@ static int musb_sprd_pm_resume(struct device *dev)
 		return 0;
 	}
 
-	flush_work(&glue->resume_work);
 	musb_sprd_resume(glue);
 	atomic_set(&glue->pm_suspended, 0);
 
