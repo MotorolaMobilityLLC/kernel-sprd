@@ -1869,10 +1869,12 @@ int sblock_release(u8 dst, u8 channel, struct sblock *blk)
 	u8 dst_index;
 	bool send_event = false;
 
-	dst_index = slog_dst2index[dst];
-	if (dst_index == INVALID_SLOG_DST_INDEX) {
-		pr_err("slog dst %d invalid!\n", dst);
-		return -EINVAL;
+	if (channel == SMSG_CH_PLOG) {
+		dst_index = slog_dst2index[dst];
+		if (dst_index == INVALID_SLOG_DST_INDEX) {
+			pr_err("slog dst %d invalid!\n", dst);
+			return -EINVAL;
+		}
 	}
 
 	ch_index = sipc_channel2index(channel);
