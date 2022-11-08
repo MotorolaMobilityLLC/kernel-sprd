@@ -51,6 +51,11 @@ static ssize_t gsp_dvfs_enable_store(struct device *dev,
 	struct gsp_dvfs *gsp = dev_get_drvdata(devfreq->dev.parent);
 	int ret, user_en;
 
+	if (!get_display_power_status()) {
+		pr_err("gsp is stopped, reject get gsp dvfs status\n");
+		return -EINVAL;
+	}
+
 	ret = sscanf(buf, "%d\n", &user_en);
 	if (ret == 0)
 		return -EINVAL;
@@ -86,6 +91,11 @@ static ssize_t set_hw_dfs_store(struct device *dev,
 	u32 dfs_en;
 	int ret;
 
+	if (!get_display_power_status()) {
+		pr_err("gsp is stopped, reject get gsp dvfs status\n");
+		return -EINVAL;
+	}
+
 	ret = sscanf(buf, "%d\n", &dfs_en);
 	if (ret == 0)
 		return -EINVAL;
@@ -107,6 +117,11 @@ static ssize_t get_work_freq_show(struct device *dev,
 	u32 work_freq;
 	int ret;
 
+	if (!get_display_power_status()) {
+		pr_err("gsp is stopped, reject get gsp dvfs status\n");
+		return -EINVAL;
+	}
+
 	if (gsp->dvfs_ops && gsp->dvfs_ops->get_work_freq) {
 		work_freq = gsp->dvfs_ops->get_work_freq(gsp);
 		ret = sprintf(buf, "%d\n", work_freq);
@@ -124,6 +139,11 @@ static ssize_t set_work_freq_store(struct device *dev,
 	struct gsp_dvfs *gsp = dev_get_drvdata(devfreq->dev.parent);
 	u32 user_freq;
 	int ret;
+
+	if (!get_display_power_status()) {
+		pr_err("gsp is stopped, reject get gsp dvfs status\n");
+		return -EINVAL;
+	}
 
 	mutex_lock(&devfreq->lock);
 
@@ -152,6 +172,11 @@ static ssize_t get_idle_freq_show(struct device *dev,
 	u32 idle_freq;
 	int ret;
 
+	if (!get_display_power_status()) {
+		pr_err("gsp is stopped, reject get gsp dvfs status\n");
+		return -EINVAL;
+	}
+
 	if (gsp->dvfs_ops && gsp->dvfs_ops->get_idle_freq) {
 		idle_freq = gsp->dvfs_ops->get_idle_freq(gsp);
 		ret = sprintf(buf, "%d\n", idle_freq);
@@ -169,6 +194,11 @@ static ssize_t set_idle_freq_store(struct device *dev,
 	struct gsp_dvfs *gsp = dev_get_drvdata(devfreq->dev.parent);
 	u32 user_freq;
 	int ret;
+
+	if (!get_display_power_status()) {
+		pr_err("gsp is stopped, reject get gsp dvfs status\n");
+		return -EINVAL;
+	}
 
 	mutex_lock(&devfreq->lock);
 
@@ -196,6 +226,11 @@ static ssize_t get_work_index_show(struct device *dev,
 	struct gsp_dvfs *gsp = dev_get_drvdata(devfreq->dev.parent);
 	int work_index, ret;
 
+	if (!get_display_power_status()) {
+		pr_err("gsp is stopped, reject get gsp dvfs status\n");
+		return -EINVAL;
+	}
+
 	if (gsp->dvfs_ops && gsp->dvfs_ops->get_work_index) {
 		work_index = gsp->dvfs_ops->get_work_index(gsp);
 		ret = sprintf(buf, "%d\n", work_index);
@@ -212,6 +247,11 @@ static ssize_t set_work_index_store(struct device *dev,
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct gsp_dvfs *gsp = dev_get_drvdata(devfreq->dev.parent);
 	int work_index, ret;
+
+	if (!get_display_power_status()) {
+		pr_err("gsp is stopped, reject get gsp dvfs status\n");
+		return -EINVAL;
+	}
 
 	ret = sscanf(buf, "%d\n", &work_index);
 	if (ret == 0)
@@ -232,6 +272,11 @@ static ssize_t get_idle_index_show(struct device *dev,
 	struct gsp_dvfs *gsp = dev_get_drvdata(devfreq->dev.parent);
 	int idle_index, ret;
 
+	if (!get_display_power_status()) {
+		pr_err("gsp is stopped, reject get gsp dvfs status\n");
+		return -EINVAL;
+	}
+
 	if (gsp->dvfs_ops && gsp->dvfs_ops->get_idle_index) {
 		idle_index = gsp->dvfs_ops->get_idle_index(gsp);
 		ret = sprintf(buf, "%d\n", idle_index);
@@ -248,6 +293,11 @@ static ssize_t set_idle_index_store(struct device *dev,
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct gsp_dvfs *gsp = dev_get_drvdata(devfreq->dev.parent);
 	int idle_index, ret;
+
+	if (!get_display_power_status()) {
+		pr_err("gsp is stopped, reject get gsp dvfs status\n");
+		return -EINVAL;
+	}
 
 	ret = sscanf(buf, "%d\n", &idle_index);
 	if (ret == 0)
@@ -268,6 +318,11 @@ static ssize_t get_dvfs_status_show(struct device *dev,
 	struct gsp_dvfs *gsp = dev_get_drvdata(devfreq->dev.parent);
 	struct ip_dvfs_status dvfs_status;
 	ssize_t len = 0;
+
+	if (!get_display_power_status()) {
+		pr_err("gsp is stopped, reject get gsp dvfs status\n");
+		return -EINVAL;
+	}
 
 	if (gsp->dvfs_ops && gsp->dvfs_ops->get_dvfs_status)
 		gsp->dvfs_ops->get_dvfs_status(gsp, &dvfs_status);

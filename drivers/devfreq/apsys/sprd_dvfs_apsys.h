@@ -12,6 +12,8 @@
 #include <linux/device.h>
 #include <linux/types.h>
 
+#include <drm/drm_crtc.h>
+
 typedef enum {
 	DVFS_WORK = 0,
 	DVFS_IDLE,
@@ -97,8 +99,14 @@ struct sprd_apsys_dvfs_ops {
 	const char *version;
 };
 
+struct sprd_dpu_crtc {
+	struct device dev;
+	struct drm_crtc *crtc;
+};
+
 struct apsys_dev *find_apsys_device_by_name(char *name);
 int n6pro_soc_ver_id_check(void);
+bool get_display_power_status(void);
 
 #ifdef CONFIG_DRM_SPRD_GSP_DVFS
 extern struct platform_driver gsp_dvfs_driver;

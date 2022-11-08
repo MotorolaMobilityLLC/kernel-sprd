@@ -23,6 +23,39 @@
 
 LIST_HEAD(apsys_dvfs_head);
 
+bool get_display_power_status(void)
+{
+	struct device_node *dpu_node;
+	struct platform_device *dpu_pdev;
+	struct sprd_dpu_crtc *sprd_dpu;
+
+	dpu_node = of_find_node_by_name(NULL, "dpu");
+	if (!dpu_node) {
+		pr_err("failed to get dpu node\n");
+		return false;
+	}
+
+	dpu_pdev = of_find_device_by_node(dpu_node);
+	if (!dpu_pdev) {
+		pr_err("failed to get dpu platform device\n");
+		of_node_put(dpu_node);
+		return false;
+	}
+
+	sprd_dpu = dev_get_drvdata(&dpu_pdev->dev);
+	if (!sprd_dpu->crtc->state->active) {
+		pr_err("dpu is stopped, reject get dpu dvfs status\n");
+		of_node_put(dpu_node);
+		platform_device_put(dpu_pdev);
+		return false;
+	}
+
+	of_node_put(dpu_node);
+	platform_device_put(dpu_pdev);
+
+	return true;
+}
+
 struct class *dvfs_class;
 struct regmap *regmap_aon_base;
 bool n6pro_AA_flag;
