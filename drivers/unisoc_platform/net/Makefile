@@ -4,9 +4,14 @@
 #
 
 #
+#Ims_bridge module
+#
+obj-$(CONFIG_SPRD_IMS_BRIDGE) += ims_bridge/
+
+#
 # Networking Core Drivers
 #
-obj-$(CONFIG_UNISOC_SIPC_SETH)		+= seth/
+obj-$(CONFIG_UNISOC_SIPC_SETH) += seth/
 
 #
 # Sipa sys Drivers

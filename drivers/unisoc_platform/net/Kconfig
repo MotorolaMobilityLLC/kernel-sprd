@@ -4,7 +4,7 @@
 #
 
 menu "Unisoc Net Devices"
-
+source "drivers/unisoc_platform/net/ims_bridge/Kconfig"
 source "drivers/unisoc_platform/net/seth/Kconfig"
 source "drivers/unisoc_platform/net/sipa_sys/Kconfig"
 source "drivers/unisoc_platform/net/sipa_v3/Kconfig"
