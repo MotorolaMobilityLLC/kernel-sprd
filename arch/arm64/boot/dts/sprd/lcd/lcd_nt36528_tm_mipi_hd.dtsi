@@ -32,7 +32,7 @@
 					sprd,esd-check-regs = <0xA>;
 					sprd,esd-return-code = <0x9c>;
 
-					sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>, <0 5>, <1 20>;
+					sprd,reset-on-sequence = <1 5>, <0 5>, <1 10>, <0 5>, <1 10>;
 					//sprd,reset-off-sequence = <0 5>;
 
 					sprd,initial-command = [
@@ -278,11 +278,11 @@
 						39 00 00 02 35  00
 						39 00 00 03 51  00  00
 						39 00 00 02 53  2C
-						39 00 00 02 55  01
+						39 00 00 02 55  02
 						39 00 00 03 68  03 01
 
-						39 78 00 01 11
-						39 14 00 01 29
+						39 64 00 01 11
+						39 05 00 01 29
 						];
 
 					sprd,sleep-in-command = [
