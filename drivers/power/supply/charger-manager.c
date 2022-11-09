@@ -30,6 +30,8 @@
 #include <linux/thermal.h>
 #include <linux/usb/sprd_pd.h>
 #include <linux/workqueue.h>
+#include <linux/usb/sprd_tcpm.h>
+#include <linux/usb/sprd_pd.h>
 
 /*
  * Default temperature threshold for charging.
@@ -4356,6 +4358,39 @@ out:
 }
 
 /**
+ * cm_use_typec_charger_type_polling - Polling charger type if use typec extcon.
+ * @cm: the Charger Manager representing the battery.
+ */
+static int cm_use_typec_charger_type_polling(struct charger_manager *cm)
+{
+	int ret;
+	u32 type;
+
+	if (cm->vchg_info && !cm->vchg_info->use_typec_extcon)
+		return 0;
+
+	if (cm->desc->is_fast_charge)
+		return 0;
+
+	if (cm->desc->charger_type != POWER_SUPPLY_USB_TYPE_UNKNOWN)
+		return 0;
+
+	ret = cm_get_bc1p2_type(cm, &type);
+	if (!ret && type != POWER_SUPPLY_USB_TYPE_UNKNOWN)
+		cm->vchg_info->charger_type_cnt++;
+
+	if (cm->vchg_info->charger_type_cnt > 1) {
+		dev_info(cm->dev, "%s: update charger type:%d\n", __func__, type);
+		cm->desc->charger_type = type;
+		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
+					   CM_CHARGE_INFO_INPUT_LIMIT |
+					   CM_CHARGE_INFO_JEITA_LIMIT));
+	}
+
+	return ret;
+}
+
+/**
  * cm_get_target_status - Check current status and get next target status.
  * @cm: the Charger Manager representing the battery.
  */
@@ -4449,6 +4484,7 @@ static bool _cm_monitor(struct charger_manager *cm)
 		cm->emergency_stop = 0;
 		cm->charging_status = 0;
 		try_charger_enable(cm, true);
+		cm_use_typec_charger_type_polling(cm);
 
 		if (!cm->desc->cp.cp_running && !cm_check_primary_charger_enabled(cm)
 		    && !cm->desc->force_set_full) {
@@ -4851,6 +4887,8 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->thm_info.adapter_default_charge_vol = 5;
 		cm->desc->wl_charge_en = 0;
 		cm->desc->usb_charge_en = 0;
+		cm->vchg_info->charger_type_cnt = 0;
+		cm->desc->pd_port_partner = 0;
 		cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
 					 SPRD_VOTE_TYPE_ALL, 0, 0, 0, cm);
 		cm->desc->xts_limit_cur = false;
@@ -5658,6 +5696,48 @@ static const struct power_supply_desc psy_default = {
 	.no_thermal = false,
 };
 
+#if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
+static bool cm_pd_is_ac_online(struct charger_manager *cm)
+{
+	struct adapter_power_cap pd_source_cap;
+	struct sprd_tcpm_port *port;
+	struct power_supply *psy;
+	int i, index = 0;
+
+	psy = power_supply_get_by_name(SPRD_FCHG_TCPM_PD_NAME);
+	if (!psy) {
+		dev_err(cm->dev, "failed to get tcpm psy!\n");
+		return true;
+	}
+
+	port = power_supply_get_drvdata(psy);
+	if (!port) {
+		dev_err(cm->dev, "failed to get tcpm port!\n");
+		return true;
+	}
+
+	sprd_tcpm_get_source_capabilities(port, &pd_source_cap);
+
+	for (i = 0; i < pd_source_cap.nr_source_caps; i++) {
+		if ((pd_source_cap.max_mv[i] <= 5000) &&
+		    (pd_source_cap.type[i] == SPRD_PDO_TYPE_FIXED))
+			index++;
+	}
+
+	if (pd_source_cap.nr_source_caps == index) {
+		dev_info(cm->dev, "pd type ac online is false\n");
+		return false;
+	}
+
+	return true;
+}
+#else
+static bool cm_pd_is_ac_online(struct charger_manager *cm)
+{
+	return true;
+}
+#endif
+
 static void cm_update_charger_type_status(struct charger_manager *cm)
 {
 
@@ -5666,11 +5746,22 @@ static void cm_update_charger_type_status(struct charger_manager *cm)
 		case CM_CHARGER_TYPE_DCP:
 		case CM_CHARGER_TYPE_FAST:
 		case CM_CHARGER_TYPE_ADAPTIVE:
-			wireless_main.ONLINE = 0;
-			usb_main.ONLINE = 0;
-			ac_main.ONLINE = 1;
+			if (cm->fchg_info->pd_enable && !cm->fchg_info->pps_enable &&
+				!cm_pd_is_ac_online(cm) && !cm->desc->pd_port_partner) {
+				wireless_main.ONLINE = 0;
+				ac_main.ONLINE = 0;
+				usb_main.ONLINE = 1;
+				dev_info(cm->dev, "usb online--pd type 5V\n");
+			} else {
+				wireless_main.ONLINE = 0;
+				usb_main.ONLINE = 0;
+				ac_main.ONLINE = 1;
+				cm->desc->pd_port_partner = 0;
+				dev_info(cm->dev, "ac online\n");
+			}
 			break;
 		default:
+			dev_info(cm->dev, "default usb online\n");
 			wireless_main.ONLINE = 0;
 			ac_main.ONLINE = 0;
 			usb_main.ONLINE = 1;
@@ -5689,6 +5780,53 @@ static void cm_update_charger_type_status(struct charger_manager *cm)
 	dev_info(cm->dev, "%s:line%d usb = %d, ac = %d, wireless = %d\n",
 		__func__, __LINE__, usb_main.ONLINE, ac_main.ONLINE, wireless_main.ONLINE);
 }
+
+void cm_check_pd_update_ac_usb_online(bool is_pd_hub)
+{
+	struct charger_manager *cm;
+	bool found_power_supply = false;
+
+	mutex_lock(&cm_list_mtx);
+	list_for_each_entry(cm, &cm_list, entry) {
+		if (cm->charger_psy->desc) {
+			if (strcmp(cm->charger_psy->desc->name, "battery") == 0) {
+				found_power_supply = true;
+				break;
+			}
+		}
+	}
+
+	mutex_unlock(&cm_list_mtx);
+
+	if (!found_power_supply) {
+		pr_err("%s:line%d no cm found!!!\n", __func__, __LINE__);
+		return;
+	}
+
+	if (!cm) {
+		pr_err("%s:line%d NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
+	dev_info(cm->dev, "%s is_pd_hub = %d\n", __func__, is_pd_hub);
+
+	if (!is_ext_usb_pwr_online(cm))
+		dev_info(cm->dev, "%s pd notify before vchg/typec\n", __func__);
+
+	cm->desc->pd_port_partner = is_pd_hub;
+
+	cm_update_charger_type_status(cm);
+
+	if (ac_main.ONLINE) {
+		power_supply_changed(cm->charger_psy);
+		dev_info(cm->dev, "%s pd notify after vchg/typec\n", __func__);
+	}
+}
+
+static struct sprd_charger_ops cm_sprd_charger_ops = {
+	.name = "sprd_charger_manager",
+	.update_ac_usb_online = cm_check_pd_update_ac_usb_online,
+};
 
 /**
  * cm_setup_timer - For in-suspend monitoring setup wakeup alarm
@@ -7533,6 +7671,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	if (is_ext_usb_pwr_online(cm) && cm->fchg_info->ops && cm->fchg_info->ops->fchg_detect)
 		cm->fchg_info->ops->fchg_detect(cm->fchg_info);
 
+	sprd_tcpm_charger_ops_register(&cm_sprd_charger_ops);
 	if (cm_event_num > 0) {
 		for (i = 0; i < cm_event_num; i++)
 			cm_notify_type_handle(cm, cm_event_type[i], cm_event_msg[i]);

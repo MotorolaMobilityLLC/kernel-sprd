@@ -46,6 +46,9 @@ struct sprd_vchg_info {
 	bool typec_online;
 	bool chgr_online;
 	int pd_extcon_status;
+	bool is_sink;
+	bool use_typec_extcon;
+	int charger_type_cnt;
 };
 
 struct sprd_vchg_ops {

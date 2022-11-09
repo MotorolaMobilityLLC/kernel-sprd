@@ -720,6 +720,8 @@ struct charger_desc {
 
 	bool xts_limit_cur;
 	int adapter_max_vbus;
+
+	u32 pd_port_partner;
 };
 
 #define PSY_NAME_MAX	30
