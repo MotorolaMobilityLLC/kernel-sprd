@@ -6806,6 +6806,7 @@ static struct elevator_type iosched_bfq_mq = {
 	.icq_align =		__alignof__(struct bfq_io_cq),
 	.elevator_attrs =	bfq_attrs,
 	.elevator_name =	"bfq",
+	.elevator_features =    ELEVATOR_FEATRURE_BFQ,
 	.elevator_owner =	THIS_MODULE,
 };
 MODULE_ALIAS("bfq-iosched");

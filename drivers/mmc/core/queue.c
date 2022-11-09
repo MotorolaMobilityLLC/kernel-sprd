@@ -485,7 +485,7 @@ int mmc_init_queue(struct mmc_queue *mq, struct mmc_card *card)
 
 	mq->queue->queuedata = mq;
 	blk_queue_rq_timeout(mq->queue, 60 * HZ);
-
+	blk_queue_required_elevator_features(mq->queue, ELEVATOR_FEATRURE_BFQ);
 	mmc_setup_queue(mq, card);
 	return 0;
 
