@@ -1889,6 +1889,7 @@ struct request_queue *scsi_mq_alloc_queue(struct scsi_device *sdev)
 	sdev->request_queue->queuedata = sdev;
 	__scsi_init_queue(sdev->host, sdev->request_queue);
 	blk_queue_flag_set(QUEUE_FLAG_SCSI_PASSTHROUGH, sdev->request_queue);
+	blk_queue_required_elevator_features(sdev->request_queue, ELEVATOR_FEATRURE_BFQ);
 	return sdev->request_queue;
 }
 
