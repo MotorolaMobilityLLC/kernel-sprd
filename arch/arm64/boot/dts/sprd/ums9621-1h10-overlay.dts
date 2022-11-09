@@ -399,6 +399,11 @@
 &lcd_g40396_truly_mipi_fhd {
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
+
+	sprd,phy-bit-clock = <1106000>;
+	sprd,dpi-clk-div = <0>;
+	sprd,video-lp-cmd-enable = <0>;
+	sprd,hporch-lp-disable = <0>;
 };
 
 &pin_controller {
