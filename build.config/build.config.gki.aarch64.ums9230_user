@@ -1,0 +1,64 @@
+KERNEL_DIR=${KERNEL_DIR}"/.."
+. ${ROOT_DIR}/${KERNEL_DIR}/build.config.gki.aarch64
+
+BUILD_SYSTEM_DLKM=0
+DEFCONFIG=ums9230_gki_defconfig
+FRAGMENT_CONFIG=${KERNEL_DIR}/arch/arm64/configs/sprd_gki_sharkl6.fragment
+PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \
+${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig \
+${ROOT_DIR}/${FRAGMENT_CONFIG}"
+POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
+
+if [[ $BSP_SPECIFIED_KO_CONFIG == "true" && $BSP_USER_PREBUILTS_FLAG == "true" ]]; then
+	EXT_MODULES="$BSP_EXT_MODULES"
+else
+EXT_MODULES="
+../modules/kernel5.15/sample
+../modules/kernel5.15/input/fingerprint/microarray
+../modules/kernel5.15/input/touchscreen/ssl_ssd20xx
+../modules/kernel5.15/input/touchscreen/synaptics_dsx_td4310
+../modules/kernel5.15/npu/vdsp
+../modules/common/camera/power
+../modules/common/camera/core
+../modules/common/camera/cpp
+../modules/common/camera/flash/ocp8137
+../modules/common/camera/flash/flash_drv
+../modules/common/camera/sensor
+../modules/common/io/block
+../modules/common/io/iowait
+../modules/kernel5.15/display/gsp
+../modules/kernel5.15/display/dispc
+../modules/kernel5.15/dmabufheap
+../modules/kernel5.15/video/sprd-vsp
+../modules/kernel5.15/video/sprd-vsp-power
+../modules/kernel5.15/video/sprd-jpg
+"
+fi
+#camera module version config
+#export BSP_BOARD_CAMERA_MODULE_ISP_VERSION="isp2.6"
+#export BSP_BOARD_CAMERA_MODULE_ISP_ADAPT_VERSION="sharkl5pro"
+#export BSP_BOARD_CAMERA_MODULE_CPP_VERSION="lite_r6p0"
+#export BSP_BOARD_CAMERA_MODULE_CSI_VERSION="receiver_r3p0"
+#camera module dvfs config
+#export BSP_BOARD_CAMERA_MODULE_DVFS="sharkl5pro"
+
+DTC_FLAGS+="-@"
+
+if ([[ $BSP_SPECIFIED_KO_CONFIG == "true" ]] || [[ $BSP_KOONLY_CONFIG == "true" ]]) && ([[ $BSP_USER_PREBUILTS_FLAG == "true" ]]); then
+	MAKE_GOALS="$BSP_MAKE_GOALS"
+	BUILD_GKI_ARTIFACTS=""
+else
+	MAKE_GOALS="${MAKE_GOALS} dtbs"
+fi
+
+FILES="${FILES}
+arch/arm64/boot/dts/sprd/ums9230-base.dtb
+arch/arm64/boot/dts/sprd/ums9230-1h10-overlay.dtbo
+vmlinux
+"
+#KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc
+GKI_MODULES_LIST=android/gki_aarch64_modules
+
+MODULES_ORDER=""
+TRIM_NONLISTED_KMI=""
+KMI_SYMBOL_LIST_STRICT_MODE=""
