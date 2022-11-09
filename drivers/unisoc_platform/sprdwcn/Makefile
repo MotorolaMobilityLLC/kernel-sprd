@@ -9,9 +9,7 @@ subdir-ccflags-y := \
 	-I $(srctree)/$(src)/sipc
 
 # compile WCN_PCIE or not
-ifeq ($(CONFIG_PCIE_SPRD),m)
-BUILD_WCN_PCIE := true
-endif
+BUILD_WCN_PCIE := false
 
 ifeq ($(BUILD_WCN_PCIE),true)
 ccflags-y += -DBUILD_WCN_PCIE
