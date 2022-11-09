@@ -383,7 +383,7 @@
 		cluster0_cooling: cluster0-cooling {
 			compatible = "sprd,cluster-cooling";
 			#cooling-cells = <2>; /* min followed by max */
-			thermal-cluster-cpumask = <0x0f>;
+			thermal-cluster-cpumask = <0x03f>;
 			sprd,efuse-block7 = <7>;
 			sprd,efuse-block15 = <15>;
 			/* core_leak =                             */
@@ -428,7 +428,7 @@
 		cluster1_cooling: cluster1-cooling {
 			compatible = "sprd,cluster-cooling";
 			#cooling-cells = <2>; /* min followed by max */
-			thermal-cluster-cpumask = <0x70>;
+			thermal-cluster-cpumask = <0x40>;
 			sprd,efuse-block7 = <7>;
 			sprd,efuse-block15 = <15>;
 			/* core_leak =                             */
