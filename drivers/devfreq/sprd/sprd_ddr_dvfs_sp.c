@@ -27,12 +27,14 @@ spinlock_t lock;
 static struct vote_data *find_point(const char *name)
 {
 	struct vote_data *point;
+	unsigned int scene_index = 0;
 
 	point = g_vote_data;
-	while (point->name != NULL) {
+	while ((scene_index < scene_num) && (point->name != NULL)) {
 		if (!strcmp(point->name, name))
 			return point;
 		point++;
+		scene_index++;
 	}
 	return NULL;
 }
