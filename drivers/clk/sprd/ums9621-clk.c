@@ -2319,7 +2319,7 @@ static const struct clk_parent_data gpu_parents[] = {
 	{ .hw = &tgpll_153m6.hw },
 	{ .hw = &tgpll_384m.hw },
 	{ .hw = &tgpll_512m.hw },
-	{ .hw = &gpll.common.hw },
+	{ .hw = &gpll_680m.hw },
 	{ .hw = &gpll_850m.hw },
 };
 static SPRD_COMP_CLK_DATA_OFFSET(gpu, "gpu", gpu_parents, 0x28,
