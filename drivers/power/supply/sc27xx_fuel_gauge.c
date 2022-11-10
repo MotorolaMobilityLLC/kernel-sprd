@@ -451,7 +451,7 @@ static int get_boot_mode(struct sc27xx_fgu_data *data)
 	struct device_node *cmdline_node;
 	const char *cmd_line;
 	char *match;
-	char result[5];
+	char result[5] = {0};
 	int ret;
 
 	cmdline_node = of_find_node_by_path("/chosen");
