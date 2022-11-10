@@ -13,9 +13,7 @@
 #include <linux/delay.h>
 #include <linux/file.h>
 #include <linux/fs.h>
-#ifdef CONFIG_WCN_INTEG
 #include "gnss.h"
-#endif
 #include <linux/kthread.h>
 #include <linux/printk.h>
 #include <linux/sipc.h>
@@ -34,7 +32,7 @@
 #include "gnss_common.h"
 #include "gnss_dump.h"
 #include "wcn_gnss_dump.h"
-
+#include "sprd_wcn.h"
 
 enum {
 	REGMAP_AON_APB = 0x0,	/* AON APB */
@@ -52,36 +50,6 @@ enum {
 };
 
 #define GNSS_DUMP_END_STRING "gnss_memdump_finish"
-#ifdef CONFIG_WCN_INTEG
-#define GNSS_CP_START_ADDR	0x40A20000
-#define GNSS_FIRMWARE_MAX_SIZE 0x58000
-#endif
-
-#ifdef CONFIG_SC2355
-#define GNSS_CP_START_ADDR	0x40A20000
-#define GNSS_FIRMWARE_MAX_SIZE 0x58000
-#endif
-
-#ifdef CONFIG_UMW2652
-#define GNSS_CP_START_ADDR 0x40A50000
-#define GNSS_FIRMWARE_MAX_SIZE 0x2B000
-#define GNSS_DUMP_PACKET_SIZE    (32 * 1024)
-#endif
-
-#ifdef CONFIG_UMW2653
-#define GNSS_CP_START_ADDR	0x40A20000
-#define GNSS_FIRMWARE_MAX_SIZE 0x58000
-#endif
-
-/* Mutex macro */
-#if (!defined CONFIG_WCN_INTEG) && (!defined CONFIG_SC2355) && \
-	(!defined CONFIG_UMW2652) && (!defined CONFIG_UMW2653)
-#define GNSS_DUMP_PACKET_SIZE        0x8000
-#define GNSS_CP_START_ADDR      0x40A20000
-#define GNSS_FIRMWARE_MAX_SIZE 0x58000
-
-#endif
-
 #define GNSS_SET_OFFSET                 0x1000
 #define GNSS_APB_BASE              0x40bc8000
 #define REG_GNSS_APB_MCU_AP_RST        (GNSS_APB_BASE + 0x0280) /* s/c */
@@ -96,7 +64,16 @@ enum {
 
 #define GNSS_DUMP_ADDR_OFFSET 0x00000004
 
-#ifndef CONFIG_WCN_INTEG
+/* Get followling value from dts now! */
+
+uint GNSS_CP_START_ADDR;
+uint GNSS_FIRMWARE_MAX_SIZE;
+uint GNSS_DUMP_PACKET_SIZE;
+uint GNSS_SHARE_MEMORY_SIZE;
+uint GNSS_DUMP_IRAM_START_ADDR;
+uint GNSS_CP_IRAM_DATA_NUM;
+uint GNSS_DUMP_REG_NUMBER;
+
 struct gnss_mem_dump {
 	uint address;
 	uint length;
@@ -104,19 +81,18 @@ struct gnss_mem_dump {
 
 /* dump cp firmware firstly, wait for next adding */
 static struct gnss_mem_dump gnss_marlin3_dump[] = {
-	{GNSS_CP_START_ADDR, GNSS_FIRMWARE_MAX_SIZE}, /* gnss firmware code */
+	{0, 0}, /* gnss firmware code */
 	{GNSS_DRAM_ADDR, GNSS_DRAM_SIZE}, /* gnss dram */
 	{GNSS_TE_MEM, GNSS_TE_MEM_SIZE}, /* gnss te mem */
 	{GNSS_BASE_AON_APB, GNSS_BASE_AON_APB_SIZE}, /* aon apb */
 	{CTL_BASE_AON_CLOCK, CTL_BASE_AON_CLOCK_SIZE}, /* aon clock */
 };
 
-
-#else
 struct regmap_dump {
 	int regmap_type;
 	uint reg;
 };
+
 struct cp_reg_dump {
 	u32 addr;
 	u32 len;
@@ -166,16 +142,8 @@ static struct cp_reg_dump cp_reg[] = {
 	{REG_AON_CONTROL, AON_CONTROL_LEN},
 };
 
-#ifdef CONFIG_SC2342_I
-#define GNSS_DUMP_REG_NUMBER 8
-#else
-#define GNSS_DUMP_REG_NUMBER 4
-#endif
 static char gnss_dump_level; /* 0: default, all, 1: only data, pmu, aon */
 
-#endif
-
-#ifdef CONFIG_WCN_INTEG
 static void gnss_write_data_to_phy_addr(phys_addr_t phy_addr,
 					      void *src_data, u32 size)
 {
@@ -203,6 +171,7 @@ static void gnss_read_data_from_phy_addr(phys_addr_t phy_addr,
 	} else
 		GNSSDUMP_ERR("%s shmem_ram_vmap_nocache fail\n", __func__);
 }
+
 static void gnss_soft_reset_release_cpu(u32 type)
 {
 	struct regmap *regmap;
@@ -259,6 +228,7 @@ static void gnss_soft_reset_release_cpu(u32 type)
 		wcn_regmap_raw_write_bit(regmap, 0X24, value);
 	}
 }
+
 static void gnss_hold_cpu(void)
 {
 	u32 value;
@@ -293,6 +263,7 @@ static void gnss_hold_cpu(void)
 			value);
 	msleep(200);
 }
+
 static int gnss_dump_cp_register_data(u32 addr, u32 len)
 {
 	struct regmap *map;
@@ -367,11 +338,10 @@ static int gnss_dump_cp_register_data(u32 addr, u32 len)
 	return count;
 }
 
-
 static int gnss_dump_ap_register(void)
 {
 	struct regmap *regmap;
-	u32 value[GNSS_DUMP_REG_NUMBER + 1] = {0}; /* [0]board+ [..]reg */
+	u32 value[16] = {0}; /* [0]board+ [..]reg */
 	u32 i = 0;
 	//mm_segment_t fs;
 	u32 len = 0;
@@ -440,7 +410,6 @@ static int gnss_dump_ap_register(void)
 	return 0;
 }
 
-
 static void gnss_dump_cp_register(void)
 {
 	u32 count;
@@ -478,24 +447,29 @@ static void gnss_dump_register(void)
 	gnss_dump_cp_register();
 	GNSSDUMP_INFO("gnss dump register ok!\n");
 }
+
 static void gnss_dump_iram(void)
 {
 	u32 count;
-#ifndef CONFIG_SC2342_I
 	u32 count_pchannel;
-#endif
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
 	GNSSDUMP_INFO("%s enter\n", __func__);
 	count = gnss_dump_cp_register_data(GNSS_DUMP_IRAM_START_ADDR,
 			GNSS_CP_IRAM_DATA_NUM * 4);
 	GNSSDUMP_INFO("gnss dump iram %u ok!\n", count);
-#ifndef CONFIG_SC2342_I
+
+	if (g_match_config && g_match_config->unisoc_wcn_l3)
+		goto end;
+
 	count_pchannel = gnss_dump_cp_register_data(
 			GNSS_DUMP_IRAM_START_ADDR_PCHANNEL,
 			GNSS_PCHANNEL_IRAM_DATA_NUM * 4);
 	GNSSDUMP_INFO("gnss pchannel dump iram %u ok!\n", count_pchannel);
-#endif
+end:
 	GNSSDUMP_INFO("%s finish\n", __func__);
 }
+
 static int gnss_dump_share_memory(u32 len)
 {
 	void *virt_addr;
@@ -503,6 +477,8 @@ static int gnss_dump_share_memory(u32 len)
 	long int count = 0;
 	//mm_segment_t fs;
 	void  *ddr_buffer = NULL;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
 	GNSSDUMP_INFO("%s enter\n", __func__);
 	if (len == 0)
 		return -1;
@@ -535,7 +511,10 @@ static int gnss_dump_share_memory(u32 len)
 		return -1;
 	}
 	GNSSDUMP_INFO("gnss dump share memory  size = %ld\n", count);
-#ifndef CONFIG_SC2342_I
+
+	if (g_match_config && g_match_config->unisoc_wcn_l3)
+		return 0;
+
 	GNSSDUMP_ERR("%s dump sipc buffer start ", __func__);
 	base_addr = GNSS_DUMP_IRAM_START_ADDR_SIPC;
 	virt_addr = shmem_ram_vmap_nocache(SIPC_ID_GNSS, base_addr, SIPC_BUFFER_DATA_NUM);
@@ -566,9 +545,10 @@ static int gnss_dump_share_memory(u32 len)
 
 	GNSSDUMP_INFO("gnss dump sipc buffer size = %ld\n", count);
 	GNSSDUMP_INFO("%s finish\n", __func__);
-#endif
+
 	return 0;
 }
+
 static int gnss_integrated_dump_mem(void)
 {
 	int ret = 0;
@@ -584,7 +564,6 @@ static int gnss_integrated_dump_mem(void)
 	return ret;
 }
 
-#else
 static int gnss_ext_hold_cpu(void)
 {
 	uint temp = 0;
@@ -606,6 +585,7 @@ static int gnss_ext_hold_cpu(void)
 
 	return ret;
 }
+
 static int gnss_ext_dump_data(unsigned int start_addr, int len)
 {
 	u8 *buf = NULL;
@@ -663,6 +643,8 @@ static int gnss_ext_dump_mem(void)
 	GNSSDUMP_INFO("%s entry\n", __func__);
 	gnss_ext_hold_cpu();
 	gnss_ring_reset();
+	gnss_marlin3_dump[0].address = GNSS_CP_START_ADDR;
+	gnss_marlin3_dump[0].length = GNSS_FIRMWARE_MAX_SIZE;
 	for (i = 0; i < ARRAY_SIZE(gnss_marlin3_dump); i++)
 		if (gnss_ext_dump_data(gnss_marlin3_dump[i].address,
 			gnss_marlin3_dump[i].length)) {
@@ -671,24 +653,23 @@ static int gnss_ext_dump_mem(void)
 		}
 	return ret;
 }
-#endif
 
 int gnss_dump_mem(char flag)
 {
 	int ret = 0;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
-#ifdef CONFIG_WCN_INTEG
-	if (wcn_get_gnss_power_status() == WCN_POWER_STATUS_OFF) {
-		GNSSDUMP_INFO("gnss power status off:can not dump gnss\n");
-		return -1;
-	} else {
+	if (g_match_config && g_match_config->unisoc_wcn_integrated) {
+		if (wcn_get_gnss_power_status() == WCN_POWER_STATUS_OFF) {
+			GNSSDUMP_INFO("gnss power status off:can not dump gnss\n");
+			return -1;
+		}
 		GNSSDUMP_INFO("need dump gnss\n");
+		gnss_dump_level = flag;
+		ret = gnss_integrated_dump_mem();
+	} else {
+		ret = gnss_ext_dump_mem();
 	}
-	gnss_dump_level = flag;
-	ret = gnss_integrated_dump_mem();
-#else
-	ret = gnss_ext_dump_mem();
-#endif
 	msleep(40);
 	gnss_dump_str(GNSS_DUMP_END_STRING, strlen(GNSS_DUMP_END_STRING));
 	return ret;

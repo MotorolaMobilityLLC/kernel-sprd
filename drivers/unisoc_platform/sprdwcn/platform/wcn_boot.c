@@ -1167,6 +1167,34 @@ static int marlin_parse_dt(struct platform_device *pdev)
 
 	wcn_get_pmic_config(np);
 
+	ret = of_property_read_u32(np, "sprd,gnss-cp-start-addr",
+				   &GNSS_CP_START_ADDR);
+	if (ret) {
+		WCN_ERR("failed to read sprd,gnss-cp-start-addr\n");
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32(np, "sprd,gnss-firmware-max-size",
+				   &GNSS_FIRMWARE_MAX_SIZE);
+	if (ret) {
+		WCN_ERR("failed to read sprd,gnss-firmware-max-size\n");
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32(np, "sprd,gnss-dump-packet-size",
+				   &GNSS_DUMP_PACKET_SIZE);
+	if (ret) {
+		WCN_ERR("failed to read sprd,gnss-dump-packet-size\n");
+		//return -EINVAL;
+	}
+
+	ret = of_property_read_u32(np, "sprd,gnss-dump-reg-number",
+				   &GNSS_DUMP_REG_NUMBER);
+	if (ret) {
+		WCN_ERR("failed to read sprd,gnss-dump-reg-number\n");
+		return -EINVAL;
+	}
+
 	marlin_dev->wakeup_ap = of_get_named_gpio(np, "m2-wakeup-ap-gpios", 0);
 	if (!gpio_is_valid(marlin_dev->wakeup_ap))
 		pr_info("can not get wakeup gpio\n");

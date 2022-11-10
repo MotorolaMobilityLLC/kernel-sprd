@@ -26,6 +26,7 @@
 #include "wcn_txrx.h"
 #include "mdbg_type.h"
 #include "../include/wcn_dbg.h"
+#include "sprd_wcn.h"
 
 static struct atcmd_fifo s_atcmd_owner;
 static struct wcn_tm tm;
@@ -361,3 +362,25 @@ int wcn_read_data_from_phy_addr(phys_addr_t phy_addr,
 }
 EXPORT_SYMBOL_GPL(wcn_read_data_from_phy_addr);
 
+enum cp2_chip_type wcn_get_cp2_type(void)
+{
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
+
+	if (g_match_config && g_match_config->unisoc_wcn_l6)
+		return l6_ums2631;
+
+	if (g_match_config && g_match_config->unisoc_wcn_m3)
+		return m3_sc2355;
+
+	if (g_match_config && g_match_config->unisoc_wcn_m3e)
+		return m3e_umw2653;
+
+	if (g_match_config && g_match_config->unisoc_wcn_m3lite)
+		return m3lite_ums2653;
+
+	if (g_match_config && g_match_config->unisoc_wcn_l3)
+		return l3_ums2342;
+
+	return type_unknow;
+}
+EXPORT_SYMBOL_GPL(wcn_get_cp2_type);

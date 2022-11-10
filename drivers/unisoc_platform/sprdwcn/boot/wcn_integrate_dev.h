@@ -10,6 +10,14 @@
 #define WCN_GNSS_BD_FILENAME "gpsbd"
 #define WCN_GNSSMODEM_FILENAME "gnssmodem"
 
+extern uint GNSS_CP_START_ADDR;
+extern uint GNSS_FIRMWARE_MAX_SIZE;
+extern uint GNSS_DUMP_PACKET_SIZE;
+extern uint GNSS_SHARE_MEMORY_SIZE;
+extern uint GNSS_DUMP_IRAM_START_ADDR;
+extern uint GNSS_CP_IRAM_DATA_NUM;
+extern uint GNSS_DUMP_REG_NUMBER;
+
 /* NOTES:If DTS config more than REG_CTRL_CNT_MAX REGs */
 #define REG_CTRL_CNT_MAX 12
 /* NOTES:If DTS config more than REG_SHUTDOWN_CNT_MAX REGs */

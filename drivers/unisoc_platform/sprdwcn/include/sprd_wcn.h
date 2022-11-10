@@ -25,8 +25,8 @@ struct wcn_match_data {
 	//bool unisoc_wcn_platform; //macro in wcn_integrated
 	//bool unisoc_wcn_boot; //macro in marlin3 series
 	//bool unisoc_wcn_utils; //macro in marlin3 series
-	//bool unisoc_wcn_l3; //SC2342_I
-	//bool unisoc_wcn_l6; //UMW2631_I
+	bool unisoc_wcn_l3; //SC2342_I
+	bool unisoc_wcn_l6; //UMW2631_I
 	bool unisoc_wcn_m3lite; //UMW2652
 	bool unisoc_wcn_m3; //SC2355
 	bool unisoc_wcn_m3e; // UMW2653

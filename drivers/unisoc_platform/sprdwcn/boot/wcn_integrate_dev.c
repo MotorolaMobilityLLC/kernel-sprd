@@ -512,6 +512,55 @@ static int wcn_parse_dt(struct platform_device *pdev,
 		return -EINVAL;
 	}
 
+	ret = of_property_read_u32(np, "sprd,gnss-cp-start-addr",
+				   &GNSS_CP_START_ADDR);
+	if (ret) {
+		WCN_ERR("failed to read sprd,gnss-cp-start-addr\n");
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32(np, "sprd,gnss-firmware-max-size",
+				   &GNSS_FIRMWARE_MAX_SIZE);
+	if (ret) {
+		WCN_ERR("failed to read sprd,gnss-firmware-max-size\n");
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32(np, "sprd,gnss-dump-packet-size",
+				   &GNSS_DUMP_PACKET_SIZE);
+	if (ret) {
+		WCN_ERR("failed to read sprd,gnss-dump-packet-size\n");
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32(np, "sprd,gnss-share-memory-size",
+				   &GNSS_SHARE_MEMORY_SIZE);
+	if (ret) {
+		WCN_ERR("failed to read sprd,gnss-share-memory-size\n");
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32(np, "sprd,gnss-dump-iram-start-addr",
+				   &GNSS_DUMP_IRAM_START_ADDR);
+	if (ret) {
+		WCN_ERR("failed to read sprd,gnss-dump-iram-start-addr\n");
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32(np, "sprd,gnss-cp-iram-data-num",
+				   &GNSS_CP_IRAM_DATA_NUM);
+	if (ret) {
+		WCN_ERR("failed to read sprd,gnss-cp-iram-data-num\n");
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32(np, "sprd,gnss-dump-reg-number",
+				   &GNSS_DUMP_REG_NUMBER);
+	if (ret) {
+		WCN_ERR("failed to read sprd,gnss-dump-reg-number\n");
+		return -EINVAL;
+	}
+
 	/* get the wcn chip name */
 	ret = of_property_read_string(np,
 				      "sprd,name",

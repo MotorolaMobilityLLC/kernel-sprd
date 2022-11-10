@@ -54,6 +54,7 @@ static SIMPLE_DEV_PM_OPS(wcn_pm_ops, wcn_suspend, wcn_resume);
 static const struct wcn_match_data g_integ_wcn_data = {
 	.unisoc_wcn_integrated = true,
 	.unisoc_wcn_sipc = true,
+	.unisoc_wcn_l6 = true,
 };
 
 static const struct wcn_match_data g_marlin3lite_sdio_data = {

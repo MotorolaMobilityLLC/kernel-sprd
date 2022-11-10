@@ -12,24 +12,13 @@
 #ifndef __GNSS_DUMP_H__
 #define __GNSS_DUMP_H__
 
-#ifdef CONFIG_WCN_INTEG
-#define GNSS_DUMP_PACKET_SIZE		(1024)
-#ifdef CONFIG_SC2342_I
-#define GNSS_SHARE_MEMORY_SIZE		(0x15a800)
-#define GNSS_CP_IRAM_DATA_NUM		8192
-#define GNSS_DUMP_IRAM_START_ADDR	0x18000000
-
-#else
-#define GNSS_SHARE_MEMORY_SIZE		0x200000
-#define GNSS_DUMP_IRAM_START_ADDR	0x40a50000
-#define GNSS_CP_IRAM_DATA_NUM		8192
+#include "sprd_wcn_glb.h"
 
 #define GNSS_DUMP_IRAM_START_ADDR_SIPC	0x88240000
 #define SIPC_BUFFER_DATA_NUM		0x40000
 
 #define GNSS_DUMP_IRAM_START_ADDR_PCHANNEL	0x40e40000
 #define GNSS_PCHANNEL_IRAM_DATA_NUM	32768
-#endif
 
 /* ap aon registers start */
 #define DUMP_REG_PMU_SLEEP_CTRL		0x402B00CC
@@ -85,7 +74,6 @@
 #define ANLG_WCN_WRITE_ADDR 0XFF4
 #define ANLG_WCN_READ_ADDR 0XFFC
 
-#else
 #define GNSS_DRAM_ADDR      0x40a80000
 #define GNSS_DRAM_SIZE      0x30000
 #define GNSS_TE_MEM         0x40e40000
@@ -94,6 +82,6 @@
 #define GNSS_BASE_AON_APB_SIZE 0x354
 #define CTL_BASE_AON_CLOCK  0x40844200
 #define CTL_BASE_AON_CLOCK_SIZE  0x144
-#endif
+
 int gnss_dump_mem(char flag);
 #endif

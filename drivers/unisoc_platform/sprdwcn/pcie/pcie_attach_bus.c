@@ -15,11 +15,12 @@
 
 static int pcie_preinit(void)
 {
-	return 0;
+	return sprd_pcie_init();
 }
 
 static void pcie_preexit(void)
 {
+	sprd_pcie_exit();
 }
 
 static int pcie_buf_list_alloc(int chn, struct mbuf_t **head,

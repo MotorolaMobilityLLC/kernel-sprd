@@ -6,7 +6,8 @@ subdir-ccflags-y := \
 	-I $(srctree)/$(src)/platform/rf \
 	-I $(srctree)/$(src)/platform/gnss \
 	-I $(srctree)/$(src)/sleep \
-	-I $(srctree)/$(src)/sipc
+	-I $(srctree)/$(src)/sipc \
+	-I $(srctree)/$(src)/../include
 
 # compile WCN_PCIE or not
 BUILD_WCN_PCIE := false
