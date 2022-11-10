@@ -1868,6 +1868,7 @@
   usb_role_switch_register
   usb_role_switch_unregister
   usb_speed_string
+  usb_udc_vbus_handler
 
 # required by npu_img_vha.ko
   debugfs_create_u64

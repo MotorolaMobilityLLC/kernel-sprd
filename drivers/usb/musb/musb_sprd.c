@@ -31,6 +31,7 @@
 #include <linux/wait.h>
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
+#include <linux/usb/gadget.h>
 #include <linux/usb/sprd_usbm.h>
 
 #include "musb_core.h"
@@ -255,20 +256,6 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 			 musb_readw(musb->mregs, MUSB_INTRTX),
 			 musb_readw(musb->mregs, MUSB_INTRRXE),
 			 musb_readw(musb->mregs, MUSB_INTRRX));
-		return retval;
-	}
-
-	/* USB data is disabled, but cable is still connected,
-	 * musb IRQ may happen during this period.
-	 * In this case: USB handler clear IRQ & SOFT_CONN.
-	 */
-	if (glue->drd_state == DRD_STATE_PERIPHERAL_DATA_DIS) {
-		spin_unlock(&glue->lock);
-		mask8 = musb_readb(musb->mregs, MUSB_POWER);
-		mask8 &= ~MUSB_POWER_SOFTCONN;
-		musb_writeb(musb->mregs, MUSB_POWER, mask8);
-		dev_info(musb->controller,
-			"interrupt is cleared where USB data disabled!\n");
 		return retval;
 	}
 
@@ -1130,6 +1117,7 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		pm_runtime_get_sync(musb->controller);
 		musb_reset_all_fifo_2_default(musb);
 
+		usb_udc_vbus_handler(&musb->g, true);
 		usb_phy_vbus_off(glue->xceiv);
 		/*
 		 * Musb controller process go as device default.
@@ -1146,14 +1134,17 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		usb_gadget_set_state(&musb->g, USB_STATE_ATTACHED);
 		glue->dr_mode = USB_DR_MODE_PERIPHERAL;
 	} else {
-		u8 devctl;
+		u8 devctl, pwr;
 
 		dev_info(glue->dev, "%s: turn off gadget %s\n", __func__, musb->g.name);
 
+		pwr = musb_readb(musb->mregs, MUSB_POWER);
+		musb_writeb(musb->mregs, MUSB_POWER, pwr & ~MUSB_POWER_SOFTCONN);
 		devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
 		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl & ~MUSB_DEVCTL_SESSION);
 		musb_sprd_release_all_request(musb);
 		usb_gadget_set_state(&musb->g, USB_STATE_NOTATTACHED);
+		usb_udc_vbus_handler(&musb->g, false);
 
 		musb->is_active = 0;
 		musb->xceiv->otg->default_a = 0;
@@ -1581,7 +1572,6 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 			glue->drd_state = DRD_STATE_PERIPHERAL_DATA_DIS;
 			musb_sprd_otg_start_peripheral(glue, 0);
 			pm_runtime_put_sync(glue->dev);
-			MUSB_HST_MODE(glue->musb);
 			rework = true;
 		} else if (test_bit(B_SUSPEND, &glue->inputs) &&
 			test_bit(B_SESS_VLD, &glue->inputs)) {
@@ -1610,7 +1600,6 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 				delay = MUSB_RUNTIME_CHECK_DELAY;
 			} else {
 				glue->drd_state = DRD_STATE_IDLE;
-				MUSB_DEV_MODE(glue->musb);
 				rework = true;
 			}
 		}
