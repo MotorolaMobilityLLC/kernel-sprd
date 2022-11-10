@@ -32,3 +32,4 @@ obj-$(CONFIG_SPRD_UMP96XX_BC1P2)	+= sprd-ump96xx-bc1p2.o
 obj-$(CONFIG_SPRD_QOGIRN6PRO_USB2_PHY)	+= phy-sprd-qogirn6pro.o
 obj-$(CONFIG_SPRD_QOGIRN6PRO_USB31_PHY)	+=phy-sprd-usb31-qogirn6pro.o
 obj-$(CONFIG_SPRD_QOGIRN6LITE_USB2_PHY)	+= phy-sprd-qogirn6lite.o
+obj-$(CONFIG_SPRD_QOGIRL6_USB2_PHY)	+= phy-sprd-qogirl6.o
