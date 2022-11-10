@@ -428,9 +428,11 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 		atomic_inc(&mutex_init_flag);
 	}
 
-	mutex_lock(&section_mutex);
-	if (!sprd_sysdump_info)
+	if (!sprd_sysdump_info) {
+		pr_err("sprd_sysdump_info is NULL!\n");
 		return -1;
+	}
+	mutex_lock(&section_mutex);
 	/* check insert repeatly and acquire total seciton num before insert new section */
 	for (i = 0; i < SECTION_NUM_MAX; i++) {
 		if (!memcmp(str_name,
@@ -1904,7 +1906,6 @@ static int sysdump_early_init(void)
 
 	return 0;
 }
-//early_initcall(sysdump_early_init);
 static void per_cpu_funcs_register(void *info)
 {
 	/* save mmu regs per cpu */
@@ -1926,7 +1927,7 @@ static int sysdump_sysctl_init(void)
 	    register_sysctl_table((struct ctl_table *)sysdump_sysctl_root);
 	if (!sysdump_sysctl_hdr)
 		return -ENOMEM;
-#if !IS_ENABLED(CONFIG_SPRD_SYSDUMP_DEBUG)
+#if IS_MODULE(CONFIG_SPRD_SYSDUMP)
 	/* panic notifer, mindump_info, ...*/
 	sysdump_early_init();
 #endif
@@ -1977,10 +1978,11 @@ void sysdump_sysctl_exit(void)
 	unregister_trace_android_vh_ipi_stop(sysdump_ipi, NULL);
 }
 /* built-in for debug version */
-#if IS_ENABLED(CONFIG_SPRD_SYSDUMP_DEBUG)
+#if IS_BUILTIN(CONFIG_SPRD_SYSDUMP)
 early_initcall(sysdump_early_init);
 late_initcall_sync(sysdump_sysctl_init);
-#else
+#endif
+#if IS_MODULE(CONFIG_SPRD_SYSDUMP)
 module_init(sysdump_sysctl_init);
 module_exit(sysdump_sysctl_exit);
 #endif
