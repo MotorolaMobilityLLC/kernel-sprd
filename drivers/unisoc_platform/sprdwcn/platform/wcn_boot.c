@@ -1143,7 +1143,7 @@ static enum wcn_clock_type crystal_check(const char *cmd_line)
 		case '5':/*M52_TCXO*/
 			return WCN_CLOCK_TYPE_TCXO;
 		default:
-			return WCN_CLOCK_TYPE_UNKNOWN;
+			return WCN_CLOCK_TYPE_TSX;
 		}
 
 	}
