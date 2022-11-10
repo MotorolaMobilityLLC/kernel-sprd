@@ -100,6 +100,12 @@ static void musb_h_tx_flush_fifo(struct musb_hw_ep *ep)
 	void __iomem	*epio = ep->regs;
 	u16		csr;
 	int		retries = 1000;
+	void __iomem	*mbase = musb->mregs;
+	u32 hsbt;
+
+	hsbt = musb_readl(mbase, MUSB_C_T_HSBT);
+	hsbt |= MUSB_CLEAR_TXBUFF_EN;
+	musb_writel(mbase, MUSB_C_T_HSBT, hsbt);
 
 	csr = musb_readw(epio, MUSB_TXCSR);
 	while (csr & MUSB_TXCSR_FIFONOTEMPTY) {
@@ -321,7 +327,6 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 {
 	struct musb_qh		*qh = musb_ep_get_qh(hw_ep, is_in);
 	struct musb_hw_ep	*ep = qh->hw_ep;
-	int			ready = qh->is_ready;
 	int			status;
 	u16			toggle;
 
@@ -340,14 +345,17 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 		break;
 	}
 
-	qh->is_ready = 0;
 	musb_giveback(musb, urb, status);
-	qh->is_ready = ready;
+
+	/* musb->lock been unlock in musb_giveback,so sometimes qh may
+	 * been free,need get qh again
+	 */
+	qh = musb_ep_get_qh(hw_ep, is_in);
 
 	/* reclaim resources (and bandwidth) ASAP; deschedule it, and
 	 * invalidate qh as soon as list_empty(&hep->urb_list)
 	 */
-	if (list_empty(&qh->hep->urb_list)) {
+	if (qh != NULL && list_empty(&qh->hep->urb_list)) {
 		struct list_head	*head;
 		struct dma_controller	*dma = musb->dma_controller;
 
@@ -397,7 +405,7 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 		}
 	}
 
-	if (qh != NULL && qh->is_ready) {
+	if (qh != NULL && qh->is_ready && !list_empty(&qh->hep->urb_list)) {
 		musb_dbg(musb, "... next ep%d %cX urb %p",
 		    hw_ep->epnum, is_in ? 'R' : 'T', next_urb(qh));
 		musb_start_urb(musb, is_in, qh);
@@ -406,6 +414,14 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 
 static u16 musb_h_flush_rxfifo(struct musb_hw_ep *hw_ep, u16 csr)
 {
+	struct musb		*musb = hw_ep->musb;
+	void __iomem	*mbase = musb->mregs;
+	u32 hsbt;
+
+	hsbt = musb_readl(mbase, MUSB_C_T_HSBT);
+	hsbt |= MUSB_CLEAR_RXBUFF_EN;
+	musb_writel(mbase, MUSB_C_T_HSBT, hsbt);
+
 	/* we don't want fifo to fill itself again;
 	 * ignore dma (various models),
 	 * leave toggle alone (may not have been saved yet)
@@ -3154,20 +3170,16 @@ static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 	 *
 	 * NOTE: qh is invalid unless !list_empty(&hep->urb_list)
 	 */
-	if (!qh->is_ready
-			|| urb->urb_list.prev != &qh->hep->urb_list
+	if (urb->urb_list.prev != &qh->hep->urb_list
 			|| musb_ep_get_qh(qh->hw_ep, is_in) != qh) {
-		int	ready = qh->is_ready;
 
-		qh->is_ready = 0;
 		musb_giveback(musb, urb, 0);
 		if (musb_ep_get_qh(qh->hw_ep, is_in)) {
-			qh->is_ready = ready;
 
 			/* If nothing else (usually musb_giveback) is using it
 			 * and its URB list has emptied, recycle this qh.
 			 */
-			if (ready && list_empty(&qh->hep->urb_list)) {
+			if (qh->is_ready && list_empty(&qh->hep->urb_list)) {
 				qh->hep->hcpriv = NULL;
 				list_del(&qh->ring);
 				kfree(qh);
