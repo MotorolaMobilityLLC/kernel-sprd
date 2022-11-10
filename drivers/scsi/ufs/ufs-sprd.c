@@ -12,6 +12,8 @@
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <trace/hooks/ufshcd.h>
+#include <linux/regulator/driver.h>
+#include <../drivers/regulator/internal.h>
 
 #include "ufs.h"
 #include "ufshcd.h"
@@ -240,6 +242,7 @@ static int ufs_sprd_remove(struct platform_device *pdev)
 static int ufs_sprd_system_suspend(struct device *dev)
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
+	bool vcc_aon = hba->vreg_info.vcc->reg->always_on;
 	int ret;
 
 	ret = ufshcd_system_suspend(dev);
@@ -247,7 +250,7 @@ static int ufs_sprd_system_suspend(struct device *dev)
 		return ret;
 
 	/* Makesure that VCC drop below 0.1V after turning off */
-	if (hba->vreg_info.vcc->enabled == false)
+	if (!vcc_aon && hba->vreg_info.vcc->enabled == false)
 		usleep_range(30000, 31000);
 
 	return 0;
@@ -257,6 +260,7 @@ static int ufs_sprd_system_resume(struct device *dev)
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	bool vcc_state = hba->vreg_info.vcc->enabled;
+	bool vcc_aon = hba->vreg_info.vcc->reg->always_on;
 	int ret;
 
 	ret = ufshcd_system_resume(dev);
@@ -264,7 +268,7 @@ static int ufs_sprd_system_resume(struct device *dev)
 		return ret;
 
 	/* Makesure UFS VCC power up */
-	if (vcc_state == false && hba->vreg_info.vcc->enabled == true)
+	if (!vcc_aon && vcc_state == false && hba->vreg_info.vcc->enabled == true)
 		usleep_range(100, 200);
 
 	return 0;
@@ -273,6 +277,7 @@ static int ufs_sprd_system_resume(struct device *dev)
 static int ufs_sprd_runtime_suspend(struct device *dev)
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
+	bool vcc_aon = hba->vreg_info.vcc->reg->always_on;
 	int ret;
 
 	ret = ufshcd_runtime_suspend(dev);
@@ -280,7 +285,7 @@ static int ufs_sprd_runtime_suspend(struct device *dev)
 		return ret;
 
 	/* Makesure that VCC drop below 0.1V after turning off */
-	if (hba->vreg_info.vcc->enabled == false)
+	if (!vcc_aon && hba->vreg_info.vcc->enabled == false)
 		usleep_range(30000, 31000);
 
 	return 0;
@@ -290,6 +295,7 @@ static int ufs_sprd_runtime_resume(struct device *dev)
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	bool vcc_state = hba->vreg_info.vcc->enabled;
+	bool vcc_aon = hba->vreg_info.vcc->reg->always_on;
 	int ret;
 
 	ret = ufshcd_runtime_resume(dev);
@@ -297,7 +303,7 @@ static int ufs_sprd_runtime_resume(struct device *dev)
 		return ret;
 
 	/* Makesure UFS VCC power up */
-	if (vcc_state == false && hba->vreg_info.vcc->enabled == true)
+	if (!vcc_aon && vcc_state == false && hba->vreg_info.vcc->enabled == true)
 		usleep_range(100, 200);
 
 	return 0;
