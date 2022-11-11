@@ -30,7 +30,6 @@
 #include "sipa_priv.h"
 #include "sipa_hal.h"
 
-extern u32 FLEX_NODE_NUM;
 
 static int sipa_flow_ctrl_show(struct seq_file *s, void *unused)
 {
@@ -272,78 +271,6 @@ static const struct file_operations dynamic_alloc_skb_show_fops = {
 	.release = single_release,
 };
 
-static int sipa_flex_debug_show(struct seq_file *s, void *unused)
-{
-	struct sipa_plat_drv_cfg *ipa = s->private;
-	int i = 0;
-
-	if (!ipa)
-		return 0;
-
-	seq_printf(s, "FELX_NODE_NUM = %d\n", FLEX_NODE_NUM);
-
-	seq_printf(s, "SIPA_RECV_QUEUES_MAX = %d\n", SIPA_RECV_QUEUES_MAX);
-
-	for (i = 0; i < SIPA_RECV_QUEUES_MAX; i++)
-		seq_printf(s, "ipa->fifo_rate[i] = %d\n",
-			   ipa->fifo_rate[i]);
-
-	for (i = 0; i < num_possible_cpus(); i++)
-		seq_printf(s, "cpu %d idle percent %d\n",
-			   i, ipa->idle_perc[i]);
-
-	seq_printf(s, "ipa->cpu_num = %d, ipa->cpu_num_ano = %d\n",
-		   ipa->cpu_num, ipa->cpu_num_ano);
-	seq_printf(s, "ipa->udp_frag = %d, ipa->udp_port = %d, ipa->udp_port_num = %d\n",
-		   ipa->udp_frag,
-		   ipa->udp_port, atomic_read(&ipa->udp_port_num));
-	seq_printf(s, "ipa->is_bypass = %d, ipa->multi_mode = %d\n",
-		   ipa->is_bypass, ipa->multi_mode);
-
-	return 0;
-}
-
-static int sipa_flex_debug_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, sipa_flex_debug_show, inode->i_private);
-}
-
-static ssize_t sipa_flex_debug_write(struct file *file,
-				     const char __user *buffer,
-				     size_t count, loff_t *f_ops)
-{
-	char kbuf[64] = {0};
-	unsigned long val;
-	ssize_t ret;
-
-	ret = copy_from_user(kbuf, buffer, count);
-	if (!ret)
-		return ret;
-	ret = kstrtoul(kbuf, 10, &val);
-	if (ret)
-		return ret;
-
-	if (val == 1)
-		FLEX_NODE_NUM = 100;
-	else if (val == 2)
-		FLEX_NODE_NUM = 500;
-	else if (val == 3)
-		FLEX_NODE_NUM = 1000;
-	else
-		FLEX_NODE_NUM = 700;
-
-	*f_ops += count;
-	return count;
-}
-
-static const struct file_operations sipa_flex_debug_fops = {
-	.open = sipa_flex_debug_open,
-	.read = seq_read,
-	.write = sipa_flex_debug_write,
-	.llseek = seq_lseek,
-	.release = single_release,
-};
-
 int sipa_init_debugfs(struct sipa_plat_drv_cfg *ipa)
 {
 	struct dentry *root;
@@ -403,12 +330,6 @@ int sipa_init_debugfs(struct sipa_plat_drv_cfg *ipa)
 		goto err1;
 	}
 
-	file = debugfs_create_file("flex", 0444, root, ipa,
-				   &sipa_flex_debug_fops);
-	if (!file) {
-		ret = -ENOMEM;
-		goto err1;
-	}
 
 	debugfs_create_symlink("sipa", NULL,
 			       "/sys/kernel/debug/25220000.sipa");
