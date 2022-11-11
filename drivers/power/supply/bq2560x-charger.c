@@ -137,6 +137,7 @@ struct bq2560x_charger_info {
 	struct power_supply *psy_usb;
 	struct bq2560x_charge_current cur;
 	struct mutex lock;
+	struct mutex input_limit_cur_lock;
 	struct delayed_work otg_work;
 	struct delayed_work wdt_work;
 	struct delayed_work cur_work;
@@ -227,9 +228,10 @@ static void power_path_control(struct bq2560x_charger_info *info)
 	}
 }
 
-static int
-bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
-				  u32 limit_cur);
+static int bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
+					     u32 limit_cur, bool enable);
+static u32 bq2560x_charger_get_limit_current(struct bq2560x_charger_info *info,
+					     u32 *limit_cur);
 
 static bool bq2560x_charger_is_bat_present(struct bq2560x_charger_info *info)
 {
@@ -465,7 +467,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		return ret;
 	}
 
-	ret = bq2560x_charger_set_limit_current(info, info->cur.unknown_cur);
+	ret = bq2560x_charger_set_limit_current(info, info->cur.unknown_cur, false);
 	if (ret)
 		dev_err(info->dev, "set bq2560x limit current failed\n");
 
@@ -548,8 +550,7 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 		gpiod_set_value_cansleep(info->gpiod, 0);
 	}
 
-	ret = bq2560x_charger_set_limit_current(info,
-						info->last_limit_cur);
+	ret = bq2560x_charger_set_limit_current(info, info->last_limit_cur, false);
 	if (ret) {
 		dev_err(info->dev, "failed to set limit current\n");
 		return ret;
@@ -616,8 +617,7 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info, bool 
 		dev_err(info->dev, "Failed to disable bq2560x watchdog\n");
 }
 
-static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
-				       u32 cur)
+static int bq2560x_charger_set_current(struct bq2560x_charger_info *info, u32 cur)
 {
 	u8 reg_val;
 
@@ -636,8 +636,7 @@ static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
 				   reg_val);
 }
 
-static int bq2560x_charger_get_current(struct bq2560x_charger_info *info,
-				       u32 *cur)
+static int bq2560x_charger_get_current(struct bq2560x_charger_info *info, u32 *cur)
 {
 	u8 reg_val;
 	int ret;
@@ -652,12 +651,24 @@ static int bq2560x_charger_get_current(struct bq2560x_charger_info *info,
 	return 0;
 }
 
-static int
-bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
-				  u32 limit_cur)
+static int bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
+					     u32 limit_cur, bool enable)
 {
 	u8 reg_val;
-	int ret;
+	int ret = 0;
+
+	mutex_lock(&info->input_limit_cur_lock);
+	if (enable) {
+		ret = bq2560x_charger_get_limit_current(info, &limit_cur);
+		if (ret) {
+			dev_err(info->dev, "get limit cur failed\n");
+			goto out;
+		}
+
+		if (limit_cur == info->actual_limit_cur)
+			goto out;
+		limit_cur = info->actual_limit_cur;
+	}
 
 	dev_dbg(info->dev, "%s:line%d: set limit cur = %d\n", __func__, __LINE__, limit_cur);
 
@@ -668,22 +679,24 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 	limit_cur -= BQ2560X_LIMIT_CURRENT_OFFSET;
 	limit_cur = limit_cur / 1000;
 	reg_val = limit_cur / BQ2560X_REG_IINLIM_BASE;
-
+	info->actual_limit_cur = reg_val * BQ2560X_REG_IINLIM_BASE * 1000;
+	info->actual_limit_cur += BQ2560X_LIMIT_CURRENT_OFFSET;
 	ret = bq2560x_update_bits(info, BQ2560X_REG_0,
 				  BQ2560X_REG_LIMIT_CURRENT_MASK,
 				  reg_val);
 	if (ret)
 		dev_err(info->dev, "set bq2560x limit cur failed\n");
 
-	info->actual_limit_cur = reg_val * BQ2560X_REG_IINLIM_BASE * 1000;
-	info->actual_limit_cur += BQ2560X_LIMIT_CURRENT_OFFSET;
+	dev_info(info->dev, "set limit current reg_val = %#x, actual_limit_cur = %d\n",
+		 reg_val, info->actual_limit_cur);
+
+out:
+	mutex_unlock(&info->input_limit_cur_lock);
 
 	return ret;
 }
 
-static u32
-bq2560x_charger_get_limit_current(struct bq2560x_charger_info *info,
-				  u32 *limit_cur)
+static u32 bq2560x_charger_get_limit_current(struct bq2560x_charger_info *info, u32 *limit_cur)
 {
 	u8 reg_val;
 	int ret;
@@ -701,8 +714,7 @@ bq2560x_charger_get_limit_current(struct bq2560x_charger_info *info,
 	return 0;
 }
 
-static int bq2560x_charger_get_health(struct bq2560x_charger_info *info,
-				      u32 *health)
+static int bq2560x_charger_get_health(struct bq2560x_charger_info *info, u32 *health)
 {
 	*health = POWER_SUPPLY_HEALTH_GOOD;
 
@@ -731,8 +743,7 @@ static void bq2560x_dump_register(struct bq2560x_charger_info *info)
 
 static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info)
 {
-	int ret;
-	u32 limit_cur = 0;
+	int ret = 0;
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 				  BQ2560X_REG_RESET_MASK,
@@ -743,24 +754,13 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info)
 	}
 
 	if (info->otg_enable)
-		return 0;
-
-	ret = bq2560x_charger_get_limit_current(info, &limit_cur);
-	if (ret) {
-		dev_err(info->dev, "get limit cur failed\n");
 		return ret;
-	}
 
-	if (info->actual_limit_cur == limit_cur)
-		return 0;
-
-	ret = bq2560x_charger_set_limit_current(info, info->actual_limit_cur);
-	if (ret) {
+	ret = bq2560x_charger_set_limit_current(info, 0, true);
+	if (ret)
 		dev_err(info->dev, "set limit cur failed\n");
-		return ret;
-	}
 
-	return 0;
+	return ret;
 }
 
 static irqreturn_t bq2560x_int_handler(int irq, void *dev_id)
@@ -941,7 +941,7 @@ static void bq2560x_current_work(struct work_struct *data)
 	}
 
 	if (info->current_input_limit_cur > info->new_input_limit_cur) {
-		ret = bq2560x_charger_set_limit_current(info, info->new_input_limit_cur);
+		ret = bq2560x_charger_set_limit_current(info, info->new_input_limit_cur, false);
 		if (ret < 0)
 			dev_err(info->dev, "%s: set input limit cur failed\n", __func__);
 		return;
@@ -965,14 +965,14 @@ static void bq2560x_current_work(struct work_struct *data)
 		return;
 	}
 
-	ret = bq2560x_charger_set_limit_current(info, info->current_input_limit_cur);
+	ret = bq2560x_charger_set_limit_current(info, info->current_input_limit_cur, false);
 	if (ret < 0) {
 		dev_err(info->dev, "set input limit current failed\n");
 		return;
 	}
 
 	dev_info(info->dev, "set charge_limit_cur %duA, input_limit_curr %duA\n",
-		info->current_charge_limit_cur, info->current_input_limit_cur);
+		 info->current_charge_limit_cur, info->current_input_limit_cur);
 
 	schedule_delayed_work(&info->cur_work, BQ2560X_CURRENT_WORK_MS);
 }
@@ -1083,8 +1083,8 @@ out:
 }
 
 static int bq2560x_charger_usb_set_property(struct power_supply *psy,
-				enum power_supply_property psp,
-				const union power_supply_propval *val)
+					    enum power_supply_property psp,
+					    const union power_supply_propval *val)
 {
 	struct bq2560x_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
@@ -1139,7 +1139,7 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 			break;
 		}
 
-		ret = bq2560x_charger_set_limit_current(info, val->intval);
+		ret = bq2560x_charger_set_limit_current(info, val->intval, false);
 		if (ret < 0)
 			dev_err(info->dev, "set input current limit failed\n");
 		break;
@@ -1192,10 +1192,12 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		info->is_charger_online = val->intval;
-		if (val->intval == true)
+		if (val->intval == true) {
 			schedule_delayed_work(&info->wdt_work, 0);
-		else
+		} else {
+			info->actual_limit_cur = 0;
 			cancel_delayed_work_sync(&info->wdt_work);
+		}
 		break;
 	default:
 		ret = -EINVAL;
@@ -1804,6 +1806,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	bat_present = bq2560x_charger_is_bat_present(info);
 
 	mutex_init(&info->lock);
+	mutex_init(&info->input_limit_cur_lock);
 	init_completion(&info->probe_init);
 
 	charger_cfg.drv_data = info;
