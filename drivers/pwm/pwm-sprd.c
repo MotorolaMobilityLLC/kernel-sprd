@@ -166,9 +166,9 @@ static int sprd_pwm_config(struct sprd_pwm_chip *spc, struct pwm_device *pwm,
 		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "12bit"))
 			mod = SPRD_PWM_MOD_12BIT;
 		else
-			mod = SPRD_PWM_MOD_8BIT;
+			mod = SPRD_PWM_MOD_10BIT;
 	} else
-		mod = SPRD_PWM_MOD_8BIT;
+		mod = SPRD_PWM_MOD_10BIT;
 
 	duty = duty_ns * mod / period_ns;
 
