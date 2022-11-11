@@ -1,9 +1,9 @@
 &reserved_memory {
-	oemcrypto_reserved: oemcrypto@9a100000 {
-		reg = <0x0 0x9a100000 0x0 0x01100000>;
+	oemcrypto_reserved: oemcrypto@b6100000 {
+		reg = <0x0 0xb6100000 0x0 0x01100000>;
 	};
-	widevine_reserved: widevine@e3800000 {
-		reg = <0x0 0xe3800000 0x0 0x0c800000>;
+	widevine_reserved: widevine@e1a00000 {
+		reg = <0x0 0xe1a00000 0x0 0x0e600000>;
 	};
 
 	fd_reserved: faceid-mem@fd270000 {
