@@ -53,6 +53,43 @@ static int ufs_efuse_calib_data(struct platform_device *pdev,
 	return calib_data;
 }
 
+static int ufs_sprd_get_syscon_reg_dt(struct device *dev,
+				  struct ufs_sprd_ums9621_data *priv)
+{
+	int ret = 0;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->phy_sram_ext_ld_done,
+				      "phy_sram_ext_ld_done");
+	if (ret < 0)
+		return ret;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->phy_sram_bypass,
+				      "phy_sram_bypass");
+	if (ret < 0)
+		return ret;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->phy_sram_init_done,
+				      "phy_sram_init_done");
+	if (ret < 0)
+		return ret;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->aon_apb_ufs_clk_en,
+				      "aon_apb_ufs_clk_en");
+	if (ret < 0)
+		return ret;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ufsdev_refclk_en,
+				      "ufsdev_refclk_en");
+	if (ret < 0)
+		return ret;
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node,
+					&priv->usb31pllv_ref2mphy_en,
+				      "usb31pllv_ref2mphy_en");
+
+	return ret;
+}
+
 static int ufs_sprd_priv_parse_dt(struct device *dev,
 				  struct ufs_hba *hba,
 				  struct ufs_sprd_host *host)
@@ -91,34 +128,7 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 	if (ret)
 		return -ENODEV;
 
-	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->phy_sram_ext_ld_done,
-				      "phy_sram_ext_ld_done");
-	if (ret < 0)
-		return -ENODEV;
-
-	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->phy_sram_bypass,
-				      "phy_sram_bypass");
-	if (ret < 0)
-		return -ENODEV;
-
-	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->phy_sram_init_done,
-				      "phy_sram_init_done");
-	if (ret < 0)
-		return -ENODEV;
-
-	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->aon_apb_ufs_clk_en,
-				      "aon_apb_ufs_clk_en");
-	if (ret < 0)
-		 return -ENODEV;
-
-	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ufsdev_refclk_en,
-				      "ufsdev_refclk_en");
-	if (ret < 0)
-		return -ENODEV;
-
-	ret = ufs_sprd_get_syscon_reg(dev->of_node,
-					&priv->usb31pllv_ref2mphy_en,
-				      "usb31pllv_ref2mphy_en");
+	ret = ufs_sprd_get_syscon_reg_dt(dev, priv);
 	if (ret < 0)
 		return -ENODEV;
 
