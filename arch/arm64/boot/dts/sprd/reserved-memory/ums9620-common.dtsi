@@ -31,12 +31,12 @@
 	/* the reg values may be not accurate, they have been fixed in lk !!! */
 	/* the @addr value is not accurate on N6Pro, please refer to the reg value */
 	tos-mem@b0040000 {
-		reg = <0x0 0xbd040000 0x0 0x01fc0000>;
+		reg = <0x0 0xbd040000 0x0 0x03fc0000>;
 	};
 
 	/* the @addr value is not accurate on N6Pro, please refer to the reg value */
 	sh-mem@b2000000{
-		reg = <0x0 0xc3000000 0x0 0x00100000>;
+		reg = <0x0 0xc1000000 0x0 0x00100000>;
 	};
 
 	dptx_hdcp_reserved: dptx_hdcp@fff10000 {

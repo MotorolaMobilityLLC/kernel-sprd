@@ -1,11 +1,11 @@
 &reserved_memory {
 	/* Encrypt and decrypt widevine video */
-	oemcrypto_reserved: oemcrypto@dff00000 {
-		reg = <0x0 0xdff00000 0x0 0x01100000>;
+	oemcrypto_reserved: oemcrypto@c1100000 {
+		reg = <0x0 0xc1100000 0x0 0x01100000>;
 	};
 
-	widevine_reserved: widevine@e1000000 {
-		reg = <0x0 0xe1000000 0x0 0x0f000000>;
+	widevine_reserved: widevine@dfc00000 {
+		reg = <0x0 0xdfc00000 0x0 0x10400000>;
 	};
 
 	ai_reserved: ai@fcc10000 {
