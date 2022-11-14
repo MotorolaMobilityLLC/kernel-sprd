@@ -1417,6 +1417,7 @@ void blk_steal_bios(struct bio_list *list, struct request *rq)
 }
 EXPORT_SYMBOL_GPL(blk_steal_bios);
 
+#if defined(CONFIG_SPRD_DEBUG)
 static DEFINE_SPINLOCK(_io_lock);
 
 #define IO_ARRAY_SIZE 12	/* 2^(12-2) = 1024ms */
@@ -1562,13 +1563,14 @@ void _io_update(u64 complete, u64 issue, u64 insert, struct gendisk *disk)
 	++io_debug.issue2complete[index];
 	++info->issue2complete[index];
 
-	if (complete > (io_debug.start + (1000000000ULL * 10))) {
+	if (complete > (io_debug.start + (1000000000ULL * io_interval))) {
 		_io_backup_log(complete);
 		spin_unlock_irqrestore(&_io_lock, flags);
 		_io_print_info();
 	} else
 		spin_unlock_irqrestore(&_io_lock, flags);
 }
+#endif
 
 /**
  * blk_update_request - Special helper function for request stacking drivers
@@ -1601,11 +1603,12 @@ bool blk_update_request(struct request *req, blk_status_t error,
 {
 	int total_bytes;
 
+#if defined(CONFIG_SPRD_DEBUG)
 	if (req->io_start_time_ns && req->start_time_ns && req->rq_disk) {
 		_io_update(ktime_get_ns(), req->io_start_time_ns,
 			req->start_time_ns, req->rq_disk);
 	}
-
+#endif
 	trace_block_rq_complete(req, blk_status_to_errno(error), nr_bytes);
 
 	if (!req->bio)
