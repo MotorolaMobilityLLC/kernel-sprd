@@ -4,8 +4,8 @@
 		reg = <0x0 0xb4100000 0x0 0x01100000>;
 	};
 
-	widevine_reserved: widevine@e1a00000 {
-		reg = <0x0 0xe1a00000 0x0 0x0e600000>;
+	widevine_reserved: widevine@dfc00000 {
+		reg = <0x0 0xdfc00000 0x0 0x10400000>;
 	};
 
 	fd_reserved: faceid-mem@ff9f0000 {
