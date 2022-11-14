@@ -200,16 +200,18 @@ if [ -d ${clang_path} ]; then
 		fi
 	done < ${DIST_DIR}/${whitelist_out_file} > /dev/null
 	echo -e ""
-	if [ ${#symbols_to_sprd_array[@]} -ne 0 ]; then
-		echo -e "++++  Add the following information to android/abi_gki_aarch64_unisoc  ++++" >${DIST_DIR}/diff_whitelist.report
-		echo -e "++++  Then upstream the changes to google, and cherry-pick back when merged  ++++" >>${DIST_DIR}/diff_whitelist.report
-		let RET_VAL+=16
-		let check_whitelist_flag+=1
-		for(( i=0;i<${#symbols_to_sprd_array[@]};i++))
-		do
-			echo ${symbols_to_sprd_array[i]} >> ${DIST_DIR}/diff_whitelist.report
-		done
-	fi
+#	if [ ${#symbols_to_sprd_array[@]} -ne 0 ]; then
+#		echo -e "++++ Add the following information to abi_gki_aarch64_unisoc ++++"
+#			>${DIST_DIR}/diff_whitelist.report
+#		echo -e "++++ Then upstream to google,cherry-pick back after merge ++++"
+#			>>${DIST_DIR}/diff_whitelist.report
+#		let RET_VAL+=16
+#		let check_whitelist_flag+=1
+#		for(( i=0;i<${#symbols_to_sprd_array[@]};i++))
+#		do
+#			echo ${symbols_to_sprd_array[i]} >> ${DIST_DIR}/diff_whitelist.report
+#		done
+#	fi
 
 	if [ ${#symbols_to_google_array[@]} -ne 0 ]; then
 		echo -e "++++  The following information needs to be patched to google  ++++" >>${DIST_DIR}/diff_whitelist.report
