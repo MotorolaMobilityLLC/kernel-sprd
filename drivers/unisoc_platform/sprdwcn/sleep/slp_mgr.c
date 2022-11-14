@@ -65,6 +65,11 @@ int slp_mgr_wakeup(enum slp_subsys subsys)
 	ktime_t time_end;
 	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
+	if (STAY_DEATH == (atomic_read(&slp_mgr.cp2_state))) {
+		WCN_ERR("CP2 has been shutdown, ignoring this wakeup\n");
+		return -1;
+	}
+
 	mutex_lock(&(slp_mgr.wakeup_lock));
 	if (STAY_SLPING == (atomic_read(&(slp_mgr.cp2_state)))) {
 		ap_wakeup_cp();
@@ -150,3 +155,10 @@ int slp_mgr_deinit(void)
 	return 0;
 }
 EXPORT_SYMBOL(slp_mgr_deinit);
+
+int slp_mgr_death(void)
+{
+	atomic_set(&(slp_mgr.cp2_state), STAY_DEATH);
+	return 0;
+}
+EXPORT_SYMBOL(slp_mgr_death);
