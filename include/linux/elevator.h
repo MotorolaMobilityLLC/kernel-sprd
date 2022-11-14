@@ -178,7 +178,7 @@ extern struct request *elv_rb_find(struct rb_root *, sector_t);
 /*
  * Elevator features.
  */
-#define ELEVATOR_FEATRURE_BFQ    3
+
 /* Supports zoned block devices sequential write constraint */
 #define ELEVATOR_F_ZBD_SEQ_WRITE	(1U << 0)
 
