@@ -25,6 +25,7 @@ int init_wcn_sysfs(void);
 void exit_wcn_sysfs(void);
 void wcn_send_atcmd_lock(void);
 void wcn_send_atcmd_unlock(void);
+char *__wcn_get_sw_ver(void);
 
 #endif
 

@@ -158,6 +158,12 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	return 0;
 }
 
+char *__wcn_get_sw_ver(void)
+{
+	return sysfs_info.sw_ver_buf;
+}
+EXPORT_SYMBOL_GPL(__wcn_get_sw_ver);
+
 static int wcn_get_sw_ver(void)
 {
 	char a[] = "at+spatgetcp2info\r\n";

@@ -96,6 +96,7 @@ static int loopcheck_send(char *buf, unsigned int len)
 	else
 		pub_head_rsv = PUB_HEAD_RSV;
 
+	WCN_INFO("%s", __wcn_get_sw_ver());
 	WCN_INFO("tx:%s\n", buf);
 	if (unlikely(!marlin_get_module_status())) {
 		WCN_ERR("WCN module have not open\n");

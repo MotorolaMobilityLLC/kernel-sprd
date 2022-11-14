@@ -2463,8 +2463,9 @@ static int marlin_set_power(enum wcn_sub_sys subsys, int val)
 {
 	unsigned long timeleft;
 	struct wcn_match_data *g_match_config = get_wcn_match_config();
+	int locked = 0;
 
-	mutex_lock(&marlin_dev->power_lock);
+	locked = mutex_trylock(&marlin_dev->power_lock);
 
 	if (marlin_dev->wait_ge2) {
 		if (first_call_flag == 1) {
@@ -2493,7 +2494,8 @@ static int marlin_set_power(enum wcn_sub_sys subsys, int val)
 			pr_info("the first power on start\n");
 
 			if (chip_power_on(subsys) < 0) {
-				mutex_unlock(&marlin_dev->power_lock);
+				if (unlikely(locked))
+					mutex_unlock(&marlin_dev->power_lock);
 				return -1;
 			}
 
@@ -2527,7 +2529,8 @@ static int marlin_set_power(enum wcn_sub_sys subsys, int val)
 			pr_info("then marlin download finished and run ok\n");
 
 			set_wifipa_status(subsys, val);
-			mutex_unlock(&marlin_dev->power_lock);
+			if (unlikely(locked))
+				mutex_unlock(&marlin_dev->power_lock);
 
 			power_state_notify_or_not(subsys, val);
 			if (subsys == WCN_AUTO) {
@@ -2604,7 +2607,8 @@ static int marlin_set_power(enum wcn_sub_sys subsys, int val)
 		else {
 			pr_info("no module to power on, start to power on\n");
 			if (chip_power_on(subsys) < 0) {
-				mutex_unlock(&marlin_dev->power_lock);
+				if (unlikely(locked))
+					mutex_unlock(&marlin_dev->power_lock);
 				return -1;
 			}
 			set_bit(subsys, &marlin_dev->power_state);
@@ -2709,7 +2713,8 @@ static int marlin_set_power(enum wcn_sub_sys subsys, int val)
 	} /* power off end */
 
 	/* power on off together's Action */
-	mutex_unlock(&marlin_dev->power_lock);
+	if (unlikely(locked))
+		mutex_unlock(&marlin_dev->power_lock);
 
 	return 0;
 
@@ -2727,14 +2732,16 @@ out:
 	chip_reset_release(0);
 	marlin_dev->power_state = 0;
 	atomic_set(&marlin_dev->download_finish_flag, 0);
-	mutex_unlock(&marlin_dev->power_lock);
+	if (unlikely(locked))
+		mutex_unlock(&marlin_dev->power_lock);
 
 	return -1;
 
 check_power_state_notify:
 	power_state_notify_or_not(subsys, val);
 	pr_debug("mutex_unlock\n");
-	mutex_unlock(&marlin_dev->power_lock);
+	if (unlikely(locked))
+		mutex_unlock(&marlin_dev->power_lock);
 
 	return 0;
 
@@ -2892,19 +2899,24 @@ EXPORT_SYMBOL_GPL(marlin_reset_reg);
 int start_marlin(enum wcn_sub_sys subsys)
 {
 	struct wcn_match_data *g_match_config = get_wcn_match_config();
+	int ret = 0;
 
 	if (g_match_config && g_match_config->unisoc_wcn_integrated)
 		return start_integ_marlin(subsys);
 
 	pr_info("%s [%s]\n", __func__, strno(subsys));
+	if (unlikely(mutex_is_locked(&marlin_dev->power_lock)))
+		pr_info("%s wait for lock release\n", __func__);
+
+	mutex_lock(&marlin_dev->power_lock);
 	if (sprdwcn_bus_get_carddump_status() != 0) {
 		pr_err("%s SDIO card dump\n", __func__);
-		return -1;
+		goto unlock;
 	}
 
 	if (get_loopcheck_status()) {
 		pr_err("%s loopcheck status is fail\n", __func__);
-		return -1;
+		goto unlock;
 	}
 
 	if (subsys == MARLIN_WIFI) {
@@ -2917,44 +2929,59 @@ int start_marlin(enum wcn_sub_sys subsys)
 			marlin_dev->wifi_need_download_ini_flag = 2;
 	}
 	if (marlin_set_power(subsys, true) < 0)
-		return -1;
+		goto unlock;
 	if (g_match_config && !g_match_config->unisoc_wcn_pcie)
-		return mem_pd_mgr(subsys, true);
-	else
-		return 0;
+		ret = mem_pd_mgr(subsys, true);
+
+	mutex_unlock(&marlin_dev->power_lock);
+	return ret;
+
+unlock:
+	mutex_unlock(&marlin_dev->power_lock);
+	return -1;
 }
 EXPORT_SYMBOL_GPL(start_marlin);
 
 int stop_marlin(enum wcn_sub_sys subsys)
 {
 	struct wcn_match_data *g_match_config = get_wcn_match_config();
+	int ret = 0;
 
 	if (g_match_config && g_match_config->unisoc_wcn_integrated)
 		return stop_integ_marlin(subsys);
 
 	pr_info("%s [%s]\n", __func__, strno(subsys));
+	if (unlikely(mutex_is_locked(&marlin_dev->power_lock)))
+		pr_info("%s wait for lock release\n", __func__);
+
 	mutex_lock(&marlin_dev->power_lock);
 	if (!marlin_get_power()) {
 		mutex_unlock(&marlin_dev->power_lock);
 		pr_info("%s no module opend\n", __func__);
 		return 0;
 	}
-	mutex_unlock(&marlin_dev->power_lock);
 
 	if (sprdwcn_bus_get_carddump_status() != 0) {
 		pr_err("%s SDIO card dump\n", __func__);
-		return -1;
+		goto unlock;
 	}
 
 	if (get_loopcheck_status()) {
 		pr_err("%s loopcheck status is fail\n", __func__);
-		return -1;
+		goto unlock;
 	}
 
 	if (g_match_config && !g_match_config->unisoc_wcn_pcie)
 		mem_pd_mgr(subsys, false);
 
-	return marlin_set_power(subsys, false);
+	ret = marlin_set_power(subsys, false);
+
+	mutex_unlock(&marlin_dev->power_lock);
+	return ret;
+
+unlock:
+	mutex_unlock(&marlin_dev->power_lock);
+	return -1;
 }
 EXPORT_SYMBOL_GPL(stop_marlin);
 
