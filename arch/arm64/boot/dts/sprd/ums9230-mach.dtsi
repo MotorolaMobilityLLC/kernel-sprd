@@ -294,8 +294,8 @@
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 	};
 
-	sprd-sensorhub {
-		 compatible = "sprd,qogirl6-sensorhub", "sprd,sensor-hub";
+	sensorhub {
+		compatible = "sprd,qogirl6-sensorhub", "sprd,sensor-hub";
 	};
 
 	sprd-map-user {
