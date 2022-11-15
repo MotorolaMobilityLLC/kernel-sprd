@@ -7131,7 +7131,8 @@ static int cm_check_alt_cp_psy_ready_status(struct charger_manager *cm)
 	}
 
 done:
-	power_supply_put(psy);
+	if (psy)
+		power_supply_put(psy);
 	return 0;
 }
 
