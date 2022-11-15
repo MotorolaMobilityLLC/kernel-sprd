@@ -211,6 +211,8 @@ enum SPRD_ADC_SCALE {
 enum SPRD_ADC_REG_TYPE {
 	REG_MODULE_EN,
 	REG_CLK_EN,
+	REG_SOFT_RST,
+	REG_XTL_CTRL,
 	REG_SCALE,
 	REG_ISEN_ST = 12,/* CURRENT MODE START */
 	REG_ISEN0,
@@ -313,6 +315,8 @@ struct sprd_adc_graphs {
 static void sprd_adc_calib_with_one_cell(struct sprd_adc_linear_graph *graph);
 static void sprd_adc_calib_with_two_cell(struct sprd_adc_linear_graph *graph);
 static u32 sprd_adc_get_isen(void *pri, int ch, bool enable);
+static int sprd_adc_soft_rst(struct sprd_adc_data *data);
+static int sprd_adc_hw_enable(struct sprd_adc_data *data);
 static inline u32 GET_REG_ADDR(struct sprd_adc_data *data, int index)
 {
 	u32 base = ((data->var_data->reg_list[index].base == BASE_GLB)
@@ -379,6 +383,8 @@ static struct sprd_adc_graphs sprd_adc_graphs_array[] = {
 static const struct reg_bit regs_sc2720[] = {
 	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, NULL, false),
 	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, NULL, false),
+	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, NULL, false),
+	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x1e8, BIT(8), 8, NULL, false),
 	[REG_SCALE]  = REG_BIT_INIT(BASE_ANA, 0xffff, GENMASK(10, 9), 9, NULL, false),
 	[REG_ISEN0]  = REG_BIT_INIT(BASE_GLB, 0x1F0, BIT(13), 13, NULL, false),
 	[REG_ISEN1]  = REG_BIT_INIT(BASE_GLB, 0x1F0, GENMASK(11, 9), 9, sprd_adc_get_isen, false),
@@ -388,6 +394,8 @@ static const struct reg_bit regs_sc2720[] = {
 static const struct reg_bit regs_sc2721[] = {
 	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, NULL, false),
 	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, NULL, false),
+	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, NULL, false),
+	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x29c, BIT(8), 8, NULL, false),
 	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, BIT(5), 5, NULL, false),
 	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x2A4, BIT(13), 13, NULL, false),
 	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x2A4, GENMASK(12, 10), 10, sprd_adc_get_isen, false),
@@ -397,6 +405,8 @@ static const struct reg_bit regs_sc2721[] = {
 static const struct reg_bit regs_sc2730[] = {
 	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, NULL, false),
 	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, NULL, false),
+	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, NULL, false),
+	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x378, BIT(8), 8, NULL, false),
 	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, GENMASK(10, 9), 9, NULL, false),
 	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(0), 0, NULL, true),
 	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(13), 13, NULL, false),
@@ -407,6 +417,8 @@ static const struct reg_bit regs_sc2730[] = {
 static const struct reg_bit regs_sc2731[] = {
 	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, NULL, false),
 	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x10, GENMASK(6, 5), 5, NULL, false),
+	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x20, BIT(6), 6, NULL, false),
+	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x2b8, BIT(8), 8, NULL, false),
 	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, BIT(5), 5, NULL, false),
 	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x324, BIT(4), 4, NULL, false),
 	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x2B4, BIT(6), 6, NULL, false),
@@ -417,6 +429,8 @@ static const struct reg_bit regs_sc2731[] = {
 static const struct reg_bit regs_ump9620[] = {
 	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, NULL, false),
 	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, NULL, false),
+	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, NULL, false),
+	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x378, BIT(8), 8, NULL, false),
 	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, GENMASK(10, 9), 9, NULL, false),
 	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(0), 0, NULL, true),
 	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(13), 13, NULL, false),
@@ -780,22 +794,25 @@ static void ump9620_ch_data_init(struct sprd_adc_data *data)
 	sprd_adc_ch_data_merge(data, ch_data, &ch_data_def);
 }
 
-static void sprd_adc_regs_dump(struct sprd_adc_data *data, int channel, int scale)
+static void sprd_adc_regs_dump(struct sprd_adc_data *data, int ch, int scale, const char *tag)
 {
-	static u64 count;
-	u32 module_en, adc_clk_en, adc_int_ctl, adc_int_raw, adc_ctl, adc_ch_cfg;
+	u32 mod_en, clk_en, int_ctl, int_raw, adc_ctl, ch_cfg, pm_clk_reg, xtl_ctl;
+	int ret;
 
-	regmap_read(data->regmap, GET_REG_ADDR(data, REG_MODULE_EN), &module_en);
-	regmap_read(data->regmap, GET_REG_ADDR(data, REG_CLK_EN), &adc_clk_en);
-	regmap_read(data->regmap, data->base + SPRD_ADC_INT_CLR, &adc_int_ctl);
-	regmap_read(data->regmap, data->base + SPRD_ADC_INT_RAW, &adc_int_raw);
-	regmap_read(data->regmap, data->base + SPRD_ADC_CTL, &adc_ctl);
-	regmap_read(data->regmap, data->base + SPRD_ADC_CH_CFG, &adc_ch_cfg);
+	ret = regmap_read(data->regmap, GET_REG_ADDR(data, REG_MODULE_EN), &mod_en);
+	ret = regmap_read(data->regmap, GET_REG_ADDR(data, REG_CLK_EN), &clk_en);
+	ret = regmap_read(data->regmap, GET_REG_ADDR(data, REG_XTL_CTRL), &xtl_ctl);
+	ret = regmap_read(data->regmap, data->base + SPRD_ADC_INT_CLR, &int_ctl);
+	ret = regmap_read(data->regmap, data->base + SPRD_ADC_INT_RAW, &int_raw);
+	ret = regmap_read(data->regmap, data->base + SPRD_ADC_CTL, &adc_ctl);
+	ret = regmap_read(data->regmap, data->base + SPRD_ADC_CH_CFG, &ch_cfg);
+	if (data->pm_data.clk_regmap)
+		ret = regmap_read(data->pm_data.clk_regmap,  data->pm_data.clk_reg, &pm_clk_reg);
 
-	SPRD_ADC_ERR("regs_dump[%llu]->channel: %d, scale: %d, module_en: 0x%x, adc_clk_en: 0x%x,"
-		     " adc_int_ctl: 0x%x, adc_int_raw: 0x%x, adc_ctl: 0x%x, adc_ch_cfg: 0x%x\n",
-		     count++, channel, scale, module_en, adc_clk_en, adc_int_ctl,
-		     adc_int_raw, adc_ctl, adc_ch_cfg);
+	SPRD_ADC_ERR("r0[%s]-ret %d, ch %d, sl %d, clk_en 0x%x, xtl_ctl 0x%x, pm_clk 0x%x\n",
+		     tag, ret, ch, scale, clk_en, xtl_ctl, pm_clk_reg);
+	SPRD_ADC_ERR("r1[%s]-mod_en 0x%x, int_ctl 0x%x, int_raw 0x%x, adc_ctl 0x%x, ch_cfg 0x%x\n",
+		     tag, mod_en, int_ctl, int_raw, adc_ctl, ch_cfg);
 }
 
 static u32 sprd_adc_get_isen(void *pri, int ch, bool enable)
@@ -1074,7 +1091,10 @@ static int sprd_adc_read(struct sprd_adc_data *data, int channel, int scale, int
 				       SPRD_ADC_RDY_TIMEOUT);
 	if (ret) {
 		SPRD_ADC_ERR("read adc timeout 0x%x\n", status);
-		sprd_adc_regs_dump(data, channel, scale);
+		sprd_adc_regs_dump(data, channel, scale, "t_bef");
+		sprd_adc_hw_enable(data);
+		sprd_adc_soft_rst(data);
+		sprd_adc_regs_dump(data, channel, scale, "t_aft");
 		goto disable_adc;
 	}
 
@@ -1233,10 +1253,37 @@ static int sprd_adc_write_raw(struct iio_dev *indio_dev, struct iio_chan_spec co
 	}
 }
 
+static int sprd_adc_soft_rst(struct sprd_adc_data *data)
+{
+	int ret;
+	u32 reg_addr, mask;
+
+	reg_addr = GET_REG_ADDR(data, REG_SOFT_RST);
+	mask = data->var_data->reg_list[REG_SOFT_RST].mask;
+	ret = regmap_update_bits(data->regmap, reg_addr, mask, mask);
+	if (ret)
+		return ret;
+
+	udelay(10);
+
+	reg_addr = GET_REG_ADDR(data, REG_SOFT_RST);
+	mask = data->var_data->reg_list[REG_SOFT_RST].mask;
+	ret = regmap_update_bits(data->regmap, reg_addr, mask, 0);
+	if (ret)
+		return ret;
+
+	return 0;
+}
 static int sprd_adc_hw_enable(struct sprd_adc_data *data)
 {
 	int ret;
 	u32 reg_addr, mask;
+
+	reg_addr = GET_REG_ADDR(data, REG_XTL_CTRL);
+	mask = data->var_data->reg_list[REG_XTL_CTRL].mask;
+	ret = regmap_update_bits(data->regmap, reg_addr, mask, mask);
+	if (ret)
+		return ret;
 
 	reg_addr = GET_REG_ADDR(data, REG_MODULE_EN);
 	mask = data->var_data->reg_list[REG_MODULE_EN].mask;
@@ -1249,16 +1296,9 @@ static int sprd_adc_hw_enable(struct sprd_adc_data *data)
 	mask = data->var_data->reg_list[REG_CLK_EN].mask;
 	ret = regmap_update_bits(data->regmap, reg_addr, mask, mask);
 	if (ret)
-		goto disable_adc;
+		return ret;
 
 	return 0;
-
-disable_adc:
-	reg_addr = GET_REG_ADDR(data, REG_MODULE_EN);
-	mask = data->var_data->reg_list[REG_MODULE_EN].mask;
-	regmap_update_bits(data->regmap, reg_addr, mask, 0);
-
-	return ret;
 }
 
 static void sprd_adc_hw_disable(void *_data)
@@ -1314,6 +1354,7 @@ static int sprd_adc_ch_data_init(struct sprd_adc_data *data)
 		ch = ch_data_override[i];
 		ch_data_val = ch_data_override[i+1];
 		sprd_adc_ch_data_decode(data, ch, ch_data_val);
+		sprd_adc_ch_data_show(data, ch);
 	}
 
 	devm_kfree(data->dev, ch_data_override);
@@ -1433,6 +1474,12 @@ static int sprd_adc_probe(struct platform_device *pdev)
 	ret = sprd_adc_hw_enable(sprd_data);
 	if (ret) {
 		SPRD_ADC_ERR("failed to enable ADC module\n");
+		return ret;
+	}
+
+	ret = sprd_adc_soft_rst(sprd_data);
+	if (ret) {
+		SPRD_ADC_ERR("adc soft rst failed\n");
 		return ret;
 	}
 
