@@ -307,7 +307,7 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 		node->temp_table = new_table;
 	}
 
-	policy->suspend_freq = policy->freq_table[0].frequency;
+	policy->suspend_freq = policy->freq_table[cluster->suspend_idx].frequency;
 
 	return 0;
 }
@@ -699,6 +699,7 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 	struct cluster_prop *p;
 	struct device_node *hwf;
 	int i, ret;
+	u32 suspend_idx = 0;
 	char dcdc_supply[32] = "sprd,pmic-type";
 	struct cluster_prop props[] = {
 		{
@@ -733,6 +734,12 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 			return -EINVAL;
 		}
 	}
+
+	of_property_read_u32(cluster->node, "sprd,suspend-idx", &suspend_idx);
+	cluster->suspend_idx = suspend_idx;
+	if (cluster->suspend_idx)
+		pr_info("cluster %u 'suspend-idx' value(%u)\n", cluster->id,
+			cluster->suspend_idx);
 
 	if (of_property_read_bool(cluster->node, "sprd,multi-supply"))
 		sprd_cluster_get_supply_mode(dcdc_supply);
