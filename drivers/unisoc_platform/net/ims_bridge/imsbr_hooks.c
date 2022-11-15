@@ -32,7 +32,7 @@
 #include "imsbr_hooks.h"
 #include "imsbr_netlink.h"
 
-static int xfrm_frag_enable __read_mostly = 1;
+static int xfrm_frag_enable __read_mostly;
 module_param(xfrm_frag_enable, int, 0644);
 struct espheader esphs[MAX_ESPS];
 static bool is_icmp_error(struct nf_conntrack_tuple *nft)
@@ -1013,7 +1013,6 @@ static unsigned int nf_imsbr_ipv4_frag_output(void *priv,
 
 	if (!xfrm_frag_enable)
 		return NF_ACCEPT;
-
 
 	if (imsbr_get_tuple(state->net, skb, &nft))
 		return NF_ACCEPT;
