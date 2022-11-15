@@ -2740,7 +2740,6 @@ static void musb_adaptive_disable(struct musb *musb)
 {
 	musb_stop_adaptive_dma(musb);
 
-	musb->is_adaptive = false;
 	musb->is_adaptive_in = false;
 	musb->is_adaptive_out = false;
 	musb->adaptive_in_configured = false;
@@ -2760,63 +2759,100 @@ void musb_adaptive_config(struct usb_hcd *hcd, int ep_num, int mono,
 {
 	struct musb *musb = hcd_to_musb(hcd);
 	void __iomem *mbase = musb->mregs;
-	int dir;
 	u16 intr;
-	u8 bchannel;
 	unsigned long flags;
 
-	if (ep_num & 0x80) {
-		/* in endpoint */
-		dir = 0;
-		bchannel = (u8)(ep_num & 0xf) + 15;
-		musb->is_adaptive_in = true;
-	} else {
-		/* out endpoint */
-		dir = 1;
-		bchannel = (u8)(ep_num & 0xf);
-		musb->is_adaptive_out = true;
+	dev_info(musb->controller,
+		"%s:ep:0x%x, adaptive_used:%d\n",
+		__func__, ep_num, adaptive_used);
+
+	if (adaptive_used == 1) {
+		if (ep_num & 0x80) {
+			/* in endpoint */
+			if (musb->is_adaptive_in || musb->adaptive_in_configured) {
+				dev_err(musb->controller,
+					"%s: adaptive in was configured before.\n",
+					__func__);
+				return;
+			}
+
+			spin_lock_irqsave(&musb->lock, flags);
+			/* Disable the EP interrupt */
+			intr = musb_readw(mbase, MUSB_INTRRXE);
+			intr &= ~(1 << (ADAPTIVE_EP_NUM & 0xf));
+			musb_writew(mbase, MUSB_INTRRXE, intr);
+			musb_adaptive_enable(musb, 0);
+			musb->adaptive_used++;
+			musb->is_adaptive_in = true;
+			spin_unlock_irqrestore(&musb->lock, flags);
+		} else {
+			/* out endpoint */
+			if (musb->is_adaptive_out || musb->adaptive_out_configured) {
+				dev_err(musb->controller,
+					"%s: adaptive out was configured before.\n",
+					__func__);
+				return;
+			}
+
+			spin_lock_irqsave(&musb->lock, flags);
+			/* Disable the EP interrupt */
+			intr = musb_readw(mbase, MUSB_INTRTXE);
+			intr &= ~(1 << (ADAPTIVE_EP_NUM & 0xf));
+			musb_writew(mbase, MUSB_INTRTXE, intr);
+			musb_adaptive_enable(musb, 1);
+			musb->adaptive_used++;
+			musb->is_adaptive_out = true;
+			spin_unlock_irqrestore(&musb->lock, flags);
+		}
+	} else if (adaptive_used == 0) {
+		if (ep_num & 0x80) {
+			/* in endpoint */
+			if (!musb->is_adaptive_in && !musb->adaptive_in_configured) {
+				dev_err(musb->controller,
+					"%s: adaptive in was not configured.\n",
+					__func__);
+				return;
+			}
+
+			spin_lock_irqsave(&musb->lock, flags);
+			musb->adaptive_used--;
+			musb->is_adaptive_in = false;
+			musb->adaptive_in_configured = false;
+			spin_unlock_irqrestore(&musb->lock, flags);
+		} else {
+			/* out endpoint */
+			if (!musb->is_adaptive_out && !musb->adaptive_out_configured) {
+				dev_err(musb->controller,
+					"%s: adaptive out was not configured.\n",
+					__func__);
+				return;
+			}
+
+			spin_lock_irqsave(&musb->lock, flags);
+			musb->adaptive_used--;
+			musb->is_adaptive_out = false;
+			musb->adaptive_out_configured = false;
+			spin_unlock_irqrestore(&musb->lock, flags);
+		}
 	}
 
-	musb->is_adaptive = true;
-
-	spin_lock_irqsave(&musb->lock, flags);
-	if (adaptive_used)
-		musb->adaptive_used++;
-	else if (musb->adaptive_used == 0)
-		dev_warn(musb->controller, "warning musb->adaptive_used 0!\n");
-	else
-		musb->adaptive_used--;
-	spin_unlock_irqrestore(&musb->lock, flags);
-
-	dev_info(musb->controller,
-		"%s:ep:0x%x dir:%s adaptive_used:%d, ",
-		__func__, ep_num, dir?"out":"in", adaptive_used);
 	dev_info(musb->controller,
 		"is_adaptive_in:%d,is_adaptive_out:%d,musb->adaptive_used:%d.\n",
 		musb->is_adaptive_in, musb->is_adaptive_out, musb->adaptive_used);
+	dev_info(musb->controller,
+		"adaptive_in_configured:%d, adaptive_out_configured:%d.",
+		musb->adaptive_in_configured, musb->adaptive_out_configured);
 
 	spin_lock_irqsave(&musb->lock, flags);
+	musb->offload_used = musb->adaptive_used;
 
-	if (musb->adaptive_used == 0) {
+	if (musb->adaptive_used > 0)
+		musb->is_adaptive = true;
+	else {
 		dev_info(musb->controller, "No adaptive used!\n");
 		musb_adaptive_disable(musb);
-		goto done;
+		musb->is_adaptive = false;
 	}
-
-	/* Disable the EP interrupt */
-	if (ep_num & 0x80) {
-		intr = musb_readw(mbase, MUSB_INTRRXE);
-		intr &= ~(1 << (ADAPTIVE_EP_NUM & 0xf));
-		musb_writew(mbase, MUSB_INTRRXE, intr);
-	} else {
-		intr = musb_readw(mbase, MUSB_INTRTXE);
-		intr &= ~(1 << (ADAPTIVE_EP_NUM & 0xf));
-		musb_writew(mbase, MUSB_INTRTXE, intr);
-	}
-
-	musb_adaptive_enable(musb, dir);
-
-done:
 	spin_unlock_irqrestore(&musb->lock, flags);
 }
 EXPORT_SYMBOL(musb_adaptive_config);
