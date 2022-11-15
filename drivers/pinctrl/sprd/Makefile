@@ -4,3 +4,4 @@ obj-$(CONFIG_PINCTRL_SPRD_SC9860)	+= pinctrl-sprd-sc9860.o
 obj-$(CONFIG_PINCTRL_SPRD_SHARKL5PRO)	+= pinctrl-sprd-sharkl5Pro.o
 obj-$(CONFIG_PINCTRL_SPRD_QOGIRL6PRO)	+= pinctrl-sprd-qogirn6pro.o
 obj-$(CONFIG_PINCTRL_SPRD_QOGIRN6LITE)	+= pinctrl-sprd-qogirn6lite.o
+obj-$(CONFIG_PINCTRL_SPRD_QOGIRL6)	+= pinctrl-sprd-qogirl6.o
