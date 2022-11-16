@@ -14,8 +14,6 @@
 #define R9P0_OSDL_NUM 2
 #define R9P0_IMGSEC_NUM 0
 #define R9P0_OSDSEC_NUM 1
-#define HDR_DEGAMMA_LUT_SIZE 1024
-#define HDR_REGAMMA_LUT_SIZE 1024
 #define HDR_TM_LUT_SIZE (1024 + 1)
 #define GSP_R9P0_FREQ_256M 256000000
 #define GSP_R9P0_FREQ_307_2M 307200000
@@ -288,7 +286,6 @@ struct gsp_r9p0_hdr10_cfg {
 	int reg_hdr_tmlut_addr;
 	int reg_hdr_tmlut_data;
 
-	__u32 hdr_regamma_lut_table[HDR_REGAMMA_LUT_SIZE];
 	__u32 hdr_tone_mapping_lut_table[HDR_TM_LUT_SIZE];
 };
 
