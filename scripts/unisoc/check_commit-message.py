@@ -258,7 +258,6 @@ def check_tags_file(modify_file_list, tags_list):
         tags_list[tags_list.index("arm/arm64")] = 'arm'
 
     for x in modify_file_list:
-        file_add_inconsistent_flag = 0
 
         if len(x) < 2:
             continue
@@ -270,14 +269,13 @@ def check_tags_file(modify_file_list, tags_list):
         print >> sys.stdout, "Modified file name: %s" % x
 
         for y in tags_list:
-            if y not in file_name_list_temp:
-                file_add_inconsistent_flag = 1
+            if y not in file_name_list_temp and 'include' not in file_name_list_temp \
+            and 'configs'not in file_name_list_temp:
+                file_add_inconsistent_flag += 1
                 for z in file_name_list_temp:
                     if z in y:
-                        file_add_inconsistent_flag = 0
                         break
                     elif y in z:
-                        file_add_inconsistent_flag = 0
                         break
                 if file_add_inconsistent_flag == 1:
                     inconsistent_file_list.append(x)
