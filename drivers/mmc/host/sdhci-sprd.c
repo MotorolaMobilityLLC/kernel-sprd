@@ -610,6 +610,9 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	int final_phase;
 	u32 dll_cfg, mid_dll_cnt, dll_cnt, dll_dly;
 
+	if ((mmc->ios.timing == MMC_TIMING_SD_HS) && (strcmp(mmc_hostname(mmc), "mmc1") == 0))
+		return 0;
+
 	sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
 
 	dll_cfg = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
@@ -944,8 +947,10 @@ static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	char sdhci_hostname[64];
 
+	/*
 	if (!host->mmc->card)
 		return;
+	*/
 
 	command = SDHCI_GET_CMD(sdhci_readw(host, SDHCI_COMMAND));
 	if ((command == SEND_TUNING_BLOCK) || (command == SEND_TUNING_BLOCK_HS200)
