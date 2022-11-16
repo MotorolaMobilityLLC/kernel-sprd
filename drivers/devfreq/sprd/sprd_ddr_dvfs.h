@@ -24,11 +24,12 @@ enum DDR_DFS_STATE_STEP {
 };
 
 #define DDR_DB_NODE_NUM 50
+#define SCENE_MAX 25
 struct DDR_DFS_STEP_T {
 	enum DDR_DFS_STATE_STEP step;
 	int status;
 	u32 buff;
-	char scene[25];
+	char scene[SCENE_MAX];
 	int pid;
 };
 

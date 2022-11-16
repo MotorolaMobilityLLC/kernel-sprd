@@ -110,7 +110,7 @@ struct ddr_dfs_step_list_t *ddr_step_list_init(struct ddr_dfs_step_list_t ddr_st
 	struct ddr_dfs_step_list_t *p = head;
 
 	for (i = 1; i < node_num; i++) {
-		p->next = ddr_step_arr+i;
+		p->next = ddr_step_arr + i;
 		p = p->next;
 	}
 	p->next = head;
@@ -125,10 +125,13 @@ void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene,
 	ddr_cur_step_g->data.step = cur_step;
 	ddr_cur_step_g->data.status = status;
 
-	memset(ddr_cur_step_g->data.scene, 0, sizeof(ddr_cur_step_g->data.scene));
-	if (scene != NULL)
-		memcpy(ddr_cur_step_g->data.scene, scene, buff);
-
+	memset(ddr_cur_step_g->data.scene, 0, SCENE_MAX);
+	if (scene != NULL) {
+		if (buff >= SCENE_MAX)
+			memcpy(ddr_cur_step_g->data.scene, scene, SCENE_MAX - 1);
+		else
+			memcpy(ddr_cur_step_g->data.scene, scene, buff);
+	}
 	ddr_cur_step_g->data.buff = buff;
 	ddr_cur_step_g->data.pid = pid;
 	mutex_unlock(&g_dvfs_data->dfs_step_mutex);
