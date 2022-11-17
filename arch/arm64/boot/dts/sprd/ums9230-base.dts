@@ -50,10 +50,12 @@
 		sprd,mapping-offs = <0x0>;
 	};
 
-	ion: ion {
-		compatible = "sprd,ion";
-		#address-cells = <1>;
-		#size-cells = <0>;
+	dmabuf: dmabuf {
+		compatible = "sprd,dmabuf";
+	};
+
+	sprd-map-user {
+		compatible = "unisoc,map-user";
 	};
 };
 
