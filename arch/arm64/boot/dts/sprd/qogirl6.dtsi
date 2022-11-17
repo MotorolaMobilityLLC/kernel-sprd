@@ -842,9 +842,9 @@
 				};
 			};
 
-			gsp_core0: gsp@31000000 {
+			gsp_core0: gsp@31001000 {
 				compatible = "sprd,gsp-core";
-				reg = <0 0x31000000 0 0x2000>;
+				reg = <0 0x31001000 0 0x2000>;
 				core-id = <0>;
 				kcfg-num = <16>;
 				interrupts = <GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH>;
