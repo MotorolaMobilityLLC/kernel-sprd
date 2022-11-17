@@ -53,6 +53,7 @@
 #define CHARGER_DETECT_DELAY			(msecs_to_jiffies(1000))
 #define VBUS_REG_CHECK_DELAY			(msecs_to_jiffies(1000))
 #define MUSB_RUNTIME_CHECK_DELAY		(msecs_to_jiffies(200))
+#define MUSB_UDC_START_CHECK_DELAY		(msecs_to_jiffies(50))
 #define MUSB_DATA_ENABLE_CHECK_DELAY		(msecs_to_jiffies(200))
 #define MUSB_SPRD_CHG_MAX_REDETECT_COUNT	3
 
@@ -1122,7 +1123,6 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		pm_runtime_get_sync(musb->controller);
 		musb_reset_all_fifo_2_default(musb);
 
-		usb_udc_vbus_handler(&musb->g, true);
 		usb_phy_vbus_off(glue->xceiv);
 		/*
 		 * Musb controller process go as device default.
@@ -1134,22 +1134,22 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		 * timeout and usb switch to host failed Sometimes.
 		 */
 		msleep(150);
-		sprd_musb_enable(musb);
+		usb_udc_vbus_handler(&musb->g, true);
+		flush_delayed_work(&musb->gadget_work);
 
 		usb_gadget_set_state(&musb->g, USB_STATE_ATTACHED);
 		glue->dr_mode = USB_DR_MODE_PERIPHERAL;
 	} else {
-		u8 devctl, pwr;
+		u8 devctl;
 
 		dev_info(glue->dev, "%s: turn off gadget %s\n", __func__, musb->g.name);
 
-		pwr = musb_readb(musb->mregs, MUSB_POWER);
-		musb_writeb(musb->mregs, MUSB_POWER, pwr & ~MUSB_POWER_SOFTCONN);
+		usb_udc_vbus_handler(&musb->g, false);
+		flush_delayed_work(&musb->gadget_work);
 		devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
 		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl & ~MUSB_DEVCTL_SESSION);
 		musb_sprd_release_all_request(musb);
 		usb_gadget_set_state(&musb->g, USB_STATE_NOTATTACHED);
-		usb_udc_vbus_handler(&musb->g, false);
 
 		musb->is_active = 0;
 		musb->xceiv->otg->default_a = 0;
@@ -1273,6 +1273,23 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 
 	return 0;
 }
+
+#if !(IS_ENABLED(CONFIG_USB_DWC3_SPRD))
+static int musb_sprd_is_udc_start(struct sprd_glue *glue)
+{
+	struct musb *musb = glue->musb;
+	unsigned long flags;
+
+	spin_lock_irqsave(&musb->lock, flags);
+	if (!musb->gadget_driver) {
+		spin_unlock_irqrestore(&musb->lock, flags);
+		return 0;
+	}
+
+	spin_unlock_irqrestore(&musb->lock, flags);
+	return 1;
+}
+#endif
 
 static void musb_sprd_chg_detect_work(struct work_struct *work)
 {
@@ -1533,6 +1550,15 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 			delay = MUSB_DATA_ENABLE_CHECK_DELAY;
 			break;
 		}
+
+		#if !(IS_ENABLED(CONFIG_USB_DWC3_SPRD))
+			if (!musb_sprd_is_udc_start(glue)) {
+				dev_info(glue->dev, "waiting musb udc start\n");
+				rework = true;
+				delay = MUSB_UDC_START_CHECK_DELAY;
+				break;
+			}
+		#endif
 
 		if (!test_bit(ID, &glue->inputs)) {
 			dev_dbg(glue->dev, "!id\n");
