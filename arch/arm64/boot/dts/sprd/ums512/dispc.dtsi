@@ -1,7 +1,8 @@
 &mm {
 		dpu: dpu@20300000 {
 			compatible = "sprd,sharkl5pro-dpu";
-			reg = <0x0 0x20300000 0x0 0x1000>;
+			reg = <0x0 0x20300000 0x0 0x1000>,
+			      <0x0 0x20301000 0x0 0x1000>;
 			interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 
 			reset-names = "dpu_rst";
