@@ -11,6 +11,8 @@ POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG
 
 if [[ $BSP_SPECIFIED_KO_CONFIG == "true" && $BSP_UD_PREBUILTS_FLAG == "true" ]]; then
 	EXT_MODULES="$BSP_EXT_MODULES"
+elif [[ $BSP_DTSONLY_CONFIG == "true" ]]; then
+	SKIP_EXT_MODULES=1
 else
 EXT_MODULES="
 ../modules/kernel5.15/sample
@@ -72,6 +74,11 @@ DTC_FLAGS+="-@"
 
 if ([[ $BSP_SPECIFIED_KO_CONFIG == "true" ]] || [[ $BSP_KOONLY_CONFIG == "true" ]]) && ([[ $BSP_UD_PREBUILTS_FLAG == "true" ]]); then
 	MAKE_GOALS="$BSP_MAKE_GOALS"
+	BUILD_GKI_ARTIFACTS=""
+elif [[ $BSP_DTSONLY_CONFIG == "true" ]]; then
+	MAKE_GOALS="$BSP_MAKE_GOALS"
+	IN_KERNEL_MODULES=""
+	SKIP_CP_KERNEL_HDR=1
 	BUILD_GKI_ARTIFACTS=""
 else
 	MAKE_GOALS="${MAKE_GOALS} dtbs"
