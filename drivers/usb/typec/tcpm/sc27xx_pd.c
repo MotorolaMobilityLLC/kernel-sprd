@@ -985,6 +985,9 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 		sprd_tcpm_pd_receive(pd->sprd_tcpm_port, msg);
 	}
 
+	if (!data_obj_num && sprd_pd_header_type_le(msg->header) == SPRD_PD_CTRL_ACCEPT)
+		return 0;
+
 	return sc27xx_pd_rx_flush(pd);
 }
 
@@ -1253,7 +1256,7 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 	sprd_pd_log(pd, "pd irq: int sts = 0x%x", int_sts);
 	ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_INT_CLR,
 				 SC27XX_INT_CLR_MASK,
-				 SC27XX_INT_CLR_MASK);
+				 int_sts);
 	if (ret < 0) {
 		dev_err(pd->dev, "failed to clr int mask, int_sts = %d, ret = %d\n", int_sts, ret);
 		sprd_pd_log(pd, "failed to clr int mask, int_sts = %d, ret = %d", int_sts, ret);
@@ -1307,17 +1310,13 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 	}
 
 	if ((int_sts & SC27XX_PD_PKG_RV_FLAG)) {
-		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_INT_CLR,
-					 SC27XX_PD_PKG_RV_CLR,
-					 SC27XX_PD_PKG_RV_CLR);
-		if (ret < 0)
-			goto done;
-
 	       /*
-		* According to the requirements of ASIC spec, after receiving
+		* According to the requirements of SC2730 ASIC spec, after receiving
 		* the interrupt,the data should be read after 500us.
 		*/
-		udelay(500);
+		if (pd->var_data->id == PMIC_SC2730)
+			udelay(500);
+
 		ret = regmap_read_poll_timeout(pd->regmap,
 					       pd->base + SC27XX_PD_STS1,
 					       pd_sts1,
