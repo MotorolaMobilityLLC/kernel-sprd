@@ -296,7 +296,11 @@ int ufs_sprd_reset(struct ufs_sprd_host *host)
 	struct ufs_sprd_ums9230_data *priv =
 		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
 
-	sprd_get_soc_id(AON_VER_ID, &aon_ver_id, 1);
+	ret = sprd_get_soc_id(AON_VER_ID, &aon_ver_id, 1);
+	if (ret) {
+		dev_err(host->hba->dev, "fail to get soc id, ret = %d.\n", ret);
+		goto out;
+	}
 
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
 	/* TODO: HW reset will be simple in next version. */
@@ -1023,7 +1027,11 @@ int hibern8_exit_check(struct ufs_hba *hba,
 
 	ret = is_ufs_sprd_host_in_pwm(hba);
 	if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
-		sprd_get_soc_id(AON_VER_ID, &aon_ver_id, 1);
+		ret = sprd_get_soc_id(AON_VER_ID, &aon_ver_id, 1);
+		if (ret) {
+			pr_err("fail to get soc id\n");
+			return ret;
+		}
 		if (priv->ioctl_cmd == UFS_IOCTL_AFC_EXIT ||
 				aon_ver_id == AON_VER_UFS) {
 			ret = sprd_ufs_pwrchange(hba);
