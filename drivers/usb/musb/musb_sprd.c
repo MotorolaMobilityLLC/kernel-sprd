@@ -696,6 +696,11 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		return NOTIFY_DONE;
 	}
 
+	if (glue->dr_mode == USB_DR_MODE_HOST) {
+		dev_info(glue->dev, "ignore vbus state in dr mode host\n");
+		return NOTIFY_DONE;
+	}
+
 	dev_info(glue->dev, "vbus:%ld event received\n", event);
 
 	glue->vbus_active = event;
