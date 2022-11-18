@@ -1750,6 +1750,7 @@
 				pinctrl-11 = <&vbc_iis3_5>;
 				pinctrl-12 = <&audcp_iis0_1>;
 				pinctrl-13 = <&audcp_iis1_1>;
+				power-domains = <&agdsp_domain>;
 			};
 
 			pdm_dmic: pdm-dmic@56401000 {
@@ -1758,6 +1759,7 @@
 				reg = <0 0x56401000 0 0x1000>;
 				#sound-dai-cells = <1>;
 				sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
+				power-domains = <&agdsp_domain>;
 			};
 
 			mcdt@56490000{
@@ -1783,10 +1785,11 @@
 				compatible = "unisoc,audio-codec-dig-agcp";
 				reg = <0 0x56750000 0 0x1000>;
 				sprd,syscon-agcp-ahb = <&audcp_ahb_regs>;
+				power-domains = <&agdsp_domain>;
 			};
 
-			agdsp-access {
-				compatible = "unisoc,agdsp-access";
+			agdsp_domain: agdsp-power-domain {
+				compatible = "sprd,agdsp-pd";
 				sprd,syscon-agcp-ahb = <&aon_apb_regs>;
 				sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 				audcp_pmu_sleep_ctrl = <&pmu_apb_regs REG_PMU_APB_DEEP_SLEEP_MON_0
@@ -1801,6 +1804,8 @@
 										MASK_AON_APB_AP_2_AUD_ACCESS_EN>;
 				sprd,ddr-addr-offset = <0x0>;
 				sprd,auto_agcp_access = <0>;
+				#power-domain-cells = <0>;
+				status = "disabled";
 			};
 		};
 	};
@@ -1841,6 +1846,7 @@
 			/* recognise_c same as voice_c, voice_pcm_p same as loop_p */
 			"recognise_c", "voice_pcm_p",
 			"hifi_p", "hifi_fast_p";
+		power-domains = <&agdsp_domain>;
 	};
 
 	sprd_compr: sprd-compr-audio {
@@ -1848,11 +1854,13 @@
 		#sound-dai-cells = <0>;
 		dmas = <&agcp_dma 5 &agcp_dma 0>;
 		dma-names = "compr_dma_stage0", "compr_dma_stage1";
+		power-domains = <&agdsp_domain>;
 	};
 
 	sprd_fe_dai: sprd-fe-dai {
 		compatible = "unisoc,fe-dai";
 		#sound-dai-cells = <1>;
+		power-domains = <&agdsp_domain>;
 	};
 
 	sprd_route_pcm: sprd-routing-pcm {
@@ -1890,10 +1898,11 @@
 		sprd,smsg-addr = <0x94380400 0xa10>;
 		/* 1K AUDIO_STRUCT_PARA 0x94380e10 - 0x94381210*/
 		sprd,shmaddr-aud-str = <0x94380e10 0x400>;
-		/* 5K DSP_VBC_PARA, 0x94381210 - 0x94382610 */
-		sprd,shmaddr-dsp-vbc = <0x94381210 0x1400>;
-		/* 1K nxp/cvs para, 0x94382610 - 0x94382a10 */
-		sprd,shmaddr-nxp = <0x94382610 0x400>;
+		/* DSP_VBC_PARA: 5K->4K, nxp/cvs: 1K->2K */
+		/* 4K DSP_VBC_PARA, 0x94381210 - 0x94382210 */
+		sprd,shmaddr-dsp-vbc = <0x94381210 0x1000>;
+		/* 2K nxp/cvs para, 0x94382210 - 0x94382a10 */
+		sprd,shmaddr-nxp = <0x94382210 0x800>;
 		/* 2K ivsence smartpa param, 0x94382a10 - 0x94383a10 */
 		sprd,shmaddr-dsp-smartpa = <0x94382a10 0x1000>;
 		/* 1K REG DUMP, 0x94383a10 - 0x94383e10 */

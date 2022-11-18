@@ -646,6 +646,7 @@
 	set-offset = <0x1000>;
 	clr-offset = <0x2000>;
 	lrdat-sel = <0x1>;
+	power-domains = <&agdsp_domain>;
 };
 
 &spi0 {

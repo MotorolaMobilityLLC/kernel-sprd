@@ -410,7 +410,7 @@
 	};
 
 	ucp1301_rcv: ucp1301@58 {
-		compatible = "sprd,ucp1301-rcv";
+		compatible = "unisoc,ucp1301-rcv";
 		reg = <0x58>;
 		reset-gpios = <&ap_gpio 172 GPIO_ACTIVE_HIGH>;
 		#sound-dai-cells = <1>;
@@ -428,7 +428,7 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 	ucp1301_spk: ucp1301@58 {
-		compatible = "sprd,ucp1301-spk";
+		compatible = "unisoc,ucp1301-spk";
 		reg = <0x58>;
 		reset-gpios = <&ap_gpio 167 GPIO_ACTIVE_HIGH>;
 		#sound-dai-cells = <1>;
@@ -458,6 +458,10 @@
 };
 
 &pdm_dmic {
+	status = "okay";
+};
+
+&agdsp_domain {
 	status = "okay";
 };
 
