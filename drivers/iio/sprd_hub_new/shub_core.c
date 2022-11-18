@@ -399,6 +399,8 @@ static void shub_synctimestamp(struct shub_data *sensor)
 	else
 		convert_para.last_boottime = ktime_to_ns(kt);
 
+    dev_info(&sensor->sensor_pdev->dev, "last_boottime = [%llu] \n", convert_para.last_boottime);
+
 	shub_send_command(sensor,
 			  HANDLE_MAX,
 			  SHUB_SET_TIMESYNC_SUBTYPE,
