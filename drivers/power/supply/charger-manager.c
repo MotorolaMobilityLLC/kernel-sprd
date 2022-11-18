@@ -112,7 +112,6 @@
 #define CM_IR_COMPENSATION_TIME			3
 
 #define CM_CP_WORK_TIME_MS			500
-#define MAX_STATE                               1
 
 #define CM_CAP_ONE_TIME_24S			24
 #define CM_CAP_ONE_TIME_20S			20
@@ -5401,10 +5400,6 @@ static int charger_get_property(struct power_supply *psy,
 		ret = cm_get_charge_control_limit(cm, val);
 		break;
 
-	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX:
-		val->intval = MAX_STATE;
-		break;
-
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
 		ret = cm_get_charge_full_design(cm, val);
 		break;
@@ -5544,7 +5539,6 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_CHARGE_COUNTER,
 	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT,
-	POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT_MAX,
 	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
 	POWER_SUPPLY_PROP_TIME_TO_FULL_NOW,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
