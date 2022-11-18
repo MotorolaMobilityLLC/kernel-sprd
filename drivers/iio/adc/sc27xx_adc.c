@@ -516,7 +516,7 @@ static void sprd_adc_calib_with_two_cell(struct sprd_adc_linear_graph *graph)
 
 static const struct calib_info *sprd_adc_calib_info_get(struct sprd_adc_data *data, int ch)
 {
-	int calib_index, calib_small;
+	int calib_index, calib_small = 1;
 	const struct calib_info *calib_info;
 
 	for (calib_index = 0; calib_index < GRAPH_MAX; calib_index++) {
