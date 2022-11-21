@@ -906,7 +906,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		dev_err(dev, "fail to add phy\n");
 		goto  platform_device_err;
 	}
-
+	sc27xx_dpdm_switch_to_phy(phy->pmic, 0);
 	ret = sysfs_create_groups(&dev->kobj, usb_hsphy_groups);
 	if (ret)
 		dev_warn(dev, "failed to create usb hsphy attributes\n");
@@ -936,6 +936,13 @@ static int sprd_hsphy_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void sprd_hsphy_drshutdown(struct platform_device *pdev)
+{
+       struct sprd_hsphy *phy = platform_get_drvdata(pdev);
+
+       sc27xx_dpdm_switch_to_phy(phy->pmic, 0);
+}
+
 static const struct of_device_id sprd_hsphy_match[] = {
 	{ .compatible = "sprd,qogirl6-phy" },
 	{},
@@ -945,6 +952,7 @@ MODULE_DEVICE_TABLE(of, sprd_hsphy_match);
 static struct platform_driver sprd_hsphy_driver = {
 	.probe = sprd_hsphy_probe,
 	.remove = sprd_hsphy_remove,
+	.shutdown = sprd_hsphy_drshutdown,
 	.driver = {
 		.name = "sprd-hsphy",
 		.of_match_table = sprd_hsphy_match,
