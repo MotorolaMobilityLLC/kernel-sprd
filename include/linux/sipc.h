@@ -1034,6 +1034,29 @@ sipx_chan_create(dst, channel)
 #define SBLOCK_PUT(dst, channel, blk) \
 	sipx_put(dst, channel, blk)
 
+/**
+ * sbuf_copy_from_user  -- unaligned data accesses to addresses
+ *
+ * @to: dest, device memory and alignment access must be considered
+ * @from: src, normal memory
+ * @n: bytes
+ * @return: bytes not copied
+ */
+static inline unsigned long sbuf_copy_from_user(void *to,
+		const void __user *from,
+		unsigned long n)
+{
+	unsigned long res = n;
+
+	might_fault();
+	if (likely(check_copy_size(to, n, false))) {
+		kasan_check_write(to, n);
+		res = raw_copy_from_user(to, from, n);
+	}
+
+	return res;
+}
+
 #ifdef CONFIG_ARM64
 /**
  * unalign_copy_from_user  -- unaligned data accesses to addresses
@@ -1081,20 +1104,20 @@ static inline unsigned long unalign_copy_from_user(void *to,
 	/* to is 8 byte aligned and n is less than 16 bytes */
 	c1 = !((unsigned long)to & 0x7) && (n < 16);
 	if (c1)
-		return copy_from_user(to, from, n);
+		return sbuf_copy_from_user(to, from, n);
 
 	/* to and from are 8 byte aligned */
 	c2 = !((unsigned long)to & 0x7) && !((unsigned long)from & 0x7);
 	if (c2)
-		return copy_from_user(to, from, n);
+		return sbuf_copy_from_user(to, from, n);
 
 	/* to and from are the same offset and n is more than 15 bytes */
 	c3 = !(((unsigned long)to ^ (unsigned long)from) & 0x7) && (n > 15);
 	if (c3)
-		return copy_from_user(to, from, n);
+		return sbuf_copy_from_user(to, from, n);
 
 	while (n) {
-		if (copy_from_user(to++, from++, 1))
+		if (sbuf_copy_from_user(to++, from++, 1))
 			break;
 		n--;
 	}
@@ -1186,7 +1209,7 @@ static inline unsigned long unalign_copy_from_user(void *to,
 		const void __user *from,
 		unsigned long n)
 {
-	return copy_from_user(to, from, n);
+	return sbuf_copy_from_user(to, from, n);
 }
 static inline void *unalign_memcpy(void *to, const void *from, size_t n)
 {
