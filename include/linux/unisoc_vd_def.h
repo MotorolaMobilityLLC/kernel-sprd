@@ -69,6 +69,9 @@ struct uni_task_struct {
 	 */
 	u64 balance_dirty_start_ts;
 	u64 iowait_start_ts;
+#ifdef CONFIG_UNISOC_HUNG_TASK_ENH
+	u8 hung_detect_status;
+#endif
 };
 
 struct sched_cluster {

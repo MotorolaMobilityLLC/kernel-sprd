@@ -64,4 +64,15 @@ config UNISOC_SCHEDUTIL_GOV
 	this cpufreq governor is based on the original kernel schedutil governor,
 	and add unisoc specific features like freq_margin and slak_timer.
 
+config UNISOC_HUNG_TASK_ENH
+	bool "Unisoc hung task enh"
+	depends on UNISOC_SCHED && DETECT_HUNG_TASK
+	help
+	  This feature uses whitelist/blacklist to enhance D state task detect.
+	  In addition, add the detection of iowait state task.
+	  If Y, check tasks according to whitelist/blacklist rule. Using whitelist
+	  mode will check tasks in the list, blacklist mode will check tasks out
+	  of the list.
+	  If N, check all tasks.
+
 endmenu

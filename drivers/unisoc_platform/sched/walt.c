@@ -1512,6 +1512,11 @@ static void walt_init(struct work_struct *work)
 	stop_machine(walt_init_stop_handler, NULL, NULL);
 
 	hdr = register_sysctl_table(walt_base_table);
+
+#ifdef CONFIG_UNISOC_HUNG_TASK_ENH
+	hung_task_enh_init();
+#endif
+
 }
 
 static DECLARE_WORK(walt_init_work, walt_init);
