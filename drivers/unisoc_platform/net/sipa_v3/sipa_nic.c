@@ -183,8 +183,7 @@ static bool sipa_nic_rm_res_reinit(struct sipa_nic *nic)
 	struct sipa_nic_cons_res *res = &nic->rm_res;
 
 	spin_lock_irqsave(&res->lock, flags);
-	ret = (atomic_read(&nic->status) == NIC_OPEN) &&
-		nic->rm_res.rm_flow_ctrl;
+	ret = (atomic_read(&nic->status) == NIC_OPEN);
 	if (ret)
 		nic->rm_res.rm_flow_ctrl = 0;
 	spin_unlock_irqrestore(&res->lock, flags);
@@ -345,12 +344,11 @@ static int sipa_nic_rm_res_request(struct sipa_nic *nic)
 		ret = sipa_rm_request_resource(nic->rm_res.cons);
 		spin_lock_irqsave(&res->lock, flags);
 		res->need_request = false;
-		if (ret == -EINPROGRESS && res->rm_flow_ctrl) {
+		if (ret == -EINPROGRESS)
 			res->request_in_progress = true;
-			res->rm_flow_ctrl = 1;
-		} else {
+		else
 			res->request_in_progress = false;
-		}
+
 		spin_unlock_irqrestore(&res->lock, flags);
 	}
 
