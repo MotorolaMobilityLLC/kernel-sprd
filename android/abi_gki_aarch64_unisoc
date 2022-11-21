@@ -1123,6 +1123,8 @@
   __traceiter_android_vh_cpufreq_fast_switch
   __traceiter_android_vh_cpufreq_resolve_freq
   __traceiter_android_vh_cpufreq_target
+  __traceiter_android_vh_check_uninterruptible_tasks
+  __traceiter_adnroid_vh_check_uninterruptible_tasks_dn
   __traceiter_android_vh_drm_atomic_check_modeset
   __traceiter_android_vh_dump_throttled_rt_tasks
   __traceiter_android_vh_enable_thermal_power_throttle
@@ -1211,6 +1213,8 @@
   __tracepoint_android_vh_cpufreq_fast_switch
   __tracepoint_android_vh_cpufreq_resolve_freq
   __tracepoint_android_vh_cpufreq_target
+  __tracepoint_android_vh_check_uninterruptible_tasks
+  __tracepoint_adnroid_vh_check_uninterruptible_tasks_dn
   __tracepoint_android_vh_drm_atomic_check_modeset
   __tracepoint_android_vh_dump_throttled_rt_tasks
   __tracepoint_android_vh_enable_thermal_power_throttle
