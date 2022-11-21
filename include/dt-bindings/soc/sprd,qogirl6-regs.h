@@ -651,6 +651,7 @@
 #define REG_PMU_APB_PWD_CTRL                                0x0FDC
 #define REG_PMU_APB_WCN_DBGPWR_CTRL                         0x0FE0
 #define REG_PMU_APB_WCN_XTL_CTRL                            0x0FE4
+#define REG_TOP_DVFS_APB_SUBSYS_SW_DVFS_EN_CFG              0x0150
 #define REG_WTL_AON_APB_APB_EB0                             0x0000
 #define REG_WTL_AON_APB_APB_ARM_ROOT_ADDR                   0x0004
 #define REG_WTL_AON_APB_WCDMA_CLK_EB                        0x0008

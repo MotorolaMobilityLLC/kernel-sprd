@@ -3105,6 +3105,7 @@
 #define MASK_PMU_APB_WCN_ACCESS_DDR_EN                      0x0008
 #define MASK_PMU_APB_WCN_REF_26M_SEL                        0x0006
 #define MASK_PMU_APB_WCN_BB_CK26M_SEL                       0x0001
+#define MASK_TOP_DVFS_APB_GPU_SW_DVFS_EN                    0x2
 #define MASK_WTL_AON_APB_CLK_ALL_EN_TD_RFT                  0x20000000
 #define MASK_WTL_AON_APB_CLK_ALL_EN_STC                     0x10000000
 #define MASK_WTL_AON_APB_CK26M_STC_EB                       0x4000000
