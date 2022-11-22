@@ -591,7 +591,8 @@ static int wcn_sipc_sblk_send(struct sipc_chn_info *sipc_chn,
 		WCN_ERR("buf is null. buf: %p\n", buf);
 		return E_INVALIDPARA;
 	}
-	memcpy(((u8 *)addr), buf, len);
+
+	memcpy_toio(((u8 *)addr), buf, len);
 	ret = sblock_send(sipc_chn->dst, sipc_chn->chn, &blk);
 	WCN_HERE_CHN(sipc_chn->index);
 	if (ret) {
