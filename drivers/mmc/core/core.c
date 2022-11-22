@@ -747,8 +747,8 @@ void mmc_set_data_timeout(struct mmc_data *data, const struct mmc_card *card)
 	 * value. For the cards tested, 600ms has proven enough. If necessary,
 	 * this value can be increased if other problematic cards require this.
 	 */
-	if (mmc_card_long_read_time(card) && data->flags & MMC_DATA_READ) {
-		data->timeout_ns = 600000000;
+	if ((mmc_card_long_read_time(card)||mmc_card_sd(card)) && data->flags & MMC_DATA_READ) {
+		data->timeout_ns = 3000000000;
 		data->timeout_clks = 0;
 	}
 
