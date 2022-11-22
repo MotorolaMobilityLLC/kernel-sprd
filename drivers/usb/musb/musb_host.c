@@ -2216,7 +2216,8 @@ static int musb_schedule(
 	u8			toggle;
 	u8			txtype;
 	struct urb		*urb = next_urb(qh);
-
+	u8			last_epno;
+	struct usb_host_endpoint	*last_hep = NULL;
 	/* use fixed hardware for control and bulk */
 	if (qh->type == USB_ENDPOINT_XFER_CONTROL) {
 		head = &musb->control;
@@ -2263,8 +2264,7 @@ static int musb_schedule(
 			u8	last_addr;
 			u8	epno = usb_pipeendpoint(urb->pipe);
 
-			if ((epnum < 2 + epno) || (epnum < 10 &&
-			     qh->type == USB_ENDPOINT_XFER_INT))
+			if (epnum < 2 + epno)
 				continue;
 
 			if (musb->is_multipoint) {
@@ -2281,6 +2281,22 @@ static int musb_schedule(
 				if (last_addr != 0) {
 					if (last_addr != qh->addr_reg)
 						continue;
+					else {
+						last_epno = 0;
+						if (musb_dma_sprd(musb) &&
+							(musb->is_multipoint) &&
+							hw_ep->hep[!is_in]) {
+							last_hep = hw_ep->hep[!is_in];
+							last_epno = last_hep->desc.bEndpointAddress
+							& USB_ENDPOINT_NUMBER_MASK;
+						}
+
+						musb_dbg(musb, "last_epno(%d) epno(%d)\n",
+								last_epno, epno);
+
+						if (last_epno != epno)
+							continue;
+					}
 					best_end = epnum;
 					break;
 				}
