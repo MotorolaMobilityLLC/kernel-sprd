@@ -1568,7 +1568,7 @@ static int sgm41513_charger_usb_set_property(struct power_supply *psy,
 	default:
 		ret = -EINVAL;
 	}
-
+	sgm41513_dump_register(info);
 	mutex_unlock(&info->lock);
 	return ret;
 }
