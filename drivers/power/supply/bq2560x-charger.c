@@ -39,7 +39,10 @@
 #define BQ2560X_REG_9				0x9
 #define BQ2560X_REG_A				0xa
 #define BQ2560X_REG_B				0xb
-#define BQ2560X_REG_NUM				12
+#define BQ2560X_REG_C				0xc
+#define BQ2560X_REG_D				0xd
+#define BQ2560X_REG_E				0xe
+#define BQ2560X_REG_NUM				15
 
 #define BQ2560X_BATTERY_NAME			"sc27xx-fgu"
 #define BIT_DP_DM_BC_ENB			BIT(0)
@@ -70,6 +73,7 @@
 
 #define BQ2560X_REG_TERMINAL_CUR_MASK		GENMASK(3, 0)
 
+#define BQ2560X_REG_VINDPM_TRACK_MASK		GENMASK(1, 0)
 #define BQ2560X_REG_VINDPM_VOLTAGE_MASK		GENMASK(3, 0)
 #define BQ2560X_REG_OVP_MASK			GENMASK(7, 6)
 #define BQ2560X_REG_OVP_SHIFT			6
@@ -188,9 +192,12 @@ static struct bq2560x_charger_reg_tab reg_tab[BQ2560X_REG_NUM + 1] = {
 	{7, BQ2560X_REG_7, "IINDET_EN/TMR2X_EN/BATFET_DIS/JEITA_VSET/BATFET_DLY/BATFET_RST_EN/VDPM_BAT_TRACK"},
 	{8, BQ2560X_REG_8, "VBUS_STAT/CHRG_STAT/PG_STAT/THERM_STAT/VSYS_STAT"},
 	{9, BQ2560X_REG_9, "WATCHDOG_FAULT/BOOST_FAULT/CHRG_FAULT/BAT_FAULT/NTC_FAULT"},
-	{10, BQ2560X_REG_A, "VBUS_GD/VINDPM_STAT/IINDPM_STAT/TOPOFF_ACTIVE/ACOV_STAT/VINDPM_INT_ MASK/IINDPM_INT_ MASK"},
-	{11, BQ2560X_REG_B, "REG_RST/PN/DEV_REV"},
-	{12, 0, "null"},
+	{10,BQ2560X_REG_A, "VBUS_GD/VINDPM_STAT/IINDPM_STAT/TOPOFF_ACTIVE/ACOV_STAT/VINDPM_INT_ MASK/IINDPM_INT_ MASK"},
+	{11,BQ2560X_REG_B, "REG_RST/PN/DEV_REV"},
+	{12,BQ2560X_REG_C, "JEITA"},
+	{13,BQ2560X_REG_D, "VBAT_REG/BOOSTV"},
+	{14,BQ2560X_REG_E, "VSYSOVP"},
+	{15, 0, "null"},
 };
 
 #ifndef OTG_USE_REGULATOR
@@ -308,7 +315,7 @@ static int
 bq2560x_charger_set_vindpm(struct bq2560x_charger_info *info, u32 vol)
 {
 	u8 reg_val;
-
+	
 	if (vol < 3900)
 		reg_val = 0x0;
 	else if (vol > 5400)
@@ -343,6 +350,7 @@ static int
 bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 {
 	u8 reg_val;
+	printk("bq2560x_charger_set_termina_vol: vol = %d", vol);
 #ifdef SC89601D_CHIP_ID
 	if (vol < 3847)
 		reg_val = 0x0;
@@ -381,11 +389,32 @@ bq2560x_charger_set_termina_cur(struct bq2560x_charger_info *info, u32 cur)
 				   reg_val);
 }
 
+static int
+bq2560x_charger_set_vbat_ft(struct bq2560x_charger_info *info, bool flag)
+{
+	u8 value = 0;
+	int ret ;
+
+	ret = bq2560x_read(info, BQ2560X_REG_D, &value);
+	dev_err(info->dev, "bq2560x_charger_set_vbat_ft, the reg_val 0x%02x \n", value);
+	if( flag )
+	{
+		value = value | 0x40;
+		ret = bq2560x_write(info, BQ2560X_REG_D, value);
+		if (ret)
+			dev_err(info->dev, "write failed\n");
+	}
+	
+	dev_err(info->dev, "bq2560x_charger_set_vbat_ft, the reg_val 0x%02x \n", value);
+	return ret;
+}
+
 static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 {
 	struct sprd_battery_info bat_info = {};
 	int voltage_max_microvolt, termination_cur;
 	int ret;
+	u8 value =0;
 
 	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info);
 	if (ret) {
@@ -470,11 +499,23 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "set bq2560x limit current failed\n");
 
-	/* ret = bq2560x_update_bits(info, BQ2560X_REG_7,
-				  BQ2560X_DISABLE_BATFET_RST_MASK,
-				  0x0 << BQ2560X_DISABLE_BATFET_RST_SHIFT); */
-	if (ret)
-		dev_err(info->dev, "disable batfet_rst_en failed\n");
+	/* ret = bq2560x_update_bits(info, BQ2560X_REG_7,BQ2560X_REG_VINDPM_TRACK_MASK,0X03);
+	if (ret) {
+		dev_err(info->dev, "fail to wite 0X4E to REG_0x%.2x, ret = %d\n",BQ2560X_REG_7, ret);
+	} */
+	ret = bq2560x_read(info, BQ2560X_REG_7, &value);
+	dev_err(info->dev, "bq2560x_charger_reg7, the reg_val 0x%02x \n", value);
+	if( !ret ) {
+		value = value | 0x03;
+		ret = bq2560x_write(info, BQ2560X_REG_7, value);
+		if (ret) {
+                	dev_err(info->dev, "fail to wite 0xx2 to REG_0x%.2x, ret = %d\n",BQ2560X_REG_7, ret);
+        	}
+	}
+	ret = bq2560x_charger_set_vbat_ft(info,true);
+	if (ret) {
+		dev_err(info->dev, "fail to wite 0X0d to REG_0x%.2x, ret = %d\n",BQ2560X_REG_D, ret);
+	}
 
 	info->current_charge_limit_cur = BQ2560X_REG_ICHG_LSB * 1000;
 	info->current_input_limit_cur = BQ2560X_REG_IINDPM_LSB * 1000;
@@ -617,7 +658,7 @@ static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
 				       u32 cur)
 {
 	u8 reg_val;
-
+	printk("bq2560x_charger_set_current: cur = %d", cur);
 	cur = cur / 1000;
 	if (cur > 3000) {
 		reg_val = 0x32;
@@ -653,7 +694,7 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 {
 	u8 reg_val;
 	int ret;
-
+	printk("bq2560x_charger_set_limit_current: limit_cur = %d", limit_cur);
 	if (limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
 
@@ -766,8 +807,6 @@ static irqreturn_t bq2560x_int_handler(int irq, void *dev_id)
 	}
 
 	dev_info(info->dev, "interrupt occurs\n");
-	bq2560x_dump_register(info);
-
 	return IRQ_HANDLED;
 }
 
@@ -1162,7 +1201,7 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 	default:
 		ret = -EINVAL;
 	}
-
+	bq2560x_dump_register(info);
 	mutex_unlock(&info->lock);
 	return ret;
 }
