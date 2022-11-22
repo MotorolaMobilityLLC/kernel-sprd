@@ -119,7 +119,7 @@ void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host)
 			info->name, read_speed / 100, read_speed % 100, write_speed / 100,
 			write_speed % 100, info->read_total_blocks, info->write_total_blocks);
 #if IS_ENABLED(CONFIG_MMC_SWCQ)
-		if (!strcmp(info->name, "mmc0") && info->mrq &&
+		if (!strcmp(info->name, "mmc0") && info->mrq && host->mmc->cqe_ops->cqe_timeout &&
 			((read_speed > 0 && read_speed < 100) ||
 			(write_speed > 0 && write_speed < 100)))
 			host->mmc->cqe_ops->cqe_timeout(host->mmc, info->mrq, &flag);
@@ -189,7 +189,8 @@ void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 type
 				info->name, info->cmd, info->blocks, info->arg,
 				info->mrq, sdhci_readl(host, SDHCI_RESPONSE));
 #if IS_ENABLED(CONFIG_MMC_SWCQ)
-			if (!strcmp(info->name, "mmc0") && info->mrq)
+			if (!strcmp(info->name, "mmc0") && info->mrq &&
+			    host->mmc->cqe_ops->cqe_timeout)
 				host->mmc->cqe_ops->cqe_timeout(host->mmc, info->mrq, &flag);
 #endif
 		}
@@ -205,7 +206,8 @@ void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 type
 			pr_info("%s: data rsp over 1s! cmd= %d blk= %d arg= %x mrq= 0x%p\n",
 				info->name, info->cmd, info->blocks, info->arg, info->mrq);
 #if IS_ENABLED(CONFIG_MMC_SWCQ)
-			if (!strcmp(info->name, "mmc0") && info->mrq)
+			if (!strcmp(info->name, "mmc0") && info->mrq &&
+			    host->mmc->cqe_ops->cqe_timeout)
 				host->mmc->cqe_ops->cqe_timeout(host->mmc, info->mrq, &flag);
 #endif
 		}
