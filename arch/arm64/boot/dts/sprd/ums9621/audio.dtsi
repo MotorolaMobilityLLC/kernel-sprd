@@ -74,10 +74,11 @@
 		sprd,smsg-addr = <0xaf980400 0xa10>;
 		/* 1K AUDIO_STRUCT_PARA 0xaf980e10 - 0xaf981210*/
 		sprd,shmaddr-aud-str = <0xaf980e10 0x400>;
-		/* 5K DSP_VBC_PARA, 0xaf981210 - 0xaf982610 */
-		sprd,shmaddr-dsp-vbc = <0xaf981210 0x1400>;
-		/* 1K nxp/cvs para, 0xaf982610 - 0xaf982a10 */
-		sprd,shmaddr-nxp = <0xaf982610 0x400>;
+		/* DSP_VBC_PARA: 5K->4K, nxp/cvs: 1K->2K */
+		/* 4K DSP_VBC_PARA, 0xaf981210 - 0xaf982210 */
+		sprd,shmaddr-dsp-vbc = <0xaf981210 0x1000>;
+		/* 2K nxp/cvs para, 0xaf982210 - 0xaf982a10 */
+		sprd,shmaddr-nxp = <0xaf982210 0x800>;
 		/* 2K ivsence smartpa param, 0xaf982a10 - 0xaf983a10 */
 		sprd,shmaddr-dsp-smartpa = <0xaf982a10 0x1000>;
 		/* 1K REG DUMP, 0xaf983a10 - 0xaf983e10 */
