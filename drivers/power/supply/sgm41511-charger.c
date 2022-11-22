@@ -115,6 +115,15 @@ struct sgm41511_charger_info {
 	bool probe_initialized;
 };
 
+static bool enable_dump_stack;
+module_param(enable_dump_stack, bool, 0644);
+
+static void sgm41511_charger_dump_stack(void)
+{
+	if (enable_dump_stack)
+		dump_stack();
+}
+
 static void power_path_control(struct sgm41511_charger_info *info)
 {
 	struct device_node *cmdline_node;
@@ -222,6 +231,8 @@ static int sgm41511_charger_set_limit_current(struct sgm41511_charger_info *info
 {
 	u8 reg_val;
 	int ret;
+
+	dev_dbg(info->dev, "%s:line%d: limit cur = %d\n", __func__, __LINE__, cur);
 
 	if (cur >= SGM41511_LIMIT_CURRENT_MAX)
 		cur = SGM41511_LIMIT_CURRENT_MAX;
@@ -338,6 +349,8 @@ static int sgm41511_charger_set_termina_vol(struct sgm41511_charger_info *info, 
 {
 	u8 reg_val;
 
+	dev_dbg(info->dev, "%s:line%d: set termina vol = %d\n", __func__, __LINE__, vol);
+
 	if (vol < REG04_VREG_BASE)
 		reg_val = 0x0;
 	else if (vol >= SGM41511_TERMINA_VOLTAGE_MAX)
@@ -352,6 +365,8 @@ static int sgm41511_charger_set_termina_vol(struct sgm41511_charger_info *info, 
 static int sgm41511_charger_set_safety_cur(struct sgm41511_charger_info *info, u32 cur)
 {
 	u8 reg_val;
+
+	dev_dbg(info->dev, "%s:line%d: set safety cur = %d\n", __func__, __LINE__, cur);
 
 	if (cur >= SGM41511_LIMIT_CURRENT_MAX)
 		cur = SGM41511_LIMIT_CURRENT_MAX;
@@ -499,6 +514,8 @@ static int sgm41511_charger_start_charge(struct sgm41511_charger_info *info)
 {
 	int ret = 0;
 
+	dev_info(info->dev, "%s:line%d: start charge\n", __func__, __LINE__);
+
 	ret = sgm41511_exit_hiz_mode(info);
 	if (ret)
 		dev_err(info->dev, "disable HIZ mode failed\n");
@@ -534,6 +551,8 @@ static int sgm41511_charger_start_charge(struct sgm41511_charger_info *info)
 static void sgm41511_charger_stop_charge(struct sgm41511_charger_info *info)
 {
 	int ret;
+
+	dev_info(info->dev, "%s:line%d: start charge\n", __func__, __LINE__);
 
 	if (info->role == SGM41511_ROLE_MASTER) {
 		if (boot_calibration) {
@@ -579,6 +598,8 @@ static void sgm41511_charger_stop_charge(struct sgm41511_charger_info *info)
 static int sgm41511_charger_set_current(struct sgm41511_charger_info *info, u32 cur)
 {
 	u8 ichg;
+
+	dev_dbg(info->dev, "%s:line%d: set ibat cur = %d\n", __func__, __LINE__, cur);
 
 	cur = cur / 1000;
 	if (cur > SGM41511_ICHG_CURRENT_MAX) {
@@ -1057,6 +1078,8 @@ static int sgm41511_charger_enable_otg(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
+	sgm41511_charger_dump_stack();
+
 	if (!sgm41511_probe_is_ready(info)) {
 		dev_err(info->dev, "%s wait probe timeout\n", __func__);
 		return -EINVAL;
@@ -1098,6 +1121,8 @@ static int sgm41511_charger_disable_otg(struct regulator_dev *dev)
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
 	}
+
+	sgm41511_charger_dump_stack();
 
 	if (!sgm41511_probe_is_ready(info)) {
 		dev_err(info->dev, "%s wait probe timeout\n", __func__);
@@ -1400,6 +1425,7 @@ static int sgm41511_charger_alarm_prepare(struct device *dev)
 	if (!info->otg_enable)
 		return 0;
 
+	dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
 	now = ktime_get_boottime();
 	add = ktime_set(SGM41511_OTG_ALARM_TIMER_S, 0);
 	alarm_start(&info->otg_timer, ktime_add(now, add));

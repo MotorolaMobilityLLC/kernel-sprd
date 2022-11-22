@@ -1045,6 +1045,8 @@ static void sc27xx_fgu_adjust_cap(struct sc27xx_fgu_data *data, int cap)
 {
 	int ret;
 
+	dev_dbg(data->dev, "%s:line%d: cap = %d\n", __func__, __LINE__, cap);
+
 	data->init_cap = cap;
 	ret = sc27xx_fgu_get_clbcnt(data, &data->init_clbcnt);
 	if (ret)
@@ -2039,16 +2041,12 @@ static int sc27xx_fgu_get_temp(struct sc27xx_fgu_data *data, int *temp)
 		temp_vol = DIV_ROUND_CLOSEST(temp_vol, (187500 - calib_resistance_vol));
 
 		vol_ntc_uv = temp_vol * 10 + vol_ntc_uv - resistance_vol * 10;
-
-		dev_info(data->dev, "bat_current_ma = %d, vol_adc_mv = %d, vol_ntc_uv = %d\n",
-			 bat_current_ma, vol_adc_mv, vol_ntc_uv);
 		if (vol_ntc_uv < 0)
 			vol_ntc_uv = 0;
 	}
 
 	if (data->temp_table_len > 0) {
 		*temp = sc27xx_fgu_vol2temp(data->temp_table, data->temp_table_len, vol_ntc_uv);
-		dev_info(data->dev, "%s: temp = %d\n", __func__, *temp);
 		*temp = sc27xx_fgu_get_average_temp(data, *temp);
 	} else {
 		*temp = 200;
@@ -2583,6 +2581,7 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CAPACITY:
+		dev_dbg(data->dev, "%s:line%d cap = %d\n", __func__, __LINE__, val->intval);
 		ret = sc27xx_fgu_save_last_cap(data, val->intval);
 		if (ret < 0)
 			dev_err(data->dev, "failed to save battery capacity\n");
@@ -2625,10 +2624,12 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CALIBRATE:
+		dev_dbg(data->dev, "%s:line%d calib cap = %d\n", __func__, __LINE__, val->intval);
 		sc27xx_fgu_adjust_cap(data, val->intval);
 		break;
 
 	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
+		dev_dbg(data->dev, "%s:line%d total_mah = %d\n", __func__, __LINE__, val->intval);
 		data->total_mah = val->intval / 1000;
 		break;
 
@@ -2780,6 +2781,7 @@ static int sc27xx_fgu_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
+		dev_dbg(data->dev, "%s:line%d max vol= %d\n", __func__, __LINE__, val->intval);
 		ret = sc27xx_fgu_set_basp_volt(data, val->intval);
 		break;
 
@@ -4728,6 +4730,7 @@ static int sc27xx_fgu_probe(struct platform_device *pdev)
 
 	data->probe_initialized = true;
 	complete_all(&data->probe_init);
+	dev_info(dev, "%s:line%d probe successfully\n", __func__, __LINE__);
 	return 0;
 
 err:

@@ -987,6 +987,8 @@ static int set_batt_cap(struct charger_manager *cm, int cap)
 		return -ENODEV;
 	}
 
+	dev_dbg(cm->dev, "%s:line%d cap = %d\n", __func__, __LINE__, cap);
+
 	val.intval = cap;
 	ret = power_supply_set_property(fuel_gauge, POWER_SUPPLY_PROP_CAPACITY, &val);
 	power_supply_put(fuel_gauge);
@@ -1045,6 +1047,8 @@ static int adjust_fuel_cap(struct charger_manager *cm, int cap)
 	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
 	if (!fuel_gauge)
 		return -ENODEV;
+
+	dev_dbg(cm->dev, "%s:line%d cap = %d\n", __func__, __LINE__, cap);
 
 	val.intval = cap;
 	ret = power_supply_set_property(fuel_gauge,
@@ -4050,6 +4054,8 @@ static int cm_check_thermal_status(struct charger_manager *cm)
 		ret = CM_EVENT_BATT_COLD;
 
 	cm->emergency_stop = ret;
+	dev_dbg(cm->dev, "%s:line%d: temp = %d, upper_limit = %d, lower_limit = %d\n",
+		__func__, __LINE__, temp, upper_limit, lower_limit);
 
 	return ret;
 }
@@ -4371,8 +4377,10 @@ static int cm_get_target_status(struct charger_manager *cm)
 	if (!is_batt_present(cm) && !allow_charger_enable)
 		return POWER_SUPPLY_STATUS_DISCHARGING;
 
-	if (cm_check_thermal_status(cm))
+	if (cm_check_thermal_status(cm)) {
+		dev_warn(cm->dev, "board temperature is still abnormal\n");
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
+	}
 
 	if (cm->charging_status & (CM_CHARGE_TEMP_OVERHEAT | CM_CHARGE_TEMP_COLD)) {
 		dev_warn(cm->dev, "battery overheat or cold is still abnormal\n");
@@ -5474,6 +5482,7 @@ static int charger_set_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
+		dev_dbg(cm->dev, "%s:line%d const cur = %d\n", __func__, __LINE__, val->intval);
 		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
 					 SPRD_VOTE_TYPE_IBAT,
 					 SPRD_VOTE_TYPE_IBAT_ID_CONSTANT_CHARGE_CURRENT,
@@ -5483,6 +5492,8 @@ static int charger_set_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
 		/* The ChargerIC with linear charging cannot set Ibus, only Ibat. */
+		dev_dbg(cm->dev, "%s:line%d input limit cur = %d\n",
+			__func__, __LINE__, val->intval);
 		if (cm->desc->thm_info.need_calib_charge_lmt) {
 			cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
 					 SPRD_VOTE_TYPE_IBAT,
@@ -5500,10 +5511,13 @@ static int charger_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
+		dev_dbg(cm->dev, "%s:line%d control limit cur = %d\n",
+			__func__, __LINE__, val->intval);
 		cm_set_charge_control_limit(cm, val->intval);
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
+		dev_dbg(cm->dev, "%s:line%d max vol = %d\n", __func__, __LINE__, val->intval);
 		ret = cm_set_voltage_max_design(cm, val->intval);
 		break;
 
@@ -5671,6 +5685,9 @@ static void cm_update_charger_type_status(struct charger_manager *cm)
 		ac_main.ONLINE = 0;
 		usb_main.ONLINE = 0;
 	}
+
+	dev_info(cm->dev, "%s:line%d usb = %d, ac = %d, wireless = %d\n",
+		__func__, __LINE__, usb_main.ONLINE, ac_main.ONLINE, wireless_main.ONLINE);
 }
 
 /**
@@ -5775,10 +5792,17 @@ static ssize_t jeita_control_store(struct device *dev,
 	int ret;
 	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
 							    attr_jeita_control);
+	struct charger_manager *cm;
 	struct charger_desc *desc;
 	bool enabled;
 
 	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -5796,6 +5820,8 @@ static ssize_t jeita_control_store(struct device *dev,
 	if (desc->jeita_disabled == enabled)
 		desc->jeita_info.jeita_changed = true;
 	desc->jeita_disabled = !enabled;
+
+	dev_info(cm->dev, "%s:line%d jeita enable = %d\n", __func__, __LINE__, enabled);
 
 	return count;
 }
@@ -5849,6 +5875,8 @@ static ssize_t charge_pump_present_store(struct device *dev,
 	ret =  kstrtobool(buf, &enabled);
 	if (ret)
 		return ret;
+
+	dev_info(cm->dev, "%s:line%d charge pump enable = %d\n", __func__, __LINE__, enabled);
 
 	if (enabled) {
 		cm_init_cp(cm);
@@ -5926,6 +5954,8 @@ static ssize_t charge_pump_current_id_store(struct device *dev,
 	if (ret)
 		return ret;
 
+	dev_info(cm->dev, "%s:line%d charge pump id = %d\n", __func__, __LINE__, cp_id);
+
 	if (cp_id < 0) {
 		dev_err(cm->dev, "charge pump id is error!!!!!!\n");
 		cp_id = 0;
@@ -5979,7 +6009,7 @@ static ssize_t charger_stop_store(struct device *dev,
 	if (!is_ext_pwr_online(cm))
 		return -EINVAL;
 
-	dev_dbg(cm->dev, "%s, stop_charge=%d\n", __func__, stop_charge);
+	dev_info(cm->dev, "%s, stop_charge=%d\n", __func__, stop_charge);
 	if (!stop_charge) {
 		ret = try_charger_enable(cm, true);
 		if (ret) {
@@ -6154,6 +6184,9 @@ static ssize_t enable_power_path_store(struct device *dev,
 	ret =  kstrtobool(buf, &power_path_enabled);
 	if (ret)
 		return ret;
+
+	dev_info(cm->dev, "%s:line%d power_path_enabled = %d\n",
+		 __func__, __LINE__, power_path_enabled);
 
 	if (power_path_enabled)
 		cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
@@ -6718,6 +6751,7 @@ static int cm_get_bat_info(struct charger_manager *cm)
 
 static void cm_shutdown_handle(struct charger_manager *cm)
 {
+	dev_dbg(cm->dev, "%s: shutdown mode = %d\n", __func__, cm->desc->uvlo_shutdown_mode);
 	switch (cm->desc->uvlo_shutdown_mode) {
 	case CM_SHUTDOWN_MODE_ORDERLY:
 		orderly_poweroff(true);
@@ -6752,6 +6786,7 @@ static void cm_uvlo_check_work(struct work_struct *work)
 		return;
 	}
 
+	dev_dbg(cm->dev, "%s:line%d: batt_uV = %d\n", __func__, __LINE__, batt_uV);
 	if ((u32)batt_uV <= cm->desc->shutdown_voltage + 120000)
 		cm->desc->uvlo_trigger_cnt++;
 	else
@@ -6832,14 +6867,15 @@ static void cm_batt_works(struct work_struct *work)
 
 	ret = get_input_current_limit(cm, &chg_limit_cur);
 	if (ret)
-		dev_warn(cm->dev, "get chg_limit_cur error.\n");
+		dev_dbg(cm->dev, "get chg_limit_cur error.\n");
 
-	if (cm->desc->cp.cp_running)
+	if (cm->desc->cp.cp_running) {
 		ret = get_cp_ibus_uA(cm, &input_cur);
-	else
-		ret = get_charger_input_current(cm, &input_cur);
-	if (ret)
-		dev_warn(cm->dev, "cant not get input_cur.\n");
+		if (ret)
+			dev_warn(cm->dev, "cant not get input_cur.\n");
+	} else {
+		get_charger_input_current(cm, &input_cur);
+	}
 
 	ret = get_charger_voltage(cm, &chg_vol);
 	if (ret)
@@ -7090,15 +7126,13 @@ static void cm_batt_works(struct work_struct *work)
 		uvlo_check_cnt = 0;
 	}
 
-	dev_info(cm->dev, "work_cycle = %ds, cap_one_time = %ds\n",
-		 work_cycle, cm->desc->cap_one_time);
-
 	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD) {
 		dev_info(cm->dev, "batt_uV is less than UVLO calib volt\n");
 		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(100));
 	}
 
-	dev_info(cm->dev, "new_uisoc = %d, old_uisoc = %d\n", fuel_cap, cm->desc->cap);
+	dev_info(cm->dev, "new_uisoc = %d, old_uisoc = %d, work_cycle = %ds, cap_one_time = %ds\n",
+		 fuel_cap, cm->desc->cap, work_cycle, cm->desc->cap_one_time);
 
 	if (fuel_cap != cm->desc->cap) {
 		if (DIV_ROUND_CLOSEST(fuel_cap, 10) != DIV_ROUND_CLOSEST(cm->desc->cap, 10)) {
@@ -7516,6 +7550,8 @@ static int charger_manager_probe(struct platform_device *pdev)
 	queue_delayed_work(system_power_efficient_wq, &cm->cap_update_work, CM_CAP_CYCLE_TRACK_TIME_15S * HZ);
 	INIT_DELAYED_WORK(&cm->uvlo_work, cm_uvlo_check_work);
 
+	dev_info(cm->dev, "%s:line%d probe successfully\n", __func__, __LINE__);
+
 	return 0;
 
 err:
@@ -7587,6 +7623,7 @@ static int cm_suspend_prepare(struct device *dev)
 	cm_timer_set = cm_setup_timer();
 
 	if (cm_timer_set) {
+		dev_dbg(cm->dev, "%s:line%d prepare\n", __func__, __LINE__);
 		cancel_work_sync(&setup_polling);
 		cancel_delayed_work_sync(&cm_monitor_work);
 		cancel_delayed_work(&cm->fullbatt_vchk_work);
@@ -7644,6 +7681,7 @@ static void cm_suspend_complete(struct device *dev)
 				   msecs_to_jiffies(delay));
 	}
 	device_set_wakeup_capable(cm->dev, false);
+	dev_dbg(cm->dev, "%s:line%d complete\n", __func__, __LINE__);
 }
 
 static const struct dev_pm_ops charger_manager_pm = {

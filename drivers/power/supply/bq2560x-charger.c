@@ -191,6 +191,15 @@ static struct bq2560x_charger_reg_tab reg_tab[BQ2560X_REG_NUM + 1] = {
 	{12, 0, "null"},
 };
 
+static bool enable_dump_stack;
+module_param(enable_dump_stack, bool, 0644);
+
+static void bq2560x_charger_dump_stack(void)
+{
+	if (enable_dump_stack)
+		dump_stack();
+}
+
 static void power_path_control(struct bq2560x_charger_info *info)
 {
 	struct device_node *cmdline_node;
@@ -317,6 +326,8 @@ bq2560x_charger_set_ovp(struct bq2560x_charger_info *info, u32 vol)
 {
 	u8 reg_val;
 
+	dev_dbg(info->dev, "%s:line%d: set ovp vol = %d\n", __func__, __LINE__, vol);
+
 	if (vol < 5500)
 		reg_val = 0x0;
 	else if (vol > 5500 && vol < 6500)
@@ -336,6 +347,8 @@ bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 {
 	u8 reg_val;
 
+	dev_dbg(info->dev, "%s:line%d: set termina vol = %d\n", __func__, __LINE__, vol);
+
 	if (vol < 3500)
 		reg_val = 0x0;
 	else if (vol >= 4440)
@@ -352,6 +365,8 @@ static int
 bq2560x_charger_set_termina_cur(struct bq2560x_charger_info *info, u32 cur)
 {
 	u8 reg_val;
+
+	dev_dbg(info->dev, "%s:line%d: set termina cur = %d\n", __func__, __LINE__, cur);
 
 	if (cur <= 60)
 		reg_val = 0x0;
@@ -499,6 +514,8 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 {
 	int ret = 0;
 
+	dev_info(info->dev, "%s:line%d: start charge\n", __func__, __LINE__);
+
 	ret = bq2560x_update_bits(info, BQ2560X_REG_0,
 				  BQ2560X_REG_EN_HIZ_MASK, 0);
 	if (ret)
@@ -548,6 +565,8 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info, bool present)
 {
 	int ret;
+
+	dev_info(info->dev, "%s:line%d: stop charge\n", __func__, __LINE__);
 
 	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
 		if (!present || info->need_disable_Q1) {
@@ -602,6 +621,8 @@ static int bq2560x_charger_set_current(struct bq2560x_charger_info *info,
 {
 	u8 reg_val;
 
+	dev_dbg(info->dev, "%s:line%d: set ibat cur = %d\n", __func__, __LINE__, cur);
+
 	cur = cur / 1000;
 	if (cur > 3000) {
 		reg_val = 0x32;
@@ -637,6 +658,8 @@ bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 {
 	u8 reg_val;
 	int ret;
+
+	dev_dbg(info->dev, "%s:line%d: set limit cur = %d\n", __func__, __LINE__, limit_cur);
 
 	if (limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
@@ -1538,6 +1561,8 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
+	bq2560x_charger_dump_stack();
+
 	if (!bq2560x_probe_is_ready(info)) {
 		dev_err(info->dev, "%s wait probe timeout\n", __func__);
 		return -EINVAL;
@@ -1584,6 +1609,8 @@ static int bq2560x_charger_disable_otg(struct regulator_dev *dev)
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
 	}
+
+	bq2560x_charger_dump_stack();
 
 	if (!bq2560x_probe_is_ready(info)) {
 		dev_err(info->dev, "%s wait probe timeout\n", __func__);
@@ -1923,6 +1950,7 @@ static int bq2560x_charger_alarm_prepare(struct device *dev)
 	if (!info->otg_enable)
 		return 0;
 
+	dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
 	now = ktime_get_boottime();
 	add = ktime_set(BQ2560X_OTG_ALARM_TIMER_S, 0);
 	alarm_start(&info->otg_timer, ktime_add(now, add));
