@@ -51,8 +51,6 @@
 #define CHARGER_2NDDETECT_SELECT	BIT(31)
 #define CHARGER_C2C_WAIT_PD_HARDRESET	BIT(29)
 #define CHARGER_C2C_WAIT_ENABLE	BIT(28)
-#define WAIT_TIME_1S	1000
-#define REBOOT_WAIT_VBUS_TIME (20*WAIT_TIME_1S)
 
 struct sprd_glue {
 	struct device		*dev;
@@ -96,6 +94,7 @@ struct sprd_glue {
 };
 
 static int boot_charging;
+static bool boot_calibration;
 #if IS_ENABLED(CONFIG_SPRD_USBM)
 static const bool is_slave = true;
 #else
@@ -751,28 +750,22 @@ musb_sprd_retry_charger_detect(struct sprd_glue *glue)
 static bool musb_sprd_is_connect_host(struct sprd_glue *glue)
 {
 	struct usb_phy *usb_phy = glue->xceiv;
-	enum usb_charger_type type = UNKNOWN_TYPE;
-	u64 curr;
-	static bool reboot;
-
-	if (!reboot) {
-		reboot = 1;
-		curr = ktime_to_ms(ktime_get());
-		dev_info(glue->dev, "%s time %llu\n", __func__, curr);
-		if (curr > REBOOT_WAIT_VBUS_TIME)
-			type = usb_phy->charger_detect(usb_phy);
-		else {
-			usb_phy->flags |= CHARGER_C2C_WAIT_PD_HARDRESET;
-			type = usb_phy->charger_detect(usb_phy);
-		}
-	} else {
-		type = usb_phy->charger_detect(usb_phy);
-	}
+	enum usb_charger_type type = usb_phy->charger_detect(usb_phy);
 
 	dev_info(glue->dev, "%s type = %d\n", __func__, (int)type);
+       if (boot_calibration) {
+               dev_info(glue->dev, "cali mode dont need charger_detect\n");
+               usb_phy->chg_type = SDP_TYPE;
+               schedule_work(&usb_phy->chg_work);
+               return true;
+       }
 	if ((type == UNKNOWN_TYPE) && (usb_phy->flags & CHARGER_2NDDETECT_ENABLE)) {
-		if (extcon_get_state(glue->edev, EXTCON_USB))
-			type = musb_sprd_retry_charger_detect(glue);
+               if (extcon_get_state(glue->edev, EXTCON_USB)) {
+                       pm_runtime_disable(glue->dev);
+                       type = musb_sprd_retry_charger_detect(glue);
+                       pm_runtime_enable(glue->dev);
+                       pm_runtime_mark_last_busy(glue->dev);
+               }
 	}
 
 	if (type == SDP_TYPE || type == CDP_TYPE)
@@ -800,6 +793,33 @@ static void musb_sprd_charger_mode(void)
 		boot_charging = 1;
 	else
 		boot_charging = 0;
+}
+
+static int musb_sprd_calibration_mode(void)
+{
+       struct device_node *cmdline_node;
+       const char *cmdline, *mode;
+       int ret;
+
+       cmdline_node = of_find_node_by_path("/chosen");
+       ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
+
+       if (ret) {
+               pr_err("Can't not parse bootargs\n");
+		return 0;
+       }
+
+       mode = strstr(cmdline, "androidboot.mode=cali");
+
+       if (mode)
+               return 1;
+       else {
+               mode = strstr(cmdline, "androidboot.mode=autotest");
+               if (mode)
+                       return 1;
+               else
+                       return 0;
+       }
 }
 
 static bool sprd_musb_get_dpdm_from_usb(struct sprd_glue *glue)
@@ -1548,6 +1568,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	pm_runtime_set_active(dev);
 	pm_runtime_enable(dev);
 	musb_sprd_charger_mode();
+	boot_calibration = musb_sprd_calibration_mode();
 	if (!is_slave)
 		musb_sprd_detect_cable(glue);
 
