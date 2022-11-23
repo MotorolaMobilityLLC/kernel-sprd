@@ -702,6 +702,8 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		       sizeof(struct ufs_pa_layer_attr));
 		if (dev_req_params->gear_rx == UFS_HS_G4)
 			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), 0x0);
+		/* err==0 using dev_req_params,err!=0 using dev_max_params */
+		err = -EPERM;
 		break;
 	case POST_CHANGE:
 		if (ufshcd_is_auto_hibern8_supported(hba))
@@ -711,6 +713,7 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		err = -EINVAL;
 		break;
 	}
+	ufs_sprd_pwr_change_compare(hba, status, dev_max_params, dev_req_params, err);
 
 out:
 	return err;

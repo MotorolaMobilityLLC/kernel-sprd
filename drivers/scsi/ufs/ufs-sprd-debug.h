@@ -6,6 +6,9 @@
  *
  */
 
+#ifndef _UFS_SPRD_DEBUG_H_
+#define _UFS_SPRD_DEBUG_H_
+#include "ufshcd.h"
 #ifdef CONFIG_SPRD_DEBUG
 /* Userdebug ver default ON!!! */
 #define UFS_DEBUG_ON_DEF true
@@ -143,4 +146,10 @@ void sprd_ufs_debug_err_dump(struct ufs_hba *hba);
 void sprd_ufs_print_err_cnt(struct ufs_hba *hba);
 void ufs_sprd_update_err_cnt(struct ufs_hba *hba, u32 reg, enum err_type type);
 void ufs_sprd_sysfs_add_nodes(struct ufs_hba *hba);
+int  ufs_sprd_pwr_change_compare(struct ufs_hba *hba,
+	enum ufs_notify_change_status status,
+	struct ufs_pa_layer_attr *dev_max_params,
+	struct ufs_pa_layer_attr *dev_req_params,
+	int err);
+#endif/* _UFS_SPRD_DEBUG_H_ */
 

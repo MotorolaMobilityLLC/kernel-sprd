@@ -16,6 +16,11 @@ struct ufs_sprd_host {
 	bool debug_en;
 	/* Panic when UFS encounters an error. */
 	bool err_panic;
+
+	u32 times_pre_pwr;
+	u32 times_pre_compare_fail;
+	u32 times_post_pwr;
+	u32 times_post_compare_fail;
 };
 
 struct syscon_ufs {

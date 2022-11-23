@@ -28,11 +28,6 @@ struct ufs_sprd_ums9230_data {
 	struct completion pwm_async_done;
 	u32 ioctl_cmd;
 	struct completion hs_async_done;
-	u32 times_pre_pwr;
-	u32 times_pre_compare_fail;
-	struct ufs_pa_layer_attr dts_pwr_info;
-	u32 times_post_pwr;
-	u32 times_post_compare_fail;
 	void __iomem *dbg_apb_reg;
 };
 
