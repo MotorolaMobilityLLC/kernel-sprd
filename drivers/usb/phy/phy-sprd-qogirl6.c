@@ -25,6 +25,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 #include <linux/soc/sprd/sprd_usbpinmux.h>
+#include <linux/timer.h>
 #include <linux/usb/phy.h>
 #include <linux/usb/otg.h>
 #include <uapi/linux/usb/charger.h>
@@ -103,6 +104,8 @@ struct sprd_hsphy {
 #define CHGR_DET_FGU_CTRL		0x1ba0
 #define DP_DM_FS_ENB			BIT(14)
 #define DP_DM_BC_ENB			BIT(0)
+#define WAIT_TIME_1S   			1000
+#define REBOOT_WAIT_VBUS_TIME (20*WAIT_TIME_1S)
 
 static enum usb_charger_type sc27xx_charger_detect(struct regmap *regmap)
 {
@@ -642,7 +645,9 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
 	enum usb_charger_type type = UNKNOWN_TYPE;
 	int dm_voltage, dp_voltage;
-	int cnt = 20;
+    int cnt = 0;
+    u64 curr;
+    static bool reboot;
 
 	if (!phy->dm || !phy->dp) {
 		dev_err(x->dev, " phy->dp:%p, phy->dm:%p\n",
@@ -655,13 +660,40 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 		BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB,
 		BIT_DP_DM_AUX_EN);
 
-	msleep(300);
+
+	if (!reboot) {
+			reboot = 1;
+			curr = ktime_to_ms(ktime_get());
+			dev_info(x->dev, "%s time %llu\n", __func__, curr);
+			if (curr < REBOOT_WAIT_VBUS_TIME) {
+					for (cnt = 0; cnt < 30; cnt++) {
+							iio_read_channel_processed(phy->dp, &dp_voltage);
+							dp_voltage = sc2730_voltage_cali(dp_voltage);
+							if (dp_voltage > VOLT_LO_LIMIT) {
+									dev_info(x->dev, "[%s][%d] dp_voltage:%d\n",
+											__func__, cnt, dp_voltage);
+									break;
+							}
+							msleep(10);
+					}
+			} else
+					msleep(300);
+	} else
+			msleep(300);
+
+	cnt = 20;
+
 	iio_read_channel_processed(phy->dp, &dp_voltage);
 	dp_voltage = sc2730_voltage_cali(dp_voltage);
+	dev_info(x->dev, "[%s][%d] dp_voltage:%d\n",
+                                               __func__, cnt, dp_voltage);
+
 	if (dp_voltage > VOLT_LO_LIMIT) {
 		do {
 			iio_read_channel_processed(phy->dm, &dm_voltage);
 			dm_voltage = sc2730_voltage_cali(dm_voltage);
+			dev_info(x->dev, "[%s][%d] dm_voltage:%d\n",
+                                                      __func__, cnt, dm_voltage);
 			if (dm_voltage > VOLT_LO_LIMIT) {
 				type = DCP_TYPE;
 				break;
@@ -670,6 +702,8 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 			cnt--;
 			iio_read_channel_processed(phy->dp, &dp_voltage);
 			dp_voltage = sc2730_voltage_cali(dp_voltage);
+			dev_info(x->dev, "[%s][%d] dp_voltage:%d\n",
+                                                       __func__, cnt, dp_voltage);
 			if (dp_voltage  < VOLT_HI_LIMIT) {
 				type = SDP_TYPE;
 				break;
