@@ -385,7 +385,11 @@ sprd_ptm_legacy_time_handler(struct hrtimer *timer)
 	bm_info[wr_cnt].t_stop = (u32)ts_val;
 	bm_info[wr_cnt].count = num++;
 	/* it should clear ptm eb before read ptm data */
+#ifndef CONFIG_SPRD_PTM_R6P2
 	sprd_ptm_set_enable(sdev, false);
+#else
+	writel_relaxed(3, sdev->base + FRE_CHG);
+#endif
 	for (chn = 0; chn < sdev->pub_chn; chn++) {
 		bm_info[wr_cnt].perf_data[chn][0] =
 			readl_relaxed(sdev->base + rtran_base + 4 * chn);
@@ -410,9 +414,11 @@ sprd_ptm_legacy_time_handler(struct hrtimer *timer)
 	}
 #endif
 	sprd_ptm_set_enable(sdev, true);
+#ifndef CONFIG_SPRD_PTM_R6P2
 	/* clear ptm count*/
 	writel_relaxed(1, sdev->base + CNT_CLR);
 	writel_relaxed(0, sdev->base + CNT_CLR);
+#endif
 	if (trace_ptm_ddr_info_enabled())
 		sprd_ptm_trace_event(sdev, &bm_info[wr_cnt]);
 	if (++sdev->mode_info.legacy.bm_buf_write_cnt ==
@@ -530,12 +536,13 @@ static void sprd_ptm_init(struct device *dev)
 
 #ifdef CONFIG_SPRD_PTM_R6P2
 	writel_relaxed(0, sdev->base + PTM_EN);
+	writel_relaxed(2, sdev->base + FRE_CHG);
 #else
 	writel_relaxed(0 | PTM_TRACE_BW_IDLE_EN | PTM_TRACE_LTCY_IDLE_EN,
 		       sdev->base + PTM_EN);
+	writel_relaxed(0, sdev->base + FRE_CHG);
 #endif
 	writel_relaxed(0, sdev->base + INT_STU);
-	writel_relaxed(0, sdev->base + FRE_CHG);
 	writel_relaxed(1, sdev->base + MOD_SEL);
 	writel_relaxed(0, sdev->base + FRE_INT);
 	writel_relaxed(1, sdev->base + INT_CLR);
