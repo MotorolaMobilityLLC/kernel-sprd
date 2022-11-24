@@ -2846,12 +2846,14 @@ void musb_adaptive_config(struct usb_hcd *hcd, int ep_num, int mono,
 	spin_lock_irqsave(&musb->lock, flags);
 	musb->offload_used = musb->adaptive_used;
 
-	if (musb->adaptive_used > 0)
+	if (musb->adaptive_used > 0) {
 		musb->is_adaptive = true;
-	else {
+		musb->is_offload = true;
+	} else {
 		dev_info(musb->controller, "No adaptive used!\n");
 		musb_adaptive_disable(musb);
 		musb->is_adaptive = false;
+		musb->is_offload = false;
 	}
 	spin_unlock_irqrestore(&musb->lock, flags);
 }

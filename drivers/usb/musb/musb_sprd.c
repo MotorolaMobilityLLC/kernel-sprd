@@ -1177,6 +1177,21 @@ static inline void musb_sprd_offload_shutdown(struct musb *musb)
 }
 #endif
 
+#if defined(CONFIG_USB_SPRD_ADAPTIVE)
+static void musb_sprd_adaptive_shutdown(struct musb *musb)
+{
+	u32 val;
+	void __iomem *mbase = musb->mregs;
+
+	/* Disable the adaptive mode */
+	val  = musb_readl(mbase, MUSB_DMA_FRAG_WAIT);
+	val &= ~BIT_USB_AUDIO_ADP_MODE;
+	musb_writel(mbase, MUSB_DMA_FRAG_WAIT, val);
+	dev_info(musb->controller, "%s MUSB_DMA_FRAG_WAIT:0x%x\n",
+		__func__, val);
+}
+#endif
+
 /**
  * musb_sprd_otg_start_host -  helper function for starting/stopping the host
  * controller driver.
@@ -1258,6 +1273,13 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 			musb->is_offload = 0;
 		}
 		musb->offload_used = 0;
+#if defined(CONFIG_USB_SPRD_ADAPTIVE)
+		if (musb->is_adaptive) {
+			dev_dbg(musb->controller, "disable adaptive channel\n");
+			musb_sprd_adaptive_shutdown(musb);
+		}
+#endif
+
 		MUSB_DEV_MODE(musb);
 		glue->dr_mode = USB_DR_MODE_UNKNOWN;
 		devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
