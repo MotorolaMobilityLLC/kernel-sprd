@@ -1561,10 +1561,13 @@ static irqreturn_t aw9610x_irq(int32_t irq, void *data)
 	struct aw9610x *aw9610x = data;
 
 	AWLOGD(aw9610x->dev, "enter");
+	/*wxm add start by 2022/11/24*/
+	schedule_work(&aw9610x->irq_work);
+	pm_wakeup_event(aw9610x->dev,0);
+	/*wxm add end by 2022/11/24*/
 
-	aw9610x_interrupt_clear(aw9610x);
+//	aw9610x_interrupt_clear(aw9610x);
 	AWLOGD(aw9610x->dev, "exit");
-
 	return IRQ_HANDLED;
 }
 
@@ -1649,6 +1652,15 @@ static void aw9610x_pinctrl_deinit(struct aw9610x *aw9610x)
 		devm_pinctrl_put(aw9610x->pinctrl.pinctrl);
 }
 #endif
+/*wxm add start by 2022/11/24*/
+static void aw9610x_irq_work_routine(struct work_struct *work)
+{
+	struct aw9610x
+			*aw9610x = container_of(work, struct aw9610x, irq_work);
+    AWLOGD(aw9610x->dev, "enter");
+	aw9610x_interrupt_clear(aw9610x);
+}
+/*wxm add end by 2022/11/24*/
 
 static int32_t aw9610x_interrupt_init(struct aw9610x *aw9610x)
 {
@@ -1690,6 +1702,9 @@ static int32_t aw9610x_interrupt_init(struct aw9610x *aw9610x)
 						aw9610x->to_irq, ret);
 				ret = -AW_IRQ_REQUEST_FAILED;
 			} else {
+				/*wxm add start by 2022/11/24*/
+				INIT_WORK(&aw9610x->irq_work, aw9610x_irq_work_routine);
+				/*wxm add end by 2022/11/24*/
 				AWLOGI(aw9610x->dev,
 					"IRQ request successfully!");
 				ret = AW_SAR_SUCCESS;
