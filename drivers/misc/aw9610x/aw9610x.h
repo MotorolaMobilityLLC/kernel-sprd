@@ -228,7 +228,9 @@ struct aw9610x {
 #ifdef AW_PINCTRL_ON
 	struct aw9610x_pinctrl pinctrl;
 #endif
-
+    /*wxm add start by 2022/11/24*/
+	struct work_struct irq_work;
+	/*wxm add end by 2022/11/24*/
 	struct delayed_work cfg_work;
 	struct i2c_client *i2c;
 	struct device *dev;
