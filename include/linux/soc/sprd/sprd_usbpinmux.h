@@ -16,8 +16,6 @@
 
 #define	MUX_MODE	1
 
-int (*usbmux_check_mode_func)(void) = NULL;
-
 #if IS_ENABLED(CONFIG_SPRD_USBPINMUX)
 int sprd_usbmux_check_mode(void);
 #else
