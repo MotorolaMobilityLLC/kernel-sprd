@@ -284,11 +284,12 @@
 #define CLK_CPHY_CFG_EN		104
 #define CLK_DEBUG_TS_EN		105
 #define CLK_ACCESS_AUD_EN	106
-#define CLK_AUX0		107
-#define CLK_AUX1		108
-#define CLK_AUX2		109
-#define CLK_PROBE		110
-#define CLK_AUX3		111
+#define CLK_BUSMON_CSTMR_PUB2	107
+#define CLK_AUX0		108
+#define CLK_AUX1		109
+#define CLK_AUX2		110
+#define CLK_PROBE		111
+#define CLK_AUX3		112
 #define CLK_AON_APB_GATE_NUM	(CLK_AUX3 + 1)
 
 #define CLK_AON_APB		0
