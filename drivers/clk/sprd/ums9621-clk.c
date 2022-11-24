@@ -1297,6 +1297,8 @@ static SPRD_SC_GATE_CLK_FW_NAME(debug_ts_en, "debug-ts-en", "ext-26m", 0x13c,
 			0x1000, BIT(18), 0, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(access_aud_en, "access-aud-en", "ext-26m", 0x14c,
 			0x1000, BIT(0), 0, 0);
+static SPRD_SC_GATE_CLK_FW_NAME(busmon_cstmr_pub2, "busmon-cstmr-pub2", "ext-26m", 0x1b0,
+			0x1000, BIT(4), 0, 0);
 
 static const struct clk_parent_data aux_parents[] = {
 	{ .fw_name = "ext-32k" },
@@ -1452,6 +1454,7 @@ static struct sprd_clk_common *ums9621_aon_gate[] = {
 	&cphy_cfg_en.common,
 	&debug_ts_en.common,
 	&access_aud_en.common,
+	&busmon_cstmr_pub2.common,
 	&aux0_clk.common,
 	&aux1_clk.common,
 	&aux2_clk.common,
@@ -1568,6 +1571,7 @@ static struct clk_hw_onecell_data ums9621_aon_gate_hws = {
 		[CLK_CPHY_CFG_EN]	= &cphy_cfg_en.common.hw,
 		[CLK_DEBUG_TS_EN]	= &debug_ts_en.common.hw,
 		[CLK_ACCESS_AUD_EN]	= &access_aud_en.common.hw,
+		[CLK_BUSMON_CSTMR_PUB2]	= &busmon_cstmr_pub2.common.hw,
 		[CLK_AUX0]		= &aux0_clk.common.hw,
 		[CLK_AUX1]		= &aux1_clk.common.hw,
 		[CLK_AUX2]		= &aux2_clk.common.hw,
