@@ -148,6 +148,7 @@ struct mmc_swcq {
 	int debug1;/*record the times of mmc mode changed*/
 	struct dbg_run_host_log cmd_history[dbg_max_cnt];/*cmd hisotry buffer*/
 	int recovery_cnt; /* record the times of entering cmdq recovery mode */
+	bool cmdq_support;      /* Command Queue supported */
 };
 /*
  * There is one mmc_blk_data per slot.

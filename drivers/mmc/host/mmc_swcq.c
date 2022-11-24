@@ -888,7 +888,7 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 		return;
 	}
 
-	if (!swcq->timer_running) {
+	 if (!swcq->timer_running && swcq->cmdq_support) {
 		swcq->timer_running = true;
 		mod_timer(&swcq->check_timer, jiffies + msecs_to_jiffies(swcq->timeout));
 	}
@@ -1704,8 +1704,11 @@ static bool mmc_swcq_is_busy(struct mmc_host *mmc)
 	struct mmc_queue *mq = swcq->mq;
 	bool busy;
 
-	busy = mq ? (mq->in_flight[MMC_ISSUE_ASYNC] >
-			(swcq->cmdq_depth - 4)) : false;
+        if (!swcq->cmdq_support || !swcq->cmdq_mode)
+               busy = mq ? (mq->in_flight[MMC_ISSUE_ASYNC] > 3) : false;
+        else
+               busy = mq ? (mq->in_flight[MMC_ISSUE_ASYNC] >
+                        (swcq->cmdq_depth - 4)) : false;
 
 	return busy;
 }
@@ -1865,6 +1868,9 @@ static int mmc_swcq_enable(struct mmc_host *mmc, struct mmc_card *card)
 	if (!swcq->initialized && card) {
 		swcq->initialized = true;
 		swcq->cmdq_depth = card->ext_csd.cmdq_depth;
+                swcq->cmdq_support = card->ext_csd.cmdq_support;
+                if (!swcq->cmdq_support)
+                       pr_info("%s : emmc not support CMDQ!\n", mmc_hostname(mmc));
 		card->reenable_cmdq = false;
 	}
 
@@ -1945,7 +1951,7 @@ static void check_cmdq_timer(struct timer_list *t)
 	pre_cmdqcnt = atomic_read(&swcq->cmdq_cnt);
 	pre_mode = swcq->cmdq_mode;
 
-	if (atomic_read(&swcq->qcnt) < 3 && !swcq->cmdq_mode) {
+	if (atomic_read(&swcq->qcnt) < 2 && !swcq->cmdq_mode) {
 			reason = -1;
 			goto out;
 	}
