@@ -77,6 +77,7 @@ cpuhotplug:sprd:
 cpuidle:
 crypto:
 
+devfreq:
 devfreq:sprd:
 dmaengine:sprd:
 dma-buf:
