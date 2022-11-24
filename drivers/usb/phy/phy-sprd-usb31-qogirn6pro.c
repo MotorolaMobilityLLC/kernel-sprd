@@ -29,6 +29,7 @@
 #include <linux/power/sprd-ump96xx-bc1p2.h>
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
+#include <linux/soc/sprd/sprd_usbpinmux.h>
 #include <linux/usb/phy.h>
 #include <uapi/linux/sched/types.h>
 #include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
@@ -518,26 +519,27 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 
 	sprd_usbm_ssphy_set_onoff(0);
 	if (!sprd_usbm_hsphy_get_onoff()) {
-		msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN;
-		reg = msk;
-		regmap_update_bits(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
-			msk, reg);
+		if (sprd_usbmux_check_mode() != MUX_MODE) {
+			msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN;
+			reg = msk;
+			regmap_update_bits(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
+				msk, reg);
 
-		/*hsphy vbus invalid */
-		msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
-		regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
+			/*hsphy vbus invalid */
+			msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
+			regmap_update_bits(phy->aon_apb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
 
-		/* disable usb20 ISO*/
-		msk = MASK_AON_APB_USB20_ISO_SW_EN;
-		reg = msk;
-		regmap_update_bits(phy->aon_apb, REG_AON_APB_AON_SOC_USB_CTRL,
-				 msk, reg);
+			/* disable usb20 ISO*/
+			msk = MASK_AON_APB_USB20_ISO_SW_EN;
+			reg = msk;
+			regmap_update_bits(phy->aon_apb, REG_AON_APB_AON_SOC_USB_CTRL,
+					msk, reg);
 
-		/* hsphy power off */
-		msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
-		reg = msk;
-		regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
-
+			/* hsphy power off */
+			msk = MASK_AON_APB_LVDSRF_PD_PD_L | MASK_AON_APB_LVDSRF_PS_PD_S;
+			reg = msk;
+			regmap_update_bits(phy->aon_apb, REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
+		}
 		/* disable usb cgm ref */
 		msk = MASK_AON_APB_CGM_OTG_REF_EN | MASK_AON_APB_CGM_DPHY_REF_EN;
 		regmap_update_bits(phy->aon_apb, REG_AON_APB_CGM_REG1, msk, 0);

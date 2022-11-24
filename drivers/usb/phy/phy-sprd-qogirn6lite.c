@@ -22,6 +22,7 @@
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
+#include <linux/soc/sprd/sprd_usbpinmux.h>
 #include <linux/usb/otg.h>
 #include <linux/usb/phy.h>
 #include <uapi/linux/sched/types.h>
@@ -360,20 +361,22 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		regmap_update_bits(phy->ana_g0,
 			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1, msk, 0);
 
-		/* disable aon apb usb20 ISO_SW_EN */
-		reg = msk = MASK_AON_APB_USB20_ISO_SW_EN;
-		regmap_update_bits(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL, msk, reg);
+		if (sprd_usbmux_check_mode() != MUX_MODE) {
+			/* disable aon apb usb20 ISO_SW_EN */
+			reg = msk = MASK_AON_APB_USB20_ISO_SW_EN;
+			regmap_update_bits(phy->hsphy_glb, REG_AON_APB_AON_SOC_USB_CTRL, msk, reg);
 
-		reg = msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN;
-		regmap_update_bits(phy->ana_g0,
-			REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
-			msk, reg);
+			reg = msk = BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_ISO_SW_EN;
+			regmap_update_bits(phy->ana_g0,
+				REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY,
+				msk, reg);
 
-		/* usb power down */
-		reg = msk = (MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_L |
-			MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_S);
-		regmap_update_bits(phy->hsphy_glb,
-			REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
+			/* usb power down */
+			reg = msk = (MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_L |
+				MASK_AON_APB_C2G_ANALOG_USB20_USB20_PS_PD_S);
+			regmap_update_bits(phy->hsphy_glb,
+				REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
+		}
 
 		/* usb cgm ref */
 		msk = MASK_AON_APB_CGM_OTG_REF_EN |
