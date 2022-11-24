@@ -1458,7 +1458,7 @@ static bool cm_primary_charger_enable(struct charger_manager *cm, bool enable)
 	return true;
 }
 #define FIX_FULL_BAT_SOC_UA 10000
-#define FIX_FULL_BAT_SOC_MIN 970
+#define FIX_FULL_BAT_SOC_MIN 967
 /**
  * is_full_charged - Returns true if the battery is fully charged.
  * @cm: the Charger Manager representing the battery.
