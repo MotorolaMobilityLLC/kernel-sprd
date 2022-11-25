@@ -79,9 +79,9 @@ static const struct of_device_id pmic_of_match[] = {
 static int isM3lite(void)
 {
 	int iRet = FALSE;
-	struct wcn_match_data *g_match_config = get_wcn_match_config();
+	struct wcn_match_data *ptr_match_config = get_wcn_match_config();
 
-	if (g_match_config && g_match_config->unisoc_wcn_m3lite)
+	if (ptr_match_config && ptr_match_config->unisoc_wcn_m3lite)
 		iRet = TRUE;
 
 	return iRet;
@@ -515,21 +515,21 @@ static ssize_t gnss_subsys_store(struct device *dev,
 {
 	unsigned long set_value;
 	ssize_t ret = count;
-
+	struct wcn_match_data *ptr_match_config = get_wcn_match_config();
 	if (kstrtoul(buf, GNSS_MAX_STRING_LEN, &set_value))
 		return -EINVAL;
 
 	dev_info(dev, "%s setVal=%lu\n", __func__, set_value);
-#ifndef CONFIG_WCN_INTEG
-	gnss_common_ctl_dev.gnss_subsys = MARLIN_GNSS;
-#else
-	if (set_value == WCN_GNSS)
-		gnss_common_ctl_dev.gnss_subsys = WCN_GNSS;
-	else if (set_value == WCN_GNSS_BD)
-		gnss_common_ctl_dev.gnss_subsys  = WCN_GNSS_BD;
-	else
-		ret = -EINVAL;
-#endif
+	if (ptr_match_config && ptr_match_config->unisoc_wcn_integrated) {
+		if (set_value == WCN_GNSS)
+			gnss_common_ctl_dev.gnss_subsys = WCN_GNSS;
+		else if (set_value == WCN_GNSS_BD)
+			gnss_common_ctl_dev.gnss_subsys  = WCN_GNSS_BD;
+		else
+			ret = -EINVAL;
+	} else {
+		gnss_common_ctl_dev.gnss_subsys = MARLIN_GNSS;
+	}
 	return ret;
 }
 
@@ -561,7 +561,6 @@ static ssize_t gnss_subsys_show(struct device *dev,
 
 static DEVICE_ATTR_RW(gnss_subsys);
 
-#ifdef CONFIG_WCN_INTEG
 static int gnss_status_get(void)
 {
 	phys_addr_t phy_addr;
@@ -609,7 +608,7 @@ static void gnss_dump_mem_ctrl_co(char *trigStr)
 		gnss_common_ctl_dev.gnss_status = GNSS_STATUS_ASSERT;
 	}
 }
-#else
+
 static void gnss_dump_mem_ctrl(char *trigStr)
 {
 	static char dump_flag;
@@ -632,7 +631,7 @@ static void gnss_dump_mem_ctrl(char *trigStr)
 	}
 
 }
-#endif
+
 static ssize_t gnss_dump_store(struct device *dev,
 				  struct device_attribute *attr,
 				  const char *buf, size_t count)
@@ -641,6 +640,7 @@ static ssize_t gnss_dump_store(struct device *dev,
 	int ret = -1;
 	int strlen = 0;
 	char triggerStr[64];
+	struct wcn_match_data *ptr_match_config = get_wcn_match_config();
 
 	set_value = buf[0] - '0';
 
@@ -653,11 +653,10 @@ static ssize_t gnss_dump_store(struct device *dev,
 	dev_info(dev, "%s trigStr=%s\n", __func__, triggerStr);
 
 	if (set_value == 1) {
-#ifdef CONFIG_WCN_INTEG
-		gnss_dump_mem_ctrl_co(triggerStr);
-#else
-		gnss_dump_mem_ctrl(triggerStr);
-#endif
+		if (ptr_match_config && ptr_match_config->unisoc_wcn_integrated)
+			gnss_dump_mem_ctrl_co(triggerStr);
+		else
+			gnss_dump_mem_ctrl(triggerStr);
 		ret = GNSS_DUMP_DATA_START_UP;
 	} else
 		ret = -EINVAL;
@@ -751,18 +750,17 @@ static int gnss_common_ctl_probe(struct platform_device *pdev)
 {
 	int ret;
 	const struct of_device_id *of_id;
+	struct wcn_match_data *ptr_match_config = get_wcn_match_config();
 
 	dev_info(&pdev->dev, "%s V3.2 entry\n", __func__);
-
 	gnss_common_ctl_dev.dev = &pdev->dev;
 	gnss_common_ctl_dev.gnss_status = GNSS_STATUS_POWEROFF;
 	memset(gnss_common_ctl_dev.firmware_path, 0x0,
 	       FIRMWARE_FILEPATHNAME_LENGTH_MAX);
-#ifndef CONFIG_WCN_INTEG
-	gnss_common_ctl_dev.gnss_subsys = MARLIN_GNSS;
-#else
-	gnss_common_ctl_dev.gnss_subsys = WCN_GNSS;
-#endif
+	if (ptr_match_config && ptr_match_config->unisoc_wcn_integrated)
+		gnss_common_ctl_dev.gnss_subsys = WCN_GNSS;
+	else
+		gnss_common_ctl_dev.gnss_subsys = MARLIN_GNSS;
 	/* considering backward compatibility, it's not use now  start */
 	of_id = of_match_node(gnss_common_ctl_of_match,
 		pdev->dev.of_node);

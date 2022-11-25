@@ -81,7 +81,7 @@ struct wcn_match_data *get_wcn_match_config(void);
 #define GNSS_STATUS_SIZE                   (4)
 #define GNSS_QOGIRL6_STATUS_OFFSET        (0x001ffc34) /* Qogirl6 */
 
-#ifndef CONFIG_WCN_INTEG
+
 /* begin: address map on gnss side, operate by SDIO BUS */
 /* set(s)/clear(c) */
 
@@ -93,7 +93,7 @@ struct wcn_match_data *get_wcn_match_config(void);
 #define GNSS_BOOTSTATUS_SIZE     0x4
 #define GNSS_BOOTSTATUS_MAGIC    0x12345678
 /* end: address map on gnss side */
-#endif
+
 
 /* begin: PMIC configuration for marlin3lite */
 /* sharkl5 sharkl6 */
