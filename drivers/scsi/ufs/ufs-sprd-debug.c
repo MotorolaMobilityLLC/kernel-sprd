@@ -82,6 +82,7 @@ void sprd_ufs_print_err_cnt(struct ufs_hba *hba)
 {
 	dev_err(hba->dev, "sprd_reset: total cnt=%llu\n", ufs_err_cnt.sprd_reset_cnt);
 	dev_err(hba->dev, "line_reset: total cnt=%llu\n", ufs_err_cnt.line_reset_cnt);
+	dev_err(hba->dev, "scsi_timeout: total cnt=%llu\n", ufs_err_cnt.scsi_timeout_cnt);
 }
 
 void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *data)
@@ -110,6 +111,7 @@ void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *d
 	uei[idx].cpu = current->cpu;
 	uei[idx].pid = current->pid;
 	uei[idx].time = ktime_get();
+	uei[idx].jiffies = jiffies;
 
 	switch (event) {
 	case UFS_TRACE_TM_SEND:
@@ -164,6 +166,7 @@ void ufshcd_transfer_event_trace(struct ufs_hba *hba,
 	uei[idx].event = event;
 	uei[idx].cpu = current->cpu;
 	uei[idx].pid = current->pid;
+	uei[idx].jiffies = jiffies;
 	if (lrbp->cmd) {
 		cmd = lrbp->cmd;
 		rq = scsi_cmd_to_rq(cmd);
@@ -211,13 +214,17 @@ void ufshcd_transfer_event_trace(struct ufs_hba *hba,
 			crypto = le32_to_cpu(lrbp->utr_descriptor_ptr->header.dword_0) &
 				UTP_REQ_DESC_CRYPTO_ENABLE_CMD;
 			uei[idx].pkg.ci.crypto_en = crypto ? 1 : 0;
-			uei[idx].pkg.ci.keyslot = crypto ? hba->lrb[tag].crypto_key_slot : 0;
 
-			if (event == UFS_TRACE_SEND)
+			if (event == UFS_TRACE_SEND) {
 				uei[idx].time = lrbp->issue_time_stamp;
-			else
+				uei[idx].pkg.ci.keyslot =
+					crypto ? hba->lrb[tag].crypto_key_slot : 0;
+			} else {
 				/* UFS_TREAC_SCSI_TIME_OUT */
 				uei[idx].time = ktime_get();
+				uei[idx].pkg.ci.rq = rq;
+				uei[idx].pkg.ci.deadline = rq->deadline;
+			}
 		}
 	} else if (lrbp->command_type == UTP_CMD_TYPE_DEV_MANAGE ||
 		   lrbp->command_type == UTP_CMD_TYPE_UFS_STORAGE) {
@@ -286,13 +293,32 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 		if (ptr == UFS_CMD_RECORD_DEPTH)
 			ptr = 0;
 
-		PRINT_SWITCH(m, dump_pos, "[%lld.%09lld][T%4d@C%d][%s]:",
+		PRINT_SWITCH(m, dump_pos, "[%lld.%09lld][%lld][T%4d@C%d][%s]:",
 			     uei[ptr].time / NSEC_PER_SEC, uei[ptr].time % NSEC_PER_SEC,
-			     uei[ptr].pid, uei[ptr].cpu, ufs_event_str[uei[ptr].event]);
+			     uei[ptr].jiffies, uei[ptr].pid, uei[ptr].cpu,
+			     ufs_event_str[uei[ptr].event]);
 
 		switch (uei[ptr].event) {
+		case UFS_TRECE_SCSI_TIME_OUT:
+			/* CDB info */
+			if (!((uei[ptr].pkg.ci.opcode == READ_10) ||
+				(uei[ptr].pkg.ci.opcode == WRITE_10) ||
+				(uei[ptr].pkg.ci.opcode == UNMAP)))
+				for (; k < uei[ptr].pkg.ci.cmd_len && n < sb; ++k)
+					n += scnprintf(b + n, sb - n, "%02x ",
+						       (u32)uei[ptr].pkg.ci.cmnd[k]);
+
+			PRINT_SWITCH(m, dump_pos,
+			"opc:0x%2x,tag:%2d,LBA:%10lld,ICE:%s,(dl:%lld,rq:0x%lx),CDB:(%s)\n",
+			uei[ptr].pkg.ci.opcode,
+			uei[ptr].pkg.ci.tag,
+			(u64)uei[ptr].pkg.ci.lba,
+			uei[ptr].pkg.ci.crypto_en ? "ON " : "OFF",
+			uei[ptr].pkg.ci.deadline,
+			(unsigned long)uei[ptr].pkg.ci.rq,
+			n ? b : "NO RECORD");
+			break;
 		case UFS_TRACE_SEND:
-		case UFS_TREAC_SCSI_TIME_OUT:
 			/* CDB info */
 			if (!((uei[ptr].pkg.ci.opcode == READ_10) ||
 				(uei[ptr].pkg.ci.opcode == WRITE_10) ||
@@ -339,14 +365,13 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 			break;
 		case UFS_TRACE_DEV_SEND:
 			PRINT_SWITCH(m, dump_pos,
-			"opc:0x%2x,tag:%2d,lun:0x%2x,idn:0x%x,idx:0x%x,sel:0x%x,LAT:%lluns\n",
+			"opc:0x%2x,tag:%2d,lun:0x%2x,idn:0x%x,idx:0x%x,sel:0x%x\n",
 			uei[ptr].pkg.dmi.req.qr.opcode,
 			uei[ptr].pkg.dmi.tag,
 			uei[ptr].pkg.dmi.lun,
 			uei[ptr].pkg.dmi.req.qr.idn,
 			uei[ptr].pkg.dmi.req.qr.index,
-			uei[ptr].pkg.dmi.req.qr.selector,
-			(u64)uei[ptr].pkg.dmi.time_cost);
+			uei[ptr].pkg.dmi.req.qr.selector);
 			break;
 		case UFS_TRACE_DEV_COMPLETED:
 			transaction_type =
@@ -528,6 +553,9 @@ void ufs_sprd_update_err_cnt(struct ufs_hba *hba, u32 reg, enum err_type type)
 		if (reg & UIC_PHY_ADAPTER_LAYER_GENERIC_ERROR)
 			ufs_err_cnt.line_reset_cnt++;
 		break;
+	case UFS_SCSI_TIMEOUT:
+		ufs_err_cnt.scsi_timeout_cnt++;
+		break;
 	default:
 		break;
 	}
@@ -566,6 +594,7 @@ static int uic_err_cnt_show(struct seq_file *m, void *v)
 			hba->ufs_stats.event[UFS_EVT_ABORT].cnt);
 	seq_printf(m, "sprd_reset:total cnt=%llu\n", ufs_err_cnt.sprd_reset_cnt);
 	seq_printf(m, "line_reset:total cnt=%llu\n", ufs_err_cnt.line_reset_cnt);
+	seq_printf(m, "scsi_timeout:total cnt=%llu\n", ufs_err_cnt.scsi_timeout_cnt);
 
 	return 0;
 }
@@ -601,8 +630,10 @@ static enum blk_eh_timer_return ufs_sprd_eh_timed_out(struct scsi_cmnd *scmd)
 	struct Scsi_Host *host = scmd->device->host;
 	struct ufs_hba *hba = shost_priv(host);
 
+	ufs_sprd_update_err_cnt(hba, 0, UFS_SCSI_TIMEOUT);
+
 	if (sprd_ufs_debug_is_supported(hba) == TRUE)
-		ufshcd_transfer_event_trace(hba, UFS_TREAC_SCSI_TIME_OUT, tag);
+		ufshcd_transfer_event_trace(hba, UFS_TRECE_SCSI_TIME_OUT, tag);
 
 	sprd_ufs_debug_err_dump(hba);
 

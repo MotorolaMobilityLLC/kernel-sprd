@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-only
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * UFS Host Controller driver for Unisoc specific extensions
  *
@@ -25,7 +25,7 @@
 enum ufs_event_list {
 	UFS_TRACE_SEND,
 	UFS_TRACE_COMPLETED,
-	UFS_TREAC_SCSI_TIME_OUT,
+	UFS_TRECE_SCSI_TIME_OUT,
 	/* QUERY \ NOP_OUT&IN \ REJECT CMD */
 	UFS_TRACE_DEV_SEND,
 	UFS_TRACE_DEV_COMPLETED,
@@ -55,11 +55,17 @@ struct ufs_cmd_info {
 	u64 time_cost;
 	unsigned short cmd_len;
 	char cmnd[UFS_CDB_SIZE];
+
+	/* response info */
 	int ocs;
 	int trans_type;
 	int scsi_stat;
 	int sd_size;
 	char sense_data[UFS_SENSE_SIZE];
+
+	/* request info for TIMEOUT event debug */
+	struct request *rq;
+	u64 deadline;
 };
 
 struct ufs_devcmd_info {
@@ -102,6 +108,7 @@ struct ufs_event_info {
 	bool flag;
 	bool panic_f;
 	ktime_t time;
+	u64 jiffies;
 	union {
 		struct ufs_cmd_info ci;
 		struct ufs_uic_cmd_info uci;
@@ -115,11 +122,13 @@ struct ufs_event_info {
 enum err_type {
 	UFS_SPRD_RESET,
 	UFS_LINE_RESET,
+	UFS_SCSI_TIMEOUT,
 };
 
 struct ufs_err_cnt {
 	unsigned long long sprd_reset_cnt;
 	unsigned long long line_reset_cnt;
+	unsigned long long scsi_timeout_cnt;
 };
 
 #define PRINT_SWITCH(m, d, fmt, args...) \
