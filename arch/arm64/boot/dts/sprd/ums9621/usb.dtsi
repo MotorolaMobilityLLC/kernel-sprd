@@ -27,6 +27,5 @@
 		phy-names = "usb";
 		dr-mode = "peripheral";
 		multipoint = "true";
-		wakeup-source;
 	};
 };
