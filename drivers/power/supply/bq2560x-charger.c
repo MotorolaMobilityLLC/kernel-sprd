@@ -499,14 +499,14 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "set bq2560x limit current failed\n");
 
-	/* ret = bq2560x_update_bits(info, BQ2560X_REG_7,BQ2560X_REG_VINDPM_TRACK_MASK,0X03);
+	/* ret = bq2560x_update_bits(info, BQ2560X_REG_7,BQ2560X_DISABLE_BATFET_RST_MASK,0 << BQ2560X_DISABLE_BATFET_RST_SHIFT);
 	if (ret) {
-		dev_err(info->dev, "fail to wite 0X4E to REG_0x%.2x, ret = %d\n",BQ2560X_REG_7, ret);
+		dev_err(info->dev, "fail to wite 0 << BQ2560X_DISABLE_BATFET_RST_SHIFT to REG_0x%.2x, ret = %d\n",BQ2560X_REG_7, ret);
 	} */
 	ret = bq2560x_read(info, BQ2560X_REG_7, &value);
 	dev_err(info->dev, "bq2560x_charger_reg7, the reg_val 0x%02x \n", value);
 	if( !ret ) {
-		value = value | 0x03;
+		value = (value & 0xf8) | 0x03;
 		ret = bq2560x_write(info, BQ2560X_REG_7, value);
 		if (ret) {
                 	dev_err(info->dev, "fail to wite 0xx2 to REG_0x%.2x, ret = %d\n",BQ2560X_REG_7, ret);
@@ -800,10 +800,21 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info)
 static irqreturn_t bq2560x_int_handler(int irq, void *dev_id)
 {
 	struct bq2560x_charger_info *info = dev_id;
+	u8 value = 0;
+	int ret;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return IRQ_HANDLED;
+	}
+	ret = bq2560x_read(info, BQ2560X_REG_7, &value);
+	dev_err(info->dev, "bq2560x_charger_reg7, the reg_val 0x%02x \n", value);
+	if( !ret ) {
+		value = value | 0x03;
+		ret = bq2560x_write(info, BQ2560X_REG_7, value);
+		if (ret) {
+                	dev_err(info->dev, "fail to wite 0xx2 to REG_0x%.2x, ret = %d\n",BQ2560X_REG_7, ret);
+        	}
 	}
 
 	dev_info(info->dev, "interrupt occurs\n");
