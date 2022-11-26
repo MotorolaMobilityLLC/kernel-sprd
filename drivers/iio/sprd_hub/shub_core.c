@@ -765,6 +765,9 @@ static ssize_t version_show(struct device *dev, struct device_attribute *attr,
 		dev_info(&sensor->sensor_pdev->dev, "CM4 Version:%u\n",
 			 version);
 
+		sbuf_set_no_need_wake_lock(sensor->sipc_sensorhub_id,
+			   SMSG_CH_PIPE, SIPC_PM_BUFID1);
+
 		if (sensor->mcu_mode == SHUB_BOOT) {
 			sensor->mcu_mode = SHUB_NORMAL;
 			sensorhub_version = version;
@@ -1433,8 +1436,6 @@ static int shub_probe(struct platform_device *pdev)
 		dev_warn(&pdev->dev,
 			 "failed to create kernel thread_nwu: %d\n", error);
 	}
-	sbuf_set_no_need_wake_lock(mcu->sipc_sensorhub_id,
-				   SMSG_CH_PIPE, SIPC_PM_BUFID1);
 	mcu->early_suspend.notifier_call = shub_notifier_fn;
 	register_pm_notifier(&mcu->early_suspend);
 	mcu->shub_reboot_notifier.notifier_call = shub_reboot_notifier_fn;
