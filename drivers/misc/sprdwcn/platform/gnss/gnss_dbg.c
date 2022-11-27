@@ -226,6 +226,7 @@ static int gnss_ring_write(struct gnss_ring_t *pring, char *buf, int len)
 	GNSS_DEBUG("pstart=%p, pend=%p, buf=%p, len=%d, wp=%p, reset_rp[%d]",
 		   pstart, pend, buf, len, pring->wp, pring->reset_rp);
 
+	mutex_lock(pring->plock);
 	if (gnss_ring_over_loop(pring, len, GNSS_RING_W)) {
 		GNSS_DEBUG("Ring overloop.");
 		len1 = pend - pring->wp + 1;
@@ -249,6 +250,7 @@ static int gnss_ring_write(struct gnss_ring_t *pring, char *buf, int len)
 		pring->reset_rp = true;
 	GNSS_DEBUG("Ring Wrote len = %d", len);
 
+	mutex_unlock(pring->plock);
 	return len;
 }
 
