@@ -833,35 +833,32 @@ musb_sprd_retry_charger_detect(struct sprd_glue *glue)
 	glue->retry_charger_detect = true;
 	spin_unlock_irqrestore(&glue->lock, flags);
 
-	pm_runtime_disable(glue->dev);
-	if (!clk_prepare_enable(glue->clk)) {
-		usb_phy_init(glue->xceiv);
-		musb_writeb(musb->mregs, MUSB_INTRUSBE, 0);
-		musb_writeb(musb->mregs, MUSB_INTRTXE, 0);
-		musb_writeb(musb->mregs, MUSB_INTRRXE, 0);
-		pwr = musb_readb(musb->mregs, MUSB_POWER);
-		pwr |= MUSB_POWER_SOFTCONN;
-		musb_writeb(musb->mregs, MUSB_POWER, pwr);
+	pm_runtime_get_sync(glue->dev);
 
-		/* because of GKI1.0, retry_charger_detect is intead of below */
-		usb_phy->flags |= CHARGER_2NDDETECT_SELECT;
-		glue->chg_type = usb_phy->charger_detect(glue->xceiv);
-		usb_phy->flags &= ~CHARGER_2NDDETECT_SELECT;
+	musb_writeb(musb->mregs, MUSB_INTRUSBE, 0);
+	musb_writeb(musb->mregs, MUSB_INTRTXE, 0);
+	musb_writeb(musb->mregs, MUSB_INTRRXE, 0);
+	pwr = musb_readb(musb->mregs, MUSB_POWER);
+	pwr |= MUSB_POWER_SOFTCONN;
+	musb_writeb(musb->mregs, MUSB_POWER, pwr);
 
-		pwr = musb_readb(musb->mregs, MUSB_POWER);
-		pwr &= ~MUSB_POWER_SOFTCONN;
-		musb_writeb(musb->mregs, MUSB_POWER, pwr);
-		/*  flush pending interrupts */
-		spin_lock_irqsave(&glue->lock, flags);
-		glue->retry_charger_detect = false;
-		spin_unlock_irqrestore(&glue->lock, flags);
-		musb_readb(musb->mregs, MUSB_INTRUSB);
-		musb_readw(musb->mregs, MUSB_INTRTXE);
-		usb_phy_shutdown(glue->xceiv);
-		clk_disable_unprepare(glue->clk);
-	}
-	pm_runtime_enable(glue->dev);
+	/* because of GKI1.0, retry_charger_detect is intead of below */
+	usb_phy->flags |= CHARGER_2NDDETECT_SELECT;
+	glue->chg_type = usb_phy->charger_detect(glue->xceiv);
+	usb_phy->flags &= ~CHARGER_2NDDETECT_SELECT;
+
+	pwr = musb_readb(musb->mregs, MUSB_POWER);
+	pwr &= ~MUSB_POWER_SOFTCONN;
+	musb_writeb(musb->mregs, MUSB_POWER, pwr);
+	/*  flush pending interrupts */
+	spin_lock_irqsave(&glue->lock, flags);
+	glue->retry_charger_detect = false;
+	spin_unlock_irqrestore(&glue->lock, flags);
+	musb_readb(musb->mregs, MUSB_INTRUSB);
+	musb_readw(musb->mregs, MUSB_INTRTXE);
+
 	pm_runtime_mark_last_busy(glue->dev);
+	pm_runtime_put_autosuspend(glue->dev);
 
 	return glue->chg_type;
 }
