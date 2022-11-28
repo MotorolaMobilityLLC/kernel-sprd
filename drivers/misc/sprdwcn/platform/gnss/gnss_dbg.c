@@ -274,14 +274,12 @@ static int gnss_device_destroy(void)
 static int gnss_dbg_open(struct inode *inode, struct file *filp)
 {
 	GNSS_ERR();
-
 	return 0;
 }
 
 static int gnss_dbg_release(struct inode *inode, struct file *filp)
 {
 	GNSS_ERR();
-
 	return 0;
 }
 
