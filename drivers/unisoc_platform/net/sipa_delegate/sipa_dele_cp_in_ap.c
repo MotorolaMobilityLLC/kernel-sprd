@@ -106,6 +106,9 @@ static int cp_dele_local_req_r_prod(void *user_data)
 
 static int cp_dele_restart_handler(struct sipa_delegator *delegator)
 {
+	unsigned long flags;
+
+	spin_lock_irqsave(&delegator->lock, flags);
 	if (delegator->pd_eb_flag && delegator->pd_get_flag) {
 		pr_info("sipa will power off\n");
 		sipa_set_enabled(false);
@@ -121,6 +124,7 @@ static int cp_dele_restart_handler(struct sipa_delegator *delegator)
 		sipa_rm_release_resource(delegator->cons_user);
 	}
 
+	spin_unlock_irqrestore(&delegator->lock, flags);
 	return 0;
 }
 
@@ -138,16 +142,18 @@ static ssize_t sipa_dele_reset_store(struct device *dev,
 				     const char *buf,
 				     size_t count)
 {
-	u8 cmd;
 	struct sipa_delegator *delegator = &s_cp_delegator->delegator;
 
-	if (sscanf(buf, "%4hhx\n", &cmd) != 1)
-		return -EINVAL;
-
-	if (cmd == 1) {
-		dev_info(delegator->pdev, "modem_reset\n");
+	if (strstr(buf, "Modem Assert") &&
+	    !strstr(buf, "P-ARM Modem Assert")) {
+		dev_info(delegator->pdev, "Modem assert\n");
+		cp_dele_restart_handler(delegator);
+	} else if (strstr(buf, "Modem Reset")) {
+		dev_info(delegator->pdev, "Modem Reset\n");
 		cp_dele_restart_handler(delegator);
 	}
+
+	dev_info(delegator->pdev, "modem cmd %s\n", buf);
 
 	return count;
 }
