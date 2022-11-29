@@ -407,8 +407,13 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 			uei[ptr].pkg.tmi.param2,
 			uei[ptr].pkg.tmi.ocs);
 			break;
-		case UFS_TRACE_UIC_SEND:
 		case UFS_TRACE_UIC_CMPL:
+			if (uei[ptr].pkg.uci.dwc_hc_ee_h8_compl) {
+				PRINT_SWITCH(m, dump_pos, "cmd:0x%2x\n", UIC_CMD_DME_HIBER_ENTER);
+				break;
+			}
+			fallthrough;
+		case UFS_TRACE_UIC_SEND:
 			PRINT_SWITCH(m, dump_pos,
 			"cmd:0x%2x,arg1:0x%x,arg2:0x%x,arg3:0x%x\n",
 			uei[ptr].pkg.uci.cmd,

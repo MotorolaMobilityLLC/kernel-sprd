@@ -25,6 +25,13 @@
 #include "ufs-sprd-debug.h"
 #include "ufshpb.h"
 
+static bool ufs_sprd_is_acc_forbid_after_h8_ee(struct ufs_hba *hba)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	return host->caps & UFS_SPRD_CAP_ACC_FORBIDDEN_AFTER_H8_EE;
+}
+
 int ufs_sprd_get_syscon_reg(struct device_node *np, struct syscon_ufs *reg,
 			    const char *name)
 {
@@ -71,6 +78,15 @@ static void ufs_sprd_vh_send_uic_cmd(void *data, struct ufs_hba *hba,
 	struct ufs_uic_cmd_info uic_tmp = {};
 
 	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
+		if (ucmd->command == UIC_CMD_DME_HIBER_ENTER &&
+		    str == UFS_CMD_COMP &&
+		    ufs_sprd_is_acc_forbid_after_h8_ee(hba) == TRUE) {
+			uic_tmp.dwc_hc_ee_h8_compl = true;
+			ufshcd_common_trace(hba, UFS_TRACE_UIC_CMPL, &uic_tmp);
+			return;
+		}
+
+		uic_tmp.dwc_hc_ee_h8_compl = false;
 		uic_tmp.argu1 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_1);
 		uic_tmp.argu2 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_2);
 		uic_tmp.argu3 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_3);

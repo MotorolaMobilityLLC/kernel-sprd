@@ -6,9 +6,22 @@
 #ifndef _UFS_SPRD_H_
 #define _UFS_SPRD_H_
 
+enum ufs_sprd_caps {
+	/*
+	 * DWC Ufshc waits for the software to read the IS register and clear it,
+	 * and then read HCS register. Only when the software has read these registers
+	 * in proper sequence (clear IS register and then read HCS register), ufshc
+	 * drives LP_pwr_gate to 1.
+	 * This capability indicates that access to ufshc is forbidden after
+	 * entering H8.
+	 */
+	UFS_SPRD_CAP_ACC_FORBIDDEN_AFTER_H8_EE         = 1 << 0,
+};
+
 struct ufs_sprd_host {
 	struct ufs_hba *hba;
 	struct scsi_device *sdev_ufs_rpmb;
+	enum ufs_sprd_caps caps;
 	void *ufs_priv_data;
 
 	bool ffu_is_process;

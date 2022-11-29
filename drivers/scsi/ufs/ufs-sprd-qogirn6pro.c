@@ -276,6 +276,8 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	host->hba = hba;
 	ufshcd_set_variant(hba, host);
 
+	host->caps |= UFS_SPRD_CAP_ACC_FORBIDDEN_AFTER_H8_EE;
+
 	hba->caps |= UFSHCD_CAP_CLK_GATING |
 		UFSHCD_CAP_CRYPTO |
 		UFSHCD_CAP_HIBERN8_WITH_CLK_GATING |
