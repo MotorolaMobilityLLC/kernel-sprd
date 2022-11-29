@@ -532,6 +532,11 @@ static void ep0_txstate(struct musb *musb)
 	}
 
 	request = &req->request;
+	if (!request->buf) {
+		/* request->buf could be NULL*/
+		musb_dbg(musb, "request->buf is NULL\n");
+		return;
+	}
 
 	/* load the data */
 	fifo_src = (u8 *) request->buf + request->actual;
