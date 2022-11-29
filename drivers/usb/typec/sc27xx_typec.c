@@ -81,7 +81,7 @@
 #define UMP9620_EFUSE_CC1_SHIFT		1
 #define UMP9620_EFUSE_CC2_SHIFT		11
 
-#define SC27XX_CC1_MASK(n)		GENMASK((n) + 9, (n) + 5)
+#define SC27XX_CC1_MASK(n)             GENMASK((n) + 4, (n))
 #define SC27XX_CC2_MASK(n)		GENMASK((n) + 4, (n))
 #define SC27XX_CC_SHIFT(n)		(n)
 
