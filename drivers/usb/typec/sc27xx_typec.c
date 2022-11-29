@@ -255,8 +255,11 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 	}
 
 	desc.usb_pd = 0;
-	desc.accessory = TYPEC_ACCESSORY_NONE;
 	desc.identity = NULL;
+	if (sc->state == SC27XX_AUDIO_CABLE)
+		desc.accessory = TYPEC_ACCESSORY_AUDIO;
+	else
+		desc.accessory = TYPEC_ACCESSORY_NONE;
 
 	sc->partner = typec_register_partner(sc->port, &desc);
 	if (!sc->partner)
