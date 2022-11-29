@@ -1637,7 +1637,8 @@ static int dwc3_sprd_pm_suspend(struct device *dev)
 		return -EBUSY;
 	}
 
-	if (sdwc->glue_dr_mode == USB_DR_MODE_HOST) {
+	if (sdwc->glue_dr_mode == USB_DR_MODE_HOST &&
+	    !atomic_read(&sdwc->runtime_suspended)) {
 		dev_info(sdwc->dev, "Abort PM suspend in host mode when power always on\n");
 		return -EBUSY;
 	}
