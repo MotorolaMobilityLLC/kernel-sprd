@@ -261,8 +261,8 @@ def check_tags_file(modify_file_list, tags_list):
 
         if len(x) < 2:
             continue
-        elif "." in x:
-            file_name_list_temp = x.split(".")[0].split("/")
+        #elif "." in x:
+        #    file_name_list_temp = x.split(".")[0].split("/")
         else:
             file_name_list_temp = x.split("/")
 
