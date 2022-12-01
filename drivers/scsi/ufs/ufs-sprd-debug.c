@@ -50,6 +50,7 @@ static const char *ufs_event_str[UFS_MAX_EVENT] = {
 	"UIC Send      ",
 	"UIC Complete  ",
 	"CLK GATE!     ",
+	"EVT UPDATE!   ",
 	"Host RESET!!! ",
 	"INTR ERROR!!! ",
 	"Debug Trigger "
@@ -125,6 +126,9 @@ void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *d
 		break;
 	case UFS_TRACE_CLK_GATE:
 		memcpy(&uei[idx].pkg, data, sizeof(struct ufs_clk_dbg));
+		break;
+	case UFS_TRACE_EVT:
+		memcpy(&uei[idx].pkg, data, sizeof(struct ufs_evt_dbg));
 		break;
 	case UFS_TRACE_DEBUG_TRIGGER:
 		uei[idx].flag = host->debug_en;
@@ -261,14 +265,20 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 	int k, n;
 	int sb = (int)sizeof(b);
 	int transaction_type;
+	struct scsi_device *sdev_ufs;
 
 	spin_lock_irqsave(&ufs_debug_dump, flags);
 
 	if (dump == true)
 		dump_pos = (char *) ufs_cmd_history_str;
 
-	if (!!hba_tmp)
-		PRINT_SWITCH(m, dump_pos, "[UFS] ufs_hba=0x%lx\n\n", (unsigned long)hba_tmp);
+	if (!!hba_tmp) {
+		PRINT_SWITCH(m, dump_pos, "[UFS] ufs_hba=0x%lx\n", (unsigned long)hba_tmp);
+		sdev_ufs = hba_tmp->sdev_ufs_device;
+		if (sdev_ufs)
+			PRINT_SWITCH(m, dump_pos, "[UFS] dev info: %.8s %.16s rev %.4s\n",
+				     sdev_ufs->vendor, sdev_ufs->model, sdev_ufs->rev);
+	}
 
 	if (exceed_max_depth == true)
 		actual_dump_num = UFS_CMD_RECORD_DEPTH;
@@ -286,7 +296,7 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 		(cmd_record_index + 1 - actual_dump_num) :
 		(cmd_record_index + 1 + UFS_CMD_RECORD_DEPTH - actual_dump_num);
 
-	PRINT_SWITCH(m, dump_pos, "[UFS] CMD History: total_dump_num=%d\n",
+	PRINT_SWITCH(m, dump_pos, "\n[UFS] CMD History: total_dump_num=%d\n",
 		     actual_dump_num);
 
 	for (; i < actual_dump_num; i++, ptr++, k = 0, n = 0) {
@@ -438,6 +448,11 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 			PRINT_SWITCH(m, dump_pos, "err:0x%08x, uic_err:0x%08x\n",
 			uei[ptr].pkg.ie.errors,
 			uei[ptr].pkg.ie.uic_error);
+			break;
+		case UFS_TRACE_EVT:
+			PRINT_SWITCH(m, dump_pos, "id:%2d, data:0x%08x\n",
+			uei[ptr].pkg.evt.id,
+			uei[ptr].pkg.evt.val);
 			break;
 		default:
 			break;

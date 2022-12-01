@@ -35,7 +35,9 @@ enum ufs_event_list {
 	UFS_TRACE_UIC_SEND,
 	UFS_TRACE_UIC_CMPL,
 	UFS_TRACE_CLK_GATE,
+	UFS_TRACE_EVT,
 
+	/* The following events dont need additional parameters */
 	UFS_TRACE_RESET_AND_RESTORE,
 	UFS_TRACE_INT_ERROR,
 	UFS_TRACE_DEBUG_TRIGGER,
@@ -103,6 +105,11 @@ struct ufs_clk_dbg {
 	u32 on;
 };
 
+struct ufs_evt_dbg {
+	u32 id;
+	u32 val;
+};
+
 struct ufs_event_info {
 	enum ufs_event_list event;
 	pid_t pid;
@@ -118,6 +125,7 @@ struct ufs_event_info {
 		struct ufs_tm_cmd_info tmi;
 		struct ufs_int_error ie;
 		struct ufs_clk_dbg cd;
+		struct ufs_evt_dbg evt;
 	} pkg;
 };
 

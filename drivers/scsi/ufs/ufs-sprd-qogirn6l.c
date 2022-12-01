@@ -841,12 +841,20 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 static void ufs_sprd_update_evt_hist(struct ufs_hba *hba,
 		enum ufs_event_type evt, void *data)
 {
+	struct ufs_evt_dbg evt_tmp = {};
+
 	switch (evt) {
 	case UFS_EVT_PA_ERR:
 		ufs_sprd_update_err_cnt(hba, *(u32 *)data, UFS_LINE_RESET);
 		break;
 	default:
 		break;
+	}
+
+	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
+		evt_tmp.id = evt;
+		evt_tmp.val = *(u32 *)data;
+		ufshcd_common_trace(hba, UFS_TRACE_CLK_GATE, &evt_tmp);
 	}
 }
 

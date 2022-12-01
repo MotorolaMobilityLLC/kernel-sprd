@@ -150,7 +150,7 @@ static void ufs_sprd_vh_check_int_errors(void *data,
 static void ufs_sprd_vh_update_sysfs(void *data,
 					struct ufs_hba *hba)
 {
-		ufs_sprd_sysfs_add_nodes(hba);
+	ufs_sprd_sysfs_add_nodes(hba);
 }
 
 static void ufs_sprd_vh_send_cmd(void *data,
