@@ -750,14 +750,14 @@ static ssize_t _name##_show(struct device *dev,					\
 }										\
 static DEVICE_ATTR_RO(_name)
 
-UFS_DME_GET(host_gear_tx, PA_TXGEAR, 1);
-UFS_DME_GET(host_gear_rx, PA_RXGEAR, 1);
-UFS_DME_GET(host_lanes_tx, PA_ACTIVETXDATALANES, 1);
-UFS_DME_GET(host_lanes_rx, PA_ACTIVERXDATALANES, 1);
-UFS_DME_GET(peer_gear_tx, PA_TXGEAR, 0);
-UFS_DME_GET(peer_gear_rx, PA_RXGEAR, 0);
-UFS_DME_GET(peer_lanes_tx, PA_ACTIVETXDATALANES, 0);
-UFS_DME_GET(peer_lanes_rx, PA_ACTIVERXDATALANES, 0);
+UFS_DME_GET(host_gear_tx, PA_TXGEAR, 0);
+UFS_DME_GET(host_gear_rx, PA_RXGEAR, 0);
+UFS_DME_GET(host_lanes_tx, PA_ACTIVETXDATALANES, 0);
+UFS_DME_GET(host_lanes_rx, PA_ACTIVERXDATALANES, 0);
+UFS_DME_GET(peer_gear_tx, PA_TXGEAR, 1);
+UFS_DME_GET(peer_gear_rx, PA_RXGEAR, 1);
+UFS_DME_GET(peer_lanes_tx, PA_ACTIVETXDATALANES, 1);
+UFS_DME_GET(peer_lanes_rx, PA_ACTIVERXDATALANES, 1);
 
 static struct attribute *ufs_sysfs_power_mode[] = {
 	&dev_attr_host_gear_tx.attr,
