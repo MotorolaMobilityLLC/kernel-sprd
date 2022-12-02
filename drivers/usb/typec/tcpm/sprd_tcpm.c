@@ -1330,8 +1330,8 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 				response[0] = SPRD_VDO(SPRD_USB_SID_PD, 1, SPRD_CMD_DISCOVER_SVID);
 				rlen = 1;
 			} else if (modep->nsvids && supports_modal(port)) {
-				response[0] = SPRD_VDO(modep->svids[0], 1, SPRD_CMD_DISCOVER_MODES);
-				rlen = 1;
+				//response[0] = SPRD_VDO(modep->svids[0], 1, SPRD_CMD_DISCOVER_MODES);
+				//rlen = 1;
 			}
 			break;
 		case SPRD_CMD_DISCOVER_MODES:
