@@ -1499,3 +1499,10 @@ dtb-$(CONFIG_ARCH_ASPEED) += \
 	aspeed-bmc-portwell-neptune.dtb \
 	aspeed-bmc-quanta-q71l.dtb \
 	aspeed-bmc-supermicro-x11spi.dtb
+
+ifeq ($(BSP_BUILD_FAMILY),sharkl3)
+dtb-$(CONFIG_ARCH_SPRD) += \
+         sp9863a-1h10-go_32b-overlay.dtbo
+
+sp9863a-1h10-go_32b-overlay.dtbo-base := sp9863a-base.dtb
+endif
