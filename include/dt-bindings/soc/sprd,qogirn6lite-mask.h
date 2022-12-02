@@ -1304,6 +1304,8 @@
 #define MASK_AON_APB_PUB_CFG_EARLY_RESP_EN                                0x0001
 #define MASK_AON_APB_RESERVE_H                                            0xFFFFFFFF
 #define MASK_AON_APB_RESERVE_L                                            0xFFFFFFFF
+#define MASK_GPU_PDC_CUR_ST_ST0                                           0x00F0
+#define MASK_GPU_PDC_CUR_ST_ST1                                           0x00F0
 #define MASK_AON_APB_IST_EB                                               0x0008
 #define MASK_AON_APB_IST_SOFT_PCLK_RST                                    0x0004
 #define MASK_AON_APB_IST_SOFT_FUNCLK_RST                                  0x0002

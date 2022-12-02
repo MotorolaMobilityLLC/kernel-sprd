@@ -289,6 +289,8 @@
 #define REG_AON_APB_PUB_CFG_EARLY_RESP_CTRL                              0x0D3C
 #define REG_AON_APB_RESERVE_H                                            0x0FE8
 #define REG_AON_APB_RESERVE_L                                            0x0FEC
+#define REG_GPU_APB_GPU_PDC_CONTROL_STACK0                               0x002C
+#define REG_GPU_APB_GPU_PDC_CONTROL_STACK1                               0x0030
 #define REG_AON_APB_IST_CTRL                                             0x0D40
 #define REG_AON_APB_THM_LIMIT_1                                          0x0D44
 #define REG_AON_APB_THM_LIMIT_2                                          0x0D48
