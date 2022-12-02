@@ -126,6 +126,9 @@ static int sipa_dele_plat_drv_probe(struct platform_device *pdev_p)
 	}
 	pr_debug("cp_delegator_init!\n");
 
+	if (!cfg->sipa_sys_eb)
+		device_init_wakeup(dev, true);
+
 	return ret;
 }
 

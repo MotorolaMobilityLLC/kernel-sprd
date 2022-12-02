@@ -41,6 +41,11 @@ static void cp_dele_on_commad(void *priv, u16 flag, u32 data)
 
 	switch (flag) {
 	case SMSG_FLG_DELE_ENABLE:
+
+		if (!delegator->cfg->sipa_sys_eb) {
+			pm_stay_awake(delegator->pdev);
+			pr_info("sipa_dele pm stay awake\n");
+		}
 		delegator->pd_eb_flag = true;
 
 		if (!s_cp_delegator->delegator.cfg->sipa_sys_eb)
@@ -68,6 +73,11 @@ sipa_eb:
 		if (s_cp_delegator->delegator.cfg->sipa_sys_eb)
 			pm_runtime_put(delegator->pdev);
 		delegator->pd_get_flag = false;
+
+		if (!delegator->cfg->sipa_sys_eb) {
+			pm_relax(delegator->pdev);
+			pr_info("sipa_dele pm relax\n");
+		}
 		break;
 	default:
 		break;
@@ -154,6 +164,9 @@ static ssize_t sipa_dele_reset_store(struct device *dev,
 	}
 
 	dev_info(delegator->pdev, "modem cmd %s\n", buf);
+
+	if (!delegator->cfg->sipa_sys_eb)
+		pm_relax(delegator->pdev);
 
 	return count;
 }
