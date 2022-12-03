@@ -56,6 +56,8 @@ static void shub_get_data(struct cmd_data *packet)
 	case SHUB_GET_FWVERSION_SUBTYPE:
 	case SHUB_GET_SENSORINFO_SUBTYPE:
 	case SHUB_GET_VIRTUAL_HANDLE_SUBTYPE:
+	case SHUB_GET_PHYSICAL_SENSOR_NUMBER_SUBTYPE:
+	case SHUB_GET_VIRTUAL_SENSOR_NUMBER_SUBTYPE:
 		g_sensor->readcmd_callback(g_sensor, packet->buff,
 					packet->length);
 		break;

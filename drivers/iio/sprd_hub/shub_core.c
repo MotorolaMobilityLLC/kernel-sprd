@@ -854,21 +854,32 @@ static ssize_t sensorlist_show(struct device *dev,
 	int err;
 	u32 number = 0;
 	u32 len = 0;
-	u8 data[DRV_SENSOR_COUNT * sizeof(struct sensor_info_t)];
+	u8 data[4];
+	u8 *sensorlist = NULL;
+	u32 sensor_info_len = 0;
+	u32 max_len;
 
 	struct shub_data *sensor = dev_get_drvdata(dev);
 
-	err = shub_sipc_read(sensor, SHUB_GET_SENSORINFO_SUBTYPE, data, sizeof(number));
+	err = shub_sipc_read(sensor, SHUB_GET_PHYSICAL_SENSOR_NUMBER_SUBTYPE, data, sizeof(number));
 	if (err >= 0) {
 		memcpy(&number, data, sizeof(number));
 		len = number * sizeof(struct sensor_info_t);
-		err = shub_sipc_read(sensor, SHUB_GET_SENSORINFO_SUBTYPE, data, len);
+		sensorlist = kzalloc(len, GFP_KERNEL);
+		if (!sensorlist)
+			return -ENOMEM;
+
+		err = shub_sipc_read(sensor, SHUB_GET_SENSORINFO_SUBTYPE, sensorlist, len);
 		if (err >= 0) {
-			memcpy(buf, data, len);
-			memcpy(&sensor->sensor_info_list, data, len);
+			memcpy(buf, sensorlist, len);
+			max_len = DRV_SENSOR_COUNT * sizeof(struct sensor_info_t);
+			sensor_info_len = len < max_len ? len : max_len;
+			memcpy(&sensor->sensor_info_list, sensorlist, sensor_info_len);
+			kfree(sensorlist);
 		} else {
 			dev_info(&sensor->sensor_pdev->dev,
 					"sipc read sensorlist fail, err = %d\n", err);
+			kfree(sensorlist);
 			return err;
 		}
 	} else {
@@ -893,20 +904,27 @@ static ssize_t virtual_handle_show(struct device *dev,
 	int err;
 	u32 number = 0;
 	u32 len = 0;
-	u8 data[ANDROID_SENSORS_ID_END * sizeof(int)];
+	u8 data[4];
+	u8 *virtual_handle = NULL;
 
 	struct shub_data *sensor = dev_get_drvdata(dev);
 
-	err = shub_sipc_read(sensor, SHUB_GET_VIRTUAL_HANDLE_SUBTYPE, data, sizeof(number));
+	err = shub_sipc_read(sensor, SHUB_GET_VIRTUAL_SENSOR_NUMBER_SUBTYPE, data, sizeof(number));
 	if (err >= 0) {
 		memcpy(&number, data, sizeof(number));
 		len = number * sizeof(number);
-		err = shub_sipc_read(sensor, SHUB_GET_VIRTUAL_HANDLE_SUBTYPE, data, len);
+		virtual_handle = kzalloc(len, GFP_KERNEL);
+		if (!virtual_handle)
+			return -ENOMEM;
+
+		err = shub_sipc_read(sensor, SHUB_GET_VIRTUAL_HANDLE_SUBTYPE, virtual_handle, len);
 		if (err >= 0) {
-			memcpy(buf, data, len);
+			memcpy(buf, virtual_handle, len);
+			kfree(virtual_handle);
 		} else {
 			dev_info(&sensor->sensor_pdev->dev,
 					"sipc read virtual handle fail, err = %d\n", err);
+			kfree(virtual_handle);
 			return err;
 		}
 	} else {
@@ -914,7 +932,6 @@ static ssize_t virtual_handle_show(struct device *dev,
 				"sipc read support virtual handle number fail, err = %d\n", err);
 		return err;
 	}
-
 
 	if (len > MAX_STRING_SIZE) {
 		dev_info(&sensor->sensor_pdev->dev,
