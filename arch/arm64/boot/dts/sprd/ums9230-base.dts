@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0-only
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 /*
  * Unisoc Qogirl6 platform DTS file
  *
@@ -8,14 +8,12 @@
 /dts-v1/;
 
 #include <dt-bindings/gpio/gpio.h>
-#include <dt-bindings/mfd/sprd,sc2730-regs.h>
-#include <dt-bindings/mfd/sprd,sc2730-mask.h>
-#include "ums9230.dtsi"
+#include "ums9230/ums9230.dtsi"
 #include "sc2730/sc2730.dtsi"
-#include "sprd-sound-fe-be.dtsi"
-#include "ums9230-mach.dtsi"
-#include "ums9230-modem.dtsi"
+#include "reserved-memory/ums9230-common.dtsi"
+#include "trusty/ums9230.dtsi"
 #include "battery/battery-common.dtsi"
+#include "sound/fe-be.dtsi"
 
 / {
 	model = "Spreadtrum UMS9230 1H10 SoC";
@@ -48,19 +46,184 @@
 			    androidboot.init_fatal_panic=true";
 	};
 
-	sprd-iq {
-		compatible = "sprd,iq";
-		sprd,region = <&iq_reserved>;
-		sprd,mapping-offs = <0x0>;
-	};
-
 	dmabuf: dmabuf {
 		compatible = "sprd,dmabuf";
+	};
+
+	display-subsystem {
+		compatible = "sprd,display-subsystem";
+		ports = <&dpu_port>;
+		gsp = <&gsp>;
+	};
+
+	audcp_iram_reserved: audcp-iram@65009400 {
+		reg = <0x0 0x65009400 0x0 0x1000>;
+	};
+
+	audio-mem-mgr {
+		memory-region = <&audio_reserved &audiodsp_reserved>;
+	};
+
+	dpu_dvfs: dpu-dvfs {
+		compatible = "sprd,hwdvfs-dpu-qogirl6";
+		sprd,hw-dfs-en = <0>;
+		sprd,work-index-def = <4>;
+		sprd,idle-index-def = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+
+		operating-points = <
+				/* kHz    uV */
+			153600    700000
+			192000    700000
+			256000    700000
+			307200    700000
+			384000    750000
+			>;
+	};
+
+	vsp_dvfs: vsp-dvfs {
+		compatible = "sprd,hwdvfs-vsp-qogirl6";
+		sprd,dvfs-work-freq = <384000000>;
+		sprd,dvfs-idle-freq = <256000000>;
+		sprd,dvfs-enable-flag = <1>;
+		sprd,freq-upd-delay-en = <0>;
+		sprd,freq-upd-hdsk-en = <1>;
+
+		operating-points = <
+			/* kHz    uV */
+			256000    700000
+			307200    700000
+			384000    750000
+			>;
+	};
+
+	isp_dvfs: isp-dvfs {
+		compatible = "sprd,hwdvfs-isp";
+		operating-points = <
+			/* kHz    uV */
+			256000    700000
+			307200    700000
+			384000    750000
+			468000    750000
+			512000    800000
+			>;
+	};
+
+	cpp_dvfs: cpp-dvfs {
+		compatible = "sprd,hwdvfs-cpp";
+		operating-points = <
+			/* kHz    uV */
+			76800     700000
+			128000    700000
+			256000    700000
+			384000    750000
+			>;
+	};
+
+	jpg_dvfs: jpg-dvfs {
+		compatible = "sprd,hwdvfs-jpg";
+		operating-points = <
+			/* kHz    uV */
+			76800     700000
+			128000    700000
+			256000    700000
+			384000    750000
+			>;
+	};
+
+	fd_dvfs: fd-dvfs {
+		compatible = "sprd,hwdvfs-fd";
+		operating-points = <
+			/* kHz    uV */
+			76800     700000
+			192000    700000
+			307200    700000
+			384000    750000
+			>;
+	};
+
+	mtx_dvfs: mtx-dvfs {
+		compatible = "sprd,hwdvfs-mtx";
+		operating-points = <
+			/* kHz    uV */
+			76800     700000
+			128000    700000
+			256000    700000
+			307200    700000
+			384000    750000
+			468000    750000
+			512000    800000
+			>;
+	};
+
+	dcam_if_dvfs: dcam-if-dvfs {
+		compatible = "sprd,hwdvfs-dcam-if";
+		operating-points = <
+			/* kHz    uV */
+			192000    700000
+			256000    700000
+			307200    700000
+			384000    700000
+			468000    750000
+			>;
+	};
+
+	dcam_axi_dvfs: dcam-axi-dvfs {
+		compatible = "sprd,hwdvfs-dcam-axi";
+		operating-points = <
+			/* kHz    uV */
+			256000    700000
+			307200    700000
+			384000    700000
+			468000    750000
+			>;
+	};
+
+	mmsys_dvfs: mmsys-dvfs {
+			compatible = "sprd,hwdvfs-mmsys";
+			sprd,topdvfs_controller = <&topdvfs_controller>;
+		operating-points = <
+			/* kHz    uV */
+			307200    700000
+			468000    750000
+			512000    800000
+			>;
+	};
+
+	firmware {
+		android {
+			compatible = "android,firmware";
+			vbmeta {
+				compatible = "android,vbmeta";
+				parts = "vbmeta,boot,init_boot,vendor_boot,dtbo,l_modem,pm_sys,l_ldsp,l_gdsp,l_agdsp";
+			};
+		};
+	};
+
+	rebootescrow@0 {
+		compatible = "pmem-region";
+		reg = <0x0 0xfff70000 0x0 0x00010000>;
+	};
+
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
+
+	sensorhub {
+		compatible = "sprd,qogirl6-sensorhub", "sprd,sensor-hub";
 	};
 
 	sprd-map-user {
 		compatible = "unisoc,map-user";
 	};
+
+	autotest:autotest{
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
+
 };
 
 &uart0 {
@@ -125,4 +288,87 @@
 
 &dphy {
 	status = "okay";
+};
+
+&i2s0 {
+	status = "okay";
+};
+
+&sdio0 {
+	sprd,phy-delay-sd-uhs-sdr104 = <0x7f 0x73 0x72 0x72>;
+	sprd,phy-delay-sd-uhs-sdr50 = <0x6e 0x7f 0x01 0x01>;
+	sprd,phy-delay-sd-highspeed = <0x7f 0x1a 0x9a 0x9a>;
+	sprd,phy-delay-legacy = <0x7f 0x1a 0x9a 0x9a>;
+	vmmc-supply = <&vddsdcore>;
+	vqmmc-supply = <&vddsdio>;
+	voltage-ranges = <3000 3000>;
+	bus-width = <4>;
+	sd-uhs-sdr104;
+	sd-uhs-sdr50;
+	sprd,name = "sdio_sd";
+	sprd,sdio-adma;
+	no-sdio;
+	no-mmc;
+	status = "okay";
+};
+
+&sdio3 {
+	sprd,phy-delay-mmc-hs400es = <0x40 0x80 0x3d 0x3d>;
+	sprd,phy-delay-mmc-hs400 = <0x3f 0xb5 0x3d 0x3d>;
+	sprd,phy-delay-mmc-hs200 = <0x7f 0xb5 0xb5 0xb5>;
+	sprd,phy-delay-mmc-ddr52 = <0x3e 0x6a 0x48 0x48>;
+	sprd,phy-delay-mmc-highspeed = <0x60 0x2e 0x2c 0x2c>;
+	vmmc-supply = <&vddemmccore>;
+	voltage-ranges = <3000 3000>;
+	bus-width = <8>;
+	non-removable;
+	cap-mmc-hw-reset;
+	mmc-hs400-enhanced-strobe;
+	mmc-hs400-1_8v;
+	mmc-hs200-1_8v;
+	mmc-ddr-1_8v;
+	sprd,name = "sdio_emmc";
+	sprd,sdio-adma;
+	no-sdio;
+	no-sd;
+	status = "okay";
+	supports-swcq;
+};
+
+&pmic_typec {
+	status = "okay";
+};
+
+&sc2730_pmic {
+	interrupts = <GIC_SPI 173 IRQ_TYPE_LEVEL_HIGH>;
+};
+
+&pwms {
+	status = "okay";
+};
+
+&sprd_audio_codec_ana {
+	status = "okay";
+	hp-use-inter-pa = <1>;
+	fixed-sample-rate = <48000 48000 48000>;
+	digital-codec = <&sprd_audio_codec_dig>;
+	set-offset = <0x1000>;
+	clr-offset = <0x2000>;
+	lrdat-sel = <0x1>;
+	power-domains = <&agdsp_domain>;
+};
+
+&spi0 {
+	/*used for fingerprint sensor*/
+	status = "okay";
+};
+
+&modem_dbg_log{
+	status = "okay";
+	clock-names = "serdes_eb", "mm_eb", "ana_eb", "dsi_csi_test_eb", "cphy_cfg_eb";
+	clocks = <&aonapb_gate CLK_SERDES_EB>, <&aonapb_gate CLK_MM_EB>, <&aonapb_gate CLK_ANA_EB>,
+		<&aonapb_gate CLK_DSI_CSI_TEST_EB>, <&aonapb_gate CLK_CPHY_CFG_EN>;
+	vddio-supply = <&vddcamio>;
+	mipi-switch-en-gpios = <&ap_gpio 55 GPIO_ACTIVE_HIGH>;
+	mipi-switch-mode-gpios = <&ap_gpio 8 GPIO_ACTIVE_HIGH>;
 };

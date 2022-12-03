@@ -1,0 +1,161 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Copyright (C) 2020, Unisoc Inc.
+ */
+
+&soc {
+	ext_26m: ext-26m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <26000000>;
+		clock-output-names = "ext-26m";
+	};
+
+	ext_32k: ext-32k {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <32768>;
+		clock-output-names = "ext-32k";
+	};
+
+	rco_100m: rco-100m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <100000000>;
+		clock-output-names = "rco-100m";
+	};
+
+	dphy_250m: dphy-250m {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <250000000>;
+		clock-output-names = "dphy-250m";
+	};
+
+	dphy_333m3: dphy-333m3 {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <333300000>;
+		clock-output-names = "dphy-333m3";
+	};
+
+	dpll0: dpll0 {
+		compatible = "sprd,ums9230-g0-pll";
+		sprd,syscon = <&anlg_phy_g0_regs>; /* 0x64550000 */
+		#clock-cells = <1>;
+	};
+
+	pll0: pll0 {
+		compatible = "sprd,ums9230-g1-pll";
+		sprd,syscon = <&anlg_phy_g1_regs>; /* 0x64560000 */
+		clocks = <&ext_26m>;
+		#clock-cells = <1>;
+	};
+
+	mpll1: mpll1 {
+		compatible = "sprd,ums9230-g3-pll";
+		sprd,syscon = <&anlg_phy_g3_regs>; /* 0x64580000 */
+		#clock-cells = <1>;
+	};
+
+	pll1: pll1 {
+		compatible = "sprd,ums9230-gc-pll";
+		sprd,syscon = <&anlg_phy_gc_regs>; /* 0x645a0000 */
+		clocks = <&ext_26m>;
+		clock-names = "ext-26m";
+		#clock-cells = <1>;
+	};
+
+	apapb_gate: apapb-gate {
+		compatible = "sprd,ums9230-apapb-gate";
+		sprd,syscon = <&ap_apb_regs>; /* 0x20000000 */
+		clocks = <&ext_26m>;
+		clock-names = "ext-26m";
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+	};
+
+	apahb_gate: apahb-gate {
+		compatible = "sprd,ums9230-apahb-gate";
+		sprd,syscon = <&ap_ahb_regs>; /* 0x20400000 */
+		clocks = <&ext_26m>;
+		clock-names = "ext-26m";
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+	};
+
+	ap_clk: clock-controller@20010000 {
+		compatible = "sprd,ums9230-ap-clk";
+		reg = <0 0x20010000 0 0x1000>;
+		clocks = <&ext_26m>, <&dphy_250m>, <&dphy_333m3>;
+		clock-names = "ext-26m", "dphy-250m", "dphy-333m3";
+		#clock-cells = <1>;
+	};
+
+	gpu_clk: gpu-clk {
+		compatible = "sprd,ums9230-gpu-clk";
+		sprd,syscon = <&gpu_apb_regs>; /* 0x23000000 */
+		syscons = <&aon_apb_regs REG_AON_APB_APB_EB0 MASK_AON_APB_GPU_EB>,
+			<&pmu_apb_regs REG_PMU_APB_PD_GPU_TOP_CFG_0 MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>;
+		syscon-names = "enable", "power";
+		clocks = <&ext_26m>;
+		clock-names = "ext-26m";
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+	};
+
+	mm_clk: clock-controller@300100000 {
+		compatible = "sprd,ums9230-mm-clk";
+		reg = <0 0x30010000 0 0x1000>;
+		clocks = <&ext_26m>;
+		clock-names = "ext-26m";
+		#clock-cells = <1>;
+	};
+
+	mm_gate: mm-gate {
+		compatible = "sprd,ums9230-mm-gate-clk";
+		sprd,syscon = <&mm_ahb_regs>; /* 0x30000000 */
+		syscons = <&aon_apb_regs REG_AON_APB_APB_EB0 MASK_AON_APB_MM_EB>,
+			<&pmu_apb_regs  REG_PMU_APB_PD_MM_CFG_0 MASK_PMU_APB_PD_MM_FORCE_SHUTDOWN>;
+		syscon-names = "enable", "power";
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+	};
+
+	aon_clk: clock-controller@64012000 {
+		compatible = "sprd,ums9230-aonapb-clk";
+		reg = <0 0x64012000 0 0x1000>;
+		clocks = <&ext_26m>, <&rco_100m>, <&ext_32k>;
+		clock-names = "ext-26m", "rco-100m", "ext-32k";
+		#clock-cells = <1>;
+	};
+
+	apcpu_sec_clk: apcpu-sec-clk {
+		compatible = "sprd,ums9230-apcpu-clk-sec";
+		sprd,sec-clk;
+		#clock-cells = <1>;
+	};
+
+	audcpapb_gate: audcpapb-gate {
+		compatible = "sprd,ums9230-audcpapb-gate";
+		sprd,syscon = <&audcp_apb_regs>; /* 0x5600d000 */
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+	};
+
+	audcpahb_gate: audcpahb-gate {
+		compatible = "sprd,ums9230-audcpahb-gate";
+		sprd,syscon = <&audcp_ahb_regs>; /* 0x56000000 */
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+	};
+
+	aonapb_gate: aonapb-gate {
+		compatible = "sprd,ums9230-aon-gate";
+		sprd,syscon = <&aon_apb_regs>; /* 0x64000000 */
+		clocks = <&ext_26m>;
+		clock-names = "ext-26m";
+		#clock-cells = <1>;
+		#reset-cells = <1>;
+	};
+};
