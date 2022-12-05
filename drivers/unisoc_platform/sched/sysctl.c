@@ -23,6 +23,7 @@ EXPORT_SYMBOL_GPL(sysctl_sched_uclamp_threshold);
 unsigned int sysctl_sched_spc_threshold = 100;
 #endif
 unsigned int sysctl_walt_account_irq_time = 1;
+unsigned int sysctl_sched_task_util_prefer_little;
 
 /*up cap margin default value: ~20%*/
 static unsigned int sysctl_sched_cap_margin_up_pct[MAX_CLUSTERS] = {
@@ -187,6 +188,15 @@ struct ctl_table walt_table[] = {
 	{
 		.procname	= "sched_uclamp_threshold",
 		.data		= &sysctl_sched_uclamp_threshold,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= &one_thousand,
+	},
+	{
+		.procname	= "sched_task_util_prefer_little",
+		.data		= &sysctl_sched_task_util_prefer_little,
 		.maxlen		= sizeof(unsigned int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,

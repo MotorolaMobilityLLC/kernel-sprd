@@ -542,7 +542,7 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 
 			/* speed up goto big core */
 			util = pdc[cpu].wake_util + uclamp_util;
-			cpu_cap = capacity_of(cpu);
+			cpu_cap = capacity_orig_of(cpu);
 			spare_cap = cpu_cap;
 			lsub_positive(&spare_cap, util);
 
@@ -629,6 +629,12 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 
 		/* Evaluate the energy impact of using max_spare_cap_cpu. */
 		if (max_spare_cap_cpu >= 0) {
+			if (uclamp_util < sysctl_sched_task_util_prefer_little &&
+			    is_min_capacity_cpu(max_spare_cap_cpu)) {
+				target = max_spare_cap_cpu;
+				goto unlock;
+			}
+
 			cur_delta = walt_compute_energy(p, max_spare_cap_cpu, pd, &cpus, pdc);
 			cur_delta -= base_energy_pd;
 

@@ -25,7 +25,6 @@
 #define WINDOW_STATS_INVALID_POLICY	4
 
 #define WALT_FREQ_ACCOUNT_WAIT_TIME	0
-#define SCHED_ACCOUNT_WAIT_TIME		1
 
 static __read_mostly unsigned int walt_ravg_hist_size = 6;
 static __read_mostly unsigned int walt_window_stats_policy = WINDOW_STATS_MAX;
@@ -485,7 +484,7 @@ static int account_busy_for_task_demand(struct task_struct *p, int event)
 	 * when a task begins to run or is migrated, it is not running and
 	 * is completing a segment of non-busy time.
 	 */
-	if (event == TASK_WAKE || (!SCHED_ACCOUNT_WAIT_TIME &&
+	if (event == TASK_WAKE || (!tg_account_wait_time(p) &&
 			(event == PICK_NEXT_TASK || event == TASK_MIGRATE)))
 		return 0;
 
