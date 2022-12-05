@@ -200,23 +200,22 @@ static void sprd_musb_enable(struct musb *musb)
 		if (musb->is_multipoint)
 			otgextcsr |= MUSB_TX_CMPL_MODE;
 		musb_writeb(musb->mregs, MUSB_OTG_EXT_CSR, otgextcsr);
-		dev_info(glue->dev, "sprd_musb_enable:HOST ENABLE %02x\n",
-			devctl);
+		dev_info(glue->dev, "%s:HOST ENABLE %02x\n",
+			__func__, devctl);
 		musb->context.devctl = devctl;
 	} else {
-		pwr = musb_readb(musb->mregs, MUSB_POWER);
 		if (glue->vbus_active &&
 			musb->gadget_driver &&
 			!is_host_active(musb) &&
 			(glue->usb_data_enabled == 1)) {
-			pwr |= MUSB_POWER_SOFTCONN;
-			dev_info(glue->dev, "sprd_musb_enable:SOFTCONN\n");
+			dev_info(glue->dev, "%s:DONOTHING\n", __func__);
 		} else {
+			pwr = musb_readb(musb->mregs, MUSB_POWER);
 			pwr &= ~MUSB_POWER_SOFTCONN;
-			dev_info(glue->dev, "sprd_musb_enable:SOFTDISCONN\n");
+			dev_info(glue->dev, "%s:SOFTDISCONN\n", __func__);
 			dev_info(glue->dev, "is_host %d\n", is_host_active(musb));
+			musb_writeb(musb->mregs, MUSB_POWER, pwr);
 		}
-		musb_writeb(musb->mregs, MUSB_POWER, pwr);
 	}
 }
 
@@ -1299,7 +1298,6 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 	return 0;
 }
 
-#if !(IS_ENABLED(CONFIG_USB_DWC3_SPRD))
 static int musb_sprd_is_udc_start(struct sprd_glue *glue)
 {
 	struct musb *musb = glue->musb;
@@ -1314,7 +1312,6 @@ static int musb_sprd_is_udc_start(struct sprd_glue *glue)
 	spin_unlock_irqrestore(&musb->lock, flags);
 	return 1;
 }
-#endif
 
 static void musb_sprd_chg_detect_work(struct work_struct *work)
 {
@@ -1576,15 +1573,6 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 			break;
 		}
 
-		#if !(IS_ENABLED(CONFIG_USB_DWC3_SPRD))
-			if (!musb_sprd_is_udc_start(glue)) {
-				dev_info(glue->dev, "waiting musb udc start\n");
-				rework = true;
-				delay = MUSB_UDC_START_CHECK_DELAY;
-				break;
-			}
-		#endif
-
 		if (!test_bit(ID, &glue->inputs)) {
 			dev_dbg(glue->dev, "!id\n");
 			if (glue->is_audio_dev && !pm_runtime_suspended(glue->dev)) {
@@ -1597,15 +1585,21 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 			}
 		} else if (test_bit(B_SESS_VLD, &glue->inputs)) {
 			dev_dbg(glue->dev, "b_sess_vld\n");
-			/*
-			 * Increment pm usage count upon cable connect. Count
-			 * is decremented in DRD_STATE_PERIPHERAL state on
-			 * cable disconnect or in bus suspend.
-			 */
-			pm_runtime_get_sync(glue->dev);
-			musb_sprd_otg_start_peripheral(glue, 1);
-			glue->drd_state = DRD_STATE_PERIPHERAL;
-			rework = true;
+			if (!musb_sprd_is_udc_start(glue)) {
+				dev_info(glue->dev, "waiting musb udc start\n");
+				rework = true;
+				delay = MUSB_UDC_START_CHECK_DELAY;
+			} else {
+				/*
+				 * Increment pm usage count upon cable connect. Count
+				 * is decremented in DRD_STATE_PERIPHERAL state on
+				 * cable disconnect or in bus suspend.
+				 */
+				pm_runtime_get_sync(glue->dev);
+				musb_sprd_otg_start_peripheral(glue, 1);
+				glue->drd_state = DRD_STATE_PERIPHERAL;
+				rework = true;
+			}
 		} else {
 			dev_dbg(glue->dev, "Cable disconnected\n");
 		}

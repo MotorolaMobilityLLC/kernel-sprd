@@ -1694,6 +1694,8 @@ static void musb_pullup(struct musb *musb, int is_on)
 
 	musb_dbg(musb, "gadget D+ pullup %s",
 		is_on ? "on" : "off");
+	dev_info(musb->controller, "gadget D+ pullup %s",
+		is_on ? "on" : "off");
 	musb_writeb(musb->mregs, MUSB_POWER, power);
 
 	if (!is_on) {
@@ -1901,6 +1903,7 @@ int musb_gadget_setup(struct musb *musb)
 	if (status)
 		goto err;
 
+	usb_udc_vbus_handler(&musb->g, false);
 	return 0;
 err:
 	musb->g.dev.parent = NULL;

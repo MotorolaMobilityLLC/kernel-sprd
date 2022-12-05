@@ -2196,10 +2196,13 @@ int musb_queue_resume_work(struct musb *musb,
 	if (WARN_ON(!callback))
 		return -EINVAL;
 
+	pm_runtime_get_sync(musb->controller);
+
 	spin_lock_irqsave(&musb->list_lock, flags);
 	is_suspended = musb->is_runtime_suspended;
 
 	if (is_suspended) {
+		WARN(1, "is suspended why?\n");
 		w = devm_kzalloc(musb->controller, sizeof(*w), GFP_ATOMIC);
 		if (!w) {
 			error = -ENOMEM;
@@ -2219,6 +2222,8 @@ out_unlock:
 	if (!is_suspended)
 		error = callback(musb, data);
 
+	pm_runtime_mark_last_busy(musb->controller);
+	pm_runtime_put_autosuspend(musb->controller);
 	return error;
 }
 EXPORT_SYMBOL_GPL(musb_queue_resume_work);
