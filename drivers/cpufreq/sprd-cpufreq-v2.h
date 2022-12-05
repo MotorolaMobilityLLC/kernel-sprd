@@ -83,7 +83,6 @@ struct cluster_info {
 
 	u32 table_entry_num;
 
-	u32 suspend_idx;
 	bool boost_enable;
 
 	u32 temp_tick;
