@@ -1512,9 +1512,13 @@ static int sipa_set_rps_thread(void *data)
 		if (!ipa->hrtimer_eb && ipa->cpu_num > core3 &&
 		    ipa->sipa_cpu_type == 1)
 			sipa_dummy_set_rps_mode(1);
-		else
-			sipa_dummy_set_rps_cpus(1 << ipa->cpu_num |
-						1 << ipa->cpu_num_ano);
+		else {
+			if (ipa->sipa_cpu_type == 2)
+				sipa_dummy_set_rps_cpus(1 << 7);
+			else
+				sipa_dummy_set_rps_cpus(1 << ipa->cpu_num |
+							1 << ipa->cpu_num_ano);
+		}
 		ipa->set_rps = 0;
 	}
 
