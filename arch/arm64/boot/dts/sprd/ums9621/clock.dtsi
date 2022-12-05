@@ -34,10 +34,8 @@
 	aonapb_clk: clock-controller@64920000 {
 		compatible = "sprd,ums9621-aonapb-clk";
 		reg = <0 0x64920000 0 0x3000>;
-		clocks = <&ext_26m>, <&ext_32k>, <&ext_4m>,
-			<&rco_100m>;
-		clock-names = "ext-26m", "ext-32k", "ext-4m",
-			 "rco-100m";
+		clocks = <&ext_26m>, <&ext_32k>, <&rco_100m>;
+		clock-names = "ext-26m", "ext-32k", "rco-100m";
 		#clock-cells = <1>;
 	};
 
@@ -63,13 +61,6 @@
 		#clock-cells = <0>;
 		clock-frequency = <32768>;
 		clock-output-names = "ext-32k";
-	};
-
-	ext_4m: ext-4m {
-		compatible = "fixed-clock";
-		#clock-cells = <0>;
-		clock-frequency = <4000000>;
-		clock-output-names = "ext-4m";
 	};
 
 	rco_100m: rco-100m {
