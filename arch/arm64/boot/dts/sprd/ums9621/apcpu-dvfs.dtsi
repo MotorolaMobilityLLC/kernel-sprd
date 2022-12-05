@@ -45,7 +45,7 @@
 		cpufreq_clus0: cpufreq-clus0 {
 			sprd,voltage-step = <750000>;           /* uV       */
 			sprd,voltage-margin = <20>;             /* Cycle    */
-			sprd,transition-delay = <1000>;         /* us       */
+			sprd,transition-delay = <500>;         /* us       */
 			/*sprd,temp-threshold = <65>;*/             /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
 			sprd,multi-version;
@@ -57,10 +57,9 @@
 		cpufreq_clus1: cpufreq-clus1 {
 			sprd,voltage-step = <750000>;           /* uV       */
 			sprd,voltage-margin = <20>;             /* Cycle    */
-			sprd,transition-delay = <1000>;         /* us       */
+			sprd,transition-delay = <500>;         /* us       */
 			/*sprd,temp-threshold = <65>;*/             /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
-			sprd,suspend-idx = <1>;
 			sprd,multi-version;
 			sprd,cpufreq-boost;
 
@@ -70,10 +69,9 @@
 		cpufreq_clus2: cpufreq-clus2 {
 			sprd,voltage-step = <750000>;           /* uV       */
 			sprd,voltage-margin = <20>;             /* Cycle    */
-			sprd,transition-delay = <1000>;         /* us       */
+			sprd,transition-delay = <500>;         /* us       */
 			/*sprd,temp-threshold = <65>;*/             /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
-			sprd,suspend-idx = <1>;
 			sprd,multi-version;
 			sprd,cpufreq-boost;
 
