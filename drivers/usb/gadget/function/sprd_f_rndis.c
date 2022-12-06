@@ -378,44 +378,24 @@ static struct sk_buff *rndis_add_header(struct gether *port,
 	struct rndis_packet_msg_type *header = NULL;
 	struct f_rndis *rndis;
 	struct usb_composite_dev *cdev;
-	int pad_len, pad_flag = 0;
 
 	if (!skb)
 		return NULL;
 
-	if ((unsigned long)port & 0x1) {
-		pad_flag = 1;
-		port = (void *)port - 0x1;
-	}
 	rndis = func_to_rndis(&port->func);
 	cdev = port->func.config->cdev;
 
 	if (rndis->port.multi_pkt_xfer || gether_is_sg_enabled(&rndis->port)) {
 		if (port->header) {
-			if (pad_flag) {
-				pad_len = skb->len % 4;
-				if (pad_len)
-					pad_len = 4 - pad_len;
+			header = port->header;
+			header->MessageType = cpu_to_le32(RNDIS_MSG_PACKET);
+			header->MessageLength = cpu_to_le32(skb->len + sizeof(*header));
+			header->DataOffset = cpu_to_le32(36);
+			header->DataLength = cpu_to_le32(skb->len);
 
-				header = port->header;
-				header->MessageType =
-					cpu_to_le32(RNDIS_MSG_PACKET);
-				header->MessageLength = cpu_to_le32(skb->len +
-					sizeof(*header) + pad_len);
-				header->DataOffset = cpu_to_le32(36 + pad_len);
-				header->DataLength = cpu_to_le32(skb->len);
-			} else {
-				header = port->header;
-				header->MessageType =
-					cpu_to_le32(RNDIS_MSG_PACKET);
-				header->MessageLength = cpu_to_le32(skb->len +
-					sizeof(*header));
-				header->DataOffset = cpu_to_le32(36);
-				header->DataLength = cpu_to_le32(skb->len);
-			}
 			pr_debug("MessageLength:%d DataLength:%d\n",
-				header->MessageLength,
-				header->DataLength);
+					header->MessageLength,
+					header->DataLength);
 			return skb;
 		}
 

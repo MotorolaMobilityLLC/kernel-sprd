@@ -511,12 +511,11 @@ extra:
 static int alloc_requests(struct eth_dev *dev, struct gether *link, unsigned n)
 {
 	int	status;
-	int	pad_len = 4;
 
 	spin_lock(&dev->req_lock);
 	status = prealloc_sg(&dev->tx_reqs, link->in_ep, n * tx_qmult,
 				dev->sg_enabled,
-				dev->header_len + pad_len);
+				dev->header_len);
 	if (status < 0)
 		goto fail;
 	status = prealloc(&dev->rx_reqs, link->out_ep, n);
@@ -793,7 +792,6 @@ static void process_tx_w(struct work_struct *w)
 	bool			header_on = false;
 	int			req_cnt = 0;
 	bool			port_usb_active;
-	int pad_len;
 
 	spin_lock_irqsave(&dev->lock, flags);
 	dev->tx_work_status = 1;
@@ -846,23 +844,7 @@ static void process_tx_w(struct work_struct *w)
 
 			if (hlen && dev->wrap) {
 				dev->port_usb->header = req->buf + hdr_offset;
-
-				/* adjust 512 multi-packets to avoid musb
-				 * transfer exceed 16KBytes.
-				 */
-				if (((req->length + hlen + skb->len) & 511)
-				    == 0) {
-					pad_len = skb->len % 4;
-					if (pad_len)
-						pad_len = 4 - pad_len;
-					hlen += pad_len;
-
-					skb = dev->wrap((void *)dev->port_usb
-							+ 0x1, skb);
-				} else {
-					skb = dev->wrap(dev->port_usb, skb);
-				}
-
+				skb = dev->wrap(dev->port_usb, skb);
 				header_on = true;
 			}
 
