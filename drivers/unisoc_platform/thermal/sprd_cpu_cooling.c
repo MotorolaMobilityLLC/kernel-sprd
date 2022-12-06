@@ -33,6 +33,7 @@
 #include <trace/events/thermal.h>
 
 #define MAX_SENSOR_NUMBER	8
+#define GOV_NAME "power_allocator"
 static atomic_t in_suspend;
 
 /*
@@ -393,6 +394,11 @@ static int cpu_set_cur_state(struct thermal_cooling_device *cdev,
 				 unsigned long state)
 {
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
+	struct thermal_governor *governor = cpu_tz->governor;
+
+	/* the cpu_tz governor should be the same as GOV_NAME */
+	if (unlikely(strncmp(governor->name, GOV_NAME, sizeof(GOV_NAME))))
+		return -EINVAL;
 
 	/* Request state should be less than max_level */
 	if (WARN_ON(state > cpu_cdev->max_level))
@@ -620,12 +626,6 @@ cpu_cooling_register(struct device_node *np,
 		goto remove_ida;
 	}
 
-	cooling_ops = &cpu_power_cooling_ops;
-	cdev = thermal_of_cooling_device_register(np, dev_name, cpu_cdev,
-						cooling_ops);
-	if (IS_ERR(cdev))
-		goto remove_ida;
-
 	cpu_cdev->round = 0;
 	cpu_cdev->total = 0;
 	cpu_cdev->total_freq = 0;
@@ -633,7 +633,6 @@ cpu_cooling_register(struct device_node *np,
 	cpu_cdev->power = 0;
 	cpu_cdev->run_cpus = cpu_cdev->table[0].cpus;
 	cpu_cdev->level = 0;
-	cpu_cdev->cdev = cdev;
 	cpu_cdev->target_state = 0;
 	cpu_cdev->update_flag = 0;
 	cpu_cdev->max_freq = cpufreq_quick_get_max(cpumask_any(&cpu_cdev->allowed_cpus));
@@ -642,19 +641,30 @@ cpu_cooling_register(struct device_node *np,
 				"cpu_cdev%d_update", cpu_cdev->id);
 	if (IS_ERR(thread)) {
 		pr_err("Failed to create update thread\n");
+		cdev = ERR_PTR(-EINVAL);
 		goto remove_ida;
 	}
 
 	ret = sched_setscheduler_nocheck(thread, SCHED_FIFO, &params);
 	if (ret) {
-		kthread_stop(thread);
-		goto remove_ida;
+		cdev = ERR_PTR(-EINVAL);
+		goto free_thread;
 	}
 
 	cpu_cdev->update_thread = thread;
 
+	cooling_ops = &cpu_power_cooling_ops;
+	cdev = thermal_of_cooling_device_register(np, dev_name, cpu_cdev,
+						cooling_ops);
+	if (IS_ERR(cdev))
+		goto free_thread;
+
+	cpu_cdev->cdev = cdev;
+
 	return cdev;
 
+free_thread:
+	kthread_stop(thread);
 remove_ida:
 	ida_simple_remove(&cpu_ida, cpu_cdev->id);
 free_table:
