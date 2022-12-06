@@ -1205,9 +1205,10 @@ static int sdhci_sprd_voltage_switch(struct mmc_host *mmc, struct mmc_ios *ios)
 		break;
 	}
 
-reset:
 	/* Wait for 300 ~ 500 us for pin state stable */
 	usleep_range_state(300, 500, TASK_UNINTERRUPTIBLE);
+
+reset:
 	sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
 
 	return 0;
