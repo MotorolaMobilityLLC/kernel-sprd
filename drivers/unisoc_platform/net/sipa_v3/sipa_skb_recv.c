@@ -674,9 +674,11 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 
 	atomic_inc(&receiver->check_flag);
 
-	if (time_after(jiffies + msecs_to_jiffies(50),
-		       ipa->dev->power.wakeup->timer.expires)) {
-		pm_wakeup_dev_event(ipa->dev, 500, true);
+	if (ipa->sipa_sys_eb) {
+		if (time_after(jiffies + msecs_to_jiffies(50),
+			       ipa->dev->power.wakeup->timer.expires)) {
+			pm_wakeup_dev_event(ipa->dev, 500, true);
+		}
 	}
 
 	if (atomic_read(&receiver->check_suspend)) {

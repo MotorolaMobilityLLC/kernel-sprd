@@ -251,6 +251,7 @@ static enum alarmtimer_restart sipa_nic_alarm_to_release(struct alarm *alarm,
 	ktime_t now, add;
 	unsigned long flags;
 	bool release_flag = false;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
 	now = ktime_get_boottime();
 	add = ktime_set(SIPA_NIC_RM_INACTIVE_TIMER / MSEC_PER_SEC,
@@ -275,7 +276,7 @@ static enum alarmtimer_restart sipa_nic_alarm_to_release(struct alarm *alarm,
 		return ALARMTIMER_RESTART;
 	}
 
-	pr_debug("calling release_resource on resource %d!\n",
+	pr_info("calling release_resource on resource %d!\n",
 		 res->cons);
 	release_flag = true;
 	res->need_request = true;
@@ -284,8 +285,13 @@ static enum alarmtimer_restart sipa_nic_alarm_to_release(struct alarm *alarm,
 
 	spin_unlock_irqrestore(&res->lock, flags);
 
-	if (release_flag)
+	if (release_flag) {
 		sipa_rm_release_resource(res->cons);
+		if (!ipa->sipa_sys_eb) {
+			pm_relax(ipa->dev);
+			pr_info("ul nic to pm relax\n");
+		}
+	}
 
 	return ALARMTIMER_NORESTART;
 }
@@ -324,6 +330,7 @@ static int sipa_nic_rm_res_request(struct sipa_nic *nic)
 	int ret = 0;
 	unsigned long flags;
 	struct sipa_nic_cons_res *res = &nic->rm_res;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 
 	spin_lock_irqsave(&res->lock, flags);
 	res->resource_requested = true;
@@ -341,6 +348,10 @@ static int sipa_nic_rm_res_request(struct sipa_nic *nic)
 	spin_unlock_irqrestore(&res->lock, flags);
 
 	if (need_flag) {
+		if (!ipa->sipa_sys_eb) {
+			pm_stay_awake(ipa->dev);
+			pr_info("ul nic to pm stay awake\n");
+		}
 		ret = sipa_rm_request_resource(nic->rm_res.cons);
 		spin_lock_irqsave(&res->lock, flags);
 		res->need_request = false;
