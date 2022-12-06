@@ -2,6 +2,23 @@
 #include <dt-bindings/soc/sprd,qogirn6lite-regs.h>
 
 &soc {
+	pmu_apb_regs: syscon@64910000 {
+		compatible = "sprd,ums9621-glbregs", "syscon", "simple-mfd";
+		#syscon-cells = <2>;
+		reg = <0 0x64910000 0 0x3000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0 0 0x64910000 0x3000>;
+		pmu_gate: pmu-gate {
+			compatible = "sprd,ums9621-pmu-gate";
+			reg = <0x0 0x3000>;
+			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
+			#clock-cells = <1>;
+			#reset-cells = <1>;
+		};
+	};
+
 	anlg_phy_g0l_regs: syscon@64300000 {
 		compatible = "sprd,ums9621-glbregs", "syscon", "simple-mfd";
 		#syscon-cells = <2>;
@@ -136,23 +153,6 @@
 		compatible = "sprd,ums9621-glbregs", "syscon", "simple-mfd";
 		#syscon-cells = <2>;
 		reg = <0 0x64380000 0 0x3000>;
-	};
-
-	pmu_apb_regs: syscon@64910000 {
-		compatible = "sprd,ums9621-glbregs", "syscon", "simple-mfd";
-		#syscon-cells = <2>;
-		reg = <0 0x64910000 0 0x3000>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		ranges = <0 0 0x64910000 0x3000>;
-		pmu_gate: pmu-gate {
-			compatible = "sprd,ums9621-pmu-gate";
-			reg = <0x0 0x3000>;
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
-			#clock-cells = <1>;
-			#reset-cells = <1>;
-		};
 	};
 
 	aon_apb_regs: syscon@64900000 {
