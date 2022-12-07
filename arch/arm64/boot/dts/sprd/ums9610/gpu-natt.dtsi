@@ -89,7 +89,6 @@
 		sprd,dvfs-default = <0>;
 
 		clocks = <&aonapb_gate CLK_GPU_EB>,
-			<&gpu_clk CLK_GPU_CORE_EB>,
 			<&g1_pll CLK_RPLL_26M>,
 			<&g5l_pll CLK_TGPLL_76M8>,
 			<&g5l_pll CLK_TGPLL_153M6>,
