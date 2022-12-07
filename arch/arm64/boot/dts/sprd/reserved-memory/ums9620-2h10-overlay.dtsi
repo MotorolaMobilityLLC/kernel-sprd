@@ -5,7 +5,9 @@
 	};
 
 	widevine_reserved: widevine@dfc00000 {
+		compatible = "shared-dma-pool";
 		reg = <0x0 0xdfc00000 0x0 0x10400000>;
+		reusable;
 	};
 
 	ai_reserved: ai@fcc10000 {
