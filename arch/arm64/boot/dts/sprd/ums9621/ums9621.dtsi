@@ -11,7 +11,7 @@
 #include <dt-bindings/mfd/sprd,ump9620-regs.h>
 #include <dt-bindings/mfd/sprd,ump9620-mask.h>
 / {
-	soc-module = "UMS9620";
+	soc-module = "UMS9621";
 	soc-manufacturer = "Spreadtrum";
 	interrupt-parent = <&gic>;
 	#address-cells = <2>;
