@@ -82,7 +82,7 @@ void wcn_reset_process(void)
 	WCN_INFO("%s reset end\n", __func__);
 }
 
-void wcn_dump_process(void)
+void wcn_dump_process(enum wcn_source_type type)
 {
 	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
@@ -102,7 +102,7 @@ void wcn_dump_process(void)
 	dump_cnt++;
 
 	if (g_match_config && g_match_config->unisoc_wcn_integrated)
-		mdbg_dump_mem_integ();
+		mdbg_dump_mem_integ(type);
 	else
 		mdbg_dump_mem();
 
@@ -138,14 +138,14 @@ void wcn_assert_interface(enum wcn_source_type type, char *str)
 	wcnlog_clear_log();
 
 	if (reset_prop == WCN_ASSERT_ONLY_DUMP) { /*userdebug version*/
-		wcn_dump_process();
+		wcn_dump_process(type);
 		goto out;
 	} else if (reset_prop == WCN_ASSERT_ONLY_RESET) { /*user version*/
 		wcn_reset_process();
 		goto out;
 	} else if (reset_prop == WCN_ASSERT_BOTH_RESET_DUMP) {
 		/*need to do, please reference androidr_trunk_u01*/
-		wcn_dump_process();
+		wcn_dump_process(type);
 		msleep(2000);
 		wcn_reset_process();
 		sprdwcn_bus_set_carddump_status(false);
@@ -826,7 +826,7 @@ static ssize_t mdbg_proc_write(struct file *filp,
 			}
 			WCN_INFO("start mdbg dumpmem");
 			sprdwcn_bus_set_carddump_status(true);
-			mdbg_dump_mem_integ();
+			mdbg_dump_mem_integ(WCN_SOURCE_BTWF);
 			mutex_unlock(&mdbg_proc->mutex);
 			return count;
 		}

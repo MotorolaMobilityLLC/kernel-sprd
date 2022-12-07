@@ -690,7 +690,7 @@ u32 mdbg_check_gnss_poweron(void)
 
 }
 
-static int btwf_dump_mem(void)
+static int btwf_dump_mem(enum wcn_source_type type)
 {
 	u32 cp2_status = 0;
 	phys_addr_t sleep_addr;
@@ -716,6 +716,11 @@ static int btwf_dump_mem(void)
 			WCN_INFO("Dump need prerequisite!\n");
 			return 0;
 		}
+	}
+
+	if (type == WCN_SOURCE_GNSS && wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3) {
+		mdbg_cpu_reset();//only soft reset not reset release
+		return 0;
 	}
 
 	mdbg_hold_cpu();
@@ -754,13 +759,30 @@ static int btwf_dump_mem(void)
 	return 0;
 }
 
-void mdbg_dump_mem_integ(void)
+/*
+ * 9863a dump,if gnss and btwf both hold cpu,the dump will very slowly.
+ * this time kernel log will has scheedule_timeout
+ * now dump only dump the source type
+ *
+ */
+void mdbg_dump_mem_integ(enum wcn_source_type type)
 {
-	/* dump gnss */
-	gnss_dump_mem(0);
-
-	/* dump btwf */
-	btwf_dump_mem();
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3) {
+		if (type == WCN_SOURCE_GNSS) {
+			/* dump gnss */
+			gnss_dump_mem(0);
+			/* dump btwf */
+			btwf_dump_mem(type);//only send sleep ,not dump btwf
+		} else {
+			/* dump btwf */
+			btwf_dump_mem(type);
+		}
+	} else {
+		 /* dump gnss */
+		gnss_dump_mem(0);
+		/* dump btwf */
+		btwf_dump_mem(type);
+	}
 }
 
 int dump_arm_reg_integ(void)

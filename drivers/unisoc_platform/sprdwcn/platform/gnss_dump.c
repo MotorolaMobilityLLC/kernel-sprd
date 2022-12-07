@@ -555,7 +555,8 @@ static int gnss_integrated_dump_mem(void)
 
 	GNSSDUMP_INFO("gnss_dump_mem entry\n");
 
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6
+		|| wcn_platform_chip_type() == WCN_PLATFORM_TYPE_SHARKL3)
 		gnss_hold_cpu();
 	ret = gnss_dump_share_memory(GNSS_SHARE_MEMORY_SIZE);
 	gnss_dump_iram();

@@ -240,6 +240,7 @@ int wcn_marlin_power_enable_vddwifipa(bool enable);
 bool wcn_power_status_check(struct wcn_device *wcn_dev);
 u32 wcn_parse_platform_chip_id(struct wcn_device *wcn_dev);
 void mdbg_hold_cpu(void);
+void mdbg_cpu_reset(void);
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void);
 const char *wcn_get_chip_name(void);
 void wcn_merlion_power_control(bool enable);

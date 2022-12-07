@@ -1452,6 +1452,12 @@ void mdbg_hold_cpu(void)
 
 	wcn_soft_reset_release_btwf_cpu(WCN_BTWF_CPU_RESET_RELEASE);
 }
+
+void mdbg_cpu_reset(void)
+{
+	wcn_soft_reset_release_btwf_cpu(WCN_BTWF_CPU_RESET);
+}
+
 static void wcn_merlion_power_on(void)
 {
 	struct gpio_desc *merlion_chip_en_gpio = s_wcn_device.merlion_chip_en;
