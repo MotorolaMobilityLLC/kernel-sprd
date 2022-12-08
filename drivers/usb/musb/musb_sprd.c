@@ -189,7 +189,7 @@ static void sprd_musb_enable(struct musb *musb)
 	u8 devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
 
 	/* soft connect */
-	if (glue->id_state == MUSB_ID_GROUND) {
+	if (glue->id_state == MUSB_ID_GROUND || glue->dr_mode == USB_DR_MODE_HOST) {
 		/* Musb controller process go as device default.
 		 * From asic,controller will wait 150ms and then check vbus
 		 * if vbus is powered up.
@@ -704,6 +704,11 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 
 	if (glue->dr_mode == USB_DR_MODE_HOST) {
 		dev_info(glue->dev, "ignore vbus state in dr mode host\n");
+		return NOTIFY_DONE;
+	}
+
+	if (glue->drd_state == DRD_STATE_HOST_IDLE) {
+		dev_info(glue->dev, "ignore vbus state in host idle\n");
 		return NOTIFY_DONE;
 	}
 
@@ -1260,8 +1265,8 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		 * timeout and usb switch to host failed Sometimes.
 		 */
 		msleep(150);
-		sprd_musb_enable(musb);
 		glue->dr_mode = USB_DR_MODE_HOST;
+		sprd_musb_enable(musb);
 	} else {
 		u8 devctl;
 
@@ -1288,7 +1293,7 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 			musb_sprd_adaptive_shutdown(musb);
 		}
 #endif
-
+		msleep(150);
 		MUSB_DEV_MODE(musb);
 		glue->dr_mode = USB_DR_MODE_UNKNOWN;
 		devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
@@ -1582,8 +1587,8 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 
 		if (!test_bit(ID, &glue->inputs)) {
 			dev_dbg(glue->dev, "!id\n");
-			if (glue->is_audio_dev && !pm_runtime_suspended(glue->dev)) {
-				dev_info(glue->dev, "waiting glue suspended in audio mode\n");
+			if (!pm_runtime_suspended(glue->dev)) {
+				dev_info(glue->dev, "waiting glue suspended in host mode\n");
 				rework = true;
 				delay = MUSB_RUNTIME_CHECK_DELAY;
 			} else {
