@@ -365,13 +365,6 @@
 #define CLK_PERIPH		14
 #define CLK_TOPDVFS_CLK_NUM	(CLK_PERIPH + 1)
 
-#define CLK_GPU_CORE_EB		0
-#define CLK_GPU_APB_GATE_NUM	(CLK_GPU_CORE_EB + 1)
-
-#define CLK_GPU			0
-#define CLK_AP_MM		1
-#define CLK_GPU_CLK_NUM		(CLK_AP_MM + 1)
-
 #define CLK_JPG_EN			0
 #define CLK_CKG_EN			1
 #define CLK_DVFS_EN			2
