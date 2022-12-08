@@ -23,6 +23,9 @@
 		interrupt-names = "mc";
 		clocks = <&aonapb_gate CLK_OTG_PHY_EB>;
 		clock-names = "core_clk";
+		usb31pllv_frc_on = <&pmu_apb_regs
+			REG_PMU_APB_USB31PLLV_REL_CFG
+			MASK_PMU_APB_USB31PLLV_FRC_ON>;
 		usb-phy = <&hsphy>;
 		phy-names = "usb";
 		dr_mode = "host";
