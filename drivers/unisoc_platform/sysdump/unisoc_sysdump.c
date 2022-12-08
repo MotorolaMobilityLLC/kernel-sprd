@@ -360,7 +360,6 @@ int sprd_vmalloc_or_module_addr(const void *x)
 #endif
 	return addr >= VMALLOC_START && addr < VMALLOC_END;
 }
-#define sprd_virt_addr_valid(kaddr) ((void *)(kaddr) >= (void *)PAGE_OFFSET)
 /* maybe need to change in some situation */
 unsigned long unisoc_virt_to_phys(const void *kaddr)
 {
@@ -1610,13 +1609,15 @@ void get_file_line_info(void *p, const char *file, unsigned int line, unsigned l
 void get_exception_stack_info(struct pt_regs *regs)
 {
 	unsigned long stack_entries[MAX_STACK_TRACE_DEPTH];
-	char symbol[96];
 	int sz;
-	int off, plen;
 //	struct stack_trace trace;
-	int i;
 	struct task_struct *tsk, *cur;
+#if (IS_ENABLED(CONFIG_STACKTRACE) && IS_ENABLED(CONFIG_ARCH_STACKWALK))
+	char symbol[96];
+	int off, plen;
+	int i;
 	unsigned int nr_entries;
+#endif
 
 	cur = current;
 	tsk = cur;
