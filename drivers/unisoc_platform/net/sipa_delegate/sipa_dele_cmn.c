@@ -323,7 +323,8 @@ static int sipa_dele_local_rls_r_prod(void *user_data)
 	struct sipa_delegator *delegator = user_data;
 	int ret;
 
-	pr_debug("prod_id:%d\n", delegator->prod_id);
+	pr_info("prod_id:%d, delegator->stat = %d\n",
+		delegator->prod_id, delegator->stat);
 	spin_lock_irqsave(&delegator->lock, flags);
 	switch (delegator->stat) {
 	case SIPA_DELE_ACTIVE:
@@ -333,6 +334,7 @@ static int sipa_dele_local_rls_r_prod(void *user_data)
 		break;
 	case SIPA_DELE_REQUESTING:
 		delegator->stat = SIPA_DELE_RELEASING;
+		sipa_dele_start_rls_work(delegator);
 		ret = -EINPROGRESS;
 		break;
 	case SIPA_DELE_RELEASING:

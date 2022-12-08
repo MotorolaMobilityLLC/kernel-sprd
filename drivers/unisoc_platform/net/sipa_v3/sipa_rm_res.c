@@ -296,8 +296,10 @@ int sipa_rm_resource_producer_release(struct sipa_rm_res_prod *prod,
 			release_driver = true;
 		break;
 	case SIPA_RM_REQUEST_IN_PROGRESS:
-		if (prod->resource.ref_count == 0)
+		if (prod->resource.ref_count == 0) {
 			prod->resource.state = SIPA_RM_RELEASE_IN_PROGRESS;
+			release_driver = true;
+		}
 		break;
 	case SIPA_RM_RELEASE_IN_PROGRESS:
 		result = -EINPROGRESS;
