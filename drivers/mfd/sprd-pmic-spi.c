@@ -20,6 +20,9 @@
 #define SPRD_PMIC_INT_RAW_STATUS	0x4
 #define SPRD_PMIC_INT_EN		0x8
 
+#define SPRD_SC2721_IRQ_BASE		0xc0
+#define SPRD_SC2721_IRQ_NUMS		11
+#define SPRD_SC2721_SLAVE_ID            0x0
 #define SPRD_SC2730_IRQ_BASE		0x80
 #define SPRD_SC2730_IRQ_NUMS		10
 #define SPRD_SC2730_SLAVE_ID            0x0
@@ -39,6 +42,7 @@
 #define SPRD_PMIC_EIC_MIS		0x20
 #define SPRD_SC2731_EIC_BASE		0x300
 #define SPRD_SC2730_EIC_BASE		0x280
+#define SPRD_SC2721_EIC_BASE		0x280
 #define SPRD_UMP9620_EIC_BASE		0x280
 
 /* PMIC charger detection definition */
@@ -84,6 +88,13 @@ struct sprd_pmic_data {
  * base address and irq number, we should save irq number and irq base
  * in the device data structure.
  */
+static const struct sprd_pmic_data sc2721_data = {
+	.slave_id = SPRD_SC2721_SLAVE_ID,
+	.irq_base = SPRD_SC2721_IRQ_BASE,
+	.eic_base = SPRD_SC2721_EIC_BASE,
+	.num_irqs = SPRD_SC2721_IRQ_NUMS,
+};
+
 static const struct sprd_pmic_data sc2730_data = {
 	.slave_id = SPRD_SC2730_SLAVE_ID,
 	.irq_base = SPRD_SC2730_IRQ_BASE,
@@ -389,6 +400,7 @@ static int sprd_pmic_resume(struct device *dev)
 static SIMPLE_DEV_PM_OPS(sprd_pmic_pm_ops, sprd_pmic_suspend, sprd_pmic_resume);
 
 static const struct of_device_id sprd_pmic_match[] = {
+	{ .compatible = "sprd,sc2721", .data = &sc2721_data },
 	{ .compatible = "sprd,sc2731", .data = &sc2731_data },
 	{ .compatible = "sprd,sc2730", .data = &sc2730_data },
 	{ .compatible = "sprd,ump9620", .data = &ump9620_data },
@@ -399,6 +411,7 @@ static const struct of_device_id sprd_pmic_match[] = {
 MODULE_DEVICE_TABLE(of, sprd_pmic_match);
 
 static const struct spi_device_id sprd_pmic_spi_ids[] = {
+	{ .name = "sc2721", .driver_data = (unsigned long)&sc2721_data },
 	{ .name = "sc2731", .driver_data = (unsigned long)&sc2731_data },
 	{ .name = "sc2730", .driver_data = (unsigned long)&sc2730_data },
 	{ .name = "ump9620", .driver_data = (unsigned long)&ump9620_data },
