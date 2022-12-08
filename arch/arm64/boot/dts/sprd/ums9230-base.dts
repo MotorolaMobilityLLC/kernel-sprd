@@ -28,6 +28,9 @@
 		serial0 = &uart0;
 		serial1 = &uart1;
 		serial2 = &uart2;
+		mmc0 = &sdio3;
+		mmc1 = &sdio0;
+		mmc2 = &sdio1;
 	};
 
 	memory@80000000 {

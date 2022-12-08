@@ -220,18 +220,6 @@
 				status = "disabled";
 			};
 
-			sdio3: sdio@201d0000 {
-				compatible = "sprd,sdhci-r11";
-				reg = <0 0x201d0000 0 0x1000>;
-				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "sdio", "enable";
-				clocks = <&ap_clk CLK_EMMC_2X>,
-					 <&apapb_gate CLK_EMMC_EB>;
-				assigned-clocks = <&ap_clk CLK_EMMC_2X>;
-				assigned-clock-parents = <&mpll1 CLK_RPLL>;
-				status = "disabled";
-			};
-
 			sdio0: sdio@201a0000 {
 				compatible = "sprd,sdhci-r11";
 				reg = <0 0x201a0000 0 0x1000>;
@@ -265,6 +253,18 @@
 					 <&apapb_gate CLK_SDIO1_EB>;
 				assigned-clocks = <&ap_clk CLK_SDIO1_2X>;
 				assigned-clock-parents = <&pll1 CLK_LPLL_409M6>;
+				status = "disabled";
+			};
+
+			sdio3: sdio@201d0000 {
+				compatible = "sprd,sdhci-r11";
+				reg = <0 0x201d0000 0 0x1000>;
+				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio", "enable";
+				clocks = <&ap_clk CLK_EMMC_2X>,
+					 <&apapb_gate CLK_EMMC_EB>;
+				assigned-clocks = <&ap_clk CLK_EMMC_2X>;
+				assigned-clock-parents = <&mpll1 CLK_RPLL>;
 				status = "disabled";
 			};
 
