@@ -41,6 +41,9 @@
 		spi2 = &spi2;
 		spi3 = &spi3;
 		spi4 = &adi_bus;
+		mmc0 = &sdio3;
+		mmc1 = &sdio0;
+		mmc2 = &sdio1;
 	};
 
 	memory@80000000 {
