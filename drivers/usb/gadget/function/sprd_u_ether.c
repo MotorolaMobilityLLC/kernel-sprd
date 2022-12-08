@@ -1601,11 +1601,8 @@ EXPORT_SYMBOL_GPL(sprd_gether_cleanup);
 void gether_update_dl_max_xfer_size(struct gether *link, u32 s)
 {
 	struct eth_dev		*dev = link->ioport;
-	unsigned long flags;
 
-	spin_lock_irqsave(&dev->lock, flags);
 	dev->dl_max_xfer_size = s;
-	spin_unlock_irqrestore(&dev->lock, flags);
 }
 EXPORT_SYMBOL_GPL(gether_update_dl_max_xfer_size);
 
@@ -1629,14 +1626,11 @@ EXPORT_SYMBOL_GPL(gether_is_sg_enabled);
 void gether_update_dl_max_pkts_per_xfer(struct gether *link, u32 n)
 {
 	struct eth_dev		*dev = link->ioport;
-	unsigned long flags;
 
 	if (n > DL_MAX_PKTS_PER_XFER)
 		n = DL_MAX_PKTS_PER_XFER;
 
-	spin_lock_irqsave(&dev->lock, flags);
 	dev->dl_max_pkts_per_xfer = n;
-	spin_unlock_irqrestore(&dev->lock, flags);
 }
 EXPORT_SYMBOL_GPL(gether_update_dl_max_pkts_per_xfer);
 
