@@ -79,5 +79,6 @@ source "drivers/unisoc_platform/sprd_coresight/Kconfig"
 source "drivers/unisoc_platform/past_record/Kconfig"
 source "drivers/unisoc_platform/usbpinmux/Kconfig"
 source "drivers/unisoc_platform/sprd_cache_print/Kconfig"
+source "drivers/unisoc_platform/autotest/Kconfig"
 
 endmenu

@@ -38,3 +38,4 @@ obj-y += sprd_time_sync/
 obj-y += power/
 obj-y += thermal/
 obj-y += performance/
+obj-y += autotest/
