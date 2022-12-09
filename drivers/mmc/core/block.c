@@ -1010,6 +1010,11 @@ static int mmc_blk_reset(struct mmc_blk_data *md, struct mmc_host *host,
 	if (md->reset_done & type)
 		return -EEXIST;
 
+	if (mmc_card_sd(host->card)) {
+               if(host->card->sd_bus_speed == UHS_SDR104_BUS_SPEED)
+                       host->card->sw_caps.sd3_bus_mode &= ~(SD_MODE_UHS_SDR104 | SD_MODE_UHS_DDR50);
+        }
+
 	md->reset_done |= type;
 	err = mmc_hw_reset(host);
 	/* Ensure we switch back to the correct partition */
