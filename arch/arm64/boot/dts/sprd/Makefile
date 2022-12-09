@@ -4,15 +4,6 @@ ifeq ($(BSP_BUILD_DT_OVERLAY),y)
 
 ifeq ($(BSP_BUILD_ANDROID_OS),y)
 
-ifeq ($(BSP_BUILD_FAMILY),sharkl3)
-dtb-$(CONFIG_ARCH_SPRD) += \
-    sp9863a-1h10-overlay.dtb \
-    sp9863a-1h10_go-overlay.dtb
-
-#sp9863a-1h10-overlay.dtbo-base := sp9863a.dtb
-#sp9863a-1h10_go-overlay.dtbo-base := sp9863a.dtb
-endif
-
 ifeq ($(BSP_BUILD_FAMILY),sharkl5Pro)
 
 dtb-$(CONFIG_ARCH_SPRD) += ums512-1h10-overlay.dtbo
@@ -20,15 +11,6 @@ dtb-$(CONFIG_ARCH_SPRD) += ums512-1h10-go-overlay.dtbo
 
 ums512-1h10-overlay.dtbo-base := ums512-base.dtb
 ums512-1h10-go-overlay.dtbo-base := ums512-base.dtb
-endif
-
-ifeq ($(BSP_BUILD_FAMILY),sharkl5)
-dtb-$(CONFIG_ARCH_SPRD) += \
-	ums312-2h10-overlay.dtb \
-	ums312-2h10-go-overlay.dtb
-
-#ums312-2h10-overlay.dtbo-base := ums312.dtb
-#ums312-2h10-go-overlay.dtbo-base := ums312.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),qogirl6)
