@@ -908,8 +908,16 @@ static bool blk_mq_req_expired(struct request *rq, unsigned long *next)
 		return false;
 
 	deadline = READ_ONCE(rq->deadline);
+#ifdef CONFIG_SPRD_DEBUG
+	if (time_after_eq(jiffies, deadline)) {
+		pr_err("%s: jiffies: %lu, ns: %lu, deadline: %lu, rq: %0x", __func__,
+			jiffies, ktime_get_ns(), deadline, (unsigned long)rq);
+		return true;
+	}
+#else
 	if (time_after_eq(jiffies, deadline))
 		return true;
+#endif
 
 	if (*next == 0)
 		*next = deadline;

@@ -83,6 +83,9 @@ void blk_abort_request(struct request *req)
 	 * immediately and that scan sees the new timeout value.
 	 * No need for fancy synchronizations.
 	 */
+#ifdef CONFIG_SPRD_DEBUG
+	dump_stack();
+#endif
 	WRITE_ONCE(req->deadline, jiffies);
 	kblockd_schedule_work(&req->q->timeout_work);
 }
