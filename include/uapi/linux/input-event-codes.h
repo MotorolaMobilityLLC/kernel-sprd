@@ -275,6 +275,8 @@
 #define KEY_F24			194
 #define KEY_ANT			195
 
+#define KEY_AOD			199	/*display aod function*/
+
 #define KEY_PLAYCD		200
 #define KEY_PAUSECD		201
 #define KEY_PROG3		202
