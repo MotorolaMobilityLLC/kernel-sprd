@@ -1179,24 +1179,49 @@ static void sdiohal_remove(struct sdio_func *func)
 	pr_info("%s remove card successful\n", __func__);
 }
 
+/*
+ *    @dir: 0 rx, 1 tx
+ */
+int wcn_thread_setattr(unsigned int dir, struct sched_attr *attr)
+{
+	int ret;
+	struct task_struct *target;
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	pr_info("%s: dir %u\n", __func__, dir);
+
+	if (!attr)
+		return -EINVAL;
+
+	target = dir ? p_data->tx_thread : p_data->rx_thread;
+
+	ret = sched_setattr(target, attr);
+	if (ret) {
+		pr_err("%s err %d\n", __func__, ret);
+		return ret;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(wcn_thread_setattr);
+
 static void sdiohal_launch_thread(void)
 {
-	struct task_struct *tx_thread = NULL;
-	struct task_struct *rx_thread = NULL;
+	struct sdiohal_data_t *p_data = sdiohal_get_data();
 
-	tx_thread = kthread_create(sdiohal_tx_thread,
+	p_data->tx_thread = kthread_create(sdiohal_tx_thread,
 				   NULL, "sdiohal_tx_thread");
-	if (tx_thread)
-		wake_up_process(tx_thread);
+	if (p_data->tx_thread)
+		wake_up_process(p_data->tx_thread);
 	else {
 		pr_err("create sdiohal_tx_thread fail\n");
 		return;
 	}
 
-	rx_thread = kthread_create(sdiohal_rx_thread,
+	p_data->rx_thread = kthread_create(sdiohal_rx_thread,
 				   NULL, "sdiohal_rx_thread");
-	if (rx_thread)
-		wake_up_process(rx_thread);
+	if (p_data->rx_thread)
+		wake_up_process(p_data->rx_thread);
 	else
 		pr_err("creat sdiohal_rx_thread fail\n");
 }
