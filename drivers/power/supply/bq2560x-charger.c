@@ -1591,6 +1591,10 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
+	ret = bq2560x_charger_set_power_path_status(info, true);
+	if (ret)
+		dev_err(info->dev, "Failed to enable power path\n");
+
 	info->otg_enable = true;
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(BQ2560X_FEED_WATCHDOG_VALID_MS));
@@ -1919,6 +1923,10 @@ static void bq2560x_charger_shutdown(struct i2c_client *client)
 					  0);
 		if (ret)
 			dev_err(info->dev, "disable bq2560x otg failed ret = %d\n", ret);
+
+		ret = bq2560x_charger_set_power_path_status(info, false);
+		if (ret)
+			dev_err(info->dev, "Failed to disable power path\n");
 
 		/* Enable charger detection function to identify the charger type */
 		ret = regmap_update_bits(info->pmic, info->charger_detect,
