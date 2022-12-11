@@ -382,6 +382,8 @@ struct musb {
 	bool			adaptive_in_configured;
 	bool			adaptive_out_configured;
 	u8			adaptive_used;
+	bool			adaptive_wake_lock_enable;
+	struct wakeup_source		*adaptive_wake_lock;
 #endif
 
 	int			a_wait_bcon;	/* VBUS timeout in msecs */

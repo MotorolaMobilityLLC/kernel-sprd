@@ -2767,6 +2767,7 @@ void musb_set_adaptive_mode(struct usb_hcd *hcd, bool is_adaptive)
 	struct musb *musb = hcd_to_musb(hcd);
 
 	musb->is_adaptive = is_adaptive;
+	musb->is_offload = is_adaptive;
 }
 EXPORT_SYMBOL(musb_set_adaptive_mode);
 
@@ -2863,13 +2864,19 @@ void musb_adaptive_config(struct usb_hcd *hcd, int ep_num, int mono,
 	musb->offload_used = musb->adaptive_used;
 
 	if (musb->adaptive_used > 0) {
-		musb->is_adaptive = true;
-		musb->is_offload = true;
+		if (musb->adaptive_wake_lock_enable) {
+			dev_info(musb->controller, "%s:stay wake up\n", __func__);
+			__pm_stay_awake(musb->adaptive_wake_lock);
+			musb->adaptive_wake_lock_enable = false;
+		}
 	} else {
 		dev_info(musb->controller, "No adaptive used!\n");
 		musb_adaptive_disable(musb);
-		musb->is_adaptive = false;
-		musb->is_offload = false;
+		if (!musb->adaptive_wake_lock_enable) {
+			dev_info(musb->controller, "%s:stop wake up\n", __func__);
+			__pm_relax(musb->adaptive_wake_lock);
+			musb->adaptive_wake_lock_enable = true;
+		}
 	}
 	spin_unlock_irqrestore(&musb->lock, flags);
 }
@@ -3597,10 +3604,14 @@ int musb_host_alloc(struct musb *musb)
 	musb->hops.rx_dma_program = musb_rx_dma_sprd;
 
 #if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+	musb->adaptive_wake_lock = wakeup_source_create("musb-adaptive");
+	if (musb->adaptive_wake_lock)
+		wakeup_source_add(musb->adaptive_wake_lock);
 	musb->is_adaptive_in = false;
 	musb->is_adaptive_out = false;
 	musb->adaptive_in_configured = false;
 	musb->adaptive_out_configured = false;
+	musb->adaptive_wake_lock_enable = true;
 #endif
 
 	return 0;
