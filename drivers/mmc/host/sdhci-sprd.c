@@ -160,7 +160,6 @@ struct sdhci_sprd_host {
 	struct register_hotplug reg_debounce_cn;
 	struct register_hotplug reg_rmldo_en;
 	unsigned char	power_mode;
-	u32 int_status;
 	bool support_swcq;
 	bool support_cqe;
 	bool support_ice;
@@ -1033,29 +1032,14 @@ static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
 
 static u32 sdhci_sprd_cqe_irq(struct sdhci_host *host, u32 intmask)
 {
-	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	int cmd_error = 0;
 	int data_error = 0;
-	struct mmc_command cmd;
-	bool flag = false;
-	sprd_host->int_status = intmask;
 
 	if (intmask & SDHCI_INT_ERROR_MASK)
 		sdhci_sprd_dump_vendor_regs(host);
 
-	/* when data crc, host->cmd = null in sdhci_cqe_irq() */
-	if (host->cqe_on && sprd_host->support_cqe && (intmask & SDHCI_INT_ERROR_MASK)
-		&& !host->cmd) {
-		host->cmd = &cmd;
-		flag = true;
-	}
-
 	if (!sdhci_cqe_irq(host, intmask, &cmd_error, &data_error))
 		return intmask;
-
-	/* when data crc, host->cmd = null in sdhci_cqe_irq() */
-	if (flag)
-		host->cmd = NULL;
 
 	cqhci_irq(host->mmc, intmask, cmd_error, data_error);
 
