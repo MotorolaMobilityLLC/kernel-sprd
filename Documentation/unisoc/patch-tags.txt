@@ -56,6 +56,7 @@ arm/arm64:topology:
 arm:configs:
 arm:dts:
 arm:topology:
+arm:
 asoc:sprd:
 asoc:sprd:codec:
 asoc:sprd:dai:
