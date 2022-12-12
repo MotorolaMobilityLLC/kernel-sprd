@@ -2040,11 +2040,11 @@ static int zram_e_show_mem_cb(int id, void *ptr, void *data)
 	pr_info("	compressed: %lld kB\n",
 		atomic64_read(&zram->stats.compr_data_size) / 1024);
 #else
-	pr_info("       orig: %lld pages, %lld kB\n",
-		atomic_read(&zram->stats.pages_stored),
-		(atomic_read(&zram->stats.pages_stored) << PAGE_SHIFT) / 1024);
-	pr_info("       compressed: %lld kB\n",
-		atomic_read(&zram->stats.compr_data_size) / 1024);
+	pr_info("        orig: %lld pages,  %lld kB\n",
+		atomic64_read(&zram->stats.pages_stored),
+		(atomic64_read(&zram->stats.pages_stored) << PAGE_SHIFT) / 1024);
+	pr_info("        compressed: %lld kB\n",
+		atomic64_read(&zram->stats.compr_data_size) / 1024);
 #endif
 	return 0;
 }
