@@ -70,6 +70,15 @@ static void ufs_sprd_vh_update_sdev(void *data, struct scsi_device *sdev)
 {
 	/* Disable UFS fua to prevent write performance degradation */
 	sdev->broken_fua = 1;
+
+	/* The cpus_share_cache interface always return true on k515,
+	 * causing blk_mq_complete_request to occur in the ufs_work
+	 * context that calls it.
+	 * The configuration flag QUEUE_FLAG_SAME_FORCE can make need_ipi return true
+	 * and let complete happen on the corresponding cpu that sends the request.
+	 */
+	if (sdev->request_queue)
+		blk_queue_flag_set(QUEUE_FLAG_SAME_FORCE, sdev->request_queue);
 }
 
 static void ufs_sprd_vh_send_uic_cmd(void *data, struct ufs_hba *hba,
