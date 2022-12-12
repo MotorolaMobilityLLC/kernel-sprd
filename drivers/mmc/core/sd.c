@@ -1195,7 +1195,8 @@ static int _mmc_sd_suspend(struct mmc_host *host)
 
 	mmc_claim_host(host);
 
-	if (mmc_card_suspended(host->card))
+//	if (mmc_card_suspended(host->card))
+	if (!host->card && mmc_card_suspended(host->card))
 		goto out;
 
 	if (!mmc_host_is_spi(host))
