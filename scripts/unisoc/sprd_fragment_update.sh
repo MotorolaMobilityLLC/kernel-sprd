@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-2.0
 #!/bin/bash
 
 update_flag=0
@@ -63,9 +64,10 @@ USERLDFLAGS+="--target=${NDK_TRIPLE} "
 export USERCFLAGS USERLDFLAGS
 
 function get_board() {
-	cd ${KERNEL_PATH}/arch/arm64/configs/
-	board_fragment_list=$(find ./* -name "sprd_gki_*.fragment"|grep -v debug)
-
+	arch=$1
+	fragment_prefix=$2
+	cd ${KERNEL_PATH}/arch/${arch}/configs/
+	board_fragment_list=$(find ./* -name "${fragment_prefix}_*.fragment"|grep -v debug)
 	for i in ${board_fragment_list}
 	do
 		board_list="${board_list} $(echo $i|awk -F'_' '{print $NF}'|awk -F'.' '{print $1}')"
@@ -84,14 +86,20 @@ function sort_config() {
 
 # verifies that defconfig matches the DEFCONFIG
 function check_defconfig() {
+	arch=$1
 	cd ${ROOT_DIR}
 	local out=$(mktemp -d /tmp/tmpd.XXXXXX)
-	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=arm64 O=${out} $1 >/dev/null
-	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=arm64 O=${out} savedefconfig >/dev/null
+	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=${arch} O=${out} \
+		$2 >/dev/null
+	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=${arch} O=${out} \
+		savedefconfig >/dev/null
 	RES=0
-	diff -u ${KERNEL_PATH}/arch/${ARCH}/configs/$1 ${out}/defconfig >&2 || RES=$?
+	diff -u ${KERNEL_PATH}/arch/${arch}/configs/$2 ${out}/defconfig >&2 || RES=$?
 	if [ ${RES} -ne 0 ]; then
-		echo ERROR: savedefconfig does not match ${KERNEL_DIR}/arch/${ARCH}/configs/${DEFCONFIG} >&2
+		echo ERROR: savedefconfig does not match ${KERNEL_DIR}/arch/${ARCH}/configs/$2 >&2
+		if [[ $update_flag -eq 1 ]] && [[ "$arch" == "arm" ]];then
+			cp ${out}/defconfig ${KERNEL_PATH}/arch/${arch}/configs/$2
+		fi
 	fi
 	rm -rf ${out}
 	return ${RES}
@@ -99,24 +107,35 @@ function check_defconfig() {
 
 function generate_config()
 {
-	baseconfig=$1
-	fragment=$2
-	defconfig=$3
+	arch=$1
+	baseconfig=$2
+	fragment=$3
+	defconfig=$4
 	local out=$(mktemp -d /tmp/tmpd.XXXXXX)
 	local orig_config=$(mktemp)
 	local new_config=$(mktemp)
 	local changed_config=$(mktemp)
 	local new_fragment=$(mktemp)
 	local new_fragment_sorted=$(mktemp)
-	check_defconfig gki_defconfig
+	if [[ "${arch}" == "arm" ]];then
+		fragment_prefix="sprd"
+		check_defconfig ${arch} sprd_defconfig
+	elif [[ "${arch}" == "arm64" ]];then
+		check_defconfig ${arch} gki_defconfig
+	fi
 	if [[ $? -ne 0 ]];then
 		exit 1
 	fi
 	cd ${ROOT_DIR}
-	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=arm64 O=${out} ${baseconfig} >/dev/null
+	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=${arch} \
+		O=${out} ${baseconfig} >/dev/null
 	cp ${out}/.config ${orig_config}
-	KCONFIG_CONFIG=${KERNEL_PATH}/arch/arm64/configs/${defconfig} ${KERNEL_PATH}/scripts/kconfig/merge_config.sh -m -r ${KERNEL_PATH}/arch/arm64/configs/${baseconfig} ${KERNEL_PATH}/arch/arm64/configs/${fragment} >/dev/null
-	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=arm64 O=${out} ${defconfig} >/dev/null
+	KCONFIG_CONFIG=${KERNEL_PATH}/arch/${arch}/configs/${defconfig} \
+		${KERNEL_PATH}/scripts/kconfig/merge_config.sh \
+		-m -r ${KERNEL_PATH}/arch/${arch}/configs/${baseconfig} \
+		${KERNEL_PATH}/arch/${arch}/configs/${fragment} >/dev/null
+	make -j ${JOBS} -C ${KERNEL_DIR} LLVM=1 DEPMOD=depmod DTC=dtc ARCH=${arch} \
+		O=${out} ${defconfig} >/dev/null
 	cp ${out}/.config ${new_config}
 
 	${KERNEL_PATH}/scripts/diffconfig -m ${orig_config} ${new_config} > ${new_fragment}
@@ -124,15 +143,16 @@ function generate_config()
 	#	${KERNEL_PATH}/arch/${ARCH}/configs/${fragment} ${changed_config} >/dev/null
 
 	sort_config ${new_fragment} > ${new_fragment_sorted}
-	diff -u ${KERNEL_PATH}/arch/${ARCH}/configs/${fragment} ${new_fragment_sorted} >/dev/null || RES=$?
+	diff -u ${KERNEL_PATH}/arch/${arch}/configs/${fragment} \
+		${new_fragment_sorted} >/dev/null || RES=$?
 	if [ ${RES} -ne 0 ]; then
-		echo "ERROR: the fragment ${fragment} order not correct" >&2
+		echo "        ERROR: the fragment ${fragment} order not correct" >&2
 		if [ $update_flag -eq 1 ];then
 			echo "update the ${fragment}"
-			cp  ${new_fragment_sorted} ${KERNEL_PATH}/arch/${ARCH}/configs/${fragment}
+			cp  ${new_fragment_sorted} ${KERNEL_PATH}/arch/${arch}/configs/${fragment}
 		fi
 	else
-		echo "the fragment ${fragment} has a correct order" >&1
+		echo "        the fragment ${fragment} has a correct order" >&1
 	fi
 
 	rm -rf ${out}
@@ -140,24 +160,48 @@ function generate_config()
 
 	return $RES
 }
+function sort_fragment()
+{
+	arch=$1
+	fragment_prefix=$2
+	common_base_config=$3
+	# sort the sprd_gki_SOC[_debug].fragment
+	for board in $(get_board ${arch} ${fragment_prefix})
+	do
+		echo "check ${fragment_prefix}_${board}.fragment"
+		generate_config ${arch} ${common_base_config} \
+			${fragment_prefix}_${board}.fragment test_sprd_${board}_defconfig
+		let return_val=$?+$return_val
+		echo "check ${fragment_prefix}_${board}_debug.fragment"
+		generate_config ${arch} test_sprd_${board}_defconfig \
+			${fragment_prefix}_${board}_debug.fragment \
+			test_sprd_${board}_debug_defconfig
+		let return_val=$?+$return_val
+		rm -rf $KERNEL_PATH/arch/${arch}/configs/test_sprd_${board}_defconfig
+		rm -rf $KERNEL_PATH/arch/${arch}/configs/test_sprd_${board}_debug_defconfig
+	done
+}
+#sort the sprd_gki.fragment
+echo "check sprd_gki.fragment"
+generate_config arm64 gki_defconfig sprd_gki.fragment test_gki_sprd_defconfig
+let return_val=$?+$return_val
+rm -rf $KERNEL_PATH/arch/arm64/configs/test_gki_sprd_defconfig
+
 if [[ "$1" == "update" ]];then
 	update_flag=1
 fi
-# sort the sprd_gki_SOC[_debug].fragment
-for board in $(get_board)
+arch_list="arm64 arm"
+for arch in ${arch_list}
 do
-	echo "check sprd_gki_${board}.fragment"
-	generate_config gki_defconfig sprd_gki_${board}.fragment test_sprd_${board}_defconfig
-	let return_val=$?+$return_val
-	echo "check sprd_gki_${board}_debug.fragment"
-	generate_config test_sprd_${board}_defconfig  sprd_gki_${board}_debug.fragment test_sprd_${board}_debug_defconfig
-	let return_val=$?+$return_val
-	rm -rf $KERNEL_PATH/arch/arm64/configs/test_sprd_${board}_defconfig
-	rm -rf $KERNEL_PATH/arch/arm64/configs/test_sprd_${board}_debug_defconfig
+	echo "Start check ${arch} fragment order"
+	if [[ "${arch}" == "arm" ]];then
+		fragment_prefix="sprd"
+		common_base_config=sprd_defconfig
+	elif [[ "${arch}" == "arm64" ]];then
+		fragment_prefix="sprd_gki"
+		common_base_config=gki_defconfig
+	fi
+	sort_fragment ${arch} ${fragment_prefix} ${common_base_config}
 done
-#sort the sprd_gki.fragment
-echo "check sprd_gki.fragment"
-generate_config gki_defconfig sprd_gki.fragment test_gki_sprd_defconfig
-let return_val=$?+$return_val
-rm -rf $KERNEL_PATH/arch/arm64/configs/test_gki_sprd_defconfig
+
 exit $return_val
