@@ -471,6 +471,15 @@ config SPRD_TIMER
 	help
 	  Enables support for the Spreadtrum timer driver.
 
+config SPRD_TIMER_TEST
+	tristate "Spreadtrum timer driver" if EXPERT
+	depends on SPRD_TIMER
+	help
+	  Say y here to enable Debug support.
+	  When in doubt, say n
+	  this is a debug feature that record suspend time
+	  when system suspend or resume
+
 config SYS_SUPPORTS_SH_MTU2
 	bool
 
