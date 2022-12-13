@@ -468,54 +468,6 @@
 				status = "disabled";
 			};
 
-			sdio0: sdio@201a0000 {
-				compatible = "sprd,sdhci-r11";
-				reg = <0 0x201a0000 0 0x1000>;
-				interrupts = <GIC_SPI 19 IRQ_TYPE_LEVEL_HIGH>;
-				sd-detect-pol-syscon = <&aon_apb_regs
-					REG_AON_APB_AP_SDIO0_PHY_CTRL
-					MASK_AON_APB_AP_SDIO0_CARD_PRESENT_32K>;
-				sd-hotplug-protect-en-syscon = <&aon_apb_regs
-					REG_AON_APB_AP_SDIO0_PHY_CTRL
-					MASK_AON_APB_AP_SDIO0_CARD_PROTECT_32K>;
-				sd-hotplug-debounce-en-syscon = <&aon_apb_regs
-					REG_AON_APB_AP_SDIO0_PHY_CTRL
-					MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_EN_32K>;
-				sd-hotplug-debounce-cn-syscon = <&aon_apb_regs
-					REG_AON_APB_AP_SDIO0_PHY_CTRL
-					MASK_AON_APB_AP_SDIO0_CARDDET_DBNC_THD_32K>;
-				clock-names = "sdio", "enable";
-				clocks = <&ap_clk CLK_SDIO0_2X>,
-					 <&apapb_gate CLK_SDIO0_EB>;
-				assigned-clocks = <&ap_clk CLK_SDIO0_2X>;
-				assigned-clock-parents = <&mpll1 CLK_RPLL>;
-				status = "disabled";
-			};
-
-			sdio1: sdio@201b0000 {
-				compatible = "sprd,sdhci-r11";
-				reg = <0 0x201b0000 0 0x1000>;
-				interrupts = <GIC_SPI 20 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "sdio", "enable";
-				clocks = <&ap_clk CLK_SDIO1_2X>,
-					 <&apapb_gate CLK_SDIO1_EB>;
-				assigned-clocks = <&ap_clk CLK_SDIO1_2X>;
-				assigned-clock-parents = <&pll1 CLK_LPLL_409M6>;
-				status = "disabled";
-			};
-
-			sdio3: sdio@201d0000 {
-				compatible = "sprd,sdhci-r11";
-				reg = <0 0x201d0000 0 0x1000>;
-				interrupts = <GIC_SPI 10 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "sdio", "enable";
-				clocks = <&ap_clk CLK_EMMC_2X>,
-					 <&apapb_gate CLK_EMMC_EB>;
-				assigned-clocks = <&ap_clk CLK_EMMC_2X>;
-				assigned-clock-parents = <&mpll1 CLK_RPLL>;
-				status = "disabled";
-			};
-
 			apsys_dvfs: apsys-dvfs@71700000 {
 				compatible = "sprd,hwdvfs-apsys-qogirl6";
 				reg = <0x0 0x20014000 0x0 0x15c>;
@@ -1848,4 +1800,5 @@
 #include "modem.dtsi"
 #include "qos.dtsi"
 #include "thermal.dtsi"
+#include "sdio.dtsi"
 #include "wcn.dtsi"

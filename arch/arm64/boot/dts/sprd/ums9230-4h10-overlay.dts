@@ -598,6 +598,14 @@
 	cd-gpios = <&eic_sync 35 GPIO_ACTIVE_HIGH>;
 };
 
+&sdio1 {
+	status = "okay";
+};
+
+&sdio3 {
+	status = "okay";
+};
+
 &i2c2 {
 	status = "okay";
 	#address-cells = <1>;
