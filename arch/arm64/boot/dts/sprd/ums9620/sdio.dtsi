@@ -5,18 +5,6 @@
  * Copyright (C) 2020~2021, Unisoc Communications Inc.
  */
 &apahb {
-	sdio3: sdio@22200000 {
-		compatible = "sprd,sdhci-r11";
-		reg = <0x2200000 0x1000>;
-		interrupts = <GIC_SPI 217 IRQ_TYPE_LEVEL_HIGH>;
-		clock-names = "sdio", "enable";
-		clocks = <&ap_clk CLK_EMMC_2X>,
-				<&apahb_gate CLK_EMMC_EB>;
-		assigned-clocks = <&ap_clk CLK_EMMC_2X>;
-		assigned-clock-parents = <&g1_pll CLK_RPLL_390M>;
-		status = "disabled";
-	};
-
 	sdio0: sdio@22210000 {
 		compatible = "sprd,sdhci-r11";
 		reg = <0x2210000 0x1000>;
@@ -52,6 +40,18 @@
 		clocks = <&aonapb_clk CLK_SDIO1_2X>,
 				<&apahb_gate CLK_SDIO1_EB>;
 		assigned-clocks = <&aonapb_clk CLK_SDIO1_2X>;
+		assigned-clock-parents = <&g1_pll CLK_RPLL_390M>;
+		status = "disabled";
+	};
+
+	sdio3: sdio@22200000 {
+		compatible = "sprd,sdhci-r11";
+		reg = <0x2200000 0x1000>;
+		interrupts = <GIC_SPI 217 IRQ_TYPE_LEVEL_HIGH>;
+		clock-names = "sdio", "enable";
+		clocks = <&ap_clk CLK_EMMC_2X>,
+				<&apahb_gate CLK_EMMC_EB>;
+		assigned-clocks = <&ap_clk CLK_EMMC_2X>;
 		assigned-clock-parents = <&g1_pll CLK_RPLL_390M>;
 		status = "disabled";
 	};

@@ -50,6 +50,9 @@
 		pmic_efuse1 = &ump9621_efuse;
 		serdes0 = &serdes0;
 		serdes1 = &serdes1;
+		mmc0 = &sdio3;
+		mmc1 = &sdio0;
+		mmc2 = &sdio1;
 	};
 
 	memory@80000000 {
