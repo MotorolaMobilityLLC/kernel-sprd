@@ -644,6 +644,7 @@ static struct cpufreq_driver sprd_cpufreq_driver = {
 static int sprd_cluster_temp_init(struct cluster_info *cluster)
 {
 	const char *name = "sprd,temp-threshold";
+	struct temp_node *node;
 	struct property *prop;
 	u32 num, val;
 	int i, ret;
@@ -656,16 +657,11 @@ static int sprd_cluster_temp_init(struct cluster_info *cluster)
 		return ret;
 	}
 
-	cluster->temp_level_node = sprd_temp_list_find(&cluster->temp_list_head, DVFS_TEMP_LOW_LIMIT);
-	cluster->temp_currt_node = cluster->temp_level_node;
-
-	cluster->temp_tick = 0U;
-
 	prop = of_find_property(cluster->node, name, &num);
 	if (!prop || !num) {
 		pr_warn("find cluster %u temp property error\n", cluster->id);
 		cluster->temp_enable = false;
-		return 0;
+		goto temp_node_init;
 	}
 
 	cluster->temp_enable = true;
@@ -690,6 +686,17 @@ static int sprd_cluster_temp_init(struct cluster_info *cluster)
 		}
 	}
 
+temp_node_init:
+	node = sprd_temp_list_find(&cluster->temp_list_head, DVFS_TEMP_DEFAULT);
+	if (!node) {
+		pr_err("init cluster %u temp(%d) node error\n", cluster->id, DVFS_TEMP_DEFAULT);
+		return -EINVAL;
+	}
+
+	cluster->temp_level_node = node;
+	cluster->temp_currt_node = node;
+	cluster->temp_tick = 0U;
+
 	return 0;
 }
 
@@ -699,6 +706,7 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 	struct cluster_prop *p;
 	struct device_node *hwf;
 	int i, ret;
+	const char *dvfs_bin;
 	char dcdc_supply[32] = "sprd,pmic-type";
 	struct cluster_prop props[] = {
 		{
@@ -756,12 +764,12 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 		}
 	}
 
-	ret = of_property_match_string(cluster->node, "nvmem-cell-names", "dvfs_bin");
+	ret = of_property_read_string(cluster->node, "nvmem-cell-names", &dvfs_bin);
 	if (ret == -EINVAL) { /* No definition is allowed */
 		pr_warn("Warning: no 'dvfs_bin' appointed\n");
 		cluster->bin = 0U;
 	} else {
-		ret = sprd_nvmem_info_read(cluster->node, "dvfs_bin", &cluster->bin);
+		ret = sprd_nvmem_info_read(cluster->node, dvfs_bin, &cluster->bin);
 		if (ret) {
 			pr_err("read dvfs bin value error(%d)\n", ret);
 			return ret;
@@ -1019,6 +1027,8 @@ unsigned int sprd_cpufreq_update_opp(unsigned int cpu, int now_temp)
 	do_div(freq, 1000); /* from Hz to KHz */
 
 	freq_qos_update_request(&cluster->max_req, freq);
+
+	udelay(100);
 
 	cpufreq_cpu_put(policy);
 	mutex_unlock(&cluster->mutex);
