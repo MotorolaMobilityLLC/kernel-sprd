@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: GPL-2.0
 /*copyright (C) 2018 Spreadtrum Communications Inc.
  *
  * This software is licensed under the terms of the GNU General Public
@@ -789,7 +790,7 @@ static ssize_t usrid_mask_show(struct device *dev,
 {
 	struct sprd_ptm_dev *sdev = dev_get_drvdata(dev);
 
-	return sprintf(buf, "ptm usid mask 0x%x\n", sdev->chn_info.usr_id);
+	return sprintf(buf, "ptm usid mask 0x%x\n", sdev->chn_info.usr_id_mask);
 }
 
 static ssize_t usrid_mask_store(struct device *dev,
