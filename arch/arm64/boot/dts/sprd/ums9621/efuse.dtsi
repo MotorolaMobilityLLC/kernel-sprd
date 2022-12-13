@@ -16,12 +16,12 @@
 		#address-cells = <1>;
 		#size-cells = <1>;
 
-		ufs_cali_lane1: cali_dblk68@3c {
-			reg = <0x3c 0x4>;
+		ufs_cali_lane1: cali_dblk96@ac {
+			reg = <0xac 0x4>;
 		};
 
-		ufs_cali_lane0: cali_dblk69@40 {
-			reg = <0x40 0x4>;
+		ufs_cali_lane0: cali_dblk97@b0 {
+			reg = <0xb0 0x4>;
 		};
 
 		gpu_bin: gpu-bin@48{
