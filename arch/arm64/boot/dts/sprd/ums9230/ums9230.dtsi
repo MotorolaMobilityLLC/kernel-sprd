@@ -10,8 +10,6 @@
 #include <dt-bindings/reset/sprd,ums9230-reset.h>
 #include <dt-bindings/soc/sprd,qogirl6-regs.h>
 #include <dt-bindings/soc/sprd,qogirl6-mask.h>
-#include <dt-bindings/debug/busmonitor/busmonitor.h>
-#include <dt-bindings/debug/dmc_mpu/qogirl6_dmc_mpu.h>
 
 / {
 	cpuinfo_hardware = "Unisoc ums9230";
@@ -849,61 +847,6 @@
 			#size-cells = <2>;
 			ranges;
 
-			dmc_mpu: dmc-mpu@60200000 {
-				compatible = "sprd,qogirl6-dmc-mpu";
-				reg = <0 0x60200000 0 0x10000>;
-				interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
-				syscon-names = "irq_clr", "irq_en";
-				mpu-irq-clr-syscon = <&pub_apb_regs 0x32f0 0x200>;
-				mpu-irq-en-syscon = <&pub_apb_regs 0x32f0 0x100>;
-				sprd,channel-num = <8>;
-				sprd,mpu-num = <16>;
-				sprd,channel-names =
-					"CPU", "GPU", "DPU/DCAM","ISP",
-					"AP/VSP/AON", "WTLCP", "PUBCP/AUDCP",
-					"WCN", "SHARED0", "SHARED1",
-					"SHARED2", "SHARED3", "SHARED4",
-					"SHARED5", "SHARED6", "SHARED7";
-				sprd,ranges = <0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
-					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
-					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
-					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
-					<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
-					<0 0 0 0>;
-				sprd,chn-config =
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>,
-					<DISABLE MON_INSIDE MON_WRITE>;
-				sprd,id-config =
-					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
-					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
-					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
-					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
-					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
-					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
-					<MPUID 0 0xffff>, <MPUID 0 0xffff>,
-					<MPUID 0 0xffff>, <MPUID 0 0xffff>;
-				sprd,port-map = <0>, <1>, <2>, <3>, <4>,
-						<5>, <6>, <7>, <0>, <0>,
-						<0>, <0>, <0>, <0>, <0>,
-						<0>;
-				sprd,ddr-offset = <0x80000000>;
-				status = "okay";
-			};
-
 			dmc_controller: dmc-controller@60000000 {
 				compatible = "sprd,pub-dmc";
 				reg = <0x0 0x65002000 0x0 0x100>, /* proc res */
@@ -1269,14 +1212,6 @@
 				       <&aonapb_gate CLK_AC_WDG_RTC_EB>;
 			};
 
-			apb_bm: apb-busmonitor@64510000 {
-				compatible = "sprd,apb-busmonitor";
-				reg = <0 0x64510000 0 0x1000>;
-				interrupts = <GIC_SPI 102 IRQ_TYPE_LEVEL_HIGH>;
-				sprd,target-addr = <0 0>;
-				sprd,target-data = <0 0>;
-			 };
-
 			pin_controller: pinctrl@64710000 {
 				compatible = "sprd,qogirl6-pinctrl";
 				reg = <0 0x64710000 0 0x10000>;
@@ -1357,61 +1292,6 @@
 				uart_inf_sel1: auddsp-uart0-1 {
 					pins = "QOGIRL6_UART_INF1_SYS_SEL";
 					sprd,control = <0x8>;
-				};
-			};
-
-			djtag: djtag@64740000 {
-				compatible = "sprd,djtag";
-				status = "okay";
-				reg = <0 0x64740000 0 0x1000>;
-				syscon = <&aon_apb_regs REG_AON_APB_APB_RST3
-					MASK_AON_APB_DJTAG_SOFT_RST>;
-				clock-names = "enable", "tck";
-				clocks = <&aonapb_gate CLK_DJTAG_EB>,
-					<&aonapb_gate CLK_DJTAG_TCK_EB>;
-				hwlocks = <&hwlock 10>;
-				hwlock-names = "djtag";
-
-				#address-cells = <1>;
-				#size-cells = <0>;
-
-				aon-busmonitor@8{
-					compatible = "sprd,qogirl6-busmonitor", "sprd,sharkl5pro-busmonitor";
-					interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
-					reg = <0x8>;
-					sprd,bm-num = <7>;
-					sprd,bm-name =
-						"AP", "WTLCP", "AUDCP", "PUBCP",
-						"USBOTG", "CM4", "WCN";
-					sprd,bm-type =
-						<AXI>, <AXI>, <AXI>, <AXI>,
-						<AXI>, <AXI>, <AXI>;
-					sprd,bm-dap = <0>, <1>, <2>, <3>,
-						<4>, <5>, <8>;
-					sprd,bm-config =
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>,
-						<DISABLE MON_WRITE MON_INSIDE>;
-					sprd,bm-id =
-						<DISABLE 0 AXIID>,
-						<DISABLE 0 AXIID>,
-						<DISABLE 0 AXIID>,
-						<DISABLE 0 AXIID>,
-						<DISABLE 0 AXIID>,
-						<DISABLE 0 AXIID>,
-						<DISABLE 0 AXIID>;
-					sprd,bm-ranges =
-						<0 0>,
-						<0 0>,
-						<0 0>,
-						<0 0>,
-						<0 0>,
-						<0 0>,
-						<0 0>;
 				};
 			};
 
@@ -1793,9 +1673,11 @@
 
 /* Include other IP modules in ALPHABETICAL order */
 #include "audio.dtsi"
+#include "bm.dtsi"
 #include "cam.dtsi"
 #include "clock.dtsi"
 #include "coresight.dtsi"
+#include "dmc-mpu.dtsi"
 #include "glbreg.dtsi"
 #include "modem.dtsi"
 #include "qos.dtsi"
