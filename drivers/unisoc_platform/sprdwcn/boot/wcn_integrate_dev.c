@@ -47,6 +47,7 @@
 #include "../include/wcn_dbg.h"
 #include "wcn_txrx.h"
 #include "wcn_gnss_dump.h"
+#include "wcn_debug_bus.h"
 
 #define SUFFIX "androidboot.slot_suffix="
 #define SUFFIXS "sprdboot.slot_suffix="
@@ -294,14 +295,79 @@ static void wcn_config_ctrlreg(struct wcn_device *wcn_dev, u32 start, u32 end)
 					wcn_dev->ctrl_reg[i], utemp_val);
 
 		if (wcn_dev->ctrl_us_delay[i] >= 10)
-			usleep_range_state(wcn_dev->ctrl_us_delay[i],
-				     wcn_dev->ctrl_us_delay[i] + 40, TASK_UNINTERRUPTIBLE);
+			usleep_range(wcn_dev->ctrl_us_delay[i],
+				     wcn_dev->ctrl_us_delay[i] + 40);
 		else
 			udelay(wcn_dev->ctrl_us_delay[i]);
 		wcn_regmap_read(wcn_dev->rmap[type], reg_read, &val);
 		WCN_INFO("rmap[%d]:ctrl_reg[%d] = 0x%x, val=0x%x\n",
 			 type, i, reg_read, val);
 	}
+}
+
+static void wcn_set_tcxo_init(struct wcn_device *wcn_dev)
+{
+	/*this function is used in sharkl6 with tcxo*/
+	u32 reg_val = 0;
+
+	/*XTL3_REL_CFG XTL3_WCN_SEL = 1*/
+	reg_val = (0x1<<9);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB], 0x19d0, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB], 0x09d0, &reg_val);
+	WCN_INFO("REG 0x640209d0:val=0x%x!\n", reg_val);
+
+	/*XTLBUF0_REL_CFG XTLBUF0_WCN_SEL = 0*/
+	reg_val = (0x1<<9);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB], 0x29d4, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB], 0x09d4, &reg_val);
+	WCN_INFO("REG 0x640209d4:val=0x%x!\n", reg_val);
+
+	/*XTLBUF1_REL_CFG XTLBUF1_WCN_SEL = 0*/
+	reg_val = (0x1<<9);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB], 0x29d8, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB], 0x09d8, &reg_val);
+	WCN_INFO("REG 0x640209d8:val=0x%x!\n", reg_val);
+
+	/*XTLBUF2_REL_CFG XTLBUF2_WCN_SEL = 0*/
+	reg_val = (0x1<<9);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB], 0x29dc, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB], 0x09dc, &reg_val);
+	WCN_INFO("REG 0x640209dc:val=0x%x!\n", reg_val);
+
+	/*XTLBUF3_REL_CFG XTLBUF3_WCN_SEL = 1*/
+	reg_val = (0x1<<9);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB], 0x19e0, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB], 0x09e0, &reg_val);
+	WCN_INFO("REG 0x640209e0:val=0x%x!\n", reg_val);
+
+	/*XTL0_REL_CFG XTL0_WCN_SEL = 0*/
+	reg_val = (0x1<<9);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB], 0x29c4, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB], 0x09c4, &reg_val);
+	WCN_INFO("REG 0x640209c4:val=0x%x!\n", reg_val);
+
+	/*XTL1_REL_CFG XTL1_WCN_SEL = 0*/
+	reg_val = (0x1<<9);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB], 0x29c8, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB], 0x09c8, &reg_val);
+	WCN_INFO("REG 0x640209c8:val=0x%x!\n", reg_val);
+
+	/*XTL2_REL_CFG XTL2_WCN_SEL = 0*/
+	reg_val = (0x1<<9);
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB], 0x29cc, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB], 0x09cc, &reg_val);
+	WCN_INFO("REG 0x640209cc:val=0x%x!\n", reg_val);
+
+	/*	wcn_xtl_ctrl
+	 *	wcn_ref_26m_sel = 2'b01
+	 *	wcn_bb_ck26m_sel = 1'b1
+	 */
+	reg_val = 0x11;
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB], 0x1fe4, reg_val);
+	reg_val = 0x4;
+	wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB], 0x2fe4, reg_val);
+	wcn_regmap_read(wcn_dev->rmap[REGMAP_PMU_APB], 0x0fe4, &reg_val);
+	WCN_INFO("REG 0x64020fe4:val=0x%x!\n", reg_val);
 }
 
 void wcn_cpu_bootup(struct wcn_device *wcn_dev)
@@ -367,7 +433,7 @@ static void marlin_write_efuse_data(void)
 	/* copy efuse data to target ddr address */
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
 		phy_addr = s_wcn_device.btwf_device->base_addr +
-		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->wifi.efuse[0];
+		   (phys_addr_t)&qogirl6_s_wssm_phy_offset_p->efuse[0];
 	} else {
 		phy_addr = s_wcn_device.btwf_device->base_addr +
 		   (phys_addr_t)&s_wssm_phy_offset_p->wifi.efuse[0];
@@ -922,9 +988,14 @@ static int wcn_parse_dt(struct platform_device *pdev,
 				if (gpiod_get_value(wcn_devm->clk_26m_type_sel))
 					wcn_devm->clk_xtal_26m.type =
 						WCN_CLOCK_TYPE_TSX;
-				else
+				else {
 					wcn_devm->clk_xtal_26m.type =
 						WCN_CLOCK_TYPE_TCXO;
+					if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+						wcn_set_tcxo_init(wcn_dev);
+						WCN_INFO("WCN init PUM_APB_RF with tcxo\n");
+					}
+				}
 			}
 			WCN_INFO("get xtal-26m-type-sel gpio\n");
 		}
@@ -939,7 +1010,46 @@ static int wcn_parse_dt(struct platform_device *pdev,
 	wcn_dev->maxsz = res.end - res.start + 1;
 	WCN_INFO("cp base = %llu, size = 0x%x\n",
 		 (u64)wcn_dev->base_addr, wcn_dev->maxsz);
+	if (strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0) {
+		wcn_dev->db_to_ddr_disable = of_property_read_bool(np,
+				"sprd,debugbus-to-ddr-disable");
+		if (wcn_dev->db_to_ddr_disable == true) {
+			WCN_INFO("Debugbus data does not need to be saved to DDR\n");
+			wcn_dev->dbus.base_addr = 0xffffffff; /* invalid addr */
+			wcn_dev->dbus.maxsz = DEBUGBUS_TO_DDR_LEN;
+		} else {
+			index++;
+			ret = of_address_to_resource(np, index, &res);
+			if (ret) {
+				WCN_INFO("Use temporary debugbus DDR\n");
+				wcn_dev->dbus.base_addr = DEBUGBUS_TO_DDR_BASE;
+				wcn_dev->dbus.maxsz = DEBUGBUS_TO_DDR_LEN;
+			} else {
+				wcn_dev->dbus.base_addr = res.start;
+				wcn_dev->dbus.maxsz = res.end - res.start + 1;
+			}
+		}
+		WCN_INFO("index = %d, dbus base = 0x%llx, size = 0x%x\n", index,
+				(u64)wcn_dev->dbus.base_addr, wcn_dev->dbus.maxsz);
 
+		index++;
+		ret = of_address_to_resource(np, index, &res);
+		if (ret) {
+			WCN_INFO("Use temporary debugbus register\n");
+			wcn_dev->dbus.phy_reg = DEBUGBUS_REG_BASE;
+			wcn_dev->dbus.dbus_max_offset = DEBUGBUS_REG_LEN;
+			wcn_dev->dbus.dbus_reg_base = ioremap(wcn_dev->dbus.phy_reg,
+					wcn_dev->dbus.dbus_max_offset);
+		} else {
+			wcn_dev->dbus.phy_reg = res.start;
+			wcn_dev->dbus.dbus_max_offset = res.end - res.start + 1;
+			wcn_dev->dbus.dbus_reg_base = of_iomap(np, index);
+		}
+
+		WCN_INFO("index = %d, phy_reg=0x%llx,size=0x%x,map to dbus_reg_base=0x%p\n", index,
+			(u64)wcn_dev->dbus.phy_reg, wcn_dev->dbus.dbus_max_offset,
+			wcn_dev->dbus.dbus_reg_base);
+	}
 	ret = of_property_read_string(np, "sprd,file-name",
 				      (const char **)&wcn_dev->file_path);
 	if (!ret)
@@ -1262,8 +1372,10 @@ static void wcn_probe_power_wq(struct work_struct *work)
 	}
 
 	/* BTWF SYS calibration time consumption is about 250 ms */
-	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
+		wcn_reset_mdbg_notifier_init();
 		msleep(WCCN_BTWF_CALIBRATION_TIME);
+	}
 
 	if (stop_marlin(MARLIN_MDBG))
 		WCN_ERR("%s power down failed\n", __func__);
@@ -1357,8 +1469,12 @@ int wcn_probe(struct platform_device *pdev)
 		}
 		first = 0;
 	} else {
-		schedule_delayed_work(&wcn_dev->probe_power_wq,
-				      msecs_to_jiffies(3500));
+		if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6)
+			schedule_delayed_work(&wcn_dev->probe_power_wq,
+						msecs_to_jiffies(1000));
+		else
+			schedule_delayed_work(&wcn_dev->probe_power_wq,
+						msecs_to_jiffies(3500));
 	}
 
 #if WCN_INTEGRATE_PLATFORM_DEBUG
@@ -1403,24 +1519,10 @@ int wcn_remove(struct platform_device *pdev)
 void wcn_shutdown(struct platform_device *pdev)
 {
 	struct wcn_device *wcn_dev = platform_get_drvdata(pdev);
-	int ret = 0;
 
 	if (wcn_platform_chip_type() == WCN_PLATFORM_TYPE_QOGIRL6) {
-		u32 open_status;
-		u32 subsys_bit = 0;
-		is_wcn_shutdown = 1;
-
-		if (wcn_dev && wcn_dev->wcn_open_status) {
-			WCN_INFO("%s:dev name %s\n", __func__, wcn_dev->name);
-			open_status = wcn_dev->wcn_open_status;
-			for (subsys_bit = 0; subsys_bit < 32; subsys_bit++) {
-				if (open_status & (0x1<<subsys_bit))
-					ret = stop_marlin(0x1<<subsys_bit);
-				if (ret)
-					WCN_ERR("stop_marlin ret: %d\n", ret);
-			}
-		}
-		is_wcn_shutdown = 0;
+		WCN_INFO("%s WCN A-DIE powerdown\n", __func__);
+		wcn_sys_power_clock_unsupport(true);
 		return;
 	}
 
@@ -1431,8 +1533,8 @@ void wcn_shutdown(struct platform_device *pdev)
 		if (strcmp(wcn_dev->name, WCN_MARLIN_DEV_NAME) == 0) {
 			wcn_marlin_power_enable_vddwifipa(false);
 			/* ASIC: disable vddcon, wifipa interval time > 1ms */
-			usleep_range_state(VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME,
-				     VDDWIFIPA_VDDCON_MAX_INTERVAL_TIME, TASK_UNINTERRUPTIBLE);
+			usleep_range(VDDWIFIPA_VDDCON_MIN_INTERVAL_TIME,
+				     VDDWIFIPA_VDDCON_MAX_INTERVAL_TIME);
 		}
 		/* vddcon power off */
 		wcn_power_enable_vddcon(false);

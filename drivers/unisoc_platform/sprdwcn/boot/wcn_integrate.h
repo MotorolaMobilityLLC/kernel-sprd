@@ -178,6 +178,7 @@ extern char integ_functionmask[8];
 extern struct qogirl6_wcn_special_share_mem *qogirl6_s_wssm_phy_offset_p;
 extern struct wcn_special_share_mem *s_wssm_phy_offset_p;
 extern struct wcn_gnss_special_share_mem s_wcngnss_sync_addr;
+extern int ge2_bin_type;
 
 void wcn_dfs_poweroff_state_clear(struct wcn_device *wcn_dev);
 void wcn_dfs_poweroff_shutdown_clear(struct wcn_device *wcn_dev);
@@ -221,6 +222,7 @@ u32 wcn_deep_sleep_status(struct wcn_device *wcn_dev);
 int btwf_force_deepsleep(void);
 int gnss_force_deepsleep(void);
 u32 wcn_subsys_active_num(void);
+bool wcn_subsys_active_is_gnss_only(void);
 void wcn_set_auto_shutdown(struct wcn_device *wcn_dev);
 void wcn_power_domain_set(struct wcn_device *wcn_dev, u32 set_type);
 void wcn_xtl_auto_sel(bool enable);
@@ -252,4 +254,5 @@ void integ_wcn_set_module_status_changed(bool status);
 int integ_marlin_get_module_status(void);
 int start_integ_marlin(u32 subsys);
 int stop_integ_marlin(u32 subsys);
+int wcn_check_2to1_bin(struct wcn_device *wcn_dev, const struct firmware *firmware, loff_t *off);
 #endif

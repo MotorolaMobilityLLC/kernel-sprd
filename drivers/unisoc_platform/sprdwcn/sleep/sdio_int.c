@@ -311,6 +311,7 @@ int sdio_pub_int_deinit(void)
 	sdio_power_notify = false;
 	disable_irq(sdio_int.pub_int_num);
 	free_irq(sdio_int.pub_int_num, NULL);
+	wakeup_source_remove(sdio_int.pub_int_wakelock);
 	wakeup_source_destroy(sdio_int.pub_int_wakelock);
 	kfree(sdio_int.pub_int_wakelock);
 

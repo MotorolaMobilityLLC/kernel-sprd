@@ -19,6 +19,7 @@
 #include "loopcheck.h"
 #include "../include/wcn_dbg.h"
 #include "gnss_dump.h"
+#include "wcn_debug_bus.h"
 
 /* SUB_NAME len not more than 15 bytes */
 #define UMW2631_WCN_DUMP_VERSION_SUB_NAME "SIPC_26xx"

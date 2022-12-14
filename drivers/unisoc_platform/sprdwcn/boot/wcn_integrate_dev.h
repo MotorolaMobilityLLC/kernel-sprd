@@ -43,7 +43,8 @@ extern uint GNSS_DUMP_REG_NUMBER;
 #define WCN_MARLIN_BTWIFI_MASK 0x05
 #define WCN_GNSS_MASK BIT(WCN_GNSS)
 #define WCN_GNSS_BD_MASK BIT(WCN_GNSS_BD)
-#define WCN_GNSS_ALL_MASK (WCN_GNSS_MASK | WCN_GNSS_BD_MASK)
+#define WCN_GNSS_GAL_MASK BIT(WCN_GNSS_GAL)
+#define WCN_GNSS_ALL_MASK (WCN_GNSS_MASK | WCN_GNSS_BD_MASK | WCN_GNSS_GAL_MASK)
 
 #define WCN_SYS_POWERON_WAKEUP_POLLING_COUNT (256) /* 256 * 10us */
 #define WCN_SYS_DEEPSLEEP_POLLING_COUNT (256) /* 256 * 10us */
@@ -169,8 +170,8 @@ struct wcn_init_data {
 #define WIFI_EFUSE_BLOCK_COUNT (3)
 #define WCN_EFUSE_BLOCK_COUNT (4)
 
-#define MARLIN_WAIT_CP_INIT_POLL_TIME_MS	(20)	/* 20ms */
-#define MARLIN_WAIT_CP_INIT_COUNT	(256)
+#define MARLIN_WAIT_CP_INIT_POLL_TIME_MS	(9)	/* 9ms */
+#define MARLIN_WAIT_CP_INIT_COUNT	(512)
 #define MARLIN_WAIT_CP_INIT_MAX_TIME (80000)
 #define WCN_WAIT_SLEEP_MAX_COUNT (150)
 #define WCN_WAIT_SHUTDOWN_MAX_COUNT (16)
@@ -195,6 +196,19 @@ struct integ_wcn_clock_info {
 enum flag_emmc_or_ufs {
 	ufs = 0,
 	emmc = 1
+};
+
+#define DEBUGBUS_VALID_LEN 5100
+struct wcn_debug_bus {
+	phys_addr_t base_addr;
+	u32 maxsz;
+	u8 *dbus_data_pool;
+	u8 db_temp[DEBUGBUS_VALID_LEN];
+	phys_addr_t phy_reg;
+	/*debug bus base reg */
+	void __iomem *dbus_reg_base;
+	u32 dbus_max_offset;
+	u64 curr_size;
 };
 
 struct wcn_device {
@@ -266,6 +280,8 @@ struct wcn_device {
 	struct	work_struct load_wq;
 	struct	delayed_work cali_wq;
 	struct	completion download_done;
+	struct wcn_debug_bus dbus;
+	bool db_to_ddr_disable;
 };
 
 struct wcn_device_manage {

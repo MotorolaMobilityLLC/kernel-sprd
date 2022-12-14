@@ -13,6 +13,7 @@
 #include <misc/wcn_integrate_platform.h>
 #include "wcn_glb.h"
 #include "wcn_glb_reg.h"
+#include "wcn_misc.h"
 #include "wcn_procfs.h"
 #include "../include/wcn_dbg.h"
 
@@ -24,6 +25,7 @@
 #define MARLIN_FORCE_SHUTDOWN_OK	(0x6B6B6B6B)
 #define BTWF_SW_DEEP_SLEEP_MAGIC	(0x504C5344) /* SW deep sleep:DSLP */
 
+static int wcn_chiptype;
 static int wcn_open_module;
 static int wcn_module_state_change;
 /* format: marlin2-built-in_id0_id1 */
@@ -32,6 +34,8 @@ char integ_functionmask[8];
 struct platform_chip_id g_platform_chip_id;
 static u32 g_platform_chip_type;
 static const struct wcn_chip_type wcn_chip_type[] = {
+	/* WCN_SHARKL3_CHIP and WCN_SHARKL3_CHIP_22NM is the same */
+	{0x98550000, WCN_SHARKL3_CHIP},
 	{0x96360000, WCN_SHARKLE_CHIP_AA_OR_AB},
 	{0x96360002, WCN_SHARKLE_CHIP_AC},
 	{0x96360003, WCN_SHARKLE_CHIP_AD},
@@ -39,6 +43,7 @@ static const struct wcn_chip_type wcn_chip_type[] = {
 	{0x96330000, WCN_PIKE2_CHIP},
 	/* WCN_SHARKL6_CHIP is error */
 	{0x00000000, WCN_SHARKL6_CHIP},
+	{0x00000001, WCN_SHARKL6_CHIP},
 };
 
 struct qogirl6_wcn_special_share_mem *qogirl6_s_wssm_phy_offset_p =
@@ -257,7 +262,7 @@ void wcn_rfi_status_clear(void)
 enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 {
 	u32 aon_chip_id;
-	u32 version_id;
+	u32 version_id, manufacture_id;
 	u32 i;
 	struct regmap *regmap;
 
@@ -270,6 +275,19 @@ enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 	WCN_INFO("aon_chip_id=0x%08x\n", aon_chip_id);
 	for (i = 0; i < ARRAY_SIZE(wcn_chip_type); i++) {
 		if (wcn_chip_type[i].chipid == aon_chip_id) {
+			if (wcn_chip_type[i].chiptype == WCN_SHARKL3_CHIP) {
+				wcn_chiptype = 1;
+				wcn_regmap_read(regmap, WCN_AON_MANUFACTURE_ID,
+						&manufacture_id);
+				WCN_INFO("manufacture_id=0x%08x\n", manufacture_id);
+				/* manufacture_id:
+				 * 0x800 for 28NM
+				 * 0xA00 for 22NM
+				 */
+				return (manufacture_id == 0xA00) ?
+					WCN_SHARKL3_CHIP_22NM : WCN_SHARKL3_CHIP;
+			}
+
 			if (wcn_chip_type[i].chiptype == WCN_SHARKLE_CHIP_AA_OR_AB)
 				return wcn_chip_type[i].chiptype;
 
@@ -302,9 +320,48 @@ enum wcn_aon_chip_id wcn_get_aon_chip_id(void)
 		}
 	}
 
+	WCN_ERR("wcn get chipid invalid\n");
 	return WCN_AON_CHIP_ID_INVALID;
 }
 EXPORT_SYMBOL_GPL(wcn_get_aon_chip_id);
+
+#define WCN_WFBT_LOAD_FIRMWARE_OFFSET 0x180000
+#define GNSS_LOAD_FIRMWARE_OFFSET 0xA2800
+int wcn_check_2to1_bin(struct wcn_device *wcn_dev, const struct firmware *firmware, loff_t *off)
+{
+	int ret;
+
+	if (wcn_dev_is_gnss(wcn_dev) == 1) {
+		WCN_INFO("gnss bin--------\r\n");
+		if (ge2_bin_type == 18) {
+			WCN_INFO("gnss for L3 use GAl gnss bin\n");
+			*off = GNSS_LOAD_FIRMWARE_OFFSET;
+			ret = 1;
+		} else {
+			*off = 0;
+			WCN_INFO("gnss for L3 use GE2 gnss bin\n");
+			ret = 0;
+		}
+	} else {
+		WCN_INFO("btwf bin--------\r\n");
+		if (wcn_get_aon_chip_id() == WCN_SHARKL3_CHIP_22NM) {
+			WCN_INFO("it is sharkl3 22nm\n");
+			*off = WCN_WFBT_LOAD_FIRMWARE_OFFSET;
+		} else {
+			*off = 0;
+			WCN_INFO("it is not sharkl3 22nm\n");
+		}
+
+		if (wcn_chiptype == 1) {
+			WCN_INFO("wcn for L3 use 2to1 btwf bin\n");
+			ret = 2;
+		} else {
+			WCN_INFO("not L3,wcn not use 2to1 btwf bin\n");
+			ret = 0;
+		}
+	}
+	return ret;
+}
 
 u32 wcn_platform_chip_id(void)
 {
@@ -627,7 +684,7 @@ u32 wcn_get_sleep_status(struct wcn_device *wcn_dev, int force_sleep)
 		wcn_read_data_from_phy_addr(phy_addr, &val, sizeof(val));
 		WCN_INFO("Sleep status flag:0x%x\n", val);
 		if (val == MARLIN_FORCE_SHUTDOWN_OK) {
-			usleep_range_state(10000, 12000, TASK_UNINTERRUPTIBLE);
+			usleep_range(10000, 12000);
 			return 0;
 		}
 		return 1;
@@ -731,6 +788,20 @@ u32 wcn_subsys_active_num(void)
 	WCN_INFO("%s, %d", __func__, count);
 	return count;
 }
+
+bool wcn_subsys_active_is_gnss_only(void)
+{
+	if (s_wcn_device.btwf_device &&
+	    s_wcn_device.btwf_device->wcn_open_status & WCN_MARLIN_MASK)
+		return false;
+
+	if (s_wcn_device.gnss_device &&
+	    s_wcn_device.gnss_device->wcn_open_status & WCN_GNSS_ALL_MASK)
+		return true;
+
+	return false;
+}
+
 /*
  * WCN SYS shutdown, ret: 1 is shutdown, else is not
  * If WCN is at shutdown status, it can't access WCN REGs.
@@ -995,8 +1066,8 @@ void wcn_sys_soft_reset(void)
 			wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
 						 offset, bitmap);
 		WCN_INFO("%s finish\n", __func__);
-		usleep_range_state(WCN_CP_SOFT_RST_MIN_TIME,
-			     WCN_CP_SOFT_RST_MAX_TIME, TASK_UNINTERRUPTIBLE);
+		usleep_range(WCN_CP_SOFT_RST_MIN_TIME,
+			     WCN_CP_SOFT_RST_MAX_TIME);
 	}
 }
 
@@ -1031,7 +1102,7 @@ void wcn_clock_ctrl(bool enable)
 		wcn_regmap_raw_write_bit(regmap, 0x1044, value);
 		value = WCN_FASTCHARGE_EN;
 		wcn_regmap_raw_write_bit(regmap, 0x1044, value);
-		usleep_range_state(10, 20, TASK_UNINTERRUPTIBLE);
+		usleep_range(10, 20);
 		wcn_regmap_raw_write_bit(regmap, 0x2044, value);
 		value = WCN_CLK_EN;
 		wcn_regmap_raw_write_bit(regmap, 0x1044, value);
@@ -1091,8 +1162,8 @@ void wcn_sys_soft_release(void)
 		wcn_regmap_raw_write_bit(wcn_dev->rmap[REGMAP_PMU_APB],
 					 offset, bitmap);
 		WCN_DBG("%s finish!\n", __func__);
-		usleep_range_state(WCN_CP_SOFT_RST_MIN_TIME,
-			     WCN_CP_SOFT_RST_MAX_TIME, TASK_UNINTERRUPTIBLE);
+		usleep_range(WCN_CP_SOFT_RST_MIN_TIME,
+			     WCN_CP_SOFT_RST_MAX_TIME);
 	}
 }
 

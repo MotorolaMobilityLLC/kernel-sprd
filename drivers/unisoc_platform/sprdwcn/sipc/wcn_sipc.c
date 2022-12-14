@@ -18,6 +18,7 @@
 #include "bus_common.h"
 #include "wcn_integrate.h"
 #include "wcn_sipc.h"
+#include "../platform/wcn_procfs.h"
 
 #define SIPC_WCN_DST 3
 
@@ -96,9 +97,9 @@ static struct sipc_chn_info g_sipc_chn[SIPC_CHN_NUM] = {
 	INIT_SIPC_CHN_SBLOCK(SIPC_WIFI_CMD_RX, WCNBUS_RX, SIPC_CHN_WIFI_CMD,
 			     4, 2048, 8, 2048, 0, 0, 0),
 	INIT_SIPC_CHN_SBLOCK(SIPC_WIFI_DATA0_TX, WCNBUS_TX, SIPC_CHN_WIFI_DATA0,
-			     64, 1664, 192, 1664, 0, 0, 0),
+			     64, 1664, 256, 1664, 0, 0, 0),
 	INIT_SIPC_CHN_SBLOCK(SIPC_WIFI_DATA0_RX, WCNBUS_RX, SIPC_CHN_WIFI_DATA0,
-			     64, 1664, 192, 1664, 0, 0, 0),
+			     64, 1664, 256, 1664, 0, 0, 0),
 	INIT_SIPC_CHN_SBLOCK(SIPC_WIFI_DATA1_TX, WCNBUS_TX, SIPC_CHN_WIFI_DATA1,
 			     64, 1664, 8, 1664, 0, 0, 0),
 	INIT_SIPC_CHN_SBLOCK(SIPC_WIFI_DATA1_RX, WCNBUS_RX, SIPC_CHN_WIFI_DATA1,
@@ -345,7 +346,7 @@ void wcn_sipc_pop_list_flush(struct sipc_chn_info *sipc_chn)
 		WCN_DEBUG("index:%d  pop_queue->mbuf_num:%d",
 			  sipc_chn->index, pop_queue->mbuf_num);
 		pop_queue->mbuf_tail->next = NULL;
-		if (sipc_chn->ops->pop_link != NULL)
+		if (sipc_chn->ops != NULL && sipc_chn->ops->pop_link != NULL)
 			sipc_chn->ops->pop_link(sipc_chn->index,
 				pop_queue->mbuf_head, pop_queue->mbuf_tail,
 				pop_queue->mbuf_num);
@@ -614,6 +615,8 @@ static void wcn_sipc_sblk_push_list_dequeue(struct sipc_chn_info *sipc_chn)
 	/* nothing to do */
 	if (!sipc_chn->push_queue.mbuf_num) {
 		mutex_unlock(&sipc_chn->pushq_lock);
+		WCN_INFO("channel %d-%d(%d), chn_deinit?\n",
+			sipc_chn->dst, sipc_chn->chn, sipc_chn->index);
 		WCN_HERE_CHN(sipc_chn->index);
 		return;
 	}
@@ -645,8 +648,8 @@ static void wcn_sipc_sblk_push_list_dequeue(struct sipc_chn_info *sipc_chn)
 			sipc_chn->push_queue.mbuf_num = 0;
 		}
 	}
-	mutex_unlock(&sipc_chn->pushq_lock);
 	wcn_sipc_pop_list_flush(sipc_chn);
+	mutex_unlock(&sipc_chn->pushq_lock);
 	WCN_HERE_CHN(sipc_chn->index);
 }
 
@@ -671,10 +674,11 @@ static int wcn_sipc_sblk_push(u8 index,
 	if (unlikely(SIPC_INVALID_CHN(index)))
 		return -E_INVALIDPARA;
 
-	if (wcn_sipc_sblk_chn_rx_status_check(index))
-		return -E_INVALIDPARA;
-
 	sipc_chn = SIPC_CHN(index);
+	if (wcn_sipc_sblk_chn_rx_status_check(index) != 0) {
+		WCN_ERR("sipc chn %d not created!", sipc_chn->chn);
+		return -E_INVALIDPARA;
+	}
 	wcn_sipc_record_mbuf_recv_from_user(index, num);
 	wcn_sipc_push_list_enqueue(sipc_chn, head, tail, num);
 	wcn_sipc_wakeup_tx(sipc_chn);
@@ -711,7 +715,7 @@ static void wcn_sipc_sblk_recv(struct sipc_chn_info *sipc_chn)
 void wcn_sipc_chn_set_status(void *data, bool flag)
 {
 	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)data;
-
+	WCN_INFO("wcn_sipc_chn_set_status chn: %d ,  flag:%d\n", sipc_chn->chn, flag);
 	if (flag)
 		sipc_chn->sipc_chn_status = true;
 	else
@@ -735,7 +739,7 @@ static void wcn_sipc_sblk_notifer(int event, void *data)
 
 	if (unlikely(!sipc_chn))
 		return;
-	WCN_DEBUG("%s  %d index:%d  event:%x",
+	WCN_INFO("%s  %d index:%d  event:%x",
 		  __func__, __LINE__, sipc_chn->index, event);
 	switch (event) {
 	case SBLOCK_NOTIFY_RECV:
@@ -770,6 +774,12 @@ static int wcn_sipc_push_list(int index, struct mbuf_t *head,
 		return -E_NULLPOINT;
 
 	if (wcn_sipc_ops->inout == WCNBUS_TX) {
+		if (!wcn_push_list_condition_check(head, tail, num)) {
+			WCN_INFO("%s WCN is asserting, cancel send.index=%d",
+				__func__, index);
+			return -E_INVALIDPARA;
+		}
+
 		ret = sipc_data_ops[SIPC_TYPE(index)].sipc_send(
 					index, head, tail, num);
 		if (ret < 0)
@@ -962,21 +972,36 @@ static int wcn_sipc_chn_deinit(struct mchn_ops_t *ops)
 	int idx = ops->channel;
 
 	struct sipc_chn_info *sipc_chn;
+	struct sipc_chn_info *tx_sipc_chn = NULL;
 
 	sipc_chn = SIPC_CHN(idx);
-	WCN_INFO("[%s]:index[%d] chn[%d]\n", __func__, idx, sipc_chn->chn);
+	sipc_chn->ops = NULL;
+	WCN_INFO("[%s]:index[%d] chn[%d], sipc_chn->ops = null.\n", __func__, idx, sipc_chn->chn);
+
+	tx_sipc_chn = SIPC_CHN(sipc_chn->relate_index);
+	if (SIPC_CHN_TYPE_SBLK(idx) && SIPC_CHN_DIR_TX(idx)) {
+		WCN_INFO("Wait %d-%d index%d push\n",
+			tx_sipc_chn->dst, tx_sipc_chn->chn, tx_sipc_chn->index);
+		mutex_lock(&tx_sipc_chn->pushq_lock);
+		/* WARNING: wcn_sipc_sblk_push_list_dequeue done */
+		tx_sipc_chn->push_queue.mbuf_num = 0;
+	}
 
 	bus_chn_deinit(ops);
 
-	if (SIPC_CHN_TYPE_SBLK(idx)) {
-		if (SIPC_CHN_STATUS(sipc_chn->chn) == SIPC_CHANNEL_CREATED) {
+	if (SIPC_CHN_TYPE_SBLK(idx) && SIPC_CHN_DIR_TX(idx))
+		mutex_unlock(&tx_sipc_chn->pushq_lock);
 
+	/* only destroy when chn created fail so it can create again.  */
+	if (SIPC_CHN_TYPE_SBLK(idx)) {
+		if (SIPC_CHN_DIR_TX(idx) && wcn_sipc_sblk_chn_rx_status_check(idx) != 0) {
 			sblock_destroy(sipc_chn->dst, sipc_chn->chn);
 			SIPC_CHN_STATUS(sipc_chn->chn) = SIPC_CHANNEL_UNCREATED;
+			WCN_INFO("sipc chn[%d] deinit and destroy!\n", idx);
 		}
 	}
 
-	/* don't release sipc resource for now */
+	/* for chn created success,we don't release sipc resource for now */
 	WCN_INFO("sipc chn[%d] deinit success!\n", idx);
 
 	return 0;

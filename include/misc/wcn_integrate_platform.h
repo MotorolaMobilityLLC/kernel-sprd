@@ -52,6 +52,7 @@ enum wcn_gnss_sub_sys {
 	 */
 	WCN_GNSS = 16,
 	WCN_GNSS_BD,
+	WCN_GNSS_GAL,
 	WCN_GNSS_ALL,
 };
 
@@ -70,6 +71,8 @@ enum wcn_aon_chip_id {
 	WCN_PIKE2_CHIP_AA,
 	WCN_PIKE2_CHIP_AB,
 	WCN_SHARKL6_CHIP,
+	WCN_SHARKL3_CHIP,
+	WCN_SHARKL3_CHIP_22NM,
 };
 
 #define FIRMWARE_FILEPATHNAME_LENGTH_MAX 256
@@ -77,7 +80,8 @@ enum wcn_aon_chip_id {
 #define WCN_MARLIN_BTWIFI_MASK 0x05
 #define WCN_GNSS_MASK BIT(WCN_GNSS)
 #define WCN_GNSS_BD_MASK BIT(WCN_GNSS_BD)
-#define WCN_GNSS_ALL_MASK (WCN_GNSS_MASK | WCN_GNSS_BD_MASK)
+#define WCN_GNSS_GAL_MASK BIT(WCN_GNSS_GAL)
+#define WCN_GNSS_ALL_MASK (WCN_GNSS_MASK | WCN_GNSS_BD_MASK | WCN_GNSS_GAL_MASK)
 
 #define WCN_POWERUP_WAIT_MS	30000 /*time out in waiting wifi to come up*/
 
@@ -87,6 +91,7 @@ enum wcn_aon_chip_id {
 #define WCN_AON_PLATFORM_ID1 0x00EC
 #define WCN_AON_CHIP_ID 0x00FC
 #define WCN_AON_VERSION_ID 0x00F8
+#define WCN_AON_MANUFACTURE_ID 0x00F4
 
 #define PIKE2_CHIP_ID0 0x32000000	/* 2 */
 #define PIKE2_CHIP_ID1 0x50696B65	/* Pike */

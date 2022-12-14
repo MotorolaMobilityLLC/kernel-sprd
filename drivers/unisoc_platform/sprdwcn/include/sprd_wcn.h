@@ -7,7 +7,6 @@
 
 #include <linux/platform_device.h>
 #include <linux/time.h>
-
 typedef int (*marlin_reset_callback) (void *para);
 extern marlin_reset_callback marlin_reset_func;
 extern void *marlin_callback_para;
