@@ -864,7 +864,7 @@
 			};
 
 			adi_bus: spi@41800000 {
-				compatible = "sprd,sharkl3-adi";
+				compatible = "sprd,sc9863-adi";
 				reg = <0x41800000 0x200000>;
 				#address-cell = <1>;
 				#size-cell = <0>;
