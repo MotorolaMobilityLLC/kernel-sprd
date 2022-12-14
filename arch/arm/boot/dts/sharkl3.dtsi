@@ -196,11 +196,9 @@
 				reg = <0x0 0x100>;
 				interrupts = <GIC_SPI 2 IRQ_TYPE_LEVEL_HIGH>;
 				source-base = <0x21500044>;
-				clock-frequency = <0>;
-				uart-eb-syscon = <&ap_apb_regs
-						REG_AP_APB_APB_EB
-						MASK_AP_APB_UART0_EB>;
-				clocks = <&ext_26m>;
+				clock-names = "enable", "uart", "source";
+				clocks = <&apapb_gate CLK_UART0_EB>,
+					<&ap_clk CLK_AP_UART0>, <&ext_26m>;
 				status = "disabled";
 			};
 
@@ -210,11 +208,9 @@
 				reg = <0x100000 0x100>;
 				interrupts = <GIC_SPI 3 IRQ_TYPE_LEVEL_HIGH>;
 				source-base = <0x21500048>;
-				clock-frequency = <0>;
-				uart-eb-syscon = <&ap_apb_regs
-						REG_AP_APB_APB_EB
-						MASK_AP_APB_UART1_EB>;
-				clocks = <&ext_26m>;
+				clock-names = "enable", "uart", "source";
+				clocks = <&apapb_gate CLK_UART1_EB>,
+					<&ap_clk CLK_AP_UART1>, <&ext_26m>;
 				status = "disabled";
 			};
 
@@ -224,11 +220,9 @@
 				reg = <0x200000 0x100>;
 				interrupts = <GIC_SPI 4 IRQ_TYPE_LEVEL_HIGH>;
 				source-base = <0x2150004c>;
-				clock-frequency = <0>;
-				uart-eb-syscon = <&ap_apb_regs
-						REG_AP_APB_APB_EB
-						MASK_AP_APB_UART2_EB>;
-				clocks = <&ext_26m>;
+				clock-names = "enable", "uart", "source";
+				clocks = <&apapb_gate CLK_UART2_EB>,
+					<&ap_clk CLK_AP_UART2>, <&ext_26m>;
 				status = "disabled";
 			};
 
@@ -238,11 +232,9 @@
 				reg = <0x300000 0x100>;
 				interrupts = <GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>;
 				source-base = <0x21500050>;
-				clock-frequency = <0>;
-				uart-eb-syscon = <&ap_apb_regs
-						REG_AP_APB_APB_EB
-						MASK_AP_APB_UART3_EB>;
-				clocks = <&ext_26m>;
+				clock-names = "enable", "uart", "source";
+				clocks = <&apapb_gate CLK_UART3_EB>,
+					<&ap_clk CLK_AP_UART3>, <&ext_26m>;
 				status = "disabled";
 			};
 
@@ -252,11 +244,9 @@
 				reg = <0x400000 0x100>;
 				interrupts = <GIC_SPI 6 IRQ_TYPE_LEVEL_HIGH>;
 				source-base = <0x21500054>;
-				clock-frequency = <0>;
-				uart-eb-syscon = <&ap_apb_regs
-						REG_AP_APB_APB_EB
-						MASK_AP_APB_UART4_EB>;
-				clocks = <&ext_26m>;
+				clock-names = "enable", "uart", "source";
+				clocks = <&apapb_gate CLK_UART4_EB>,
+					<&ap_clk CLK_AP_UART4>, <&ext_26m>;
 				status = "disabled";
 			};
 
