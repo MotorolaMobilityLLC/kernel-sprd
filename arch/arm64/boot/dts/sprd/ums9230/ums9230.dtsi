@@ -1182,16 +1182,6 @@
 				clocks = <&ext_32k>;
 			};
 
-			watchdog@644e0000 {
-				compatible = "sprd,wdt-r2p0-fiq";
-				reg = <0 0x644e0000 0 0x10000>;
-				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
-				timeout-sec = <12>;
-				clock-names = "enable", "rtc_enable";
-				clocks = <&aonapb_gate CLK_APCPU_WDG_EB>,
-				       <&aonapb_gate CLK_AC_WDG_RTC_EB>;
-			};
-
 			pin_controller: pinctrl@64710000 {
 				compatible = "sprd,qogirl6-pinctrl";
 				reg = <0 0x64710000 0 0x10000>;
@@ -1522,3 +1512,4 @@
 #include "thermal.dtsi"
 #include "sdio.dtsi"
 #include "wcn.dtsi"
+#include "wdt.dtsi"
