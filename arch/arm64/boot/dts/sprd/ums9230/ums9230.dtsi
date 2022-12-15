@@ -77,7 +77,6 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_cluster0>;
 			#cooling-cells = <2>;
 			sugov_slack_timer;
 		};
@@ -89,7 +88,6 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU2: cpu@200 {
 			device_type = "cpu";
@@ -99,7 +97,6 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU3: cpu@300 {
 			device_type = "cpu";
@@ -109,7 +106,6 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU4: cpu@400 {
 			device_type = "cpu";
@@ -119,7 +115,6 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU5: cpu@500 {
 			device_type = "cpu";
@@ -129,7 +124,6 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
-			cpufreq-data-v1 = <&cpufreq_cluster0>;
 		};
 		CPU6: cpu@600 {
 			device_type = "cpu";
@@ -139,7 +133,6 @@
 			cpu-idle-states = <&BIG_CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <501>;
-			cpufreq-data-v1 = <&cpufreq_cluster1>;
 			#cooling-cells = <2>;
 		};
 		CPU7: cpu@700 {
@@ -150,7 +143,6 @@
 			cpu-idle-states = <&BIG_CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <501>;
-			cpufreq-data-v1 = <&cpufreq_cluster1>;
 		};
 	};
 
@@ -1126,10 +1118,6 @@
 				#pwm-cells = <2>;
 			};
 
-			apcpu_dvfs: apcpu-dvfs {
-				compatible = "sprd,cpufreq-v2";
-			};
-
 			topdvfs_controller: topdvfsctrl@64014000 {
 				compatible = "sprd,qogirl6-topdvfs-dev", "sprd,topdvfs-dev", "syscon";
 				sprd,syscon-enable = <&aon_apb_regs>;
@@ -1371,30 +1359,6 @@
 		compatible = "unisoc,sipc-virt-bus";
 		#address-cells = <1>;
 		#size-cells = <0>;
-	};
-
-	cpufreq_cluster0: cpufreq-cluster0 {
-		sprd,temp-threshold = <65>;
-		nvmem-cells = <&dvfs_bin_cpu0>;
-		nvmem-cell-names = "dvfs_bin";
-		sprd,multi-version;
-		sprd,cpufreq-boost;
-		sprd,pmic-type = <0>;
-		sprd,cluster-cpumask = <0x3f>;
-		sprd,transition-delay = <500>;
-	};
-
-	cpufreq_cluster1: cpufreq-cluster1 {
-		sprd,temp-threshold = <65>;
-		nvmem-cells = <&dvfs_bin_cpu1>;
-		nvmem-cell-names = "dvfs_bin";
-		sprd,multi-version;
-		sprd,multi-supply;
-		sprd,cpufreq-boost;
-		sprd,pmic-type = <1>;
-		sprd,pmic-type-v2 = <0>;
-		sprd,cluster-cpumask = <0xc0>;
-		sprd,transition-delay = <500>;
 	};
 
 	ddr_dfs: scene-frequency {
@@ -1672,6 +1636,7 @@
 /* Include other IP modules in ALPHABETICAL order */
 #include "audio.dtsi"
 #include "bm.dtsi"
+#include "apcpu-dvfs.dtsi"
 #include "cam.dtsi"
 #include "clock.dtsi"
 #include "coresight.dtsi"
