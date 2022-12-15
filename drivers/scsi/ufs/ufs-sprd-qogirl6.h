@@ -6,6 +6,7 @@
 #ifndef _UFS_SPRD_QOGIRL6_H_
 #define _UFS_SPRD_QOGIRL6_H_
 #include <linux/bits.h>
+#include <linux/sprd_soc_id.h>
 
 struct ufs_sprd_ums9230_data {
 	void __iomem *ufs_analog_reg;
@@ -25,9 +26,7 @@ struct ufs_sprd_ums9230_data {
 	struct clk *pclk;
 	struct reset_control *ap_apb_ufs_rst;
 	struct reset_control *ap_apb_ufs_glb_rst;
-	struct completion pwm_async_done;
 	u32 ioctl_cmd;
-	struct completion hs_async_done;
 	void __iomem *dbg_apb_reg;
 };
 
@@ -108,13 +107,20 @@ extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
 #define	MPHY_APB_HSTXSCLKINV1_MASK BIT(13)
 #define	MPHY_APB_HSTXSCLKINV1_VAL BIT(13)
 
+#define	MPHY_DIG_CFG1_LANE0  0xC004
+#define	MPHY_DIG_CFG17_LANE0 0xC044
+#define	MPHY_DIG_CFG32_LANE0 0xC080
+
+#define	MPHY_DIG_CFG1_LANE1  0xC804
+#define	MPHY_DIG_CFG17_LANE1 0xC844
+#define	MPHY_DIG_CFG32_LANE1 0xC880
+
+#define	MPHY_APB_RX_CFGRXBIASLSENVAL_MASK BIT(5)
+#define	MPHY_APB_RX_CFGRXBIASLSENOVR_MASK BIT(21)
+#define	MPHY_APB_OVR_REG_LS_LDO_STABLE_MASK BIT(28)
+#define	MPHY_APB_REG_LS_LDO_STABLE_MASK BIT(17)
+
 #define AON_VER_UFS 1
-
-#define UFS_IOCTL_ENTER_MODE    0x5395
-#define UFS_IOCTL_AFC_EXIT      0x5396
-
-#define PWM_MODE_VAL    0x22
-#define HS_MODE_VAL     0x11
 
 /* Define debug apb base register */
 #define REG_DEBUG_APB_BASE	0x7C00A000

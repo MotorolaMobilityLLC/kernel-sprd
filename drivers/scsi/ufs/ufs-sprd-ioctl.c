@@ -270,6 +270,76 @@ out:
 	return 0;
 }
 
+int sprd_ufs_ioctl_get_pwr_info(struct scsi_device *dev, void __user *buf_user, unsigned int cmd)
+{
+	struct ufs_hba *hba;
+	unsigned int *idata = NULL;
+	struct ufs_sprd_host *host = NULL;
+	int err;
+
+	if (dev)
+		hba = shost_priv(dev->host);
+	else
+		return -ENODEV;
+
+	/* check scsi device instance */
+	if (!dev->rev) {
+		dev_err(hba->dev, "%s: scsi_device or rev is NULL\n", __func__);
+		err = -ENOENT;
+		goto out;
+	}
+	host = ufshcd_get_variant(hba);
+	idata = kzalloc(sizeof(unsigned int), GFP_KERNEL);
+	if (!idata) {
+		err = -ENOMEM;
+		goto out;
+	}
+
+	/* extract params from user buffer */
+	err = copy_from_user(idata, buf_user, sizeof(unsigned int));
+	if (err) {
+		dev_err(hba->dev,
+			"%s: failed copying buffer from user, err %d\n",
+			__func__, err);
+		goto out_release_mem;
+	}
+
+	if (cmd == UFS_IOCTL_ENTER_MODE) {
+		if ((((hba->pwr_info.pwr_tx) << 4)|
+		      (hba->pwr_info.pwr_rx)) == PWM_MODE_VAL)
+			*idata = 1;
+		else
+			*idata = 0;
+	}
+
+	if (cmd == UFS_IOCTL_AFC_EXIT) {
+		if ((((hba->pwr_info.pwr_tx) << 4)|
+		      (hba->pwr_info.pwr_rx)) == HS_MODE_VAL)
+			*idata = 1;
+		else
+			*idata = 0;
+	}
+
+	dev_err(hba->dev,
+		"%s:gear[0x%x:0x%x],lane[0x%x:0x%x],pwr[0x%x:0x%x],hs_rate=0x%x,idata=0x%x!\n",
+		__func__, hba->pwr_info.gear_rx, hba->pwr_info.gear_tx,
+		hba->pwr_info.lane_rx, hba->pwr_info.lane_tx,
+		hba->pwr_info.pwr_rx, hba->pwr_info.pwr_tx,
+		hba->pwr_info.hs_rate, *idata);
+
+	err = copy_to_user(buf_user, idata, sizeof(unsigned int));
+	if (err) {
+		dev_err(hba->dev, "%s: err %d copying to user.\n",
+				__func__, err);
+		goto out_release_mem;
+	}
+
+out_release_mem:
+	kfree(idata);
+out:
+	return err;
+}
+
 static int wait_for_ufs_all_complete(struct ufs_hba *hba, int timeout_ms)
 {
 	if (hba == NULL)
@@ -306,12 +376,15 @@ void prepare_command_send_in_ffu_state(struct ufs_hba *hba,
 int ufshcd_sprd_ioctl(struct scsi_device *dev, unsigned int cmd, void __user *buffer)
 {
 	struct ufs_hba *hba = shost_priv(dev->host);
+	struct ufs_sprd_host *host = NULL;
 	int err = 0;
 
 	if (!buffer) {
 		dev_err(hba->dev, "%s: user buffer is NULL\n", __func__);
 		return -EINVAL;
 	}
+
+	host = ufshcd_get_variant(hba);
 
 	switch (cmd) {
 	case UFS_IOCTL_FFU:
@@ -322,6 +395,22 @@ int ufshcd_sprd_ioctl(struct scsi_device *dev, unsigned int cmd, void __user *bu
 	case UFS_IOCTL_GET_DEVICE_INFO:
 		err = sprd_ufs_ioctl_get_dev_info(dev, buffer);
 		break;
+	case UFS_IOCTL_ENTER_MODE:
+		init_completion(&host->pwm_async_done);
+		if (!wait_for_completion_timeout(&host->pwm_async_done, 50000)) {
+			pr_err("pwm mode time out!\n");
+			return -ETIMEDOUT;
+		}
+		err = sprd_ufs_ioctl_get_pwr_info(dev, buffer, cmd);
+		break;
+	case UFS_IOCTL_AFC_EXIT:
+		init_completion(&host->hs_async_done);
+		if (!wait_for_completion_timeout(&host->hs_async_done, 50000)) {
+			pr_err("hs mode time out!\n");
+			return -ETIMEDOUT;
+		}
+		err = sprd_ufs_ioctl_get_pwr_info(dev, buffer, cmd);
+		break;
 	default:
 		err = -ENOIOCTLCMD;
 		dev_dbg(hba->dev, "%s: Unsupported ioctl cmd %d\n", __func__, cmd);
@@ -330,4 +419,3 @@ int ufshcd_sprd_ioctl(struct scsi_device *dev, unsigned int cmd, void __user *bu
 
 	return err;
 }
-

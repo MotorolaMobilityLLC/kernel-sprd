@@ -444,6 +444,24 @@ int ufs_sprd_reset(struct ufs_sprd_host *host)
 				MPHY_DIG_CFG19_LANE0);
 	}
 
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_APB_RX_CFGRXBIASLSENVAL_MASK,
+			MPHY_APB_RX_CFGRXBIASLSENVAL_MASK, MPHY_DIG_CFG32_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_APB_RX_CFGRXBIASLSENOVR_MASK,
+			MPHY_APB_RX_CFGRXBIASLSENOVR_MASK, MPHY_DIG_CFG32_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_APB_OVR_REG_LS_LDO_STABLE_MASK,
+			MPHY_APB_OVR_REG_LS_LDO_STABLE_MASK, MPHY_DIG_CFG1_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_APB_REG_LS_LDO_STABLE_MASK,
+			MPHY_APB_REG_LS_LDO_STABLE_MASK, MPHY_DIG_CFG17_LANE0);
+
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_APB_RX_CFGRXBIASLSENVAL_MASK,
+			MPHY_APB_RX_CFGRXBIASLSENVAL_MASK, MPHY_DIG_CFG32_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_APB_RX_CFGRXBIASLSENOVR_MASK,
+			MPHY_APB_RX_CFGRXBIASLSENOVR_MASK, MPHY_DIG_CFG32_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_APB_OVR_REG_LS_LDO_STABLE_MASK,
+			MPHY_APB_OVR_REG_LS_LDO_STABLE_MASK, MPHY_DIG_CFG1_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_APB_REG_LS_LDO_STABLE_MASK,
+			MPHY_APB_REG_LS_LDO_STABLE_MASK, MPHY_DIG_CFG17_LANE1);
+
 out:
 	return ret;
 }
@@ -513,7 +531,7 @@ void read_ufs_debug_bus(struct ufs_hba *hba)
 	/* read ap ufshcd debugbus */
 	writel(0x0, priv->dbg_apb_reg + 0x18);
 	dev_err(hba->dev, "ap ufshcd debugbus_data as follow(syssel:0x0):\n");
-	for (i = 0; i < 8; i++) {
+	for (i = 0; i < ARRAY_SIZE(sigsel); i++) {
 		writel(sigsel[i] << 8, priv->dbg_apb_reg + 0x1c);
 		debugbus_data = readl(priv->dbg_apb_reg + 0x50);
 		dev_err(hba->dev, "sig_sel: 0x%x. debugbus_data: 0x%x\n", sigsel[i], debugbus_data);
@@ -835,7 +853,7 @@ int hibern8_exit_check(struct ufs_hba *hba,
 					pr_err("ufs_pwm2hs succ\n");
 					if (priv->ioctl_cmd ==
 							UFS_IOCTL_AFC_EXIT)
-						complete(&priv->hs_async_done);
+						complete(&host->hs_async_done);
 				}
 			}
 		}
@@ -870,7 +888,7 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 				if (ret)
 					pr_err("change pwm mode failed!\n");
 				else
-					complete(&priv->pwm_async_done);
+					complete(&host->pwm_async_done);
 			} else {
 				hibern8_exit_check(hba, cmd, status);
 			}

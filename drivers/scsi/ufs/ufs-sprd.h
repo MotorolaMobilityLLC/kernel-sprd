@@ -34,6 +34,8 @@ struct ufs_sprd_host {
 	u32 times_pre_compare_fail;
 	u32 times_post_pwr;
 	u32 times_post_compare_fail;
+	struct completion pwm_async_done;
+	struct completion hs_async_done;
 };
 
 struct syscon_ufs {
@@ -46,6 +48,12 @@ struct syscon_ufs {
 
 #define UFSHCI_VERSION_30	0x00000300 /* 3.0 */
 #define UFSHCI_VERSION_21	0x00000210 /* 2.1 */
+
+#define UFS_IOCTL_ENTER_MODE    0x5395
+#define UFS_IOCTL_AFC_EXIT      0x5396
+
+#define PWM_MODE_VAL    0x22
+#define HS_MODE_VAL     0x11
 
 int ufs_sprd_get_syscon_reg(struct device_node *np,
 			    struct syscon_ufs *reg, const char *name);
