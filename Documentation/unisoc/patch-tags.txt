@@ -65,6 +65,7 @@ asoc:sprd:platform:
 asoc:usb:
 
 base:
+block:
 block:zram:
 build.config:
 
@@ -98,6 +99,8 @@ dt-bindings:*
 firmware:psci:
 firmware:sprd:
 fs:
+fs:erofs
+fs:ext4
 fs:f2fs:
 fs:proc:
 fs:sdcardfs:
