@@ -1251,7 +1251,7 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 
 		/* Increment pm usage count in host state.*/
 		pm_runtime_get_sync(musb->controller);
-
+		musb->hops.host_start(musb);
 		musb_reset_all_fifo_2_default(musb);
 
 		usb_phy_vbus_on(glue->xceiv);
