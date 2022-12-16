@@ -2200,6 +2200,9 @@ int musb_queue_resume_work(struct musb *musb,
 
 	spin_lock_irqsave(&musb->list_lock, flags);
 	is_suspended = musb->is_runtime_suspended;
+	/* Fix me, temp solution for adb offline issue */
+	dev_info(musb->controller, "is_suspended %d\n", is_suspended);
+	is_suspended = false;
 
 	if (is_suspended) {
 		WARN(1, "is suspended why?\n");
@@ -2785,6 +2788,8 @@ static int musb_suspend(struct device *dev)
 		return ret;
 	}
 
+	dev_info(musb->controller, "musb suspend\n");
+
 	musb_platform_disable(musb);
 	musb_disable_interrupts(musb);
 
@@ -2830,6 +2835,8 @@ static int musb_resume(struct device *dev)
 		return 0;
 	}
 
+	dev_info(musb->controller, "musb runtime\n");
+
 	/*
 	 * For static cmos like DaVinci, register values were preserved
 	 * unless for some reason the whole soc powered down or the USB
@@ -2874,6 +2881,8 @@ static int musb_runtime_suspend(struct device *dev)
 {
 	struct musb	*musb = dev_to_musb(dev);
 
+	dev_info(musb->controller, "musb runtime suspend\n");
+
 	musb_save_context(musb);
 	musb->is_runtime_suspended = 1;
 
@@ -2897,6 +2906,8 @@ static int musb_runtime_resume(struct device *dev)
 	 */
 	if (!musb->is_initialized)
 		return 0;
+
+	dev_info(musb->controller, "musb runtime resume\n");
 
 	musb_restore_context(musb);
 
