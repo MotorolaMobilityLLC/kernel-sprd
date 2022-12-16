@@ -4,9 +4,9 @@
 		reg = <0x0 0xc1100000 0x0 0x01100000>;
 	};
 
-	widevine_reserved: widevine@dfc00000 {
+	widevine_reserved: widevine@de800000 {
 		compatible = "shared-dma-pool";
-		reg = <0x0 0xdfc00000 0x0 0x10400000>;
+		reg = <0x0 0xde800000 0x0 0x11800000>;
 		reusable;
 	};
 
