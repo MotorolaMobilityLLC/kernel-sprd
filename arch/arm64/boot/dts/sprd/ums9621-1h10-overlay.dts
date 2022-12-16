@@ -83,6 +83,70 @@
 
 			};
 
+			front_sensor: front-sensor {
+				compatible = "sprd,shell-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "battery",
+						"board-thmzone",
+						"pa-thmzone",
+						"chg-thmzone";
+				temp-coeff = <3450 4562 4267 4135 5174 5258 8753
+						966 1530 3008 3021 2380 1894 745
+						6010 6332 5300 4423 4532 5950 10206
+						1916 5326 4557 4932 5549 3245 4574>;
+				coeff-offset = <4000>;
+				temp-const = <630>;
+				const-offset = <2000>;
+			};
+
+			back_sensor: back-sensor {
+				compatible = "sprd,shell-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "battery",
+						"board-thmzone",
+						"pa-thmzone",
+						"chg-thmzone";
+				temp-coeff = <322 4112 4545 4054 5138 5000 10815
+						829 1141 2558 2645 1886 1441 380
+						5899 6526 5713 4828 4838 6388 11096
+						1852 5631 4901 5224 5799 3497 4939>;
+				coeff-offset = <4000>;
+				temp-const = <515>;
+				const-offset = <2000>;
+			};
+
+			left_sensor: left-sensor {
+				compatible = "sprd,shell-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "battery",
+						"board-thmzone",
+						"pa-thmzone",
+						"chg-thmzone";
+				temp-coeff = <8918 6032 5755 4646 6411 5968 6377
+						1246 1937 3439 3614 2973 2568 699
+						5088 7642 6623 6152 5712 7170 11906
+						3498 6971 5889 5866 7108 3965 5822>;
+				coeff-offset = <5000>;
+				temp-const = <25>;
+				const-offset = <2000>;
+			};
+
+			right_sensor: right-sensor {
+				compatible = "sprd,shell-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "battery",
+						"board-thmzone",
+						"pa-thmzone",
+						"chg-thmzone";
+				temp-coeff = <2252 4617 4480 3506 5765 5259 11383
+						1454 1525 3074 2972 2298 1904 243
+						3768 6359 5443 4526 4526 6126 10859
+						1284 5224 4694 5196 5660 3136 4466>;
+				coeff-offset = <4000>;
+				temp-const = <364>;
+				const-offset = <2000>;
+			};
+
 			sprd-uid {
 				compatible = "sprd,uid";
 				nvmem-cells = <&uid_start>, <&uid_end>;
@@ -101,6 +165,32 @@
 
 &chosen {
 	bootargs_ext = "";
+};
+
+&thm_zone {
+	front_thmzone: front-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&front_sensor>;
+	};
+
+	back_thmzone: back-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&back_sensor>;
+	};
+
+	left_thmzone: left-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&left_sensor>;
+	};
+
+	right_thmzone: right-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&right_sensor>;
+	};
 };
 
 &adi_bus {
