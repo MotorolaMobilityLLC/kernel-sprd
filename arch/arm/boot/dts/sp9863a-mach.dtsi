@@ -362,6 +362,7 @@
 	no-sdio;
 	no-sd;
 	status = "okay";
+	supports-swcq;
 };
 
 &modem_dbg_log {

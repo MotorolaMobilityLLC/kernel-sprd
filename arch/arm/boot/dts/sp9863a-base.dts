@@ -23,6 +23,8 @@
 	aliases {
 		serial0 = &uart0;
 		serial1 = &uart1;
+		mmc0 = &sdio3;
+		mmc1 = &sdio0;
 	};
 
 	memory@80000000 {
