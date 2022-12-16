@@ -100,24 +100,34 @@ void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host)
 {
 	u64 read_speed = 0;
 	u64 write_speed = 0;
+	u64 wspeed_temp = 0, rspeed_temp = 0;
+	u64 wspeed_mod = 0, rspeed_mod = 0;
 #if IS_ENABLED(CONFIG_MMC_SWCQ)
 	bool flag = true;
 #endif
 
 	if ((ktime_to_ms(ktime_get()) - info->cnt_time) > (10000ULL)) {
 		/* calculate read/write speed */
-		if (info->read_total_time)
-			read_speed = info->read_total_blocks * 50000 / info->read_total_time;
-		if (info->write_total_time)
-			write_speed = info->write_total_blocks * 50000 / info->write_total_time;
+		if (info->read_total_time) {
+			read_speed = info->read_total_blocks * 50000;
+			do_div(read_speed, info->read_total_time);
+		}
+		if (info->write_total_time) {
+			write_speed = info->write_total_blocks * 50000;
+			do_div(write_speed, info->write_total_time);
+		}
 
 		/* print debug messages of mmc io */
 		rq_log(info->cmd_2_end, "|__c2e%9s", info->name);
 		rq_log(info->data_2_end, "|__d2e%9s", info->name);
 		rq_log(info->block_len, "|__blocks%6s", info->name);
+		rspeed_temp = read_speed;
+		wspeed_temp = write_speed;
+		rspeed_mod = do_div(rspeed_temp, 100);
+		wspeed_mod = do_div(wspeed_temp, 100);
 		pr_info("|__speed%7s: r= %lld.%lld M/s, w= %lld.%lld M/s, r_blk= %d, w_blk= %d\n",
-			info->name, read_speed / 100, read_speed % 100, write_speed / 100,
-			write_speed % 100, info->read_total_blocks, info->write_total_blocks);
+			info->name, rspeed_temp, rspeed_mod, wspeed_temp, wspeed_mod,
+			info->read_total_blocks, info->write_total_blocks);
 #if IS_ENABLED(CONFIG_MMC_SWCQ)
 		if (!strcmp(info->name, "mmc0") && info->mrq && host->mmc->cqe_ops->cqe_timeout &&
 			((read_speed > 0 && read_speed < 100) ||
