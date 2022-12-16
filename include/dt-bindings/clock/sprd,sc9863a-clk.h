@@ -172,7 +172,7 @@
 #define CLK_DEBUG_APB		67
 #define CLK_GIC			68
 #define CLK_PERIPH		69
-#define CLK_AON_CLK_NUM		(CLK_VSP + 1)
+#define CLK_AON_CLK_NUM		(CLK_PERIPH + 1)
 
 #define CLK_OTG_EB		0
 #define CLK_DMA_EB		1
