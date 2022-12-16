@@ -144,6 +144,12 @@ static struct cp_reg_dump cp_reg[] = {
 
 static char gnss_dump_level; /* 0: default, all, 1: only data, pmu, aon */
 
+static u32 cgm_gnss_clk_gate_en = 1;
+void gnss_set_clk_gate_en(u32 flag)
+{
+	cgm_gnss_clk_gate_en = flag;
+}
+
 static void gnss_write_data_to_phy_addr(phys_addr_t phy_addr,
 					      void *src_data, u32 size)
 {

@@ -24,6 +24,7 @@ void wcn_debug_bus_show(struct wcn_device *wcn_dev, char *show)
 	void __iomem *sysbase = NULL;
 	u32 modsel = 0, sigsel = 0, i = 0;
 	u32 *debugbus_data = NULL;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	pr_info("DEBUGBUS SOURCE:%s\n", show);
 	pr_info("------------------------------------\n");
@@ -288,10 +289,11 @@ void wcn_debug_bus_show(struct wcn_device *wcn_dev, char *show)
 				sigsel, (2 << 8) | sigsel, sysbase + SYSSEL_CFG5_OFFSET);
 		debugbus_data[i++] = readl(sysbase + PAD_DBUS_DATA_OUT_OFFSET);
 		pr_info("DEBUGBUS:WCN(1-29) debugbus data: 0x%x\n", debugbus_data[i - 1]);
-#ifdef CONFIG_WCN_INTEG
-		if (sigsel == 1)
-			gnss_set_clk_gate_en(debugbus_data[i - 1]);
-#endif
+
+		if (g_match_config && g_match_config->unisoc_wcn_integrated) {
+			if (sigsel == 1)
+				gnss_set_clk_gate_en(debugbus_data[i - 1]);
+		}
 	}
 	pr_info("++++++++++++++++++++WCN++++++++++++++++++++");
 

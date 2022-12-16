@@ -84,4 +84,5 @@
 #define CTL_BASE_AON_CLOCK_SIZE  0x144
 
 int gnss_dump_mem(char flag);
+void gnss_set_clk_gate_en(u32 flag);
 #endif

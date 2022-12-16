@@ -3285,6 +3285,7 @@ int wcn_proc_native_stop(void *arg)
 	unsigned int set_value;
 	u32 reg_read;
 	u32 type;
+	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	WCN_DBG("%s enter\n", __func__);
 
@@ -3322,11 +3323,13 @@ int wcn_proc_native_stop(void *arg)
 		WCN_INFO("ctrl_reg[%d] = 0x%x, val=0x%x\n",
 			 iloop_index, reg_read, val);
 	}
-#ifdef CONFIG_SC2342_I
-	if (!is_marlin)
-		/*delay for frequent gnss reset*/
-		msleep(20);
-#endif
+
+	if (g_match_config && g_match_config->unisoc_wcn_l3) {
+		if (!is_marlin)
+			/*delay for frequent gnss reset*/
+			msleep(20);
+	}
+
 	return 0;
 }
 
