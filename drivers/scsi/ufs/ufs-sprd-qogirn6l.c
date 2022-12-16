@@ -272,6 +272,44 @@ static void read_ufs_debug_bus(struct ufs_hba *hba)
 	dev_err(hba->dev, "ap ufshcd debugbus_data end.\n");
 }
 
+static int ufs_sprd_check_stat_after_suspend(struct ufs_hba *hba,
+						enum ufs_notify_change_status status)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9621_data *priv =
+		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
+	u32 ufs_pwr_gate = -1;
+	u32 monitor = -1;
+
+	if (!priv->syssel_reg) {
+		dev_warn(hba->dev, "can't get ufs debug bus base.\n");
+		return 0;
+	}
+
+	writel(0x6, priv->syssel_reg);
+	writel(0x9, priv->syssel_reg + 0xc);
+	writel(0xd1, priv->syssel_reg + 0x10);
+	ufs_pwr_gate = readl(priv->syssel_reg + 0x208);
+	if (unlikely((ufs_pwr_gate & 0x10000000) != 0x0))
+		goto check_monitor;
+	else
+		goto out;
+
+
+check_monitor:
+	writel(0x0, priv->syssel_reg);
+	writel(0x0, priv->syssel_reg + 0xc);
+	writel(0x18, priv->syssel_reg + 0x10);
+	monitor = readl(priv->syssel_reg + 0x208);
+	if (monitor == 0) {
+		dev_err(hba->dev, "ufs_pwr_gate:0x%x,monitor:0x%x\n", ufs_pwr_gate, monitor);
+		return -EAGAIN;
+	}
+
+out:
+	return 0;
+}
+
 static int ufs_sprd_init(struct ufs_hba *hba)
 {
 	struct device *dev = hba->dev;
@@ -290,6 +328,8 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	host->hba = hba;
 	ufshcd_set_variant(hba, host);
+
+	host->check_stat_after_suspend = ufs_sprd_check_stat_after_suspend;
 
 	host->caps |= UFS_SPRD_CAP_ACC_FORBIDDEN_AFTER_H8_EE;
 

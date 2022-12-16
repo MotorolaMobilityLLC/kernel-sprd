@@ -36,6 +36,9 @@ struct ufs_sprd_host {
 	u32 times_post_compare_fail;
 	struct completion pwm_async_done;
 	struct completion hs_async_done;
+
+	int (*check_stat_after_suspend)(struct ufs_hba *hba,
+					enum ufs_notify_change_status);
 };
 
 struct syscon_ufs {

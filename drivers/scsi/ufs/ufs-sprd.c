@@ -73,7 +73,8 @@ static void ufs_sprd_vh_update_sdev(void *data, struct scsi_device *sdev)
 	/* Disable UFS fua to prevent write performance degradation */
 	sdev->broken_fua = 1;
 
-	/* The cpus_share_cache interface always return true on k515,
+	/*
+	 * The cpus_share_cache interface always return true on k515,
 	 * causing blk_mq_complete_request to occur in the ufs_work
 	 * context that calls it.
 	 * The configuration flag QUEUE_FLAG_SAME_FORCE can make need_ipi return true
@@ -291,23 +292,6 @@ static int ufs_sprd_remove(struct platform_device *pdev)
 	return 0;
 }
 
-static int ufs_sprd_system_suspend(struct device *dev)
-{
-	struct ufs_hba *hba = dev_get_drvdata(dev);
-	bool vcc_aon = hba->vreg_info.vcc->reg->always_on;
-	int ret;
-
-	ret = ufshcd_system_suspend(dev);
-	if (ret)
-		return ret;
-
-	/* Makesure that VCC drop below 0.1V after turning off */
-	if (!vcc_aon && hba->vreg_info.vcc->enabled == false)
-		usleep_range(30000, 31000);
-
-	return 0;
-}
-
 static int ufs_sprd_system_resume(struct device *dev)
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
@@ -322,6 +306,40 @@ static int ufs_sprd_system_resume(struct device *dev)
 	/* Makesure UFS VCC power up */
 	if (!vcc_aon && vcc_state == false && hba->vreg_info.vcc->enabled == true)
 		usleep_range(100, 200);
+
+	return 0;
+}
+
+static int ufs_sprd_system_suspend(struct device *dev)
+{
+	struct ufs_hba *hba = dev_get_drvdata(dev);
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	bool vcc_aon = hba->vreg_info.vcc->reg->always_on;
+	int ret;
+
+	if (host->check_stat_after_suspend) {
+		ret = host->check_stat_after_suspend(hba, PRE_CHANGE);
+		if (ret)
+			return ret;
+	}
+
+	ret = ufshcd_system_suspend(dev);
+	if (ret)
+		return ret;
+
+	/* Makesure that VCC drop below 0.1V after turning off */
+	if (!vcc_aon && hba->vreg_info.vcc->enabled == false)
+		usleep_range(30000, 31000);
+
+	/* Check whether HC is abnormal after EE H8 */
+	if (host->check_stat_after_suspend) {
+		ret = host->check_stat_after_suspend(hba, POST_CHANGE);
+		if (ret) {
+			/* Recovery from bad status, retry suspend */
+			ufs_sprd_system_resume(dev);
+			return ret;
+		}
+	}
 
 	return 0;
 }
