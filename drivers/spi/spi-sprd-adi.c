@@ -122,6 +122,10 @@
 #define SC2730_SOFT_RST_HW              0x1824
 #define SC2721_SWRST_CTRL0              0xf1c
 #define SC2721_SOFT_RST_HW              0xc24
+#define SC2721_WDG_BASE			0x40
+#define SC2721_RST_STATUS		0xed8
+#define SC2721_MODULE_EN		0xc08
+#define SC2721_CLK_EN			0xc10
 #define SC2720_SWRST_CTRL0              0xe68
 #define SC2720_SOFT_RST_HW              0xc24
 #define REG_RST_EN                      BIT(4)
@@ -715,6 +719,12 @@ static struct sprd_adi_data sc9863_data = {
 	.slave_offset = ADI_12BIT_SLAVE_OFFSET,
 	.slave_addr_size = ADI_12BIT_SLAVE_ADDR_SIZE,
 	.read_check = sprd_adi_read_check_r3,
+	.wdg_base = SC2721_WDG_BASE,
+	.rst_sts = SC2721_RST_STATUS,
+	.wdg_en = SC2721_MODULE_EN,
+	.wdg_clk = SC2721_CLK_EN,
+	.swrst_base = SC2721_SWRST_CTRL0,
+	.softrst_base = SC2721_SOFT_RST_HW,
 };
 
 static struct sprd_adi_data ums512_data = {
