@@ -160,7 +160,10 @@
 		sprd,pdbg-irq-domain-gpio          = "sprd-gpio-plus";
 		sprd,pdbg-irq-domain-ana           = "spi4.0";
 		sprd,pdbg-irq-domain-ana-eic       = "41800000.spi:pmic@0:gpio-controller@280";
+		sprd,pdbg-irq-domain-ap-eic-dbnc   = "40210000.gpio";
+		sprd,pdbg-irq-domain-ap-eic-latch  = "40210080.gpio";
 		sprd,pdbg-irq-domain-ap-eic-async  = "402100a0.gpio";
+		sprd,pdbg-irq-domain-ap-eic-sync   = "402100c0.gpio";
 	};
 
 	debug_stat: debugstat {
