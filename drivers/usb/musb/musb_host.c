@@ -109,7 +109,8 @@ static void musb_h_tx_flush_fifo(struct musb_hw_ep *ep)
 
 	csr = musb_readw(epio, MUSB_TXCSR);
 	while (csr & MUSB_TXCSR_FIFONOTEMPTY) {
-		csr |= MUSB_TXCSR_FLUSHFIFO | MUSB_TXCSR_TXPKTRDY;
+		csr |= MUSB_TXCSR_FLUSHFIFO;
+		csr &= ~MUSB_TXCSR_TXPKTRDY;
 		musb_writew(epio, MUSB_TXCSR, csr);
 		csr = musb_readw(epio, MUSB_TXCSR);
 
@@ -3160,23 +3161,15 @@ static int musb_cleanup_urb(struct urb *urb, struct musb_qh *qh)
 			musb_platform_clear_ep_rxintr(musb, ep->epnum);
 	} else if (ep->epnum) {
 #if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
-		if (musb->adaptive_out_configured) {
-			if (ep->epnum == ADAPTIVE_EP_NUM) {
-				dev_info(musb->controller, "%s: stop adaptive out dma channel.\n",
-					__func__);
-				csr = musb_readw(epio, MUSB_TXCSR);
-				csr &= ~(MUSB_TXCSR_AUTOSET
-					| MUSB_TXCSR_DMAENAB
-					| MUSB_TXCSR_H_RXSTALL
-					| MUSB_TXCSR_H_NAKTIMEOUT
-					| MUSB_TXCSR_H_ERROR
-					| MUSB_TXCSR_TXPKTRDY);
-				musb_writew(epio, MUSB_TXCSR, csr);
-				/* REVISIT may need to clear FLUSHFIFO ... */
-				musb_writew(epio, MUSB_TXCSR, csr);
-				/* flush cpu writebuffer */
-				csr = musb_readw(epio, MUSB_TXCSR);
-			}
+		if (musb->adaptive_out_configured
+				&& ep->epnum == ADAPTIVE_EP_NUM) {
+			csr = musb_readw(epio, MUSB_TXCSR);
+			csr &= ~(MUSB_TXCSR_DMAENAB | MUSB_TXCSR_TXPKTRDY);
+			musb_writew(epio, MUSB_TXCSR, csr);
+			csr = musb_readw(epio, MUSB_TXCSR);
+			dev_info(musb->controller,
+				"%s: stop adaptive out dma with MUSB_TXCSR:0x%x\n",
+					__func__, csr);
 		}
 #endif
 		musb_h_tx_flush_fifo(ep);
