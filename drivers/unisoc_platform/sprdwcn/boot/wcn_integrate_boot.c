@@ -601,6 +601,7 @@ static int wcn_download_image(struct wcn_device *wcn_dev)
 			if (firmware->size != GNSS_COMBINE_FIRMWARE) {
 				/* force assert */
 				wcn_assert_interface(1, "gnss bin codesize error");
+				release_firmware(firmware);
 				return -1;
 			}
 			if (wcn_write_data_to_phy_addr(wcn_dev->base_addr,
