@@ -804,7 +804,7 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 
 	/* wifi/bt-pan does not support IPA due to their hardware drawback */
 	cur_tether_scheme = get_sfp_tether_scheme();
-	if (cur_tether_scheme == SFP_HARD_PATH || cur_tether_scheme == SFP_HALF_PATH) {
+	if (!(cur_tether_scheme == SFP_SOFT_PATH)) {
 		if (is_banned_ipa_netdev(skb->dev) ||
 		    is_banned_ipa_netdev(rt->dst.dev)) {
 			FP_PRT_DBG(FP_PRT_DEBUG,
