@@ -101,6 +101,7 @@ struct sprd_apsys_dvfs_ops {
 
 struct sprd_dpu_crtc {
 	struct device dev;
+	struct mutex dpu_gsp_lock;
 	struct drm_crtc *crtc;
 };
 
