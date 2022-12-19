@@ -25,6 +25,12 @@
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
 
+#if defined(CONFIG_SPRD_DEBUG)
+static int buf_tmp[524288/sizeof(int)];
+static int buf_last[524288/sizeof(int)];
+static int buf_cur[524288/sizeof(int)];
+#endif
+
 const struct file_operations generic_ro_fops = {
 	.llseek		= generic_file_llseek,
 	.read_iter	= generic_file_read_iter,
@@ -621,6 +627,38 @@ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count)
 			ppos = &pos;
 		}
 		ret = vfs_read(f.file, buf, count, ppos);
+#if defined(CONFIG_SPRD_DEBUG)
+if (count == 524288 && ret >= 0 &&
+		(!strcmp(f.file->f_path.dentry->d_name.name, "SequenceRead_test_file") ||
+		!strcmp(f.file->f_path.dentry->d_name.name, "SequenceWrite_test_file"))) {
+	if (!__copy_from_user(buf_tmp, buf, 524288)) {
+		int i;
+
+		for (i = 0; i < 524288/sizeof(int); i += 4096/sizeof(int)) {
+			if ((*(buf_tmp+i+1) - *(buf_tmp+i) != 0x1)
+				&& (*(buf_tmp+i+2) - *(buf_tmp+i+1) != 0x1)) {
+				unsigned long rt1 = 0, rt2, rt3;
+
+				ppos = file_ppos(f.file);
+				if (ppos) {
+					pos = *ppos;
+					ppos = &pos;
+					pr_err("FS_DEBUG: current pos is 0x%llx, filename is %s\n",
+						pos, f.file->f_path.dentry->d_name.name);
+					rt1 = __copy_from_user(buf_last, buf, 524288);
+				}
+				ret = vfs_read(f.file, buf, count, ppos);
+				rt2 = __copy_from_user(buf_cur, buf, 524288);
+				rt3 = __copy_to_user(buf, buf_last, 524288);
+				if (rt1 || rt2 || rt3)
+					pr_err("FS_DEBUG: copy_from_user or copy_to_user failed\n");
+			}
+		}
+	} else {
+		pr_err("FS_DEBUG: buf_tmp: __copy_from_user failed\n");
+	}
+}
+#endif
 		if (ret >= 0 && ppos)
 			f.file->f_pos = pos;
 		fdput_pos(f);
