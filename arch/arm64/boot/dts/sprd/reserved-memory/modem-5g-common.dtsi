@@ -62,13 +62,6 @@
 			reg = <0x0 0xbf000000 0x0 0x01000000>;
 		};
 
-		cma_reserved: cma_share@f00000000 {
-			compatible = "shared-dma-pool";
-			reg = <0x0 0xf0000000 0x0 0x04000000>;
-			reusable;
-			linux,cma-default;
-		};
-
 		rebootescrow@fff70000 {
 			no-map;
 			reg = <0x0 0xfff70000 0x0 0x00010000>; /* 64K */
@@ -85,6 +78,15 @@
 			record-size = <0x8000>;
 			console-size = <0x8000>;
 			pmsg-size = <0x8000>;
+		};
+
+		/* global autoconfigured region for contiguous allocations */
+		dmabuf,cma {
+			compatible = "shared-dma-pool";
+			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
+			reusable;
+			size = <0x0 0x04000000>;
+			linux,cma-default;
 		};
 	};
 };
