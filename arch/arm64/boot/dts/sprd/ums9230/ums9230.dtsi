@@ -88,6 +88,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
+			#cooling-cells = <2>;
 		};
 		CPU2: cpu@200 {
 			device_type = "cpu";
@@ -97,6 +98,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
+			#cooling-cells = <2>;
 		};
 		CPU3: cpu@300 {
 			device_type = "cpu";
@@ -106,6 +108,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
+			#cooling-cells = <2>;
 		};
 		CPU4: cpu@400 {
 			device_type = "cpu";
@@ -115,6 +118,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
+			#cooling-cells = <2>;
 		};
 		CPU5: cpu@500 {
 			device_type = "cpu";
@@ -124,6 +128,7 @@
 			cpu-idle-states = <&LIT_CORE_PD>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
+			#cooling-cells = <2>;
 		};
 		CPU6: cpu@600 {
 			device_type = "cpu";
@@ -143,6 +148,7 @@
 			cpu-idle-states = <&BIG_CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <501>;
+			#cooling-cells = <2>;
 		};
 	};
 
@@ -716,6 +722,9 @@
 				sprd,dvfs-scene-low = <0>;
 				sprd,dvfs-range-max = <4>;
 				sprd,dvfs-range-min = <0>;
+
+				#cooling-cells = <2>;
+				dynamic-power-coefficient = <77>;
 			};
 		};
 
