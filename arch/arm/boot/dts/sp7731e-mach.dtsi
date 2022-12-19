@@ -42,10 +42,8 @@
 		};
 	};
 
-	ion: ion {
-		compatible = "sprd,ion";
-		#address-cells = <1>;
-		#size-cells = <0>;
+	dmabuf: dmabuf {
+		compatible = "sprd,dmabuf";
 	};
 
 	reserved_memory: reserved-memory {

@@ -541,14 +541,10 @@
 	/*sprd,wb-memory = <&wb_reserved>;*/
 };
 
-&ion {
-	#address-cells = <1>;
-	#size-cells = <0>;
+&dmabuf {
 
-	heap@4 {
-		reg = <4>;
+	fd_reserved {
 		label = "carveout_fd";
-		type = <2>;
 		memory-region = <&fd_reserved>;
 	};
 };
