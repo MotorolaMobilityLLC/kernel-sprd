@@ -597,7 +597,7 @@ static int sprd_sip_svc_dvfs_debug_init(void)
 
 static int sprd_sip_svc_gpu_get_id(u32 *chip_id, u32 *gpu_bin)
 {
-	struct arm_smccc_res res;
+	struct arm_smccc_res res = {0, 0, 0, 0};
 
 	arm_smccc_smc(SPRD_SIP_SVC_GPU_GET_ID,
 				0, 0, 0, 0, 0, 0, 0, &res);
@@ -611,7 +611,7 @@ static int sprd_sip_svc_gpu_get_id(u32 *chip_id, u32 *gpu_bin)
 }
 static int sprd_sip_svc_gpu_update_voltage_list(u32 is_high_temp)
 {
-	struct arm_smccc_res res;
+	struct arm_smccc_res res = {0, 0, 0, 0};
 
 	arm_smccc_smc(SPRD_SIP_SVC_GPU_UPDATE_VOLTAGE_LIST,
 				is_high_temp, 0, 0, 0, 0, 0, 0, &res);

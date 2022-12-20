@@ -166,7 +166,7 @@ struct sprd_sip_svc_npu_ops {
 
 /**
  * struct sprd_sip_svc_gpu_ops - represents the various operations
- *      provided by SPRD SIP GPU
+ * provided by SPRD SIP GPU
  *
  * @get_id: gets the chip id and gpu bin
  * @update_voltage_list: update the voltage index corresponding meaning for DVFS
@@ -184,6 +184,7 @@ struct sprd_sip_svc_gpu_ops {
  * @perf_ops: pointer to set of performance operations
  * @dbg_ops: pointer to set of dbg operations
  * @storage_ops: pointer to set of storage operations
+ * @gpu_ops: pointer to set of gpu operations
  */
 struct sprd_sip_svc_handle {
 	struct sprd_sip_svc_perf_ops perf_ops;
