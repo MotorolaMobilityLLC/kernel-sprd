@@ -1,0 +1,37 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * UNISOC UMS312 board common DTS file
+ *
+ * Copyright (C) 2021, Unisoc Inc.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/clock/sprd,ums312-clk.h>
+#include <dt-bindings/mfd/sprd,sc2730-regs.h>
+#include <dt-bindings/mfd/sprd,sc2730-mask.h>
+#include "lcd/lcd_r61350_truly_mipi_hd.dtsi"
+#include "lcd/lcd_ili9881c_truly_mipi_hd.dtsi"
+#include "lcd/lcd_dummy_mipi.dtsi"
+
+/ {
+	model = "Unisoc UMS312 2H10 board";
+
+	compatible = "sprd,ums312-2h10";
+
+	sprd,sc-id = "ums312 2h10 1000";
+
+	sprd,board_id = <0x2100>; //XX00:base board,XX00~XXFF:customize board
+
+	fragment {
+		target-path = "/";
+		__overlay__ {
+
+			};
+		};
+};
+
+

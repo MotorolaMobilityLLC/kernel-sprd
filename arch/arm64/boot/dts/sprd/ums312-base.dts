@@ -1,0 +1,25 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Unisoc Sharkl5 platform DTS file
+ *
+ * Copyright (C) 2018, Unisoc Communications Inc.
+ */
+
+/dts-v1/;
+
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/mfd/sprd,sc2730-regs.h>
+#include <dt-bindings/mfd/sprd,sc2730-mask.h>
+
+#include "ums312/ums312.dtsi"
+
+
+
+/ {
+	model = "Unisoc UMS312 SoC";
+
+	compatible = "sprd,ums312";
+
+	sprd,sc-id = "ums312 1000 1000";
+};

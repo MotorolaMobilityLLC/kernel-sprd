@@ -13,6 +13,13 @@ ums512-1h10-overlay.dtbo-base := ums512-base.dtb
 ums512-1h10-go-overlay.dtbo-base := ums512-base.dtb
 endif
 
+ifeq ($(BSP_BUILD_FAMILY),sharkl5)
+
+dtb-$(CONFIG_ARCH_SPRD) += ums312-2h10-overlay.dtbo
+
+ums312-2h10-overlay.dtbo-base := ums312-base.dtb
+endif
+
 ifeq ($(BSP_BUILD_FAMILY),qogirl6)
 dtb-$(CONFIG_ARCH_SPRD) += \
 	ums9230-1h10-overlay.dtbo \
