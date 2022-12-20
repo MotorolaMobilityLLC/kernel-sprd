@@ -114,8 +114,12 @@ static int cp_dele_local_req_r_prod(void *user_data)
 	return sipa_dele_local_req_r_prod(user_data);
 }
 
-static int cp_dele_restart_handler(struct sipa_delegator *delegator)
+static void cp_dele_restart_handler(struct work_struct *work)
 {
+	struct delayed_work *restart_delayed_work = to_delayed_work(work);
+	struct sipa_delegator *delegator = container_of(restart_delayed_work,
+							struct sipa_delegator,
+							restart_work);
 	unsigned long flags;
 
 	spin_lock_irqsave(&delegator->lock, flags);
@@ -134,8 +138,12 @@ static int cp_dele_restart_handler(struct sipa_delegator *delegator)
 		sipa_rm_release_resource(delegator->cons_user);
 	}
 
+	if (!delegator->cfg->sipa_sys_eb) {
+		pm_relax(delegator->pdev);
+		pr_info("sipa_dele pm relax\n");
+	}
+
 	spin_unlock_irqrestore(&delegator->lock, flags);
-	return 0;
 }
 
 static ssize_t sipa_dele_reset_show(struct device *dev,
@@ -156,17 +164,19 @@ static ssize_t sipa_dele_reset_store(struct device *dev,
 
 	if (strstr(buf, "Modem Assert") &&
 	    !strstr(buf, "P-ARM Modem Assert")) {
-		dev_info(delegator->pdev, "Modem assert\n");
-		cp_dele_restart_handler(delegator);
+		if (!delegator->cfg->sipa_sys_eb) {
+			dev_info(delegator->pdev, "Modem assert\n");
+			cancel_delayed_work(&delegator->restart_work);
+		}
 	} else if (strstr(buf, "Modem Reset")) {
 		dev_info(delegator->pdev, "Modem Reset\n");
-		cp_dele_restart_handler(delegator);
+		cancel_delayed_work(&delegator->restart_work);
+		queue_delayed_work(delegator->restart_wq,
+				   &delegator->restart_work,
+				   0);
 	}
 
 	dev_info(delegator->pdev, "modem cmd %s\n", buf);
-
-	if (!delegator->cfg->sipa_sys_eb)
-		pm_relax(delegator->pdev);
 
 	return count;
 }
@@ -217,8 +227,17 @@ int cp_delegator_init(struct sipa_delegator_create_params *params)
 	s_cp_delegator->delegator.pd_get_flag = false;
 	s_cp_delegator->delegator.smsg_cnt = 0;
 	sipa_delegator_start(&s_cp_delegator->delegator);
+
 	if (s_cp_delegator->delegator.cfg->sipa_sys_eb)
 		pm_runtime_enable(s_cp_delegator->delegator.pdev);
+	s_cp_delegator->delegator.restart_wq = create_workqueue("sipa_dele_restart_wq");
+	if (!s_cp_delegator->delegator.restart_wq) {
+		dev_err(s_cp_delegator->delegator.pdev,
+			"sipa_dele_restart_wq create failed\n");
+		return -ENOMEM;
+	}
+	INIT_DELAYED_WORK(&s_cp_delegator->delegator.restart_work,
+			  cp_dele_restart_handler);
 
 	ret = sipa_rm_add_dependency(SIPA_RM_RES_CONS_WIFI_UL,
 				     s_cp_delegator->delegator.prod_id);

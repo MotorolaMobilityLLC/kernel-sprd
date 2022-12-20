@@ -82,7 +82,8 @@ struct sipa_delegator {
 	struct sipa_dele_smsg_work_type req_work;
 	struct sipa_dele_smsg_work_type rls_work;
 	struct sipa_dele_smsg_work_type done_work;
-	struct delayed_work pd_work;
+	struct delayed_work restart_work;
+	struct workqueue_struct *restart_wq;
 
 	sipa_dele_msg_func on_open;
 	sipa_dele_msg_func on_close;
