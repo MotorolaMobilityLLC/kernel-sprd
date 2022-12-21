@@ -819,10 +819,6 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	sdhci_writel(host, p[mmc->ios.timing], SDHCI_SPRD_REG_32_DLL_DLY);
 	err = 0;
 
-	if (host->flags & SDHCI_HS400_TUNING) {
-		pr_info("%s: update HS400 delay: 0x%08x\n", mmc_hostname(mmc),
-			p[MMC_TIMING_MMC_HS400]);
-	}
 out:
 	host->flags &= ~SDHCI_HS400_TUNING;
 	kfree(ranges);
