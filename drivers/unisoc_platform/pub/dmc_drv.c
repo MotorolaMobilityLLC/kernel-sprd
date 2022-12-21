@@ -459,6 +459,8 @@ static int sprd_dmc_remove(struct platform_device *pdev)
 		remove_proc_entry(DDR_INFO_NAME, drv_data.proc_dir);
 	if (drv_data.proc_dir != NULL)
 		remove_proc_entry(DMC_PROC_NAME, NULL);
+
+	atomic_notifier_chain_unregister(&panic_notifier_list, &dmc_panic_event_nb);
 	return 0;
 }
 
