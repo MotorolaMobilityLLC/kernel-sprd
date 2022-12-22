@@ -13,6 +13,7 @@
 #include "reserved-memory/ums9230-common.dtsi"
 #include "trusty/ums9230.dtsi"
 #include "battery/battery-common.dtsi"
+#include "thermal/ntc-common.dtsi"
 #include "sound/fe-be.dtsi"
 
 / {
