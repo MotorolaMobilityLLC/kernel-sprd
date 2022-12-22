@@ -22,38 +22,9 @@
 #define FTRACE_CLUS1_LIMIT_FREQ_NAME "thermal-cpufreq-1-limit"
 #define FTRACE_CLUS2_LIMIT_FREQ_NAME "thermal-cpufreq-2-limit"
 
-static unsigned int sysctl_thm_enable = 1;
-static unsigned int sysctl_user_power_range;
+static unsigned int thm_enable = 1;
+static unsigned int user_power_range;
 static struct thermal_zone_device *soc_tz;
-
-struct ctl_table thermal_table[] = {
-	{
-		.procname	= "thm_enable",
-		.data		= &sysctl_thm_enable,
-		.maxlen		= sizeof(unsigned int),
-		.mode		= 0644,
-		.proc_handler   = proc_dointvec_minmax,
-		.extra1		= SYSCTL_ZERO,
-		.extra2		= SYSCTL_ONE,
-	},
-	{
-		.procname	= "user_power_range",
-		.data		= &sysctl_user_power_range,
-		.maxlen		= sizeof(unsigned int),
-		.mode		= 0644,
-		.proc_handler   = proc_dointvec,
-	},
-	{ },
-};
-
-struct ctl_table thermal_base_table[] = {
-	{
-		.procname	= "unisoc_thermal",
-		.mode		= 0555,
-		.child		= thermal_table,
-	},
-	{ },
-};
 
 struct sprd_thermal_ctl {
 	struct cpufreq_policy	*policy;
@@ -62,8 +33,6 @@ struct sprd_thermal_ctl {
 };
 
 static LIST_HEAD(thermal_policy_list);
-
-static struct ctl_table_header *hdr;
 
 static void unisoc_thermal_register(void *data, struct cpufreq_policy *policy)
 {
@@ -106,18 +75,18 @@ static void unisoc_thermal_unregister(void *data, struct cpufreq_policy *policy)
 /* thermal power throttle control */
 static void unisoc_enable_thermal_power_throttle(void *data, bool *enable, bool *override)
 {
-	if (!sysctl_thm_enable)
+	if (!thm_enable)
 		*enable = false;
 
-	if (sysctl_user_power_range)
+	if (user_power_range)
 		*override = true;
 }
 
 /* modify IPA power_range by user_power_range */
 static void unisoc_thermal_power_cap(void *data, unsigned int *power_range)
 {
-	if (sysctl_user_power_range && sysctl_user_power_range < *power_range)
-		*power_range = sysctl_user_power_range;
+	if (user_power_range && user_power_range < *power_range)
+		*power_range = user_power_range;
 }
 
 /* modify thermal target frequency */
@@ -214,10 +183,55 @@ static void unisoc_get_thermal_zone_device(void *data, struct thermal_zone_devic
 	thermal_temp_debug(tz);
 }
 
+/* sysfs attribute create */
+static ssize_t
+thm_enable_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+	return sprintf(buf, "%d\n", thm_enable);
+}
+
+static ssize_t
+thm_enable_store(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	u32 enable;
+
+	if (kstrtou32(buf, 10, &enable) || enable < 0 || enable > 1)
+		return -EINVAL;
+
+	thm_enable = enable;
+
+	return count;
+}
+
+static ssize_t
+user_power_range_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+	return sprintf(buf, "%d\n", user_power_range);
+}
+
+static ssize_t
+user_power_range_store(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	u32 power_value;
+
+	if (kstrtou32(buf, 10, &power_value) || power_value < 0)
+		return -EINVAL;
+
+	user_power_range = power_value;
+
+	return count;
+}
+
+static DEVICE_ATTR_RW(thm_enable);
+static DEVICE_ATTR_RW(user_power_range);
 
 static int sprd_thermal_ctl_init(void)
 {
-	int i;
+	int i, ret;
 	struct sprd_thermal_ctl *thm_ctl, *tmp_thm_ctl;
 
 	for (i = 0; i < MAX_CLUSTER_NUM; i++) {
@@ -231,7 +245,24 @@ static int sprd_thermal_ctl_init(void)
 		}
 	}
 
-	hdr = register_sysctl_table(thermal_base_table);
+	soc_tz = thermal_zone_get_zone_by_name("soc-thmzone");
+	if (IS_ERR(soc_tz)) {
+		pr_err("Failed to get soc thermal zone\n");
+		goto fail;
+	}
+
+	ret = device_create_file(&soc_tz->device, &dev_attr_thm_enable);
+	if (ret) {
+		pr_err("Failed to create thm_enable\n");
+		goto fail;
+	}
+
+	ret = device_create_file(&soc_tz->device, &dev_attr_user_power_range);
+	if (ret) {
+		pr_err("Failed to create user_power_range\n");
+		goto remove_file;
+	}
+
 	register_trace_android_vh_thermal_register(unisoc_thermal_register, NULL);
 	register_trace_android_vh_thermal_unregister(unisoc_thermal_unregister, NULL);
 	register_trace_android_vh_enable_thermal_power_throttle(unisoc_enable_thermal_power_throttle, NULL);
@@ -240,11 +271,10 @@ static int sprd_thermal_ctl_init(void)
 	register_trace_android_vh_modify_thermal_request_freq(unisoc_modify_thermal_request_freq, NULL);
 	register_trace_android_vh_get_thermal_zone_device(unisoc_get_thermal_zone_device, NULL);
 
-	soc_tz = thermal_zone_get_zone_by_name("soc-thmzone");
-	if (IS_ERR(soc_tz))
-		pr_err("Failed to get soc thermal zone\n");
-
 	return 0;
+
+remove_file:
+	device_remove_file(&soc_tz->device, &dev_attr_thm_enable);
 
 fail:
 	list_for_each_entry_safe(thm_ctl, tmp_thm_ctl, &thermal_policy_list, node) {
@@ -272,7 +302,10 @@ static void sprd_thermal_ctl_exit(void)
 	unregister_trace_android_vh_modify_thermal_target_freq(unisoc_modify_thermal_target_freq, NULL);
 	unregister_trace_android_vh_modify_thermal_request_freq(unisoc_modify_thermal_request_freq, NULL);
 	unregister_trace_android_vh_get_thermal_zone_device(unisoc_get_thermal_zone_device, NULL);
-	unregister_sysctl_table(hdr);
+
+	device_remove_file(&soc_tz->device, &dev_attr_thm_enable);
+	device_remove_file(&soc_tz->device, &dev_attr_user_power_range);
+
 }
 
 module_init(sprd_thermal_ctl_init);
