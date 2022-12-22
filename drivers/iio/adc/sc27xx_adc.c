@@ -386,9 +386,10 @@ static const struct reg_bit regs_sc2720[] = {
 	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, NULL, false),
 	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x1e8, BIT(8), 8, NULL, false),
 	[REG_SCALE]  = REG_BIT_INIT(BASE_ANA, 0xffff, GENMASK(10, 9), 9, NULL, false),
-	[REG_ISEN0]  = REG_BIT_INIT(BASE_GLB, 0x1F0, BIT(13), 13, NULL, false),
-	[REG_ISEN1]  = REG_BIT_INIT(BASE_GLB, 0x1F0, GENMASK(11, 9), 9, sprd_adc_get_isen, false),
-	[REG_ISEN2]  = REG_BIT_INIT(BASE_ANA, 0xB0, BIT(0), 0, NULL, false),
+	[REG_ISEN0]  = REG_BIT_INIT(BASE_GLB, 0x1F0, BIT(0), 0, NULL, true),
+	[REG_ISEN1]  = REG_BIT_INIT(BASE_GLB, 0x1F0, BIT(13), 13, NULL, false),
+	[REG_ISEN2]  = REG_BIT_INIT(BASE_GLB, 0x1F0, GENMASK(11, 9), 9, sprd_adc_get_isen, false),
+	[REG_ISEN3]  = REG_BIT_INIT(BASE_ANA, 0xB0, BIT(0), 0, NULL, false),
 };
 
 static const struct reg_bit regs_sc2721[] = {
@@ -397,9 +398,10 @@ static const struct reg_bit regs_sc2721[] = {
 	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, NULL, false),
 	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x29c, BIT(8), 8, NULL, false),
 	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, BIT(5), 5, NULL, false),
-	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x2A4, BIT(13), 13, NULL, false),
-	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x2A4, GENMASK(12, 10), 10, sprd_adc_get_isen, false),
-	[REG_ISEN2] = REG_BIT_INIT(BASE_ANA, 0xB0, BIT(0), 0, NULL, false),
+	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x2A4, BIT(0), 0, NULL, true),
+	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x2A4, BIT(13), 13, NULL, false),
+	[REG_ISEN2] = REG_BIT_INIT(BASE_GLB, 0x2A4, GENMASK(12, 10), 10, sprd_adc_get_isen, false),
+	[REG_ISEN3] = REG_BIT_INIT(BASE_ANA, 0xAC, BIT(0), 0, NULL, false),
 };
 
 static const struct reg_bit regs_sc2730[] = {
@@ -422,8 +424,8 @@ static const struct reg_bit regs_sc2731[] = {
 	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, BIT(5), 5, NULL, false),
 	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x324, BIT(4), 4, NULL, false),
 	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x2B4, BIT(6), 6, NULL, false),
-	[REG_ISEN2] = REG_BIT_INIT(BASE_GLB, 0x324, GENMASK(3, 0), 0, sprd_adc_get_isen, false),
-	[REG_ISEN3] = REG_BIT_INIT(BASE_ANA, 0xB0, BIT(0), 0, NULL, false),
+	[REG_ISEN2] = REG_BIT_INIT(BASE_GLB, 0x324, GENMASK(3, 1), 1, sprd_adc_get_isen, false),
+	[REG_ISEN3] = REG_BIT_INIT(BASE_ANA, 0xAC, BIT(0), 0, NULL, false),
 };
 
 static const struct reg_bit regs_ump9620[] = {
@@ -688,6 +690,7 @@ static void sc2720_ch_data_init(struct sprd_adc_data *data)
 {
 	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO_DEF);
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
+		[3] = CH_DATA_INIT_P0(SCALE_00, 0x1, 0x9, RATIO_DEF),
 		[5] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
 		[7] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
 		[9] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
@@ -712,7 +715,7 @@ static void sc2721_ch_data_init(struct sprd_adc_data *data)
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
 		[1]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
 		[2]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
-		[3]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
+		[3]  = CH_DATA_INIT_P2(SCALE_00, 0x1, 0x9, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
 		[4]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
 		[5] = CH_DATA_INIT_P2(SCALE_01, 0, 0, RATIO(1, 1), RATIO(7, 29), RATIO(7, 29)),
 		[7]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(100, 125)),
@@ -731,7 +734,7 @@ static void sc2730_ch_data_init(struct sprd_adc_data *data)
 {
 	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO_DEF);
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
-		[3] = CH_DATA_INIT_P0(SCALE_00, 0, 0x9, RATIO_DEF),
+		[3] = CH_DATA_INIT_P0(SCALE_00, 1, 0x9, RATIO_DEF),
 		[5] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
 		[7] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
 		[9] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
@@ -758,7 +761,7 @@ static void sc2731_ch_data_init(struct sprd_adc_data *data)
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
 		[1]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
 		[2]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
-		[3]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
+		[3]  = CH_DATA_INIT_P2(SCALE_00, 0x1, 0x9, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
 		[4]  = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO_DEF, RATIO_DEF, RATIO(400, 1025)),
 		[5] = CH_DATA_INIT_P2(SCALE_01, 0, 0, RATIO(1, 1), RATIO(7, 29), RATIO(7, 29)),
 		[6] = CH_DATA_INIT_P2(SCALE_00, 0, 0, RATIO(375, 9000), RATIO_DEF, RATIO_DEF),
@@ -775,7 +778,8 @@ static void ump9620_ch_data_init(struct sprd_adc_data *data)
 	struct sprd_adc_channel_data ch_data_def = CH_DATA_INIT_P0(SCALE_00, 0, 0, RATIO_DEF);
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX] = {
 		[0] = CH_DATA_INIT_P0(SCALE_01, 0, 0, RATIO_DEF),
-		[5] = CH_DATA_INIT_P0(SCALE_00, 0, 0x9, RATIO_DEF),
+		[5] = CH_DATA_INIT_P0(SCALE_00, 0x1, 0x9, RATIO_DEF),
+		[6] = CH_DATA_INIT_P0(SCALE_00, 0x1, 0x9, RATIO_DEF),
 		[7] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
 		[9] = CH_DATA_INIT_P0(SCALE_10, 0, 0, RATIO_DEF),
 		[10] = CH_DATA_INIT_P0(SCALE_11, 0, 0, RATIO_DEF),
