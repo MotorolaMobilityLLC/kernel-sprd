@@ -20,6 +20,14 @@ config SPRD_SC9863A_CLK
 	  Support for the global clock controller on sc9863a devices.
 	  Say Y if you want to use peripheral devices on sc9863a SoC.
 
+config SPRD_UMS312_CLK
+	tristate "Support for the Unisoc UMS312 clocks"
+	help
+	  Support for the global clock controller on ums312 devices.
+	  different config parameter define different way to load devices.
+	  Say Y if you want to use peripheral devices on ums312 SoC.
+	  Say M if you want to use peripheral devices on ums312 SoC as module.
+
 config SPRD_UMS512_CLK
 	tristate "Support for the Unisoc UMS512 clocks"
 	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
