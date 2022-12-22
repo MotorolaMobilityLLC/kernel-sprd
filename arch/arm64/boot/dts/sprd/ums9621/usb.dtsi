@@ -21,8 +21,22 @@
 		reg = <0xa00000 0x2000>;
 		interrupts = <GIC_SPI 8 IRQ_TYPE_LEVEL_HIGH>;
 		interrupt-names = "mc";
-		clocks = <&aonapb_gate CLK_AON_USB2_TOP_EB>;
-		clock-names = "core_clk";
+		clocks =
+			<&aonapb_gate CLK_AON_USB2_TOP_EB>,
+			<&aonapb_clk CLK_USB>,
+			<&g5l_pll CLK_TGPLL_128M>,
+			<&pmu_gate CLK_RCO_100M_25M>;
+		clock-names =
+			"core_clk",
+			"hclk_source_sel",
+			"hclk_default_source",
+			"hclk_suspend_source";
+		pubsys_bypass = <&pmu_apb_regs
+			REG_PMU_APB_PUB_DEEP_SLEEP_POLL_7
+			MASK_PMU_APB_AON_PUB_DEEP_SLEEP_POLL>;
+		suspend_clk_source_frc_on = <&pmu_apb_regs
+			REG_PMU_APB_RCO100M_REL_CFG
+			MASK_PMU_APB_RCO100M_FRC_ON>;
 		usb-phy = <&hsphy>;
 		phy-names = "usb";
 		dr-mode = "peripheral";
