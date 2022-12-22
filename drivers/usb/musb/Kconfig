@@ -153,6 +153,15 @@ config USB_SPRD_DMA
 	  takes care of all the usb driver functionality, normally paired with
 	  DesignWare MUSB20 (DRD) Controller.
 
+config MUSB_SPRD_LOWPOWER
+	bool 'MUSB LOWPOWER FUNCTION'
+	depends on USB_MUSB_SPRD
+	help
+	  Enable this to support the SPRD MUSB LOWPOWER that hardware can enter into chipsleep
+	  when usb is working in peripheral mode or host mode. In addition, it support remote
+	  wakeup too. Software need to add this macro to enable musb lowpower function in
+	  peripheral mode.
+
 config USB_SPRD_DMA_V3
 	bool 'DMA VERSION V3'
 	depends on USB_SPRD_DMA
