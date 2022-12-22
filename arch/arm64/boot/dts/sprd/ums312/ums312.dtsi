@@ -6,6 +6,8 @@
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/clock/sprd,ums512-clk.h>
+
 / {
 	cpuinfo_hardware = "Unisoc T310";
 	soc-module = "T310";
@@ -140,7 +142,30 @@
 				<GIC_SPI 115 IRQ_TYPE_LEVEL_HIGH>;
 	};
 
+	soc: soc {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges;
 
+		aon {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			hwlock: hwspinlock@327f0000 {
+				compatible = "sprd,hwspinlock-r3p0";
+				reg = <0 0x327f0000 0 0x10000>;
+				#hwlock-cells = <1>;
+				clock-names = "enable";
+				clocks = <&aonapb_gate CLK_SPLK_EB>;
+			};
+		};
+	};
 };
 
 
+/* Include other IP modules in ALPHABETICAL order */
+#include "glbreg.dtsi"
+#include "clock.dtsi"
