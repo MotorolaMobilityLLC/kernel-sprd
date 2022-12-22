@@ -3662,5 +3662,26 @@ void musb_host_poke_root_hub(struct musb *musb)
 
 static void musb_host_start(struct musb *musb)
 {
-	musb_start(musb);
+	void __iomem *regs = musb->mregs;
+	u8 power;
+
+	/*  Set INT enable registers, enable interrupts */
+	musb->intrtxe = musb->epmask;
+	musb_writew(regs, MUSB_INTRTXE, musb->intrtxe);
+	musb->intrrxe = musb->epmask & 0xfffe;
+	musb_writew(regs, MUSB_INTRRXE, musb->intrrxe);
+	musb_writeb(regs, MUSB_INTRUSBE, 0xf7);
+
+	musb_writeb(regs, MUSB_TESTMODE, 0);
+
+	power = MUSB_POWER_ISOUPDATE;
+	/*
+	 * treating UNKNOWN as unspecified maximum speed, in which case
+	 * we will default to high-speed.
+	 */
+	if (musb->config->maximum_speed == USB_SPEED_HIGH ||
+			musb->config->maximum_speed == USB_SPEED_UNKNOWN)
+		power |= MUSB_POWER_HSENAB;
+	musb_writeb(regs, MUSB_POWER, power);
 }
+

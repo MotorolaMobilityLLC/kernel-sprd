@@ -1291,12 +1291,12 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 			musb_sprd_adaptive_shutdown(musb);
 		}
 #endif
-		msleep(150);
-		MUSB_DEV_MODE(musb);
-		glue->dr_mode = USB_DR_MODE_UNKNOWN;
+
 		devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
 		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl & ~MUSB_DEVCTL_SESSION);
+
 		usb_phy_vbus_off(glue->xceiv);
+		msleep(150);
 
 		/* Decrement pm usage count when leave host state.*/
 		pm_runtime_put_sync(musb->controller);
@@ -1304,6 +1304,8 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		musb->is_active = 0;
 		musb->xceiv->otg->default_a = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
+		MUSB_DEV_MODE(musb);
+		glue->dr_mode = USB_DR_MODE_UNKNOWN;
 
 		if (!glue->enable_pm_suspend_in_host)
 			__pm_relax(glue->wake_lock);
