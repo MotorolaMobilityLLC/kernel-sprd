@@ -1713,7 +1713,7 @@ static void musb_pullup(struct musb *musb, int is_on)
 		if (!is_host_active(musb))
 			musb->xceiv->otg->state = OTG_STATE_UNDEFINED;
 	} else {
-		musb_writeb(musb_base, MUSB_INTRUSBE, 0xf6);
+		musb_writeb(musb_base, MUSB_INTRUSBE, 0xf7);
 		musb->shutdowning = 0;
 	}
 }

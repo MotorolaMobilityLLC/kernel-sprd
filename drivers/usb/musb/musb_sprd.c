@@ -118,12 +118,17 @@ struct sprd_glue {
 	struct musb			*musb;
 	struct platform_device		*musb_pdev;
 	struct clk			*clk;
+	struct clk			*hclk_src_sel;
+	struct clk			*hclk_suspend_src;
+	struct clk			*hclk_default_src;
 	struct phy			*phy;
 	struct usb_phy			*xceiv;
 	struct regulator		*vbus;
 	struct wakeup_source		*pd_wake_lock;
 	struct regmap			*pmu;
 	struct musb_reg_info		usb31pllv_frc_on;
+	struct musb_reg_info		pubsys_bypass;
+	struct musb_reg_info		suspend_clk_src_frc_on;
 	struct usb_role_switch		*role_sw;
 
 	enum usb_role			role;
@@ -1044,6 +1049,83 @@ static void sprd_musb_reset_context(struct musb *musb)
 	}
 }
 
+static void musb_sprd_control_usb31pllv_frc_onoff(struct sprd_glue *glue)
+{
+	struct musb *musb = glue->musb;
+
+	if (!glue->usb31pllv_frc_on.regmap_ptr)
+		return;
+
+	if (musb->is_offload && !musb->offload_used) {
+		regmap_update_bits(glue->usb31pllv_frc_on.regmap_ptr,
+				glue->usb31pllv_frc_on.args[0],
+				glue->usb31pllv_frc_on.args[1],
+				~glue->usb31pllv_frc_on.args[1]);
+	} else if (musb->is_offload && musb->offload_used) {
+		regmap_update_bits(glue->usb31pllv_frc_on.regmap_ptr,
+				glue->usb31pllv_frc_on.args[0],
+				glue->usb31pllv_frc_on.args[1],
+				glue->usb31pllv_frc_on.args[1]);
+	}
+}
+
+#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
+static bool musb_sprd_lowpower_configuration_onoff(struct sprd_glue *glue, int on)
+{
+	struct musb *musb = glue->musb;
+	u32 val = 0;
+
+	if (glue->dr_mode == USB_DR_MODE_UNKNOWN || musb->offload_used) {
+		dev_info(glue->dev, "not support musb lowpower due to unknown mode or offload!\n");
+		return false;
+	}
+
+	/* check lowpower configuration condition*/
+	if (!glue->pubsys_bypass.regmap_ptr)
+		return false;
+	if (!glue->suspend_clk_src_frc_on.regmap_ptr)
+		return false;
+	if (!glue->hclk_src_sel || !glue->hclk_suspend_src)
+		return false;
+
+	if (on) {
+		/* make pubsys deep bypass */
+		regmap_read(glue->pubsys_bypass.regmap_ptr,
+				glue->pubsys_bypass.args[0], &val);
+		val |= glue->pubsys_bypass.args[1];
+		regmap_write(glue->pubsys_bypass.regmap_ptr,
+				glue->pubsys_bypass.args[0], val);
+
+		/* make suspend clk source force on */
+		regmap_update_bits(glue->suspend_clk_src_frc_on.regmap_ptr,
+				glue->suspend_clk_src_frc_on.args[0],
+				glue->suspend_clk_src_frc_on.args[1],
+				glue->suspend_clk_src_frc_on.args[1]);
+
+		/* switch hclk to suspend clk source */
+		clk_set_parent(glue->hclk_src_sel, glue->hclk_suspend_src);
+	} else {
+		/* cancel pubsys deep bypass */
+		regmap_read(glue->pubsys_bypass.regmap_ptr,
+				glue->pubsys_bypass.args[0], &val);
+		val &= ~glue->pubsys_bypass.args[1];
+		regmap_write(glue->pubsys_bypass.regmap_ptr,
+				glue->pubsys_bypass.args[0], val);
+
+		/* cancel suspend clk source force on */
+		regmap_update_bits(glue->suspend_clk_src_frc_on.regmap_ptr,
+				glue->suspend_clk_src_frc_on.args[0],
+				glue->suspend_clk_src_frc_on.args[1],
+				~glue->suspend_clk_src_frc_on.args[1]);
+
+		/* switch hclk to default clk */
+		clk_set_parent(glue->hclk_src_sel, glue->hclk_default_src);
+	}
+
+	return true;
+}
+#endif
+
 /**
  * Show / Store the hostenable attribure.
  */
@@ -1314,7 +1396,7 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 	if (on) {
 		dev_info(glue->dev, "%s: turn on gadget %s\n", __func__, musb->g.name);
 
-		__pm_stay_awake(glue->wake_lock);
+		pm_stay_awake(musb->controller);
 
 		MUSB_DEV_MODE(musb);
 		musb->is_active = 0;
@@ -1358,7 +1440,7 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		musb->offload_used = 0;
 		pm_runtime_put_sync(musb->controller);
 
-		__pm_relax(glue->wake_lock);
+		pm_relax(musb->controller);
 	}
 
 	return 0;
@@ -1430,8 +1512,8 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 			}
 		}
 
-		if (!glue->enable_pm_suspend_in_host)
-			__pm_stay_awake(glue->wake_lock);
+		if (!glue->enable_pm_suspend_in_host && !IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER))
+			pm_stay_awake(musb->controller);
 
 		if (glue->use_singlefifo)
 			sprd_musb_hdrc_config_single.fifo_cfg = sprd_musb_host_mode_cfg_single;
@@ -1508,8 +1590,8 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		/* Decrement pm usage count when leave host state.*/
 		pm_runtime_put_sync(musb->controller);
 
-		if (!glue->enable_pm_suspend_in_host)
-			__pm_relax(glue->wake_lock);
+		if (!glue->enable_pm_suspend_in_host && !IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER))
+			pm_relax(musb->controller);
 	}
 
 	return 0;
@@ -2016,6 +2098,25 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
+	glue->hclk_src_sel = devm_clk_get(dev, "hclk_source_sel");
+	if (IS_ERR(glue->hclk_src_sel)) {
+		dev_warn(dev, "no hclk_source_sel specified\n");
+		glue->hclk_src_sel = NULL;
+	}
+
+	glue->hclk_default_src = devm_clk_get(dev, "hclk_default_source");
+	if (IS_ERR(glue->hclk_default_src)) {
+		dev_warn(dev, "no hclk_default_source specified\n");
+		glue->hclk_default_src = NULL;
+	}
+
+	glue->hclk_suspend_src = devm_clk_get(dev, "hclk_suspend_source");
+	if (IS_ERR(glue->hclk_suspend_src)) {
+		dev_warn(dev, "no hclk_suspend_source specified");
+		glue->hclk_suspend_src = NULL;
+	}
+#endif
 	glue->musb_wq = alloc_ordered_workqueue("musb_wq", 0);
 	if (!glue->musb_wq) {
 		clk_disable_unprepare(glue->clk);
@@ -2105,7 +2206,22 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		dev_warn(&pdev->dev, "failed to get usb31pllv_frc_on regmap!\n");
 		glue->usb31pllv_frc_on.regmap_ptr = NULL;
 	}
+#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
+	glue->suspend_clk_src_frc_on.regmap_ptr = syscon_regmap_lookup_by_phandle_args(dev->of_node,
+						"suspend_clk_source_frc_on", 2,
+						glue->suspend_clk_src_frc_on.args);
+	if (IS_ERR(glue->suspend_clk_src_frc_on.regmap_ptr)) {
+		dev_warn(&pdev->dev, "failed to get suspend_clk_source_frc_on regmap!\n");
+		glue->suspend_clk_src_frc_on.regmap_ptr = NULL;
+	}
 
+	glue->pubsys_bypass.regmap_ptr = syscon_regmap_lookup_by_phandle_args(dev->of_node,
+						"pubsys_bypass", 2, glue->pubsys_bypass.args);
+	if (IS_ERR(glue->pubsys_bypass.regmap_ptr)) {
+		dev_warn(&pdev->dev, "failed to get pubsys_bypass regmap!\n");
+		glue->pubsys_bypass.regmap_ptr = NULL;
+	}
+#endif
 	/*  GPIOs now */
 	/* get vbus/id gpios extcon device */
 	if (of_property_read_bool(node, "extcon")) {
@@ -2323,6 +2439,10 @@ static int musb_sprd_pm_suspend(struct device *dev)
 
 	dev_info(glue->dev, "%s: enter\n", __func__);
 
+#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
+	if (musb_sprd_lowpower_configuration_onoff(glue, 1))
+		return 0;
+#else
 	if (glue->vbus_active && glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
 		dev_info(glue->dev, "Abort PM suspend in device mode!!\n");
 		return -EBUSY;
@@ -2332,7 +2452,7 @@ static int musb_sprd_pm_suspend(struct device *dev)
 		dev_info(glue->dev, "Abort PM suspend in host mode!!\n");
 		return -EBUSY;
 	}
-
+#endif
 	if (musb->is_offload && !musb->offload_used) {
 		if (glue->pmu) {
 			val = msk = glue->usb_pub_slp_poll_mask;
@@ -2340,20 +2460,9 @@ static int musb_sprd_pm_suspend(struct device *dev)
 					   glue->usb_pub_slp_poll_offset,
 					   msk, val);
 		}
-		if (glue->usb31pllv_frc_on.regmap_ptr) {
-			regmap_update_bits(glue->usb31pllv_frc_on.regmap_ptr,
-					   glue->usb31pllv_frc_on.args[0],
-					   glue->usb31pllv_frc_on.args[1],
-					   ~glue->usb31pllv_frc_on.args[1]);
-		}
-	} else if (musb->is_offload && musb->offload_used) {
-		if (glue->usb31pllv_frc_on.regmap_ptr) {
-			regmap_update_bits(glue->usb31pllv_frc_on.regmap_ptr,
-					   glue->usb31pllv_frc_on.args[0],
-					   glue->usb31pllv_frc_on.args[1],
-					   glue->usb31pllv_frc_on.args[1]);
-		}
 	}
+
+	musb_sprd_control_usb31pllv_frc_onoff(glue);
 
 	/* in host mode, don't do suspend */
 	if (glue->dr_mode == USB_DR_MODE_HOST) {
@@ -2374,7 +2483,10 @@ static int musb_sprd_pm_resume(struct device *dev)
 	u32 msk;
 
 	dev_info(glue->dev, "%s: enter\n", __func__);
-
+#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
+	if (musb_sprd_lowpower_configuration_onoff(glue, 0))
+		return 0;
+#endif
 	if (musb->is_offload && !musb->offload_used) {
 		if (glue->pmu) {
 			msk = glue->usb_pub_slp_poll_mask;

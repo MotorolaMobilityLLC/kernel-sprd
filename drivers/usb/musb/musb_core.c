@@ -2849,7 +2849,7 @@ static int musb_resume(struct device *dev)
 		return 0;
 	}
 
-	dev_info(musb->controller, "musb runtime\n");
+	dev_info(musb->controller, "musb resume\n");
 
 	/*
 	 * For static cmos like DaVinci, register values were preserved

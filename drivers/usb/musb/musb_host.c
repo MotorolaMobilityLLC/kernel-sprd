@@ -3739,7 +3739,7 @@ static void musb_host_start(struct musb *musb)
 
 	musb_writeb(regs, MUSB_TESTMODE, 0);
 
-	power = MUSB_POWER_ISOUPDATE;
+	power = MUSB_POWER_ISOUPDATE | MUSB_POWER_ENSUSPEND;
 	/*
 	 * treating UNKNOWN as unspecified maximum speed, in which case
 	 * we will default to high-speed.
