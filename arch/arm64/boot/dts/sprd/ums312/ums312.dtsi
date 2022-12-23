@@ -184,5 +184,5 @@
 /* Include other IP modules in ALPHABETICAL order */
 #include "glbreg.dtsi"
 #include "clock.dtsi"
-
+#include "sdio.dtsi"
 #include "uart.dtsi"
