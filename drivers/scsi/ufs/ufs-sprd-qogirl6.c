@@ -895,11 +895,17 @@ static void ufs_sprd_fixup_dev_quirks(struct ufs_hba *hba)
 static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 						enum ufs_notify_change_status status)
 {
-	hba->rpm_lvl = UFS_PM_LVL_1;
-	hba->spm_lvl = UFS_PM_LVL_5;
-	hba->uic_link_state = UIC_LINK_OFF_STATE;
-
-	mdelay(30);
+	switch (status) {
+	case PRE_CHANGE:
+		break;
+	case POST_CHANGE:
+		hba->rpm_lvl = UFS_PM_LVL_1;
+		hba->spm_lvl = UFS_PM_LVL_5;
+		hba->uic_link_state = UIC_LINK_OFF_STATE;
+		break;
+	default:
+		break;
+	}
 	return 0;
 }
 
