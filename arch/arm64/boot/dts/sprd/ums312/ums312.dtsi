@@ -154,6 +154,14 @@
 			#size-cells = <2>;
 			ranges;
 
+			adi_bus: spi@32100000 {
+				compatible = "sprd,ums312-adi",
+						"sprd,ums512-adi";
+				reg = <0 0x32100000 0 0x100000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
 			hwlock: hwspinlock@327f0000 {
 				compatible = "sprd,hwspinlock-r3p0";
 				reg = <0 0x327f0000 0 0x10000>;
