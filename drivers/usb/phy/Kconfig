@@ -179,6 +179,16 @@ config USB_SPRD_UMS512_PHY
 	  This driver takes care of all the PHY functionality, normally paired with
 	  DesignWare USB20 (DRD) Controller.
 
+config SPRD_PIKE2_USB2_PHY
+	tristate "Spreadtrum PIKE2 USB2 PHY Driver"
+	depends on (ARM && ARCH_SPRD) || COMPILE_TEST
+	select USB_PHY
+	help
+	  Enable this to support the SPRD PIKE2 USB2 PHY that is part of SOC.
+	  This driver takes care of all the PHY functionality, normally paired with
+	  DesignWare USB20 (DRD) Controller.
+	  different config parameter define different way to load devices.
+
 config SPRD_QOGIRL6_USB2_PHY
 	tristate "Unisoc Qogirl6 USB2 PHY Driver"
 	depends on ARCH_SPRD || COMPILE_TEST

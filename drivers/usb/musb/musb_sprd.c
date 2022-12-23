@@ -437,7 +437,8 @@ static int sprd_musb_init(struct musb *musb)
 	ret = sprd_musb_role_switch_init(glue);
 	if (ret) {
 		dev_err(glue->dev, "otg switch init failed!\n");
-		return ret;
+		//Todo:7731e init fail.First mask it then recover it after finding the cause.
+		//return ret;
 	}
 
 	ret = usb_phy_init(glue->xceiv);
@@ -2228,6 +2229,7 @@ static const struct dev_pm_ops musb_sprd_pm_ops = {
 };
 
 static const struct of_device_id usb_ids[] = {
+	{ .compatible = "sprd,pike2-musb" },
 	{ .compatible = "sprd,sharkl5-musb" },
 	{ .compatible = "sprd,sharkl5pro-musb" },
 	{ .compatible = "sprd,qogirl6-musb" },
