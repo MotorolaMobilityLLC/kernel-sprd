@@ -22,4 +22,28 @@
 	compatible = "sprd,ums312";
 
 	sprd,sc-id = "ums312 1000 1000";
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		serial2 = &uart2;
+	};
+
+	chosen: chosen {
+		stdout-path = &uart1;
+		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loop.max_part=7 loglevel=1 init=/init root=/dev/ram0 ro rootwait swiotlb=1 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio dummy_hcd.num=0";
+	};
 };
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&uart2 {
+	status = "okay";
+};
+

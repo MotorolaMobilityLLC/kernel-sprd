@@ -148,6 +148,13 @@
 		#size-cells = <2>;
 		ranges;
 
+		apapb: ap-apb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
+
 		aon {
 			compatible = "simple-bus";
 			#address-cells = <2>;
@@ -177,3 +184,5 @@
 /* Include other IP modules in ALPHABETICAL order */
 #include "glbreg.dtsi"
 #include "clock.dtsi"
+
+#include "uart.dtsi"
