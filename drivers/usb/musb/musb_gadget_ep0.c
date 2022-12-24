@@ -635,6 +635,11 @@ __acquires(musb->lock)
 	if (!musb->gadget_driver || !musb->softconnect)
 		return -EOPNOTSUPP;
 	spin_unlock(&musb->lock);
+
+	if (!get_gadget_data(&musb->g)) {
+		musb_dbg(musb, "gadget driver_data is NULL\n");
+		return 0;
+	}
 	retval = musb->gadget_driver->setup(&musb->g, ctrlrequest);
 	spin_lock(&musb->lock);
 	return retval;
