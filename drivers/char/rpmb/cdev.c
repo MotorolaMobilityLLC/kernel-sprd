@@ -319,7 +319,7 @@ void rpmb_cdev_del(struct rpmb_dev *rdev)
 }
 EXPORT_SYMBOL_GPL(rpmb_cdev_del);
 
-int __init rpmb_cdev_init(void)
+int rpmb_cdev_init(void)
 {
 	int ret;
 
@@ -331,7 +331,7 @@ int __init rpmb_cdev_init(void)
 }
 EXPORT_SYMBOL_GPL(rpmb_cdev_init);
 
-void __exit rpmb_cdev_exit(void)
+void rpmb_cdev_exit(void)
 {
 	if (rpmb_devt)
 		unregister_chrdev_region(rpmb_devt, RPMB_MAX_DEVS);
