@@ -1277,9 +1277,7 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 			if (ret)
 				dev_err(glue->dev, "Failed to disable vbus: %d\n", ret);
 		}
-		musb->is_active = 0;
-		musb->xceiv->otg->default_a = 0;
-		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
+
 		/* disable usb audio offload */
 		if (musb->is_offload) {
 			dev_dbg(musb->controller, "disable audio channel\n");
@@ -1302,6 +1300,10 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 
 		/* Decrement pm usage count when leave host state.*/
 		pm_runtime_put_sync(musb->controller);
+
+		musb->is_active = 0;
+		musb->xceiv->otg->default_a = 0;
+		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
 
 		if (!glue->enable_pm_suspend_in_host)
 			__pm_relax(glue->wake_lock);
