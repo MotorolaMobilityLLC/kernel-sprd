@@ -199,12 +199,13 @@
 
 
 /* Include other IP modules in ALPHABETICAL order */
-#include "dma.dtsi"
-#include "socid.dtsi"
-#include "glbreg.dtsi"
 #include "clock.dtsi"
+#include "dma.dtsi"
+#include "glbreg.dtsi"
 #include "pwm.dtsi"
 #include "sdio.dtsi"
+#include "socid.dtsi"
+#include "spi.dtsi"
 #include "uart.dtsi"
 #include "wdt.dtsi"
 #include "gpio.dtsi"
