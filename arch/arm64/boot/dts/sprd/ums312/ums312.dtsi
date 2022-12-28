@@ -150,6 +150,13 @@
 		#size-cells = <2>;
 		ranges;
 
+		apahb: ap-ahb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
+
 		apapb: ap-apb {
 			compatible = "simple-bus";
 			#address-cells = <2>;
@@ -157,7 +164,7 @@
 			ranges;
 		};
 
-		aon {
+		aon: aon {
 			compatible = "simple-bus";
 			#address-cells = <2>;
 			#size-cells = <2>;
@@ -179,11 +186,20 @@
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
 		};
+
+		apagcp: agcp {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
 	};
 };
 
 
 /* Include other IP modules in ALPHABETICAL order */
+#include "dma.dtsi"
+#include "socid.dtsi"
 #include "glbreg.dtsi"
 #include "clock.dtsi"
 #include "sdio.dtsi"
