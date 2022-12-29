@@ -87,6 +87,9 @@ struct power_debug {
 	char log_buf[SPRD_LOG_BUF_MAX];
 	int irq_domain_retry_cnt;
 	int last_nr_irqs;
+	struct delayed_work engpc_ws_check_work;
+	bool engpc_deep_en;
+	bool engpc_boot_mode;
 };
 
 struct ws_irq_domain {
@@ -658,26 +661,119 @@ static const struct proc_ops sprd_pdbg_proc_fops = {
 	.proc_release		= single_release,
 };
 
-static int sprd_pdbg_proc_init(void)
+static ssize_t engpc_deep_read(struct file *file, char __user *in_buf, size_t count, loff_t *ppos)
+{
+	char out_buf[5];
+	size_t len;
+	struct power_debug *pdbg = sprd_pdbg_get_instance();
+
+	len = sprintf(out_buf, "%d\n", pdbg->engpc_deep_en);
+	return simple_read_from_buffer(in_buf, count, ppos, out_buf, len);
+}
+
+static ssize_t engpc_deep_write(struct file *file, const char __user *user_buf, size_t count,
+			     loff_t *ppos)
+{
+	int ret;
+	bool enable;
+	struct power_debug *pdbg = sprd_pdbg_get_instance();
+
+	if (*ppos < 0)
+		return -EINVAL;
+
+	if (count == 0)
+		return 0;
+
+	if (*ppos != 0)
+		return 0;
+
+	ret = kstrtobool_from_user(user_buf, count, &enable);
+	if (ret)
+		return -EINVAL;
+
+	pdbg->engpc_deep_en = enable;
+	if (pdbg->engpc_deep_en)
+		queue_delayed_work(system_highpri_wq, &pdbg->engpc_ws_check_work, 0);
+	else
+		cancel_delayed_work_sync(&pdbg->engpc_ws_check_work);
+
+	return count;
+}
+
+static const struct proc_ops engpc_deep_fops = {
+	.proc_open	= simple_open,
+	.proc_read	= engpc_deep_read,
+	.proc_write	= engpc_deep_write,
+	.proc_lseek	= default_llseek,
+};
+
+static int sprd_pdbg_proc_init(struct power_debug *pdbg)
 {
 	struct proc_dir_entry *dir;
 	struct proc_dir_entry *fle;
 
-	dir = proc_mkdir("sprd-pdbg", NULL);
+	dir = proc_mkdir("sprd_pdbg", NULL);
 	if (!dir) {
 		SPRD_PDBG_ERR("Proc dir create failed\n");
 		return -EINVAL;
 	}
 
-	fle = proc_create("regs_info", 0444, dir, &sprd_pdbg_proc_fops);
+	fle = proc_create("regs_info", 0660, dir, &sprd_pdbg_proc_fops);
 	if (!fle) {
 		SPRD_PDBG_ERR("Proc file create failed\n");
 		return -EINVAL;
 	}
 
+	if (pdbg->engpc_boot_mode) {
+		fle = proc_create("engpc_deep_en", 0660, dir, &engpc_deep_fops);
+		if (!fle) {
+			SPRD_PDBG_ERR("Proc file create failed\n");
+			return -EINVAL;
+		}
+	}
+
 	return 0;
 }
 
+static bool sprd_pdbg_bootmode_check(const char *str)
+{
+	struct device_node *mode;
+	const char *cmd_line;
+	int rc;
+
+	mode = of_find_node_by_path("/chosen");
+	rc = of_property_read_string(mode, "bootargs", &cmd_line);
+	if (rc)
+		return false;
+
+	if (!strstr(cmd_line, str))
+		return false;
+
+	return true;
+}
+
+static void sprd_pdbg_engpc_ws_work(struct work_struct *work)
+{
+	struct power_debug *pdbg = sprd_pdbg_get_instance();
+
+	if (!pdbg->engpc_boot_mode)
+		return;
+
+	sprd_pdbg_kernel_active_ws_show();
+	queue_delayed_work(system_highpri_wq, &pdbg->engpc_ws_check_work, msecs_to_jiffies(500));
+}
+
+static void sprd_pdbg_engpc_init(struct power_debug *pdbg)
+{
+	pdbg->engpc_boot_mode = (sprd_pdbg_bootmode_check("sprdboot.mode=cali")
+		|| sprd_pdbg_bootmode_check("sprdboot.mode=autotest"));
+
+	if (!pdbg->engpc_boot_mode)
+		return;
+
+	INIT_DELAYED_WORK(&pdbg->engpc_ws_check_work, sprd_pdbg_engpc_ws_work);
+	sprd_pdbg_log_force = 1;
+}
 
 static void sprd_pdbg_release(struct power_debug *pdbg)
 {
@@ -722,11 +818,13 @@ static int sprd_pdbg_probe(struct platform_device *pdev)
 	sip = sprd_sip_svc_get_handle();
 	pdbg->power_ops = &sip->pwr_ops;
 	pdbg->is_32b_machine = (sizeof(unsigned long) < sizeof(u64));
+	pdbg->engpc_deep_en = 0;
 
 	/* must init after irq domain driver modules load. so should care about modules.load*/
 	sprd_pdbg_irq_domain_init();
+	sprd_pdbg_engpc_init(pdbg);
 
-	ret = sprd_pdbg_proc_init();
+	ret = sprd_pdbg_proc_init(pdbg);
 	if (ret) {
 		SPRD_PDBG_ERR("failed to init pdbg proc\n");
 		return ret;
