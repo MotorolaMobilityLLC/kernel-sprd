@@ -26,6 +26,8 @@ void musb_host_finish_resume(struct work_struct *work)
 
 	musb = container_of(work, struct musb, finish_resume_work.work);
 
+	pm_runtime_get_sync(musb->controller);
+
 	spin_lock_irqsave(&musb->lock, flags);
 
 	power = musb_readb(musb->mregs, MUSB_POWER);
@@ -46,6 +48,9 @@ void musb_host_finish_resume(struct work_struct *work)
 	musb->xceiv->otg->state = OTG_STATE_A_HOST;
 
 	spin_unlock_irqrestore(&musb->lock, flags);
+
+	pm_runtime_mark_last_busy(musb->controller);
+	pm_runtime_put_autosuspend(musb->controller);
 }
 
 int musb_port_suspend(struct musb *musb, bool do_suspend)
