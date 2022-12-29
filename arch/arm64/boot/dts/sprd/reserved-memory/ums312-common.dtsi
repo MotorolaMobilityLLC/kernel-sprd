@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+
+#include "modem-4g-common.dtsi"
+
+&reserved_memory {
+	audio_reserved: audio-mem@87400000 {
+		reg = <0x0 0x87400000 0x0 0x00400000>;
+	};
+
+	sp_ddr_reserved: sp_ddr-mem@88000000 {
+		reg = <0x0 0x88000000 0x0 0x00300000>;
+	};
+
+	audiodsp_reserved: audiodsp-mem@89000000 {
+		reg = <0x0 0x89000000 0x0 0x00600000>;
+	};
+
+	logo_reserved: logobuffer@9e000000 {
+			reg = <0x0 0x9e000000 0x0 0x00384000>;
+		};
+
+	tos_reserved: tos-mem@b0040000 {
+			reg = <0x0 0xb0040000 0x0 0x03fc0000>;
+		};
+
+	tos_shm_reserved: sh-mem@b6000000 {
+			reg = <0x0 0xb4000000 0x0 0x00100000>;
+		};
+};
