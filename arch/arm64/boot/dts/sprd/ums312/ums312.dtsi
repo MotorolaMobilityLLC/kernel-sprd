@@ -203,5 +203,6 @@
 #include "socid.dtsi"
 #include "glbreg.dtsi"
 #include "clock.dtsi"
+#include "pwm.dtsi"
 #include "sdio.dtsi"
 #include "uart.dtsi"
