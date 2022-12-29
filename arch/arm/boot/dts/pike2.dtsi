@@ -269,18 +269,6 @@
 				sprd,usb-data-enable = <1>;
 			};
 
-			sdio3: sdio@20600000 {
-				compatible  = "sprd,sdhci-r11";
-				reg = <0x20600000 0x1000>;
-				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "sdio", "enable";
-				clocks = <&aon_clk CLK_EMMC_2X>,
-					 <&apahb_gate CLK_EMMC_EB>;
-				assigned-clocks = <&aon_clk CLK_EMMC_2X>;
-				assigned-clock-parents = <&pll CLK_TWPLL_384M>;
-				status = "disabled";
-			};
-
 			sdio0: sdio@20300000 {
 				compatible  = "sprd,sdhci-r11";
 				reg = <0x20300000 0x1000>;
@@ -291,6 +279,18 @@
 					 <&aonapb_gate CLK_SDIO0_1X_EB>,
 					 <&aonapb_gate CLK_SDIO0_2X_EB>;
 				assigned-clocks = <&aon_clk CLK_SDIO0_2X>;
+				assigned-clock-parents = <&pll CLK_TWPLL_384M>;
+				status = "disabled";
+			};
+
+			sdio3: sdio@20600000 {
+				compatible  = "sprd,sdhci-r11";
+				reg = <0x20600000 0x1000>;
+				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio", "enable";
+				clocks = <&aon_clk CLK_EMMC_2X>,
+					 <&apahb_gate CLK_EMMC_EB>;
+				assigned-clocks = <&aon_clk CLK_EMMC_2X>;
 				assigned-clock-parents = <&pll CLK_TWPLL_384M>;
 				status = "disabled";
 			};

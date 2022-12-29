@@ -12,6 +12,9 @@
 		cooling-device0 = &cluster0_cooling;
 		thm-sensor11 = &cpu_thmzone;
 		serial1 = &uart1;
+
+		mmc0 = &sdio3;
+		mmc1 = &sdio0;
 	};
 
 	chosen: chosen {
@@ -315,6 +318,7 @@
 	no-sdio;
 	no-sd;
 	status = "okay";
+	supports-swcq;
 };
 
 &adi_bus {
