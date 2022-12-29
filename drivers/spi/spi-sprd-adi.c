@@ -115,6 +115,10 @@
 #define SC2730_CLK_EN			0x1810
 #define SC2730_WDG_BASE			0x40
 #define SC2730_RST_STATUS		0x1bac
+#define SC2720_RST_STATUS		0xe24
+#define SC2720_MODULE_EN		0xc08
+#define SC2720_CLK_EN			0xc10
+#define SC2720_WDG_BASE			0x40
 #define UMP9620_RST_STATUS		0x23ac
 #define UMP9620_SWRST_CTRL0             0x23f8
 #define UMP9620_SOFT_RST_HW             0x2024
@@ -727,6 +731,18 @@ static struct sprd_adi_data sc9863_data = {
 	.softrst_base = SC2721_SOFT_RST_HW,
 };
 
+static struct sprd_adi_data pike2_data = {
+	.slave_offset = ADI_12BIT_SLAVE_OFFSET,
+	.slave_addr_size = ADI_12BIT_SLAVE_ADDR_SIZE,
+	.read_check = sprd_adi_read_check_r3,
+	.wdg_base = SC2720_WDG_BASE,
+	.rst_sts = SC2720_RST_STATUS,
+	.wdg_en = SC2720_MODULE_EN,
+	.wdg_clk = SC2720_CLK_EN,
+	.swrst_base = SC2720_SWRST_CTRL0,
+	.softrst_base = SC2720_SOFT_RST_HW,
+};
+
 static struct sprd_adi_data ums512_data = {
 	.slave_offset = ADI_15BIT_SLAVE_OFFSET,
 	.slave_addr_size = ADI_15BIT_SLAVE_ADDR_SIZE,
@@ -753,6 +769,10 @@ static const struct of_device_id sprd_adi_of_match[] = {
 	{
 		.compatible = "sprd,sc9863-adi",
 		.data = &sc9863_data,
+	},
+	{
+		.compatible = "sprd,pike2-adi",
+		.data = &pike2_data,
 	},
 	{
 		.compatible = "sprd,ums512-adi",
