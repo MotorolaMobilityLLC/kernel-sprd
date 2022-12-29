@@ -11,7 +11,7 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
-
+#include "reserved-memory/ums312-common.dtsi"
 #include "ums312/ums312.dtsi"
 #include "sc2730/sc2730.dtsi"
 
@@ -36,6 +36,11 @@
 	chosen: chosen {
 		stdout-path = &uart1;
 		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loop.max_part=7 loglevel=1 init=/init root=/dev/ram0 ro rootwait swiotlb=1 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio dummy_hcd.num=0";
+	};
+
+	memory: memory {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0x80000000>;
 	};
 };
 

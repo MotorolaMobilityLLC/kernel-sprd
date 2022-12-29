@@ -12,6 +12,8 @@
 	cpuinfo_hardware = "Unisoc T310";
 	soc-module = "T310";
 	soc-manufacturer = "Spreadtrum";
+	#address-cells = <2>;
+	#size-cells = <2>;
 
 	cpus {
 		#address-cells = <2>;
