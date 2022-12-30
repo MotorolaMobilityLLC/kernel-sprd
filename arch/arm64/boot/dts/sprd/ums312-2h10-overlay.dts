@@ -210,6 +210,84 @@
 	};
 };
 
+&i2c0 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	sensor_main: sensor-main@20 {
+		compatible = "sprd,sensor-main";
+		reg = <0x20>;
+
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR0>,<&mm_gate CLK_MM_SENSOR0_EB>,
+			<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+			<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama0>;
+		vddcamd-supply = <&vddcamd0>;
+		vddcammot-supply = <&vddcammot>;
+		sprd,phyid = <0>;
+		csi = <&csi0>;
+		reset-gpios = <&ap_gpio 44 0>;
+		power-down-gpios = <&ap_gpio 46 0>;
+		power-domains = <&mm_domain>;
+		status = "okay";
+	};
+};
+
+&i2c1 {
+	status = "okay";
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	sensor_sub: sensor-sub@20 {
+		compatible = "sprd,sensor-sub";
+		reg = <0x20>;
+
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+			<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+			<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama0>;
+		vddcamd-supply = <&vddcamd0>;
+		vddcammot-supply = <&vddcammot>;
+		sprd,phyid = <4>;
+		csi = <&csi1>;
+		reset-gpios = <&ap_gpio 41 0>;
+		power-down-gpios = <&ap_gpio 40 0>;
+		power-domains = <&mm_domain>;
+		status = "okay";
+	};
+
+	sensor_main2: sensor-main2@6c {
+		compatible = "sprd,sensor-main2";
+		reg = <0x6c>;
+
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR1>,<&mm_gate CLK_MM_SENSOR1_EB>,
+			<&pll2 CLK_TWPLL_96M>,<&pll2 CLK_TWPLL_76M8>,
+			<&pll2 CLK_TWPLL_48M>,<&ext_26m>;
+		vddio-supply = <&vddcamio>;
+		vddcama-supply = <&vddcama1>;
+		vddcamd-supply = <&vddcamd1>;
+		vddcammot-supply = <&vddcammot>;
+		sprd,phyid = <3>;
+		csi = <&csi1>;
+		reset-gpios = <&ap_gpio 45 0>;
+		power-down-gpios = <&ap_gpio 47 0>;
+		power-domains = <&mm_domain>;
+		status = "okay";
+	};
+};
+
 &i2c3 {
 	status = "okay";
 	#address-cells = <1>;
@@ -219,7 +297,7 @@
 		compatible = "focaltech,ft5436-touchscreen";
 		reg = <0x38>;
 		gpios = <&ap_gpio 145 GPIO_ACTIVE_HIGH
-			 &ap_gpio 144 GPIO_ACTIVE_HIGH>;
+			&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 		controller = "focaltech,FT5436";
 		virtualkeys = <580 60 1320 60 45
 				172 360 1320 60 45
@@ -228,6 +306,30 @@
 		private-data {
 			a8 = /bits/ 8 <0x5a>;
 		};
+	};
+};
+
+&i2c4 {
+	status = "okay";
+	clock-frequency = <400000>;
+	#address-cells = <1>;
+	#size-cells = <0>;
+
+	flash_ic: flash-ic@63 {
+		compatible = "sprd,flash-ocp8137";
+		reg = <0x63>;
+		sprd,flash-ic = <8137>;
+		sprd,torch = <1>;
+		sprd,preflash = <1>;
+		sprd,highlight = <1>;
+		sprd,torch-level = <128>;
+		sprd,preflash-level = <128>;
+		sprd,highlight-level = <128>;
+		sprd,lvfm-enable = <1>;
+		flash-torch-en-gpios = <&ap_gpio 136 0>;
+		flash-chip-en-gpios = <&ap_gpio 135 0>;
+		flash-en-gpios = <&ap_gpio 137 0>;
+		flash-sync-gpios = <&ap_gpio 138 0>;
 	};
 };
 

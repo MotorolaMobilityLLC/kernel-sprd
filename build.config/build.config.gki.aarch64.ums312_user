@@ -46,15 +46,21 @@ EXT_MODULES="
 ../modules/kernel5.15/wcn/wlan/wlan_combo
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
+../modules/common/camera/power
+../modules/common/camera/core
+../modules/common/camera/cpp
+../modules/common/camera/flash/ocp8137
+../modules/common/camera/flash/flash_drv
+../modules/common/camera/sensor
 "
 fi
 #camera module version config
 export BSP_BOARD_CAMERA_MODULE_ISP_VERSION="isp2.6"
-export BSP_BOARD_CAMERA_MODULE_ISP_ADAPT_VERSION="sharkl5pro"
-export BSP_BOARD_CAMERA_MODULE_CPP_VERSION="lite_r6p0"
-export BSP_BOARD_CAMERA_MODULE_CSI_VERSION="receiver_r3p0"
+export BSP_BOARD_CAMERA_MODULE_ISP_ADAPT_VERSION="sharkl5"
+export BSP_BOARD_CAMERA_MODULE_CPP_VERSION="lite_r5p0"
+export BSP_BOARD_CAMERA_MODULE_CSI_VERSION="receiver_r2p1"
 #camera module dvfs config
-export BSP_BOARD_CAMERA_MODULE_DVFS="sharkl5pro"
+export BSP_BOARD_CAMERA_MODULE_DVFS="sharkl5"
 
 DTC_FLAGS+="-@"
 

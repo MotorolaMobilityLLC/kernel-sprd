@@ -256,6 +256,8 @@
 #include "dmc-mpu.dtsi"
 #include "efuse.dtsi"
 #include "glbreg.dtsi"
+#include "cam.dtsi"
+#include "csi.dtsi"
 #include "gpio.dtsi"
 #include "i2c.dtsi"
 #include "pinctrl.dtsi"
@@ -275,4 +277,4 @@
 #include "i2s.dtsi"
 #include "thermal.dtsi"
 #include "vsp.dtsi"
-
+#include "qos.dtsi"
