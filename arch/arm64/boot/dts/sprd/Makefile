@@ -53,6 +53,13 @@ ums9610-zebu-flash-overlay.dtbo-base := ums9610-base.dtb
 ums9610-zebu-overlay.dtbo-base := ums9610-base.dtb
 endif
 
+ifeq ($(BSP_BUILD_FAMILY),qogirn7)
+dtb-$(CONFIG_ARCH_SPRD) += \
+    ums9650-haps-overlay.dtbo
+
+ums9650-haps-overlay.dtbo-base := ums9650-base.dtb
+endif
+
 endif #//BSP_BUILD_ANDROID_OS
 
 else #//For UPSTREAM or AiAiAi
