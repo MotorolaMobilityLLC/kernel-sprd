@@ -51,6 +51,7 @@
 #define A_RECOVER		4
 #define B_DATA_DISABLED		5
 
+#define RELAX_WAKE_LOCK_DELAY			(msecs_to_jiffies(8000))
 #define CHARGER_DETECT_DELAY			(msecs_to_jiffies(1000))
 #define VBUS_REG_CHECK_DELAY			(msecs_to_jiffies(1000))
 #define MUSB_RUNTIME_CHECK_DELAY		(msecs_to_jiffies(200))
@@ -162,6 +163,8 @@ struct sprd_glue {
 	bool				in_restart;
 	atomic_t			musb_runtime_suspended;
 	struct mutex			suspend_resume_mutex;
+	struct timer_list		relax_wakelock_timer;
+	bool				wake_lock_relaxed;
 };
 
 static int boot_charging;
@@ -683,6 +686,20 @@ static struct musb_hdrc_config sprd_musb_hdrc_config = {
 };
 #pragma GCC diagnostic pop
 
+static void sprd_relax_wakelock_timer(struct timer_list *timer)
+{
+	struct sprd_glue *glue = container_of(timer, struct sprd_glue, relax_wakelock_timer);
+	unsigned long flags;
+
+	spin_lock_irqsave(&glue->lock, flags);
+	if (!glue->wake_lock_relaxed) {
+		dev_info(glue->dev, "relax wakelock after timer expired\n");
+		__pm_relax(glue->wake_lock);
+		glue->wake_lock_relaxed = true;
+	}
+	spin_unlock_irqrestore(&glue->lock, flags);
+}
+
 static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 				unsigned long event, void *data)
 {
@@ -741,6 +758,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 {
 	struct sprd_glue *glue = container_of(nb, struct sprd_glue, id_nb);
 	enum musb_vbus_id_status id;
+	unsigned long flags;
 
 	id = event ? MUSB_ID_GROUND : MUSB_ID_FLOAT;
 
@@ -762,11 +780,22 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 
 	dev_info(glue->dev, "host:%ld (id:%d) event received\n", event, id);
 
+	spin_lock_irqsave(&glue->lock, flags);
 	glue->id_state = id;
-	if (glue->id_state == MUSB_ID_GROUND)
+	if (glue->id_state == MUSB_ID_GROUND) {
 		glue->xceiv->last_event = USB_EVENT_ID;
-	else
+		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
+		__pm_stay_awake(glue->wake_lock);
+		glue->wake_lock_relaxed = false;
+	} else {
 		glue->xceiv->last_event = USB_EVENT_NONE;
+		if (!glue->wake_lock_relaxed) {
+			del_timer_sync(&glue->relax_wakelock_timer);
+			__pm_relax(glue->wake_lock);
+			glue->wake_lock_relaxed = true;
+		}
+	}
+	spin_unlock_irqrestore(&glue->lock, flags);
 
 	glue->chg_state = USB_CHG_STATE_UNDETECT;
 	glue->charging_mode = false;
@@ -1959,6 +1988,9 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	wakeup_source_add(glue->wake_lock);
 	glue->pd_wake_lock = wakeup_source_create("musb-sprd-pd");
 	wakeup_source_add(glue->pd_wake_lock);
+
+	timer_setup(&glue->relax_wakelock_timer, sprd_relax_wakelock_timer, 0);
+	glue->wake_lock_relaxed = true;
 
 	if (of_device_is_compatible(node, "sprd,sharkl5pro-musb")) {
 		struct musb *musb = glue->musb;

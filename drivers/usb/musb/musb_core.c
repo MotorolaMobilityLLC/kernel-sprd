@@ -2201,7 +2201,8 @@ int musb_queue_resume_work(struct musb *musb,
 	spin_lock_irqsave(&musb->list_lock, flags);
 	is_suspended = musb->is_runtime_suspended;
 	/* Fix me, temp solution for adb offline issue */
-	dev_info(musb->controller, "is_suspended %d\n", is_suspended);
+	if (is_suspended)
+		dev_info(musb->controller, "is_suspended true.\n");
 	is_suspended = false;
 
 	if (is_suspended) {
