@@ -6,7 +6,7 @@
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
-#include <dt-bindings/clock/sprd,ums512-clk.h>
+#include <dt-bindings/clock/sprd,ums312-clk.h>
 
 / {
 	cpuinfo_hardware = "Unisoc T310";
