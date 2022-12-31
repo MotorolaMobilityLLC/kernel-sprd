@@ -38,6 +38,16 @@
 		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loop.max_part=7 loglevel=1 init=/init root=/dev/ram0 ro rootwait swiotlb=1 printk.devkmsg=on androidboot.boot_devices=soc/soc:ap-apb/71400000.sdio dummy_hcd.num=0";
 	};
 
+	firmware {
+		android {
+			compatible = "android,firmware";
+			vbmeta {
+				compatible = "android,vbmeta";
+				parts = "vbmeta,boot,init_boot,vendor_boot,dtbo,l_modem,pm_sys,l_ldsp,l_gdsp,l_agdsp,l_cdsp";
+			};
+		};
+	};
+
 	memory: memory {
 		device_type = "memory";
 		reg = <0x0 0x80000000 0x0 0x80000000>;
