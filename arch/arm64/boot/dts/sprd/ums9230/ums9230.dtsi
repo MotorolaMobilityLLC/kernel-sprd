@@ -1506,6 +1506,7 @@
 };
 
 /* Include other IP modules in ALPHABETICAL order */
+#include "apb_prot.dtsi"
 #include "audio.dtsi"
 #include "bm.dtsi"
 #include "apcpu-dvfs.dtsi"
