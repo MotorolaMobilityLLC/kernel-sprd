@@ -72,13 +72,6 @@ static int wcn_send_atcmd(void *cmd, unsigned char cmd_len,
 	/* common buf for kmalloc */
 	unsigned char *com_buf = NULL;
 
-	if (g_match_config && !g_match_config->unisoc_wcn_integrated) {
-		if (unlikely(marlin_get_download_status() != true)) {
-			WCN_WARN("%s:can not send atcmd before download flag is true\n", __func__);
-			return -EIO;
-		}
-	}
-
 	if (g_match_config && g_match_config->unisoc_wcn_pcie) {
 		pcie_dev = get_wcn_device_info();
 		if (!pcie_dev) {
