@@ -118,12 +118,8 @@ static struct dma_channel *sprd_dma_channel_allocate(struct dma_controller *c,
 
 	/* Wait 9 more cycles for ensuring DMA can get USB request length */
 #if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
-	if ((musb->is_adaptive_in && !musb->adaptive_in_configured) ||
-		(musb->is_adaptive_out && !musb->adaptive_out_configured)) {
-		reg = musb_readl(controller->base, MUSB_DMA_FRAG_WAIT);
-		musb_writel(controller->base, MUSB_DMA_FRAG_WAIT, reg | 0x8);
-	} else
-		musb_writel(controller->base, MUSB_DMA_FRAG_WAIT, 0x8);
+	reg = musb_readl(controller->base, MUSB_DMA_FRAG_WAIT);
+	musb_writel(controller->base, MUSB_DMA_FRAG_WAIT, reg | 0x8);
 #else
 	musb_writel(controller->base, MUSB_DMA_FRAG_WAIT, 0x8);
 #endif
