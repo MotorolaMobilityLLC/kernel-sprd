@@ -13,6 +13,7 @@
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include "reserved-memory/ums312-common.dtsi"
 #include "ums312/ums312.dtsi"
+#include "trusty/ums312.dtsi"
 #include "sc2730/sc2730.dtsi"
 
 
