@@ -37,6 +37,17 @@ config PINCTRL_SPRD_SHARKL3
 	  PINCTRL_SPRD_SHARKL3=m for KO
 	  PINCTRL_SPRD_SHARKL3 is not set for no building
 
+config PINCTRL_SPRD_SHARKL5
+        tristate "Spreadtrum sharkl5 pinctrl driver"
+        depends on OF
+        depends on ARCH_SPRD || COMPILE_TEST
+        select PINCTRL_SPRD
+        help
+	  Say Y here to enable Spreadtrum sharkl5 pinctrl driver
+	  PINCTRL_SPRD_SHARKL5=y for buildin
+	  PINCTRL_SPRD_SHARKL5=m for KO
+	  PINCTRL_SPRD_SHARKL5 is not set for no building
+
 config PINCTRL_SPRD_SHARKL5PRO
 	tristate "Spreadtrum sharkl5pro pinctrl driver"
 	depends on OF
