@@ -433,17 +433,6 @@
 				#iommu-cells = <0>;
 			};
 
-			sdio3: sdio@20600000 {
-				compatible  = "sprd,sdhci-r11";
-				reg = <0x20600000 0x1000>;
-				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
-				clock-names = "sdio", "enable";
-				clocks = <&ap_clk CLK_EMMC_2X >,
-					   <&apahb_gate CLK_EMMC_EB>;
-				assigned-clocks = <&ap_clk CLK_EMMC_2X>;
-				assigned-clocks-parents = <&rpll CLK_RPLL_390M>;
-			};
-
 			sdio0: sdio@20300000 {
 				compatible  = "sprd,sdhci-r11";
 				reg = <0x20300000 0x1000>;
@@ -453,6 +442,17 @@
 					 <&apahb_gate CLK_SDIO0_EB>;
 				assigned-clocks = <&ap_clk CLK_SDIO0_2X>;
 				assigned-clock-parents = <&rpll CLK_RPLL_390M>;
+			};
+
+			sdio3: sdio@20600000 {
+				compatible  = "sprd,sdhci-r11";
+				reg = <0x20600000 0x1000>;
+				interrupts = <GIC_SPI 60 IRQ_TYPE_LEVEL_HIGH>;
+				clock-names = "sdio", "enable";
+				clocks = <&ap_clk CLK_EMMC_2X >,
+					   <&apahb_gate CLK_EMMC_EB>;
+				assigned-clocks = <&ap_clk CLK_EMMC_2X>;
+				assigned-clocks-parents = <&rpll CLK_RPLL_390M>;
 			};
 
 			usb: usb@20200000 {
@@ -860,8 +860,8 @@
 			};
 
 			adi_bus: spi@40380000 {
-				compatible = "sprd,sharkl3-adi",
-					"sprd,sharkle-adi";
+				compatible = "sprd,sc9863-adi",
+					"sprd,sc9832-adi";
 				reg = <0x40380000 0x10000>;
 				hwlocks = <&hwlock 0>;
 				#address-cells = <1>;

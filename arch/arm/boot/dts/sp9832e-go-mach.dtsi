@@ -16,6 +16,9 @@
 		cooling-device0 = &cluster0_cooling;
 		serial0 = &uart0;
 		serial1 = &uart1;
+
+		mmc0 = &sdio3;
+		mmc1 = &sdio0;
 	};
 
 	chosen: chosen {
@@ -331,6 +334,7 @@
 	no-sdio;
 	no-sd;
 	status = "okay";
+	supports-swcq;
 };
 
 &hsphy {
