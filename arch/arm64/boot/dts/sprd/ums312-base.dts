@@ -176,3 +176,7 @@
 &iommu_dispc {
 	status = "okay";
 };
+
+&modem_dbg_log {
+	status = "okay";
+};

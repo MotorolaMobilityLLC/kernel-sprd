@@ -257,6 +257,7 @@
 #include "csi.dtsi"
 #include "gpio.dtsi"
 #include "i2c.dtsi"
+#include "mipi-serdes.dtsi"
 #include "pinctrl.dtsi"
 #include "power.dtsi"
 #include "ptm.dtsi"
