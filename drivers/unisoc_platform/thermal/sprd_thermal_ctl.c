@@ -197,7 +197,7 @@ thm_enable_store(struct device *dev, struct device_attribute *attr,
 {
 	u32 enable;
 
-	if (kstrtou32(buf, 10, &enable) || enable < 0 || enable > 1)
+	if (kstrtou32(buf, 10, &enable) || enable > 1)
 		return -EINVAL;
 
 	thm_enable = enable;
@@ -218,7 +218,7 @@ user_power_range_store(struct device *dev, struct device_attribute *attr,
 {
 	u32 power_value;
 
-	if (kstrtou32(buf, 10, &power_value) || power_value < 0)
+	if (kstrtou32(buf, 10, &power_value))
 		return -EINVAL;
 
 	user_power_range = power_value;
