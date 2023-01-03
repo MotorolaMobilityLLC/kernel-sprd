@@ -16,7 +16,8 @@ elif [[ $BSP_DTSONLY_CONFIG == "true" ]]; then
 	SKIP_EXT_MODULES=1
 else
 EXT_MODULES="
-
+../modules/kernel5.15/display/gsp
+../modules/kernel5.15/display/dispc
 "
 fi
 #camera module version config
