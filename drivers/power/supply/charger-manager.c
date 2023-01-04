@@ -2997,6 +2997,10 @@ static void cm_cp_check_vbus_status(struct charger_manager *cm)
 				cm->desc->psy_cp_stat[i], ret);
 		}
 	}
+
+	if (fault->vbus_error_lo || fault->vbus_error_hi)
+		dev_info(cm->dev, "%s, vbus_error_lo = %d, vbus_error_hi = %d\n",
+			 __func__, fault->vbus_error_lo, fault->vbus_error_hi);
 }
 
 static void cm_check_target_ibus(struct charger_manager *cm)
@@ -3325,8 +3329,6 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 				   CM_CHARGE_INFO_THERMAL_LIMIT |
 				   CM_CHARGE_INFO_JEITA_LIMIT));
 
-	cm_cp_charger_enable(cm, true);
-
 	cm->desc->cp.tune_vbus_retry = 0;
 	primary_charger_dis_retry = 0;
 	cp->cp_ibat_ucp_cnt = 0;
@@ -3356,6 +3358,8 @@ static void cm_cp_state_check_vbus(struct charger_manager *cm)
 	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
 		 cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
+	cm_cp_check_vbus_status(cm);
+
 	if (cp->flt.vbus_error_lo &&
 	    cp->vbus_uV <  CM_CP_VBUS_ERRORHI_THRESHOLD(cp->vbat_uV)) {
 		cp->tune_vbus_retry++;
@@ -3373,6 +3377,7 @@ static void cm_cp_state_check_vbus(struct charger_manager *cm)
 			dev_err(cm->dev, "fail to adjust pps voltage = %duV\n",
 				cp->cp_target_vbus);
 	} else {
+		cm_cp_charger_enable(cm, true);
 		dev_info(cm->dev, "adapter volt tune ok, retry %d times\n",
 			 cp->tune_vbus_retry);
 		cm_cp_state_change(cm, CM_CP_STATE_TUNE);
@@ -3422,12 +3427,6 @@ static void cm_cp_state_tune(struct charger_manager *cm)
 			 "bus_ocp_fault = %d, bus_ovp_fault = %d, exit cp\n",
 			 cp->flt.bat_ocp_fault, cp->flt.bat_ovp_fault,
 			 cp->flt.bus_ocp_fault, cp->flt.bus_ovp_fault);
-		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
-
-	} else if (!cm_check_cp_charger_enabled(cm) &&
-		   (cp->flt.vbus_error_hi || cp->flt.vbus_error_lo)) {
-		dev_err(cm->dev, " %s some error happen, need recovery\n", __func__);
-		cp->recovery = true;
 		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
 
 	} else if (!cm_check_cp_charger_enabled(cm)) {
@@ -3539,7 +3538,6 @@ static void cm_cp_work(struct work_struct *work)
 						  cp_work);
 
 	cm_update_cp_charger_status(cm);
-	cm_cp_check_vbus_status(cm);
 	cm_check_cp_soft_monitor_alarm_status(cm);
 
 	if (cm->desc->cm_check_int && cm->desc->cm_check_fault)
