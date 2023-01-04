@@ -125,10 +125,8 @@
 		freq-num = <8>;
 	};
 
-	ion: ion {
-		compatible = "sprd,ion";
-		#address-cells = <1>;
-		#size-cells = <0>;
+	dmabuf: dmabuf {
+		compatible = "sprd,dmabuf";
 	};
 
 	sprd-map-user {
