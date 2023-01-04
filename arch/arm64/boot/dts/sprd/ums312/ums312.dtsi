@@ -258,4 +258,6 @@
 #include "wdt.dtsi"
 #include "dispc.dtsi"
 #include "modem.dtsi"
+#include "audio.dtsi"
+#include "i2s.dtsi"
 #include "thermal.dtsi"
