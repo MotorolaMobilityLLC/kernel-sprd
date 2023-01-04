@@ -16,6 +16,7 @@ elif [[ $BSP_DTSONLY_CONFIG == "true" ]]; then
 else
 EXT_MODULES="
 ../modules/kernel5.15/sample
+../modules/kernel5.15/input/touchscreen/adaptive-ts
 "
 fi
 #camera module version config
