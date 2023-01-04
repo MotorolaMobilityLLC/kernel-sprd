@@ -686,6 +686,24 @@ static int sgm41511_charger_get_status(struct sgm41511_charger_info *info)
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 }
 
+static bool sgm41511_charger_get_power_path_status(struct sgm41511_charger_info *info)
+{
+	u8 value;
+	int ret;
+	bool power_path_enabled = true;
+
+	ret = sgm41511_read(info, SGM4151X_REG_00, &value);
+	if (ret < 0) {
+		dev_err(info->dev, "Fail to get power path status, ret = %d\n", ret);
+		return power_path_enabled;
+	}
+
+	if (value & SGM41511_REG_EN_HIZ_MASK)
+		power_path_enabled = false;
+
+	return power_path_enabled;
+}
+
 static int sgm41511_charger_set_status(struct sgm41511_charger_info *info, int val, u32 input_vol)
 {
 	int ret = 0;
@@ -750,6 +768,9 @@ static int sgm41511_charger_check_power_path_status(struct sgm41511_charger_info
 	if (info->disable_power_path)
 		return 0;
 
+	if (sgm41511_charger_get_power_path_status(info))
+		return 0;
+
 	ret = sgm41511_read(info, SGM4151X_REG_00, &val);
 	if (ret < 0) {
 		dev_err(info->dev, "%s:line%d, failed to get reg0(%d)\n", __func__, __LINE__, ret);
@@ -790,6 +811,12 @@ static int sgm41511_charger_usb_get_property(struct power_supply *psy,
 	mutex_lock(&info->lock);
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
+		if (val->intval == CM_POWER_PATH_ENABLE_CMD ||
+		    val->intval == CM_POWER_PATH_DISABLE_CMD) {
+			val->intval = sgm41511_charger_get_power_path_status(info);
+			break;
+		}
+
 		val->intval = sgm41511_charger_get_status(info);
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
@@ -894,6 +921,14 @@ static int sgm41511_charger_usb_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_STATUS:
+		if (val->intval == CM_POWER_PATH_ENABLE_CMD) {
+			ret = sgm41511_exit_hiz_mode(info);
+			break;
+		} else if (val->intval == CM_POWER_PATH_DISABLE_CMD) {
+			ret = sgm41511_enter_hiz_mode(info);
+			break;
+		}
+
 		ret = sgm41511_charger_set_status(info, val->intval, input_vol);
 		if (ret < 0)
 			dev_err(info->dev, "set charge status failed\n");
