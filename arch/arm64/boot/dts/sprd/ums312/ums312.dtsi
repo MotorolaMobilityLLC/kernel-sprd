@@ -252,6 +252,7 @@
 #include "sdio.dtsi"
 #include "socid.dtsi"
 #include "spi.dtsi"
+#include "timer.dtsi"
 #include "uart.dtsi"
 #include "usb.dtsi"
 #include "wdt.dtsi"
