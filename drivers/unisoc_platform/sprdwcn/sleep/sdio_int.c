@@ -42,7 +42,7 @@ void sdio_record_power_notify(bool notify_cb_sts)
 void sdio_wait_pub_int_done(void)
 {
 	struct slp_mgr_t *slp_mgr;
-	int wait_cnt = 0;
+	long ret = 0;
 
 	slp_mgr = slp_get_info();
 
@@ -57,14 +57,13 @@ void sdio_wait_pub_int_done(void)
 		mutex_unlock(&(slp_mgr->drv_slp_lock));
 
 		/* wait pub_int handle finish */
-		while ((atomic_read(&flag_pub_int_done) == 0) &&
-		       (wait_cnt < 10)) {
-			wait_cnt++;
-			WCN_INFO("wait pub_int_done:%d\n", wait_cnt);
-			usleep_range_state(1500, 3000, TASK_UNINTERRUPTIBLE);
-		}
-		WCN_INFO("flag_pub_int_done-%d\n",
-			 atomic_read(&flag_pub_int_done));
+		if (unlikely(atomic_read(&flag_pub_int_done) == 0))
+			WCN_INFO("wait pub_int_done\n");
+		ret = wait_event_killable_timeout(sdio_int.pub_int_done,
+			atomic_read(&flag_pub_int_done), usecs_to_jiffies(3000 * 10));
+
+		WCN_INFO("flag_pub_int_done(%s)-%d\n", ret == 0 ? "timeout" : "success",
+			atomic_read(&flag_pub_int_done));
 	} else
 		WCN_INFO("sdio power_notify is NULL\n");
 }
@@ -98,9 +97,10 @@ static int pub_int_handle_thread(void *data)
 		} while (bit_num < PUB_INT_MAX);
 		}
 
-		if (sdio_power_notify)
+		if (sdio_power_notify) {
 			atomic_set(&flag_pub_int_done, 1);
-		else
+			wake_up_all(&sdio_int.pub_int_done);
+		} else
 			__pm_relax(sdio_int.pub_int_wakelock);
 
 		enable_irq(sdio_int.pub_int_num);
@@ -287,6 +287,7 @@ int sdio_pub_int_init(int irq)
 	sdio_int.pub_int_wakelock = wakeup_source_create("pub_int_wakelock");
 	wakeup_source_add(sdio_int.pub_int_wakelock);
 	init_completion(&(sdio_int.pub_int_completion));
+	init_waitqueue_head(&(sdio_int.pub_int_done));
 
 	sdio_pub_int_register(irq);
 

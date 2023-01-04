@@ -166,6 +166,12 @@ static void loopcheck_work_queue(struct work_struct *work)
 	sprdwcn_rx_cnt_b = sprdwcn_bus_get_rx_total_cnt();
 
 	if (sprdwcn_rx_cnt_a == sprdwcn_rx_cnt_b) {
+		if (sprdwcn_bus_is_suspended(false)) {
+			WCN_INFO("BUS suspended, pause loopcheck\n");
+			ret = queue_delayed_work(loopcheck.workqueue, &loopcheck.work,
+				 msecs_to_jiffies(1500));
+			return;
+		}
 		wcn_send_atcmd_lock();
 		loopcheck_send(a, strlen(a));
 		timeleft = wait_for_completion_timeout(&loopcheck.completion, (4 * HZ));

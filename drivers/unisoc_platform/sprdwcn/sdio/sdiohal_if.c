@@ -141,6 +141,11 @@ static enum wcn_hard_intf_type sdio_get_hwintf_type(void)
 	return HW_TYPE_SDIO;
 }
 
+static bool sdio_is_suspended(bool important)
+{
+	return !sdiohal_is_resumed(important);
+}
+
 static struct sprdwcn_bus_ops sdiohal_bus_ops = {
 	.preinit = sdio_preinit,
 	.deinit = sdio_preexit,
@@ -168,6 +173,7 @@ static struct sprdwcn_bus_ops sdiohal_bus_ops = {
 	.register_rescan_cb = sdio_register_rescan_cb,
 	.rescan = sdio_rescan,
 	.remove_card = sdio_remove_card,
+	.is_suspended = sdio_is_suspended,
 };
 
 void module_bus_sdio_init(void)

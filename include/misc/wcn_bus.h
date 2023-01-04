@@ -303,6 +303,8 @@ struct sprdwcn_bus_ops {
 	/* for wcn chip boot and download firmware */
 	int (*start_wcn)(enum wcn_sub_sys subsys);
 	int (*stop_wcn)(enum wcn_sub_sys subsys);
+
+	bool (*is_suspended)(bool important);
 };
 
 extern struct atomic_notifier_head wcn_reset_notifier_list;
@@ -666,6 +668,17 @@ enum wcn_hard_intf_type sprdwcn_bus_get_hwintf_type(void)
 		return HW_TYPE_INVALIED;
 
 	return bus_ops->get_hwintf_type();
+}
+
+static inline
+bool sprdwcn_bus_is_suspended(bool suspending_op)
+{
+	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
+
+	if (!bus_ops || !bus_ops->is_suspended)
+		return false;
+
+	return bus_ops->is_suspended(suspending_op);
 }
 
 static inline

@@ -104,6 +104,7 @@ struct sdio_int_t {
 	unsigned int pub_int_num;
 	/* 1: power on, 0: power off */
 	atomic_t chip_power_on;
+	struct wait_queue_head pub_int_done;
 };
 
 /* add start, for power save handle */

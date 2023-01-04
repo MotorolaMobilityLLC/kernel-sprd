@@ -79,7 +79,7 @@ int sdiohal_tx_thread(void *data)
 				timespec_to_ns(&p_data->tm_begin_sch)));
 
 		sdiohal_lock_tx_ws();
-		sdiohal_resume_wait();
+		sdiohal_resume_check();
 
 		/* wakeup cp */
 		sdiohal_cp_tx_wakeup(PACKER_TX);

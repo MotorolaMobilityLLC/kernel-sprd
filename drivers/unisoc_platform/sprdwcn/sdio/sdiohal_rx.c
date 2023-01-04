@@ -229,7 +229,7 @@ int sdiohal_rx_thread(void *data)
 				(long)(timespec64_to_ns(&p_data->tm_end_irq) -
 				timespec64_to_ns(&p_data->tm_begin_irq)));
 
-		sdiohal_resume_wait();
+		sdiohal_resume_check();
 		sdiohal_cp_rx_wakeup(PACKER_RX);
 
 read_again:
