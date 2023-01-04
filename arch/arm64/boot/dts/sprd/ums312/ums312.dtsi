@@ -207,3 +207,4 @@
 #include "sdio.dtsi"
 #include "uart.dtsi"
 #include "wdt.dtsi"
+#include "gpio.dtsi"
