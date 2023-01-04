@@ -43,8 +43,7 @@
 			    loop.max_part=7 loglevel=1
 			    firmware_class.path=/vendor/firmware,/odm/firmware
 			    init=/init root=/dev/ram0 rw printk.devkmsg=on
-			    swiotlb=1 dummy_hcd.num=0 initcall_debug=1
-			    androidboot.init_fatal_panic=true";
+			    swiotlb=1 dummy_hcd.num=0 initcall_debug=1";
 	};
 
 	dmabuf: dmabuf {
