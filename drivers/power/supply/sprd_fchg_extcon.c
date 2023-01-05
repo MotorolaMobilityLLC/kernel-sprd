@@ -81,6 +81,9 @@ static int sprd_enable_sfcp(struct sprd_fchg_info *info, bool enable)
 	static bool sfcp_active;
 	int ret;
 
+	if (!info->support_sfcp)
+		return 0;
+
 	psy_sfcp = power_supply_get_by_name(SPRD_FCHG_SFCP_NAME);
 	if (!psy_sfcp) {
 		dev_err(info->dev, "%s, psy_sfcp is NULL\n", __func__);
@@ -1120,6 +1123,7 @@ static int sprd_fchg_extcon_init(struct sprd_fchg_info *info,
 		info->pd_fixed_max_uw = SPRD_PD_DEFAULT_POWER_UW;
 	}
 
+	info->support_sfcp = device_property_read_bool(info->dev, "sprd,support-sfcp");
 	info->support_pd_pps = device_property_read_bool(info->dev, "sprd,support-pd-pps");
 
 	ret = of_property_read_string(info->dev->of_node,

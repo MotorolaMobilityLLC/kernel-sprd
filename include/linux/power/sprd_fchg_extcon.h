@@ -64,6 +64,7 @@ struct sprd_fchg_info {
 	bool pps_enable;
 	bool pps_active;
 	bool support_fchg;
+	bool support_sfcp;
 	bool support_pd_pps;
 	bool shutdown_flag;
 };
