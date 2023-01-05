@@ -34,6 +34,11 @@
 #undef CREATE_TRACE_POINTS
 #include <trace/hooks/ufshcd.h>
 
+#if IS_ENABLED(CONFIG_SPRD_DEBUG)
+#define GIC_ENABLE_BASE (0x12000114)
+#define GIC_PENDING_BASE (0x12000214)
+#define GIC_ERROR_BASE (0x12000E14)
+#endif
 #define UFSHCD_ENABLE_INTRS	(UTP_TRANSFER_REQ_COMPL |\
 				 UTP_TASK_REQ_COMPL |\
 				 UFSHCD_ERROR_MASK)
@@ -102,6 +107,11 @@
 		       16, 4, buf, __len, false);                        \
 } while (0)
 
+#if IS_ENABLED(CONFIG_SPRD_DEBUG)
+void __iomem *gic_enable;
+void __iomem *gic_pending;
+void __iomem *gic_error;
+#endif
 int ufshcd_dump_regs(struct ufs_hba *hba, size_t offset, size_t len,
 		     const char *prefix)
 {
@@ -4061,6 +4071,11 @@ static int ufshcd_uic_pwr_ctrl(struct ufs_hba *hba, struct uic_command *cmd)
 
 	if (!wait_for_completion_timeout(hba->uic_async_done,
 					 msecs_to_jiffies(UIC_CMD_TIMEOUT))) {
+#if IS_ENABLED(CONFIG_SPRD_DEBUG)
+		dev_err(hba->dev,
+			"gic:enable 0x%x\ngic:pending 0x%x\ngic:error 0x%x\n",
+			readl(gic_enable), readl(gic_pending), readl(gic_error));
+#endif
 		dev_err(hba->dev,
 			"pwr ctrl cmd 0x%x with mode 0x%x completion timeout\n",
 			cmd->command, cmd->argument3);
@@ -9548,6 +9563,33 @@ static const struct blk_mq_ops ufshcd_tmf_ops = {
 	.queue_rq = ufshcd_queue_tmf,
 };
 
+#if IS_ENABLED(CONFIG_SPRD_DEBUG)
+static void _reg_gic_ioremap(struct ufs_hba *hba, phys_addr_t offset, void __iomem *reg)
+{
+	int retry = 4;
+
+	while (retry > 0) {
+		reg = ioremap(offset, 4);
+		if (reg != NULL)
+			break;
+		udelay(100);
+		retry--;
+		if (retry == 0) {
+			dev_err(hba->dev,
+			"GIC register : 0x%x ioremap failed\n", offset);
+			return;
+		}
+	}
+}
+#endif
+#if IS_ENABLED(CONFIG_SPRD_DEBUG)
+static void reg_gic_ioremap(struct ufs_hba *hba)
+{
+	_reg_gic_ioremap(hba, GIC_ENABLE_BASE, gic_enable);
+	_reg_gic_ioremap(hba, GIC_PENDING_BASE, gic_pending);
+	_reg_gic_ioremap(hba, GIC_ERROR_BASE, gic_error);
+}
+#endif
 /**
  * ufshcd_init - Driver initialization routine
  * @hba: per-adapter instance
@@ -9763,6 +9805,9 @@ int ufshcd_init(struct ufs_hba *hba, void __iomem *mmio_base, unsigned int irq)
 	ufs_sysfs_add_nodes(hba);
 
 	device_enable_async_suspend(dev);
+#if IS_ENABLED(CONFIG_SPRD_DEBUG)
+	reg_gic_ioremap(hba);
+#endif
 	return 0;
 
 free_tmf_queue:
