@@ -35,3 +35,5 @@ obj-$(CONFIG_SPRD_QOGIRN6LITE_USB2_PHY)	+= phy-sprd-qogirn6lite.o
 obj-$(CONFIG_SPRD_QOGIRL6_USB2_PHY)	+= phy-sprd-qogirl6.o
 obj-$(CONFIG_SPRD_PIKE2_USB2_PHY)       += phy-sprd-pike2.o
 obj-$(CONFIG_SPRD_SHARKL3_USB2_PHY)	+= phy-sprd-sharkl3.o
+obj-$(CONFIG_SPRD_SHARKLE_USB2_PHY)     += phy-sprd-sharkle.o
+
