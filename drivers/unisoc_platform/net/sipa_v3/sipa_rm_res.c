@@ -903,8 +903,10 @@ int sipa_rm_resource_consumer_release(struct sipa_rm_res_cons *cons)
 			release_producer = true;
 		break;
 	case SIPA_RM_REQUEST_IN_PROGRESS:
-		if (cons->resource.ref_count == 0)
+		if (!cons->resource.ref_count) {
 			cons->resource.state = SIPA_RM_RELEASE_IN_PROGRESS;
+			release_producer = true;
+		}
 		break;
 	case SIPA_RM_RELEASE_IN_PROGRESS:
 		result = -EINPROGRESS;
