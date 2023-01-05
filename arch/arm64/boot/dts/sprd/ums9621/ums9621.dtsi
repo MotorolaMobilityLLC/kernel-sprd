@@ -527,13 +527,11 @@
 };
 
 /* Include other IP modules ALPHABETICALLY */
-#include "glbreg.dtsi"
 #include "apb_prot.dtsi"
 #include "audio.dtsi"
 #include "apcpu-dvfs.dtsi"
 #include "bm.dtsi"
 #include "cam.dtsi"
-#include "clock.dtsi"
 #include "coresight.dtsi"
 #include "csi.dtsi"
 #include "ddr-dfs.dtsi"
@@ -541,6 +539,7 @@
 #include "dma.dtsi"
 #include "dmc-mpu.dtsi"
 #include "efuse.dtsi"
+#include "glbreg.dtsi"
 #include "gpio.dtsi"
 #include "gpu-natt.dtsi"
 #include "i2c.dtsi"
