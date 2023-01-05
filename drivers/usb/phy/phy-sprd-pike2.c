@@ -23,24 +23,15 @@
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 #include <linux/usb/phy.h>
+#include <linux/power/sprd-bc1p2.h>
 #include <linux/usb/otg.h>
 #include <dt-bindings/soc/sprd,pike2-mask.h>
 #include <dt-bindings/soc/sprd,pike2-regs.h>
 #include <uapi/linux/usb/charger.h>
 
-#define SC2720_CHARGE_STATUS		0xe14
-#define BIT_CHG_DET_DONE		BIT(11)
-#define BIT_SDP_INT			BIT(7)
-#define BIT_DCP_INT			BIT(6)
-#define BIT_CDP_INT			BIT(5)
-
 #define AP_AHB_USB20_TUNEHSAMP		BIT(31)
 #define USB_PHY_ISOLATION		BIT(0)
 #define BYPASS_FSLS_DISCONNECTED	BIT(9)
-
-/* Pls keep the same definition as musb_sprd */
-#define CHARGER_2NDDETECT_ENABLE	BIT(30)
-#define CHARGER_2NDDETECT_SELECT	BIT(31)
 
 struct sprd_hsphy {
 	struct device		*dev;
@@ -65,42 +56,6 @@ struct sprd_hsphy {
 #define BIT_DP_DM_BC_ENB			BIT(0)
 #define VOLT_LO_LIMIT				1200
 #define VOLT_HI_LIMIT				600
-
-static enum usb_charger_type sc27xx_charger_detect(struct regmap *regmap)
-{
-	enum usb_charger_type type;
-	u32 status = 0, val;
-	int ret, cnt = 10;
-
-	do {
-		ret = regmap_read(regmap, SC2720_CHARGE_STATUS, &val);
-		if (ret)
-			return UNKNOWN_TYPE;
-
-		if (val & BIT_CHG_DET_DONE) {
-			status = val & (BIT_CDP_INT | BIT_DCP_INT | BIT_SDP_INT);
-			break;
-		}
-
-		msleep(200);
-	} while (--cnt > 0);
-
-	switch (status) {
-	case BIT_CDP_INT:
-		type = CDP_TYPE;
-		break;
-	case BIT_DCP_INT:
-		type = DCP_TYPE;
-		break;
-	case BIT_SDP_INT:
-		type = SDP_TYPE;
-		break;
-	default:
-		type = UNKNOWN_TYPE;
-	}
-
-	return type;
-}
 
 static inline void __reset_core(void __iomem *addr)
 {
@@ -356,6 +311,7 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 		reg &= ~(MASK_AP_AHB_OTG_VBUS_VALID_PHYREG |
 			MASK_AP_AHB_OTG_VBUS_VALID_EXT);
 		writel_relaxed(reg, phy->base + REG_AP_AHB_OTG_PHY_TEST);
+		usb_phy->flags &= ~CHARGER_DETECT_DONE;
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
 	}
 
@@ -366,12 +322,10 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x);
 
 static enum usb_charger_type sprd_hsphy_charger_detect(struct usb_phy *x)
 {
-	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
-
-	if (x->flags&CHARGER_2NDDETECT_SELECT)
+	if (x->flags & CHARGER_2NDDETECT_SELECT)
 		return sprd_hsphy_retry_charger_detect(x);
 
-	return sc27xx_charger_detect(phy->pmic);
+	return sprd_bc1p2_charger_detect(x);
 }
 
 static int sc2720_voltage_cali(int voltage)
@@ -561,7 +515,6 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	phy->phy.type = USB_PHY_TYPE_USB2;
 	phy->phy.vbus_nb.notifier_call = sprd_hsphy_vbus_notify;
 	phy->phy.charger_detect = sprd_hsphy_charger_detect;
-	phy->phy.flags |= CHARGER_2NDDETECT_ENABLE;
 	otg->usb_phy = &phy->phy;
 
 	platform_set_drvdata(pdev, phy);

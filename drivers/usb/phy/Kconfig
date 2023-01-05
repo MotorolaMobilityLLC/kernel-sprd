@@ -192,6 +192,7 @@ config USB_SPRD_UMS512_PHY
 	tristate "Unisoc ums512 USB2 PHY Driver"
 	depends on ARCH_SPRD || COMPILE_TEST
 	select USB_PHY
+	select SPRD_BC1P2
 	help
 	  Enable this to support the SPRD ums512 USB2 PHY that is part of SOC.
 	  This driver takes care of all the PHY functionality, normally paired with
@@ -201,6 +202,7 @@ config SPRD_PIKE2_USB2_PHY
 	tristate "Spreadtrum PIKE2 USB2 PHY Driver"
 	depends on (ARM && ARCH_SPRD) || COMPILE_TEST
 	select USB_PHY
+	select SPRD_BC1P2
 	help
 	  Enable this to support the SPRD PIKE2 USB2 PHY that is part of SOC.
 	  This driver takes care of all the PHY functionality, normally paired with
@@ -221,6 +223,7 @@ config SPRD_QOGIRL6_USB2_PHY
 	tristate "Unisoc Qogirl6 USB2 PHY Driver"
 	depends on ARCH_SPRD || COMPILE_TEST
 	select USB_PHY
+	select SPRD_BC1P2
 	help
 	  Enable this to support the SPRD QOGIRL6 USB2 PHY that is part of SOC.
 	  This driver takes care of all the PHY functionality,
@@ -234,18 +237,18 @@ config SPRD_USB_DUMMY_PHY
 	  Enable this to support the SPRD USB DUMMY PHY that is needed for
 	  usb (DWC3/MUSB) switch function.
 
-config SPRD_UMP96XX_BC1P2
-	tristate "Spreadtrum Ump96xx USB BC1P2 support"
+config SPRD_BC1P2
+	tristate "Spreadtrum USB BC1P2 support"
 	select USB_PHY
 	help
-	  Added this to support the sprd Ump96xx USB
-	  BC1P2. This driver provides secondary BC1P2
-	  detection. This driver is supported by
-	  default.
+	  Added this to support the sprd USB BC1P2.
+	  This driver provides secondary BC1P2 detection.
+	  This driver is supported by default.
 
 config SPRD_QOGIRN6PRO_USB2_PHY
 	tristate "Spreadtrum Qogirn6pro USB2 PHY Driver"
 	select USB_PHY
+	select SPRD_BC1P2
 	help
 	  Enable this to support the SPRD QOGIRN6PRO USB2 PHY that is part of SOC.
 	  This driver takes care of all the PHY functionality, normally paired with
@@ -254,6 +257,7 @@ config SPRD_QOGIRN6PRO_USB2_PHY
 config SPRD_QOGIRN6PRO_USB31_PHY
 	tristate "Unisoc QOGIRN6PRO PHY Driver"
 	select USB_PHY
+	select SPRD_BC1P2
 	depends on USB_DWC3_SPRD ||  COMPILE_TEST
 	help
 	  Enable this to support QOGIRN6PRO USB3 PHY that is part of SOC. This
@@ -263,6 +267,7 @@ config SPRD_QOGIRN6PRO_USB31_PHY
 config SPRD_QOGIRN6LITE_USB2_PHY
 	tristate "Spreadtrum Qogirn6lite USB2 PHY Driver"
 	select USB_PHY
+	select SPRD_BC1P2
 	help
 	  Enable this to support the SPRD QOGIRN6LITE USB2 PHY that is part of SOC.
 	  This driver takes care of all the PHY functionality, normally paired with
