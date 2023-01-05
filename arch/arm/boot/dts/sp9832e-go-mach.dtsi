@@ -197,6 +197,11 @@
 			reg = <0x9e000000 0x384000>;
 		};
 
+		/* Only for userdebug, will be removed in user mode by uboot */
+		uboot_reserved: sysdump-uboot@9f000000 {
+			reg = <0x9f000000 0x01000000>;
+		};
+
 		/* The value of sml&tos will be fixed up in uboot */
 		sml_reserved: sml-mem@b0000000 {
 			reg = <0xb0000000 0x00020000>;
