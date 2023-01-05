@@ -24,6 +24,7 @@
 			clocks = <&ext_26m>, <&rco_100m>;
 			clock-names = "ext-26m", "rco-100m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -131,6 +132,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -149,6 +151,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -172,6 +175,7 @@
 			compatible = "sprd,ums312-audcpapb-gate";
 			reg = <0x0 0x1000>;
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -188,6 +192,7 @@
 			compatible = "sprd,ums312-audcpahb-gate";
 			reg = <0x0 0x1000>;
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -206,6 +211,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -224,6 +230,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
@@ -247,6 +254,7 @@
 			compatible = "sprd,ums312-mm-gate-clk";
 			reg = <0x0 0x3000>;
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 	};
 
