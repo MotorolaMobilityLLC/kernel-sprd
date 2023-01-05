@@ -170,6 +170,15 @@ config USB_TEGRA_PHY
 	  This driver provides PHY support for the USB controllers found
 	  on NVIDIA Tegra SoC's.
 
+config SPRD_SHARKL3_USB2_PHY
+	tristate "Unisoc Sharkl3 USB2 PHY Driver"
+	depends on ARCH_SPRD || COMPILE_TEST
+	select USB_PHY
+	help
+	  Enable this to support the SPRD SHARKL3 USB2 PHY that is part of SOC.
+	  This driver takes care of all the PHY functionality, normally paired with
+	  DesignWare USB20 (DRD) Controller.
+
 config USB_SPRD_UMS512_PHY
 	tristate "Unisoc ums512 USB2 PHY Driver"
 	depends on ARCH_SPRD || COMPILE_TEST
