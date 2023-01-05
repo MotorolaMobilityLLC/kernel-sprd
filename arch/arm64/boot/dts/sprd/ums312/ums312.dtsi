@@ -279,3 +279,4 @@
 #include "vsp.dtsi"
 #include "qos.dtsi"
 #include "coresight.dtsi"
+#include "jpg.dtsi"
