@@ -138,21 +138,26 @@ function generate_config()
 		O=${out} ${defconfig} >/dev/null
 	cp ${out}/.config ${new_config}
 
-	${KERNEL_PATH}/scripts/diffconfig -m ${orig_config} ${new_config} > ${new_fragment}
-	#KCONFIG_CONFIG=${new_fragment} ${KERNEL_PATH}/scripts/kconfig/merge_config.sh -m \
-	#	${KERNEL_PATH}/arch/${ARCH}/configs/${fragment} ${changed_config} >/dev/null
-
+	if [[ "${arch}" == "arm64" ]];then
+		${KERNEL_PATH}/scripts/diffconfig -m ${orig_config} ${new_config} \
+			> ${new_fragment}
+	elif [[ "${arch}" == "arm" ]];then
+		${KERNEL_PATH}/scripts/diffconfig -m ${orig_config} ${new_config} \
+			> ${changed_config}
+		KCONFIG_CONFIG=${new_fragment} ${KERNEL_PATH}/scripts/kconfig/merge_config.sh -m \
+		${KERNEL_PATH}/arch/${arch}/configs/${fragment} ${changed_config} >/dev/null
+	fi
 	sort_config ${new_fragment} > ${new_fragment_sorted}
 	diff -u ${KERNEL_PATH}/arch/${arch}/configs/${fragment} \
 		${new_fragment_sorted} >/dev/null || RES=$?
 	if [ ${RES} -ne 0 ]; then
-		echo "        ERROR: the fragment ${fragment} order not correct" >&2
+		echo "        ERROR: the fragment ${fragment} configuration is incorrect" >&2
 		if [ $update_flag -eq 1 ];then
 			echo "update the ${fragment}"
 			cp  ${new_fragment_sorted} ${KERNEL_PATH}/arch/${arch}/configs/${fragment}
 		fi
 	else
-		echo "        the fragment ${fragment} has a correct order" >&1
+		echo "        the fragment ${fragment} configuration is OK!" >&1
 	fi
 
 	rm -rf ${out}
