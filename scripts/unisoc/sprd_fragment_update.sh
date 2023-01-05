@@ -181,15 +181,17 @@ function sort_fragment()
 		rm -rf $KERNEL_PATH/arch/${arch}/configs/test_sprd_${board}_debug_defconfig
 	done
 }
+
+if [[ "$1" == "update" ]];then
+	update_flag=1
+fi
+
 #sort the sprd_gki.fragment
 echo "check sprd_gki.fragment"
 generate_config arm64 gki_defconfig sprd_gki.fragment test_gki_sprd_defconfig
 let return_val=$?+$return_val
 rm -rf $KERNEL_PATH/arch/arm64/configs/test_gki_sprd_defconfig
 
-if [[ "$1" == "update" ]];then
-	update_flag=1
-fi
 arch_list="arm64 arm"
 for arch in ${arch_list}
 do
