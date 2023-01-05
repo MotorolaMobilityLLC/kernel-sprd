@@ -46,7 +46,6 @@
 			reg = <0x0 0x0>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
-			//cpufreq-data-v1 = <&cpufreq_cluster0>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
 			#cooling-cells = <2>;
@@ -57,7 +56,6 @@
 			reg = <0x0 0x100>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
-			//cpufreq-data-v1 = <&cpufreq_cluster0>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
 			#cooling-cells = <2>;
@@ -68,7 +66,6 @@
 			reg = <0x0 0x200>;
 			enable-method = "psci";
 			cpu-idle-states = <&LIT_CORE_PD>;
-			//cpufreq-data-v1 = <&cpufreq_cluster0>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
 			#cooling-cells = <2>;
@@ -79,7 +76,6 @@
 			reg = <0x0 0x300>;
 			enable-method = "psci";
 			cpu-idle-states = <&BIG_CORE_PD>;
-			//cpufreq-data-v1 = <&cpufreq_cluster1>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <501>;
 			#cooling-cells = <2>;
@@ -250,6 +246,7 @@
 
 
 /* Include other IP modules in ALPHABETICAL order */
+#include "apcpu-dvfs.dtsi"
 #include "ddr-dfs.dtsi"
 #include "bm.dtsi"
 #include "dma.dtsi"
