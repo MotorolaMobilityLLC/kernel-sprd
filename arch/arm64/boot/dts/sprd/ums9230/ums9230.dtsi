@@ -243,15 +243,6 @@
 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
-		pmu_gate: pmu-gate {
-			compatible = "sprd,ums9230-pmu-gate";
-			sprd,syscon = <&pmu_apb_regs>; /* 0x64020000 */
-			clocks = <&ext_26m>;
-			clock-names = "ext-26m";
-			#clock-cells = <1>;
-			#reset-cells = <1>;
-		};
-
 		agcp: agcp {
 			compatible = "simple-bus";
 			#address-cells = <2>;
@@ -1511,7 +1502,6 @@
 #include "bm.dtsi"
 #include "apcpu-dvfs.dtsi"
 #include "cam.dtsi"
-#include "clock.dtsi"
 #include "coresight.dtsi"
 #include "dmc-mpu.dtsi"
 #include "efuse.dtsi"
