@@ -26,6 +26,7 @@ struct sprd_iommuex_priv {
 	ulong master_reg_addr;/*master reg base address*/
 	ulong mmu_reg_addr;/*mmu register offset from master base addr*/
 	u32 pgt_size;
+	u32 phys_offset;
 
 	u8 va_out_bypass_en;/*va out of range bypass,1 default*/
 	ulong vpn_base_addr;
