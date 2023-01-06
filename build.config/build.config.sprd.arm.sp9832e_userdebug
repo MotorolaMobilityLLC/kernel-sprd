@@ -29,6 +29,9 @@ EXT_MODULES="
 ../modules/kernel5.15/input/fingerprint/sunwave
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/flash/ocp8137
+../modules/common/camera/sensor
+../modules/common/camera/core
+../modules/common/camera/cpp
 ../modules/kernel5.15/audio/sprd_audio/audiomem
 ../modules/kernel5.15/audio/sprd_audio/audio_pipe
 ../modules/kernel5.15/audio/sprd_audio/saudio
