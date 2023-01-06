@@ -59,6 +59,17 @@ config PINCTRL_SPRD_SHARKL5PRO
 	  PINCTRL_SPRD_SHARKL5PRO=m for KO
 	  PINCTRL_SPRD_SHARKL5PRO is not set for no building
 
+config PINCTRL_SPRD_PIKE2
+	tristate "Spreadtrum pike2 pinctrl driver"
+	depends on OF
+	depends on (ARM && ARCH_SPRD) || COMPILE_TEST
+	select PINCTRL_SPRD
+	help
+	  Say Y here to enable Spreadtrum pike2 pinctrl driver
+	  PINCTRL_SPRD_PIKE2=y for buildin
+	  PINCTRL_SPRD_PIKE2=m for KO
+	  PINCTRL_SPRD_PIKE2 is not set for no building
+
 config PINCTRL_SPRD_QOGIRL6
 	tristate "Spreadtrum qogirl6 pinctrl driver"
 	depends on OF
