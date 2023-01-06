@@ -19,6 +19,8 @@ EXT_MODULES="
 ../modules/kernel5.15/display/dispc
 ../modules/kernel5.15/input/touchscreen/adaptive-ts
 ../modules/kernel5.15/dmabufheap
+../modules/common/io/block
+../modules/common/io/iowait
 "
 fi
 #camera module version config
