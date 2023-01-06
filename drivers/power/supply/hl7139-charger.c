@@ -165,8 +165,6 @@ struct hl7139 {
 	bool usb_present;
 	bool charge_enabled;	/* Register bit status */
 
-	int  vbus_error;
-
 	/* ADC reading */
 	int vbat_volt;
 	int vbus_volt;
@@ -1093,6 +1091,24 @@ static int hl7139_set_int_unmask(struct hl7139 *hl, u8 unmask)
 	return hl7139_write_byte(hl, HL7139_REG_02, val);
 }
 
+static int hl7139_check_vbus_error_status(struct hl7139 *hl)
+{
+	int ret;
+	u8 data;
+
+	hl->bus_err_lo = false;
+	hl->bus_err_hi = false;
+
+	ret = hl7139_read_byte(hl, HL7139_REG_07, &data);
+	if (ret == 0) {
+		dev_err(hl->dev, "vbus error, Reg[%02X] = 0x%02X\n", HL7139_REG_07, data);
+		hl->bus_err_lo = !!(data & HL7139_TRACK_UV_S_MASK);
+		hl->bus_err_hi = !!(data & HL7139_TRACK_OV_S_MASK);
+	}
+
+	return ret;
+}
+
 static int hl7139_detect_device(struct hl7139 *hl)
 {
 	int ret;
@@ -1870,7 +1886,9 @@ static int hl7139_charger_get_property(struct power_supply *psy,
 		}
 
 		if (val->intval == CM_BUS_ERR_HEALTH_CMD) {
-			val->intval = 0;
+			hl7139_check_vbus_error_status(hl);
+			val->intval = (hl->bus_err_lo  << CM_CHARGER_BUS_ERR_LO_SHIFT);
+			val->intval |= (hl->bus_err_hi  << CM_CHARGER_BUS_ERR_HI_SHIFT);
 			break;
 		}
 

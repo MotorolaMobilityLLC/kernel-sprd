@@ -2910,13 +2910,15 @@ static void cm_check_cp_fault_status(struct charger_manager *cm)
 static void cm_update_cp_charger_status(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	bool is_cp_val;
 
+	is_cp_val = !!(cp->cp_running & cm->desc->enable_fast_charge);
 	cp->ibus_uA = 0;
 	cp->vbat_uV = 0;
 	cp->vbus_uV = 0;
 	cp->ibat_uA = 0;
 
-	if (cp->cp_running && cm->desc->enable_fast_charge) {
+	if (is_cp_val) {
 		if (get_cp_ibus_uA(cm, &cp->ibus_uA)) {
 			cp->ibus_uA = 0;
 			dev_err(cm->dev, "get ibus current error.\n");
@@ -2960,8 +2962,8 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 		}
 	}
 
-	dev_dbg(cm->dev, " %s,  %s, batt_uV = %duV, vbus_uV = %duV, batt_uA = %duA, ibus_uA = %duA\n",
-	       __func__, (cp->cp_running ? "charge pump" : "Primary charger"),
+	dev_dbg(cm->dev, "%s, %s, batt_uV = %duV, vbus_uV = %duV, batt_uA = %duA, ibus_uA = %duA\n",
+	       __func__, is_cp_val ? "charge pump" : "Primary charger",
 	       cp->vbat_uV, cp->vbus_uV, cp->ibat_uA, cp->ibus_uA);
 }
 
@@ -3260,13 +3262,6 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	dev_info(cm->dev, "cm_cp_state_machine: state %d, %s\n",
 	       cp->cp_state, cm_cp_state_names[cp->cp_state]);
 
-	if (cp->vbat_uV < cm->desc->shutdown_voltage) {
-		dev_err(cm->dev, "%s, the vbat_uV %d obtained by cp state machine is abnormal!!!\n",
-			__func__, cp->vbat_uV);
-		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
-		return;
-	}
-
 	cm->desc->cm_check_fault = false;
 	cm_fast_enable_pps(cm, false);
 	if (cm_fast_enable_pps(cm, true)) {
@@ -3333,9 +3328,17 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	primary_charger_dis_retry = 0;
 	cp->cp_ibat_ucp_cnt = 0;
 
+	cm_update_cp_charger_status(cm);
+	if (cp->vbat_uV < cm->desc->shutdown_voltage) {
+		dev_err(cm->dev, "%s, the vbat_uV %d obtained by cp state machine is abnormal!!!\n",
+			__func__, cp->vbat_uV);
+		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+		return;
+	}
+
 	if (cp->vbat_uV <= CM_CP_ACC_VBAT_HTHRESHOLD)
-		cp->cp_target_vbus = (CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV) +
-				      CM_CP_VBUS_ERRORHI_THRESHOLD(cp->vbat_uV)) / 2;
+		cp->cp_target_vbus = (3 * CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV) +
+				      CM_CP_VBUS_ERRORHI_THRESHOLD(cp->vbat_uV)) / 4;
 	else
 		cp->cp_target_vbus =  CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV) + 2 * CM_CP_VSTEP;
 
@@ -3537,7 +3540,9 @@ static void cm_cp_work(struct work_struct *work)
 						  struct charger_manager,
 						  cp_work);
 
-	cm_update_cp_charger_status(cm);
+	if (cm->desc->cp.cp_state != CM_CP_STATE_ENTRY)
+		cm_update_cp_charger_status(cm);
+
 	cm_check_cp_soft_monitor_alarm_status(cm);
 
 	if (cm->desc->cm_check_int && cm->desc->cm_check_fault)
