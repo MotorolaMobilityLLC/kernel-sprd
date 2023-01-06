@@ -20,6 +20,7 @@ extern uint GNSS_SHARE_MEMORY_SIZE;
 extern uint GNSS_DUMP_IRAM_START_ADDR;
 extern uint GNSS_CP_IRAM_DATA_NUM;
 extern uint GNSS_DUMP_REG_NUMBER;
+extern unsigned char  flag_download_done;
 
 struct wcn_sync_info_t {
 	unsigned int init_status;
