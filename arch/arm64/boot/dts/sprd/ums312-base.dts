@@ -87,6 +87,12 @@
 			wakeup-source;
 		};
 	};
+
+	autotest: autotest {
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
+
 };
 
 &uart0 {
