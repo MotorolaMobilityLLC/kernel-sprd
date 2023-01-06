@@ -29,6 +29,21 @@
 			bits = <8 3>;
 		};
 
+		cpu_bin_lit: cpu-bin-lit@60 {
+			reg = <0x5a 0x2>;
+			bits = <2 3>;
+		};
+
+		cpu_bin_mid1: cpu-bin-mid1@60 {
+			reg = <0x5a 0x2>;
+			bits = <5 3>;
+		};
+
+		cpu_bin_mid2: cpu-bin-mid2@60 {
+			reg = <0x5a 0x2>;
+			bits = <8 3>;
+		};
+
 		thm0_ratio: thm0-ratio@94 {
 			reg = <0x94 0x1>;
 			bits = <0 8>;
@@ -146,6 +161,5 @@
 		uid_start: uid-start@ec{
 			reg = <0xc4 0x4>;
 		};
-
 	};
 };

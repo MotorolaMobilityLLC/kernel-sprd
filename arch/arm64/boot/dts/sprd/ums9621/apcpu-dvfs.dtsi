@@ -43,11 +43,12 @@
 		compatible = "sprd,cpufreq-v2";
 
 		cpufreq_clus0: cpufreq-clus0 {
-			sprd,voltage-step = <750000>;           /* uV       */
 			sprd,voltage-margin = <20>;             /* Cycle    */
-			sprd,transition-delay = <500>;         /* us       */
-			/*sprd,temp-threshold = <65>;*/             /* u32 list */
+			sprd,transition-delay = <500>;          /* us       */
+			sprd,temp-threshold = <0 65>;           /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
+			nvmem-cell-names = "cpu_bin_lit";
+			nvmem-cells = <&cpu_bin_lit>;
 			sprd,multi-version;
 			sprd,cpufreq-boost;
 
@@ -55,11 +56,12 @@
 		};
 
 		cpufreq_clus1: cpufreq-clus1 {
-			sprd,voltage-step = <750000>;           /* uV       */
 			sprd,voltage-margin = <20>;             /* Cycle    */
-			sprd,transition-delay = <500>;         /* us       */
-			/*sprd,temp-threshold = <65>;*/             /* u32 list */
+			sprd,transition-delay = <500>;          /* us       */
+			sprd,temp-threshold = <0 65>;           /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
+			nvmem-cell-names = "cpu_bin_mid1";
+			nvmem-cells = <&cpu_bin_mid1>;
 			sprd,multi-version;
 			sprd,cpufreq-boost;
 
@@ -67,11 +69,12 @@
 		};
 
 		cpufreq_clus2: cpufreq-clus2 {
-			sprd,voltage-step = <750000>;           /* uV       */
 			sprd,voltage-margin = <20>;             /* Cycle    */
-			sprd,transition-delay = <500>;         /* us       */
-			/*sprd,temp-threshold = <65>;*/             /* u32 list */
+			sprd,transition-delay = <500>;          /* us       */
+			sprd,temp-threshold = <0 65>;           /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
+			nvmem-cell-names = "cpu_bin_mid2";
+			nvmem-cells = <&cpu_bin_mid2>;
 			sprd,multi-version;
 			sprd,cpufreq-boost;
 
