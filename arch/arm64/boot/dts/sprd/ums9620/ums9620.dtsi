@@ -646,7 +646,6 @@
 #include "audio.dtsi"
 #include "bm.dtsi"
 #include "cam.dtsi"
-#include "clock.dtsi"
 #include "coresight.dtsi"
 #include "csi.dtsi"
 #include "ddr-dfs.dtsi"
