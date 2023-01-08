@@ -210,4 +210,5 @@
 #include "socid.dtsi"
 #include "spi.dtsi"
 #include "uart.dtsi"
+#include "usb.dtsi"
 #include "wdt.dtsi"

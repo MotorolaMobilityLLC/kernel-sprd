@@ -111,3 +111,12 @@
 	};
 };
 
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+};
+
+&usb {
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+//	vbus-supply = <&vddvbus>;
+};

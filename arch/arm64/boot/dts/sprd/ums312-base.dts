@@ -93,6 +93,10 @@
 		sprd,pinctrl = <&pin_controller>;
 	};
 
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
+	};
 };
 
 &uart0 {
