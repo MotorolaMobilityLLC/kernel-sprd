@@ -42,6 +42,10 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/dai/vaudio
 ../modules/kernel5.15/audio/sprd/dai/vbc/r1p0v3
 ../modules/kernel5.15/audio/sprd/codec/dummy-codec
+../modules/kernel5.15/audio/sprd/codec/sprd/sc2721/codec
+../modules/kernel5.15/audio/sprd/codec/sprd/sc2721/power
+../modules/kernel5.15/audio/sprd/codec/sprd/sc2721/power_dev
+../modules/kernel5.15/audio/sprd/dai/i2s
 ../modules/kernel5.15/audio/sprd/platform/dmaengine_2stage_pcm
 ../modules/kernel5.15/audio/sprd/machine/i2s_card
 ../modules/kernel5.15/gpu/midgard
@@ -50,7 +54,6 @@ fi
 
 # modules build failed
 # ../modules/kernel5.15/gpu/midgard
-# ../modules/kernel5.15/audio/sprd/dai/i2s
 
 # modules in modules.cfg but not found in k515
 # focaltech_ats.ko
@@ -60,9 +63,6 @@ fi
 # sprd_fm.ko
 # sprdbt_tty.ko
 # sprd-ion.ko
-# snd-soc-sprd-codec-sc2721.ko
-# snd-soc-sprd-codec-sc2721-power.ko
-# snd-soc-sprd-codec-sc2721-power-dev.ko
 
 
 #camera module version config

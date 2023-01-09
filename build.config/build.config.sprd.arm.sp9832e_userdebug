@@ -41,6 +41,10 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/dai/vaudio
 ../modules/kernel5.15/audio/sprd/dai/vbc/r1p0v3
 ../modules/kernel5.15/audio/sprd/codec/dummy-codec
+../modules/kernel5.15/audio/sprd/codec/sprd/sc2721/codec
+../modules/kernel5.15/audio/sprd/codec/sprd/sc2721/power
+../modules/kernel5.15/audio/sprd/codec/sprd/sc2721/power_dev
+../modules/kernel5.15/audio/sprd/dai/i2s
 ../modules/kernel5.15/audio/sprd/platform/dmaengine_2stage_pcm
 ../modules/kernel5.15/audio/sprd/machine/i2s_card
 ../modules/kernel5.15/gpu/midgard
