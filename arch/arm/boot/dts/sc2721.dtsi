@@ -337,6 +337,10 @@
 			reg = <0xeb4>;
 		};
 
+		bc1p2@ec8 {
+			compatible = "sprd,sc27xx-bc1p2", "sprd,sc2721-bc1p2";
+		};
+
 		hw-reset@eec {
 			compatible = "sprd,sc27xx-7sreset", "sprd,sc2721-7sreset";
 			reg = <0xf1c>, <0xeec>;

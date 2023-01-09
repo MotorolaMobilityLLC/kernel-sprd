@@ -320,6 +320,10 @@
 			reg = <0xe00>;
 		};
 
+		bc1p2@e14 {
+			compatible = "sprd,sc27xx-bc1p2", "sprd,sc2720-bc1p2";
+		};
+
 		pmic_charger: charger@e0c {
 			compatible = "sprd,sc27xx-charger", "sprd,sc2720-charger";
 			reg = <0xe0c>;
