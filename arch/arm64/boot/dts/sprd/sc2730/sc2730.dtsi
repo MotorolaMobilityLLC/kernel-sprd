@@ -158,6 +158,10 @@
 			compatible = "sprd,sc2730-vibrator";
 			reg = <0x1b90>;
 		};
+
+		bc1p2@1b9c {
+			compatible = "sprd,sc27xx-bc1p2", "sprd,sc2730-bc1p2";
+		};
 	};
 };
 

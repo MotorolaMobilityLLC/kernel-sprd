@@ -113,6 +113,10 @@
 			reg = <0xec8>;
 		};
 
+		bc1p2@edc {
+			compatible = "sprd,sc2731-bc1p2";
+		};
+
 	};
 };
 

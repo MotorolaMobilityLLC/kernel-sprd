@@ -130,7 +130,6 @@
 
 		bc1p2@239c {
 			compatible = "sprd,ump9620-bc1p2", "sprd,ump96xx-bc1p2";
-			reg = <0x239c>, <0x23a0>, <0x243c>;
 		};
 
 		hw_reset@23c0 {
