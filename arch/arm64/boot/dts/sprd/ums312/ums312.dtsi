@@ -228,6 +228,7 @@
 #include "gpio.dtsi"
 #include "i2c.dtsi"
 #include "pinctrl.dtsi"
+#include "power.dtsi"
 #include "pwm.dtsi"
 #include "sdio.dtsi"
 #include "socid.dtsi"
