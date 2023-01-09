@@ -199,7 +199,6 @@
 
 
 /* Include other IP modules in ALPHABETICAL order */
-#include "clock.dtsi"
 #include "dma.dtsi"
 #include "glbreg.dtsi"
 #include "gpio.dtsi"
