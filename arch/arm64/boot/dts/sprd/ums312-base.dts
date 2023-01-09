@@ -97,6 +97,15 @@
 		compatible = "linux,extcon-usb-gpio";
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 	};
+
+	dmabuf: dmabuf {
+		compatible = "sprd,dmabuf";
+	};
+
+	sprd-map-user {
+		compatible = "unisoc,map-user";
+	};
+
 };
 
 &uart0 {

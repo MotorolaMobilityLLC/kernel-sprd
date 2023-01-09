@@ -41,6 +41,15 @@
 			   <32 0x197c>, <33 0x1988>, <35 0x19b8>, <39 0x19ac>;
 };
 
+&dmabuf {
+
+	fd-reserved {
+		label = "carveout_fd";
+		memory-region = <&fd_reserved>;
+	};
+
+};
+
 &pin_controller {
 	pinctrl-names =
 	/* keyout0 ~ keyout2 */
