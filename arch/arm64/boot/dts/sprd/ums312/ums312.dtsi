@@ -157,6 +157,14 @@
 			#address-cells = <2>;
 			#size-cells = <2>;
 			ranges;
+
+			apsys_dvfs: apsys-dvfs@71700000 {
+				compatible = "sprd,hwdvfs-apsys-sharkl5";
+				reg = <0x0 0x71700000 0x0 0x144>;
+
+				sprd,ap-dvfs-up-window = <0x40>;
+				sprd,ap-dvfs-down-window = <0x80>;
+			};
 		};
 
 		apapb: ap-apb {
@@ -227,3 +235,4 @@
 #include "uart.dtsi"
 #include "usb.dtsi"
 #include "wdt.dtsi"
+#include "dispc.dtsi"
