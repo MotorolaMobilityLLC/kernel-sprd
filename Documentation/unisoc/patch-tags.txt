@@ -125,6 +125,7 @@ irqchip:
 
 kernel:sysctl:
 kernel:gcov:
+kernel:irq:
 
 leds:sc27xx:
 leds:trigger:
