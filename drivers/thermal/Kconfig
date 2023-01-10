@@ -491,6 +491,16 @@ config SPRD_THERMAL_R5P0
 	  Enable the spreadtrum soc thermal sensor dirver, which supports
 	  thermal framework to get the temp of cpu/gpu thermal zone.
 
+config SPRD_DEDICATE_THERMAL
+	tristate "Spreadtrum SoC Dedicated Thermal Support"
+	depends on ARCH_SPRD || COMPILE_TEST
+	depends on THERMAL_OF
+	help
+	  Enable the spreadtrum soc thermal sensor dirver, which supports
+          thermal framework to get the temp of cpu/gpu thermal zone.
+	  SPRD_DEDICATE_THERMAL=y for buildin
+	  SPRD_DEDICATE_THERMAL=m for KO
+
 config SPRD_SHELL_THERMAL
 	tristate "sprd shell thermal"
 	depends on THERMAL && SPRD_THERMAL

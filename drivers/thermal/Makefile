@@ -59,6 +59,7 @@ obj-$(CONFIG_GENERIC_ADC_THERMAL)	+= thermal-generic-adc.o
 obj-$(CONFIG_UNIPHIER_THERMAL)	+= uniphier_thermal.o
 obj-$(CONFIG_AMLOGIC_THERMAL)     += amlogic_thermal.o
 obj-$(CONFIG_SPRD_THERMAL)	+= sprd_thermal.o
+obj-$(CONFIG_SPRD_DEDICATE_THERMAL)	+= sprd_dedicate_thm.o
 obj-$(CONFIG_SPRD_THERMAL_R5P0) += sprd_thermal_r5p0.o
 obj-$(CONFIG_SPRD_SHELL_THERMAL)      += sprd_shell_thm.o
 obj-$(CONFIG_SC27XX_TSENSOR_THERMAL)	+= sc27xx_tsensor_thermal.o
