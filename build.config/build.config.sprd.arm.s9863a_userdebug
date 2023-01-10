@@ -21,6 +21,8 @@ EXT_MODULES="
 ../modules/kernel5.15/input/touchscreen/adaptive-ts
 ../modules/kernel5.15/input/touchscreen/adaptive_ts_transsion
 ../modules/kernel5.15/dmabufheap
+../modules/kernel5.15/video/sprd-vsp
+../modules/kernel5.15/video/sprd-vsp-power
 "
 fi
 #camera module version config
