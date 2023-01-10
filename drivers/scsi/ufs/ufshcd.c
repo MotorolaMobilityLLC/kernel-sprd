@@ -9569,7 +9569,7 @@ static void _reg_gic_ioremap(struct ufs_hba *hba, phys_addr_t offset, void __iom
 	int retry = 4;
 
 	while (retry > 0) {
-		reg = ioremap(offset, 4);
+		reg = ioremap(offset, 8);
 		if (reg != NULL)
 			break;
 		udelay(100);
@@ -9581,8 +9581,6 @@ static void _reg_gic_ioremap(struct ufs_hba *hba, phys_addr_t offset, void __iom
 		}
 	}
 }
-#endif
-#if IS_ENABLED(CONFIG_SPRD_DEBUG)
 static void reg_gic_ioremap(struct ufs_hba *hba)
 {
 	_reg_gic_ioremap(hba, GIC_ENABLE_BASE, gic_enable);
