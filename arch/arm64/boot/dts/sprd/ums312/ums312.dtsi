@@ -241,6 +241,7 @@
 
 
 /* Include other IP modules in ALPHABETICAL order */
+#include "ddr-dfs.dtsi"
 #include "dma.dtsi"
 #include "efuse.dtsi"
 #include "glbreg.dtsi"

@@ -112,6 +112,12 @@
 			   <32 0x197c>, <33 0x1988>, <35 0x19b8>, <39 0x19ac>;
 };
 
+&ddr_dfs {
+	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+		"camhigh", "camveryhigh", "dpu", "boot-opt", "top";
+	sprd-freq = <933 512 256 384 512 933 384 933 0xbacd>;
+};
+
 &dmabuf {
 
 	fd-reserved {
