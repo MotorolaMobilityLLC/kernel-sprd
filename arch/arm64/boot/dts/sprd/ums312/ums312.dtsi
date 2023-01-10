@@ -195,6 +195,19 @@
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
+
+			mailbox: mailbox@320a0000 {
+				compatible = "unisoc,mailbox";
+				reg = <0 0x320a0000 0 0x8000>,
+				      <0 0x320a8000 0 0x8000>;
+				reg-names = "inbox", "outbox";
+				sprd,mailbox_clk = <&aon_apb_regs 0x4 0x4>;
+				interrupts = <GIC_SPI 82 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 84 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "inbox", "outbox", "oob-outbox";
+				#mbox-cells = <2>;
+			};
 		};
 
 		apagcp: agcp {
@@ -218,6 +231,12 @@
 			};
 		};
 	};
+
+	sipc: sipc-virt {
+		compatible = "unisoc,sipc-virt-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
 };
 
 
@@ -237,3 +256,4 @@
 #include "usb.dtsi"
 #include "wdt.dtsi"
 #include "dispc.dtsi"
+#include "modem.dtsi"
