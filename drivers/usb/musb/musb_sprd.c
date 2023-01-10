@@ -165,6 +165,7 @@ struct sprd_glue {
 	struct mutex			suspend_resume_mutex;
 	struct timer_list		relax_wakelock_timer;
 	bool				wake_lock_relaxed;
+	bool		use_singlefifo;
 };
 
 static int boot_charging;
@@ -674,11 +675,85 @@ static struct musb_fifo_cfg sprd_musb_host_mode_cfg[] = {
 	MUSB_EP_FIFO_DOUBLE(15, FIFO_RX, 8),
 };
 
+static struct musb_fifo_cfg sprd_musb_device_mode_cfg_single[] = {
+	MUSB_EP_FIFO_DOUBLE(1, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(1, FIFO_RX, 512),
+	MUSB_EP_FIFO_DOUBLE(2, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(2, FIFO_RX, 512),
+	MUSB_EP_FIFO_DOUBLE(3, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(3, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(4, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(4, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(5, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(5, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(6, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(6, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(7, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(7, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(8, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(8, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(9, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(9, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(10, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(10, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(11, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(11, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(12, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(12, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(13, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(13, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(14, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(14, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(15, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(15, FIFO_RX, 512),
+};
+static struct musb_fifo_cfg sprd_musb_host_mode_cfg_single[] = {
+	MUSB_EP_FIFO_SINGLE(1, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(1, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(2, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(2, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(3, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(3, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(4, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(4, FIFO_RX, 4096),
+	MUSB_EP_FIFO_SINGLE(5, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(5, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(6, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(6, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(7, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(7, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(8, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(8, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(9, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(9, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(10, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(10, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(11, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(11, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(12, FIFO_TX, 512),
+	MUSB_EP_FIFO_SINGLE(12, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(13, FIFO_TX, 8),
+	MUSB_EP_FIFO_SINGLE(13, FIFO_RX, 8),
+	MUSB_EP_FIFO_SINGLE(14, FIFO_TX, 8),
+	MUSB_EP_FIFO_SINGLE(14, FIFO_RX, 8),
+	MUSB_EP_FIFO_SINGLE(15, FIFO_TX, 8),
+	MUSB_EP_FIFO_SINGLE(15, FIFO_RX, 8),
+};
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 static struct musb_hdrc_config sprd_musb_hdrc_config = {
 	.fifo_cfg = sprd_musb_device_mode_cfg,
 	.fifo_cfg_size = ARRAY_SIZE(sprd_musb_device_mode_cfg),
+	.multipoint = false,
+	.dyn_fifo = true,
+	.num_eps = MUSB_C_NUM_EPS,
+	.ram_bits = SPRD_MUSB_RAM_BITS,
+};
+
+static struct musb_hdrc_config sprd_musb_hdrc_config_single = {
+	.fifo_cfg = sprd_musb_device_mode_cfg_single,
+	.fifo_cfg_size = ARRAY_SIZE(sprd_musb_device_mode_cfg_single),
 	.multipoint = false,
 	.dyn_fifo = true,
 	.num_eps = MUSB_C_NUM_EPS,
@@ -1013,7 +1088,10 @@ static ssize_t maximum_speed_store(struct device *dev,
 	if (!musb)
 		return -EINVAL;
 
-	sprd_musb_hdrc_config.maximum_speed = max_speed;
+	if (glue->use_singlefifo)
+		sprd_musb_hdrc_config_single.maximum_speed = max_speed;
+	else
+		sprd_musb_hdrc_config.maximum_speed = max_speed;
 	musb->g.max_speed = max_speed;
 	return size;
 }
@@ -1177,7 +1255,10 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		MUSB_DEV_MODE(musb);
 		musb->is_active = 0;
 		musb->xceiv->otg->state = OTG_STATE_B_IDLE;
-		sprd_musb_hdrc_config.fifo_cfg = sprd_musb_device_mode_cfg;
+		if (glue->use_singlefifo)
+			sprd_musb_hdrc_config_single.fifo_cfg = sprd_musb_device_mode_cfg_single;
+		else
+			sprd_musb_hdrc_config.fifo_cfg = sprd_musb_device_mode_cfg;
 		sprd_musb_reset_context(musb);
 		pm_runtime_get_sync(musb->controller);
 		musb_reset_all_fifo_2_default(musb);
@@ -1293,7 +1374,10 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		MUSB_HST_MODE(musb);
 		musb->is_active = 1;
 		musb->xceiv->otg->state = OTG_STATE_A_IDLE;
-		sprd_musb_hdrc_config.fifo_cfg = sprd_musb_host_mode_cfg;
+		if (glue->use_singlefifo)
+			sprd_musb_hdrc_config_single.fifo_cfg = sprd_musb_host_mode_cfg_single;
+		else
+			sprd_musb_hdrc_config.fifo_cfg = sprd_musb_host_mode_cfg;
 		sprd_musb_reset_context(musb);
 
 		/* Increment pm usage count in host state.*/
@@ -1883,7 +1967,14 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, glue);
 
 	pdata.platform_ops = &sprd_musb_ops;
-	pdata.config = &sprd_musb_hdrc_config;
+	if (of_property_read_bool(node, "use-single-fifo")) {
+		pdata.config = &sprd_musb_hdrc_config_single;
+		glue->use_singlefifo = true;
+		dev_info(&pdev->dev, "use single fifo\n");
+	} else {
+		pdata.config = &sprd_musb_hdrc_config;
+		glue->use_singlefifo = false;
+	}
 	glue->enable_pm_suspend_in_host = of_property_read_bool(node, "wakeup-source");
 	pdata.board_data = &glue->enable_pm_suspend_in_host;
 	atomic_set(&glue->pm_suspended, 0);
@@ -1897,8 +1988,13 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	pinfo.size_data = sizeof(pdata);
 	pinfo.dma_mask = DMA_BIT_MASK(BITS_PER_LONG);
 
-	if (of_property_read_bool(node, "multipoint"))
-		sprd_musb_hdrc_config.multipoint = true;
+	if (of_property_read_bool(node, "multipoint")) {
+		if (glue->use_singlefifo)
+			sprd_musb_hdrc_config_single.multipoint = true;
+		else
+			sprd_musb_hdrc_config.multipoint = true;
+	} else
+		dev_info(&pdev->dev, "not support multipoint\n");
 
 	glue->musb_pdev = platform_device_register_full(&pinfo);
 	if (IS_ERR(glue->musb_pdev)) {
