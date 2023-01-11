@@ -35,9 +35,7 @@
 #include <trace/hooks/ufshcd.h>
 
 #if IS_ENABLED(CONFIG_SPRD_DEBUG)
-#define GIC_ENABLE_BASE (0x12000114)
-#define GIC_PENDING_BASE (0x12000214)
-#define GIC_ERROR_BASE (0x12000E14)
+#define GIC_REG_BASE (0x12000114)
 #endif
 #define UFSHCD_ENABLE_INTRS	(UTP_TRANSFER_REQ_COMPL |\
 				 UTP_TASK_REQ_COMPL |\
@@ -108,9 +106,7 @@
 } while (0)
 
 #if IS_ENABLED(CONFIG_SPRD_DEBUG)
-void __iomem *gic_enable;
-void __iomem *gic_pending;
-void __iomem *gic_error;
+void __iomem *gic_reg_base;
 #endif
 int ufshcd_dump_regs(struct ufs_hba *hba, size_t offset, size_t len,
 		     const char *prefix)
@@ -4072,9 +4068,11 @@ static int ufshcd_uic_pwr_ctrl(struct ufs_hba *hba, struct uic_command *cmd)
 	if (!wait_for_completion_timeout(hba->uic_async_done,
 					 msecs_to_jiffies(UIC_CMD_TIMEOUT))) {
 #if IS_ENABLED(CONFIG_SPRD_DEBUG)
-		dev_err(hba->dev,
+		if (gic_reg_base != NULL) {
+			dev_err(hba->dev,
 			"gic:enable 0x%x\ngic:pending 0x%x\ngic:error 0x%x\n",
-			readl(gic_enable), readl(gic_pending), readl(gic_error));
+			readl(gic_reg_base), readl(gic_reg_base+0x100), readl(gic_reg_base+0xd00));
+		}
 #endif
 		dev_err(hba->dev,
 			"pwr ctrl cmd 0x%x with mode 0x%x completion timeout\n",
@@ -9564,28 +9562,27 @@ static const struct blk_mq_ops ufshcd_tmf_ops = {
 };
 
 #if IS_ENABLED(CONFIG_SPRD_DEBUG)
-static void _reg_gic_ioremap(struct ufs_hba *hba, phys_addr_t offset, void __iomem *reg)
+static void __iomem *_reg_gic_ioremap(phys_addr_t offset)
 {
 	int retry = 4;
-
+	void __iomem *reg = NULL;
 	while (retry > 0) {
-		reg = ioremap(offset, 8);
+		reg = ioremap(offset, 0xD08);
 		if (reg != NULL)
 			break;
 		udelay(100);
 		retry--;
-		if (retry == 0) {
-			dev_err(hba->dev,
-			"GIC register : 0x%x ioremap failed\n", offset);
-			return;
-		}
 	}
+	return reg;
 }
 static void reg_gic_ioremap(struct ufs_hba *hba)
 {
-	_reg_gic_ioremap(hba, GIC_ENABLE_BASE, gic_enable);
-	_reg_gic_ioremap(hba, GIC_PENDING_BASE, gic_pending);
-	_reg_gic_ioremap(hba, GIC_ERROR_BASE, gic_error);
+	gic_reg_base = _reg_gic_ioremap(GIC_REG_BASE);
+	if (gic_reg_base == NULL) {
+		dev_err(hba->dev,
+		"GIC register : 0x%x ioremap failed\n", GIC_REG_BASE);
+	}
+	return;
 }
 #endif
 /**
