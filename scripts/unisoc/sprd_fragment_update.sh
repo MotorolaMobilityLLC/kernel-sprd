@@ -96,7 +96,7 @@ function check_defconfig() {
 	RES=0
 	diff -u ${KERNEL_PATH}/arch/${arch}/configs/$2 ${out}/defconfig >&2 || RES=$?
 	if [ ${RES} -ne 0 ]; then
-		echo ERROR: savedefconfig does not match ${KERNEL_DIR}/arch/${ARCH}/configs/$2 >&2
+		echo ERROR: savedefconfig does not match ${KERNEL_DIR}/arch/${arch}/configs/$2 >&2
 		if [[ $update_flag -eq 1 ]] && [[ "$arch" == "arm" ]];then
 			cp ${out}/defconfig ${KERNEL_PATH}/arch/${arch}/configs/$2
 		fi
