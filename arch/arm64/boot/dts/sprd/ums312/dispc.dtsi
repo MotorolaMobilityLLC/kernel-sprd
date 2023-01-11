@@ -23,6 +23,15 @@
 		};
 	};
 
+	gsp_core0: gsp@20300000 {
+		compatible = "sprd,gsp-core";
+		reg = <0 0x20300000  0 0x2000>;
+		core-id = <0>;
+		kcfg-num = <16>;
+		interrupts = <GIC_SPI 26 IRQ_TYPE_LEVEL_HIGH>;
+		iommus = <&iommu_dispc>;
+	};
+
 	iommu_dispc: iommu@20300000 {
 		compatible = "unisoc,iommuexl5-dispc";
 		reg = <0x0 0x20300000 0x0 0x800>,
@@ -120,15 +129,30 @@
 		<&apahb_gate CLK_DISPC_EB>;
 };
 
+&gsp_core0 {
+	clock-names = "clk_ap_ahb_disp_eb";
+
+	clocks = <&apahb_gate CLK_DISPC_EB>;
+};
+
 &dsi {
 	clock-names = "clk_ap_ahb_dsi_eb";
 	clocks = <&apahb_gate CLK_DSI_EB>;
 };
 
 / {
+	gsp: sprd-gsp {
+	compatible = "sprd,gsp-lite_r3p0-sharkl5";
+	name = "sprd-gsp";
+	core-cnt = <1>;
+	io-cnt = <7>;
+	cores = <&gsp_core0>;
+	};
+
 	display-subsystem {
 			compatible = "sprd,display-subsystem";
 			ports = <&dpu_port>;
+			gsp = <&gsp>;
 	};
 
 	dpu_dvfs: dpu-dvfs {
