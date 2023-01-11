@@ -19,6 +19,7 @@
 #include <linux/of.h>
 #include <linux/of_platform.h>
 #include <linux/platform_device.h>
+#include <linux/power/sprd-bc1p2.h>
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
@@ -44,49 +45,7 @@ struct sprd_hsphy {
 #define TUNEHSAMP_2_6MA		(3 << 25)
 #define TFREGRES_TUNE_VALUE	(0x14 << 19)
 
-#define SC2730_CHARGE_STATUS	0x1b9c
-#define BIT_CHG_DET_DONE	BIT(11)
-#define BIT_SDP_INT		BIT(7)
-#define BIT_DCP_INT		BIT(6)
-#define BIT_CDP_INT		BIT(5)
-
 #define FULLSPEED_USB33_TUNE		2700000
-
-static enum usb_charger_type sc27xx_charger_detect(struct regmap *regmap)
-{
-	enum usb_charger_type type;
-	u32 status = 0, val;
-	int ret, cnt = 10;
-
-	do {
-		ret = regmap_read(regmap, SC2730_CHARGE_STATUS, &val);
-		if (ret)
-			return UNKNOWN_TYPE;
-
-		if (val & BIT_CHG_DET_DONE) {
-			status = val & (BIT_CDP_INT | BIT_DCP_INT | BIT_SDP_INT);
-			break;
-		}
-
-		msleep(200);
-	} while (--cnt > 0);
-
-	switch (status) {
-	case BIT_CDP_INT:
-		type = CDP_TYPE;
-		break;
-	case BIT_DCP_INT:
-		type = DCP_TYPE;
-		break;
-	case BIT_SDP_INT:
-		type = SDP_TYPE;
-		break;
-	default:
-		type = UNKNOWN_TYPE;
-	}
-
-	return type;
-}
 
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
 {
@@ -332,6 +291,7 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 		msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_VBUSVLDEXT;
 		regmap_update_bits(phy->ana_g2,
 			REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1, msk, 0);
+		usb_phy->flags &= ~CHARGER_DETECT_DONE;
 		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
 	}
 
@@ -340,9 +300,7 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 
 static enum usb_charger_type sprd_hsphy_charger_detect(struct usb_phy *x)
 {
-	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
-
-	return sc27xx_charger_detect(phy->pmic);
+	return sprd_bc1p2_charger_detect(x);
 }
 
 int sprd_hsphy_cali_mode(void)
