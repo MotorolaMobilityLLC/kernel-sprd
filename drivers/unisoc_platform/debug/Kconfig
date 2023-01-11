@@ -14,6 +14,15 @@ config SPRD_LOOK_AT
 	  such as the register of each module, DDR address space, etc.
 	  When in doubt, say n
 
+config SPRD_DEBUG_GIC
+	bool "Spreadtrum debug gic"
+	depends on ARCH_SPRD
+	help
+	  Say y here to enable Debug support.
+	  When in doubt, say n
+	  this is a debug feature that recored gic to handler
+	  all irqs
+
 source "drivers/unisoc_platform/debug/busmonitor/Kconfig"
 source "drivers/unisoc_platform/debug/djtag/Kconfig"
 source "drivers/unisoc_platform/debug/dmc_mpu/Kconfig"
