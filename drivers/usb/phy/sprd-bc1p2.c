@@ -420,7 +420,7 @@ static int sprd_bc1p2_probe(struct platform_device *pdev)
 	int err = 0;
 	struct device *dev = &pdev->dev;
 
-	bc1p2 = devm_kzalloc(dev, sizeof(struct sprd_bc1p2_data), GFP_KERNEL);
+	bc1p2 = devm_kzalloc(dev, sizeof(struct sprd_bc1p2), GFP_KERNEL);
 	if (!bc1p2)
 		return -ENOMEM;
 
