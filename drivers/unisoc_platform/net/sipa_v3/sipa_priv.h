@@ -812,6 +812,11 @@ struct sipa_plat_drv_cfg {
 	/* ipa producer */
 	struct sipa_rm_create_params ipa_rm;
 
+	/* ipa clk */
+	struct clk *ipa_core_clk;
+	struct clk *ipa_core_parent;
+	struct clk *ipa_core_default;
+
 	u32 enable_cnt;
 	u32 suspend_stage;
 

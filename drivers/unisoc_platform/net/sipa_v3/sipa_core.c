@@ -11,6 +11,7 @@
  * GNU General Public License for more details.
  */
 
+#include <linux/clk.h>
 #include <linux/device.h>
 #include <linux/io.h>
 #include <linux/init.h>
@@ -370,6 +371,20 @@ early_resume:
 	mutex_unlock(&ipa->resume_lock);
 }
 
+static void sipa_clk_resume(struct device *dev)
+{
+	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
+	int ret;
+
+	/* set ipa core clock to 409.6M*/
+	if (!IS_ERR_OR_NULL(ipa->ipa_core_clk) &&
+	    !IS_ERR_OR_NULL(ipa->ipa_core_parent)) {
+		ret = clk_set_parent(ipa->ipa_core_clk, ipa->ipa_core_parent);
+		if (ret)
+			dev_err(dev, "sipa-clk resume fail\n");
+	}
+}
+
 /**
  * sipa_resume_work() - resume ipa all profile
  * @dev: sipa driver dev
@@ -395,6 +410,8 @@ static int sipa_resume_work(struct device *dev)
 		}
 		ipa->suspend_stage &= ~SIPA_FORCE_SUSPEND;
 	}
+
+	sipa_clk_resume(dev);
 
 	sipa_prepare_resume(dev);
 
@@ -527,6 +544,20 @@ static int sipa_fifo_prepare_suspend(struct device *dev)
 	return 0;
 }
 
+static void sipa_clk_suspend(struct device *dev)
+{
+	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
+	int ret;
+
+	/* should set ipa core clock to default */
+	if (!IS_ERR_OR_NULL(ipa->ipa_core_clk) &&
+	    !IS_ERR_OR_NULL(ipa->ipa_core_default)) {
+		ret = clk_set_parent(ipa->ipa_core_clk, ipa->ipa_core_default);
+		if (ret)
+			dev_err(dev, "sipa-clk suspend fail\n");
+	}
+}
+
 static void sipa_single_little_core(enum sipa_user_type type)
 {
 	int cpu_num, cpu_num_before, cpu_i = 0;
@@ -626,6 +657,8 @@ static int sipa_prepare_suspend(struct device *dev)
 			pm_runtime_put(dev);
 		ipa->suspend_stage |= SIPA_FORCE_SUSPEND;
 	}
+
+	sipa_clk_suspend(dev);
 
 	ipa->suspend_stage |= SIPA_ACTION_SUSPEND;
 
@@ -1050,6 +1083,18 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 
 	ipa->pcie_dl_dma = of_property_read_bool(pdev->dev.of_node,
 						 "sprd,pcie-dl-dma");
+
+	ipa->ipa_core_clk = devm_clk_get(&pdev->dev, "ipa_core");
+	if (IS_ERR_OR_NULL(ipa->ipa_core_clk))
+		dev_warn(&pdev->dev, "sipa can't get the IPA core clock\n");
+
+	ipa->ipa_core_parent = devm_clk_get(&pdev->dev, "ipa_core_source");
+	if (IS_ERR_OR_NULL(ipa->ipa_core_parent))
+		dev_warn(&pdev->dev, "sipa can't get the ipa core source\n");
+
+	ipa->ipa_core_default = devm_clk_get(&pdev->dev, "ipa_core_default");
+	if (IS_ERR_OR_NULL(ipa->ipa_core_default))
+		dev_warn(&pdev->dev, "sipa can't get the ipa core default\n");
 
 	/* get enable register information */
 	for (i = 0; i < SIPA_EB_NUM; i++) {
