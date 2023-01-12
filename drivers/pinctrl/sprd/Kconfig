@@ -70,6 +70,17 @@ config PINCTRL_SPRD_PIKE2
 	  PINCTRL_SPRD_PIKE2=m for KO
 	  PINCTRL_SPRD_PIKE2 is not set for no building
 
+config PINCTRL_SPRD_SHARKLE
+	tristate "Spreadtrum sharkle pinctrl driver"
+	depends on OF
+	depends on (ARM && ARCH_SPRD) || COMPILE_TEST
+	select PINCTRL_SPRD
+	help
+	  Say Y here to enable Spreadtrum sharkle pinctrl driver
+	  PINCTRL_SPRD_SHARKLE=y for buildin
+	  PINCTRL_SPRD_SHARKLE=m for KO
+	  PINCTRL_SPRD_SHARKLE is not set for no building
+
 config PINCTRL_SPRD_QOGIRL6
 	tristate "Spreadtrum qogirl6 pinctrl driver"
 	depends on OF
