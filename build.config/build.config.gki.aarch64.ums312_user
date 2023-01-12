@@ -21,6 +21,8 @@ EXT_MODULES="
 ../modules/kernel5.15/dmabufheap
 ../modules/common/io/block
 ../modules/common/io/iowait
+../modules/kernel5.15/video/sprd-vsp
+../modules/kernel5.15/video/sprd-vsp-power
 "
 fi
 #camera module version config
