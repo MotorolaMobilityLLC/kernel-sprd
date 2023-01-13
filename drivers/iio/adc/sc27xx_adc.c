@@ -81,6 +81,7 @@ enum SPRD_ADC_LOG_LEVEL {
 	SPRD_ADC_LOG_LEVEL_ERR,
 	SPRD_ADC_LOG_LEVEL_INFO,
 	SPRD_ADC_LOG_LEVEL_DBG,
+	SPRD_ADC_LOG_LEVEL_FORCE = 7,
 };
 
 static int sprd_adc_log_level = SPRD_ADC_LOG_LEVEL_ERR;
@@ -166,14 +167,16 @@ enum SPRD_ADC_AUX_VER {
 	.adc1 = a1,			\
 	.inited = SPRD_ADC_INIT_MAGIC
 
-#define REG_BIT_INIT(b_base, reg_address, b_mask, b_offset, func, verse)	\
+#define REG_BIT_INIT(b_base, reg_address, b_mask, b_offset, set, clr, func, verse)	\
 {										\
 	.base = b_base,								\
 	.reg_addr = reg_address,						\
 	.mask = b_mask,								\
 	.offset = b_offset,							\
+	.val_set = set,								\
+	.val_clr = clr,								\
 	.inited = SPRD_ADC_INIT_MAGIC,						\
-	.get_setval = func,							\
+	.get_val = func,							\
 	.reverse = verse							\
 }
 
@@ -214,7 +217,11 @@ enum SPRD_ADC_REG_TYPE {
 	REG_SOFT_RST,
 	REG_XTL_CTRL,
 	REG_SCALE,
-	REG_ISEN_ST = 12,/* CURRENT MODE START */
+	REG_CFG_FIXED_ST = 11,/* FIXED CFG START */
+	REG_CAL_EN,
+	REG_NTC_MUX,
+	REG_CFG_FIXED_END,/* FIXED CFG END */
+	REG_ISEN_ST = 21,/* CURRENT MODE START */
 	REG_ISEN0,
 	REG_ISEN1,
 	REG_ISEN2,
@@ -265,9 +272,11 @@ struct reg_bit {
 	u32 reg_addr;
 	u32 mask;
 	u32 offset;
+	u32 val_set;
+	u32 val_clr;
 	u32 inited;
 	bool reverse;
-	u32 (*get_setval)(void *pri, int ch, bool set);
+	u32 (*get_val)(void *pri, int ch, bool set);
 };
 
 struct sprd_adc_data {
@@ -314,7 +323,7 @@ struct sprd_adc_graphs {
 
 static void sprd_adc_calib_with_one_cell(struct sprd_adc_linear_graph *graph);
 static void sprd_adc_calib_with_two_cell(struct sprd_adc_linear_graph *graph);
-static u32 sprd_adc_get_isen(void *pri, int ch, bool enable);
+static u32 get_isen(void *pri, int ch, bool enable);
 static int sprd_adc_soft_rst(struct sprd_adc_data *data);
 static int sprd_adc_hw_enable(struct sprd_adc_data *data);
 static inline u32 GET_REG_ADDR(struct sprd_adc_data *data, int index)
@@ -324,6 +333,12 @@ static inline u32 GET_REG_ADDR(struct sprd_adc_data *data, int index)
 		    : (data->base - data->var_data->adc_reg_base_offset));
 	return (base + data->var_data->reg_list[index].reg_addr);
 }
+
+static inline bool sprd_adc_is_log_force(void)
+{
+	return (sprd_adc_log_level >= SPRD_ADC_LOG_LEVEL_FORCE);
+}
+
 /*
  * According to the datasheet, we can convert one ADC value to one voltage value
  * through 2 points in the linear graph. If the voltage is less than 1.2v, we
@@ -381,63 +396,68 @@ static struct sprd_adc_graphs sprd_adc_graphs_array[] = {
 };
 
 static const struct reg_bit regs_sc2720[] = {
-	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, NULL, false),
-	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, NULL, false),
-	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, NULL, false),
-	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x1e8, BIT(8), 8, NULL, false),
-	[REG_SCALE]  = REG_BIT_INIT(BASE_ANA, 0xffff, GENMASK(10, 9), 9, NULL, false),
-	[REG_ISEN0]  = REG_BIT_INIT(BASE_GLB, 0x1F0, BIT(0), 0, NULL, true),
-	[REG_ISEN1]  = REG_BIT_INIT(BASE_GLB, 0x1F0, BIT(13), 13, NULL, false),
-	[REG_ISEN2]  = REG_BIT_INIT(BASE_GLB, 0x1F0, GENMASK(11, 9), 9, sprd_adc_get_isen, false),
-	[REG_ISEN3]  = REG_BIT_INIT(BASE_ANA, 0xB0, BIT(0), 0, NULL, false),
+	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, 1, 0, NULL, false),
+	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, 0x3, 0, NULL, false),
+	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, 1, 0, NULL, false),
+	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x1e8, BIT(8), 8, 1, 0, NULL, false),
+	[REG_SCALE]  = REG_BIT_INIT(BASE_ANA, -1, GENMASK(10, 9), 9, -1, -1, NULL, false),
+	[REG_CAL_EN] = REG_BIT_INIT(BASE_ANA, 0x4, BIT(12), 12, 1, 0, NULL, false),
+	[REG_ISEN0]  = REG_BIT_INIT(BASE_GLB, 0x1F0, BIT(0), 0, 1, 0, NULL, true),
+	[REG_ISEN1]  = REG_BIT_INIT(BASE_GLB, 0x1F0, BIT(13), 13, 1, 0, NULL, false),
+	[REG_ISEN2]  = REG_BIT_INIT(BASE_GLB, 0x1F0, GENMASK(11, 9), 9, -1, -1, get_isen, false),
+	[REG_ISEN3]  = REG_BIT_INIT(BASE_ANA, 0xB0, BIT(0), 0, 1, 0, NULL, false),
 };
 
 static const struct reg_bit regs_sc2721[] = {
-	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, NULL, false),
-	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, NULL, false),
-	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, NULL, false),
-	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x29c, BIT(8), 8, NULL, false),
-	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, BIT(5), 5, NULL, false),
-	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x2A4, BIT(0), 0, NULL, true),
-	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x2A4, BIT(13), 13, NULL, false),
-	[REG_ISEN2] = REG_BIT_INIT(BASE_GLB, 0x2A4, GENMASK(12, 10), 10, sprd_adc_get_isen, false),
-	[REG_ISEN3] = REG_BIT_INIT(BASE_ANA, 0xAC, BIT(0), 0, NULL, false),
+	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, 1, 0, NULL, false),
+	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, 0x3, 0, NULL, false),
+	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, 1, 0, NULL, false),
+	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x29c, BIT(8), 8, 1, 0, NULL, false),
+	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, -1, BIT(5), 5, -1, -1, NULL, false),
+	[REG_NTC_MUX] = REG_BIT_INIT(BASE_ANA, 0xB0, GENMASK(1, 0), 0, 0x1, 0, NULL, false),
+	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x2A4, BIT(0), 0, 1, 0, NULL, true),
+	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x2A4, BIT(13), 13, 1, 0, NULL, false),
+	[REG_ISEN2] = REG_BIT_INIT(BASE_GLB, 0x2A4, GENMASK(12, 10), 10, -1, -1, get_isen, false),
+	[REG_ISEN3] = REG_BIT_INIT(BASE_ANA, 0xAC, BIT(0), 0, 1, 0, NULL, false),
 };
 
 static const struct reg_bit regs_sc2730[] = {
-	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, NULL, false),
-	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, NULL, false),
-	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, NULL, false),
-	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x378, BIT(8), 8, NULL, false),
-	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, GENMASK(10, 9), 9, NULL, false),
-	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(0), 0, NULL, true),
-	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(13), 13, NULL, false),
-	[REG_ISEN2] = REG_BIT_INIT(BASE_GLB, 0x384, GENMASK(11, 9), 9, sprd_adc_get_isen, false),
-	[REG_ISEN3] = REG_BIT_INIT(BASE_ANA, 0xB0, BIT(0), 0, NULL, false),
+	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, 1, 0, NULL, false),
+	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, 0x3, 0, NULL, false),
+	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, 1, 0, NULL, false),
+	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x378, BIT(8), 8, 1, 0, NULL, false),
+	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, GENMASK(10, 9), 9, -1, -1, NULL, false),
+	[REG_CAL_EN] = REG_BIT_INIT(BASE_ANA, 0x4, BIT(12), 12, 1, 0, NULL, false),
+	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(0), 0, 1, 0, NULL, true),
+	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(13), 13, 1, 0, NULL, false),
+	[REG_ISEN2] = REG_BIT_INIT(BASE_GLB, 0x384, GENMASK(11, 9), 9, -1, -1, get_isen, false),
+	[REG_ISEN3] = REG_BIT_INIT(BASE_ANA, 0xB0, BIT(0), 0, 1, 0, NULL, false),
 };
 
 static const struct reg_bit regs_sc2731[] = {
-	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, NULL, false),
-	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x10, GENMASK(6, 5), 5, NULL, false),
-	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x20, BIT(6), 6, NULL, false),
-	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x2b8, BIT(8), 8, NULL, false),
-	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, BIT(5), 5, NULL, false),
-	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x324, BIT(4), 4, NULL, false),
-	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x2B4, BIT(6), 6, NULL, false),
-	[REG_ISEN2] = REG_BIT_INIT(BASE_GLB, 0x324, GENMASK(3, 1), 1, sprd_adc_get_isen, false),
-	[REG_ISEN3] = REG_BIT_INIT(BASE_ANA, 0xAC, BIT(0), 0, NULL, false),
+	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, 1, 0, NULL, false),
+	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x10, GENMASK(6, 5), 5, 0x3, 0, NULL, false),
+	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x20, BIT(6), 6, 1, 0, NULL, false),
+	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x2b8, BIT(8), 8, 1, 0, NULL, false),
+	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, BIT(5), 5, -1, -1, NULL, false),
+	[REG_NTC_MUX] = REG_BIT_INIT(BASE_GLB, 0x2B4, GENMASK(12, 11), 11, 0x1, 0, NULL, false),
+	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x324, BIT(4), 4, 1, 0, NULL, false),
+	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x2B4, BIT(6), 6, 1, 0, NULL, false),
+	[REG_ISEN2] = REG_BIT_INIT(BASE_GLB, 0x324, GENMASK(3, 1), 1, -1, -1, get_isen, false),
+	[REG_ISEN3] = REG_BIT_INIT(BASE_ANA, 0xAC, BIT(0), 0, 1, 0, NULL, false),
 };
 
 static const struct reg_bit regs_ump9620[] = {
-	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, NULL, false),
-	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, NULL, false),
-	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, NULL, false),
-	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x378, BIT(8), 8, NULL, false),
-	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, GENMASK(10, 9), 9, NULL, false),
-	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(0), 0, NULL, true),
-	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(13), 13, NULL, false),
-	[REG_ISEN2] = REG_BIT_INIT(BASE_GLB, 0x384, GENMASK(11, 9), 9, sprd_adc_get_isen, false),
-	[REG_ISEN3] = REG_BIT_INIT(BASE_ANA, 0xB0, BIT(0), 0, NULL, false),
+	[REG_MODULE_EN] = REG_BIT_INIT(BASE_GLB, 0x08, BIT(5), 5, 1, 0, NULL, false),
+	[REG_CLK_EN] = REG_BIT_INIT(BASE_GLB, 0x0c, GENMASK(6, 5), 5, 0x3, 0, NULL, false),
+	[REG_SOFT_RST] = REG_BIT_INIT(BASE_GLB, 0x14, BIT(6), 6, 1, 0, NULL, false),
+	[REG_XTL_CTRL] = REG_BIT_INIT(BASE_GLB, 0x378, BIT(8), 8, 1, 0, NULL, false),
+	[REG_SCALE] = REG_BIT_INIT(BASE_ANA, 0xffff, GENMASK(10, 9), 9, -1, -1, NULL, false),
+	[REG_CAL_EN] = REG_BIT_INIT(BASE_ANA, 0x4, BIT(12), 12, 1, 0, NULL, false),
+	[REG_ISEN0] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(0), 0, 1, 0, NULL, true),
+	[REG_ISEN1] = REG_BIT_INIT(BASE_GLB, 0x384, BIT(13), 13, 1, 0, NULL, false),
+	[REG_ISEN2] = REG_BIT_INIT(BASE_GLB, 0x384, GENMASK(11, 9), 9, -1, -1, get_isen, false),
+	[REG_ISEN3] = REG_BIT_INIT(BASE_ANA, 0xB0, BIT(0), 0, 1, 0, NULL, false),
 };
 
 
@@ -819,7 +839,7 @@ static void sprd_adc_regs_dump(struct sprd_adc_data *data, int ch, int scale, co
 		     tag, mod_en, int_ctl, int_raw, adc_ctl, ch_cfg);
 }
 
-static u32 sprd_adc_get_isen(void *pri, int ch, bool enable)
+static u32 get_isen(void *pri, int ch, bool enable)
 {
 	struct sprd_adc_data *data = (struct sprd_adc_data *)pri;
 
@@ -829,35 +849,58 @@ static u32 sprd_adc_get_isen(void *pri, int ch, bool enable)
 	return (data->ch_data[ch].isen_info >> 1);
 }
 
+static int sprd_adc_reg_cfg(struct sprd_adc_data *data, int ch, int index, bool set)
+{
+	int ret;
+	u32 reg_addr, val, read_val;
+	const struct reg_bit *const reg_inf = &data->var_data->reg_list[index];
+	bool set_act = ((set && !reg_inf->reverse) || (!set && reg_inf->reverse));
+
+	if (data->var_data->reg_list[index].inited != SPRD_ADC_INIT_MAGIC)
+		return 0;
+
+	reg_addr = GET_REG_ADDR(data, index);
+	if (!reg_inf->get_val)
+		val = (set_act ? reg_inf->val_set : reg_inf->val_clr);
+	else
+		val = reg_inf->get_val(data, ch, set_act);
+	val = ((val << reg_inf->offset) & reg_inf->mask);
+	ret = regmap_update_bits(data->regmap, reg_addr, reg_inf->mask, val);
+	ret |= regmap_read(data->regmap, reg_addr, &read_val);
+	SPRD_ADC_DBG("reg_cfg[%d %d]: reg 0x%x, mask: 0x%x, val: 0x%x, read_val: 0x%x\n",
+		     set, reg_inf->reverse, reg_addr, reg_inf->mask, val, read_val);
+	if (ret) {
+		SPRD_ADC_ERR("reg_cfg err: reg[%d], ret %d\n", reg_addr, ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+static void sprd_adc_regs_set_order(struct sprd_adc_data *data, int ch, int start, int end)
+{
+	int i;
+
+	for (i = start + 1; i < end; i++)
+		sprd_adc_reg_cfg(data, ch, i, true);
+}
+
+static void sprd_adc_regs_clr_order_reverse(struct sprd_adc_data *data, int ch, int start, int end)
+{
+	int i;
+
+	for (i = end - 1; i > start; i--)
+		sprd_adc_reg_cfg(data, ch, i, false);
+}
+
 static int sprd_adc_isen_enable(struct sprd_adc_data *data, int channel)
 {
-	int i, ret;
-	u32 reg_addr, mask, val, read_val, offset;
 	bool isen_support = data->ch_data[channel].isen_info & 0x1;
 
 	if (!isen_support)
 		return 0;
 
-	for (i = REG_ISEN_ST + 1; i < REG_ISEN_END; i++) {
-		if (data->var_data->reg_list[i].inited != SPRD_ADC_INIT_MAGIC)
-			continue;
-
-		reg_addr = GET_REG_ADDR(data, i);
-		mask = data->var_data->reg_list[i].mask;
-		offset = data->var_data->reg_list[i].offset;
-		val = ((data->var_data->reg_list[i].get_setval != NULL)
-		       ? (data->var_data->reg_list[i].get_setval(data, channel, true) << offset)
-		       : data->var_data->reg_list[i].mask);
-		val = (data->var_data->reg_list[i].reverse ? 0 : val);
-		ret = regmap_update_bits(data->regmap, reg_addr, mask, val);
-		ret |= regmap_read(data->regmap, reg_addr, &read_val);
-		SPRD_ADC_DBG("isen_enable: reg 0x%x, mask: 0x%x, val: 0x%x, read_val: 0x%x\n",
-			     reg_addr, mask, val, read_val);
-		if (ret) {
-			SPRD_ADC_ERR("isen config err: reg[%d], ret %d\n", i, ret);
-			return ret;
-		}
-	}
+	sprd_adc_regs_set_order(data, channel, REG_ISEN_ST, REG_ISEN_END);
 	udelay(500);
 
 	return 0;
@@ -865,36 +908,21 @@ static int sprd_adc_isen_enable(struct sprd_adc_data *data, int channel)
 
 static int sprd_adc_isen_disable(struct sprd_adc_data *data, int channel)
 {
-	int i, ret;
-	u32 reg_addr, mask, val, read_val;
 	bool isen_support = data->ch_data[channel].isen_info & 0x1;
 
 	if (!isen_support)
 		return 0;
 
-	for (i = REG_ISEN_END - 1; i > REG_ISEN_ST; i--) {
-		if (data->var_data->reg_list[i].inited != SPRD_ADC_INIT_MAGIC)
-			continue;
-
-		reg_addr = GET_REG_ADDR(data, i);
-		mask = data->var_data->reg_list[i].mask;
-		val = ((data->var_data->reg_list[i].get_setval != NULL)
-		       ? data->var_data->reg_list[i].get_setval(data, channel, false) : 0);
-		val = (data->var_data->reg_list[i].reverse ? mask : val);
-		ret = regmap_update_bits(data->regmap, reg_addr, mask, val);
-		ret |= regmap_read(data->regmap, reg_addr, &read_val);
-		SPRD_ADC_DBG("isen_disable: reg 0x%x, mask: 0x%x, val: 0x%x, read_val: 0x%x\n",
-			     reg_addr, mask, val, read_val);
-		if (ret) {
-			SPRD_ADC_ERR("isen config err: reg[%d], ret %d\n", i, ret);
-			return ret;
-		}
-	}
+	sprd_adc_regs_clr_order_reverse(data, channel, REG_ISEN_ST, REG_ISEN_END);
 	udelay(500);
 
 	return 0;
 }
 
+static void sprd_adc_config_fixed(struct sprd_adc_data *data)
+{
+	sprd_adc_regs_set_order(data, -1, REG_CFG_FIXED_ST, REG_CFG_FIXED_END);
+}
 
 static int sprd_adc_data_average(int *vals, int len)
 {
@@ -1102,6 +1130,9 @@ static int sprd_adc_read(struct sprd_adc_data *data, int channel, int scale, int
 		goto disable_adc;
 	}
 
+	if (sprd_adc_is_log_force())
+		sprd_adc_regs_dump(data, channel, scale, "log_force");
+
 	if (filter_sw) {
 		rawdata = sprd_adc_get_val_with_sw_filter(data, channel);
 	} else {
@@ -1275,6 +1306,8 @@ static int sprd_adc_soft_rst(struct sprd_adc_data *data)
 	ret = regmap_update_bits(data->regmap, reg_addr, mask, 0);
 	if (ret)
 		return ret;
+
+	sprd_adc_config_fixed(data);
 
 	return 0;
 }
