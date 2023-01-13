@@ -273,7 +273,7 @@ static int sprd_gpio_plus_set_config(struct gpio_chip *chip,
 	if (param == PIN_CONFIG_INPUT_DEBOUNCE)
 		return sprd_gpio_plus_set_debounce(chip, offset, arg);
 
-	return -EOPNOTSUPP;
+	return -ENOTSUPP;
 }
 
 static void sprd_gpio_plus_irq_mask(struct irq_data *data)
