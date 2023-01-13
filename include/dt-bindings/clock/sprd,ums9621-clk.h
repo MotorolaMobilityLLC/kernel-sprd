@@ -175,7 +175,7 @@
 #define CLK_UFS_CFG		26
 #define CLK_IPA_AXI		27
 #define CLK_IPA_APB		28
-#define CLK_AP_CLK_NUM		(CLK_UFS_CFG + 1)
+#define CLK_AP_CLK_NUM		(CLK_IPA_APB + 1)
 
 #define CLK_RC100M_CAL_EB	0
 #define CLK_RFTI_EB		1
