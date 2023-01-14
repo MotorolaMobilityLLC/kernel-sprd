@@ -9,6 +9,7 @@ enum cgroup_name {
 	ROOT_GROUP = 0,
 	TOP_APP,
 	FOREGROUND,
+	CAMERA_DAEMON,
 	BACKGROUND,
 	SYSTEM_GROUP,
 	OTHER_GROUPS,
@@ -254,14 +255,19 @@ void walt_update_task_group(struct cgroup_subsys_state *css)
 	} else if (!strcmp(css->cgroup->kn->name, "foreground")) {
 		uni_tg->idx = FOREGROUND;
 		cgrp_table[FOREGROUND] = uni_tg;
+	} else if (!strcmp(css->cgroup->kn->name, "camera-daemon")) {
+		uni_tg->idx = CAMERA_DAEMON;
+		cgrp_table[CAMERA_DAEMON] = uni_tg;
 	} else if (!strcmp(css->cgroup->kn->name, "background")) {
 		uni_tg->idx = BACKGROUND;
 		cgrp_table[BACKGROUND] = uni_tg;
 	} else if (!strcmp(css->cgroup->kn->name, "system")) {
 		uni_tg->idx = SYSTEM_GROUP;
 		cgrp_table[SYSTEM_GROUP] = uni_tg;
-	} else
+	} else {
 		uni_tg->idx = OTHER_GROUPS;
+		cgrp_table[OTHER_GROUPS] = uni_tg;
+	}
 
 	walt_init_tg_params(tg);
 }
@@ -485,6 +491,33 @@ struct ctl_table foreground_table[] = {
 	{ },
 };
 
+struct ctl_table camera_daemon_table[] = {
+#ifdef CONFIG_UNISOC_GROUP_BOOST
+	{
+		.procname	= "boost",
+		.data		= (int *)CAMERA_DAEMON,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= sched_group_boost_handler,
+	},
+#endif
+	{
+		.procname	= "account_wait_time",
+		.data		= (int *)CAMERA_DAEMON,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sched_account_wait_time_handler,
+	},
+	{
+		.procname	= "init_task_load_pct",
+		.data		= (int *)CAMERA_DAEMON,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sched_init_load_pct_handler,
+	},
+	{ },
+};
+
 struct ctl_table background_table[] = {
 #ifdef CONFIG_UNISOC_GROUP_BOOST
 	{
@@ -539,6 +572,33 @@ struct ctl_table system_table[] = {
 	{ },
 };
 
+struct ctl_table other_group_table[] = {
+#ifdef CONFIG_UNISOC_GROUP_BOOST
+	{
+		.procname	= "boost",
+		.data		= (int *)OTHER_GROUPS,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= sched_group_boost_handler,
+	},
+#endif
+	{
+		.procname	= "account_wait_time",
+		.data		= (int *)OTHER_GROUPS,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sched_account_wait_time_handler,
+	},
+	{
+		.procname	= "init_task_load_pct",
+		.data		= (int *)OTHER_GROUPS,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sched_init_load_pct_handler,
+	},
+	{ },
+};
+
 struct ctl_table boost_table[] = {
 	{
 		.procname	= "root",
@@ -556,6 +616,11 @@ struct ctl_table boost_table[] = {
 		.child		= foreground_table,
 	},
 	{
+		.procname	= "camera-daemon",
+		.mode		= 0555,
+		.child		= camera_daemon_table,
+	},
+	{
 		.procname	= "background",
 		.mode		= 0555,
 		.child		= background_table,
@@ -564,6 +629,11 @@ struct ctl_table boost_table[] = {
 		.procname	= "system",
 		.mode		= 0555,
 		.child		= system_table,
+	},
+	{
+		.procname	= "others",
+		.mode		= 0555,
+		.child		= other_group_table,
 	},
 	{ }
 };
