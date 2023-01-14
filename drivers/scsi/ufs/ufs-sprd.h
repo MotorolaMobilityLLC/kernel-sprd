@@ -44,6 +44,38 @@ struct syscon_ufs {
 	u32 mask;
 };
 
+#define UFS_PERF_ARRAY_SIZE 12
+
+struct ufs_perf_s {
+	u64 start;
+	unsigned long r_d2c[UFS_PERF_ARRAY_SIZE];
+	unsigned long w_d2c[UFS_PERF_ARRAY_SIZE];
+};
+
+/*
+ * convert ms to index: (ilog2(ms) + 1)
+ * array[6]++ means the time is: 32ms <= time < 64ms
+ * [0] [1] [2] [3] [4] [5]  [6]  [7]  [8]   [9]   [10]  [11]
+ * 0ms 1ms 2ms 4ms 8ms 16ms 32ms 64ms 128ms 256ms 512ms 1024ms
+ */
+#define ufs_lat_log(array, fmt, ...) \
+	pr_err(fmt ":%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n", \
+		##__VA_ARGS__, array[0], array[1], array[2], array[3], \
+		array[4], array[5], array[6], array[7], \
+		array[8], array[9], array[10], array[11])
+
+static inline unsigned int ms_to_index(unsigned int ms)
+{
+	if (!ms)
+		return 0;	/* less than 1ms */
+
+	if (ms >= (1 << (UFS_PERF_ARRAY_SIZE - 2)))
+		return (UFS_PERF_ARRAY_SIZE - 1);
+
+	return min((UFS_PERF_ARRAY_SIZE - 1), ilog2(ms) + 1);
+}
+
+
 #define AUTO_H8_IDLE_TIME_10MS 0x1001
 
 #define UFSHCI_VERSION_30	0x00000300 /* 3.0 */

@@ -25,6 +25,8 @@
 #include "ufs-sprd-debug.h"
 #include "ufshpb.h"
 
+static struct ufs_perf_s ufs_perf;
+
 static bool ufs_sprd_is_acc_forbid_after_h8_ee(struct ufs_hba *hba)
 {
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
@@ -122,6 +124,31 @@ static void ufs_sprd_vh_compl_cmd(void *data,
 			ufshcd_transfer_event_trace(hba, UFS_TRACE_DEV_COMPLETED,
 							 lrbp->task_tag);
 	}
+
+	if (lrbp->cmd &&
+		((lrbp->cmd->cmnd[0] == READ_10) || (lrbp->cmd->cmnd[0] == WRITE_10))) {
+		int s2c_idx;
+		unsigned int lat;
+
+		lat = ktime_to_ms(lrbp->compl_time_stamp - lrbp->issue_time_stamp);
+		s2c_idx = ms_to_index(lat);
+
+		/* Current in hba->host->host_lock */
+		if (lrbp->cmd->cmnd[0] == READ_10)
+			++ufs_perf.r_d2c[s2c_idx];
+		else
+			++ufs_perf.w_d2c[s2c_idx];
+
+		if (lrbp->compl_time_stamp >
+			(ufs_perf.start + 10000000000ULL/* 10s */)) {
+			ufs_perf.start = lrbp->compl_time_stamp;
+			ufs_lat_log(ufs_perf.r_d2c, "ufs_lat(r)");
+			ufs_lat_log(ufs_perf.w_d2c, "ufs_lat(w)");
+			memset(ufs_perf.r_d2c, 0, sizeof(ufs_perf.r_d2c));
+			memset(ufs_perf.w_d2c, 0, sizeof(ufs_perf.w_d2c));
+		}
+	}
+
 }
 
 static void ufs_sprd_vh_send_tm_cmd(void *data, struct ufs_hba *hba,
