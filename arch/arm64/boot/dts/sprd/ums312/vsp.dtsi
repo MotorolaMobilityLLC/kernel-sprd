@@ -23,7 +23,7 @@
 	};
 };
 
-&mm {
+&apahb {
 	vsp: video-codec@20500000{
 		compatible = "sprd,sharkl5-vsp";
 		reg = <0 0x20500000 0 0xc000>;
