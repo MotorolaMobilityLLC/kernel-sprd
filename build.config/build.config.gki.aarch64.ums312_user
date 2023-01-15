@@ -43,6 +43,7 @@ EXT_MODULES="
 ../modules/common/io/iowait
 ../modules/kernel5.15/video/sprd-vsp
 ../modules/kernel5.15/video/sprd-vsp-power
+../modules/kernel5.15/wcn/wlan/wlan_combo
 "
 fi
 #camera module version config
