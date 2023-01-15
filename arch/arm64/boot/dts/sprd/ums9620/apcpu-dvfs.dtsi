@@ -45,7 +45,7 @@
 		cpufreq_clus0: cpufreq-clus0 {
 			sprd,voltage-step = <750000>;           /* uV       */
 			sprd,voltage-margin = <40>;             /* Cycle    */
-			sprd,transition-delay = <1000>;         /* us       */
+			sprd,transition-delay = <500>;         /* us       */
 			sprd,temp-threshold = <65>;             /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
 
@@ -55,7 +55,7 @@
 		cpufreq_clus1: cpufreq-clus1 {
 			sprd,voltage-step = <750000>;           /* uV       */
 			sprd,voltage-margin = <40>;             /* Cycle    */
-			sprd,transition-delay = <1000>;         /* us       */
+			sprd,transition-delay = <500>;         /* us       */
 			sprd,temp-threshold = <65>;             /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
 
@@ -64,7 +64,7 @@
 
 		cpufreq_clus2: cpufreq-clus2 {
 			sprd,voltage-margin = <40>;             /* Cycle    */
-			sprd,transition-delay = <1000>;         /* us       */
+			sprd,transition-delay = <500>;         /* us       */
 			sprd,temp-threshold = <65>;             /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
 
