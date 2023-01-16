@@ -60,6 +60,7 @@
 			//cpufreq-data-v1 = <&cpufreq_cluster0>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
+			#cooling-cells = <2>;
 		};
 		CPU2: cpu@200 {
 			device_type = "cpu";
@@ -70,6 +71,7 @@
 			//cpufreq-data-v1 = <&cpufreq_cluster0>;
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
+			#cooling-cells = <2>;
 		};
 		CPU3: cpu@300 {
 			device_type = "cpu";

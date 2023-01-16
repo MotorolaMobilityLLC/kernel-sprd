@@ -122,7 +122,9 @@
 					trip = <&soc_target>;
 					contribution = <1024>;
 					cooling-device =
-					<&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+					<&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 				};
 				map1 {
 					trip = <&soc_target>;
@@ -206,12 +208,13 @@
 			compatible = "sprd,virtual-thermal";
 			#thermal-sensor-cells = <1>;
 			thmzone-cells = <&ank0_thmzone>, <&ank1_thmzone>, <&ank2_thmzone>,
-				<&prometheus0_thmzone>, <&gpu_thmzone>;
+				<&prometheus0_thmzone>;
 	};
 
 	cooling-devices {
 		cluster0_cooling: cluster0-cooling {
 			compatible = "sprd,cluster-cooling";
+			thermal-cluster-cpumask = <0x07>;
 			#cooling-cells = <2>; /* min followed by max */
 			sprd,efuse-block7 = <7>;
 			sprd,efuse-block15 = <15>;
@@ -241,6 +244,7 @@
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <768000>;
 			sprd,min-cpunum = <3>;
+			sprd,max-temp = <90000>;
 			sprd,core-base = <3930>;
 			sprd,cluster-base = <1673>;
 			sprd,dynamic-core =
@@ -249,13 +253,11 @@
 			sprd,dynamic-cluster =
 			/*Pdynperghz*10    Freq     Vbase  */
 			< 757           1000     1000>;
-			sprd,sensor-names = "ank0-thmzone","ank1-thmzone","ank2-thmzone";
-			sprd,cii-per-core-tp = <100000 95000 90000>;
-			sprd,cii-max-tp-core = <90000>;
 		};
 
 		cluster1_cooling: cluster1-cooling {
 			compatible = "sprd,cluster-cooling";
+			thermal-cluster-cpumask = <0x08>;
 			#cooling-cells = <2>; /* min followed by max */
 			sprd,efuse-block7 = <7>;
 			sprd,efuse-block15 = <15>;
@@ -285,6 +287,7 @@
 			sprd,hotplug-period = <10>;
 			sprd,min-cpufreq = <1228800>;
 			sprd,min-cpunum = <0>;
+			sprd,max-temp = <85000>;
 			sprd,core-base = <11464>;
 			sprd,cluster-base = <1673>;
 			sprd,dynamic-core =
@@ -293,9 +296,6 @@
 			sprd,dynamic-cluster =
 			/* Pdynperghz*10    Freq     Vbase */
 			<  757            1000     1000>;
-			sprd,sensor-names = "prometheus0-thmzone";
-			sprd,cii-per-core-tp = <90000>;
-			sprd,cii-max-tp-core = <90000>;
 		};
 	};
 };
