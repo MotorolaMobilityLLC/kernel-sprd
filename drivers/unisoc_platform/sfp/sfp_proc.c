@@ -501,7 +501,7 @@ static const struct proc_ops proc_mgr_sfp_file_fwd_ops = {
 
 static int sfp_net_tether_scheme_proc_show(struct seq_file *seq, void *v)
 {
-	seq_printf(seq, "tether scheme: %d\n", get_sfp_tether_scheme());
+	seq_printf(seq, "%d\n", get_sfp_tether_scheme());
 	return 0;
 }
 
