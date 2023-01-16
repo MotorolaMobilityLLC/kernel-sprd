@@ -1310,7 +1310,8 @@ static int ipa_cmn_fifo_phy_open(enum sipa_cmn_fifo_index id,
 	ipa_term_fifo->tx_fifo.rd = 0;
 	ipa_term_fifo->tx_fifo.wr = 0;
 
-	ipa_term_fifo->fifo_name = cookie;
+	/* the parameter of cookie is not useful */
+	cookie = NULL;
 	ipa_term_fifo->state = true;
 
 	return 0;

@@ -376,7 +376,7 @@ static void sipa_clk_resume(struct device *dev)
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
 	int ret;
 
-	/* set ipa core clock to 409.6M*/
+	/* set ipa core clock to 409.6M */
 	if (!IS_ERR_OR_NULL(ipa->ipa_core_clk) &&
 	    !IS_ERR_OR_NULL(ipa->ipa_core_parent)) {
 		ret = clk_set_parent(ipa->ipa_core_clk, ipa->ipa_core_parent);
@@ -1087,6 +1087,7 @@ static int sipa_parse_dts_configuration(struct platform_device *pdev,
 	ipa->pcie_dl_dma = of_property_read_bool(pdev->dev.of_node,
 						 "sprd,pcie-dl-dma");
 
+	/* get IPA clk information */
 	ipa->ipa_core_clk = devm_clk_get(&pdev->dev, "ipa_core");
 	if (IS_ERR_OR_NULL(ipa->ipa_core_clk))
 		dev_warn(&pdev->dev, "sipa can't get the IPA core clock\n");

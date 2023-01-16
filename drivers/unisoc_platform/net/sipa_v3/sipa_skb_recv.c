@@ -848,7 +848,7 @@ static void sipa_receiver_init(struct sipa_skb_receiver *receiver, u32 rsvd)
 	for (i = 0; i < SIPA_RECV_CMN_FIFO_NUM; i++)
 		sipa_hal_open_cmn_fifo(receiver->dev,
 				       receiver->ep->recv_fifo.idx + i,
-				       &attr, NULL, true,
+				       &attr, NULL, false,
 				       sipa_receiver_notify_cb,
 				       receiver);
 
