@@ -112,6 +112,7 @@
 		voltage-tolerance = <0>;
 		default-efuse-blk-binning = <1>;
 		sprd,efuse-blk-binning = <43 0xf00>;
+		sprd,thmzone-names = "cpu-thmzone";
 		nvmem-cells = <&dvfs_bin_cpu0>;
 		nvmem-cell-names = "dvfs_bin";
 		sprd,cpufreq-temp-threshold = <50>;
