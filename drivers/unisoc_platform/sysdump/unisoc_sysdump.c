@@ -1612,13 +1612,15 @@ void get_exception_stack_info(struct pt_regs *regs)
 	int sz;
 //	struct stack_trace trace;
 	struct task_struct *tsk, *cur;
-#if (IS_ENABLED(CONFIG_STACKTRACE) && IS_ENABLED(CONFIG_ARCH_STACKWALK))
 	char symbol[96];
 	int off, plen;
 	int i;
+	unsigned int entries = 0;
+#if IS_BUILTIN(CONFIG_SPRD_SYSDUMP)
+	struct stack_trace trace;
+#elif (IS_ENABLED(CONFIG_STACKTRACE) && IS_ENABLED(CONFIG_ARCH_STACKWALK))
 	unsigned int nr_entries;
 #endif
-
 	cur = current;
 	tsk = cur;
 	if (!sprd_virt_addr_valid(tsk))
@@ -1637,17 +1639,19 @@ void get_exception_stack_info(struct pt_regs *regs)
 			"[%s, %d]", tsk->comm, tsk->pid);
 		tsk = tsk->real_parent;
 	} while (tsk && (tsk->pid != 0) && (tsk->pid != 1));
-
+#if IS_BUILTIN(CONFIG_SPRD_SYSDUMP)
 	/* Grab kernel task stack trace */
-/*
 	trace.nr_entries = 0;
 	trace.max_entries = MAX_STACK_TRACE_DEPTH;
 	trace.entries = stack_entries;
 	trace.skip = 0;
-*/
-#if (IS_ENABLED(CONFIG_STACKTRACE) && IS_ENABLED(CONFIG_ARCH_STACKWALK))
+	save_stack_trace_tsk(cur, &trace);
+	entries = trace.nr_entries;
+#elif (IS_ENABLED(CONFIG_STACKTRACE) && IS_ENABLED(CONFIG_ARCH_STACKWALK))
 	nr_entries = stack_trace_save_tsk(cur, stack_entries, MAX_STACK_TRACE_DEPTH, 0);
-	for (i = 0; i < nr_entries; i++) {
+	entries = nr_entries;
+#endif
+	for (i = 0; i < entries; i++) {
 		off = strlen(sprd_minidump_info->exception_info.exception_stack_info);
 		plen = EXCEPTION_INFO_SIZE_LONG - ALIGN(off, 8);
 		if (plen > 16) {
@@ -1664,7 +1668,6 @@ void get_exception_stack_info(struct pt_regs *regs)
 				symbol, ALIGN(sz, 8));
 		}
 	}
-#endif
 	if (sprd_virt_addr_valid(regs)) {
 		snprintf(sprd_minidump_info->exception_info.exception_pc_symbol,
 			EXCEPTION_INFO_SIZE_SHORT, "[<%lx>] %pS",
