@@ -1474,44 +1474,10 @@ static int sgm41511_charger_remove(struct i2c_client *client)
 }
 
 #if IS_ENABLED(CONFIG_PM_SLEEP)
-static int sgm41511_charger_alarm_prepare(struct device *dev)
-{
-	struct sgm41511_charger_info *info = dev_get_drvdata(dev);
-	ktime_t now, add;
-
-	if (!info) {
-		pr_err("%s: info is null!\n", __func__);
-		return 0;
-	}
-
-	if (!info->otg_enable)
-		return 0;
-
-	dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
-	now = ktime_get_boottime();
-	add = ktime_set(SGM41511_OTG_ALARM_TIMER_S, 0);
-	alarm_start(&info->otg_timer, ktime_add(now, add));
-	return 0;
-}
-
-static void sgm41511_charger_alarm_complete(struct device *dev)
-{
-	struct sgm41511_charger_info *info = dev_get_drvdata(dev);
-
-	if (!info) {
-		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
-		return;
-	}
-
-	if (!info->otg_enable)
-		return;
-
-	alarm_cancel(&info->otg_timer);
-}
-
 static int sgm41511_charger_suspend(struct device *dev)
 {
 	struct sgm41511_charger_info *info = dev_get_drvdata(dev);
+	ktime_t now, add;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -1525,6 +1491,11 @@ static int sgm41511_charger_suspend(struct device *dev)
 		return 0;
 
 	cancel_delayed_work_sync(&info->wdt_work);
+
+	dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
+	now = ktime_get_boottime();
+	add = ktime_set(SGM41511_OTG_ALARM_TIMER_S, 0);
+	alarm_start(&info->otg_timer, ktime_add(now, add));
 
 	return 0;
 }
@@ -1544,6 +1515,8 @@ static int sgm41511_charger_resume(struct device *dev)
 	if (!info->otg_enable)
 		return 0;
 
+	alarm_cancel(&info->otg_timer);
+
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
 
 	return 0;
@@ -1551,8 +1524,6 @@ static int sgm41511_charger_resume(struct device *dev)
 #endif
 
 static const struct dev_pm_ops sgm41511_charger_pm_ops = {
-	.prepare = sgm41511_charger_alarm_prepare,
-	.complete = sgm41511_charger_alarm_complete,
 	SET_SYSTEM_SLEEP_PM_OPS(sgm41511_charger_suspend,
 				sgm41511_charger_resume)
 };
