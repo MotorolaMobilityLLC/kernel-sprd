@@ -7,12 +7,21 @@
 #include <linux/cpu.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/of.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pm.h>
 #include <linux/regmap.h>
 #include <linux/syscore_ops.h>
 
+#define SC2720_PWR_PD_HW	0xc20
+#define SC2720_SLP_CTRL		0xd68
+#define SC2720_LDO_XTL_EN	BIT(2)
+#define SC2720_SLP_LDO_PD_EN    BIT(0)
+#define SC2721_PWR_PD_HW	0xc20
+#define SC2721_SLP_CTRL		0xd98
+#define SC2721_LDO_XTL_EN	BIT(2)
+#define SC2721_SLP_LDO_PD_EN    BIT(0)
 #define SC2730_PWR_PD_HW	0x1820
 #define SC2730_SLP_CTRL		0x1a48
 #define SC2730_LDO_XTL_EN	BIT(2)
@@ -34,11 +43,32 @@ struct sc27xx_poweroff_data {
 	u32 slp_ldo_pd_en;
 };
 
+static const struct sc27xx_poweroff_data sc2721_data = {
+	.poweroff_reg = SC2721_PWR_PD_HW,
+	.slp_ctrl_reg = SC2721_SLP_CTRL,
+	.ldo_xtl_en = SC2721_LDO_XTL_EN,
+	.slp_ldo_pd_en = SC2721_SLP_LDO_PD_EN,
+};
+
 static const struct sc27xx_poweroff_data sc2730_data = {
 	.poweroff_reg = SC2730_PWR_PD_HW,
 	.slp_ctrl_reg = SC2730_SLP_CTRL,
 	.ldo_xtl_en = SC2730_LDO_XTL_EN,
 	.slp_ldo_pd_en = SC2730_SLP_LDO_PD_EN,
+};
+
+static const struct sc27xx_poweroff_data sc2731_data = {
+	.poweroff_reg = SC2731_PWR_PD_HW,
+	.slp_ctrl_reg = SC2731_SLP_CTRL,
+	.ldo_xtl_en = SC2731_LDO_XTL_EN,
+	.slp_ldo_pd_en = SC2731_SLP_LDO_PD_EN,
+};
+
+static const struct sc27xx_poweroff_data sc2720_data = {
+	.poweroff_reg = SC2720_PWR_PD_HW,
+	.slp_ctrl_reg = SC2720_SLP_CTRL,
+	.ldo_xtl_en = SC2720_LDO_XTL_EN,
+	.slp_ldo_pd_en = SC2720_SLP_LDO_PD_EN,
 };
 
 static const struct sc27xx_poweroff_data ump9620_data = {
@@ -126,7 +156,10 @@ static int sc27xx_poweroff_probe(struct platform_device *pdev)
 }
 
 static const struct of_device_id sc27xx_poweroff_of_match[] = {
+	{ .compatible = "sprd,sc2721-poweroff", .data = &sc2721_data },
 	{ .compatible = "sprd,sc2730-poweroff", .data = &sc2730_data },
+	{ .compatible = "sprd,sc2731-poweroff", .data = &sc2731_data },
+	{ .compatible = "sprd,sc2720-poweroff", .data = &sc2720_data },
 	{ .compatible = "sprd,ump9620-poweroff", .data = &ump9620_data},
 	{ }
 };
