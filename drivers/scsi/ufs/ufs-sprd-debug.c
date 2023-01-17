@@ -26,18 +26,18 @@
 #define UFS_DBG_ACS_LVL 0440
 #endif
 
-static int cmd_record_index = -1;
+int cmd_record_index = -1;
 static bool exceed_max_depth;
 static spinlock_t ufs_debug_dump;
 
 /* CMD info buffer */
-static struct ufs_event_info uei[UFS_CMD_RECORD_DEPTH];
+struct ufs_event_info uei[UFS_CMD_RECORD_DEPTH];
 /* Minidump buffer */
-static char *ufs_cmd_history_str;
-static struct ufs_hba *hba_tmp;
-static struct ufs_err_cnt ufs_err_cnt;
-static struct ufs_pa_layer_attr dts_pwr_info;
-static struct ufs_pa_layer_attr compare_pwr_info;
+char *ufs_cmd_history_str;
+struct ufs_hba *hba_tmp;
+struct ufs_err_cnt ufs_err_cnt;
+struct ufs_pa_layer_attr dts_pwr_info;
+struct ufs_pa_layer_attr compare_pwr_info;
 static const char *ufs_event_str[UFS_MAX_EVENT] = {
 	"SCSI Send     ",
 	"SCSI Complete ",
