@@ -192,7 +192,7 @@ static void sprd_musb_enable(struct musb *musb)
 	u8 devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
 
 	/* soft connect */
-	if (glue->id_state == MUSB_ID_GROUND || glue->dr_mode == USB_DR_MODE_HOST) {
+	if (glue->id_state == MUSB_ID_GROUND && glue->dr_mode == USB_DR_MODE_HOST) {
 		/* Musb controller process go as device default.
 		 * From asic,controller will wait 150ms and then check vbus
 		 * if vbus is powered up.
