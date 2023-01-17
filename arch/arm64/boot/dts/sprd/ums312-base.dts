@@ -41,6 +41,7 @@
 		mmc1 = &sdio0;
 		mmc2 = &sdio1;
 		mmc3 = &sdio2;
+		spi4 = &adi_bus;
 	};
 
 	chosen: chosen {
