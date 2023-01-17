@@ -59,7 +59,9 @@ static struct seq_buf *unisoc_mem_seq_buf;
 static DEFINE_RAW_SPINLOCK(stop_lock);
 static DEFINE_RAW_SPINLOCK(dump_lock);
 
+#ifdef CONFIG_ARM64
 static unsigned long __percpu *irq_stack_symbol;
+#endif
 
 static int minidump_add_section(const char *name, int size, struct seq_buf **save_buf)
 {
@@ -555,7 +557,8 @@ static int meminfo_proc_show(struct seq_buf *m)
 
 #ifdef CONFIG_CMA
 	addr = (unsigned long *)android_debug_symbol(ADS_TOTAL_CMA);
-	show_val_kb(m, "CmaTotal:		", *addr);
+	if (addr)
+		show_val_kb(m, "CmaTotal:		", *addr);
 	show_val_kb(m, "CmaFree:		",
 			global_zone_page_state(NR_FREE_CMA_PAGES));
 #endif
@@ -704,7 +707,7 @@ static void unisoc_dump_regs(struct pt_regs *regs)
 	unsigned long flags;
 	char buf[64];
 #ifndef CONFIG_CPU_V7M
-	unsigned int domain, fs;
+	unsigned int domain;
 #ifdef CONFIG_CPU_SW_DOMAIN_PAN
 	/*
 	 * Get the domain register for the parent context. In user
@@ -713,14 +716,11 @@ static void unisoc_dump_regs(struct pt_regs *regs)
 	 */
 	if (user_mode(regs)) {
 		domain = DACR_UACCESS_ENABLE;
-		fs = get_fs();
 	} else {
 		domain = to_svc_pt_regs(regs)->dacr;
-		fs = to_svc_pt_regs(regs)->addr_limit;
 	}
 #else
 	domain = get_domain();
-	fs = get_fs();
 #endif
 #endif
 	SEQ_printf(unisoc_sr_seq_buf, "pc : [<%08lx>]    lr : [<%08lx>]    psr: %08lx\n",
@@ -751,8 +751,6 @@ static void unisoc_dump_regs(struct pt_regs *regs)
 		if ((domain & domain_mask(DOMAIN_USER)) ==
 		    domain_val(DOMAIN_USER, DOMAIN_NOACCESS))
 			segment = "none";
-		else if (fs == KERNEL_DS)
-			segment = "kernel";
 		else
 			segment = "user";
 
@@ -881,44 +879,9 @@ EXPORT_SYMBOL_GPL(unisoc_dump_stack_reg);
 static inline void unisoc_dump_panic_regs(void)
 {
 	struct pt_regs regs;
-	u64 tmp1, tmp2;
 	int cpu = raw_smp_processor_id();
 
-	__asm__ __volatile__ (
-		"stp	 x0,   x1, [%2, #16 *  0]\n"
-		"stp	 x2,   x3, [%2, #16 *  1]\n"
-		"stp	 x4,   x5, [%2, #16 *  2]\n"
-		"stp	 x6,   x7, [%2, #16 *  3]\n"
-		"stp	 x8,   x9, [%2, #16 *  4]\n"
-		"stp	x10,  x11, [%2, #16 *  5]\n"
-		"stp	x12,  x13, [%2, #16 *  6]\n"
-		"stp	x14,  x15, [%2, #16 *  7]\n"
-		"stp	x16,  x17, [%2, #16 *  8]\n"
-		"stp	x18,  x19, [%2, #16 *  9]\n"
-		"stp	x20,  x21, [%2, #16 * 10]\n"
-		"stp	x22,  x23, [%2, #16 * 11]\n"
-		"stp	x24,  x25, [%2, #16 * 12]\n"
-		"stp	x26,  x27, [%2, #16 * 13]\n"
-		"stp	x28,  x29, [%2, #16 * 14]\n"
-		"mov	 %0,  sp\n"
-		"stp	x30,  %0,  [%2, #16 * 15]\n"
-
-		"/* faked current PSTATE */\n"
-		"mrs	 %0, CurrentEL\n"
-		"mrs	 %1, SPSEL\n"
-		"orr	 %0, %0, %1\n"
-		"mrs	 %1, DAIF\n"
-		"orr	 %0, %0, %1\n"
-		"mrs	 %1, NZCV\n"
-		"orr	 %0, %0, %1\n"
-		/* pc */
-		"adr	 %1, 1f\n"
-	"1:\n"
-		"stp	 %1, %0,   [%2, #16 * 16]\n"
-		: "=&r" (tmp1), "=&r" (tmp2)
-		: "r" (&regs)
-		: "memory"
-	);
+	crash_setup_regs(&regs, NULL);
 
 	unisoc_dump_stack_reg(cpu, &regs);
 	minidump_update_current_stack(cpu, &regs);
@@ -983,7 +946,7 @@ static void __exit unisoc_dumpinfo_exit(void)
 	unisoc_free_stack_regs_stats();
 }
 
-module_init(unisoc_dumpinfo_init);
+late_initcall_sync(unisoc_dumpinfo_init);
 module_exit(unisoc_dumpinfo_exit);
 
 MODULE_IMPORT_NS(MINIDUMP);
