@@ -165,15 +165,19 @@
 					trip = <&cpu_target>;
 					contribution = <1024>;
 					cooling-device =
-					<&CPU0 THERMAL_NO_LIMIT \
-					THERMAL_NO_LIMIT>;
+					<&CPU0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU1 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU2 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU3 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 				};
 				map1 {
 					trip = <&cpu_target>;
 					contribution = <768>;
 					cooling-device =
-					<&CPU4 THERMAL_NO_LIMIT \
-					THERMAL_NO_LIMIT>;
+					<&CPU4 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU5 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU6 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>,
+					<&CPU7 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 				};
 				map2 {
 					trip = <&cpu_target>;
@@ -202,6 +206,7 @@
 	cooling-devices {
 		cluster0_cooling: cluster0-cooling {
 			compatible = "sprd,cluster-cooling";
+			thermal-cluster-cpumask = <0x0f>;
 			#cooling-cells = <2>; /* min followed by max */
 			sprd,efuse-block7 = <7>;
 			sprd,efuse-block15 = <15>;
@@ -243,6 +248,7 @@
 		};
 		cluster1_cooling: cluster1-cooling {
 			compatible = "sprd,cluster-cooling";
+			thermal-cluster-cpumask = <0xf0>;
 			#cooling-cells = <2>; /* min followed by max */
 			sprd,efuse-block7 = <7>;
 			sprd,efuse-block15 = <15>;
