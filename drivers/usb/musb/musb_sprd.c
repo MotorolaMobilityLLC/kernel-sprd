@@ -1142,6 +1142,21 @@ static void musb_sprd_usb_notify_exit(struct platform_device *pdev)
 	dev_info(&pdev->dev, "[%s] --\n", __func__);
 }
 
+static int musb_sprd_is_udc_start(struct sprd_glue *glue)
+{
+	struct musb *musb = glue->musb;
+	unsigned long flags;
+
+	spin_lock_irqsave(&musb->lock, flags);
+	if (!musb->gadget_driver) {
+		spin_unlock_irqrestore(&musb->lock, flags);
+		return 0;
+	}
+
+	spin_unlock_irqrestore(&musb->lock, flags);
+	return 1;
+}
+
 /**
  * musb_sprd_otg_start_peripheral -  bind/unbind the peripheral controller.
  *
@@ -1188,8 +1203,10 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 
 		dev_info(glue->dev, "%s: turn off gadget %s\n", __func__, musb->g.name);
 
-		usb_udc_vbus_handler(&musb->g, false);
-		flush_delayed_work(&musb->gadget_work);
+		if (musb_sprd_is_udc_start(glue)) {
+			usb_udc_vbus_handler(&musb->g, false);
+			flush_delayed_work(&musb->gadget_work);
+		}
 		devctl = musb_readb(musb->mregs, MUSB_DEVCTL);
 		musb_writeb(musb->mregs, MUSB_DEVCTL, devctl & ~MUSB_DEVCTL_SESSION);
 		musb_sprd_release_all_request(musb);
@@ -1342,21 +1359,6 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 	}
 
 	return 0;
-}
-
-static int musb_sprd_is_udc_start(struct sprd_glue *glue)
-{
-	struct musb *musb = glue->musb;
-	unsigned long flags;
-
-	spin_lock_irqsave(&musb->lock, flags);
-	if (!musb->gadget_driver) {
-		spin_unlock_irqrestore(&musb->lock, flags);
-		return 0;
-	}
-
-	spin_unlock_irqrestore(&musb->lock, flags);
-	return 1;
 }
 
 static void musb_sprd_chg_detect_work(struct work_struct *work)
