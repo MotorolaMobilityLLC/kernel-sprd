@@ -102,6 +102,16 @@
 				gnss {
 					compatible = "sprd,gnss";
 				};
+
+				sprd-mtty {
+					compatible = "sprd,mtty";
+					sprd,name = "ttyBT";
+				};
+
+				sprd-fm {
+					compatible = "sprd,marlin3-fm";
+					sprd,name = "sprd-fm";
+				};
 			};
 			};
 		};
