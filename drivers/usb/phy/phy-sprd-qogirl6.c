@@ -659,27 +659,38 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 		SC2730_ADC_OFFSET | SC2730_CHARGE_DET_FGU_CTRL,
 		BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB,
 		BIT_DP_DM_AUX_EN);
+	if (0) {
+		if (!reboot) {
+				reboot = 1;
+				curr = ktime_to_ms(ktime_get());
+				dev_info(x->dev, "%s time %llu\n", __func__, curr);
+				if (curr < REBOOT_WAIT_VBUS_TIME) {
+						for (cnt = 0; cnt < 30; cnt++) {
+								iio_read_channel_processed(phy->dp, &dp_voltage);
+								dp_voltage = sc2730_voltage_cali(dp_voltage);
+								if (dp_voltage > VOLT_LO_LIMIT) {
+										dev_info(x->dev, "[%s][%d] dp_voltage:%d\n",
+												__func__, cnt, dp_voltage);
+										break;
+								}
+								msleep(10);
+						}
+				} else
+						msleep(300);
+		} else
+				msleep(300);
+	}
 
-
-	if (!reboot) {
-			reboot = 1;
-			curr = ktime_to_ms(ktime_get());
-			dev_info(x->dev, "%s time %llu\n", __func__, curr);
-			if (curr < REBOOT_WAIT_VBUS_TIME) {
-					for (cnt = 0; cnt < 30; cnt++) {
-							iio_read_channel_processed(phy->dp, &dp_voltage);
-							dp_voltage = sc2730_voltage_cali(dp_voltage);
-							if (dp_voltage > VOLT_LO_LIMIT) {
-									dev_info(x->dev, "[%s][%d] dp_voltage:%d\n",
-											__func__, cnt, dp_voltage);
-									break;
-							}
-							msleep(10);
-					}
-			} else
-					msleep(300);
-	} else
-			msleep(300);
+	for (cnt = 0; cnt < 40; cnt++) {
+		iio_read_channel_processed(phy->dp, &dp_voltage);
+		dp_voltage = sc2730_voltage_cali(dp_voltage);
+		if (dp_voltage > VOLT_LO_LIMIT) {
+				dev_info(x->dev, "[%s][%d] dp_voltage:%d\n",
+						__func__, cnt, dp_voltage);
+				break;
+		}
+		msleep(10);
+	}
 
 	cnt = 20;
 
