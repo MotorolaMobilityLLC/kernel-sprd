@@ -979,6 +979,39 @@
 				compatible = "sprd,pub-dmc-original";
 				reg = <0x300001b4 0x100>;
 			};
+
+			dmc_mpu: dmc-mpu@300e0000 {
+				compatible = "sprd,dmc-mpu-r3p0";
+				reg = <0x300e0000 0x10000>;
+				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,channel-num = <8>;
+				sprd,channel-names = "MM", "GPU", "DISP",
+					"A53", "AP/VSP/GSP", "WTLCP/PUBCP",
+					"WCN/AON", "SHARED";
+				sprd,ranges = <0 0>,
+					      <0 0>,
+					      <0 0>,
+					      <0 0>,
+					      <0 0>,
+					      <0 0>,
+					      <0 0>,
+					      <0 0>;
+				sprd,chn-config = <DISABLE MON_INSIDE MON_WRITE>,
+						  <DISABLE MON_INSIDE MON_WRITE>,
+						  <DISABLE MON_INSIDE MON_WRITE>,
+						  <DISABLE MON_INSIDE MON_WRITE>,
+						  <DISABLE MON_INSIDE MON_WRITE>,
+						  <DISABLE MON_INSIDE MON_WRITE>,
+						  <DISABLE MON_INSIDE MON_WRITE>,
+						  <DISABLE MON_INSIDE MON_WRITE>;
+				sprd,id-config = <MPUID 0 0>, <MPUID 0 0>,
+						 <MPUID 0 0>, <MPUID 0 0>,
+						 <MPUID 0 0>, <MPUID 0 0>,
+						 <MPUID 0 0>, <MPUID 0 0>;
+				sprd,shared-chn = "MM";
+				sprd,ddr-offset = <0x80000000>;
+				status = "okay";
+			};
 		};
 	};
 
