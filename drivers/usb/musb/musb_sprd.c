@@ -52,6 +52,9 @@
 #define CHARGER_C2C_WAIT_PD_HARDRESET	BIT(29)
 #define CHARGER_C2C_WAIT_ENABLE	BIT(28)
 
+#define WAIT_TIME_1S	1000
+#define REBOOT_WAIT_VBUS_TIME (20*WAIT_TIME_1S)
+
 struct sprd_glue {
 	struct device		*dev;
 	struct platform_device		*musb;
@@ -706,7 +709,7 @@ static void musb_sprd_detect_cable(struct sprd_glue *glue)
 }
 
 static enum usb_charger_type
-musb_sprd_retry_charger_detect(struct sprd_glue *glue)
+musb_sprd_retry_charger_detect(struct sprd_glue *glue, bool reboot)
 {
 	enum usb_charger_type type = UNKNOWN_TYPE;
 	struct usb_phy *usb_phy = glue->xceiv;
@@ -718,32 +721,56 @@ musb_sprd_retry_charger_detect(struct sprd_glue *glue)
 	spin_lock_irqsave(&glue->lock, flags);
 	glue->retry_charger_detect = true;
 	spin_unlock_irqrestore(&glue->lock, flags);
-	if (!clk_prepare_enable(glue->clk)) {
+
+	if (reboot) {
+		dev_info(glue->dev, "%s reboot enter\n", __func__);
+		if (pm_runtime_suspended(musb->controller)) {
+			dev_info(glue->dev, "suspend need to open clk/phy");
+			clk_prepare_enable(glue->clk);
+			usb_phy_init(glue->xceiv);
+		} else {
+			pm_runtime_get_noresume(musb->controller);
+		}
+	} else {
+		clk_prepare_enable(glue->clk);
 		usb_phy_init(glue->xceiv);
-		musb_writeb(musb->mregs, MUSB_INTRUSBE, 0);
-		musb_writeb(musb->mregs, MUSB_INTRTXE, 0);
-		musb_writeb(musb->mregs, MUSB_INTRRXE, 0);
-		pwr = musb_readb(musb->mregs, MUSB_POWER);
-		pwr |= MUSB_POWER_SOFTCONN;
-		musb_writeb(musb->mregs, MUSB_POWER, pwr);
-
-		/* because of GKI1.0, retry_charger_detect is intead of below */
-		usb_phy->flags |= CHARGER_2NDDETECT_SELECT;
-		type = usb_phy->charger_detect(glue->xceiv);
-		usb_phy->flags &= ~CHARGER_2NDDETECT_SELECT;
-
-		pwr = musb_readb(musb->mregs, MUSB_POWER);
-		pwr &= ~MUSB_POWER_SOFTCONN;
-		musb_writeb(musb->mregs, MUSB_POWER, pwr);
-		/*  flush pending interrupts */
-		spin_lock_irqsave(&glue->lock, flags);
-		glue->retry_charger_detect = false;
-		spin_unlock_irqrestore(&glue->lock, flags);
-		musb_readb(musb->mregs, MUSB_INTRUSB);
-		musb_readw(musb->mregs, MUSB_INTRTXE);
-		usb_phy_shutdown(glue->xceiv);
-		clk_disable_unprepare(glue->clk);
 	}
+
+	musb_writeb(musb->mregs, MUSB_INTRUSBE, 0);
+	musb_writeb(musb->mregs, MUSB_INTRTXE, 0);
+	musb_writeb(musb->mregs, MUSB_INTRRXE, 0);
+	pwr = musb_readb(musb->mregs, MUSB_POWER);
+	pwr |= MUSB_POWER_SOFTCONN;
+	musb_writeb(musb->mregs, MUSB_POWER, pwr);
+
+	/* because of GKI1.0, retry_charger_detect is intead of below */
+	usb_phy->flags |= CHARGER_2NDDETECT_SELECT;
+	type = usb_phy->charger_detect(glue->xceiv);
+	usb_phy->flags &= ~CHARGER_2NDDETECT_SELECT;
+
+	pwr = musb_readb(musb->mregs, MUSB_POWER);
+	pwr &= ~MUSB_POWER_SOFTCONN;
+	musb_writeb(musb->mregs, MUSB_POWER, pwr);
+	/*  flush pending interrupts */
+	spin_lock_irqsave(&glue->lock, flags);
+	glue->retry_charger_detect = false;
+	spin_unlock_irqrestore(&glue->lock, flags);
+	musb_readb(musb->mregs, MUSB_INTRUSB);
+	musb_readw(musb->mregs, MUSB_INTRTXE);
+	
+	if (reboot) {
+		if (pm_runtime_suspended(musb->controller)) {
+			dev_info(glue->dev, "suspend need to close clk/phy");
+			usb_phy_shutdown(glue->xceiv);
+			clk_disable_unprepare(glue->clk);
+		} else {
+			pm_runtime_put_noidle(musb->controller);
+		}
+	} else {
+ 		usb_phy_shutdown(glue->xceiv);
+ 		clk_disable_unprepare(glue->clk);
+ 	}
+
 	return type;
 }
 
@@ -751,6 +778,8 @@ static bool musb_sprd_is_connect_host(struct sprd_glue *glue)
 {
 	struct usb_phy *usb_phy = glue->xceiv;
 	enum usb_charger_type type = usb_phy->charger_detect(usb_phy);
+	u64 curr;
+	static bool reboot;
 
 	dev_info(glue->dev, "%s type = %d\n", __func__, (int)type);
        if (boot_calibration) {
@@ -760,12 +789,19 @@ static bool musb_sprd_is_connect_host(struct sprd_glue *glue)
                return true;
        }
 	if ((type == UNKNOWN_TYPE) && (usb_phy->flags & CHARGER_2NDDETECT_ENABLE)) {
-               if (extcon_get_state(glue->edev, EXTCON_USB)) {
-                       pm_runtime_disable(glue->dev);
-                       type = musb_sprd_retry_charger_detect(glue);
-                       pm_runtime_enable(glue->dev);
-                       pm_runtime_mark_last_busy(glue->dev);
-               }
+	   if (extcon_get_state(glue->edev, EXTCON_USB)) {
+			if (!reboot) {
+				reboot = 1;
+				curr = ktime_to_ms(ktime_get());
+				dev_info(glue->dev, "%s time %llu\n", __func__, curr);
+				if (curr < REBOOT_WAIT_VBUS_TIME)
+					type = musb_sprd_retry_charger_detect(glue, true);
+				else
+					type = musb_sprd_retry_charger_detect(glue, false);
+			} else {
+				type = musb_sprd_retry_charger_detect(glue, false);
+			}
+		} 
 	}
 
 	if (type == SDP_TYPE || type == CDP_TYPE)
