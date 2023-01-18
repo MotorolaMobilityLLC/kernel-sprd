@@ -5,6 +5,9 @@
 #include <linux/debugfs.h>
 #include <linux/interrupt.h>
 #include <linux/sched/clock.h>
+#if defined(CONFIG_ARM)
+#include <linux/math64.h>
+#endif
 
 #define DEFAULT_SCAN_INTERVAL		3000
 #define DEFAULT_THRESHOLD_VAL		3000
@@ -62,22 +65,40 @@ monitor_check_and_update(struct irq_desc *desc, struct irq_monitor *monitor)
 	unsigned int curr_cnt, prev_cnt, cnt_delta, cnt_per_sec;
 	int cpu;
 	const char *name = "unknown";
+#if defined(CONFIG_ARM)
+	u64 tmp1, tmp2;
+#endif
 
 	for_each_possible_cpu(cpu) {
 		curr_cnt = *per_cpu_ptr(desc->kstat_irqs, cpu);
 		prev_cnt = *per_cpu_ptr(monitor->prev_kstat, cpu);
 		cnt_delta = curr_cnt - prev_cnt;
+#if defined(CONFIG_ARM)
+		cnt_per_sec = cnt_delta * MSEC_PER_SEC;
+		div_u64(cnt_per_sec, time_delta);
+#else
+
 		cnt_per_sec = cnt_delta * MSEC_PER_SEC / time_delta;
+#endif
 
 		/* Warn if the interrupts occur too many times */
 		if (unlikely(cnt_per_sec > monitor->threshold)) {
 			if (desc->action)
 				name = desc->action->name;
 
+#if defined(CONFIG_ARM)
+			tmp1 = prev_time;
+			tmp2 = div_u64(tmp1, MSEC_PER_SEC);
+			pr_warn("hwirq:%lu(%s) handled %u times on CPU%d from %llu.%03llus\n",
+				desc->irq_data.hwirq, name, cnt_delta, cpu,
+				tmp1,
+				tmp2);
+#else
 			pr_warn("hwirq:%lu(%s) handled %u times on CPU%d from %llu.%03llus\n",
 				desc->irq_data.hwirq, name, cnt_delta, cpu,
 				prev_time / MSEC_PER_SEC,
 				prev_time % MSEC_PER_SEC);
+#endif
 		}
 
 		*per_cpu_ptr(monitor->prev_kstat, cpu) = curr_cnt;
