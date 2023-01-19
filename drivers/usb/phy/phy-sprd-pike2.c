@@ -40,6 +40,9 @@ struct sprd_hsphy {
 	struct regulator	*vdd;
 	struct regmap		*hsphy_glb;
 	struct regmap		*pmic;
+	struct wakeup_source	*wake_lock;
+	struct work_struct	work;
+	unsigned long		event;
 	u32			vdd_vol;
 	u32			phy_tune;
 	atomic_t		reset;
@@ -55,6 +58,19 @@ struct sprd_hsphy {
 #define BIT_DP_DM_BC_ENB			BIT(0)
 #define VOLT_LO_LIMIT				1200
 #define VOLT_HI_LIMIT				600
+
+static void sprd_hsphy_charger_detect_work(struct work_struct *work)
+{
+	struct sprd_hsphy *phy = container_of(work, struct sprd_hsphy, work);
+	struct usb_phy *usb_phy = &phy->phy;
+
+	__pm_stay_awake(phy->wake_lock);
+	if (phy->event)
+		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
+	else
+		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
+	__pm_relax(phy->wake_lock);
+}
 
 static inline void __reset_core(void __iomem *addr)
 {
@@ -297,13 +313,14 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 		return 0;
 	}
 
+	pm_wakeup_event(phy->dev, 400);
+
 	if (event) {
 		/* usb vbus valid */
 		reg = readl_relaxed(phy->base + REG_AP_AHB_OTG_PHY_TEST);
 		reg |= (MASK_AP_AHB_OTG_VBUS_VALID_EXT |
 			 MASK_AP_AHB_OTG_VBUS_VALID_PHYREG);
 		writel_relaxed(reg, phy->base + REG_AP_AHB_OTG_PHY_TEST);
-		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
 	} else {
 		/* usb vbus invalid */
 		reg = readl_relaxed(phy->base + REG_AP_AHB_OTG_PHY_TEST);
@@ -311,8 +328,10 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 			MASK_AP_AHB_OTG_VBUS_VALID_EXT);
 		writel_relaxed(reg, phy->base + REG_AP_AHB_OTG_PHY_TEST);
 		usb_phy->flags &= ~CHARGER_DETECT_DONE;
-		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
 	}
+
+	phy->event = event;
+	queue_work(system_unbound_wq, &phy->work);
 
 	return 0;
 }
@@ -505,6 +524,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		MASK_AON_APB_USB_PHY_PD_S, MASK_AON_APB_USB_PHY_PD_S);
 	phy->hsphy_glb = hsphy_glb;
 
+	phy->dev = dev;
 	phy->phy.dev = dev;
 	phy->phy.label = "sprd-hsphy";
 	phy->phy.otg = otg;
@@ -515,6 +535,16 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	phy->phy.vbus_nb.notifier_call = sprd_hsphy_vbus_notify;
 	phy->phy.charger_detect = sprd_hsphy_charger_detect;
 	otg->usb_phy = &phy->phy;
+
+	device_init_wakeup(phy->dev, true);
+
+	phy->wake_lock = wakeup_source_register(phy->dev, "sprd-hsphy");
+	if (!phy->wake_lock) {
+		dev_err(dev, "fail to register wakeup lock.\n");
+		return -ENOMEM;
+	}
+
+	INIT_WORK(&phy->work, sprd_hsphy_charger_detect_work);
 
 	platform_set_drvdata(pdev, phy);
 

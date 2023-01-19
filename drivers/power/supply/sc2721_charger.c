@@ -7,9 +7,7 @@
 #include <linux/pm_wakeup.h>
 #include <linux/power_supply.h>
 #include <linux/power/charger-manager.h>
-#include <linux/usb/phy.h>
 #include <linux/regmap.h>
-#include <linux/notifier.h>
 #include <linux/of.h>
 #include <linux/slab.h>
 
@@ -52,7 +50,6 @@
 
 #define SC2721_CHG_CCCV_MASK			GENMASK(5, 0)
 
-#define SC2721_WAKE_UP_MS				2000
 
 struct sc2721_charge_current {
 	int sdp_cur;
@@ -64,41 +61,13 @@ struct sc2721_charge_current {
 struct sc2721_charger_info {
 	struct device *dev;
 	struct regmap *regmap;
-	struct usb_phy *usb_phy;
-	struct notifier_block usb_notify;
 	struct power_supply *psy_usb;
 	struct sc2721_charge_current cur;
-	struct work_struct work;
 	struct mutex lock;
 	bool charging;
-	u32 limit;
 	u32 base;
+	bool is_charger_online;
 };
-
-static bool sc2721_charger_is_bat_present(struct sc2721_charger_info *info)
-{
-	struct power_supply *psy;
-	union power_supply_propval val;
-	bool present = false;
-	int ret;
-
-	psy = power_supply_get_by_name(SC2721_BATTERY_NAME);
-	if (!psy) {
-		dev_err(info->dev, "Failed to get psy of sc27xx_fgu\n");
-		return present;
-	}
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_PRESENT,
-					&val);
-	if (ret == 0 && val.intval)
-		present = true;
-	power_supply_put(psy);
-
-	if (ret)
-		dev_err(info->dev,
-			"Failed to get property of present:%d\n", ret);
-
-	return present;
-}
 
 static int sc2721_get_calib_data(struct sc2721_charger_info *info)
 {
@@ -412,16 +381,6 @@ static int sc2721_charger_get_health(struct sc2721_charger_info *info,
 	return 0;
 }
 
-static int sc2721_charger_get_online(struct sc2721_charger_info *info,
-				     u32 *online)
-{
-	if (info->limit)
-		*online = true;
-	else
-		*online = false;
-
-	return 0;
-}
 
 static int sc2721_charger_get_status(struct sc2721_charger_info *info)
 {
@@ -450,47 +409,19 @@ static int sc2721_charger_set_status(struct sc2721_charger_info *info,
 	return ret;
 }
 
-static void sc2721_charger_work(struct work_struct *data)
-{
-	struct sc2721_charger_info *info =
-		container_of(data, struct sc2721_charger_info, work);
-	bool present = sc2721_charger_is_bat_present(info);
-
-	dev_info(info->dev, "battery present = %d, charger type = %d\n",
-		 present, info->usb_phy->chg_type);
-	cm_notify_event(info->psy_usb, CM_EVENT_CHG_START_STOP, NULL);
-}
-
-static int sc2721_charger_usb_change(struct notifier_block *nb,
-				     unsigned long limit, void *data)
-{
-	struct sc2721_charger_info *info =
-		container_of(nb, struct sc2721_charger_info, usb_notify);
-
-	info->limit = limit;
-
-	pm_wakeup_event(info->dev, SC2721_WAKE_UP_MS);
-	schedule_work(&info->work);
-	return NOTIFY_OK;
-}
-
 static int sc2721_charger_usb_get_property(struct power_supply *psy,
 					   enum power_supply_property psp,
 					   union power_supply_propval *val)
 {
 	struct sc2721_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur, online, health;
-	enum usb_charger_type type;
+	u32 cur, health;
 	int ret = 0;
 
 	mutex_lock(&info->lock);
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-		if (info->limit)
 			val->intval = sc2721_charger_get_status(info);
-		else
-			val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
 		break;
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
@@ -509,28 +440,8 @@ static int sc2721_charger_usb_get_property(struct power_supply *psy,
 		if (!info->charging) {
 			val->intval = 0;
 		} else {
-			switch (info->usb_phy->chg_type) {
-			case SDP_TYPE:
-				val->intval = info->cur.sdp_cur;
-				break;
-			case DCP_TYPE:
 				val->intval = info->cur.dcp_cur;
-				break;
-			case CDP_TYPE:
-				val->intval = info->cur.cdp_cur;
-				break;
-			default:
-				val->intval = info->cur.unknown_cur;
-			}
 		}
-		break;
-
-	case POWER_SUPPLY_PROP_ONLINE:
-		ret = sc2721_charger_get_online(info, &online);
-		if (ret)
-			goto out;
-
-		val->intval = online;
 		break;
 
 	case POWER_SUPPLY_PROP_HEALTH:
@@ -544,28 +455,6 @@ static int sc2721_charger_usb_get_property(struct power_supply *psy,
 			val->intval = health;
 		}
 		break;
-
-	case POWER_SUPPLY_PROP_USB_TYPE:
-		type = info->usb_phy->chg_type;
-
-		switch (type) {
-		case SDP_TYPE:
-			val->intval = POWER_SUPPLY_USB_TYPE_SDP;
-			break;
-
-		case DCP_TYPE:
-			val->intval = POWER_SUPPLY_USB_TYPE_DCP;
-			break;
-
-		case CDP_TYPE:
-			val->intval = POWER_SUPPLY_USB_TYPE_CDP;
-			break;
-
-		default:
-			val->intval = POWER_SUPPLY_USB_TYPE_UNKNOWN;
-		}
-		break;
-
 
 	default:
 		ret = -EINVAL;
@@ -582,7 +471,7 @@ sc2721_charger_usb_set_property(struct power_supply *psy,
 				const union power_supply_propval *val)
 {
 	struct sc2721_charger_info *info = power_supply_get_drvdata(psy);
-	int ret;
+	int ret = 0;
 
 	mutex_lock(&info->lock);
 
@@ -605,6 +494,10 @@ sc2721_charger_usb_set_property(struct power_supply *psy,
 			dev_err(info->dev, "failed to set terminate voltage\n");
 		break;
 
+	case POWER_SUPPLY_PROP_PRESENT:
+		info->is_charger_online = val->intval;
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -621,6 +514,7 @@ static int sc2721_charger_property_is_writeable(struct power_supply *psy,
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
+	case POWER_SUPPLY_PROP_PRESENT:
 	case POWER_SUPPLY_PROP_STATUS:
 		ret = 1;
 		break;
@@ -632,25 +526,14 @@ static int sc2721_charger_property_is_writeable(struct power_supply *psy,
 	return ret;
 }
 
-static enum power_supply_usb_type sc2721_charger_usb_types[] = {
-	POWER_SUPPLY_USB_TYPE_UNKNOWN,
-	POWER_SUPPLY_USB_TYPE_SDP,
-	POWER_SUPPLY_USB_TYPE_DCP,
-	POWER_SUPPLY_USB_TYPE_CDP,
-	POWER_SUPPLY_USB_TYPE_C,
-	POWER_SUPPLY_USB_TYPE_PD,
-	POWER_SUPPLY_USB_TYPE_PD_DRP,
-	POWER_SUPPLY_USB_TYPE_APPLE_BRICK_ID
-};
 
 static enum power_supply_property sc2721_usb_props[] = {
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
 	POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
-	POWER_SUPPLY_PROP_USB_TYPE,
 	POWER_SUPPLY_PROP_STATUS,
-	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_HEALTH,
+	POWER_SUPPLY_PROP_PRESENT,
 };
 
 static const struct power_supply_desc sc2721_charger_desc = {
@@ -661,27 +544,7 @@ static const struct power_supply_desc sc2721_charger_desc = {
 	.get_property		= sc2721_charger_usb_get_property,
 	.set_property		= sc2721_charger_usb_set_property,
 	.property_is_writeable	= sc2721_charger_property_is_writeable,
-	.usb_types		= sc2721_charger_usb_types,
-	.num_usb_types		= ARRAY_SIZE(sc2721_charger_usb_types)
 };
-
-static void sc2721_charger_detect_status(struct sc2721_charger_info *info)
-{
-	unsigned int min, max;
-
-	/*
-	 * If the USB charger status has been USB_CHARGER_PRESENT before
-	 * registering the notifier, we should start to charge with getting
-	 * the charge current.
-	 */
-	if (info->usb_phy->chg_state != USB_CHARGER_PRESENT)
-		return;
-
-	usb_phy_get_charger_current(info->usb_phy, &min, &max);
-
-	info->limit = min;
-	schedule_work(&info->work);
-}
 
 static int sc2721_charger_probe(struct platform_device *pdev)
 {
@@ -696,7 +559,6 @@ static int sc2721_charger_probe(struct platform_device *pdev)
 
 	mutex_init(&info->lock);
 	info->dev = &pdev->dev;
-	INIT_WORK(&info->work, sc2721_charger_work);
 
 	info->regmap = dev_get_regmap(pdev->dev.parent, NULL);
 	if (!info->regmap) {
@@ -705,12 +567,6 @@ static int sc2721_charger_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, info);
-
-	info->usb_phy = devm_usb_get_phy_by_phandle(&pdev->dev, "phys", 0);
-	if (IS_ERR(info->usb_phy)) {
-		dev_err(&pdev->dev, "failed to find USB phy\n");
-		return PTR_ERR(info->usb_phy);
-	}
 
 	ret = of_property_read_u32(np, "reg", &info->base);
 	if (ret) {
@@ -736,14 +592,7 @@ static int sc2721_charger_probe(struct platform_device *pdev)
 	sc2721_charger_stop_charge(info);
 
 	device_init_wakeup(info->dev, true);
-	info->usb_notify.notifier_call = sc2721_charger_usb_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to register notifier:%d\n", ret);
-		return ret;
-	}
 
-	sc2721_charger_detect_status(info);
 	return 0;
 }
 
@@ -751,7 +600,10 @@ static int sc2721_charger_remove(struct platform_device *pdev)
 {
 	struct sc2721_charger_info *info = platform_get_drvdata(pdev);
 
-	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
 
 	return 0;
 }
