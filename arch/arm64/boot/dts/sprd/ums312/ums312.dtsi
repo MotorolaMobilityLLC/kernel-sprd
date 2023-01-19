@@ -274,3 +274,5 @@
 #include "audio.dtsi"
 #include "i2s.dtsi"
 #include "thermal.dtsi"
+#include "vsp.dtsi"
+

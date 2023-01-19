@@ -5,8 +5,7 @@
  * Copyright (C) 2022, Unisoc Inc.
  */
 
-&soc {
-
+&apahb {
 	vsp_pd: vsp-power-domain {
 		compatible = "sprd,vsp-pd";
 		pmu-vsp-force-shutdown-syscon = <&pmu_apb_regs
@@ -21,9 +20,6 @@
 		#power-domain-cells = <0>;
 		status = "okay";
 	};
-};
-
-&apahb {
 	vsp: video-codec@20500000{
 		compatible = "sprd,sharkl5-vsp";
 		reg = <0 0x20500000 0 0xc000>;
