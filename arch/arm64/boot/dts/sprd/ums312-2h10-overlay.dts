@@ -33,9 +33,12 @@
 		target-path = "/";
 		__overlay__ {
 				pwm_backlight: sprd_backlight {
-					compatible = "pwm-backlight";
+					compatible = "sprd,sharkl5-backlight";
 					pwms = <&pwms 2 40000>;
 					pwm-names = "backlight";
+					sprd,max-brightness-level = <247>;
+					default-brightness-level = <24>;
+					sprd,brightness-scale = <255>;
 					brightness-levels = <
 						      2   2   3   4   5   6   7   8   9
 						 10  11  12  13  14  15  16  17  18  19
@@ -64,7 +67,6 @@
 						240 241 242 243 244 245 246 247 247 247
 						247 247 247 247 247 247 247
 						>;
-					default-brightness-level = <24>;
 				};
 			sprd_marlin3: sprd-marlin3 {
 				compatible = "unisoc,marlin3lite_sdio";
