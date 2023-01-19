@@ -286,7 +286,7 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 		actual_dump_num = cmd_record_index + 1;
 	else {
 		pr_info("%s: NO UFS cmd was recorded\n", __func__);
-		return;
+		goto out;
 	}
 
 	if (dump_req)
@@ -467,6 +467,7 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 		PRINT_SWITCH(m, dump_pos, "Dump buffer used:0x%x/(0x%x)\n",
 			     (u32)(dump_pos - ufs_cmd_history_str), DUMP_BUFFER_S);
 
+out:
 	spin_unlock_irqrestore(&ufs_debug_dump, flags);
 }
 
