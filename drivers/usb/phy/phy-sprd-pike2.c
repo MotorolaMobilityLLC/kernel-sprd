@@ -50,8 +50,7 @@ struct sprd_hsphy {
 };
 
 #define FULLSPEED_USB33_TUNE		2700000
-#define SC2720_CHARGE_DET_FGU_CTRL	0x3A0
-#define SC2720_ADC_OFFSET			0x1800
+#define SC2720_CHARGE_DET_FGU_CTRL	0xe18
 #define BIT_DP_DM_AUX_EN			BIT(1)
 #define BIT_DP_DM_BC_ENB			BIT(0)
 #define VOLT_LO_LIMIT				1200
@@ -347,7 +346,7 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	}
 
 	regmap_update_bits(phy->pmic,
-		SC2720_ADC_OFFSET | SC2720_CHARGE_DET_FGU_CTRL,
+		SC2720_CHARGE_DET_FGU_CTRL,
 		BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB,
 		BIT_DP_DM_AUX_EN);
 
@@ -374,7 +373,7 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	}
 
 	regmap_update_bits(phy->pmic,
-		SC2720_ADC_OFFSET | SC2720_CHARGE_DET_FGU_CTRL,
+		SC2720_CHARGE_DET_FGU_CTRL,
 		BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB, 0);
 
 	dev_info(x->dev, "correct type is %x\n", type);
