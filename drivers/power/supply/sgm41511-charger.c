@@ -72,6 +72,8 @@
 #define SGM41511_WAKE_UP_MS			1000
 #define SGM41511_PROBE_TIMEOUT			msecs_to_jiffies(3000)
 
+#define SGM41511_WATCH_DOG_TIME_OUT_MS		20000
+
 static bool boot_calibration;
 
 struct sgm41511_charge_current {
@@ -108,6 +110,7 @@ struct sgm41511_charger_info {
 	u32 last_limit_current;
 	u32 actual_limit_cur;
 	u32 role;
+	u64 last_wdt_time;
 	bool need_disable_Q1;
 	struct alarm otg_timer;
 	bool otg_enable;
@@ -662,12 +665,21 @@ static int sgm41511_charger_feed_watchdog(struct sgm41511_charger_info *info)
 {
 	int ret = 0;
 	u8 reg_val = REG01_WDT_RESET << REG01_WDT_RESET_SHIFT;
+	u64 duration, curr = ktime_to_ms(ktime_get());
 
 	ret = sgm41511_update_bits(info, SGM4151X_REG_01, REG01_WDT_RESET_MASK, reg_val);
 	if (ret) {
 		dev_err(info->dev, "reset sgm41511 failed\n");
 		return ret;
 	}
+
+	duration = curr - info->last_wdt_time;
+	if (duration >= SGM41511_WATCH_DOG_TIME_OUT_MS) {
+		dev_err(info->dev, "charger wdg maybe time out:%lld ms\n", duration);
+		sgm41511_dump_register(info);
+	}
+
+	info->last_wdt_time = curr;
 
 	if (info->otg_enable)
 		return ret;
@@ -952,6 +964,7 @@ static int sgm41511_charger_usb_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_PRESENT:
 		info->is_charger_online = val->intval;
 		if (val->intval == true) {
+			info->last_wdt_time = ktime_to_ms(ktime_get());
 			schedule_delayed_work(&info->wdt_work, 0);
 		} else {
 			info->actual_limit_cur = 0;
@@ -1030,7 +1043,7 @@ static void sgm41511_charger_feed_watchdog_work(struct work_struct *work)
 
 	ret = sgm41511_charger_feed_watchdog(info);
 	if (ret)
-		schedule_delayed_work(&info->wdt_work, HZ * 5);
+		schedule_delayed_work(&info->wdt_work, HZ * 1);
 	else
 		schedule_delayed_work(&info->wdt_work, HZ * 15);
 }
@@ -1159,6 +1172,7 @@ static int sgm41511_charger_enable_otg(struct regulator_dev *dev)
 		dev_err(info->dev, "Failed to enable power path\n");
 
 	info->otg_enable = true;
+	info->last_wdt_time = ktime_to_ms(ktime_get());
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(SGM41511_FEED_WATCHDOG_VALID_MS));
 	schedule_delayed_work(&info->otg_work,

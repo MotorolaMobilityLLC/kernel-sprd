@@ -106,6 +106,8 @@
 
 #define BQ2560X_PROBE_TIMEOUT			msecs_to_jiffies(3000)
 
+#define BQ2560X_WATCH_DOG_TIME_OUT_MS		20000
+
 struct bq2560x_charger_sysfs {
 	char *name;
 	struct attribute_group attr_g;
@@ -157,6 +159,7 @@ struct bq2560x_charger_info {
 	u32 last_limit_cur;
 	u32 actual_limit_cur;
 	u32 role;
+	u64 last_wdt_time;
 	bool charging;
 	bool need_disable_Q1;
 	int termination_cur;
@@ -745,6 +748,7 @@ static void bq2560x_dump_register(struct bq2560x_charger_info *info)
 static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info)
 {
 	int ret = 0;
+	u64 duration, curr = ktime_to_ms(ktime_get());
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 				  BQ2560X_REG_RESET_MASK,
@@ -753,6 +757,14 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info)
 		dev_err(info->dev, "reset bq2560x failed\n");
 		return ret;
 	}
+
+	duration = curr - info->last_wdt_time;
+	if (duration >= BQ2560X_WATCH_DOG_TIME_OUT_MS) {
+		dev_err(info->dev, "charger wdg maybe time out:%lld ms\n", duration);
+		bq2560x_dump_register(info);
+	}
+
+	info->last_wdt_time = curr;
 
 	if (info->otg_enable)
 		return ret;
@@ -1194,6 +1206,7 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_PRESENT:
 		info->is_charger_online = val->intval;
 		if (val->intval == true) {
+			info->last_wdt_time = ktime_to_ms(ktime_get());
 			schedule_delayed_work(&info->wdt_work, 0);
 		} else {
 			info->actual_limit_cur = 0;
@@ -1472,7 +1485,7 @@ bq2560x_charger_feed_watchdog_work(struct work_struct *work)
 
 	ret = bq2560x_charger_feed_watchdog(info);
 	if (ret)
-		schedule_delayed_work(&info->wdt_work, HZ * 5);
+		schedule_delayed_work(&info->wdt_work, HZ * 1);
 	else
 		schedule_delayed_work(&info->wdt_work, HZ * 15);
 }
@@ -1602,6 +1615,7 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 		dev_err(info->dev, "Failed to enable power path\n");
 
 	info->otg_enable = true;
+	info->last_wdt_time = ktime_to_ms(ktime_get());
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(BQ2560X_FEED_WATCHDOG_VALID_MS));
 	schedule_delayed_work(&info->otg_work,

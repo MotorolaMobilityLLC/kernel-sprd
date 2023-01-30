@@ -37,6 +37,7 @@
 #define FAN54015_OTG_VALID_MS				500
 #define FAN54015_FEED_WATCHDOG_VALID_MS			50
 #define FAN54015_WDG_TIMER_S				15
+#define FAN54015_WATCH_DOG_TIME_OUT_MS			20000
 
 #define FAN54015_REG_FAULT_MASK				0x7
 #define FAN54015_OTG_TIMER_FAULT			0x6
@@ -99,6 +100,7 @@ struct fan54015_charger_info {
 	u32 charger_detect;
 	u32 charger_pd;
 	u32 charger_pd_mask;
+	u64 last_wdt_time;
 	struct gpio_desc *gpiod;
 	struct extcon_dev *edev;
 	bool otg_enable;
@@ -508,11 +510,20 @@ static int fan54015_charger_get_health(struct fan54015_charger_info *info, u32 *
 static int fan54015_charger_feed_watchdog(struct fan54015_charger_info *info)
 {
 	int ret;
+	u64 duration, curr = ktime_to_ms(ktime_get());
 
 	ret = fan54015_update_bits(info, FAN54015_REG_0,
 				   FAN54015_REG_RESET_MASK, FAN54015_REG_RESET);
 	if (ret)
 		dev_err(info->dev, "fan54015 is failed to feeding watchdog, ret = %d\n", ret);
+
+	duration = curr - info->last_wdt_time;
+	if (duration >= FAN54015_WATCH_DOG_TIME_OUT_MS) {
+		dev_err(info->dev, "charger wdg maybe time out:%lld ms\n", duration);
+		fan54015_charger_dump_register(info);
+	}
+
+	info->last_wdt_time = curr;
 
 	return ret;
 }
@@ -687,10 +698,12 @@ fan54015_charger_usb_set_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_PRESENT:
 		info->is_charger_online = val->intval;
-		if (val->intval == true)
+		if (val->intval == true) {
+			info->last_wdt_time = ktime_to_ms(ktime_get());
 			schedule_delayed_work(&info->wdt_work, 0);
-		else
+		} else {
 			cancel_delayed_work_sync(&info->wdt_work);
+		}
 
 		break;
 
@@ -756,7 +769,7 @@ static void fan54015_charger_feed_watchdog_work(struct work_struct *work)
 
 	ret = fan54015_charger_feed_watchdog(info);
 	if (ret)
-		schedule_delayed_work(&info->wdt_work, HZ * 5);
+		schedule_delayed_work(&info->wdt_work, HZ * 1);
 	else
 		schedule_delayed_work(&info->wdt_work, HZ * 15);
 
@@ -835,6 +848,7 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 
 	dev_info(info->dev, "%s:line%d:enable_otg\n", __func__, __LINE__);
 	info->otg_enable = true;
+	info->last_wdt_time = ktime_to_ms(ktime_get());
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(FAN54015_FEED_WATCHDOG_VALID_MS));
 	schedule_delayed_work(&info->otg_work,
