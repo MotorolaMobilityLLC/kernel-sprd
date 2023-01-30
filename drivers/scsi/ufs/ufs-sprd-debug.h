@@ -141,6 +141,66 @@ struct ufs_err_cnt {
 	unsigned long long scsi_timeout_cnt;
 };
 
+enum ufs_uic_err_code_event {
+	/* uic error code PHY Adapter Layer */
+	UFS_EVT_PA_PHY_LINE0_ERR = 0,
+	UFS_EVT_PA_PHY_LINE1_ERR,
+	UFS_EVT_PA_GRNERIC_PA_ERR,
+	UIC_ERR_PA_MAX,
+
+	/* uic error code Data Link Layer */
+	UFS_EVT_DL_NAC_RECEIVED = 0,
+	UFS_EVT_DL_TCx_REPLAY_TIMER_EXPIRED,
+	UFS_EVT_DL_AFCx_REQUEST_TIMER_EXPIRED,
+	UFS_EVT_DL_FCx_PROTECTION_TIMER_EXPIRED,
+	UFS_EVT_DL_CRC_ERROR,
+	UFS_EVT_DL_RX_BUFFER_OVERFLOW,
+	UFS_EVT_DL_MAX_FRAME_LENGTH_EXCEEDED,
+	UFS_EVT_DL_WRONG_SEQUENCE_NUMBER,
+	UFS_EVT_DL_AFC_FRAME_SYNTAX_ERROR,
+	UFS_EVT_DL_NAC_FRAME_SYNTAX_ERROR,
+	UFS_EVT_DL_EOF_SYNTAX_ERROR,
+	UFS_EVT_DL_FRAME_SYNTAX_ERROR,
+	UFS_EVT_DL_BAD_CTRL_SYMBOL_TYPE,
+	UFS_EVT_DL_PA_INIT_ERROR,
+	UFS_EVT_DL_PA_ERROR_IND_RECEIVED,
+	UFS_EVT_DL_PA_INIT,
+	UIC_ERR_DL_MAX,
+
+	/* uic error code Natwork Layer */
+	UFS_EVT_NL_UNSUPPORTED_HEADER_TYPE = 0,
+	UFS_EVT_NL_BAD_DEVICEID_ENC,
+	UFS_EVT_NL_LHDR_TRAP_PACKET_DROPPING,
+	UFS_EVT_NL_MAX_N_PDU_LENGTH_EXCEEDED,
+	UIC_ERR_NL_MAX,
+
+	/* uic error code Transport Layer */
+	UFS_EVT_TL_UNSUPPORTED_HEADER_TYPE = 0,
+	UFS_EVT_TL_UNKNOWN_CPORTID,
+	UFS_EVT_TL_NO_CONNECTION_RX,
+	UFS_EVT_TL_CONTROLLED_SEGMENT_DROPPING,
+	UFS_EVT_TL_BAD_TC,
+	UFS_EVT_TL_E2E_CREDIT_OVERFLOW,
+	UFS_EVT_TL_SAFETY_VALVE_DROPPING,
+	UFS_EVT_TL_MAX_T_PDU_LENGTH_EXCEEDED,
+	UIC_ERR_TL_MAX,
+
+	/* uic error code DME*/
+	UFS_EVT_DME_GENERIC_ERR = 0,
+	UFS_EVT_DME_QOS_FROM_TX_DETECTED,
+	UFS_EVT_DME_QOS_FROM_RX_DETECTED,
+	UFS_EVT_DME_QOS_FROM_PA_INIT_DETECTED,
+	UIC_ERR_DME_MAX,
+};
+
+struct ufs_uic_err_code_cnt {
+	unsigned long long pa_err_cnt[UIC_ERR_PA_MAX];
+	unsigned long long dl_err_cnt[UIC_ERR_DL_MAX];
+	unsigned long long nl_err_cnt[UIC_ERR_NL_MAX];
+	unsigned long long tl_err_cnt[UIC_ERR_TL_MAX];
+	unsigned long long dme_err_cnt[UIC_ERR_DME_MAX];
+};
+
 #define PRINT_SWITCH(m, d, fmt, args...) \
 do { \
 	if (m) \
@@ -164,6 +224,7 @@ bool sprd_ufs_debug_is_supported(struct ufs_hba *hba);
 void sprd_ufs_debug_err_dump(struct ufs_hba *hba);
 void sprd_ufs_print_err_cnt(struct ufs_hba *hba);
 void ufs_sprd_update_err_cnt(struct ufs_hba *hba, u32 reg, enum err_type type);
+void ufs_sprd_update_uic_err_cnt(struct ufs_hba *hba, u32 reg, enum ufs_event_type evt);
 void ufs_sprd_sysfs_add_nodes(struct ufs_hba *hba);
 int  ufs_sprd_pwr_change_compare(struct ufs_hba *hba,
 	enum ufs_notify_change_status status,

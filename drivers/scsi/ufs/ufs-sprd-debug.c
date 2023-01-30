@@ -30,6 +30,8 @@ int cmd_record_index = -1;
 static bool exceed_max_depth;
 static spinlock_t ufs_debug_dump;
 
+/* ufs error code count */
+struct ufs_uic_err_code_cnt ufs_uic_err_code_cnt;
 /* CMD info buffer */
 struct ufs_event_info uei[UFS_CMD_RECORD_DEPTH];
 /* Minidump buffer */
@@ -583,20 +585,134 @@ void ufs_sprd_update_err_cnt(struct ufs_hba *hba, u32 reg, enum err_type type)
 }
 EXPORT_SYMBOL_GPL(ufs_sprd_update_err_cnt);
 
+void ufs_sprd_update_uic_err_cnt(struct ufs_hba *hba, u32 reg, enum ufs_event_type evt)
+{
+	int i = 0;
+	unsigned long reg_err = reg;
+
+	switch (evt) {
+	case UFS_EVT_PA_ERR:
+		for_each_set_bit(i, &reg_err, UIC_ERR_PA_MAX) {
+			ufs_uic_err_code_cnt.pa_err_cnt[i]++;
+		}
+		break;
+	case UFS_EVT_DL_ERR:
+		for_each_set_bit(i, &reg_err, UIC_ERR_DL_MAX) {
+			ufs_uic_err_code_cnt.dl_err_cnt[i]++;
+		}
+		break;
+	case UFS_EVT_NL_ERR:
+		for_each_set_bit(i, &reg_err, UIC_ERR_NL_MAX) {
+			ufs_uic_err_code_cnt.nl_err_cnt[i]++;
+		}
+		break;
+	case UFS_EVT_TL_ERR:
+		for_each_set_bit(i, &reg_err, UIC_ERR_TL_MAX) {
+			ufs_uic_err_code_cnt.tl_err_cnt[i]++;
+		}
+		break;
+	case UFS_EVT_DME_ERR:
+		for_each_set_bit(i, &reg_err, UIC_ERR_DME_MAX) {
+			ufs_uic_err_code_cnt.dme_err_cnt[i]++;
+		}
+		break;
+	default:
+		break;
+	}
+}
+EXPORT_SYMBOL_GPL(ufs_sprd_update_uic_err_cnt);
+
 static int uic_err_cnt_show(struct seq_file *m, void *v)
 {
 	struct ufs_hba *hba = dev_get_drvdata((struct device *)m->private);
 
 	seq_printf(m, "pa_err:total cnt=%llu\n",
 			hba->ufs_stats.event[UFS_EVT_PA_ERR].cnt);
+	seq_printf(m, "pa_err:PHY error on lane 0 cnt=%llu\n",
+			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_PHY_LINE0_ERR]);
+	seq_printf(m, "pa_err:PHY error on lane 1 cnt=%llu\n",
+			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_PHY_LINE1_ERR]);
+	seq_printf(m, "pa_err:generic PHY adapter error cnt=%llu\n",
+			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_GRNERIC_PA_ERR]);
+
 	seq_printf(m, "dl_err:total cnt=%llu\n",
 			hba->ufs_stats.event[UFS_EVT_DL_ERR].cnt);
+	seq_printf(m, "dl_err:NAC_RECEIVED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_NAC_RECEIVED]);
+	seq_printf(m, "dl_err:TCx_REPLAY_TIMER_EXPIRED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_TCx_REPLAY_TIMER_EXPIRED]);
+	seq_printf(m, "dl_err:AFCx_REQUEST_TIMER_EXPIRED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_AFCx_REQUEST_TIMER_EXPIRED]);
+	seq_printf(m, "dl_err:FCx_PROTECTION_TIMER_EXPIRED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_FCx_PROTECTION_TIMER_EXPIRED]);
+	seq_printf(m, "dl_err:CRC_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_CRC_ERROR]);
+	seq_printf(m, "dl_err:RX_BUFFER_OVERFLOW cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_RX_BUFFER_OVERFLOW]);
+	seq_printf(m, "dl_err:MAX_FRAME_LENGTH_EXCEEDED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_MAX_FRAME_LENGTH_EXCEEDED]);
+	seq_printf(m, "dl_err:WRONG_SEQUENCE_NUMBER cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_WRONG_SEQUENCE_NUMBER]);
+	seq_printf(m, "dl_err:AFC_FRAME_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_AFC_FRAME_SYNTAX_ERROR]);
+	seq_printf(m, "dl_err:NAC_FRAME_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_NAC_FRAME_SYNTAX_ERROR]);
+	seq_printf(m, "dl_err:EOF_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_EOF_SYNTAX_ERROR]);
+	seq_printf(m, "dl_err:FRAME_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_FRAME_SYNTAX_ERROR]);
+	seq_printf(m, "dl_err:BAD_CTRL_SYMBOL_TYPE cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_BAD_CTRL_SYMBOL_TYPE]);
+	seq_printf(m, "dl_err:PA_INIT_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_INIT_ERROR]);
+	seq_printf(m, "dl_err:PA_ERROR_IND_RECEIVED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_ERROR_IND_RECEIVED]);
+	if ((hba->ufs_version & 0xF00) == 0x300) {
+		seq_printf(m, "dl_err:PA_INIT cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_INIT]);
+	}
+
 	seq_printf(m, "nl_err:total cnt=%llu\n",
 			hba->ufs_stats.event[UFS_EVT_NL_ERR].cnt);
+	seq_printf(m, "nl_err:UNSUPPORTED_HEADER_TYPE cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_UNSUPPORTED_HEADER_TYPE]);
+	seq_printf(m, "nl_err:BAD_DEVICEID_ENC cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_BAD_DEVICEID_ENC]);
+	seq_printf(m, "nl_err:LHDR_TRAP_PACKET_DROPPING cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_LHDR_TRAP_PACKET_DROPPING]);
+	seq_printf(m, "nl_err:MAX_N_PDU_LENGTH_EXCEEDED cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_MAX_N_PDU_LENGTH_EXCEEDED]);
+
 	seq_printf(m, "tl_err:total cnt=%llu\n",
 			hba->ufs_stats.event[UFS_EVT_TL_ERR].cnt);
+	seq_printf(m, "tl_err:UNSUPPORTED_HEADER_TYPE cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_UNSUPPORTED_HEADER_TYPE]);
+	seq_printf(m, "tl_err:UNKNOWN_CPORTID cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_UNKNOWN_CPORTID]);
+	seq_printf(m, "tl_err:NO_CONNECTION_RX cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_NO_CONNECTION_RX]);
+	seq_printf(m, "tl_err:CONTROLLED_SEGMENT_DROPPING cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_CONTROLLED_SEGMENT_DROPPING]);
+	seq_printf(m, "tl_err:BAD_TC cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_BAD_TC]);
+	seq_printf(m, "tl_err:E2E_CREDIT_OVERFLOW cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_E2E_CREDIT_OVERFLOW]);
+	seq_printf(m, "tl_err:SAFETY_VALVE_DROPPING cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_SAFETY_VALVE_DROPPING]);
+	seq_printf(m, "tl_err:MAX_T_PDU_LENGTH_EXCEEDED cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_MAX_T_PDU_LENGTH_EXCEEDED]);
+
 	seq_printf(m, "dme_err:total cnt=%llu\n",
 			hba->ufs_stats.event[UFS_EVT_DME_ERR].cnt);
+	seq_printf(m, "dme_err:GENERIC_ERR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_GENERIC_ERR]);
+	seq_printf(m, "dme_err:QOS_FROM_TX_DETECTED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_TX_DETECTED]);
+	seq_printf(m, "dme_err:QOS_FROM_RX_DETECTED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_RX_DETECTED]);
+	seq_printf(m, "dme_err:QOS_FROM_PA_INIT_DETECTED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_PA_INIT_DETECTED]);
+
 	seq_printf(m, "auto_h8_err:total cnt=%llu\n",
 			hba->ufs_stats.event[UFS_EVT_AUTO_HIBERN8_ERR].cnt);
 	seq_printf(m, "fatal_err:total cnt=%llu\n",

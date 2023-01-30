@@ -886,6 +886,7 @@ static void ufs_sprd_update_evt_hist(struct ufs_hba *hba,
 		enum ufs_event_type evt, void *data)
 {
 	struct ufs_evt_dbg evt_tmp = {};
+	ufs_sprd_update_uic_err_cnt(hba, *(u32 *)data, evt);
 
 	switch (evt) {
 	case UFS_EVT_PA_ERR:
