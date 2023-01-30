@@ -39,9 +39,12 @@
 			};
 
 			pwm_backlight: sprd_backlight {
-				compatible = "pwm-backlight";
+				compatible = "sprd,sharkl3-backlight";
 				pwms = <&pwms 1 30000>;
 				pwm-names = "backlight";
+				sprd,max-brightness-level = <247>;
+				default-brightness-level = <29>;
+				sprd,brightness-scale = <255>;
 				brightness-levels = <
 								  2   2   2   2
 					  2   2   2   3   4   5   6   7   8   9
@@ -71,7 +74,6 @@
 					240 241 242 243 244 245 246 247 247 247
 					247 247
 				>;
-				default-brightness-level = <29>;
 			};
 
 			bat: battery {
