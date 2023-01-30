@@ -340,7 +340,9 @@ static void sprd_cpufreq_temp_work_func(struct work_struct *work)
 
 	ret = thermal_zone_get_temp(cluster->cpu_tz, &temp);
 	if (ret) {
-		pr_warn("failed to get the temp of cpu thmzone\n");
+		pr_warn("failed to get the cluster %u temp of cpu thmzone\n", cluster->id);
+		queue_delayed_work(system_highpri_wq, &cluster->temp_work,
+				   msecs_to_jiffies(DVFS_TEMP_UPDATE_MS));
 		return;
 	}
 
