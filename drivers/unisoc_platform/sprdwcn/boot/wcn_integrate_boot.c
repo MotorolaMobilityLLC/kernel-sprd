@@ -818,23 +818,30 @@ int wcn_get_reset_reg_setting(void)
 {
 	const struct firmware *firmware = NULL;
 	int err;
+	char *fdata;
 
 	err = request_firmware(&firmware, "wifi_board_config.ini", NULL);
 	if (err < 0) {
 		WCN_INFO("[-]%s request firmware fail\n", __func__);
 		return -1;
 	}
-	if (strstr((char *)firmware->data, "RST_REG = 1K8")) {
+
+	fdata = kmalloc(firmware->size+1, GFP_KERNEL);
+	*(fdata+firmware->size) = '\0';
+	memcpy(fdata, firmware->data, firmware->size);
+	if (strstr(fdata, "RST_REG = 1K8")) {
 		WCN_INFO("[-]%s : RST_REG = 1K8\n", __func__);
 		err = 1;
-	} else if (strstr((char *)firmware->data, "RST_REG = 4K7")) {
+	} else if (strstr(fdata, "RST_REG = 4K7")) {
 		WCN_INFO("[-]%s : RST_REG = 4K7\n", __func__);
 		err = 2;
 	} else {
 		WCN_INFO("[-]%s has no RST Reg setting\n", __func__);
 		err = -1;
 	}
+	kfree(fdata);
 	release_firmware(firmware);
+	WCN_INFO("%s is end\n", __func__);
 	return err;
 }
 
