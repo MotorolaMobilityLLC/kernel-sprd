@@ -5,3 +5,4 @@
 
 obj-$(CONFIG_PCI_EPF_TEST)		+= pci-epf-test.o
 obj-$(CONFIG_PCI_EPF_NTB)		+= pci-epf-ntb.o
+obj-$(CONFIG_PCIE_EPF_SPRD)		+= pcie-epf-sprd.o
