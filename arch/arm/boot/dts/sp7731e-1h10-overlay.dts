@@ -297,7 +297,7 @@
 };
 
 &chosen {
-	bootargs_ext = "androidboot.hardware=sp7731e_1h10 androidboot.dtbo_idx=0 dummy_hcd.num=0";
+	bootargs_ext = "dummy_hcd.num=0";
 };
 
 &reserved_memory {
