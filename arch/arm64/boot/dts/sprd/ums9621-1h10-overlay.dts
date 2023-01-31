@@ -437,44 +437,15 @@
 	status = "okay";
 };
 
-&dpu {
-	sprd,dpi-clk-pixelpll;
-};
-
 &lcd_nt36672e_truly_mipi_fhd {
-	sprd,phy-bit-clock = <1106000>;
-	sprd,dsc-enable = <1>;
-
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
 
-	sprd,esd-check-enable = <1>;
-
-	display-timings {
-		nt36672e_truly_timing1: timing1 {
-			clock-frequency = <384000000>;
-			hactive = <1080>;
-			vactive = <2408>; /*2408*/
-			hback-porch = <56>;
-			hfront-porch = <130>;
-			vback-porch = <30>;
-			vfront-porch = <890>;
-			hsync-len = <12>;
-			vsync-len = <10>;
-		};
-
-		nt36672e_truly_timing2: timing2 {
-			clock-frequency = <384000000>;
-			hactive = <1080>;
-			vactive = <2408>; /*2408*/
-			hback-porch = <56>;
-			hfront-porch = <130>;
-			vback-porch = <30>;
-			vfront-porch = <46>;
-			hsync-len = <12>;
-			vsync-len = <10>;
-		};
-	};
+	sprd,phy-bit-clock = <1106000>;
+	sprd,dpi-clk-pixelpll;
+	sprd,dpi-clk-div = <0>;
+	sprd,video-lp-cmd-enable = <0>;
+	sprd,hporch-lp-disable = <0>;
 };
 
 &lcd_g40396_truly_mipi_fhd {
@@ -482,6 +453,7 @@
 	sprd,sr-height = <1600>;
 
 	sprd,phy-bit-clock = <1106000>;
+	sprd,dpi-clk-pixelpll;
 	sprd,dpi-clk-div = <0>;
 	sprd,video-lp-cmd-enable = <0>;
 	sprd,hporch-lp-disable = <0>;
