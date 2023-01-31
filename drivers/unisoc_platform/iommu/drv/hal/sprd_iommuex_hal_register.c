@@ -48,6 +48,7 @@ void mmu_ex_vaorbypass_clkgate_enable_combined(ulong ctrl_base_addr,
 		   iommu_id == IOMMU_EX_VSP || iommu_id == IOMMU_EX_JPG ||
 		   iommu_id == IOMMU_EX_CPP) {
 		reg_value = reg_read_dword(reg_addr);
+		reg_value &= ~(1 << 4);
 		reg_write_dword(reg_addr, reg_value | 0x3);
 	} else {
 		reg_value = reg_read_dword(reg_addr);
