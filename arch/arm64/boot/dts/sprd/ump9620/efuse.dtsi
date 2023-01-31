@@ -17,12 +17,12 @@
 			reg = <0x4c 0x2>;
 		};
 
-		typec_cc1_cal: calib@1b {
-			reg = <0x36 0x2>;
+		typec_cc1_cal: calib@8 {
+			reg = <0x48 0x2>;
 		};
 
-		typec_cc2_cal: calib@1c {
-			reg = <0x37 0x2>;
+		typec_cc2_cal: calib@a {
+			reg = <0x4a 0x2>;
 		};
 
 		pdrc_calib: calib@2c {
