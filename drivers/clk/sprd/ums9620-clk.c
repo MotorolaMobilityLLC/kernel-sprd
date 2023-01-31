@@ -1056,7 +1056,7 @@ static SPRD_COMP_CLK_DATA_OFFSET(ufs_tx, "ufs-tx", ufs_tx_rx_parents,
 static SPRD_COMP_CLK_DATA_OFFSET(ufs_rx, "ufs-rx", ufs_tx_rx_parents,
 			    0x148, 0, 2, 0, 2, 0);
 static SPRD_COMP_CLK_DATA_OFFSET(ufs_rx_1, "ufs-rx-1", ufs_tx_rx_parents,
-			    0x148, 0, 2, 0, 2, 0);
+			    0x154, 0, 2, 0, 2, 0);
 
 static const struct clk_parent_data ufs_cfg_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -3539,7 +3539,7 @@ static const struct clk_parent_data dispc0_dpi_parents[] = {
 	{ .fw_name = "dphy-416m7" },
 };
 static SPRD_COMP_CLK_DATA_OFFSET(dispc0_dpi, "dispc0-dpi", dispc0_dpi_parents, 0x7c,
-			    0, 3, 0, 3, 0);
+			    0, 3, 0, 4, 0);
 
 static struct sprd_clk_common *ums9620_dpu_vsp_clk[] = {
 	/* address base is 0x30110000 */
