@@ -259,6 +259,7 @@
 #include "i2c.dtsi"
 #include "pinctrl.dtsi"
 #include "power.dtsi"
+#include "ptm.dtsi"
 #include "pwm.dtsi"
 #include "sdio.dtsi"
 #include "socid.dtsi"
