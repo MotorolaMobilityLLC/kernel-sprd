@@ -823,7 +823,7 @@
 				#size-cells = <0>;
 
 				aon-busmonitor@3{
-					compatible  = "sprd,sharkl3-busmonitor";
+					compatible  = "sprd,busmonitor";
 					interrupts = <GIC_SPI 92
 						IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x3>;
@@ -1344,7 +1344,7 @@
 			};
 
 			dmc_mpu: dmc-mpu@300e0000 {
-				compatible = "sprd,sharkl3-dmc-mpu";
+				compatible = "sprd,dmc-mpu";
 				reg = <0x300e0000 0x10000>;
 				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
 				syscon-names = "irq_clr", "irq_en";
@@ -1399,7 +1399,6 @@
 						<0>, <0>, <0>, <0>, <0>,
 						<0>;
 				sprd,ddr-offset = <0x80000000>;
-				status = "disabled";
 			};
 
 			dmc_controller: dmc-controller@300001a8 {
