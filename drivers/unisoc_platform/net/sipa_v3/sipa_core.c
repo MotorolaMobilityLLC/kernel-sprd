@@ -992,6 +992,9 @@ int sipa_set_enabled(bool enable)
 
 	spin_unlock_irqrestore(&ipa->enable_lock, flags);
 
+	dev_info(ipa->dev, "enable_cnt = %d, enable = %d\n",
+		 ipa->enable_cnt, enable);
+
 	return ret;
 }
 EXPORT_SYMBOL(sipa_set_enabled);

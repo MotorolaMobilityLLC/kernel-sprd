@@ -491,15 +491,32 @@ EXPORT_SYMBOL(sipa_nic_open);
 void sipa_nic_set_bypass_mode(bool is_bypass)
 {
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	/* sipa_nic_usb_origin:
+	 * SIPA_NIC_MAX is not real sipa network card,
+	 * when usb half_hard_half_soft, usb0 use this
+	 * parameter for mode_state.
+	 */
+	int sipa_nic_usb_origin = SIPA_NIC_MAX;
 
-	if (ipa->enable_cnt) {
+	if (!is_bypass) {
+		sipa_set_enabled(true);
 		ipa->is_bypass = is_bypass;
+
+		/* mode_state:
+		 * in order to align network card such as sipa_usb0,
+		 * make sure that when half_hard_half_soft use usb0,
+		 * it is not configured to bypass mode when nic
+		 * close network card such as sipa_eth0.
+		 */
+		ipa->mode_state |= 1 << sipa_nic_usb_origin;
 		ipa->glb_ops.set_work_mode(ipa->glb_virt_base,
 					   is_bypass);
-	} else if (!sipa_set_enabled(true)) {
+	} else {
 		ipa->is_bypass = is_bypass;
+		ipa->mode_state &= ~(1 << sipa_nic_usb_origin);
 		ipa->glb_ops.set_work_mode(ipa->glb_virt_base,
 					   is_bypass);
+		sipa_set_enabled(false);
 	}
 }
 EXPORT_SYMBOL(sipa_nic_set_bypass_mode);

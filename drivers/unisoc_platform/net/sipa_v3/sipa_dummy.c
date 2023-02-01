@@ -935,12 +935,12 @@ static int sipa_dummy_netdev_event_handler(struct notifier_block *nb,
 		sipa_dummy_netdev_set_state(ndev, true);
 		break;
 	case NETDEV_DOWN:
+		if (!strncmp(ndev->name, "usb0", 4))
+			sipa_nic_set_bypass_mode(true);
+		fallthrough;
 	case NETDEV_UNREGISTER:
 		ret = NOTIFY_OK;
 		sipa_dummy_netdev_set_state(ndev, false);
-
-		if (!strncmp(ndev->name, "usb0", 4))
-			sipa_nic_set_bypass_mode(true);
 
 		break;
 	default:
