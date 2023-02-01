@@ -805,6 +805,9 @@
 				top_force_shutdown = <&pmu_apb_regs
 					REG_PMU_APB_PD_GPU_TOP_CFG
 					MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>;
+				gpu_clk_sel = <&gpu_ahb_regs
+					REG_GPU_APB_APB_CLK_CTRL
+					MASK_GPU_APB_CLK_GPU_SEL>;
 				interrupts = <GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>;
