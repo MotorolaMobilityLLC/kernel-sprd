@@ -563,6 +563,8 @@ static void try_to_isolate(struct cluster_data *cluster, unsigned int need)
 	struct cpu_data *c, *tmp;
 	unsigned long flags;
 	unsigned int nr_isolated = 0;
+	int ret;
+
 	/*
 	 * Protect against entry being removed (and added at tail) by other
 	 * thread (hotplug).
@@ -594,17 +596,19 @@ static void try_to_isolate(struct cluster_data *cluster, unsigned int need)
 		spin_unlock_irqrestore(&state_lock, flags);
 
 		CORE_CTL_INFO("Trying to isolate CPU%u\n", c->cpu);
-		if (!sched_isolate_cpu(c->cpu)) {
+
+		ret = sched_isolate_cpu(c->cpu);
+
+		CORE_CTL_INFO("Isolate CPU%u end, ret=%d\n", c->cpu, ret);
+
+		spin_lock_irqsave(&state_lock, flags);
+
+		if (!ret) {
 			c->isolated_by_us = true;
 			c->isolate_cnt++;
 			move_cpu_lru(c, true);
 			nr_isolated++;
-			CORE_CTL_INFO("isolate_success: CPU%u\n", c->cpu);
-		} else {
-			CORE_CTL_ERR("isolate_fail: CPU%u\n", c->cpu);
 		}
-
-		spin_lock_irqsave(&state_lock, flags);
 
 		cluster->active_cpus = get_active_cpu_count(cluster);
 	}
@@ -627,6 +631,7 @@ static void try_to_unisolate(struct cluster_data *cluster, unsigned int need)
 	struct cpu_data *c, *tmp;
 	unsigned long flags;
 	unsigned int nr_unisolated = 0;
+	int ret;
 
 	/*
 	 * Protect against entry being removed (and added at tail) by other
@@ -655,17 +660,19 @@ static void try_to_unisolate(struct cluster_data *cluster, unsigned int need)
 		spin_unlock_irqrestore(&state_lock, flags);
 
 		CORE_CTL_INFO("Trying to unisolate CPU%u\n", c->cpu);
-		if (!sched_unisolate_cpu(c->cpu)) {
+
+		ret = sched_unisolate_cpu(c->cpu);
+
+		CORE_CTL_INFO("Unisolate CPU%u end, ret=%d\n", c->cpu, ret);
+
+		spin_lock_irqsave(&state_lock, flags);
+
+		if (!ret) {
 			c->isolated_by_us = false;
 			c->isolate_cnt--;
 			move_cpu_lru(c, false);
 			nr_unisolated++;
-			CORE_CTL_INFO("Unisolate CPU%u success\n", c->cpu);
-		} else {
-			CORE_CTL_INFO("Unable to unisolate CPU%u\n", c->cpu);
 		}
-
-		spin_lock_irqsave(&state_lock, flags);
 
 		cluster->active_cpus = get_active_cpu_count(cluster);
 	}
@@ -825,14 +832,15 @@ static int __ref cpuhp_core_ctl_offline(unsigned int cpu)
 	 */
 	if (state->isolated_by_us) {
 		sched_unisolate_cpu_unlocked(cpu);
+		spin_lock_irqsave(&state_lock, flags);
 		state->isolated_by_us = false;
 		cluster->nr_isolated_cpus--;
 	} else {
+		spin_lock_irqsave(&state_lock, flags);
 		/* Move a CPU to the end of the LRU when it goes offline. */
 		move_cpu_lru(state, true);
 	}
 
-	spin_lock_irqsave(&state_lock, flags);
 	cluster->active_cpus = get_active_cpu_count(cluster);
 	cluster->need_cpus = cluster->active_cpus;
 	spin_unlock_irqrestore(&state_lock, flags);
