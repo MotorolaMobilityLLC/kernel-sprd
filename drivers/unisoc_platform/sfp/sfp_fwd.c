@@ -224,6 +224,7 @@ int check_sfp_fwd_table(struct nf_conntrack_tuple *tuple,
 			/* Find the hash fwd entry */
 			curr_entry->ssfp_trans_tuple.count++;
 			*ret_info = curr_entry->ssfp_trans_tuple;
+			tuple->dst.dir = curr_entry->tuple.dst.dir;
 
 			sfp_mode_timer(curr_entry->sfp_ct);
 			break;

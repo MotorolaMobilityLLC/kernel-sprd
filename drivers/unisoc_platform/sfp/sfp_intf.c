@@ -205,6 +205,18 @@ static u8 sfp_check_l4proto(u16 l3proto,
 	return proto;
 }
 
+void sfp_update_csum_incremental(__sum16 *check, struct sk_buff *skb,
+				 u8 l3proto, __be32 oldip, __be32 newip,
+				 __be16 oldport, __be16 newport)
+{
+	if (l3proto == NFPROTO_IPV4) {
+		inet_proto_csum_replace4(check, skb, oldip, newip, true);
+		inet_proto_csum_replace2(check, skb, oldport, newport, false);
+	} else {
+		inet_proto_csum_replace2(check, skb, oldport, newport, false);
+	}
+}
+
 /* Do checksum */
 void sfp_update_checksum(void *ipheader,
 			 int  pkt_totlen,
@@ -294,7 +306,8 @@ static bool sfp_update_pkt_header(int ifindex,
 				  void *data,
 				  u32 l3offset,
 				  u32 l4offset,
-				  struct sfp_trans_tuple ret_info)
+				  struct sfp_trans_tuple ret_info,
+				  struct nf_conntrack_tuple *tuple)
 {
 	struct tcphdr *ptcphdr;
 	struct udphdr *pudphdr;
@@ -307,6 +320,16 @@ static bool sfp_update_pkt_header(int ifindex,
 	struct ipv6hdr *ip6hdr;
 	u8 *l3data;
 	struct sk_buff *skb;
+	__be32 oldsrcip = 0;
+	__be32 olddstip = 0;
+	__be32 newsrcip = 0;
+	__be32 newdstip = 0;
+	__be16 oldsrcport, newsrcport;
+	__be16 olddstport, newdstport;
+	__be16 oldicmpid, newicmpid;
+	__be16 oldicmp6id, newicmp6id;
+	u8 dir = 0;
+	__sum16 *check;
 
 	skb = (struct sk_buff *)data;
 	l3data = skb_network_header(skb);
@@ -315,6 +338,7 @@ static bool sfp_update_pkt_header(int ifindex,
 
 	l3proto = ret_info.trans_info.l3_proto;
 	l4proto = ret_info.trans_info.l4_proto;
+	dir = tuple->dst.dir;
 
 	if (l4proto == IP_L4_PROTO_TCP) {
 		ptcphdr = (struct tcphdr *)((unsigned char *)l3data + l4offset);
@@ -332,8 +356,12 @@ static bool sfp_update_pkt_header(int ifindex,
 	switch (l3proto) {
 	case NFPROTO_IPV4:
 		iphhdr = (struct iphdr *)l3data;
+		oldsrcip = iphhdr->saddr;
+		olddstip = iphhdr->daddr;
 		iphhdr->daddr = ret_info.trans_info.dst_ip.ip;
+		newdstip = iphhdr->daddr;
 		iphhdr->saddr = ret_info.trans_info.src_ip.ip;
+		newsrcip = iphhdr->saddr;
 		/* make it special, easy to distinguish */
 		if (iphhdr->ttl > SFP_SPECIAL_TTL_MINUS)
 			iphhdr->ttl -= SFP_SPECIAL_TTL_MINUS;
@@ -356,33 +384,61 @@ static bool sfp_update_pkt_header(int ifindex,
 	switch (l4proto) {
 	case IP_L4_PROTO_TCP:
 		ptcphdr = (struct tcphdr *)((unsigned char *)l3data + l4offset);
+		check = &ptcphdr->check;
+		oldsrcport = ptcphdr->source;
+		olddstport = ptcphdr->dest;
 		ptcphdr->dest = ret_info.trans_info.dst_l4_info.all;
+		newdstport = ptcphdr->dest;
 		ptcphdr->source = ret_info.trans_info.src_l4_info.all;
+		newsrcport = ptcphdr->source;
 		ether_addr_copy(peth->h_dest, ret_info.trans_mac_info.dst_mac);
 		ether_addr_copy(peth->h_source, ret_info.trans_mac_info.src_mac);
+		sfp_update_csum_incremental(check, skb, l3proto, oldsrcip,
+					    newsrcip, oldsrcport, newsrcport);
+		sfp_update_csum_incremental(check, skb, l3proto, olddstip,
+					    newdstip, olddstport, newdstport);
 		break;
 	case IP_L4_PROTO_UDP:
 		pudphdr = (struct udphdr *)((unsigned char *)l3data + l4offset);
+		check = &pudphdr->check;
+		oldsrcport = pudphdr->source;
+		olddstport = pudphdr->dest;
 		pudphdr->dest = ret_info.trans_info.dst_l4_info.all;
+		newdstport = pudphdr->dest;
 		pudphdr->source = ret_info.trans_info.src_l4_info.all;
+		newsrcport = pudphdr->source;
 		ether_addr_copy(peth->h_dest, ret_info.trans_mac_info.dst_mac);
 		ether_addr_copy(peth->h_source, ret_info.trans_mac_info.src_mac);
+		sfp_update_csum_incremental(check, skb, l3proto, oldsrcip,
+					    newsrcip, oldsrcport, newsrcport);
+		sfp_update_csum_incremental(check, skb, l3proto, olddstip,
+					    newdstip, olddstport, newdstport);
 		break;
 	case IP_L4_PROTO_ICMP:
 		picmphdr =
 			(struct icmphdr *)((unsigned char *)l3data + l4offset);
 		/*icmp id in dst_l4_info*/
+		check = &picmphdr->checksum;
+		oldicmpid = picmphdr->un.echo.id;
 		picmphdr->un.echo.id = ret_info.trans_info.dst_l4_info.all;
+		newicmpid = picmphdr->un.echo.id;
 		ether_addr_copy(peth->h_dest, ret_info.trans_mac_info.dst_mac);
 		ether_addr_copy(peth->h_source, ret_info.trans_mac_info.src_mac);
+		inet_proto_csum_replace2(check, skb, oldicmpid,
+								 newicmpid, false);
 		break;
 	case IP_L4_PROTO_ICMP6:
 		picmp6hdr =
 			(struct icmp6hdr *)((unsigned char *)l3data + l4offset);
+		check = &picmp6hdr->icmp6_cksum;
+		oldicmp6id = picmp6hdr->icmp6_identifier;
 		picmp6hdr->icmp6_identifier =
 			ret_info.trans_info.dst_l4_info.all;
+		newicmp6id = picmp6hdr->icmp6_identifier;
 		ether_addr_copy(peth->h_dest, ret_info.trans_mac_info.dst_mac);
 		ether_addr_copy(peth->h_source, ret_info.trans_mac_info.src_mac);
+		inet_proto_csum_replace2(check, skb, oldicmp6id,
+								 newicmp6id, false);
 		break;
 	default:
 		FP_PRT_DBG(FP_PRT_DEBUG, "Unexpected IP protocol.\n");
@@ -498,16 +554,10 @@ static int sfp_check_mod_pkts(u32 ifindex,
 
 	sfp_ret = sfp_update_pkt_header(ifindex,
 					data, l3offset,
-					l4offset, ret_info);
+					l4offset, ret_info, &tuple);
 	if (!sfp_ret)
 		return -SFP_FAIL;
 
-	sfp_update_checksum((void *)ip_header,
-			    totlen,
-			    l3proto,
-			    l3offset,
-			    proto,
-			    l4offset);
 	if (skb->dev->header_ops)
 		skb_push(skb, ETH_HLEN);
 	return out_ifindex;
