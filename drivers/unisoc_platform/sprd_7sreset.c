@@ -43,6 +43,11 @@ struct sprd_7sreset {
 	const struct sprd_7sreset_priv *priv;
 };
 
+static struct sprd_7sreset_priv sc2721_7sreset = {
+	.chip_ver = 0x2721,
+	.reg_wr_protect = 0,
+};
+
 static struct sprd_7sreset_priv sc2730_7sreset = {
 	.chip_ver = 0x2730,
 	.reg_wr_protect = 0,
@@ -59,6 +64,7 @@ static struct sprd_7sreset_priv ump9620_7sreset = {
 };
 
 static const struct of_device_id sprd_7sreset_of_match[] = {
+	{.compatible = "sprd,sc2721-7sreset", .data = (void *)&sc2721_7sreset},
 	{.compatible = "sprd,sc2730-7sreset", .data = (void *)&sc2730_7sreset},
 	{.compatible = "sprd,sc2731-7sreset", .data = (void *)&sc2731_7sreset},
 	{.compatible = "sprd,ump9620-7sreset", .data = (void *)&ump9620_7sreset},
