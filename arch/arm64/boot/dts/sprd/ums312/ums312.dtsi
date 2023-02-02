@@ -262,6 +262,7 @@
 #include "ptm.dtsi"
 #include "pwm.dtsi"
 #include "sdio.dtsi"
+#include "sensorhub.dtsi"
 #include "socid.dtsi"
 #include "spi.dtsi"
 #include "timer.dtsi"
