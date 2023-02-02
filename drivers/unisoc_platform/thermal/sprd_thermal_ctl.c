@@ -245,9 +245,13 @@ static int sprd_thermal_ctl_init(void)
 		}
 	}
 
+#if IS_ENABLED(CONFIG_UNISOC_SOC_THERMAL)
 	soc_tz = thermal_zone_get_zone_by_name("soc-thmzone");
+#else
+	soc_tz = thermal_zone_get_zone_by_name("cpu-thmzone");
+#endif
 	if (IS_ERR(soc_tz)) {
-		pr_err("Failed to get soc thermal zone\n");
+		pr_err("Failed to get soc-thmzone or cpu-thmzone\n");
 		goto fail;
 	}
 

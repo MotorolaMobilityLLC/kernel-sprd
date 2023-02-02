@@ -619,9 +619,13 @@ cpu_cooling_register(struct device_node *np,
 		cpu_cdev->nsensor =
 			cpu_cdev->power_ops->get_sensor_count_p(id);
 
+#if IS_ENABLED(CONFIG_UNISOC_SOC_THERMAL)
 	cpu_tz = thermal_zone_get_zone_by_name("soc-thmzone");
+#else
+	cpu_tz = thermal_zone_get_zone_by_name("cpu-thmzone");
+#endif
 	if (IS_ERR(cpu_tz)) {
-		pr_err("Failed to get soc thermal zone\n");
+		pr_err("Failed to get soc-thmzone or cpu-thmzone\n");
 		cdev = ERR_PTR(-EINVAL);
 		goto remove_ida;
 	}
