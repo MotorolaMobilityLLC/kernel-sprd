@@ -418,7 +418,7 @@ static int gsp_dvfs_notify_callback(struct notifier_block *nb,
 		return NOTIFY_DONE;
 	}
 
-	if (!gsp->dvfs_enable || gsp->work_freq == freq)
+	if (!gsp->dvfs_enable)
 		return NOTIFY_DONE;
 
 	if (gsp->dvfs_ops && gsp->dvfs_ops->set_work_freq) {
