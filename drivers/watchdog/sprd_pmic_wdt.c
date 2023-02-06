@@ -208,7 +208,8 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 				      sprd_pimc_wdt_init, pmic_wdt);
 	if (rval) {
 		dev_err(&pdev->dev, "sbuf notifier failed rval = %d\n", rval);
-		return rval;
+		return EPROBE_DEFER; //depends on UNISOC_SIPC for SP9863-GO
+		//return rval;
 	}
 
 	device_init_wakeup(pmic_wdt->dev, true);
