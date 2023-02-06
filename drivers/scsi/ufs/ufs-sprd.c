@@ -118,12 +118,10 @@ static void ufs_sprd_vh_compl_cmd(void *data,
 {
 	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
 		if (lrbp->cmd)
-			ufshcd_transfer_event_trace(hba, UFS_TRACE_COMPLETED,
-							 lrbp->task_tag);
+			ufshcd_common_trace(hba, UFS_TRACE_COMPLETED, &lrbp->task_tag);
 		else if (lrbp->command_type == UTP_CMD_TYPE_DEV_MANAGE ||
 			 lrbp->command_type == UTP_CMD_TYPE_UFS_STORAGE)
-			ufshcd_transfer_event_trace(hba, UFS_TRACE_DEV_COMPLETED,
-							 lrbp->task_tag);
+			ufshcd_common_trace(hba, UFS_TRACE_DEV_COMPLETED, &lrbp->task_tag);
 	}
 
 	if (lrbp->cmd &&
@@ -226,9 +224,9 @@ static void ufs_sprd_vh_send_cmd(void *data,
 
 	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
 		if (!!lrbp->cmd)
-			ufshcd_transfer_event_trace(hba, UFS_TRACE_SEND, lrbp->task_tag);
+			ufshcd_common_trace(hba, UFS_TRACE_SEND, &lrbp->task_tag);
 		else
-			ufshcd_transfer_event_trace(hba, UFS_TRACE_DEV_SEND, lrbp->task_tag);
+			ufshcd_common_trace(hba, UFS_TRACE_DEV_SEND, &lrbp->task_tag);
 	}
 }
 

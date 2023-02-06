@@ -11,6 +11,7 @@
 #include <asm/unaligned.h>
 #include <linux/proc_fs.h>
 #include <linux/panic_notifier.h>
+#include <linux/sched/clock.h>
 #include <../drivers/unisoc_platform/sysdump/unisoc_sysdump.h>
 
 #include "ufs.h"
@@ -88,91 +89,14 @@ void sprd_ufs_print_err_cnt(struct ufs_hba *hba)
 	dev_err(hba->dev, "scsi_timeout: total cnt=%llu\n", ufs_err_cnt.scsi_timeout_cnt);
 }
 
-void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *data)
+static void sprd_ufs_cmd_record(struct ufs_hba *hba, enum ufs_event_list event,
+			int idx, unsigned int tag)
 {
-	int idx;
-	unsigned long flags;
-	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-
-	if (!sprd_ufs_debug_is_supported(hba) && event != UFS_TRACE_DEBUG_TRIGGER)
-		return;
-
-	if (data == NULL && event < UFS_TRACE_RESET_AND_RESTORE)
-		return;
-
-	spin_lock_irqsave(&ufs_debug_dump, flags);
-
-	if (++cmd_record_index >= UFS_CMD_RECORD_DEPTH) {
-		cmd_record_index = 0;
-		exceed_max_depth = true;
-	}
-	idx = cmd_record_index;
-
-	spin_unlock_irqrestore(&ufs_debug_dump, flags);
-
-	uei[idx].event = event;
-	uei[idx].cpu = current->cpu;
-	uei[idx].pid = current->pid;
-	uei[idx].time = ktime_get();
-	uei[idx].jiffies = jiffies;
-
-	switch (event) {
-	case UFS_TRACE_TM_SEND:
-	case UFS_TRACE_TM_COMPLETED:
-	case UFS_TRACE_TM_ERR:
-		memcpy(&uei[idx].pkg, data, sizeof(struct ufs_tm_cmd_info));
-		break;
-	case UFS_TRACE_UIC_SEND:
-	case UFS_TRACE_UIC_CMPL:
-		memcpy(&uei[idx].pkg, data, sizeof(struct ufs_uic_cmd_info));
-		break;
-	case UFS_TRACE_CLK_GATE:
-		memcpy(&uei[idx].pkg, data, sizeof(struct ufs_clk_dbg));
-		break;
-	case UFS_TRACE_EVT:
-		memcpy(&uei[idx].pkg, data, sizeof(struct ufs_evt_dbg));
-		break;
-	case UFS_TRACE_DEBUG_TRIGGER:
-		uei[idx].flag = host->debug_en;
-		uei[idx].panic_f = host->err_panic;
-		break;
-	case UFS_TRACE_INT_ERROR:
-		uei[idx].pkg.ie.errors = hba->errors;
-		uei[idx].pkg.ie.uic_error = hba->uic_error;
-		break;
-	default:
-		break;
-	}
-}
-
-void ufshcd_transfer_event_trace(struct ufs_hba *hba,
-				      enum ufs_event_list event,
-				      unsigned int tag)
-{
-	int idx;
-	unsigned long flags;
 	u32 crypto;
 	struct ufshcd_lrb *lrbp = &hba->lrb[tag];
 	struct scsi_cmnd *cmd;
 	struct request *rq;
 
-	if (!sprd_ufs_debug_is_supported(hba))
-		return;
-
-	spin_lock_irqsave(&ufs_debug_dump, flags);
-
-	if (++cmd_record_index >= UFS_CMD_RECORD_DEPTH) {
-		cmd_record_index = 0;
-		exceed_max_depth = true;
-	}
-	idx = cmd_record_index;
-
-	spin_unlock_irqrestore(&ufs_debug_dump, flags);
-
-	uei[idx].event = event;
-	uei[idx].cpu = current->cpu;
-	uei[idx].pid = current->pid;
-	uei[idx].jiffies = jiffies;
 	if (lrbp->cmd) {
 		cmd = lrbp->cmd;
 		rq = scsi_cmd_to_rq(cmd);
@@ -201,7 +125,6 @@ void ufshcd_transfer_event_trace(struct ufs_hba *hba,
 		}
 
 		if (event == UFS_TRACE_COMPLETED) {
-			uei[idx].time = lrbp->compl_time_stamp;
 			uei[idx].pkg.ci.time_cost = lrbp->compl_time_stamp - lrbp->issue_time_stamp;
 			/* response info */
 			uei[idx].pkg.ci.ocs =
@@ -222,12 +145,10 @@ void ufshcd_transfer_event_trace(struct ufs_hba *hba,
 			uei[idx].pkg.ci.crypto_en = crypto ? 1 : 0;
 
 			if (event == UFS_TRACE_SEND) {
-				uei[idx].time = lrbp->issue_time_stamp;
 				uei[idx].pkg.ci.keyslot =
 					crypto ? hba->lrb[tag].crypto_key_slot : 0;
 			} else {
 				/* UFS_TREAC_SCSI_TIME_OUT */
-				uei[idx].time = ktime_get();
 				uei[idx].pkg.ci.rq = rq;
 				uei[idx].pkg.ci.deadline = rq->deadline;
 			}
@@ -238,7 +159,6 @@ void ufshcd_transfer_event_trace(struct ufs_hba *hba,
 		uei[idx].pkg.dmi.lun = lrbp->lun;
 
 		if (event == UFS_TRACE_DEV_COMPLETED) {
-			uei[idx].time = lrbp->compl_time_stamp;
 			uei[idx].pkg.dmi.time_cost =
 				lrbp->compl_time_stamp - lrbp->issue_time_stamp;
 			/* response info */
@@ -247,10 +167,74 @@ void ufshcd_transfer_event_trace(struct ufs_hba *hba,
 			memcpy(&uei[idx].pkg.dmi.rsp, lrbp->ucd_rsp_ptr,
 			       sizeof(struct utp_upiu_rsp));
 		} else {
-			uei[idx].time = lrbp->issue_time_stamp;
 			memcpy(&uei[idx].pkg.dmi.req, lrbp->ucd_req_ptr,
 			       sizeof(struct utp_upiu_req));
 		}
+	}
+
+}
+
+void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *data)
+{
+	int idx;
+	unsigned long flags;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	if (!sprd_ufs_debug_is_supported(hba) && event != UFS_TRACE_DEBUG_TRIGGER)
+		return;
+
+	if (data == NULL && event < UFS_TRACE_RESET_AND_RESTORE)
+		return;
+
+	spin_lock_irqsave(&ufs_debug_dump, flags);
+
+	if (++cmd_record_index >= UFS_CMD_RECORD_DEPTH) {
+		cmd_record_index = 0;
+		exceed_max_depth = true;
+	}
+	idx = cmd_record_index;
+
+	spin_unlock_irqrestore(&ufs_debug_dump, flags);
+
+	uei[idx].event = event;
+	uei[idx].cpu = current->cpu;
+	uei[idx].pid = current->pid;
+	uei[idx].time = local_clock();
+	uei[idx].jiffies = jiffies;
+
+	switch (event) {
+	case UFS_TRECE_SCSI_TIME_OUT:
+	case UFS_TRACE_SEND:
+	case UFS_TRACE_COMPLETED:
+	case UFS_TRACE_DEV_SEND:
+	case UFS_TRACE_DEV_COMPLETED:
+		sprd_ufs_cmd_record(hba, event, idx, *(unsigned int *)data);
+		break;
+	case UFS_TRACE_TM_SEND:
+	case UFS_TRACE_TM_COMPLETED:
+	case UFS_TRACE_TM_ERR:
+		memcpy(&uei[idx].pkg, data, sizeof(struct ufs_tm_cmd_info));
+		break;
+	case UFS_TRACE_UIC_SEND:
+	case UFS_TRACE_UIC_CMPL:
+		memcpy(&uei[idx].pkg, data, sizeof(struct ufs_uic_cmd_info));
+		break;
+	case UFS_TRACE_CLK_GATE:
+		memcpy(&uei[idx].pkg, data, sizeof(struct ufs_clk_dbg));
+		break;
+	case UFS_TRACE_EVT:
+		memcpy(&uei[idx].pkg, data, sizeof(struct ufs_evt_dbg));
+		break;
+	case UFS_TRACE_DEBUG_TRIGGER:
+		uei[idx].flag = host->debug_en;
+		uei[idx].panic_f = host->err_panic;
+		break;
+	case UFS_TRACE_INT_ERROR:
+		uei[idx].pkg.ie.errors = hba->errors;
+		uei[idx].pkg.ie.uic_error = hba->uic_error;
+		break;
+	default:
+		break;
 	}
 }
 
@@ -355,9 +339,9 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 			/* sense data info */
 			if (uei[ptr].pkg.ci.ocs == SUCCESS &&
 			    uei[ptr].pkg.ci.trans_type == UPIU_TRANSACTION_RESPONSE &&
-			    (uei[ptr].pkg.ci.scsi_stat & ~(SAM_STAT_CHECK_CONDITION |
-							   SAM_STAT_TASK_SET_FULL |
-							   SAM_STAT_BUSY)) != 0 &&
+			    (uei[ptr].pkg.ci.scsi_stat & (SAM_STAT_CHECK_CONDITION |
+							  SAM_STAT_TASK_SET_FULL |
+							  SAM_STAT_BUSY)) != 0 &&
 			    uei[ptr].pkg.ci.sd_size)
 				for (; k < uei[ptr].pkg.ci.sd_size && n < sb; ++k)
 					n += scnprintf(b + n, sb - n, "%02x ",
@@ -373,7 +357,7 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 			(u64)uei[ptr].pkg.ci.time_cost,
 			uei[ptr].pkg.ci.ocs,
 			uei[ptr].pkg.ci.trans_type, uei[ptr].pkg.ci.scsi_stat,
-			uei[ptr].pkg.ci.sd_size ? b : "NO SENSEDATA");
+			n ? b : "NO SENSEDATA");
 			break;
 		case UFS_TRACE_DEV_SEND:
 			PRINT_SWITCH(m, dump_pos,
@@ -460,7 +444,7 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 			break;
 		}
 	}
-	ktime = ktime_get();
+	ktime = local_clock();
 	cur_time = ktime_get_boottime();
 	PRINT_SWITCH(m, dump_pos, "time:%lld.%09lld, current_time:%lld.%09lld\n",
 		     ktime / NSEC_PER_SEC, ktime % NSEC_PER_SEC,
@@ -770,7 +754,7 @@ static enum blk_eh_timer_return ufs_sprd_eh_timed_out(struct scsi_cmnd *scmd)
 	ufs_sprd_update_err_cnt(hba, 0, UFS_SCSI_TIMEOUT);
 
 	if (sprd_ufs_debug_is_supported(hba) == TRUE)
-		ufshcd_transfer_event_trace(hba, UFS_TRECE_SCSI_TIME_OUT, tag);
+		ufshcd_common_trace(hba, UFS_TRECE_SCSI_TIME_OUT, &tag);
 
 	sprd_ufs_debug_err_dump(hba);
 
