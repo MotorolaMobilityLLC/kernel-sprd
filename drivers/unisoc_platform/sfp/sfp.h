@@ -412,8 +412,8 @@ static inline void fp_prt_tuple_info(int dbg_lvl,
 				     const struct nf_conntrack_tuple *tuple)
 {
 	if (tuple->src.l3num == NFPROTO_IPV4) {
-		u32 src = ntohl(tuple->src.u3.ip);
-		u32 dst = ntohl(tuple->dst.u3.ip);
+		u32 src = tuple->src.u3.ip;
+		u32 dst = tuple->dst.u3.ip;
 
 		FP_PRT_DBG(dbg_lvl,
 			   "\t[%u]-%pI4-%pI4-proto[%u][%u][%u]\n",
