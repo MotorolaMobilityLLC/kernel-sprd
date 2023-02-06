@@ -2220,7 +2220,6 @@ static int musb_sprd_pm_suspend(struct device *dev)
 	struct sprd_glue *glue = dev_get_drvdata(dev);
 	struct musb *musb = glue->musb;
 	u32 msk, val;
-	int ret;
 
 	dev_info(glue->dev, "%s: enter\n", __func__);
 
@@ -2235,13 +2234,6 @@ static int musb_sprd_pm_suspend(struct device *dev)
 	}
 
 	if (musb->is_offload && !musb->offload_used) {
-		if (glue->vbus) {
-			dev_info(glue->dev, "disable vbus regulator\n");
-			ret = regulator_disable(glue->vbus);
-			if (ret < 0)
-				dev_err(glue->dev,
-					"Failed to disable vbus: %d\n", ret);
-		}
 		if (glue->pmu) {
 			val = msk = glue->usb_pub_slp_poll_mask;
 			regmap_update_bits(glue->pmu,
@@ -2263,9 +2255,9 @@ static int musb_sprd_pm_suspend(struct device *dev)
 		}
 	}
 
-	/* in host audio offload mode, don't do suspend */
-	if (glue->dr_mode == USB_DR_MODE_HOST && musb->is_offload) {
-		dev_info(glue->dev, "don't do %s in offload mode\n", __func__);
+	/* in host mode, don't do suspend */
+	if (glue->dr_mode == USB_DR_MODE_HOST) {
+		dev_info(glue->dev, "don't do %s in host mode\n", __func__);
 		return 0;
 	}
 
@@ -2280,18 +2272,10 @@ static int musb_sprd_pm_resume(struct device *dev)
 	struct sprd_glue *glue = dev_get_drvdata(dev);
 	struct musb *musb = glue->musb;
 	u32 msk;
-	int ret;
 
 	dev_info(glue->dev, "%s: enter\n", __func__);
 
 	if (musb->is_offload && !musb->offload_used) {
-		if (glue->vbus) {
-			dev_info(glue->dev, "enable vbus regulator\n");
-			ret = regulator_enable(glue->vbus);
-			if (ret < 0)
-				dev_err(glue->dev,
-					"Failed to enable vbus: %d\n", ret);
-		}
 		if (glue->pmu) {
 			msk = glue->usb_pub_slp_poll_mask;
 			regmap_update_bits(glue->pmu,

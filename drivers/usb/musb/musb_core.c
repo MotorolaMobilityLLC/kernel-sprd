@@ -1234,6 +1234,13 @@ void musb_start(struct musb *musb)
 	if (musb->config->maximum_speed == USB_SPEED_HIGH ||
 			musb->config->maximum_speed == USB_SPEED_UNKNOWN)
 		power |= MUSB_POWER_HSENAB;
+
+	/*
+	 * for suspend/resume feature, we should set POWER.Enable_SuspendM to enable
+	 * SUSPENDM output, which can control phy to enter into suspend mode.
+	 */
+	power |= MUSB_POWER_ENSUSPEND;
+
 	musb_writeb(regs, MUSB_POWER, power);
 
 	musb->is_active = 0;
@@ -2777,9 +2784,9 @@ static int musb_suspend(struct device *dev)
 	unsigned long	flags;
 	int ret;
 
-	/* in host audio offload mode, don't do suspend */
-	if (is_host_active(musb) && musb->is_offload) {
-		dev_info(musb->controller, "don't do %s in offload mode\n", __func__);
+	/* in host mode, don't do suspend */
+	if (is_host_active(musb)) {
+		dev_info(musb->controller, "don't do %s in host mode\n", __func__);
 		return 0;
 	}
 
@@ -2830,9 +2837,9 @@ static int musb_resume(struct device *dev)
 	u8 devctl;
 	u8 mask;
 
-	/* in host audio offload mode, don't do resume */
-	if (is_host_active(musb) && musb->is_offload) {
-		dev_info(musb->controller, "don't do %s in offload mode\n", __func__);
+	/* in host mode, don't do resume */
+	if (is_host_active(musb)) {
+		dev_info(musb->controller, "don't do %s in host mode\n", __func__);
 		return 0;
 	}
 
