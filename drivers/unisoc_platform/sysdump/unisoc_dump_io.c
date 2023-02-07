@@ -312,8 +312,10 @@ static int __init sprd_dump_io_init(void)
 
 err_save:
 	kfree(sprd_io_seq_buf);
+	sprd_io_seq_buf = NULL;
 err_io_seq:
 	kfree(sprd_io_buf);
+	sprd_io_buf = NULL;
 	return ret;
 
 }
@@ -323,7 +325,9 @@ static void __exit sprd_dump_io_exit(void)
 	atomic_notifier_chain_unregister(&panic_notifier_list,
 						&sprd_io_event_nb);
 	kfree(sprd_io_buf);
+	sprd_io_buf = NULL;
 	kfree(sprd_io_seq_buf);
+	sprd_io_seq_buf = NULL;
 
 }
 

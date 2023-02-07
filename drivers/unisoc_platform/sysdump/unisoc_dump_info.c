@@ -903,6 +903,7 @@ static void unisoc_free_stack_regs_stats(void)
 {
 	unregister_trace_android_vh_ipi_stop(trace_ipi_stop, NULL);
 	minidump_release_section("stack_regs", unisoc_sr_seq_buf);
+	unisoc_sr_seq_buf = NULL;
 }
 
 static int unisoc_kinfo_panic_event(struct notifier_block *self,
@@ -941,8 +942,11 @@ static void __exit unisoc_dumpinfo_exit(void)
 	atomic_notifier_chain_unregister(&panic_notifier_list,
 					 &unisoc_kinfo_panic_event_nb);
 	minidump_release_section("task_stats", unisoc_task_seq_buf);
+	unisoc_task_seq_buf = NULL;
 	minidump_release_section("runqueue", unisoc_rq_seq_buf);
+	unisoc_rq_seq_buf = NULL;
 	minidump_release_section("meminfo", unisoc_mem_seq_buf);
+	unisoc_mem_seq_buf = NULL;
 	unisoc_free_stack_regs_stats();
 }
 
