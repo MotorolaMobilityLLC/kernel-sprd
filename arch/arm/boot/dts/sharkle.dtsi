@@ -915,6 +915,7 @@
 				qos_threshold_mm = <&mm_ahb_regs REG_MM_AHB_QOS_THREHOLD_MM
 					(MASK_MM_AHB_AR_QOS_THREHOLD_MM |
 					MASK_MM_AHB_AW_QOS_THREHOLD_MM)>;
+				aon-apb-mm-eb = <&aon_apb_regs REG_AON_APB_APB_EB0 MASK_AON_APB_MM_EB>;
 				#power-domain-cells = <0>;
 				status = "disabled";
 			};
