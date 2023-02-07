@@ -110,11 +110,11 @@ const struct ext_modem_operations *ext_modem_ops;
 #endif
 
 #ifdef CONFIG_ARM64
-#define modem_memory_unmap(type, vmem)		memunmap((vmem))
+#define modem_memory_unmap(type, vmem)		modem_ram_unmap((type), (vmem))
 #define ALIGN_NUM				8
 #define ALIGN_MASK				0xFFFFFFFFFFFFFFF8
 #else
-#define modem_memory_unmap(type, vmem)		modem_ram_unmap((type), (vmem))
+#define modem_memory_unmap(type, vmem)		memunmap((vmem))
 #define ALIGN_NUM				4
 #define ALIGN_MASK				0xFFFFFFFC
 #endif
@@ -303,6 +303,7 @@ static ssize_t sprd_modem_seg_dump(struct modem_device *modem, u32 base, u32 max
 	phys_addr_t loop = 0;
 	u32 start_addr;
 	u32 total;
+	ssize_t map_size;
 
 	if (offset >= maxsz)
 		return 0;
@@ -315,8 +316,8 @@ static ssize_t sprd_modem_seg_dump(struct modem_device *modem, u32 base, u32 max
 
 	do {
 		u32 copy_size = MODEM_VMALLOC_SIZE_LIMIT;
-		vmem = memremap(start_addr + MODEM_VMALLOC_SIZE_LIMIT * loop,
-				MODEM_VMALLOC_SIZE_LIMIT, MEMREMAP_WB);
+		vmem = modem_map_memory(modem, start_addr + MODEM_VMALLOC_SIZE_LIMIT * loop,
+				MODEM_VMALLOC_SIZE_LIMIT, &map_size);
 		if (!vmem) {
 			pr_err("unable to map base: 0x%08llx\n",
 			       start_addr + MODEM_VMALLOC_SIZE_LIMIT * loop);
