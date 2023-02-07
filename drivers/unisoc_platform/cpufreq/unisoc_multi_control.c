@@ -423,7 +423,7 @@ static void __exit sprd_multi_control_exit(void)
 	multi_control_exit();
 }
 
-module_init(sprd_multi_control_init);
+late_initcall(sprd_multi_control_init);
 module_exit(sprd_multi_control_exit);
 
 MODULE_DESCRIPTION("for cpufreq high level freq control");
