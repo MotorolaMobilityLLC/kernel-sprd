@@ -18,6 +18,7 @@ elif [[ $BSP_DTSONLY_CONFIG == "true" ]]; then
 else
 EXT_MODULES="
 ../modules/kernel5.15/sample
+../modules/kernel5.15/input/misc/bma253
 ../modules/kernel5.15/input/misc/lis2dh
 ../modules/kernel5.15/input/misc/ltr_558als
 ../modules/kernel5.15/input/misc/akm099xx
