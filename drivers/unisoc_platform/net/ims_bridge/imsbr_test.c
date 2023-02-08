@@ -648,15 +648,18 @@ static void imsbr_test_tuple_dump(unsigned long unused)
 
 static void imsbr_test_cptuple_reset(unsigned long unused)
 {
-	struct imsbr_msghdr msg = {};
 	struct call_c_function ccf = { };
+	struct imsbr_msghdr *msg = kmalloc(sizeof(struct imsbr_msghdr)
+					   + 2 * sizeof(char), GFP_KERNEL);
 
 	g_test_result = IMSBR_TEST_INPROGRESS;
 	call_core_function(&ccf);
 
-	msg.imsbr_payload[0] = 1;
+	strcpy(msg->imsbr_payload, "1");
 
-	ccf.cptuple_reset(&msg, 0);
+	ccf.cptuple_reset(msg, 0);
+
+	kfree(msg);
 
 	g_test_result = IMSBR_TEST_PASS;
 }
