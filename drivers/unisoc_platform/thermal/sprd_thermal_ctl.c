@@ -312,7 +312,7 @@ static void sprd_thermal_ctl_exit(void)
 
 }
 
-module_init(sprd_thermal_ctl_init);
+postcore_initcall_sync(sprd_thermal_ctl_init);
 module_exit(sprd_thermal_ctl_exit);
 
 MODULE_DESCRIPTION("for sprd thermal control");
