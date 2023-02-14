@@ -351,3 +351,7 @@
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
 };
+
+&sdio0 {
+	cd-gpios = <&eic_sync 19 GPIO_ACTIVE_LOW>;
+};
