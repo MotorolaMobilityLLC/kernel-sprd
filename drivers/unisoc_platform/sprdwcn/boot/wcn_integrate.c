@@ -1516,11 +1516,14 @@ void mdbg_hold_cpu(void)
 	phys_addr_t init_addr;
 
 	wcn_soft_reset_release_btwf_cpu(WCN_BTWF_CPU_RESET);
+
 	/* set cache flag */
 	value = MDBG_CACHE_FLAG_VALUE;
 	init_addr = wcn_get_btwf_init_status_addr();
 	wcn_write_data_to_phy_addr(init_addr, (void *)&value, 4);
 
+	//wait for set flag done
+	usleep_range(2000, 2500);
 	wcn_soft_reset_release_btwf_cpu(WCN_BTWF_CPU_RESET_RELEASE);
 }
 
