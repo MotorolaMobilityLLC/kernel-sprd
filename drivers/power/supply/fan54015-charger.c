@@ -105,6 +105,7 @@ struct fan54015_charger_info {
 	struct alarm wdg_timer;
 	bool is_charger_online;
 	bool probe_initialized;
+	bool shutdown_flag;
 };
 
 static int
@@ -799,6 +800,9 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
+	if (info->shutdown_flag)
+		return ret;
+
 	if (unlikely(!info->probe_initialized)) {
 		timeout = wait_for_completion_timeout(&info->probe_init, FAN54015_PROBE_TIMEOUT);
 		if (!timeout) {
@@ -1100,6 +1104,7 @@ static void fan54015_charger_shutdown(struct i2c_client *client)
 			dev_err(info->dev,
 				"enable charger detection function failed ret = %d\n", ret);
 	}
+	info->shutdown_flag = true;
 }
 
 static int fan54015_charger_remove(struct i2c_client *client)

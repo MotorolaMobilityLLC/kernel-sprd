@@ -115,6 +115,7 @@ struct sgm41511_charger_info {
 	bool disable_power_path;
 	bool probe_initialized;
 	bool use_typec_extcon;
+	bool shutdown_flag;
 };
 
 static bool enable_dump_stack;
@@ -1124,6 +1125,9 @@ static int sgm41511_charger_enable_otg(struct regulator_dev *dev)
 		return -EINVAL;
 	}
 
+	if (info->shutdown_flag)
+		return ret;
+
 	sgm41511_charger_dump_stack();
 
 	if (!sgm41511_probe_is_ready(info)) {
@@ -1457,6 +1461,7 @@ static void sgm41511_charger_shutdown(struct i2c_client *client)
 			dev_err(info->dev,
 				"enable charger detection function failed ret = %d\n", ret);
 	}
+	info->shutdown_flag = true;
 }
 
 static int sgm41511_charger_remove(struct i2c_client *client)
