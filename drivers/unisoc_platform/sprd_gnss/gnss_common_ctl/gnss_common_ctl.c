@@ -28,6 +28,7 @@
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <misc/wcn_bus.h>
+#include <linux/platform_data/sprd_ump96xx_tsensor.h>
 
 #include "gnss_common.h"
 
@@ -180,98 +181,6 @@ static void pmic_sc27xx_tsen_disable(struct regmap *regmap,
 	dev_err(dev, "%s 2nd read 0x%x\n", __func__, value);
 }
 
-static void pmic_ump9622_tsen_enable(struct regmap *regmap,
-					unsigned int base, int type)
-{
-	unsigned int value, temp;
-	struct device *dev = gnss_common_ctl_dev.dev;
-
-	dev_err(dev, "%s,ump9622-syscon base 0x%x\n", __func__, base);
-
-	regmap_read(regmap, (base + UMP7522_XTL_WAIT_CTRL0), &value);
-	dev_err(dev, "%s XTL_WAIT_CTRL0 value read 0x%x\n", __func__, value);
-	temp = value | UMP7522_BIT_XTL_EN;
-	regmap_write(regmap, (base + UMP7522_XTL_WAIT_CTRL0), temp);
-	regmap_read(regmap, (base + UMP7522_XTL_WAIT_CTRL0), &value);
-	dev_err(dev, "%s XTL_WAIT_CTRL0 2nd read 0x%x\n", __func__, value);
-
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL0), &value);
-	dev_err(dev, "%s TSEN_CTRL0 value read 0x%x\n", __func__, value);
-	temp = value | UMP7522_BIT_TSEN_CLK_SRC_SEL;
-	regmap_write(regmap, (base + UMP7522_TSEN_CTRL0), temp);
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL0), &value);
-	dev_err(dev, "%s TSEN_CTRL0 2nd read 0x%x\n", __func__, value);
-
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL1), &value);
-	dev_err(dev, "%s,TSEN_CTRL1 value read 0x%x\n", __func__, value);
-	temp = value | UMP7522_BIT_RG_CLK_26M_TSEN | UMP7522_BIT_TESN_SDADC_EN;
-	regmap_write(regmap, (base + UMP7522_TSEN_CTRL1), temp);
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL1), &value);
-	dev_err(dev, "%s, TSEN_CTRL1 2nd read 0x%x\n", __func__, value);
-
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL3), &value);
-	dev_err(dev, "%s, TSEN_CTRL3 value read 0x%x\n", __func__, value);
-	temp = value | UMP7522_BIT_TESE_ADCLDO_EN | UMP7522_BIT_TSEN_UGBUF_EN
-						| UMP7522_BIT_TSEN_EN;
-	regmap_write(regmap, (base + UMP7522_TSEN_CTRL3), temp);
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL3), &value);
-	dev_err(dev, "%s, TSEN_CTRL3 2nd read 0x%x\n", __func__, value);
-
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL6), &value);
-	dev_err(dev, "%s, TSEN_CTRL6 value read 0x%x\n", __func__, value);
-	temp = value & (~UMP7522_BIT_TESN_SEL_EN);
-	regmap_write(regmap, (base + UMP7522_TSEN_CTRL6), temp);
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL6), &value);
-	dev_err(dev, "%s, TSEN_CTRL6 2nd read 0x%x\n", __func__, value);
-
-	if (type == TSEN_EXT)
-		regmap_read(regmap, (base + UMP7522_TSEN_CTRL4), &value);
-	else
-		regmap_read(regmap, (base + UMP7522_TSEN_CTRL5), &value);
-	dev_err(dev, "%s, 0x%x read 0x%x\n", __func__, UMP7522_TSEN_CTRL4, value);
-}
-
-static void pmic_ump9622_tsen_disable(struct regmap *regmap,
-					unsigned int base, int type)
-{
-	unsigned int value, temp;
-	struct device *dev = gnss_common_ctl_dev.dev;
-
-	dev_err(dev, "%s,ump9622-syscon base 0x%x\n", __func__, base);
-
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL0), &value);
-	dev_err(dev, "%s TSEN_CTRL0 value read 0x%x\n", __func__, value);
-	temp = UMP7522_BIT_TSEN_CLK_SRC_SEL;
-	temp = value & (~temp);
-	regmap_write(regmap, (base + UMP7522_TSEN_CTRL0), temp);
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL0), &value);
-	dev_err(dev, "%s TSEN_CTRL0 2nd read 0x%x\n", __func__, value);
-
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL1), &value);
-	dev_err(dev, "%s, TSEN_CTRL1 value read 0x%x\n", __func__, value);
-	temp = UMP7522_BIT_RG_CLK_26M_TSEN | UMP7522_BIT_TESN_SDADC_EN;
-	temp = value & (~temp);
-	regmap_write(regmap, (base + UMP7522_TSEN_CTRL1), temp);
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL1), &value);
-	dev_err(dev, "%s, TSEN_CTRL1 2nd read 0x%x\n", __func__, value);
-
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL3), &value);
-	dev_err(dev, "%s, TSEN_CTRL3 value read 0x%x\n", __func__, value);
-	temp = UMP7522_BIT_TESE_ADCLDO_EN | UMP7522_BIT_TSEN_UGBUF_EN
-						| UMP7522_BIT_TSEN_EN;
-	temp = value & (~temp);
-	regmap_write(regmap, (base + UMP7522_TSEN_CTRL3), temp);
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL3), &value);
-	dev_err(dev, "%s, TSEN_CTRL3 2nd read 0x%x\n", __func__, value);
-
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL6), &value);
-	dev_err(dev, "%s, TSEN_CTRL6 value read 0x%x\n", __func__, value);
-	temp = value | UMP7522_BIT_TESN_SEL_EN;
-	regmap_write(regmap, (base + UMP7522_TSEN_CTRL6), temp);
-	regmap_read(regmap, (base + UMP7522_TSEN_CTRL6), &value);
-	dev_err(dev, "%s, TSEN_CTRL6 2nd read 0x%x\n", __func__, value);
-}
-
 static int gnss_tsen_enable(int type)
 {
 	struct platform_device *pdev_regmap;
@@ -314,7 +223,7 @@ static int gnss_tsen_enable(int type)
 	if (of_device_is_compatible(regmap_np, "sprd,sc27xx-syscon"))
 		pmic_sc27xx_tsen_enable(regmap, base, type);
 	if (of_device_is_compatible(regmap_np, "sprd,ump9622-syscon"))
-		pmic_ump9622_tsen_enable(regmap, base, type);
+		gnss_tsen_control(regmap, base + UMP9622_BASE_OFFSET, UMP9622_ENABLE);
 
 	of_node_put(regmap_np);
 	return 0;
@@ -361,7 +270,7 @@ static int gnss_tsen_disable(int type)
 	if (of_device_is_compatible(regmap_np, "sprd,sc27xx-syscon"))
 		pmic_sc27xx_tsen_disable(regmap, base, type);
 	if (of_device_is_compatible(regmap_np, "sprd,ump9622-syscon"))
-		pmic_ump9622_tsen_disable(regmap, base, type);
+		gnss_tsen_control(regmap, base + UMP9622_BASE_OFFSET, UMP9622_DISABLE);
 
 	of_node_put(regmap_np);
 	return 0;

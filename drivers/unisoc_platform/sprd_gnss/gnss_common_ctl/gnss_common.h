@@ -95,6 +95,11 @@ struct wcn_match_data *get_wcn_match_config(void);
 #define GNSS_BOOTSTATUS_MAGIC    0x12345678
 /* end: address map on gnss side */
 
+#define UMP9622_ENABLE		1
+#define UMP9622_DISABLE		0
+#define UMP9622_BASE_OFFSET		0xf8
+
+int gnss_tsen_control(struct regmap *regmap, unsigned int base, bool en);
 
 /* begin: PMIC configuration for marlin3lite */
 /* sharkl5 sharkl6 */
