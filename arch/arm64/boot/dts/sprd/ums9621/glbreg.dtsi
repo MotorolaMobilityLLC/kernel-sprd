@@ -222,9 +222,6 @@
 		compatible = "sprd,ums9621-glbregs", "syscon", "simple-mfd";
 		#syscon-cells = <2>;
 		reg = <0 0x23000000 0 0x3000>;
-		#address-cells = <1>;
-		#size-cells = <1>;
-		ranges = <0 0 0x23000000 0x3000>;
 	};
 
 	gpu_dvfs_apb_regs: syscon@23014000 {
