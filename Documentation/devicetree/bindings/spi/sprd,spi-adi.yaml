@@ -78,6 +78,9 @@ properties:
         - description: The analog chip address where user want to access by
             hardware components.
 
+  sprd,hw-channels_1: ADI single-soft-multi-hard configuration,
+	distinguish from "adi_ssmh_en" by cmdline.
+
 required:
   - compatible
   - reg
