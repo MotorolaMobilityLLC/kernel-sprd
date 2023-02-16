@@ -411,6 +411,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 		pr_err("The name is empty, invalid!!\n");
 		return -1;
 	}
+	memset(str_name, 0, SECTION_NAME_MAX);
 	memcpy(str_name, name, strlen(name));
 	for (j = 0; j < (int)strlen(str_name); j++) {
 		tmp = str_name[j];
@@ -433,11 +434,12 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 	}
 	mutex_lock(&section_mutex);
 	/* check insert repeatly and acquire total seciton num before insert new section */
+	snprintf(str_name, SECTION_NAME_MAX, "%s_%s", EXTEND_STRING, name);
 	for (i = 0; i < SECTION_NUM_MAX; i++) {
-		if (!memcmp(str_name,
-				sprd_minidump_info->section_info_total.section_info[i].section_name,
-				strlen(str_name))) {
+		if (!strcmp(str_name,
+			sprd_minidump_info->section_info_total.section_info[i].section_name)) {
 			mutex_unlock(&section_mutex);
+			pr_err("the name:%s has been used!!,please use a new name!\n", name);
 			return -1;
 		}
 		if (!strlen(sprd_minidump_info->section_info_total.section_info[i].section_name))
@@ -453,7 +455,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 	}
 	/* add new section in the tail of section_info */
 	extend_section = &(sprd_minidump_info->section_info_total.section_info[index]);
-	sprintf(extend_section->section_name, "%s_%s", EXTEND_STRING, name);
+	snprintf(extend_section->section_name, SECTION_NUM_MAX, "%s_%s", EXTEND_STRING, name);
 	if (vaddr_to_paddr_flag == 0) {
 		extend_section->section_start_vaddr = (unsigned long)__va(paddr_start);
 		extend_section->section_end_vaddr = (unsigned long)__va(paddr_end);
@@ -496,14 +498,15 @@ int minidump_change_extend_information(const char *name, unsigned long paddr_sta
 	if (strlen(name) > (SECTION_NAME_MAX - strlen(EXTEND_STRING) - 1))
 		return -1;
 
-	sprintf(str_name, "%s_%s", EXTEND_STRING, name);
+	memset(str_name, 0, SECTION_NAME_MAX);
+	snprintf(str_name, SECTION_NAME_MAX, "%s_%s", EXTEND_STRING, name);
 	if (!sprd_sysdump_info)
 		return -1;
 	for (i = 0; i < SECTION_NUM_MAX; i++) {
 		if (!strlen(sprd_minidump_info->section_info_total.section_info[i].section_name))
 			return -1;
-		if (!memcmp(sprd_minidump_info->section_info_total.section_info[i].section_name, str_name,
-					strlen(str_name)))
+		if (!strcmp(sprd_minidump_info->section_info_total.section_info[i].section_name,
+					str_name))
 			break;
 	}
 	if (i >= SECTION_NUM_MAX)
@@ -771,7 +774,7 @@ static void sysdump_prepare_info(int enter_id, const char *reason,
 		 reason, sprd_sysdump_info->crash_key);
 	ktime_get_ts64(&ts);
 	rtc_time64_to_tm(ts.tv_sec, &tm);
-	sprintf(sprd_sysdump_info->time, "%04d-%02d-%02d_%02d:%02d:%02d",
+	snprintf(sprd_sysdump_info->time, 32, "%04d-%02d-%02d_%02d:%02d:%02d",
 		tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour,
 		tm.tm_min, tm.tm_sec);
 
@@ -1497,7 +1500,7 @@ static int ylog_buffer_init(void)
 		return -1;
 	}
 //	pr_info("%s: ylog_buffer vaddr is %p\n", __func__, ylog_buffer);
-	sprintf(ylog_buffer, "%s", "This is ylog buffer. Now , it is nothing . ");
+	snprintf(ylog_buffer, YLOG_BUF_SIZE, "%s", "This is ylog buffer. Now , it is nothing . ");
 	/*here, we can add something to head to check if data is ok */
 	SetPageReserved(virt_to_page(ylog_buffer));
 	ret = misc_register(&misc_dev_ylog);
