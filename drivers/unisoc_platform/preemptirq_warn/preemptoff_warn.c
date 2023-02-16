@@ -70,7 +70,7 @@ noinline void preemptoff_warn(int cpu, u64 preemptoff_t)
 	 * return_address() may not work on arm, try to show_stack() to get
 	 * more information. NOT use dump_stack() here!
 	 */
-	show_stack(NULL, NULL);
+	show_stack(NULL, NULL, KERN_WARNING);
 #endif
 }
 

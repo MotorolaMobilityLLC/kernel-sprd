@@ -40,4 +40,4 @@ static inline void start_preemptoff_extra_timing(void) { }
 static inline void stop_preemptoff_extra_timing(void) { }
 #endif
 
-extern void show_stack(struct task_struct *task, unsigned long *sp);
+extern void show_stack(struct task_struct *task, unsigned long *sp, const char *loglvl);
