@@ -81,6 +81,7 @@ crypto:
 
 devfreq:
 devfreq:sprd:
+devicetree:bindings:*
 dmaengine:sprd:
 dma-buf:
 Documentation:
