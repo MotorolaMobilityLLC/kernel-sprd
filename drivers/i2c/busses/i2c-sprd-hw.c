@@ -574,11 +574,17 @@ static int sprd_i2c_hw_remove(struct platform_device *pdev)
 
 static int __maybe_unused sprd_i2c_hw_suspend_noirq(struct device *pdev)
 {
+	struct sprd_i2c_hw *i2c_dev = dev_get_drvdata(pdev);
+
+	i2c_mark_adapter_suspended(&i2c_dev->adap);
 	return pm_runtime_force_suspend(pdev);
 }
 
 static int __maybe_unused sprd_i2c_hw_resume_noirq(struct device *pdev)
 {
+	struct sprd_i2c_hw *i2c_dev = dev_get_drvdata(pdev);
+
+	i2c_mark_adapter_resumed(&i2c_dev->adap);
 	return pm_runtime_force_resume(pdev);
 }
 
