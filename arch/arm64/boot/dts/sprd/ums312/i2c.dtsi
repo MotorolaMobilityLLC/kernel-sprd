@@ -87,8 +87,7 @@
 		compatible = "sprd,ums312-hw-i2c", "sprd,sc9860-hw-i2c";
 		reg = <0 0x32060000 0 0x1000>;
 		interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>;
-		clock-names = "source", "enable", "i2c",
-				"clk_hw_i2c";
+		clock-names = "source", "enable", "i2c";
 		clocks = <&ext_26m>, <&aonapb_gate CLK_I2C_EB>,
 				<&aon_clk CLK_AON_I2C>;
 		clock-frequency = <400000>;
