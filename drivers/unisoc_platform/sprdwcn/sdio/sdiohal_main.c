@@ -771,9 +771,13 @@ void sdiohal_set_carddump_status(unsigned int flag)
 	p_data->card_dump_flag = flag;
 }
 
+extern char wcn_assert_str[128];
 unsigned int sdiohal_get_carddump_status(void)
 {
 	struct sdiohal_data_t *p_data = sdiohal_get_data();
+
+	if (p_data->card_dump_flag != 0)
+		pr_err("fw assert:%s\n", wcn_assert_str);
 
 	return p_data->card_dump_flag;
 }

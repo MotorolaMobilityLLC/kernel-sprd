@@ -804,8 +804,12 @@ static int wcn_sipc_push_list(int index, struct mbuf_t *head,
 	return ret;
 }
 
+extern char wcn_assert_str[128];
 static inline unsigned int wcn_sipc_get_status(void)
 {
+	if (g_sipc_info.sipc_chn_status != 0)
+		WCN_ERR("fw assert:%s\n", wcn_assert_str);
+
 	return g_sipc_info.sipc_chn_status;
 }
 

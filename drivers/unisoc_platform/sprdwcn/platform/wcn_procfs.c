@@ -114,12 +114,16 @@ bool wcn_is_assert(void)
 	return mutex_is_locked(&mdbg_proc->mutex);
 }
 EXPORT_SYMBOL_GPL(wcn_is_assert);
+
+char wcn_assert_str[128];
 void wcn_assert_interface(enum wcn_source_type type, char *str)
 {
 	int reset_prop = wcn_sysfs_get_reset_prop();
 
 	WCN_ERR("wcn_source_type:%d\n", type);
 	WCN_ERR("fw assert:%s\n", str);
+	strscpy(wcn_assert_str, str, sizeof(wcn_assert_str));
+
 	if (g_dumpmem_switch == 0) {
 		WCN_ERR("dump disable!\n");
 		return;

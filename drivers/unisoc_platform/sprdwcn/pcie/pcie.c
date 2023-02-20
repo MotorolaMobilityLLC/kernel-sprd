@@ -703,9 +703,13 @@ void sprd_pcie_set_carddump_status(unsigned int flag)
 	priv->card_dump_flag = flag;
 }
 
+extern char wcn_assert_str[128];
 unsigned int sprd_pcie_get_carddump_status(void)
 {
 	struct wcn_pcie_info *priv = get_wcn_device_info();
+
+	if (priv->card_dump_flag != 0)
+		WCN_ERR("fw assert:%s\n", wcn_assert_str);
 
 	return priv->card_dump_flag;
 }
