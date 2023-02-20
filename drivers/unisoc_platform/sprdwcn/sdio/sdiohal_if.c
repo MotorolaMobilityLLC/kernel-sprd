@@ -146,6 +146,11 @@ static bool sdio_is_suspended(bool important)
 	return !sdiohal_is_resumed(important);
 }
 
+static void sdio_debug_point_show(void)
+{
+	sdiohal_debug_point_show();
+}
+
 static struct sprdwcn_bus_ops sdiohal_bus_ops = {
 	.preinit = sdio_preinit,
 	.deinit = sdio_preexit,
@@ -174,6 +179,7 @@ static struct sprdwcn_bus_ops sdiohal_bus_ops = {
 	.rescan = sdio_rescan,
 	.remove_card = sdio_remove_card,
 	.is_suspended = sdio_is_suspended,
+	.debug_point_show = sdio_debug_point_show,
 };
 
 void module_bus_sdio_init(void)

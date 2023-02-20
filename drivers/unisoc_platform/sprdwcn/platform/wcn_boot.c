@@ -2352,6 +2352,7 @@ void wcn_chip_power_off(void)
 	}
 
 	mutex_lock(&marlin_dev->power_lock);
+	sprdwcn_bus_runtime_put();
 	chip_power_off(0);
 	mutex_unlock(&marlin_dev->power_lock);
 }
