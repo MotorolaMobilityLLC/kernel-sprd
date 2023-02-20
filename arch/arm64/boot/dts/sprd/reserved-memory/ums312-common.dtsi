@@ -3,8 +3,8 @@
 #include "modem-4g-common.dtsi"
 
 &reserved_memory {
-	audio_reserved: audio-mem@87400000 {
-		reg = <0x0 0x87400000 0x0 0x00400000>;
+	audio_reserved: audio-mem@87500000 {
+		reg = <0x0 0x87500000 0x0 0x00300000>;
 	};
 
 	sp_ddr_reserved: sp_ddr-mem@88000000 {
@@ -15,15 +15,20 @@
 		reg = <0x0 0x89000000 0x0 0x00600000>;
 	};
 
+	/* The uboot_log_reserved node is added in uboot. base:0x9de8 0000, size:0x40000 */
+	uboot_log-mem {
+		reg = <0x0 0x9de80000 0x0 0x00040000>;
+	};
+
 	logo_reserved: logobuffer@9e000000 {
-			reg = <0x0 0x9e000000 0x0 0x00384000>;
-		};
+		reg = <0x0 0x9e000000 0x0 0x00384000>;
+	};
 
 	tos_reserved: tos-mem@b0040000 {
-			reg = <0x0 0xb0040000 0x0 0x03fc0000>;
-		};
+		reg = <0x0 0xb0040000 0x0 0x03fc0000>;
+	};
 
 	tos_shm_reserved: sh-mem@b6000000 {
-			reg = <0x0 0xb4000000 0x0 0x00100000>;
-		};
+		reg = <0x0 0xb4000000 0x0 0x00100000>;
+	};
 };
