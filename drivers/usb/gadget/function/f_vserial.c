@@ -33,6 +33,8 @@
 #include <linux/usb.h>
 #include <linux/usb/ch9.h>
 #include <linux/usb/composite.h>
+#include <linux/time64.h>
+#include <linux/timekeeping.h>
 
 #define VSER_BULK_BUFFER_SIZE	(4096 * 4)
 #define MAX_INST_NAME_LEN	40
@@ -81,6 +83,19 @@ struct vser_dev {
 	struct list_head tx_idle;
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
 	struct list_head tx_pass_idle;
+
+	/* statistic */
+	u32					dl_rx_packet_count;
+	u32					dl_sent_packet_count;
+	u32					dl_sent_failed_packet_count;
+	unsigned long		dl_rx_bytes;
+	unsigned long		dl_sent_bytes;
+
+	unsigned long		min_time_per_xfer;
+	unsigned long		max_time_per_xfer;
+	unsigned long		ave_time_per_xfer;
+
+	unsigned long		total_transfer_time;
 #endif
 
 	wait_queue_head_t read_wq;
@@ -279,6 +294,21 @@ static void vser_complete_in(struct usb_ep *ep, struct usb_request *req)
 static void vser_pass_complete_in(struct usb_ep *ep, struct usb_request *req)
 {
 	struct vser_dev *dev = _vser_dev;
+	struct timespec64		tv_end;
+	struct timespec64		*tv_begin = req->context;
+	unsigned long			transfer_time;
+
+	ktime_get_real_ts64(&tv_end);
+	transfer_time = (tv_end.tv_sec - tv_begin->tv_sec) * 1000000000
+						+ (tv_end.tv_nsec - tv_begin->tv_nsec);
+	if (transfer_time < dev->min_time_per_xfer)
+		dev->min_time_per_xfer = transfer_time;
+	if (transfer_time > dev->max_time_per_xfer)
+		dev->max_time_per_xfer = transfer_time;
+	dev->total_transfer_time += transfer_time;
+
+	dev->dl_sent_packet_count++;
+	dev->dl_sent_bytes += req->length;
 
 	if (req->status != 0)
 		dev->wr_error = 1;
@@ -381,6 +411,7 @@ static int vser_create_bulk_endpoints(struct vser_dev *dev,
 
 		for (i = 0; i < TX_REQ_BYPASS_MAX; i++) {
 			struct usb_request *req = NULL;
+			struct timespec64	*tv_begin = NULL;
 
 			req = usb_ep_alloc_request(dev->ep_in, GFP_KERNEL);
 			if (!req) {
@@ -389,6 +420,13 @@ static int vser_create_bulk_endpoints(struct vser_dev *dev,
 				goto fail;
 			}
 
+			tv_begin = kmalloc(sizeof(struct timespec64), GFP_KERNEL);
+			if (!tv_begin) {
+				vser_free_all_request(dev);
+				ret = -ENOMEM;
+				goto fail;
+			}
+			req->context = tv_begin;
 			req->buf = NULL;
 			req->complete = vser_pass_complete_in;
 			vser_req_put(dev, &dev->tx_pass_idle, req);
@@ -632,6 +670,31 @@ static struct miscdevice vser_device = {
 	.fops = &vser_fops,
 };
 
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
+static ssize_t vser_statistics_show(struct device *dev,
+	 struct device_attribute *attr, char *buf)
+{
+	struct vser_dev *vdev = _vser_dev;
+
+	vdev->ave_time_per_xfer = vdev->total_transfer_time / vdev->dl_sent_packet_count;
+
+	return sprintf(buf, "u32 dl_rx_packet_count= %u;\nul dl_rx_bytes= %lu;\n"
+	"u32 dl_sent_packet_count= %u;\nul dl_sent_bytes= %lu;\nu32 dl_sent_failed_packet_count= %u;\n"
+	"ul min_time_per_xfer= %lu(ns);\nul max_time_per_xfer= %lu(ns);\nul ave_time_per_xfer= %lu(ns);\n",
+	vdev->dl_rx_packet_count,
+	vdev->dl_rx_bytes,
+	vdev->dl_sent_packet_count,
+	vdev->dl_sent_bytes,
+	vdev->dl_sent_failed_packet_count,
+	vdev->min_time_per_xfer,
+	vdev->max_time_per_xfer,
+	vdev->ave_time_per_xfer
+	);
+}
+
+static DEVICE_ATTR_RO(vser_statistics);
+#endif
+
 static void vser_test_works(struct work_struct *work);
 static int vser_init(struct vser_instance *fi_vser)
 {
@@ -675,6 +738,10 @@ static int vser_init(struct vser_instance *fi_vser)
 	if (ret)
 		goto err2;
 
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
+	device_create_file(vser_device.this_device, &dev_attr_vser_statistics);
+#endif
+
 	return 0;
 
 err2:
@@ -686,6 +753,9 @@ err1:
 
 static void vser_cleanup(void)
 {
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
+	device_remove_file(vser_device.this_device, &dev_attr_vser_statistics);
+#endif
 	misc_deregister(&vser_device);
 
 	kfree(_vser_dev);
@@ -713,6 +783,10 @@ static int vser_function_bind(struct usb_configuration *c,
 					 &vser_fs_out_desc);
 	if (ret)
 		return ret;
+
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
+	dev->min_time_per_xfer = ULONG_MAX;
+#endif
 
 	/* support all relevant hardware speeds... we expect that when
 	 * hardware is dual speed, all bulk-capable endpoints work at
@@ -743,9 +817,21 @@ static void vser_function_unbind(struct usb_configuration *c,
 	do {
 		struct usb_request *req;
 
-		while ((req = vser_req_get(dev, &dev->tx_pass_idle)))
+		while ((req = vser_req_get(dev, &dev->tx_pass_idle))) {
+			kfree(req->context);
 			usb_ep_free_request(dev->ep_in, req);
+		}
 	} while (0);
+
+	dev->dl_rx_packet_count = 0;
+	dev->dl_rx_bytes = 0;
+	dev->dl_sent_packet_count = 0;
+	dev->dl_sent_bytes = 0;
+	dev->dl_sent_failed_packet_count = 0;
+
+	dev->max_time_per_xfer = 0;
+	dev->min_time_per_xfer = 0;
+	dev->total_transfer_time = 0;
 #endif
 
 	dev->online = 0;
@@ -1035,6 +1121,8 @@ ssize_t vser_pass_user_write(char *buf, size_t count)
 	if (vser_lock(&dev->write_excl))
 		return -EBUSY;
 
+	dev->dl_rx_packet_count++;
+	dev->dl_rx_bytes += count;
 	while (count > 0) {
 		/* get an idle tx request to use */
 		ret = wait_event_interruptible(dev->write_wq,
@@ -1051,10 +1139,13 @@ ssize_t vser_pass_user_write(char *buf, size_t count)
 		if (req != 0) {
 			req->buf = buf;
 			req->length = xfer;
+			ktime_get_real_ts64(req->context);
+
 			ret = usb_ep_queue(dev->ep_in, req, GFP_ATOMIC);
 			if (ret < 0) {
 				pr_debug("%s: xfer error %d\n", __func__, ret);
 				dev->wr_error = 1;
+				dev->dl_sent_failed_packet_count++;
 				r = -EIO;
 				break;
 			}
