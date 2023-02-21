@@ -165,7 +165,7 @@ struct sprd_glue {
 	struct mutex			suspend_resume_mutex;
 	struct timer_list		relax_wakelock_timer;
 	bool				wake_lock_relaxed;
-	bool		use_singlefifo;
+	bool				use_singlefifo;
 };
 
 static int boot_charging;
@@ -1360,12 +1360,10 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 	if (on) {
 		dev_info(glue->dev, "%s: turn on host\n", __func__);
 
-		if (!regulator_is_enabled(glue->vbus)) {
-			ret = regulator_enable(glue->vbus);
-			if (ret) {
-				dev_err(glue->dev, "Failed to enable vbus: %d\n", ret);
-				return ret;
-			}
+		ret = regulator_enable(glue->vbus);
+		if (ret) {
+			dev_err(glue->dev, "Failed to enable vbus: %d\n", ret);
+			return ret;
 		}
 
 		if (!glue->enable_pm_suspend_in_host)
@@ -1403,11 +1401,9 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 
 		dev_info(glue->dev, "%s: turn off host\n", __func__);
 
-		if (regulator_is_enabled(glue->vbus)) {
-			ret = regulator_disable(glue->vbus);
-			if (ret)
-				dev_err(glue->dev, "Failed to disable vbus: %d\n", ret);
-		}
+		ret = regulator_disable(glue->vbus);
+		if (ret)
+			dev_err(glue->dev, "Failed to disable vbus: %d\n", ret);
 
 		/* disable usb audio offload */
 		if (musb->is_offload) {
