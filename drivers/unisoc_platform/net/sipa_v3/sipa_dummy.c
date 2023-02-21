@@ -915,19 +915,20 @@ static int sipa_dummy_netdev_event_handler(struct notifier_block *nb,
 {
 	int ret = NOTIFY_DONE;
 	struct net_device *ndev = netdev_notifier_info_to_dev(ptr);
+	static int debug_cnt;
 
 	if (!ndev)
 		return ret;
-
-	pr_info("dev %s evt %lu\n", ndev->name, event);
 
 	switch (event) {
 	case NETDEV_REGISTER:
 		ret = NOTIFY_OK;
 		sipa_dummy_netdev_join(ndev);
 
-		if (!strncmp(ndev->name, "usb0", 4))
+		if (!strncmp(ndev->name, "usb0", 4)) {
 			sipa_nic_set_bypass_mode(false);
+			debug_cnt++;
+		}
 
 		break;
 	case NETDEV_UP:
@@ -935,8 +936,10 @@ static int sipa_dummy_netdev_event_handler(struct notifier_block *nb,
 		sipa_dummy_netdev_set_state(ndev, true);
 		break;
 	case NETDEV_DOWN:
-		if (!strncmp(ndev->name, "usb0", 4))
+		if (!strncmp(ndev->name, "usb0", 4)) {
 			sipa_nic_set_bypass_mode(true);
+			debug_cnt--;
+		}
 		fallthrough;
 	case NETDEV_UNREGISTER:
 		ret = NOTIFY_OK;
@@ -946,6 +949,9 @@ static int sipa_dummy_netdev_event_handler(struct notifier_block *nb,
 	default:
 		break;
 	}
+
+	pr_info("dev %s evt %lu debug_cnt is %d\n", ndev->name, event, debug_cnt);
+
 	return ret;
 }
 
