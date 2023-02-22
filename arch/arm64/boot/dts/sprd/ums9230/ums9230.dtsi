@@ -1109,6 +1109,9 @@
 				assigned-clock-parents = <&ext_26m>,
 							 <&ext_26m>,
 							 <&ext_26m>;
+				counter-bits = "10bit",
+						"10bit",
+						"10bit";
 				#pwm-cells = <2>;
 			};
 
