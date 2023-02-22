@@ -800,6 +800,7 @@ void entry_for_wdh_el0(void)
 
 void entry_for_wdh_el1(void)
 {
+#if IS_ENABLED(CONFIG_ARM64)
 	__asm__ __volatile__("sub sp, sp, #336\n\t"
 			"stp x0, x1, [sp, #16 * 0]\n\t"
 			"stp x2, x3, [sp, #16 * 1]\n\t"
@@ -819,6 +820,26 @@ void entry_for_wdh_el1(void)
 			"add x21, sp, #336\n\t"
 			"stp lr, x21, [sp, #16 * 15]\n\t"
 			"mov x0, sp\n\t");
+#else
+	__asm__ __volatile__("sub sp, sp, #96\n\t"
+			"str r0, [sp, #0]\n\t"
+			"str r1, [sp, #4]\n\t"
+			"str r2, [sp, #8]\n\t"
+			"str r3, [sp, #12]\n\t"
+			"str r4, [sp, #16]\n\t"
+			"str r5, [sp, #20]\n\t"
+			"str r6, [sp, #24]\n\t"
+			"str r7, [sp, #28]\n\t"
+			"str r8, [sp, #32]\n\t"
+			"str r9, [sp, #36]\n\t"
+			"str r10, [sp, #40]\n\t"
+			"str r11, [sp, #44]\n\t"
+			"str r12, [sp, #48]\n\t"
+			"str r14, [sp, #56]\n\t"
+			"add r1, sp, #96\n\t"
+			"str r1, [sp, #52]\n\t"
+			"mov r0, sp\n\t");
+#endif
 	__asm__ __volatile__("bl wdh_atf_entry\n\t");
 }
 
