@@ -39,7 +39,7 @@
 #define FAN54015_WDG_TIMER_S				15
 #define FAN54015_WATCH_DOG_TIME_OUT_MS			20000
 
-#define FAN54015_REG_FAULT_MASK				0x7
+#define FAN54015_REG_FAULT_MASK				GENMASK(2, 0)
 #define FAN54015_OTG_TIMER_FAULT			0x6
 #define FAN54015_REG_HZ_MODE_MASK			GENMASK(1, 1)
 #define FAN54015_REG_OPA_MODE_MASK			GENMASK(0, 0)
@@ -74,6 +74,9 @@
 #define FAN54015_DISABLE_PIN_MASK_2730			BIT(0)
 #define FAN54015_DISABLE_PIN_MASK_2721			BIT(15)
 #define FAN54015_DISABLE_PIN_MASK_2720			BIT(0)
+
+static bool enable_otg_debug;
+module_param(enable_otg_debug, bool, 0644);
 
 struct fan54015_charge_current {
 	int sdp_limit;
@@ -782,6 +785,7 @@ static void fan54015_charger_otg_work(struct work_struct *work)
 	struct fan54015_charger_info *info =
 		container_of(dwork, struct fan54015_charger_info, otg_work);
 	int ret;
+	u8 reg0, reg1;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -798,7 +802,18 @@ static void fan54015_charger_otg_work(struct work_struct *work)
 			dev_err(info->dev, "restart fan54015 charger otg failed\n");
 	}
 
-	dev_dbg(info->dev, "%s:line%d:schedule_work\n", __func__, __LINE__);
+	if (enable_otg_debug) {
+		ret = fan54015_read(info, FAN54015_REG_0, &reg0);
+		if (ret)
+			dev_err(info->dev, "failed to get FAN54015_REG_0\n");
+
+		ret = fan54015_read(info, FAN54015_REG_1, &reg1);
+		if (ret)
+			dev_err(info->dev, "failed to get FAN54015_REG_1\n");
+		dev_info(info->dev, "%s:line%d:schedule_work reg0 = 0x%x reg1 = 0x%x\n",
+			 __func__, __LINE__, reg0, reg1);
+	}
+
 	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(500));
 }
 
@@ -917,8 +932,9 @@ static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
 		return ret;
 	}
 
+	dev_dbg(info->dev, "%s:line%d:vbus_is_enabled reg1 = 0x%x\n", __func__, __LINE__, val);
+
 	val &= FAN54015_REG_OPA_MODE_MASK;
-	dev_dbg(info->dev, "%s:line%d:vbus_is_enabled\n", __func__, __LINE__);
 
 	return val;
 }
