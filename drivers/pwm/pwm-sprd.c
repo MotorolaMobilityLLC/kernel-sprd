@@ -85,6 +85,29 @@ static void sprd_pwm_write(struct sprd_pwm_chip *spc, u32 hwid,
 	writel_relaxed(val, spc->base + offset);
 }
 
+static u32 sprd_pwm_count_match(struct sprd_pwm_chip *spc, struct pwm_device *pwm)
+{
+	u32 mod;
+
+	if (spc->counter_bit[pwm->hwpwm] != NULL) {
+		if (!strcmp(spc->counter_bit[pwm->hwpwm], "8bit"))
+			mod = SPRD_PWM_MOD_8BIT;
+		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "9bit"))
+			mod = SPRD_PWM_MOD_9BIT;
+		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "10bit"))
+			mod = SPRD_PWM_MOD_10BIT;
+		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "11bit"))
+			mod = SPRD_PWM_MOD_11BIT;
+		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "12bit"))
+			mod = SPRD_PWM_MOD_12BIT;
+		else
+			mod = SPRD_PWM_MOD_10BIT;
+	} else
+		mod = SPRD_PWM_MOD_10BIT;
+
+	return mod;
+}
+
 static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 			       struct pwm_state *state)
 {
@@ -122,7 +145,7 @@ static void sprd_pwm_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
 	 */
 	val = sprd_pwm_read(spc, pwm->hwpwm, SPRD_PWM_PRESCALE);
 	prescale = val & SPRD_PWM_PRESCALE_MSK;
-	val = sprd_pwm_read(spc, pwm->hwpwm, SPRD_PWM_MOD);
+	val = sprd_pwm_count_match(spc, pwm);
 	tmp = (prescale + 1) * NSEC_PER_SEC * val;
 	state->period = DIV_ROUND_CLOSEST_ULL(tmp, chn->clk_rate);
 
@@ -153,23 +176,7 @@ static int sprd_pwm_config(struct sprd_pwm_chip *spc, struct pwm_device *pwm,
 	 * gets the maximal length not bigger than the requested one with the
 	 * given settings (MOD = SPRD_PWM_MOD_MAX and input clock).
 	 */
-
-	if (spc->counter_bit[pwm->hwpwm] != NULL) {
-		if (!strcmp(spc->counter_bit[pwm->hwpwm], "8bit"))
-			mod = SPRD_PWM_MOD_8BIT;
-		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "9bit"))
-			mod = SPRD_PWM_MOD_9BIT;
-		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "10bit"))
-			mod = SPRD_PWM_MOD_10BIT;
-		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "11bit"))
-			mod = SPRD_PWM_MOD_11BIT;
-		else if (!strcmp(spc->counter_bit[pwm->hwpwm], "12bit"))
-			mod = SPRD_PWM_MOD_12BIT;
-		else
-			mod = SPRD_PWM_MOD_10BIT;
-	} else
-		mod = SPRD_PWM_MOD_10BIT;
-
+	mod = sprd_pwm_count_match(spc, pwm);
 	duty = duty_ns * mod / period_ns;
 
 	tmp = (u64)chn->clk_rate * period_ns;
@@ -288,7 +295,7 @@ static int sprd_pwm_clk_init(struct sprd_pwm_chip *spc)
 	return 0;
 }
 
-static int sprd_pwm_counter_set(struct platform_device *pdev)
+static int sprd_pwm_get_counter(struct platform_device *pdev)
 {
 	struct sprd_pwm_chip *spc = platform_get_drvdata(pdev);
 	int i = SPRD_PWM_CHN_NUM;
@@ -330,9 +337,9 @@ static int sprd_pwm_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
-	ret = sprd_pwm_counter_set(pdev);
+	ret = sprd_pwm_get_counter(pdev);
 	if (ret)
-		dev_err(&pdev->dev, "get pwm counter bits failed!\n");
+		dev_err(&pdev->dev, "get pwm counter bits from dt failed!\n");
 
 	spc->chip.dev = &pdev->dev;
 	spc->chip.ops = &sprd_pwm_ops;
