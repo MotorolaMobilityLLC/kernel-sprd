@@ -66,7 +66,7 @@ struct mmc_debug_info {
 };
 
 #define rq_log(array, fmt, ...) \
-	pr_info(fmt ":%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n", \
+	pr_err(fmt ":%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n", \
 		##__VA_ARGS__, array[0], array[1], array[2], array[3], \
 		array[4], array[5], array[6], array[7], array[8], \
 		array[9], array[10], array[11], array[12], array[13])
@@ -104,7 +104,7 @@ void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host)
 		wspeed_temp = write_speed;
 		rspeed_mod = do_div(rspeed_temp, 100);
 		wspeed_mod = do_div(wspeed_temp, 100);
-		pr_info("|__speed%7s: r= %lld.%lld M/s, w= %lld.%lld M/s, r_blk= %d, w_blk= %d\n",
+		pr_err("|__speed%7s: r= %lld.%lld M/s, w= %lld.%lld M/s, r_blk= %d, w_blk= %d\n",
 			info->name, rspeed_temp, rspeed_mod, wspeed_temp, wspeed_mod,
 			info->read_total_blocks, info->write_total_blocks);
 #if IS_ENABLED(CONFIG_MMC_SWCQ)
@@ -158,21 +158,19 @@ void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info *info, 
 	u8 index;
 	u32 msecs;
 
-	switch (type) {
-	case SDHCI_INT_CMD_MASK:
+	if (type & SDHCI_INT_CMD_MASK) {
 		/* cmd interrupt respond */
 		info->end_time = ktime_get();
 		msecs = ktime_to_ms(info->end_time - info->start_time);
 		index = msecs > 0 ? min((MMC_ARRAY_SIZE - 1), ilog2(msecs) + 1) : 0;
 		info->cmd_2_end[index]++;
 		if (index >= 11) {
-			pr_info("%s: cmd rsp over 1s! cmd= %d blk= %d arg= %x mrq= %p rsp= %x\n",
+			pr_err("%s: cmd rsp over 1s! cmd= %d blk= %d arg= %x mrq= %p rsp= %x\n",
 			info->name, info->cmd, info->blocks, info->arg,
 			info->mrq, sdhci_readl(host, SDHCI_RESPONSE));
 			mmc_debug_is_emmc(host, info);
 		}
-		return;
-	case SDHCI_INT_DATA_MASK:
+	} else if (type & SDHCI_INT_DATA_MASK) {
 		/* data interrupt respond */
 		info->end_time = ktime_get();
 		msecs = ktime_to_ms(info->end_time - info->start_time);
@@ -181,16 +179,13 @@ void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info *info, 
 		index = msecs > 0 ? min((MMC_ARRAY_SIZE - 1), ilog2(msecs) + 1) : 0;
 		info->data_2_end[index]++;
 		if (index >= 11) {
-			pr_info("%s: data rsp over 1s! cmd= %d blk= %d arg= %x mrq= 0x%p\n",
+			pr_err("%s: data rsp over 1s! cmd= %d blk= %d arg= %x mrq= 0x%p\n",
 				info->name, info->cmd, info->blocks, info->arg, info->mrq);
 			mmc_debug_is_emmc(host, info);
 		}
 		mmc_debug_calc(info);
 		info->start_time = 0;
 		mmc_debug_print(info, host);
-		return;
-	default:
-		return;
 	}
 }
 
@@ -215,7 +210,10 @@ void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 type
 		info->mrq = cmd->mrq;
 		info->blocks = cmd->mrq->data ? cmd->mrq->data->blocks : 0;
 		info->start_time = ktime_get();
+
+		return;
 	}
+
 	if (info->start_time)
 		mmc_debug_handle_rsp(host, info, type);
 }
