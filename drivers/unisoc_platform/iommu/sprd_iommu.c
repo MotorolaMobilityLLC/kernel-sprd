@@ -1477,6 +1477,8 @@ int sprd_iommu_set_cam_bypass(bool vaor_bp_en)
 		ret = -1;
 
 	iommu_dev = sprd_iommu_list[SPRD_IOMMU_ISP].iommu_dev;
+	if (!strcmp(iommu_dev->init_data->name, "unisoc,iommuexpk2-isp"))
+		return ret;
 	if (iommu_dev->ops->set_bypass)
 		iommu_dev->ops->set_bypass(iommu_dev, vaor_bp_en);
 	else
