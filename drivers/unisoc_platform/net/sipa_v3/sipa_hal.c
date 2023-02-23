@@ -244,8 +244,8 @@ static void sipa_remove_fifo_params(struct device *dev,
 int sipa_hal_init(struct device *dev)
 {
 	int i, ret;
-	struct cpumask cpu_mask;
 	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
+	struct cpumask *cpu_mask = &ipa->cpu_mask;
 
 	sipa_glb_ops_init(&ipa->glb_ops);
 	sipa_fifo_ops_init(&ipa->fifo_ops);
@@ -275,9 +275,9 @@ int sipa_hal_init(struct device *dev)
 		}
 
 		enable_irq_wake(ipa->multi_intr[i]);
-		memset(&cpu_mask, 0, sizeof(cpu_mask));
-		cpumask_set_cpu(i, &cpu_mask);
-		irq_set_affinity_hint(ipa->multi_intr[i], &cpu_mask);
+		memset(cpu_mask, 0, sizeof(*cpu_mask));
+		cpumask_set_cpu(i, cpu_mask);
+		irq_set_affinity_hint(ipa->multi_intr[i], cpu_mask);
 	}
 
 	ipa->cpu_num = 0;
@@ -459,18 +459,18 @@ int sipa_hal_close_cmn_fifo(struct device *dev,
 
 int sipa_hal_config_irq_affinity(int channel, int dst_cpu)
 {
-	struct cpumask cpu_mask;
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	struct cpumask *cpu_mask = &ipa->cpu_mask;
 
 	if (channel >= SIPA_RECV_QUEUES_MAX ||
 	    dst_cpu >= num_possible_cpus()) {
-		pr_info("cyj, %s\n", __func__);
+		pr_info("%s channel or dstcpu err\n", __func__);
 		return -EINVAL;
 	}
 
-	memset(&cpu_mask, 0, sizeof(cpu_mask));
-	cpumask_set_cpu(dst_cpu, &cpu_mask);
-	irq_set_affinity_hint(ipa->multi_intr[channel], &cpu_mask);
+	memset(cpu_mask, 0, sizeof(*cpu_mask));
+	cpumask_set_cpu(dst_cpu, cpu_mask);
+	irq_set_affinity_hint(ipa->multi_intr[channel], cpu_mask);
 
 	return 0;
 }
