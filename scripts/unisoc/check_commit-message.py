@@ -255,7 +255,11 @@ def check_tags_file(modify_file_list, tags_list):
     if "asoc" in tags_list:
         tags_list[tags_list.index("asoc")] = 'sound'
     if "arm/arm64" in tags_list:
-        tags_list[tags_list.index("arm/arm64")] = 'arm'
+        if ','.join(modify_file_list).find('arch') > 0 and \
+        (','.join(modify_file_list).find('arm') < 0  or \
+        ','.join(modify_file_list).find('arm64') < 0):
+            file_add_inconsistent_flag += 1
+        del tags_list[tags_list.index("arm/arm64")]
 
     for x in modify_file_list:
 
