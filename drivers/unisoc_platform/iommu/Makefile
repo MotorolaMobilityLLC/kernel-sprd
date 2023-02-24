@@ -1,4 +1,6 @@
-# SPDX-License-Identifier: GPL-2.0
+#SPDX-FileCopyrightText: 2019 Unisoc (Shanghai) Technologies Co.Ltd
+#SPDX-License-Identifier: GPL-2.0-only
+
 ccflags-y := -I $(srctree)/$(src)
 
 unisoc-iommu-y := \

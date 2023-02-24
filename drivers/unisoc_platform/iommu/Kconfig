@@ -1,3 +1,6 @@
+#SPDX-FileCopyrightText: 2019 Unisoc (Shanghai) Technologies Co.Ltd
+#SPDX-License-Identifier: GPL-2.0-only
+
 config UNISOC_IOMMU
 	tristate "UNISOC Soc IOMMU Module"
 	depends on ARM || ARM64
