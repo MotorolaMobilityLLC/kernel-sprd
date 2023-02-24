@@ -28,8 +28,9 @@ static struct thermal_zone_device *soc_tz;
 
 struct sprd_thermal_ctl {
 	struct cpufreq_policy	*policy;
-	int			cluster_id;
 	struct list_head	node;
+	int			cluster_id;
+	bool			flag;
 };
 
 static LIST_HEAD(thermal_policy_list);
@@ -55,21 +56,11 @@ static void unisoc_thermal_register(void *data, struct cpufreq_policy *policy)
 	list_for_each_entry(thm_ctl, &thermal_policy_list, node)
 		if (thm_ctl->policy == NULL) {
 			thm_ctl->policy = policy;
+			thm_ctl->cluster_id = policy->cdev->id;
+			thm_ctl->flag = 1;
 			pr_info("Success to get policy for cdev%d\n", policy->cdev->id);
 			break;
 		}
-}
-
-static void unisoc_thermal_unregister(void *data, struct cpufreq_policy *policy)
-{
-	struct sprd_thermal_ctl *thm_ctl;
-
-	list_for_each_entry(thm_ctl, &thermal_policy_list, node) {
-		if (thm_ctl->policy == policy) {
-			thm_ctl->policy = NULL;
-			break;
-		}
-	}
 }
 
 /* thermal power throttle control */
@@ -90,17 +81,33 @@ static void unisoc_thermal_power_cap(void *data, unsigned int *power_range)
 }
 
 /* modify thermal target frequency */
-static inline
+static
 struct cpufreq_policy *find_next_cpufreq_policy(struct cpufreq_policy *curr)
 {
 	struct sprd_thermal_ctl *thm_ctl;
+	int next_id = -1;
 
+	/* get next cluster id */
 	list_for_each_entry(thm_ctl, &thermal_policy_list, node) {
-		if (!thm_ctl->policy)
+		if (!thm_ctl->flag)
 			continue;
-		if ((curr->cdev->id + 1) == thm_ctl->policy->cdev->id)
+
+		if (curr == thm_ctl->policy)
+			next_id = thm_ctl->cluster_id + 1;
+	}
+
+	if (next_id < 0)
+		return NULL;
+
+	/* find the next active cpufreq_policy */
+	list_for_each_entry(thm_ctl, &thermal_policy_list, node) {
+		if (!thm_ctl->flag || policy_is_inactive(thm_ctl->policy))
+			continue;
+
+		if (thm_ctl->cluster_id == next_id)
 			return thm_ctl->policy;
 	}
+
 	return NULL;
 }
 
@@ -268,7 +275,6 @@ static int sprd_thermal_ctl_init(void)
 	}
 
 	register_trace_android_vh_thermal_register(unisoc_thermal_register, NULL);
-	register_trace_android_vh_thermal_unregister(unisoc_thermal_unregister, NULL);
 	register_trace_android_vh_enable_thermal_power_throttle(unisoc_enable_thermal_power_throttle, NULL);
 	register_trace_android_vh_thermal_power_cap(unisoc_thermal_power_cap, NULL);
 	register_trace_android_vh_modify_thermal_target_freq(unisoc_modify_thermal_target_freq, NULL);
@@ -294,7 +300,6 @@ static void sprd_thermal_ctl_exit(void)
 	struct sprd_thermal_ctl *thm_ctl, *tmp_thm_ctl;
 
 	unregister_trace_android_vh_thermal_register(unisoc_thermal_register, NULL);
-	unregister_trace_android_vh_thermal_unregister(unisoc_thermal_unregister, NULL);
 
 	list_for_each_entry_safe(thm_ctl, tmp_thm_ctl, &thermal_policy_list, node) {
 		list_del(&thm_ctl->node);
