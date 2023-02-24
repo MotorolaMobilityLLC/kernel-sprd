@@ -784,8 +784,8 @@ static void fan54015_charger_otg_work(struct work_struct *work)
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct fan54015_charger_info *info =
 		container_of(dwork, struct fan54015_charger_info, otg_work);
-	int ret;
-	u8 reg0, reg1;
+	int ret = 0;
+	u8 reg0 = 0, reg1 = 0;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -918,8 +918,8 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 static int fan54015_charger_vbus_is_enabled(struct regulator_dev *dev)
 {
 	struct fan54015_charger_info *info = rdev_get_drvdata(dev);
-	int ret;
-	u8 val;
+	int ret = 0;
+	u8 val = 0;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
