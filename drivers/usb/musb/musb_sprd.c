@@ -290,8 +290,8 @@ static irqreturn_t sprd_musb_interrupt(int irq, void *__hci)
 
 	reg_dma = musb_readl(musb->mregs, MUSB_DMA_INTR_MASK_STATUS);
 
-	dev_dbg(musb->controller, "%s usb%04x tx%04x rx%04x dma%x\n", __func__,
-			musb->int_usb, musb->int_tx, musb->int_rx, reg_dma);
+	dev_dbg(musb->controller, "%s usb%04x tx%04x rx%04x dma%x mask8%04x\n", __func__,
+			musb->int_usb, musb->int_tx, musb->int_rx, reg_dma, mask8);
 
 	if (musb->int_usb || musb->int_tx || musb->int_rx)
 		retval = musb_interrupt(musb);
@@ -1360,10 +1360,13 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 	if (on) {
 		dev_info(glue->dev, "%s: turn on host\n", __func__);
 
-		ret = regulator_enable(glue->vbus);
-		if (ret) {
-			dev_err(glue->dev, "Failed to enable vbus: %d\n", ret);
-			return ret;
+		if (!regulator_is_enabled(glue->vbus)) {
+			dev_info(glue->dev, "%s: regulator enable\n", __func__);
+			ret = regulator_enable(glue->vbus);
+			if (ret) {
+				dev_err(glue->dev, "Failed to enable vbus: %d\n", ret);
+				return ret;
+			}
 		}
 
 		if (!glue->enable_pm_suspend_in_host)
