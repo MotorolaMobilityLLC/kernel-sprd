@@ -37,4 +37,4 @@ obj-$(CONFIG_SPRD_PIKE2_USB2_PHY)       += phy-sprd-pike2.o
 obj-$(CONFIG_SPRD_SHARKL5_USB2_PHY)	+= phy-sprd-sharkl5.o
 obj-$(CONFIG_SPRD_SHARKL3_USB2_PHY)	+= phy-sprd-sharkl3.o
 obj-$(CONFIG_SPRD_SHARKLE_USB2_PHY)     += phy-sprd-sharkle.o
-
+obj-$(CONFIG_SPRD_COMMONPHY)		+= phy-sprd-commonphy.o
