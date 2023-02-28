@@ -18,7 +18,9 @@
 #include <linux/nvmem-consumer.h>
 #include <linux/slab.h>
 #include <linux/extcon-provider.h>
-#include <linux/usb/tcpm.h>
+#include <linux/usb/sprd_typec.h>
+#include <linux/usb/sprd_tcpm.h>
+#include <linux/usb/sprd_commonphy.h>
 
 /* registers definitions for controller REGS_TYPEC */
 #define SC27XX_EN			0x00
@@ -66,6 +68,8 @@
 
 #define SC27XX_STATE_MASK		GENMASK(4, 0)
 #define SC27XX_EVENT_MASK		GENMASK(9, 0)
+
+#define SC27XX_DE_ATTACH_MASK		GENMASK(1, 0)
 
 #define SC2730_EFUSE_CC1_SHIFT		5
 #define SC2730_EFUSE_CC2_SHIFT		0
@@ -195,25 +199,71 @@ struct sc27xx_typec {
 	struct regmap *regmap;
 	u32 base;
 	int irq;
+	int mode;
 	struct extcon_dev *edev;
 	bool usb20_only;
+	bool partner_connected;
+	bool soft_typec_out;
 
+	u8 dr_mode;
+	u8 pr_mode;
+	u8 pd_swap_evt;
+	spinlock_t lock;
 	enum sc27xx_typec_connection_state state;
 	enum sc27xx_typec_connection_state pre_state;
-	enum typec_cc_polarity cc_polarity;
+	enum sprd_typec_cc_polarity cc_polarity;
 	struct typec_port *port;
 	struct typec_partner *partner;
 	struct typec_capability typec_cap;
 	const struct sprd_typec_variant_data *var_data;
+	/* when pr swap, clear invalid interrupt */
+	struct delayed_work typec_int_clr_work;
+	/* delayed work for handling dr swap */
+	struct delayed_work drswap_work;
+	bool use_pdhub_c2c;
 };
+#if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
+struct sprd_typec_device_ops sc27xx_typec_ops;
+#endif
+struct sc27xx_typec *typec_sc;
+/* during dr_swap, begin --> 1  end --> 0  */
+static atomic_t pd_dr_swap_event;
+/* interrupt, attach --> 1  detach --> 0  */
+static atomic_t typec_attach;
 
-static const char * const typec_cc_polarity_roles[] = {
-	[TYPEC_POLARITY_CC1] = "cc_1",
-	[TYPEC_POLARITY_CC2] = "cc_2",
+/* set pd_dr_swap_event */
+void sc27xx_set_dr_swap_executing(int event)
+{
+	atomic_set(&pd_dr_swap_event, event);
+}
+
+/* get pd_dr_swap_event */
+int sc27xx_get_dr_swap_executing(void)
+{
+	return atomic_read(&pd_dr_swap_event);
+}
+EXPORT_SYMBOL_GPL(sc27xx_get_dr_swap_executing);
+
+/* set typec_attach */
+void sc27xx_set_current_status_detach_or_attach(int event)
+{
+	atomic_set(&typec_attach, event);
+}
+
+/* get typec_attach */
+int sc27xx_get_current_status_detach_or_attach(void)
+{
+	return atomic_read(&typec_attach);
+}
+EXPORT_SYMBOL_GPL(sc27xx_get_current_status_detach_or_attach);
+
+static const char * const sprd_typec_cc_polarity_roles[] = {
+	[SPRD_TYPEC_POLARITY_CC1] = "cc_1",
+	[SPRD_TYPEC_POLARITY_CC2] = "cc_2",
 };
 
 static void typec_set_cc_polarity_role(struct sc27xx_typec *sc,
-				enum typec_cc_polarity polarity)
+				enum sprd_typec_cc_polarity polarity)
 {
 	if (sc->cc_polarity == polarity)
 		return;
@@ -223,15 +273,115 @@ static void typec_set_cc_polarity_role(struct sc27xx_typec *sc,
 	kobject_uevent(&sc->dev->kobj, KOBJ_CHANGE);
 }
 
-static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
+static int sc27xx_typec_set_cc_polarity_role(struct sc27xx_typec *sc)
+{
+	enum sprd_typec_cc_polarity cc_polarity;
+	u32 val, tmp1, tmp2;
+	int ret;
+
+	if (sc->var_data->pmic_name == SC2721) {
+		ret = regmap_read(sc->regmap, sc->base + SC2721_STATUS, &val);
+		if (ret < 0) {
+			dev_err(sc->dev, "failed to read STATUS register.\n");
+			return ret;
+		}
+		val &= SC2721_CC_MASK;
+		tmp1 = val & CC1_DFP_CHECK;
+		tmp2 = val & CC2_DFP_CHECK;
+	} else {
+		ret = regmap_read(sc->regmap, sc->base + SC2730_DBG1, &val);
+		if (ret < 0) {
+			dev_err(sc->dev, "failed to read DBG1 register.\n");
+			return ret;
+		}
+		val &= SC2730_CC_MASK;
+		tmp1 = val & CC1_DFP_CHECK;
+		tmp2 = val & CC2_DFP_CHECK;
+	}
+
+	if (tmp1 || tmp2) {
+		/* DFP MODE */
+		if (tmp1)
+			cc_polarity = SPRD_TYPEC_POLARITY_CC1;
+		else
+			cc_polarity = SPRD_TYPEC_POLARITY_CC2;
+	} else {
+		/* UFP MODE */
+		if (val & CC1_UFP_CON)
+			cc_polarity = SPRD_TYPEC_POLARITY_CC1;
+		else
+			cc_polarity = SPRD_TYPEC_POLARITY_CC2;
+	}
+	typec_set_cc_polarity_role(sc, cc_polarity);
+
+	return ret;
+}
+
+static int sc27xx_connect_set_status_use_pdhubc2c(struct sc27xx_typec *sc, u32 status)
+{
+
+	spin_lock(&sc->lock);
+	if (sc->partner_connected) {
+		spin_unlock(&sc->lock);
+		dev_info(sc->dev, "typec has already connected!\n");
+		return 0;
+	}
+
+	switch (sc->state) {
+	case SC27XX_ATTACHED_SNK:
+	case SC27XX_DEBUG_CABLE:
+		sc->pre_state = SC27XX_ATTACHED_SNK;
+		sc->pr_mode = EXTCON_SINK;
+		sc->dr_mode = EXTCON_USB;
+		spin_unlock(&sc->lock);
+
+		sc27xx_set_current_status_detach_or_attach(1);
+		extcon_set_state_sync(sc->edev, EXTCON_SINK, true);
+		extcon_set_state_sync(sc->edev, EXTCON_USB, true);
+		dev_info(sc->dev, "%s sink connect !\n", __func__);
+		break;
+	case SC27XX_ATTACHED_SRC:
+		sc->pre_state = SC27XX_ATTACHED_SRC;
+		sc->pr_mode = EXTCON_SOURCE;
+		sc->dr_mode = EXTCON_USB_HOST;
+		spin_unlock(&sc->lock);
+
+		sc27xx_set_current_status_detach_or_attach(1);
+		extcon_set_state_sync(sc->edev, EXTCON_SOURCE, true);
+		extcon_set_state_sync(sc->edev, EXTCON_USB_HOST, true);
+		dev_info(sc->dev, "%s source connect!\n", __func__);
+		break;
+	case SC27XX_AUDIO_CABLE:
+		sc->pre_state = SC27XX_AUDIO_CABLE;
+		spin_unlock(&sc->lock);
+
+		extcon_set_state_sync(sc->edev, EXTCON_JACK_HEADPHONE, true);
+		break;
+	default:
+		spin_unlock(&sc->lock);
+		/* The pmic may report both attach and detach states, which
+		 * is abnormal phenomenon.
+		 */
+		dev_info(sc->dev, "%s workaround error status: %d state",
+				__func__, sc->state);
+		return 0;
+	}
+
+	spin_lock(&sc->lock);
+	sc->partner_connected = true;
+	spin_unlock(&sc->lock);
+
+	sc27xx_typec_set_cc_polarity_role(sc);
+
+	return 0;
+}
+
+static int sc27xx_connect_set_status_no_pdhubc2c(struct sc27xx_typec *sc, u32 status)
 {
 	enum typec_data_role data_role = TYPEC_DEVICE;
 	enum typec_role power_role = TYPEC_SOURCE;
 	enum typec_role vconn_role = TYPEC_SOURCE;
 	struct typec_partner_desc desc;
-	enum typec_cc_polarity cc_polarity;
-	u32 val = 0, tmp1 = 0, tmp2 = 0;
-	int ret;
 
 	if (sc->partner)
 		return 0;
@@ -250,6 +400,10 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 		vconn_role = TYPEC_SOURCE;
 		break;
 	default:
+		/* The pmic may report both attach and detach states, which
+		 * is abnormal phenomenon.
+		 */
+		dev_info(sc->dev, "workaround error status: %d state", sc->state);
 		return 0;
 	}
 
@@ -289,45 +443,76 @@ static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
 		break;
 	}
 
-	if (sc->var_data->pmic_name == SC2721) {
-		ret = regmap_read(sc->regmap, sc->base + SC2721_STATUS, &val);
-		if (ret < 0) {
-			dev_err(sc->dev, "failed to read STATUS register.\n");
-			return ret;
-		}
-		val &= SC2721_CC_MASK;
-		tmp1 = val & CC1_DFP_CHECK;
-		tmp2 = val & CC2_DFP_CHECK;
-	} else {
-		ret = regmap_read(sc->regmap, sc->base + SC2730_DBG1, &val);
-		if (ret < 0) {
-			dev_err(sc->dev, "failed to read DBG1 register.\n");
-			return ret;
-		}
-		val &= SC2730_CC_MASK;
-		tmp1 = val & CC1_DFP_CHECK;
-		tmp2 = val & CC2_DFP_CHECK;
-	}
-
-	if (tmp1 || tmp2) {
-		/* DFP MODE */
-		if (tmp1)
-			cc_polarity = TYPEC_POLARITY_CC1;
-		else
-			cc_polarity = TYPEC_POLARITY_CC2;
-	} else {
-		/* UFP MODE */
-		if (val & CC1_UFP_CON)
-			cc_polarity = TYPEC_POLARITY_CC1;
-		else
-			cc_polarity = TYPEC_POLARITY_CC2;
-	}
-	typec_set_cc_polarity_role(sc, cc_polarity);
+	sc27xx_typec_set_cc_polarity_role(sc);
 
 	return 0;
 }
 
-static void sc27xx_typec_disconnect(struct sc27xx_typec *sc, u32 status)
+static int sc27xx_typec_connect(struct sc27xx_typec *sc, u32 status)
+{
+	int ret;
+
+	if (sc->use_pdhub_c2c)
+		ret = sc27xx_connect_set_status_use_pdhubc2c(sc, status);
+	else
+		ret = sc27xx_connect_set_status_no_pdhubc2c(sc, status);
+
+	return ret;
+}
+static void sc27xx_disconnect_set_status_use_pdhubc2c(struct sc27xx_typec *sc)
+{
+	u8 pr_mode, dr_mode;
+
+	spin_lock(&sc->lock);
+	sc->partner_connected = false;
+	sc->pd_swap_evt = TYPEC_NO_SWAP;
+	switch (sc->pre_state) {
+	case SC27XX_ATTACHED_SNK:
+	case SC27XX_DEBUG_CABLE:
+	case SC27XX_ATTACHED_SRC:
+		pr_mode = sc->pr_mode;
+		dr_mode = sc->dr_mode;
+		sc->pr_mode = EXTCON_NONE;
+		sc->dr_mode = EXTCON_NONE;
+		break;
+	default:
+		break;
+	}
+	spin_unlock(&sc->lock);
+
+	switch (sc->pre_state) {
+	case SC27XX_ATTACHED_SNK:
+	case SC27XX_DEBUG_CABLE:
+	case SC27XX_ATTACHED_SRC:
+		dev_info(sc->dev, "%s dr_mode:%d  pr_mode:%d!\n",
+					__func__, dr_mode, pr_mode);
+		sc27xx_set_current_status_detach_or_attach(0);
+
+		if (pr_mode == EXTCON_SOURCE)
+			extcon_set_state_sync(sc->edev, EXTCON_SOURCE, false);
+		else if (pr_mode == EXTCON_SINK)
+			extcon_set_state_sync(sc->edev, EXTCON_SINK, false);
+
+		/* typec out , dp/dm change to others before extcon_usb */
+		call_sprd_usbphy_event_notifiers(SPRD_USBPHY_EVENT_TYPEC,
+			false, NULL);
+
+		if (dr_mode == EXTCON_USB_HOST)
+			extcon_set_state_sync(sc->edev, EXTCON_USB_HOST, false);
+		else if (dr_mode == EXTCON_USB)
+			extcon_set_state_sync(sc->edev, EXTCON_USB, false);
+
+		break;
+	case SC27XX_AUDIO_CABLE:
+		extcon_set_state_sync(sc->edev, EXTCON_JACK_HEADPHONE, false);
+		break;
+	default:
+		break;
+	}
+
+}
+
+static void sc27xx_disconnect_set_status_no_pdhubc2c(struct sc27xx_typec *sc)
 {
 	typec_unregister_partner(sc->partner);
 	sc->partner = NULL;
@@ -350,6 +535,14 @@ static void sc27xx_typec_disconnect(struct sc27xx_typec *sc, u32 status)
 	default:
 		break;
 	}
+}
+
+static void sc27xx_typec_disconnect(struct sc27xx_typec *sc, u32 status)
+{
+	if (sc->use_pdhub_c2c)
+		sc27xx_disconnect_set_status_use_pdhubc2c(sc);
+	else
+		sc27xx_disconnect_set_status_no_pdhubc2c(sc);
 }
 
 static int sc27xx_typec_random_tdrp(struct sc27xx_typec *sc)
@@ -381,6 +574,7 @@ static irqreturn_t sc27xx_typec_interrupt(int irq, void *data)
 	u32 event;
 	int ret;
 
+	dev_info(sc->dev, "%s enter line %d\n", __func__, __LINE__);
 	ret = regmap_read(sc->regmap, sc->base + SC27XX_INT_MASK, &event);
 	if (ret)
 		return ret;
@@ -423,7 +617,7 @@ static int sc27xx_typec_enable(struct sc27xx_typec *sc)
 		return ret;
 
 	val &= ~SC27XX_MODE_MASK;
-	switch (sc->typec_cap.type) {
+	switch (sc->mode) {
 	case TYPEC_PORT_DFP:
 		val |= SC27XX_MODE_SRC;
 		break;
@@ -442,12 +636,14 @@ static int sc27xx_typec_enable(struct sc27xx_typec *sc)
 		return ret;
 
 	/* typec USB20 only flag, only work in snk mode */
-	if (sc->typec_cap.data == TYPEC_PORT_UFP && sc->usb20_only) {
-		ret = regmap_update_bits(sc->regmap, sc->base + SC27XX_EN,
-					 SC27XX_TYPEC_USB20_ONLY,
-					 SC27XX_TYPEC_USB20_ONLY);
-		if (ret)
-			return ret;
+	if (!sc->use_pdhub_c2c) {
+		if (sc->typec_cap.data == TYPEC_PORT_UFP && sc->usb20_only) {
+			ret = regmap_update_bits(sc->regmap, sc->base + SC27XX_EN,
+						SC27XX_TYPEC_USB20_ONLY,
+						SC27XX_TYPEC_USB20_ONLY);
+			if (ret)
+				return ret;
+		}
 	}
 
 	/* modify sc2730 tcc debounce to 100ms while PD signal occur at 150ms
@@ -473,6 +669,8 @@ static int sc27xx_typec_enable(struct sc27xx_typec *sc)
 static const u32 sc27xx_typec_cable[] = {
 	EXTCON_USB,
 	EXTCON_USB_HOST,
+	EXTCON_SOURCE,
+	EXTCON_SINK,
 	EXTCON_JACK_HEADPHONE,
 	EXTCON_NONE,
 };
@@ -551,7 +749,7 @@ typec_cc_polarity_role_show(struct device *dev, struct device_attribute *attr,
 {
 	struct sc27xx_typec *sc = dev_get_drvdata(dev);
 
-	return sprintf(buf, "%s\n", typec_cc_polarity_roles[sc->cc_polarity]);
+	return sprintf(buf, "%s\n", sprd_typec_cc_polarity_roles[sc->cc_polarity]);
 }
 static DEVICE_ATTR_RO(typec_cc_polarity_role);
 
@@ -560,6 +758,276 @@ static struct attribute *sc27xx_typec_attrs[] = {
 	NULL,
 };
 ATTRIBUTE_GROUPS(sc27xx_typec);
+
+int sc27xx_set_typec_int_clear(void)
+{
+	struct sc27xx_typec *sc = typec_sc;
+	u32 event;
+	int ret;
+
+	ret = regmap_read(sc->regmap, sc->base + SC27XX_INT_RAW, &event);
+	if (ret)
+		return ret;
+
+	event &= sc->var_data->event_mask;
+	/* preserve the con/discon interrupt, clr_work selective clear int */
+	event &= ~SC27XX_DE_ATTACH_MASK;
+
+	dev_info(sc->dev, "%s SC27XX_INT_RAW:0x%x!\n", __func__, event);
+
+	regmap_write(sc->regmap, sc->base + sc->var_data->int_clr, event);
+
+	/* pd swap,cc need debounce to report interrupt */
+	queue_delayed_work(system_unbound_wq, &sc->typec_int_clr_work, msecs_to_jiffies(300));
+
+	return 0;
+}
+
+int sc27xx_set_typec_int_disable(void)
+{
+	struct sc27xx_typec *sc = typec_sc;
+	int ret = 0;
+	u32 val;
+
+	dev_info(sc->dev, "%s enter line %d\n", __func__, __LINE__);
+	sc->soft_typec_out = true;
+
+	if (!cancel_delayed_work_sync(&sc->typec_int_clr_work)) {
+		ret = regmap_read(sc->regmap,
+				sc->base + sc->var_data->int_en, &val);
+		if (ret)
+			return ret;
+
+		ret = val & (sc->var_data->attach_en | sc->var_data->detach_en);
+		if (!ret)
+			msleep(20);
+	}
+
+	/* disable typec interrupt for attach/detach */
+	ret = regmap_read(sc->regmap, sc->base + sc->var_data->int_en, &val);
+	if (ret)
+		return ret;
+
+	val &= ~(sc->var_data->attach_en | sc->var_data->detach_en);
+	return regmap_write(sc->regmap, sc->base + sc->var_data->int_en, val);
+}
+
+int sc27xx_set_typec_int_enable(void)
+{
+	struct sc27xx_typec *sc = typec_sc;
+	int ret = 0;
+	u32 val;
+
+	dev_info(sc->dev, "%s enter line %d\n", __func__, __LINE__);
+
+	/* Enable typec interrupt and enable typec */
+	ret = regmap_read(sc->regmap, sc->base + sc->var_data->int_en, &val);
+	if (ret)
+		return ret;
+
+	val |= sc->var_data->attach_en | sc->var_data->detach_en;
+	return regmap_write(sc->regmap, sc->base + sc->var_data->int_en, val);
+}
+
+/*
+ *  TYPEC_DEVICE_TO_HOST	device->host
+ *  TYPEC_HOST_TO_DEVICE	host->device
+ */
+int sc27xx_typec_set_pd_dr_swap_flag(u8 flag)
+{
+	struct sc27xx_typec *sc = typec_sc;
+
+	dev_info(sc->dev, "%s enter line %d\n", __func__, __LINE__);
+
+	return 0;
+}
+
+/*
+ * TYPEC_SINK_TO_SOURCE		sink->source
+ * TYPEC_SOURCE_TO_SINK		source->sink
+ */
+int sc27xx_typec_set_pr_swap_flag(u8 flag)
+{
+	struct sc27xx_typec *sc = typec_sc;
+
+	dev_info(sc->dev, "%s flag:%d!\n", __func__, flag);
+
+	return 0;
+}
+
+/*
+ * if pd pr/dr swap ok,send extcon event by set api.
+ */
+int sc27xx_typec_set_pd_swap_event(u8 pd_swap_flag)
+{
+	struct sc27xx_typec *sc = typec_sc;
+
+	dev_info(sc->dev, "%s pd_swap_flag:%d!\n", __func__, pd_swap_flag);
+
+	spin_lock(&sc->lock);
+	if (!sc->partner_connected) {
+		spin_unlock(&sc->lock);
+		dev_info(sc->dev, "typec has disconnected!\n");
+		return 0;
+	}
+
+	switch (pd_swap_flag) {
+	case TYPEC_SOURCE_TO_SINK:
+		sc->pr_mode = EXTCON_SINK;
+		spin_unlock(&sc->lock);
+		extcon_set_state_sync(sc->edev, EXTCON_SOURCE, false);
+		extcon_set_state_sync(sc->edev, EXTCON_SINK, true);
+		break;
+	case TYPEC_SINK_TO_SOURCE:
+		sc->pr_mode = EXTCON_SOURCE;
+		spin_unlock(&sc->lock);
+		extcon_set_state_sync(sc->edev, EXTCON_SINK, false);
+		extcon_set_state_sync(sc->edev, EXTCON_SOURCE, true);
+		break;
+	case TYPEC_HOST_TO_DEVICE:
+	case TYPEC_DEVICE_TO_HOST:
+		if (pd_swap_flag != sc->pd_swap_evt) {
+			sc->pd_swap_evt = pd_swap_flag;
+			spin_unlock(&sc->lock);
+			/* delay one jiffies for scheduling purpose */
+			schedule_delayed_work(&sc->drswap_work, msecs_to_jiffies(5));
+		} else {
+			spin_unlock(&sc->lock);
+			dev_err(sc->dev, "%s igore pd_swap_flag:%d!\n",
+						__func__, pd_swap_flag);
+		}
+		break;
+	default:
+		spin_unlock(&sc->lock);
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+#if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
+static int sc27xx_typec_register_ops(void)
+{
+	if (!typec_sc->use_pdhub_c2c)
+		return 0;
+
+	sc27xx_typec_ops.name = "sc27xx-typec";
+	sc27xx_typec_ops.set_typec_int_clear = sc27xx_set_typec_int_clear;
+	sc27xx_typec_ops.set_typec_int_disable = sc27xx_set_typec_int_disable;
+	sc27xx_typec_ops.set_typec_int_enable = sc27xx_set_typec_int_enable;
+	sc27xx_typec_ops.typec_set_pd_dr_swap_flag = sc27xx_typec_set_pd_dr_swap_flag;
+	sc27xx_typec_ops.typec_set_pr_swap_flag = sc27xx_typec_set_pr_swap_flag;
+	sc27xx_typec_ops.typec_set_pd_swap_event = sc27xx_typec_set_pd_swap_event;
+
+	sprd_tcpm_typec_device_ops_register(&sc27xx_typec_ops);
+
+	return 0;
+}
+#else
+static int sc27xx_typec_register_ops(void)
+{
+	return 0;
+}
+#endif
+
+static void sc27xx_typec_int_clr_work(struct work_struct *work)
+{
+	struct sc27xx_typec *sc = typec_sc;
+	bool is_detach;
+	u32 event;
+	u32 temp_event;
+	u32 state;
+	int ret;
+
+	dev_info(sc->dev, "%s enter line %d\n", __func__, __LINE__);
+	/* pd swap,cc need debounce to report interrupt */
+	ret = regmap_read(sc->regmap, sc->base + SC27XX_INT_RAW, &event);
+	if (ret)
+		return;
+
+	event &= sc->var_data->event_mask;
+	temp_event = event;
+
+	ret = regmap_read(sc->regmap, sc->base + SC27XX_STATUS, &state);
+	if (ret)
+		return;
+
+	state &= sc->var_data->state_mask;
+
+	/*
+	 * workaround：when pr swap and typec pull out, we need to preserve the
+	 * disconnect interrupt
+	 */
+	dev_info(sc->dev, "%s SC27XX_INT_RAW:0x%x state:%d!\n", __func__, event, state);
+
+	switch (state) {
+	case SC27XX_DETACHED_SNK:
+	case SC27XX_DETACHED_SRC:
+	case SC27XX_TOGGLE_SLEEP:
+		is_detach = true;
+		break;
+	default:
+		is_detach = false;
+		break;
+	}
+
+	if (is_detach || (((temp_event & SC27XX_DE_ATTACH_MASK) == SC27XX_DETACH_INT))) {
+		event &= ~SC27XX_DETACH_INT;
+		if (sc->soft_typec_out) {
+			sc->soft_typec_out = false;
+			dev_info(sc->dev, "discon int not clear, need to retry!\n");
+			queue_delayed_work(system_unbound_wq, &sc->typec_int_clr_work,
+				msecs_to_jiffies(3000));
+			return;
+		}
+		dev_info(sc->dev, "workaround : maybe typec pull out!\n");
+	}
+
+	regmap_write(sc->regmap, sc->base + sc->var_data->int_clr, event);
+
+	ret = regmap_read(sc->regmap, sc->base + SC27XX_INT_RAW, &event);
+	if (ret)
+		return;
+
+	event &= sc->var_data->event_mask;
+	dev_info(sc->dev, "%s SC27XX_INT_RAW:0x%x!\n", __func__, event);
+
+	sc27xx_set_typec_int_enable();
+}
+
+static void sc27xx_typec_extcon_drswap_work(struct work_struct *work)
+{
+	struct sc27xx_typec *sc = typec_sc;
+
+	dev_info(sc->dev, "%s pd_swap_evt:%d!\n", __func__, sc->pd_swap_evt);
+
+	spin_lock(&sc->lock);
+	switch (sc->pd_swap_evt) {
+	case TYPEC_HOST_TO_DEVICE:
+		sc->dr_mode = EXTCON_USB;
+		spin_unlock(&sc->lock);
+
+		sc27xx_set_dr_swap_executing(1);
+		extcon_set_state_sync(sc->edev, EXTCON_USB_HOST, false);
+		if (sc27xx_get_current_status_detach_or_attach())
+			extcon_set_state_sync(sc->edev, EXTCON_USB, true);
+		sc27xx_set_dr_swap_executing(0);
+		break;
+	case TYPEC_DEVICE_TO_HOST:
+		sc->dr_mode = EXTCON_USB_HOST;
+		spin_unlock(&sc->lock);
+
+		sc27xx_set_dr_swap_executing(1);
+		extcon_set_state_sync(sc->edev, EXTCON_USB, false);
+		if (sc27xx_get_current_status_detach_or_attach())
+			extcon_set_state_sync(sc->edev, EXTCON_USB_HOST, true);
+		sc27xx_set_dr_swap_executing(0);
+		break;
+	default:
+		spin_unlock(&sc->lock);
+		return;
+	}
+}
 
 static int sc27xx_typec_probe(struct platform_device *pdev)
 {
@@ -616,6 +1084,8 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	sc->use_pdhub_c2c = of_property_read_bool(node, "use_pdhub_c2c");
+
 	if (mode < TYPEC_PORT_DFP || mode > TYPEC_PORT_DRP
 	    || mode == TYPEC_PORT_UFP) {
 		mode = TYPEC_PORT_UFP;
@@ -624,15 +1094,26 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 	}
 
 	sc->var_data = pdata;
-	sc->typec_cap.type = mode;
-	sc->typec_cap.data = TYPEC_PORT_DRD;
-	sc->typec_cap.revision = USB_TYPEC_REV_1_2;
-	sc->typec_cap.prefer_role = TYPEC_NO_PREFERRED_ROLE;
-	sc->port = typec_register_port(&pdev->dev, &sc->typec_cap);
-	if (!sc->port) {
-		dev_err(sc->dev, "failed to register port!\n");
-		return -ENODEV;
+	sc->mode = mode;
+	if (!sc->use_pdhub_c2c) {
+		sc->typec_cap.type = mode;
+		sc->typec_cap.data = TYPEC_PORT_DRD;
+		//sc->typec_cap.dr_set = sc27xx_typec_dr_set;
+		//sc->typec_cap.pr_set = sc27xx_typec_pr_set;
+		//sc->typec_cap.vconn_set = sc27xx_typec_vconn_set;
+		sc->typec_cap.revision = USB_TYPEC_REV_1_2;
+		sc->typec_cap.prefer_role = TYPEC_NO_PREFERRED_ROLE;
+		sc->port = typec_register_port(&pdev->dev, &sc->typec_cap);
+		if (!sc->port) {
+			dev_err(sc->dev, "failed to register port!\n");
+			return -ENODEV;
+		}
 	}
+
+	typec_sc = sc;
+	spin_lock_init(&sc->lock);
+	sc27xx_set_dr_swap_executing(0);
+	sc27xx_set_current_status_detach_or_attach(0);
 
 	ret = sysfs_create_groups(&sc->dev->kobj, sc27xx_typec_groups);
 	if (ret < 0)
@@ -653,6 +1134,11 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 		goto error;
 	}
 
+	sc->pd_swap_evt = TYPEC_NO_SWAP;
+	INIT_DELAYED_WORK(&sc->typec_int_clr_work, sc27xx_typec_int_clr_work);
+	INIT_DELAYED_WORK(&sc->drswap_work, sc27xx_typec_extcon_drswap_work);
+	sc27xx_typec_register_ops();
+
 	ret = sc27xx_typec_enable(sc);
 	if (ret)
 		goto error;
@@ -661,7 +1147,8 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 	return 0;
 
 error:
-	typec_unregister_port(sc->port);
+	if (!sc->use_pdhub_c2c)
+		typec_unregister_port(sc->port);
 	return ret;
 }
 
@@ -671,7 +1158,8 @@ static int sc27xx_typec_remove(struct platform_device *pdev)
 
 	sysfs_remove_groups(&sc->dev->kobj, sc27xx_typec_groups);
 	sc27xx_typec_disconnect(sc, 0);
-	typec_unregister_port(sc->port);
+	if (!sc->use_pdhub_c2c)
+		typec_unregister_port(sc->port);
 
 	return 0;
 }
