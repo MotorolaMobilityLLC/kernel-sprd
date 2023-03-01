@@ -24,6 +24,7 @@
 
 static unsigned int thm_enable = 1;
 static unsigned int user_power_range;
+static unsigned int last_user_power_range;
 static struct thermal_zone_device *soc_tz;
 
 struct sprd_thermal_ctl {
@@ -69,8 +70,9 @@ static void unisoc_enable_thermal_power_throttle(void *data, bool *enable, bool 
 	if (!thm_enable)
 		*enable = false;
 
-	if (user_power_range)
+	if (user_power_range || (!user_power_range && last_user_power_range))
 		*override = true;
+	last_user_power_range = user_power_range;
 }
 
 /* modify IPA power_range by user_power_range */
@@ -229,6 +231,7 @@ user_power_range_store(struct device *dev, struct device_attribute *attr,
 		return -EINVAL;
 
 	user_power_range = power_value;
+	pr_info("Set user_power_range to %d\n", user_power_range);
 
 	return count;
 }
