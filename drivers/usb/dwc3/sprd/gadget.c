@@ -4443,6 +4443,8 @@ int dwc3_gadget_init(struct dwc3 *dwc)
 		goto err5;
 	}
 
+	usb_udc_vbus_handler(dwc->gadget, false);
+
 	if (DWC3_IP_IS(DWC32) && dwc->maximum_speed == USB_SPEED_SUPER_PLUS)
 		dwc3_gadget_set_ssp_rate(dwc->gadget, dwc->max_ssp_rate);
 	else
