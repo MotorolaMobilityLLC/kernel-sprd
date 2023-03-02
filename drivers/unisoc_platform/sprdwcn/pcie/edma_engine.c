@@ -1364,6 +1364,10 @@ static void edma_tasklet(unsigned long data)
 	struct edma_info *edma = edma_info();
 	struct msg_q *q = &(edma->isr_func.q);
 
+	/*debug tasklet schedule when edma_tasklet_deinit*/
+	if (!wcn_get_edma_status())
+		WCN_INFO("%s:card removed before tasklet deinit\n", __func__);
+
 	while (dequeue(q, (unsigned char *)(&msg), -1) == OK)
 		hisrfunc(&msg);
 
@@ -1863,21 +1867,17 @@ int edma_init(struct wcn_pcie_info *pcie_info)
 
 int edma_tasklet_deinit(void)
 {
-	unsigned long flags;
 	struct edma_info *edma = edma_info();
 
-	spin_lock_irqsave(&edma->tasklet_lock, flags);
 #if TASKLET_SUPPORT
 	WCN_INFO("tasklet exit start status=0x%lx, count=%d\n",
 		 edma->isr_func.q.event.tasklet->state,
 		 atomic_read(&edma->isr_func.q.event.tasklet->count));
-	tasklet_disable(edma->isr_func.q.event.tasklet);
 	tasklet_kill(edma->isr_func.q.event.tasklet);
 	kfree(edma->isr_func.q.event.tasklet);
 	edma->isr_func.q.event.tasklet = NULL;
 	WCN_INFO("tasklet exit end\n");
 #endif
-	spin_unlock_irqrestore(&edma->tasklet_lock, flags);
 
 	return 0;
 }
