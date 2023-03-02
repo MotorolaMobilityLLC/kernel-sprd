@@ -407,8 +407,9 @@ static inline int select_cpu_when_overutiled(struct task_struct *p, int prev_cpu
 	struct cpuidle_state *idle;
 	unsigned int min_exit_lat = UINT_MAX;
 
-	for_each_online_cpu(cpu) {
+	for_each_cpu(cpu, cpu_active_mask) {
 		int spare_cap;
+		int cpu_cap = pdc[cpu].cap;
 		struct rq *rq = cpu_rq(cpu);
 		unsigned int idle_exit_latency = UINT_MAX;
 
@@ -422,21 +423,20 @@ static inline int select_cpu_when_overutiled(struct task_struct *p, int prev_cpu
 			else
 				idle_exit_latency = 0;
 
-			if (pdc[cpu].cap > max_cap_idle) {
+			if (cpu_cap > max_cap_idle) {
 				best_idle_cpu = cpu;
-				max_cap_idle = pdc[cpu].cap;
+				max_cap_idle = cpu_cap;
 				min_exit_lat = idle_exit_latency;
 			} else if (best_idle_cpu >= 0 &&
-				   pdc[cpu].cap == max_cap_idle &&
+				   cpu_cap == max_cap_idle &&
 				   idle_exit_latency < min_exit_lat) {
 				best_idle_cpu = cpu;
-				max_cap_idle = pdc[cpu].cap;
+				max_cap_idle = cpu_cap;
 				min_exit_lat = idle_exit_latency;
 			}
 
 			continue;
 		}
-
 		spare_cap = pdc[cpu].cap - pdc[cpu].wake_util;
 		if (spare_cap > max_spare) {
 			max_spare = spare_cap;
@@ -450,8 +450,10 @@ static inline int select_cpu_when_overutiled(struct task_struct *p, int prev_cpu
 		}
 	}
 
-	return best_idle_cpu >= 0 ? best_idle_cpu : best_active_cpu;
+	if (best_active_cpu == -1)
+		best_active_cpu = prev_cpu;
 
+	return best_idle_cpu >= 0 ? best_idle_cpu : best_active_cpu;
 }
 
 static inline int select_cpu_with_same_energy(int prev_cpu, int best_cpu,
@@ -542,7 +544,7 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 
 			/* speed up goto big core */
 			util = pdc[cpu].wake_util + uclamp_util;
-			cpu_cap = capacity_orig_of(cpu);
+			cpu_cap = pdc[cpu].cap;
 			spare_cap = cpu_cap;
 			lsub_positive(&spare_cap, util);
 
