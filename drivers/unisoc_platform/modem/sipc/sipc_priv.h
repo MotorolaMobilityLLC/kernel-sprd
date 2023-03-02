@@ -151,10 +151,15 @@ extern void smsg_msg_process(struct smsg_ipc *ipc, struct smsg *msg, bool wake_l
 
 #if defined(CONFIG_DEBUG_FS)
 void sipc_debug_putline(struct seq_file *m, char c, int n);
-int smem_init_debugfs(void *root);
-int smsg_init_debugfs(void *root);
-int sbuf_init_debugfs(void *root);
-int sblock_init_debugfs(void *root);
+int smem_init_debug(void);
+int smsg_init_debug(void);
+int sbuf_init_debug(void);
+int sblock_init_debug(void);
+
+void smem_destroy_debug(void);
+void smsg_destroy_debug(void);
+void sbuf_destroy_debug(void);
+void sblock_destroy_debug(void);
 #endif
 
 #ifdef CONFIG_SPRD_MAILBOX

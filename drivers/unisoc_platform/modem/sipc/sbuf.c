@@ -17,7 +17,7 @@
 #endif
 #define pr_fmt(fmt) "sprd-sbuf: " fmt
 
-#include <linux/debugfs.h>
+#include <linux/cdev.h>
 #include <linux/delay.h>
 #include <linux/kernel.h>
 #include <linux/interrupt.h>
@@ -58,6 +58,18 @@ enum task_type {
 	TASK_TXWAIT,
 	TASK_SELECT
 };
+
+#if defined(CONFIG_DEBUG_FS)
+struct sbuf_device {
+	int			major;
+	int			minor;
+	struct cdev		cdev;
+	struct device		*sys_dev;	/* Device object in sysfs */
+};
+
+static struct class *sbuf_class;
+static struct sbuf_device *sbuf_dev;
+#endif
 
 static struct sbuf_mgr *sbufs[SIPC_ID_NR][SMSG_VALID_CH_NR];
 
@@ -1659,17 +1671,72 @@ static const struct file_operations sbuf_debug_fops = {
 	.release = single_release,
 };
 
-int sbuf_init_debugfs(void *root)
+int sbuf_init_debug(void)
 {
-	if (!root)
-		return -ENXIO;
-	debugfs_create_file("sbuf", 0444,
-			    (struct dentry *)root,
-			    NULL, &sbuf_debug_fops);
-	return 0;
-}
-EXPORT_SYMBOL_GPL(sbuf_init_debugfs);
+	int rval;
+	dev_t dev_no;
 
+	sbuf_dev = kzalloc(sizeof(struct sbuf_device), GFP_KERNEL);
+	if (!sbuf_dev)
+		return -ENOMEM;
+	rval = alloc_chrdev_region(&dev_no, 0, 1, "sbuf_debug");
+	if (rval) {
+		pr_err("Failed to alloc chrdev region\n");
+		goto free_sbuf_dev;
+	}
+	sbuf_dev->major = MAJOR(dev_no);
+	sbuf_dev->minor = MINOR(dev_no);
+	cdev_init(&sbuf_dev->cdev, &sbuf_debug_fops);
+	rval = cdev_add(&sbuf_dev->cdev, dev_no, 1);
+	if (rval) {
+		pr_err("Failed to add sbuf cdev\n");
+		goto free_devno;
+	}
+	sbuf_class = class_create(THIS_MODULE, "sbuf");
+	if (IS_ERR(sbuf_class)) {
+		rval = PTR_ERR(sbuf_class);
+		pr_err("Failed to create sbuf class\n");
+		goto free_cdev;
+	}
+	sbuf_dev->sys_dev = device_create(sbuf_class, NULL,
+				       dev_no,
+				       sbuf_dev, "sipc_sbuf");
+
+	return 0;
+
+free_cdev:
+	cdev_del(&sbuf_dev->cdev);
+
+free_devno:
+	unregister_chrdev_region(dev_no, 1);
+
+free_sbuf_dev:
+	kfree(sbuf_dev);
+	sbuf_dev = NULL;
+	return rval;
+}
+EXPORT_SYMBOL_GPL(sbuf_init_debug);
+
+void sbuf_destroy_debug(void)
+{
+	if (sbuf_dev) {
+		dev_t dev_no = MKDEV(sbuf_dev->major, sbuf_dev->minor);
+
+		if (sbuf_dev->sys_dev) {
+			device_destroy(sbuf_class, dev_no);
+			sbuf_dev->sys_dev = NULL;
+		}
+
+		if (!IS_ERR(sbuf_class))
+			class_destroy(sbuf_class);
+
+		unregister_chrdev_region(dev_no, 1);
+		cdev_del(&sbuf_dev->cdev);
+		kfree(sbuf_dev);
+		sbuf_dev = NULL;
+	}
+}
+EXPORT_SYMBOL_GPL(sbuf_destroy_debug);
 #endif /* CONFIG_DEBUG_FS */
 
 MODULE_AUTHOR("Chen Gaopeng");

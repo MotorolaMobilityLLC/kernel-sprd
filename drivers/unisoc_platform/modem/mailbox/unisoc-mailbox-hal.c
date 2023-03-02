@@ -5,13 +5,27 @@
  * Copyright (c) 2020 Spreadtrum Communications Inc.
  */
 #include <linux/cpu_pm.h>
-#include <linux/debugfs.h>
+#include <linux/cdev.h>
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 #include <linux/kthread.h>
+#include <linux/slab.h>
 #include "unisoc-mailbox.h"
 
 #define SPRD_MBOX_TX_FIFO_LEN		64
+
+#if defined(CONFIG_DEBUG_FS)
+struct mbox_device {
+	int			major;
+	int			minor;
+	struct cdev		cdev;
+	struct device		*sys_dev;	/* Device object in sysfs */
+};
+
+static struct class *mbox_class;
+static struct mbox_device *mbox_dev;
+struct sprd_mbox_priv *mbox_priv;
+#endif
 
 struct sprd_mbox_tx_data {
 	u64 fifo[SPRD_MBOX_TX_FIFO_LEN];
@@ -42,30 +56,82 @@ const struct sprd_mbox_phy_ops *mbox_phy_ops;
 #if defined(CONFIG_DEBUG_FS)
 static int sprd_mbox_debug_open(struct inode *inode, struct file *file)
 {
-	struct sprd_mbox_priv *priv = inode->i_private;
-
-	return single_open(file, priv->phy_ops->debugfs_show, inode->i_private);
+	if (mbox_priv)
+		return single_open(file, mbox_priv->phy_ops->debugfs_show, inode->i_private);
+	else
+		return -EINVAL;
 }
 
-static const struct file_operations sprd_mbox_debugfs_ops = {
+static const struct file_operations sprd_mbox_debug_ops = {
 	.open = sprd_mbox_debug_open,
 	.read = seq_read,
 	.llseek = seq_lseek,
 	.release = single_release,
 };
 
-static int sprd_mbox_debugfs(struct sprd_mbox_priv *priv)
+static int sprd_mbox_debug(void)
 {
-	if (!debugfs_initialized())
-		return 0;
+	int rval;
+	dev_t dev_no;
 
-	priv->debugfs_dir = debugfs_create_dir("mailbox", NULL);
-	if (!priv->debugfs_dir)
-		return -EINVAL;
+	mbox_dev = kzalloc(sizeof(struct mbox_device), GFP_KERNEL);
+	if (!mbox_dev)
+		return -ENOMEM;
+	rval = alloc_chrdev_region(&dev_no, 0, 1, "mbox_debug");
+	if (rval) {
+		pr_err("Failed to alloc chrdev region\n");
+		goto free_mbox_dev;
+	}
+	mbox_dev->major = MAJOR(dev_no);
+	mbox_dev->minor = MINOR(dev_no);
+	cdev_init(&mbox_dev->cdev, &sprd_mbox_debug_ops);
+	rval = cdev_add(&mbox_dev->cdev, dev_no, 1);
+	if (rval) {
+		pr_err("Failed to add mbox cdev\n");
+		goto free_devno;
+	}
+	mbox_class = class_create(THIS_MODULE, "mbox");
+	if (IS_ERR(mbox_class)) {
+		rval = PTR_ERR(mbox_class);
+		pr_err("Failed to create mbox class\n");
+		goto free_cdev;
+	}
+	mbox_dev->sys_dev = device_create(mbox_class, NULL,
+				       dev_no,
+				       mbox_dev, "mbox");
 
-	debugfs_create_file("reg", 0444, priv->debugfs_dir,
-						priv, &sprd_mbox_debugfs_ops);
 	return 0;
+
+free_cdev:
+	cdev_del(&mbox_dev->cdev);
+
+free_devno:
+	unregister_chrdev_region(dev_no, 1);
+
+free_mbox_dev:
+	kfree(mbox_dev);
+	mbox_dev = NULL;
+	return rval;
+}
+
+static void mbox_destroy_debug(void)
+{
+	if (mbox_dev) {
+		dev_t dev_no = MKDEV(mbox_dev->major, mbox_dev->minor);
+
+		if (mbox_dev->sys_dev) {
+			device_destroy(mbox_class, dev_no);
+			mbox_dev->sys_dev = NULL;
+		}
+
+		if (!IS_ERR(mbox_class))
+			class_destroy(mbox_class);
+
+		unregister_chrdev_region(dev_no, 1);
+		cdev_del(&mbox_dev->cdev);
+		kfree(mbox_dev);
+		mbox_dev = NULL;
+	}
 }
 #endif /* CONFIG_DEBUG_FS */
 
@@ -235,6 +301,9 @@ static void sprd_mbox_shutdown(struct mbox_chan *chan)
 {
 	struct sprd_mbox_priv *priv = to_sprd_mbox_priv(chan->mbox);
 
+#if defined(CONFIG_DEBUG_FS)
+	mbox_destroy_debug();
+#endif
 	dev_info(priv->dev, "shutdown chan-%ld\n", (unsigned long)chan->con_priv);
 	priv->phy_ops->shutdown(chan);
 }
@@ -405,9 +474,10 @@ static int sprd_mbox_probe(struct platform_device *pdev)
 	wake_up_process(mbox_deliver_thread);
 
 #if defined(CONFIG_DEBUG_FS)
-	ret = sprd_mbox_debugfs(priv);
+	mbox_priv = priv;
+	ret = sprd_mbox_debug();
 	if (ret)
-		dev_err(dev, "failed to create debugfs! ret = %d\n", ret);
+		dev_err(dev, "failed to create mbox debug! ret = %d\n", ret);
 #endif
 	dev_info(priv->dev, "probe done, version=0x%x\n", priv->version);
 

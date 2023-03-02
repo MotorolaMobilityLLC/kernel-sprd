@@ -68,6 +68,9 @@ struct sprd_mbox_priv {
 
 u8 get_tx_fifo_mask(u8 deliver_bit);
 void mbox_start_send_tx_fifo(u8 msk);
+#if defined(CONFIG_DEBUG_FS)
+extern struct sprd_mbox_priv *mbox_priv;
+#endif
 
 #if defined CONFIG_UNISOC_MAILBOX_R1
 int sprd_mbox_phy_r1_init(struct sprd_mbox_priv *priv);

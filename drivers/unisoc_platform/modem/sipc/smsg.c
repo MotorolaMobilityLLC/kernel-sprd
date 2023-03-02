@@ -16,7 +16,7 @@
 #endif
 #define pr_fmt(fmt) "sprd-smsg: " fmt
 
-#include <linux/debugfs.h>
+#include <linux/cdev.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
@@ -58,6 +58,18 @@
 #define SIPC_WRITEL(b, addr)  writel(b, (__force void __iomem *)(addr))
 
 #define HIGH_OFFSET_FLAG (0xFEFE)
+
+#if defined(CONFIG_DEBUG_FS)
+struct smsg_device {
+	int			major;
+	int			minor;
+	struct cdev		cdev;
+	struct device		*sys_dev;	/* Device object in sysfs */
+};
+
+static struct class *smsg_class;
+static struct smsg_device *smsg_dev;
+#endif
 
 static u8 g_wakeup_flag;
 static struct smsg_callback_t smsg_callback[SIPC_ID_NR][SMSG_CH_NR + 1];
@@ -946,18 +958,72 @@ static const struct file_operations smsg_debug_fops = {
 	.release = single_release,
 };
 
-int smsg_init_debugfs(void *root)
+int smsg_init_debug(void)
 {
-	if (!root)
-		return -ENXIO;
-	debugfs_create_file("smsg", 0444,
-			    (struct dentry *)root,
-			    NULL,
-			    &smsg_debug_fops);
-	return 0;
-}
-EXPORT_SYMBOL_GPL(smsg_init_debugfs);
+	int rval;
+	dev_t dev_no;
 
+	smsg_dev = kzalloc(sizeof(struct smsg_device), GFP_KERNEL);
+	if (!smsg_dev)
+		return -ENOMEM;
+	rval = alloc_chrdev_region(&dev_no, 0, 1, "smsg_debug");
+	if (rval) {
+		pr_err("Failed to alloc chrdev region\n");
+		goto free_smsg_dev;
+	}
+	smsg_dev->major = MAJOR(dev_no);
+	smsg_dev->minor = MINOR(dev_no);
+	cdev_init(&smsg_dev->cdev, &smsg_debug_fops);
+	rval = cdev_add(&smsg_dev->cdev, dev_no, 1);
+	if (rval) {
+		pr_err("Failed to add smsg cdev\n");
+		goto free_devno;
+	}
+	smsg_class = class_create(THIS_MODULE, "smsg");
+	if (IS_ERR(smsg_class)) {
+		rval = PTR_ERR(smsg_class);
+		pr_err("Failed to create smsg class\n");
+		goto free_cdev;
+	}
+	smsg_dev->sys_dev = device_create(smsg_class, NULL,
+				       dev_no,
+				       smsg_dev, "sipc_smsg");
+
+	return 0;
+
+free_cdev:
+	cdev_del(&smsg_dev->cdev);
+
+free_devno:
+	unregister_chrdev_region(dev_no, 1);
+
+free_smsg_dev:
+	kfree(smsg_dev);
+	smsg_dev = NULL;
+	return rval;
+}
+EXPORT_SYMBOL_GPL(smsg_init_debug);
+
+void smsg_destroy_debug(void)
+{
+	if (smsg_dev) {
+		dev_t dev_no = MKDEV(smsg_dev->major, smsg_dev->minor);
+
+		if (smsg_dev->sys_dev) {
+			device_destroy(smsg_class, dev_no);
+			smsg_dev->sys_dev = NULL;
+		}
+
+		if (!IS_ERR(smsg_class))
+			class_destroy(smsg_class);
+
+		unregister_chrdev_region(dev_no, 1);
+		cdev_del(&smsg_dev->cdev);
+		kfree(smsg_dev);
+		smsg_dev = NULL;
+	}
+}
+EXPORT_SYMBOL_GPL(smsg_destroy_debug);
 #endif /* CONFIG_DEBUG_FS */
 
 

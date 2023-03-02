@@ -16,7 +16,7 @@
 #endif
 #define pr_fmt(fmt) "sprd-smem: " fmt
 
-#include <linux/debugfs.h>
+#include <linux/cdev.h>
 #include <linux/genalloc.h>
 #include <linux/kernel.h>
 #include <linux/list.h>
@@ -40,6 +40,18 @@
 #define IPA_SRC_BASE	0x280000000
 #define IPA_DST_BASE	0x80000000
 #define IPA_SIZE	0x10000000
+#endif
+
+#if defined(CONFIG_DEBUG_FS)
+struct smem_device {
+	int			major;
+	int			minor;
+	struct cdev		cdev;
+	struct device		*sys_dev;	/* Device object in sysfs */
+};
+
+static struct class *smem_class;
+static struct smem_device *smem_dev;
 #endif
 
 struct smem_phead {
@@ -523,17 +535,72 @@ static const struct file_operations smem_debug_fops = {
 	.release = single_release,
 };
 
-int smem_init_debugfs(void *root)
+int smem_init_debug(void)
 {
-	if (!root)
-		return -ENXIO;
-	debugfs_create_file("smem", 0444,
-			    (struct dentry *)root, NULL,
-			    &smem_debug_fops);
-	return 0;
-}
-EXPORT_SYMBOL_GPL(smem_init_debugfs);
+	int rval;
+	dev_t dev_no;
 
+	smem_dev = kzalloc(sizeof(struct smem_device), GFP_KERNEL);
+	if (!smem_dev)
+		return -ENOMEM;
+	rval = alloc_chrdev_region(&dev_no, 0, 1, "smem_debug");
+	if (rval) {
+		pr_err("Failed to alloc chrdev region\n");
+		goto free_smem_dev;
+	}
+	smem_dev->major = MAJOR(dev_no);
+	smem_dev->minor = MINOR(dev_no);
+	cdev_init(&smem_dev->cdev, &smem_debug_fops);
+	rval = cdev_add(&smem_dev->cdev, dev_no, 1);
+	if (rval) {
+		pr_err("Failed to add smem cdev\n");
+		goto free_devno;
+	}
+	smem_class = class_create(THIS_MODULE, "smem");
+	if (IS_ERR(smem_class)) {
+		rval = PTR_ERR(smem_class);
+		pr_err("Failed to create smem class\n");
+		goto free_cdev;
+	}
+	smem_dev->sys_dev = device_create(smem_class, NULL,
+				       dev_no,
+				       smem_dev, "sipc_smem");
+
+	return 0;
+
+free_cdev:
+	cdev_del(&smem_dev->cdev);
+
+free_devno:
+	unregister_chrdev_region(dev_no, 1);
+
+free_smem_dev:
+	kfree(smem_dev);
+	smem_dev = NULL;
+	return rval;
+}
+EXPORT_SYMBOL_GPL(smem_init_debug);
+
+void smem_destroy_debug(void)
+{
+	if (smem_dev) {
+		dev_t dev_no = MKDEV(smem_dev->major, smem_dev->minor);
+
+		if (smem_dev->sys_dev) {
+			device_destroy(smem_class, dev_no);
+			smem_dev->sys_dev = NULL;
+		}
+
+		if (!IS_ERR(smem_class))
+			class_destroy(smem_class);
+
+		unregister_chrdev_region(dev_no, 1);
+		cdev_del(&smem_dev->cdev);
+		kfree(smem_dev);
+		smem_dev = NULL;
+	}
+}
+EXPORT_SYMBOL_GPL(smem_destroy_debug);
 #endif /* endof CONFIG_DEBUG_FS */
 
 

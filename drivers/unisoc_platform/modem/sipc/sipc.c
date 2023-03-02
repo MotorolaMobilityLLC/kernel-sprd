@@ -192,9 +192,7 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	struct smsg_ipc *ipc;
 	int ret;
-#if defined(CONFIG_DEBUG_FS)
-	struct dentry *root;
-#endif
+
 	ipc = devm_kzalloc(&pdev->dev,
 			   sizeof(struct smsg_ipc), GFP_KERNEL);
 	if (!ipc)
@@ -255,14 +253,10 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 	}
 
 #if defined(CONFIG_DEBUG_FS)
-	root = debugfs_create_dir("sipc", NULL);
-	if (!root)
-		return -ENXIO;
-
-	smem_init_debugfs(root);
-	smsg_init_debugfs(root);
-	sbuf_init_debugfs(root);
-	sblock_init_debugfs(root);
+	smem_init_debug();
+	smsg_init_debug();
+	sbuf_init_debug();
+	sblock_init_debug();
 #endif
 	return 0;
 out:
@@ -312,6 +306,12 @@ static int __init sprd_ipc_init(void)
 static void __exit sprd_ipc_exit(void)
 {
 	smsg_remove_wakeup();
+#if defined(CONFIG_DEBUG_FS)
+	smem_destroy_debug();
+	smsg_destroy_debug();
+	sbuf_destroy_debug();
+	sblock_destroy_debug();
+#endif
 #if IS_ENABLED(CONFIG_UNISOC_SIPC)
 	sysdump_callback_unregister();
 #endif

@@ -17,7 +17,7 @@
 #define pr_fmt(fmt) "sprd-sblock: " fmt
 #define R_RD_START_ADDR 0
 
-#include <linux/debugfs.h>
+#include <linux/cdev.h>
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
@@ -38,6 +38,18 @@
 
 #include "sipc_priv.h"
 #include "sblock.h"
+
+#if defined(CONFIG_DEBUG_FS)
+struct sblock_device {
+	int			major;
+	int			minor;
+	struct cdev		cdev;
+	struct device		*sys_dev;	/* Device object in sysfs */
+};
+
+static struct class *sblock_class;
+static struct sblock_device *sblock_dev;
+#endif
 
 static struct sblock_mgr *sblocks[SIPC_ID_NR][SMSG_VALID_CH_NR];
 
@@ -2171,17 +2183,72 @@ static const struct file_operations sblock_debug_fops = {
 	.release = single_release,
 };
 
-int sblock_init_debugfs(void *root)
+int sblock_init_debug(void)
 {
-	if (!root)
-		return -ENXIO;
-	debugfs_create_file("sblock", 0444,
-			    (struct dentry *)root,
-			    NULL, &sblock_debug_fops);
-	return 0;
-}
-EXPORT_SYMBOL_GPL(sblock_init_debugfs);
+	int rval;
+	dev_t dev_no;
 
+	sblock_dev = kzalloc(sizeof(struct sblock_device), GFP_KERNEL);
+	if (!sblock_dev)
+		return -ENOMEM;
+	rval = alloc_chrdev_region(&dev_no, 0, 1, "sblock_debug");
+	if (rval) {
+		pr_err("Failed to alloc chrdev region\n");
+		goto free_sblock_dev;
+	}
+	sblock_dev->major = MAJOR(dev_no);
+	sblock_dev->minor = MINOR(dev_no);
+	cdev_init(&sblock_dev->cdev, &sblock_debug_fops);
+	rval = cdev_add(&sblock_dev->cdev, dev_no, 1);
+	if (rval) {
+		pr_err("Failed to add sblock cdev\n");
+		goto free_devno;
+	}
+	sblock_class = class_create(THIS_MODULE, "sblock");
+	if (IS_ERR(sblock_class)) {
+		rval = PTR_ERR(sblock_class);
+		pr_err("Failed to create sblock class\n");
+		goto free_cdev;
+	}
+	sblock_dev->sys_dev = device_create(sblock_class, NULL,
+				       dev_no,
+				       sblock_dev, "sipc_sblock");
+
+	return 0;
+
+free_cdev:
+	cdev_del(&sblock_dev->cdev);
+
+free_devno:
+	unregister_chrdev_region(dev_no, 1);
+
+free_sblock_dev:
+	kfree(sblock_dev);
+	sblock_dev = NULL;
+	return rval;
+}
+EXPORT_SYMBOL_GPL(sblock_init_debug);
+
+void sblock_destroy_debug(void)
+{
+	if (sblock_dev) {
+		dev_t dev_no = MKDEV(sblock_dev->major, sblock_dev->minor);
+
+		if (sblock_dev->sys_dev) {
+			device_destroy(sblock_class, dev_no);
+			sblock_dev->sys_dev = NULL;
+		}
+
+		if (!IS_ERR(sblock_class))
+			class_destroy(sblock_class);
+
+		unregister_chrdev_region(dev_no, 1);
+		cdev_del(&sblock_dev->cdev);
+		kfree(sblock_dev);
+		sblock_dev = NULL;
+	}
+}
+EXPORT_SYMBOL_GPL(sblock_destroy_debug);
 #endif /* CONFIG_DEBUG_FS */
 
 

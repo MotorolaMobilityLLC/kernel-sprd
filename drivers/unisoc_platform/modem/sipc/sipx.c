@@ -28,7 +28,7 @@
 #include <linux/list.h>
 #include <linux/spinlock.h>
 #include <linux/uaccess.h>
-#include <linux/debugfs.h>
+#include <linux/cdev.h>
 #include <linux/seq_file.h>
 #include <linux/log2.h>
 #include <linux/platform_device.h>
@@ -71,7 +71,15 @@ static struct device *sipx_dev;
 #endif
 
 #if defined(CONFIG_DEBUG_FS)
-static int  sipx_init_debugfs(void *root);
+struct sipx_device {
+	int			major;
+	int			minor;
+	struct cdev		cdev;
+	struct device		*sys_dev;	/* Device object in sysfs */
+};
+
+static struct class *sipx_class;
+static struct sipx_device *sipx_device;
 #endif
 
 static struct sipx_channel *sipx_chan_record[SMSG_CH_NR + 1];
@@ -251,18 +259,70 @@ static const struct file_operations sipx_debug_fops = {
 	.release = single_release,
 };
 
-static int  sipx_init_debugfs(void *root)
+static int sipx_init_debug(void)
 {
-	if (!root)
-		return -ENXIO;
+	int rval;
+	dev_t dev_no;
 
-	debugfs_create_file("sipx", 0444,
-			    (struct dentry *)root,
-			    NULL,
-			    &sipx_debug_fops);
+	sipx_device = kzalloc(sizeof(struct sipx_device), GFP_KERNEL);
+	if (!sipx_device)
+		return -ENOMEM;
+	rval = alloc_chrdev_region(&dev_no, 0, 1, "sipx_debug");
+	if (rval) {
+		pr_err("Failed to alloc chrdev region\n");
+		goto free_sipx_dev;
+	}
+	sipx_device->major = MAJOR(dev_no);
+	sipx_device->minor = MINOR(dev_no);
+	cdev_init(&sipx_device->cdev, &sipx_debug_fops);
+	rval = cdev_add(&sipx_device->cdev, dev_no, 1);
+	if (rval) {
+		pr_err("Failed to add sipx cdev\n");
+		goto free_devno;
+	}
+	sipx_class = class_create(THIS_MODULE, "sipx");
+	if (IS_ERR(sipx_class)) {
+		rval = PTR_ERR(sipx_class);
+		pr_err("Failed to create sipx class\n");
+		goto free_cdev;
+	}
+	sipx_device->sys_dev = device_create(sipx_class, NULL,
+				       dev_no,
+				       sipx_device, "sipx");
+
 	return 0;
+
+free_cdev:
+	cdev_del(&sipx_device->cdev);
+
+free_devno:
+	unregister_chrdev_region(dev_no, 1);
+
+free_sipx_dev:
+	kfree(sipx_device);
+	sipx_device = NULL;
+	return rval;
 }
 
+static void sipx_destroy_debug(void)
+{
+	if (sipx_device) {
+		dev_t dev_no = MKDEV(sipx_device->major, sipx_device->minor);
+
+		if (sipx_device->sys_dev) {
+			device_destroy(sipx_class, dev_no);
+			sipx_device->sys_dev = NULL;
+		}
+
+		if (!IS_ERR(sipx_class))
+			class_destroy(sipx_class);
+
+		unregister_chrdev_region(dev_no, 1);
+		cdev_del(&sipx_device->cdev);
+		kfree(sipx_device);
+		sipx_device = NULL;
+	}
+}
 #endif /* CONFIG_DEBUG_FS */
 
 static inline u16 SIPX_GEN_DESC(u32 length, u16 offset)
@@ -2027,9 +2087,6 @@ static int sipx_probe(struct platform_device *pdev)
 	struct device_node *np;
 	struct sipx_mgr *sipx = NULL;
 	int ret;
-#if defined(CONFIG_DEBUG_FS)
-	struct dentry *root = debugfs_create_dir("sipx", NULL);
-#endif
 
 	np = pdev->dev.of_node;
 	ret = sipx_parse_dt(&pdata, np, &pdev->dev);
@@ -2065,10 +2122,7 @@ static int sipx_probe(struct platform_device *pdev)
 #endif
 
 #if defined(CONFIG_DEBUG_FS)
-	if (!root)
-		return -ENXIO;
-
-	sipx_init_debugfs(root);
+	sipx_init_debug();
 #endif
 
 	return 0;
@@ -2082,6 +2136,9 @@ static int sipx_remove(struct platform_device *pdev)
 	struct sipx_mgr *sipx = platform_get_drvdata(pdev);
 	struct sipx_init_data *pdata;
 
+#if defined(CONFIG_DEBUG_FS)
+	sipx_destroy_debug();
+#endif
 	if (sipx) {
 		pdata = sipx->pdata;
 

@@ -95,8 +95,11 @@ static int sprd_inbox_reg_read(struct sprd_mbox_priv *priv, int index, int offse
 
 static int sprd_mbox_debug_show(struct seq_file *m, void *private)
 {
-	struct sprd_mbox_priv *priv = m->private;
+	struct sprd_mbox_priv *priv = mbox_priv;
 	int i;
+
+	if (mbox_priv == NULL)
+		return -EINVAL;
 
 	sprd_mbox_debug_putline(m, '*', 110);
 	seq_printf(m, "CHAN_NUM : %d\n", priv->mbox.num_chans);
