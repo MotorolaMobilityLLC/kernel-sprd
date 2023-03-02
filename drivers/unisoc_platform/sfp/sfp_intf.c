@@ -629,6 +629,10 @@ int soft_fastpath_process(int in_if,
 		FP_PRT_DBG(FP_PRT_WARN,
 			   "nomem to linear, pass to IP stack\n");
 		return -ENOMEM;
+	} else {
+		FP_PRT_DBG(FP_PRT_DEBUG,
+			   "skb_linearize, obtain the ip header again\n");
+		piphdr = ip_hdr(skb);
 	}
 
 	if (piphdr->version == 0x04) {
