@@ -50,6 +50,26 @@ struct system_heap_buffer {
 	bool uncached;
 };
 
+struct carveout_heap_buffer {
+	struct dma_heap *heap;
+	struct list_head attachments;
+	struct mutex lock;
+	unsigned long len;
+	struct sg_table *sg_table;
+	//struct gen_pool *pool;
+	phys_addr_t base;
+	int vmap_cnt;
+	void *vaddr;
+#ifdef CONFIG_E_SHOW_MEM
+	struct rb_node node;
+	pid_t pid;
+	char task_name[TASK_COMM_LEN];
+	struct timespec64 alloc_ts;
+	struct dmabuf_map_info mappers[MAX_MAP_USER];
+#endif
+	bool uncached;
+};
+
 int sprd_iommu_notifier_call_chain(void *data)
 {
 	return blocking_notifier_call_chain(&sprd_iommu_notif_chain, 0, data);
@@ -576,6 +596,21 @@ static int sprd_iommu_get_sg(void *buf, struct sg_table **table)
 	return 0;
 }
 
+static int sprd_iommu_carveout_get_sg(void *buf, struct sg_table **table)
+{
+	struct carveout_heap_buffer *buffer;
+
+	if (!buf) {
+		pr_err("%s, buf==NULL", __func__);
+		return -EINVAL;
+	}
+
+	buffer = (struct carveout_heap_buffer *)buf;
+	*table = buffer->sg_table;
+
+	return 0;
+}
+
 static struct sprd_iommu_dev *sprd_iommu_get_subnode_with_idx(
 		struct device *dev, int idx)
 {
@@ -937,6 +972,120 @@ out:
 	return ret;
 }
 EXPORT_SYMBOL(sprd_iommu_map);
+
+int sprd_iommu_map_v2(struct device *dev, struct sprd_iommu_map_data *data,
+		enum sprd_iommu_buftype buftype)
+{
+	int ret = 0;
+	struct sprd_iommu_dev *iommu_dev = NULL;
+	unsigned long iova = 0;
+	unsigned long flag = 0;
+	bool buf_cached = false;
+	bool buf_insert = true;
+	struct sg_table *table = NULL;
+
+	if (dev == NULL || data == NULL) {
+		IOMMU_ERR("null parameter err! dev %p data %p\n", dev, data);
+		return -EINVAL;
+	}
+
+	if (data->buf == NULL) {
+		IOMMU_ERR("null buf pointer!\n");
+		return -EINVAL;
+	}
+
+	if (!sprd_iommu_is_dev_valid_master(dev)) {
+		IOMMU_ERR("illegal master\n");
+		return -EINVAL;
+	}
+
+	iommu_dev = sprd_iommu_get_subnode(dev);
+	if (iommu_dev == NULL) {
+		IOMMU_ERR("get null iommu dev\n");
+		return -EINVAL;
+	}
+
+	spin_lock_irqsave(&iommu_dev->pgt_lock, flag);
+
+	if (buftype == SPRD_IOMMU_BUFTYPE_CARVEOUT)
+		ret = sprd_iommu_carveout_get_sg(data->buf, &table);
+	else
+		ret = sprd_iommu_get_sg(data->buf, &table);
+	if (ret || table == NULL) {
+		IOMMU_ERR("%s get sg error, buf %p size 0x%zx ret %d table %p\n",
+			  iommu_dev->init_data->name,
+			  data->buf, data->iova_size, ret, table);
+		data->iova_addr = 0;
+		ret = -EINVAL;
+		goto out;
+	}
+
+	buf_cached = sprd_iommu_target_buf(iommu_dev, data->buf,
+						(unsigned long *)&iova);
+	if (buf_cached) {
+		data->iova_addr = iova;
+		ret = 0;
+		if (iommu_dev->init_data->id == IOMMU_EX_VSP)
+			IOMMU_ERR("%s use old mapping, iova 0x%lx size 0x%zx buf %p\n",
+				  iommu_dev->init_data->name, iova,
+				  data->iova_size, data->buf);
+		else
+			IOMMU_DEBUG("%s use old mapping, iova 0x%lx size 0x%zx buf %p\n",
+				  iommu_dev->init_data->name, iova,
+				  data->iova_size, data->buf);
+		goto out;
+	}
+
+	/*new sg, alloc for it*/
+	iova = iommu_dev->ops->iova_alloc(iommu_dev,
+			data->iova_size, data);
+	if (iova == 0) {
+		IOMMU_ERR("%s alloc error iova 0x%lx size 0x%zx buf %p\n",
+			  iommu_dev->init_data->name, iova,
+			  data->iova_size, data->buf);
+		data->iova_addr = 0;
+		ret = -ENOMEM;
+		goto out;
+	}
+
+	ret = iommu_dev->ops->iova_map(iommu_dev,
+			iova, data->iova_size, table, data);
+	if (ret) {
+		IOMMU_ERR("%s error, iova 0x%lx size 0x%zx ret %d buf %p\n",
+			  iommu_dev->init_data->name,
+			  iova, data->iova_size, ret, data->buf);
+		iommu_dev->ops->iova_free(iommu_dev, iova, data->iova_size);
+		data->iova_addr = 0;
+		ret = -ENOMEM;
+		goto out;
+	}
+	iommu_dev->map_count++;
+	data->iova_addr = iova;
+	buf_insert = sprd_iommu_insert_slot(iommu_dev,
+				(unsigned long)table,
+				data->buf,
+				data->iova_addr,
+				data->iova_size);
+	if (!buf_insert) {
+		IOMMU_ERR("%s error pool full iova 0x%lx size 0x%zx buf %p\n",
+				iommu_dev->init_data->name, iova,
+				data->iova_size, data->buf);
+		iommu_dev->ops->iova_unmap(iommu_dev,
+				iova, data->iova_size);
+		iommu_dev->ops->iova_free(iommu_dev, iova, data->iova_size);
+		ret = -ENOMEM;
+		goto out;
+	}
+
+	IOMMU_DEBUG("%s iova 0x%lx size 0x%zx buf %p\n",
+		  iommu_dev->init_data->name, iova,
+		  data->iova_size, data->buf);
+
+out:
+	spin_unlock_irqrestore(&iommu_dev->pgt_lock, flag);
+	return ret;
+}
+EXPORT_SYMBOL(sprd_iommu_map_v2);
 
 int sprd_iommu_map_single_page(struct device *dev, struct sprd_iommu_map_data *data)
 {

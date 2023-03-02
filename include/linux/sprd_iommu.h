@@ -76,6 +76,12 @@ enum sprd_iommu_id {
 	SPRD_IOMMU_MAX,
 };
 
+enum sprd_iommu_buftype {
+	SPRD_IOMMU_BUFTYPE_SYSTEM,
+	SPRD_IOMMU_BUFTYPE_CARVEOUT,
+	SPRD_IOMMU_BUFTYPE_MAX,
+};
+
 struct sprd_iommu_sg_rec {
 	unsigned long sg_table_addr;
 	void *buf_addr;
@@ -154,6 +160,8 @@ int sprd_iommu_dettach_device(struct device *dev);
 
 int sprd_iommu_map(struct device *dev,
 		struct sprd_iommu_map_data *data);
+int sprd_iommu_map_v2(struct device *dev,
+		struct sprd_iommu_map_data *data, enum sprd_iommu_buftype buftype);
 int sprd_iommu_map_single_page(struct device *dev,
 		struct sprd_iommu_map_data *data);
 int sprd_iommu_map_with_idx(struct device *dev,
