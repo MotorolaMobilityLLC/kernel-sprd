@@ -36,7 +36,7 @@ struct ufs_uic_err_code_cnt ufs_uic_err_code_cnt;
 /* CMD info buffer */
 struct ufs_event_info uei[UFS_CMD_RECORD_DEPTH];
 /* Minidump buffer */
-char *ufs_cmd_history_str;
+char *ufs_dump_buffer;
 struct ufs_hba *hba_tmp;
 struct ufs_err_cnt ufs_err_cnt;
 struct ufs_pa_layer_attr dts_pwr_info;
@@ -238,42 +238,27 @@ void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *d
 	}
 }
 
-static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bool dump)
+void ufs_sprd_cmd_history_dump(u32 dump_req, struct seq_file *m, char **dump_pos)
 {
 	int ptr;
 	int i = 0;
 	int actual_dump_num;
 	unsigned long flags;
-	char *dump_pos = NULL;
-	ktime_t ktime;
-	ktime_t cur_time;
 	char b[120];
-	int k, n;
+	int k = 0;
+	int n = 0;
 	int sb = (int)sizeof(b);
 	int transaction_type;
-	struct scsi_device *sdev_ufs;
+
+	if (cmd_record_index == -1)
+		return;
 
 	spin_lock_irqsave(&ufs_debug_dump, flags);
 
-	if (dump == true)
-		dump_pos = (char *) ufs_cmd_history_str;
-
-	if (!!hba_tmp) {
-		PRINT_SWITCH(m, dump_pos, "[UFS] ufs_hba=0x%lx\n", (unsigned long)hba_tmp);
-		sdev_ufs = hba_tmp->sdev_ufs_device;
-		if (sdev_ufs)
-			PRINT_SWITCH(m, dump_pos, "[UFS] dev info: %.8s %.16s rev %.4s\n",
-				     sdev_ufs->vendor, sdev_ufs->model, sdev_ufs->rev);
-	}
-
 	if (exceed_max_depth == true)
 		actual_dump_num = UFS_CMD_RECORD_DEPTH;
-	else if (cmd_record_index != -1)
+	else
 		actual_dump_num = cmd_record_index + 1;
-	else {
-		pr_info("%s: NO UFS cmd was recorded\n", __func__);
-		goto out;
-	}
 
 	if (dump_req)
 		actual_dump_num = min_t(u32, dump_req, actual_dump_num);
@@ -289,7 +274,7 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 		if (ptr == UFS_CMD_RECORD_DEPTH)
 			ptr = 0;
 
-		PRINT_SWITCH(m, dump_pos, "[%lld.%09lld][%lld][T%4d@C%d][%s]:",
+		PRINT_SWITCH(m, dump_pos, "[%lld.%09lld][%lld][T%5d@C%d][%s]:",
 			     uei[ptr].time / NSEC_PER_SEC, uei[ptr].time % NSEC_PER_SEC,
 			     uei[ptr].jiffies, uei[ptr].pid, uei[ptr].cpu,
 			     ufs_event_str[uei[ptr].event]);
@@ -444,26 +429,40 @@ static void ufs_sprd_cmd_history_dump_trace(u32 dump_req, struct seq_file *m, bo
 			break;
 		}
 	}
-	ktime = local_clock();
-	cur_time = ktime_get_boottime();
-	PRINT_SWITCH(m, dump_pos, "time:%lld.%09lld, current_time:%lld.%09lld\n",
-		     ktime / NSEC_PER_SEC, ktime % NSEC_PER_SEC,
-		     cur_time / NSEC_PER_SEC, cur_time % NSEC_PER_SEC);
-	if (dump == 1)
-		PRINT_SWITCH(m, dump_pos, "Dump buffer used:0x%x/(0x%x)\n",
-			     (u32)(dump_pos - ufs_cmd_history_str), DUMP_BUFFER_S);
 
-out:
 	spin_unlock_irqrestore(&ufs_debug_dump, flags);
+}
+
+static void ufs_sprd_base_info_dump(struct seq_file *m, char **dump_pos)
+{
+	struct scsi_device *sdev_ufs;
+	struct ufs_hba *hba = hba_tmp;
+
+	PRINT_SWITCH(m, dump_pos, "ufs_hba=0x%lx\n", (unsigned long)hba_tmp);
+
+	PRINT_SWITCH(m, dump_pos, "PM in progress=%d, sys. suspended=%d\n",
+			hba->pm_op_in_progress, hba->is_sys_suspended);
+
+	PRINT_SWITCH(m, dump_pos, "[RX, TX]: gear=[%d, %d], lane[%d, %d], pwr[%d, %d], rate = %d\n",
+			hba->pwr_info.gear_rx, hba->pwr_info.gear_tx,
+			hba->pwr_info.lane_rx, hba->pwr_info.lane_tx,
+			hba->pwr_info.pwr_rx, hba->pwr_info.pwr_tx,
+			hba->pwr_info.hs_rate);
+
+	sdev_ufs = hba->sdev_ufs_device;
+	if (sdev_ufs)
+		PRINT_SWITCH(m, dump_pos, "[UFS] dev info: %.8s %.16s rev %.4s\n",
+			     sdev_ufs->vendor, sdev_ufs->model, sdev_ufs->rev);
 }
 
 static int ufs_sprd_dbg_info_show(struct seq_file *m, void *v)
 {
-	seq_puts(m, "========== UFS Debug Dump START ==========\n\n");
+	/* dump ufs base info */
+	if (!!hba_tmp)
+		ufs_sprd_base_info_dump(m, NULL);
 
-	ufs_sprd_cmd_history_dump_trace(UFS_CMD_RECORD_DEPTH, m, 0);
-
-	seq_puts(m, "\n=========== UFS Debug Dump END ===========\n");
+	/* dump ufs cmd history */
+	ufs_sprd_cmd_history_dump(UFS_CMD_RECORD_DEPTH, m, NULL);
 
 	return 0;
 }
@@ -606,116 +605,124 @@ void ufs_sprd_update_uic_err_cnt(struct ufs_hba *hba, u32 reg, enum ufs_event_ty
 }
 EXPORT_SYMBOL_GPL(ufs_sprd_update_uic_err_cnt);
 
+static void ufs_uic_err_cnt_dump(struct ufs_hba *hba, struct seq_file *m, char **dump_pos)
+{
+	if (dump_pos)
+		PRINT_SWITCH(m, dump_pos, "\n[UFS] ERR CNT :\n");
+
+	PRINT_SWITCH(m, dump_pos, "pa_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_PA_ERR].cnt);
+	PRINT_SWITCH(m, dump_pos, "pa_err:PHY error on lane 0 cnt=%llu\n",
+			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_PHY_LINE0_ERR]);
+	PRINT_SWITCH(m, dump_pos, "pa_err:PHY error on lane 1 cnt=%llu\n",
+			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_PHY_LINE1_ERR]);
+	PRINT_SWITCH(m, dump_pos, "pa_err:generic PHY adapter error cnt=%llu\n",
+			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_GRNERIC_PA_ERR]);
+
+	PRINT_SWITCH(m, dump_pos, "dl_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_DL_ERR].cnt);
+	PRINT_SWITCH(m, dump_pos, "dl_err:NAC_RECEIVED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_NAC_RECEIVED]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:TCx_REPLAY_TIMER_EXPIRED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_TCx_REPLAY_TIMER_EXPIRED]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:AFCx_REQUEST_TIMER_EXPIRED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_AFCx_REQUEST_TIMER_EXPIRED]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:FCx_PROTECTION_TIMER_EXPIRED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_FCx_PROTECTION_TIMER_EXPIRED]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:CRC_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_CRC_ERROR]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:RX_BUFFER_OVERFLOW cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_RX_BUFFER_OVERFLOW]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:MAX_FRAME_LENGTH_EXCEEDED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_MAX_FRAME_LENGTH_EXCEEDED]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:WRONG_SEQUENCE_NUMBER cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_WRONG_SEQUENCE_NUMBER]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:AFC_FRAME_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_AFC_FRAME_SYNTAX_ERROR]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:NAC_FRAME_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_NAC_FRAME_SYNTAX_ERROR]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:EOF_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_EOF_SYNTAX_ERROR]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:FRAME_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_FRAME_SYNTAX_ERROR]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:BAD_CTRL_SYMBOL_TYPE cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_BAD_CTRL_SYMBOL_TYPE]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:PA_INIT_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_INIT_ERROR]);
+	PRINT_SWITCH(m, dump_pos, "dl_err:PA_ERROR_IND_RECEIVED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_ERROR_IND_RECEIVED]);
+	if ((hba->ufs_version & 0xF00) >= 0x300) {
+		PRINT_SWITCH(m, dump_pos, "dl_err:PA_INIT cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_INIT]);
+	}
+
+	PRINT_SWITCH(m, dump_pos, "nl_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_NL_ERR].cnt);
+	PRINT_SWITCH(m, dump_pos, "nl_err:UNSUPPORTED_HEADER_TYPE cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_UNSUPPORTED_HEADER_TYPE]);
+	PRINT_SWITCH(m, dump_pos, "nl_err:BAD_DEVICEID_ENC cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_BAD_DEVICEID_ENC]);
+	PRINT_SWITCH(m, dump_pos, "nl_err:LHDR_TRAP_PACKET_DROPPING cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_LHDR_TRAP_PACKET_DROPPING]);
+	PRINT_SWITCH(m, dump_pos, "nl_err:MAX_N_PDU_LENGTH_EXCEEDED cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_MAX_N_PDU_LENGTH_EXCEEDED]);
+
+	PRINT_SWITCH(m, dump_pos, "tl_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_TL_ERR].cnt);
+	PRINT_SWITCH(m, dump_pos, "tl_err:UNSUPPORTED_HEADER_TYPE cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_UNSUPPORTED_HEADER_TYPE]);
+	PRINT_SWITCH(m, dump_pos, "tl_err:UNKNOWN_CPORTID cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_UNKNOWN_CPORTID]);
+	PRINT_SWITCH(m, dump_pos, "tl_err:NO_CONNECTION_RX cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_NO_CONNECTION_RX]);
+	PRINT_SWITCH(m, dump_pos, "tl_err:CONTROLLED_SEGMENT_DROPPING cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_CONTROLLED_SEGMENT_DROPPING]);
+	PRINT_SWITCH(m, dump_pos, "tl_err:BAD_TC cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_BAD_TC]);
+	PRINT_SWITCH(m, dump_pos, "tl_err:E2E_CREDIT_OVERFLOW cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_E2E_CREDIT_OVERFLOW]);
+	PRINT_SWITCH(m, dump_pos, "tl_err:SAFETY_VALVE_DROPPING cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_SAFETY_VALVE_DROPPING]);
+	PRINT_SWITCH(m, dump_pos, "tl_err:MAX_T_PDU_LENGTH_EXCEEDED cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_MAX_T_PDU_LENGTH_EXCEEDED]);
+
+	PRINT_SWITCH(m, dump_pos, "dme_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_DME_ERR].cnt);
+	PRINT_SWITCH(m, dump_pos, "dme_err:GENERIC_ERR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_GENERIC_ERR]);
+	PRINT_SWITCH(m, dump_pos, "dme_err:QOS_FROM_TX_DETECTED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_TX_DETECTED]);
+	PRINT_SWITCH(m, dump_pos, "dme_err:QOS_FROM_RX_DETECTED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_RX_DETECTED]);
+	PRINT_SWITCH(m, dump_pos, "dme_err:QOS_FROM_PA_INIT_DETECTED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_PA_INIT_DETECTED]);
+
+	PRINT_SWITCH(m, dump_pos, "auto_h8_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_AUTO_HIBERN8_ERR].cnt);
+	PRINT_SWITCH(m, dump_pos, "fatal_err:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_FATAL_ERR].cnt);
+	PRINT_SWITCH(m, dump_pos, "link_startup_fail:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_LINK_STARTUP_FAIL].cnt);
+	PRINT_SWITCH(m, dump_pos, "resume_fail:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_RESUME_ERR].cnt);
+	PRINT_SWITCH(m, dump_pos, "suspend_fail:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_SUSPEND_ERR].cnt);
+	PRINT_SWITCH(m, dump_pos, "dev_reset:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_DEV_RESET].cnt);
+	PRINT_SWITCH(m, dump_pos, "host_reset:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_HOST_RESET].cnt);
+	PRINT_SWITCH(m, dump_pos, "task_abort:total cnt=%llu\n",
+			hba->ufs_stats.event[UFS_EVT_ABORT].cnt);
+	PRINT_SWITCH(m, dump_pos, "sprd_reset:total cnt=%llu\n", ufs_err_cnt.sprd_reset_cnt);
+	PRINT_SWITCH(m, dump_pos, "line_reset:total cnt=%llu\n", ufs_err_cnt.line_reset_cnt);
+	PRINT_SWITCH(m, dump_pos, "scsi_timeout:total cnt=%llu\n", ufs_err_cnt.scsi_timeout_cnt);
+}
+
 static int uic_err_cnt_show(struct seq_file *m, void *v)
 {
 	struct ufs_hba *hba = dev_get_drvdata((struct device *)m->private);
 
-	seq_printf(m, "pa_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_PA_ERR].cnt);
-	seq_printf(m, "pa_err:PHY error on lane 0 cnt=%llu\n",
-			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_PHY_LINE0_ERR]);
-	seq_printf(m, "pa_err:PHY error on lane 1 cnt=%llu\n",
-			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_PHY_LINE1_ERR]);
-	seq_printf(m, "pa_err:generic PHY adapter error cnt=%llu\n",
-			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_GRNERIC_PA_ERR]);
-
-	seq_printf(m, "dl_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_DL_ERR].cnt);
-	seq_printf(m, "dl_err:NAC_RECEIVED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_NAC_RECEIVED]);
-	seq_printf(m, "dl_err:TCx_REPLAY_TIMER_EXPIRED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_TCx_REPLAY_TIMER_EXPIRED]);
-	seq_printf(m, "dl_err:AFCx_REQUEST_TIMER_EXPIRED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_AFCx_REQUEST_TIMER_EXPIRED]);
-	seq_printf(m, "dl_err:FCx_PROTECTION_TIMER_EXPIRED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_FCx_PROTECTION_TIMER_EXPIRED]);
-	seq_printf(m, "dl_err:CRC_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_CRC_ERROR]);
-	seq_printf(m, "dl_err:RX_BUFFER_OVERFLOW cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_RX_BUFFER_OVERFLOW]);
-	seq_printf(m, "dl_err:MAX_FRAME_LENGTH_EXCEEDED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_MAX_FRAME_LENGTH_EXCEEDED]);
-	seq_printf(m, "dl_err:WRONG_SEQUENCE_NUMBER cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_WRONG_SEQUENCE_NUMBER]);
-	seq_printf(m, "dl_err:AFC_FRAME_SYNTAX_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_AFC_FRAME_SYNTAX_ERROR]);
-	seq_printf(m, "dl_err:NAC_FRAME_SYNTAX_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_NAC_FRAME_SYNTAX_ERROR]);
-	seq_printf(m, "dl_err:EOF_SYNTAX_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_EOF_SYNTAX_ERROR]);
-	seq_printf(m, "dl_err:FRAME_SYNTAX_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_FRAME_SYNTAX_ERROR]);
-	seq_printf(m, "dl_err:BAD_CTRL_SYMBOL_TYPE cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_BAD_CTRL_SYMBOL_TYPE]);
-	seq_printf(m, "dl_err:PA_INIT_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_INIT_ERROR]);
-	seq_printf(m, "dl_err:PA_ERROR_IND_RECEIVED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_ERROR_IND_RECEIVED]);
-	if ((hba->ufs_version & 0xF00) == 0x300) {
-		seq_printf(m, "dl_err:PA_INIT cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_INIT]);
-	}
-
-	seq_printf(m, "nl_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_NL_ERR].cnt);
-	seq_printf(m, "nl_err:UNSUPPORTED_HEADER_TYPE cnt=%llu\n",
-			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_UNSUPPORTED_HEADER_TYPE]);
-	seq_printf(m, "nl_err:BAD_DEVICEID_ENC cnt=%llu\n",
-			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_BAD_DEVICEID_ENC]);
-	seq_printf(m, "nl_err:LHDR_TRAP_PACKET_DROPPING cnt=%llu\n",
-			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_LHDR_TRAP_PACKET_DROPPING]);
-	seq_printf(m, "nl_err:MAX_N_PDU_LENGTH_EXCEEDED cnt=%llu\n",
-			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_MAX_N_PDU_LENGTH_EXCEEDED]);
-
-	seq_printf(m, "tl_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_TL_ERR].cnt);
-	seq_printf(m, "tl_err:UNSUPPORTED_HEADER_TYPE cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_UNSUPPORTED_HEADER_TYPE]);
-	seq_printf(m, "tl_err:UNKNOWN_CPORTID cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_UNKNOWN_CPORTID]);
-	seq_printf(m, "tl_err:NO_CONNECTION_RX cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_NO_CONNECTION_RX]);
-	seq_printf(m, "tl_err:CONTROLLED_SEGMENT_DROPPING cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_CONTROLLED_SEGMENT_DROPPING]);
-	seq_printf(m, "tl_err:BAD_TC cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_BAD_TC]);
-	seq_printf(m, "tl_err:E2E_CREDIT_OVERFLOW cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_E2E_CREDIT_OVERFLOW]);
-	seq_printf(m, "tl_err:SAFETY_VALVE_DROPPING cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_SAFETY_VALVE_DROPPING]);
-	seq_printf(m, "tl_err:MAX_T_PDU_LENGTH_EXCEEDED cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_MAX_T_PDU_LENGTH_EXCEEDED]);
-
-	seq_printf(m, "dme_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_DME_ERR].cnt);
-	seq_printf(m, "dme_err:GENERIC_ERR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_GENERIC_ERR]);
-	seq_printf(m, "dme_err:QOS_FROM_TX_DETECTED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_TX_DETECTED]);
-	seq_printf(m, "dme_err:QOS_FROM_RX_DETECTED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_RX_DETECTED]);
-	seq_printf(m, "dme_err:QOS_FROM_PA_INIT_DETECTED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_PA_INIT_DETECTED]);
-
-	seq_printf(m, "auto_h8_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_AUTO_HIBERN8_ERR].cnt);
-	seq_printf(m, "fatal_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_FATAL_ERR].cnt);
-	seq_printf(m, "link_startup_fail:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_LINK_STARTUP_FAIL].cnt);
-	seq_printf(m, "resume_fail:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_RESUME_ERR].cnt);
-	seq_printf(m, "suspend_fail:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_SUSPEND_ERR].cnt);
-	seq_printf(m, "dev_reset:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_DEV_RESET].cnt);
-	seq_printf(m, "host_reset:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_HOST_RESET].cnt);
-	seq_printf(m, "task_abort:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_ABORT].cnt);
-	seq_printf(m, "sprd_reset:total cnt=%llu\n", ufs_err_cnt.sprd_reset_cnt);
-	seq_printf(m, "line_reset:total cnt=%llu\n", ufs_err_cnt.line_reset_cnt);
-	seq_printf(m, "scsi_timeout:total cnt=%llu\n", ufs_err_cnt.scsi_timeout_cnt);
+	ufs_uic_err_cnt_dump(hba, m, NULL);
 
 	return 0;
 }
@@ -732,11 +739,43 @@ static const struct proc_ops uic_err_cnt_fops = {
 	.proc_release = single_release,
 };
 
+static void ufs_sprd_debug_dump(u32 dump_req, struct seq_file *m, char **dump_pos)
+{
+	u64 time;
+	ktime_t ktime;
+	struct ufs_hba *hba = hba_tmp;
+
+	if (!!hba_tmp) {
+		/* dump ufs base info */
+		ufs_sprd_base_info_dump(m, dump_pos);
+		/* dump ufs err cnt info */
+		ufs_uic_err_cnt_dump(hba, m, dump_pos);
+	}
+
+	/* dump ufs cmd history */
+	ufs_sprd_cmd_history_dump(dump_req, m, dump_pos);
+
+	/* dump current timestamp */
+	time = local_clock();
+	ktime = ktime_get();
+	PRINT_SWITCH(m, dump_pos, "local_clock:%lld.%09lld, ktime:%lld.%09lld\n",
+		     time / NSEC_PER_SEC, time % NSEC_PER_SEC,
+		     ktime / NSEC_PER_SEC, ktime % NSEC_PER_SEC);
+
+	/* dump ufs dump buffer usage */
+	if (dump_pos && *dump_pos)
+		PRINT_SWITCH(m, dump_pos, "Dump buffer used:0x%x/(0x%x)\n",
+				(u32)(*dump_pos - ufs_dump_buffer), DUMP_BUFFER_S);
+}
+
 static int sprd_ufs_panic_handler(struct notifier_block *self,
 			       unsigned long val, void *reason)
 {
-	if (ufs_cmd_history_str)
-		ufs_sprd_cmd_history_dump_trace(UFS_CMD_RECORD_DEPTH, NULL, 1);
+	char *dump_ptr = ufs_dump_buffer;
+
+	if (ufs_dump_buffer)
+		ufs_sprd_debug_dump(UFS_CMD_RECORD_DEPTH, NULL, &dump_ptr);
+
 	return NOTIFY_DONE;
 }
 
@@ -761,10 +800,60 @@ static enum blk_eh_timer_return ufs_sprd_eh_timed_out(struct scsi_cmnd *scmd)
 	return BLK_EH_DONE;
 }
 
-int ufs_sprd_debug_init(struct ufs_hba *hba)
+static int ufs_sprd_debug_procfs_register(struct ufs_hba *hba)
 {
 	struct proc_dir_entry *ufs_dir;
 	struct proc_dir_entry *prEntry;
+	struct ufs_sprd_host *host = hba->priv;
+
+	/* UFS debug procfs register */
+	ufs_dir = proc_mkdir("ufs", NULL);
+	if (!ufs_dir) {
+		dev_err(hba->dev, "%s: failed to create /proc/ufs\n", __func__);
+		return -ENOMEM;
+	}
+
+	prEntry = proc_create_data("cmd_history", 0440, ufs_dir, &ufs_debug_fops, host);
+	if (!prEntry)
+		dev_info(hba->dev, "%s: failed to create /proc/ufs/debug_info\n", __func__);
+
+	prEntry = proc_create_data("debug_on", UFS_DBG_ACS_LVL, ufs_dir,
+			      &ufs_debug_on_fops, host);
+	if (!prEntry)
+		dev_info(hba->dev, "%s: failed to create /proc/ufs/debug_on\n", __func__);
+
+	prEntry = proc_create_data("err_panic", UFS_DBG_ACS_LVL, ufs_dir,
+			      &ufs_err_panic_fops, host);
+	if (!prEntry)
+		dev_info(hba->dev, "%s: failed to create /proc/ufs/err_panic\n", __func__);
+
+	prEntry = proc_create_data("uic_ec", UFS_DBG_ACS_LVL, ufs_dir,
+				&uic_err_cnt_fops, hba->dev);
+	if (!prEntry)
+		dev_info(hba->dev, "%s: failed to create /proc/ufs/uic_ec\n", __func__);
+
+	return 0;
+}
+
+static int ufs_sprd_minidump_register(struct ufs_hba *hba)
+{
+	ufs_dump_buffer = devm_kzalloc(hba->dev, DUMP_BUFFER_S, GFP_KERNEL);
+	if (!ufs_dump_buffer)
+		return -ENOMEM;
+
+	/* UFS minidump register */
+	if (minidump_save_extend_information("ufs_debug",
+					     __pa(ufs_dump_buffer),
+					     __pa(ufs_dump_buffer + DUMP_BUFFER_S)))
+		dev_info(hba->dev, "%s: failed to link ufs_debug to minidump\n",
+			__func__);
+
+	return 0;
+}
+
+int ufs_sprd_debug_init(struct ufs_hba *hba)
+{
+	int ret = 0;
 	struct ufs_sprd_host *host;
 
 	if (!hba || !hba->priv) {
@@ -782,56 +871,20 @@ int ufs_sprd_debug_init(struct ufs_hba *hba)
 
 	spin_lock_init(&ufs_debug_dump);
 
-	/* UFS debug procfs register */
-	ufs_dir = proc_mkdir("ufs", NULL);
-	if (!ufs_dir) {
-		pr_err("%s: failed to create /proc/ufs\n",
-			__func__);
-		return -1;
-	}
+	ret = ufs_sprd_debug_procfs_register(hba);
+	if (ret)
+		goto out;
 
-	prEntry = proc_create_data("cmd_history", 0440, ufs_dir, &ufs_debug_fops, host);
-	if (!prEntry)
-		pr_info("%s: failed to create /proc/ufs/debug_info\n",
-			__func__);
-
-	prEntry = proc_create_data("debug_on", UFS_DBG_ACS_LVL, ufs_dir,
-			      &ufs_debug_on_fops, host);
-	if (!prEntry)
-		pr_info("%s: failed to create /proc/ufs/debug_on\n",
-			__func__);
-
-	prEntry = proc_create_data("err_panic", UFS_DBG_ACS_LVL, ufs_dir,
-			      &ufs_err_panic_fops, host);
-	if (!prEntry)
-		pr_info("%s: failed to create /proc/ufs/err_panic\n",
-			__func__);
-
-	prEntry = proc_create_data("uic_ec", UFS_DBG_ACS_LVL, ufs_dir,
-				&uic_err_cnt_fops, hba->dev);
-	if (!prEntry)
-		pr_info("%s: failed to create /proc/ufs/uic_ec\n",
-			__func__);
-
-	ufs_cmd_history_str = devm_kzalloc(hba->dev, DUMP_BUFFER_S, GFP_KERNEL);
-	if (!ufs_cmd_history_str) {
-		dev_err(hba->dev, "%s devm_kzalloc dump buffer fail!\n",
-			__func__);
-		return -ENOMEM;
-	}
-
-	/* UFS minidump register */
-	if (minidump_save_extend_information("ufs_cmd_history",
-					     __pa(ufs_cmd_history_str),
-					     __pa(ufs_cmd_history_str + DUMP_BUFFER_S)))
-		pr_info("%s: failed to link ufs_cmd_history to minidump\n",
-			__func__);
+	ret = ufs_sprd_minidump_register(hba);
+	if (ret)
+		goto out;
 
 	/* UFS panic callback register */
 	atomic_notifier_chain_register(&panic_notifier_list,
 				       &sprd_ufs_event_nb);
 
-	return 0;
+out:
+	return ret;
 }
 EXPORT_SYMBOL_GPL(ufs_sprd_debug_init);
 

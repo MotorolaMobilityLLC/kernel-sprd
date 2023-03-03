@@ -205,12 +205,12 @@ struct ufs_uic_err_code_cnt {
 do { \
 	if (m) \
 		seq_printf(m, fmt, ##args); \
-	else if (d) { \
-		u32 var = snprintf(d, UFS_SINGLE_LINE_STR_LIMIT, fmt, ##args); \
+	else if (d && *(d)) { \
+		u32 var = snprintf(*(d), UFS_SINGLE_LINE_STR_LIMIT, fmt, ##args); \
 		if (var > 0) { \
 			if (var > UFS_SINGLE_LINE_STR_LIMIT) \
 				var = UFS_SINGLE_LINE_STR_LIMIT; \
-			d += var; \
+			*(d) += var; \
 		} \
 	} else \
 		pr_info(fmt, ##args); \
@@ -231,5 +231,7 @@ int  ufs_sprd_pwr_change_compare(struct ufs_hba *hba,
 	struct ufs_pa_layer_attr *dev_max_params,
 	struct ufs_pa_layer_attr *dev_req_params,
 	int err);
+void ufs_sprd_cmd_history_dump(u32 dump_req, struct seq_file *m, char **dump_pos);
+
 #endif/* _UFS_SPRD_DEBUG_H_ */
 
