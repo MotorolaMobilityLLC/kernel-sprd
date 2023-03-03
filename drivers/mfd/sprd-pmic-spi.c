@@ -62,7 +62,7 @@
 #define PMICINT_printf(m, x...)			\
 	do {                                              \
 		if (!m)                                   \
-			pr_debug(x);                      \
+			pr_debug("%s", x);                      \
 		else if (seq_buf_printf(m, x)) {         \
 			seq_buf_clear(m);                 \
 			seq_buf_printf(m, x);             \
