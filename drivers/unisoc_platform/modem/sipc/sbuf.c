@@ -1350,7 +1350,7 @@ struct sbuf_mgr *sbuf_register_notifier_ex(u8 dst, u8 channel, u32 mark,
 	if (sbuf->state == SBUF_STATE_READY) {
 		for (i = 0; i < sbuf->ringnr; i++) {
 			if (sbuf->ch_mark & BIT(i))
-				handler(SBUF_NOTIFY_READY, i, data);
+				handler(SBUF_NOTIFY_READ, i, data);
 		}
 	}
 
