@@ -899,7 +899,7 @@ static void ufs_sprd_update_evt_hist(struct ufs_hba *hba,
 	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
 		evt_tmp.id = evt;
 		evt_tmp.val = *(u32 *)data;
-		ufshcd_common_trace(hba, UFS_TRACE_CLK_GATE, &evt_tmp);
+		ufshcd_common_trace(hba, UFS_TRACE_EVT, &evt_tmp);
 	}
 }
 
