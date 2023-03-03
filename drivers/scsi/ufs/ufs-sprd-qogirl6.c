@@ -27,9 +27,7 @@
 #include "ufs_quirks.h"
 #include "unipro.h"
 #include "ufs-sprd-ioctl.h"
-#ifdef CONFIG_SPRD_UFS_PROC_FS
 #include "ufs-sprd-bootdevice.h"
-#endif
 #include "ufs-sprd-debug.h"
 
 int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
@@ -935,6 +933,9 @@ static int ufs_sprd_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
 
 static int ufs_sprd_device_reset(struct ufs_hba *hba)
 {
+	if (sprd_ufs_debug_is_supported(hba))
+		ufshcd_common_trace(hba, UFS_TRACE_RESET_AND_RESTORE, NULL);
+
 	return 0;
 }
 
@@ -960,20 +961,54 @@ void ufs_sprd_setup_xfer_req(struct ufs_hba *hba, int task_tag, bool scsi_cmd)
 
 static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
 {
+	sprd_ufs_print_err_cnt(hba);
 	read_ufs_debug_bus(hba);
+	sprd_ufs_debug_err_dump(hba);
 }
 
-/*
- * struct ufs_hba_sprd_vops - UFS sprd specific variant operations
- *
- * The variant operations configure the necessary controller and PHY
- * handshake during initialization.
- */
+static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
+				 enum ufs_notify_change_status status)
+{
+	int err = 0;
+	struct ufs_clk_dbg clk_tmp = {};
+
+	if (sprd_ufs_debug_is_supported(hba)) {
+		clk_tmp.status = status;
+		clk_tmp.on = on;
+		ufshcd_common_trace(hba, UFS_TRACE_CLK_GATE, &clk_tmp);
+	}
+
+	return err;
+}
+
+static void ufs_sprd_update_evt_hist(struct ufs_hba *hba,
+		enum ufs_event_type evt, void *data)
+{
+	struct ufs_evt_dbg evt_tmp = {};
+
+	ufs_sprd_update_uic_err_cnt(hba, *(u32 *)data, evt);
+
+	switch (evt) {
+	case UFS_EVT_PA_ERR:
+		ufs_sprd_update_err_cnt(hba, *(u32 *)data, UFS_LINE_RESET);
+		break;
+	default:
+		break;
+	}
+
+	if (sprd_ufs_debug_is_supported(hba)) {
+		evt_tmp.id = evt;
+		evt_tmp.val = *(u32 *)data;
+		ufshcd_common_trace(hba, UFS_TRACE_EVT, &evt_tmp);
+	}
+}
+
 const struct ufs_hba_variant_ops ufs_hba_sprd_ums9230_vops = {
 	.name = "sprd,ufshc-ums9230",
 	.init = ufs_sprd_init,
 	.exit = ufs_sprd_exit,
 	.get_ufs_hci_version = ufs_sprd_get_ufs_hci_version,
+	.setup_clocks = ufs_sprd_setup_clocks,
 	.hce_enable_notify = ufs_sprd_hce_enable_notify,
 	.link_startup_notify = ufs_sprd_link_startup_notify,
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
@@ -985,5 +1020,6 @@ const struct ufs_hba_variant_ops ufs_hba_sprd_ums9230_vops = {
 	.resume = ufs_sprd_resume,
 	.dbg_register_dump = ufs_sprd_dbg_register_dump,
 	.device_reset = ufs_sprd_device_reset,
+	.event_notify = ufs_sprd_update_evt_hist,
 };
 EXPORT_SYMBOL(ufs_hba_sprd_ums9230_vops);
