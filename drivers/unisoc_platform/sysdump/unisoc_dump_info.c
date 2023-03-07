@@ -1,8 +1,8 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Sysdump kernel stats for Unisoc SoCs
  *
- * Copyright (C) 2022 Unisoc corporation. http://www.unisoc.com
+ * Copyright (c) 2022, Unisoc, Inc.
  */
 
 #define pr_fmt(fmt)  "unisoc-dump-info: " fmt
@@ -285,7 +285,8 @@ static void dump_task_info(struct task_struct *task, char *status,
 		       task->prio, cpumask_pr_args(&task->cpus_mask));
 #if IS_ENABLED(CONFIG_SCHED_WALT)
 	SEQ_printf(unisoc_rq_seq_buf, " enqueue: %llu", uni_tsk->last_enqueue_ts);
-	SEQ_printf(unisoc_rq_seq_buf, " last_sleep: %llu", uni_tsk->last_sleep_ts);
+	SEQ_printf(unisoc_rq_seq_buf, " sleep: %llu", uni_tsk->last_sleep_ts);
+	SEQ_printf(unisoc_rq_seq_buf, " wake: %llu", uni_tsk->last_wakeup_ts);
 #endif
 	SEQ_printf(unisoc_rq_seq_buf, " vrun: %llu exec_start: %llu sum_ex: %llu\n",
 		se->vruntime, se->exec_start, se->sum_exec_runtime);
@@ -614,6 +615,9 @@ static void unisoc_print_task_stats(int cpu, struct rq *rq, struct task_struct *
 	SEQ_printf(task_seq_buf, "   %6lld.%09ld",
 				nsec_high(uni_tsk->last_sleep_ts),
 				nsec_low(uni_tsk->last_sleep_ts));
+	SEQ_printf(task_seq_buf, "   %6lld.%09ld",
+				nsec_high(uni_tsk->last_wakeup_ts),
+				nsec_low(uni_tsk->last_wakeup_ts));
 #endif
 	SEQ_printf(task_seq_buf, "\n");
 }
@@ -635,6 +639,7 @@ void unisoc_dump_task_stats(void)
 #if IS_ENABLED(CONFIG_SCHED_WALT)
 	SEQ_printf(unisoc_task_seq_buf, "    last_enqueue_ts");
 	SEQ_printf(unisoc_task_seq_buf, "      last_sleep_ts");
+	SEQ_printf(unisoc_task_seq_buf, "      last_wakeup_ts");
 #endif
 	SEQ_printf(unisoc_task_seq_buf, "\n-------------------------------------------------------------------"
 		"-------------------------------------------------------------------------------------------\n");

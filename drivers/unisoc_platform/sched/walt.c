@@ -790,6 +790,7 @@ static void walt_mark_task_starting(struct task_struct *p)
 
 	wallclock = walt_ktime_clock();
 	uni_tsk->mark_start = wallclock;
+	uni_tsk->last_wakeup_ts = wallclock;
 }
 
 static void walt_set_window_start(struct rq *rq)
@@ -1190,6 +1191,13 @@ static void walt_sched_init_rq(struct rq *rq)
 	uni_rq->curr_runnable_sum = uni_rq->prev_runnable_sum = 0;
 }
 
+static void note_task_waking(struct task_struct *p, u64 wallclock)
+{
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+
+	uni_tsk->last_wakeup_ts = wallclock;
+}
+
 bool walt_disabled = true;
 
 static void android_rvh_cpu_cgroup_online(void *data, struct cgroup_subsys_state *css)
@@ -1280,6 +1288,7 @@ static void android_rvh_try_to_wake_up(void *data, struct task_struct *p)
 	wallclock = walt_ktime_clock();
 	walt_update_task_ravg(rq->curr, rq, TASK_UPDATE, wallclock, 0);
 	walt_update_task_ravg(p, rq, TASK_WAKE, wallclock, 0);
+	note_task_waking(p, wallclock);
 	rq_unlock_irqrestore(rq, &rf);
 }
 
