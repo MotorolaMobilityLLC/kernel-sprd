@@ -178,7 +178,7 @@ static void sprd_i2c_clear_irq(struct sprd_i2c *i2c_dev)
 {
 	u32 tmp = readl(i2c_dev->base + I2C_STATUS);
 
-	writel(tmp & ~I2C_INT, i2c_dev->base + I2C_STATUS);
+	writel((tmp & ~I2C_INT) | I2C_RX_ACK, i2c_dev->base + I2C_STATUS);
 }
 
 static void sprd_i2c_reset_fifo(struct sprd_i2c *i2c_dev)
