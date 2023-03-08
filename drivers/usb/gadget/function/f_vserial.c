@@ -96,6 +96,7 @@ struct vser_dev {
 	unsigned long		ave_time_per_xfer;
 
 	unsigned long		total_transfer_time;
+	struct timer_list	log_print_timer;
 #endif
 
 	wait_queue_head_t read_wq;
@@ -693,6 +694,28 @@ static ssize_t vser_statistics_show(struct device *dev,
 }
 
 static DEVICE_ATTR_RO(vser_statistics);
+
+static void vser_log_print_timer_func(struct timer_list *timer)
+{
+	struct vser_dev *dev = from_timer(dev, timer, log_print_timer);
+
+	dev->ave_time_per_xfer = dev->total_transfer_time / dev->dl_sent_packet_count;
+
+	pr_info("u32 dl_rx_packet_count= %u; ul dl_rx_bytes= %lu; "
+	"u32 dl_sent_packet_count= %u; ul dl_sent_bytes= %lu; u32 dl_sent_failed_packet_count= %u; "
+	"ul min_time_per_xfer= %lu(ns); ul max_time_per_xfer= %lu(ns); ul ave_time_per_xfer= %lu(ns);\n",
+	dev->dl_rx_packet_count,
+	dev->dl_rx_bytes,
+	dev->dl_sent_packet_count,
+	dev->dl_sent_bytes,
+	dev->dl_sent_failed_packet_count,
+	dev->min_time_per_xfer,
+	dev->max_time_per_xfer,
+	dev->ave_time_per_xfer
+	);
+
+	mod_timer(&dev->log_print_timer, jiffies + msecs_to_jiffies(5000));
+}
 #endif
 
 static void vser_test_works(struct work_struct *work);
@@ -725,6 +748,7 @@ static int vser_init(struct vser_instance *fi_vser)
 	INIT_LIST_HEAD(&dev->tx_idle);
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
 	INIT_LIST_HEAD(&dev->tx_pass_idle);
+	timer_setup(&dev->log_print_timer, vser_log_print_timer_func, 0);
 #endif
 
 	INIT_WORK(&dev->test_work, vser_test_works);
@@ -740,6 +764,8 @@ static int vser_init(struct vser_instance *fi_vser)
 
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
 	device_create_file(vser_device.this_device, &dev_attr_vser_statistics);
+	if (ret)
+		goto err2;
 #endif
 
 	return 0;
@@ -832,6 +858,8 @@ static void vser_function_unbind(struct usb_configuration *c,
 	dev->max_time_per_xfer = 0;
 	dev->min_time_per_xfer = 0;
 	dev->total_transfer_time = 0;
+
+	del_timer(&dev->log_print_timer);
 #endif
 
 	dev->online = 0;
@@ -969,6 +997,9 @@ static int vser_setup(struct usb_function *f,
 		dev->online = 1;
 		wake_up(&dev->read_wq);
 		wake_up(&dev->write_wq);
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
+		mod_timer(&dev->log_print_timer, jiffies);
+#endif
 	}
 	return value;
 }
