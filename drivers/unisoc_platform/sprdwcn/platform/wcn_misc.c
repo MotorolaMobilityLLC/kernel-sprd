@@ -206,7 +206,7 @@ static void *wcn_mem_ram_vmap(phys_addr_t start, size_t size,
 	struct page **pages;
 	phys_addr_t page_start;
 	unsigned int page_count;
-	//pgprot_t prot;
+	pgprot_t prot;
 	unsigned int i;
 	void *vaddr;
 	phys_addr_t addr;
@@ -215,11 +215,11 @@ static void *wcn_mem_ram_vmap(phys_addr_t start, size_t size,
 	page_start = start - offset_in_page(start);
 	page_count = DIV_ROUND_UP(size + offset_in_page(start), PAGE_SIZE);
 	*count = page_count;
-	/*if (noncached)
+	if (noncached)
 		prot = pgprot_noncached(PAGE_KERNEL);
 	else
 		prot = PAGE_KERNEL;
-*/
+
 retry1:
 	pages = kmalloc_array(page_count, sizeof(struct page *), GFP_KERNEL);
 	if (!pages) {
@@ -237,7 +237,7 @@ retry1:
 		pages[i] = pfn_to_page(addr >> PAGE_SHIFT);
 	}
 retry2:
-	vaddr = vm_map_ram(pages, page_count, -1);//, prot);
+	vaddr = vmap(pages, page_count, VM_MAP, prot);
 	if (!vaddr) {
 		if (retry++ < WCN_VMAP_RETRY_CNT) {
 			usleep_range(8000, 10000);
@@ -257,7 +257,8 @@ out:
 
 void wcn_mem_ram_unmap(const void *mem, unsigned int count)
 {
-	vm_unmap_ram(mem - offset_in_page(mem), count);
+	//vm_unmap_ram(mem - offset_in_page(mem), count);
+	vunmap(mem - offset_in_page(mem));
 }
 
 void *wcn_mem_ram_vmap_nocache(phys_addr_t start, size_t size,
