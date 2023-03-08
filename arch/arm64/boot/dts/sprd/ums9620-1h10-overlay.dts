@@ -70,15 +70,13 @@
 				};
 
 				sprd-mtty {
-					compatible = "sprd,mtty";
+					compatible = "sprd,mtty-pcie";
 					sprd,name = "ttyBT";
-					status = "disabled";
 				};
 
 				sprd-fm {
-					compatible = "sprd,marlin3-fm";
+					compatible = "sprd,fm-pcie";
 					sprd,name = "sprd-fm";
-					status = "disabled";
 				};
 
 			};
