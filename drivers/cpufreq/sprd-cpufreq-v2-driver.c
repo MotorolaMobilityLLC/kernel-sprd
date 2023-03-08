@@ -1028,7 +1028,11 @@ unsigned int sprd_cpufreq_update_opp(unsigned int cpu, int now_temp)
 
 	do_div(freq, 1000); /* from Hz to KHz */
 
-	freq_qos_update_request(&cluster->max_req, freq);
+	ret = freq_qos_update_request(&cluster->max_req, freq);
+	if (ret < 0) {
+		pr_err("cluster %u qos update max freq(%llu) error\n", cluster->id, freq);
+		goto ret_error;
+	}
 
 	udelay(100);
 
