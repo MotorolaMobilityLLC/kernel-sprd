@@ -97,6 +97,18 @@ config USB_SC27XX_TYPEC
 	  Otherwise keep the default value.
 	  Select this when you want to enable Spreadtrum Type-C v1.1 module.
 
+config USB_VIRTUAL_TYPEC
+	tristate "Unisoc Virtual Typec for Micro"
+	depends on !USB_SC27XX_TYPEC
+	default n
+	help
+	  Select this when you want to enable Unisoc Virtual Type-C for Micro
+	  interface.
+
+
+	  When using the micro interface,running the google xts test item will fail.
+	  You need to use the USB_VIRTUAL_TYPEC module to pass the test.
+
 source "drivers/usb/typec/mux/Kconfig"
 
 source "drivers/usb/typec/altmodes/Kconfig"
