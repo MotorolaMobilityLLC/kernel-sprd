@@ -387,21 +387,6 @@ static ssize_t modem_read_mini_dump(struct file *filp,
 	while (s_cur_info) {
 		if (!count)
 			break;
-
-		/* check minidump parent_name has been init */
-		if (strstr(s_cur_info->parent_name, "sharemem")
-			|| strstr(s_cur_info->parent_name, "pscp")
-			|| strstr(s_cur_info->parent_name, "phy")
-			|| strstr(s_cur_info->parent_name, "ldsp")
-			|| strstr(s_cur_info->parent_name, "tgdsp")
-			|| strstr(s_cur_info->parent_name, "warm")
-			|| strstr(s_cur_info->parent_name, "modem")
-			|| strstr(s_cur_info->parent_name, "dsp")) {
-			continue;
-		} else {
-			dev_info(modem->p_dev, "minidump parent_name no init,disable mini_dump!\n");
-			break;
-		}
 		len = sprintf(head,
 				  "%s_%s_0x%8x_0x%x.bin",
 				  s_cur_info->parent_name,
