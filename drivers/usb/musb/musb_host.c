@@ -220,6 +220,14 @@ musb_start_urb(struct musb *musb, int is_in, struct musb_qh *qh)
 	u32			offset = 0;
 	struct musb_hw_ep	*hw_ep = qh->hw_ep;
 	int			epnum = hw_ep->epnum;
+#if IS_ENABLED(CONFIG_USB_SPRD_LINKFIFO)
+	int i;
+
+	if (qh->linkfifo) {
+		urb = last_urb(qh);
+		buf = urb->transfer_buffer;
+	}
+#endif
 
 	/* initialize software qh state */
 	qh->offset = 0;
@@ -239,6 +247,14 @@ musb_start_urb(struct musb *musb, int is_in, struct musb_qh *qh)
 		qh->frame = 0;
 		offset = urb->iso_frame_desc[0].offset;
 		len = urb->iso_frame_desc[0].length;
+#if IS_ENABLED(CONFIG_USB_SPRD_LINKFIFO)
+		if (qh->linkfifo) {
+			len = 0;
+			offset = 0;
+			for (i = 0; i < urb->number_of_packets; i++)
+				len += urb->iso_frame_desc[i].length;
+		}
+#endif
 		break;
 	default:		/* bulk, interrupt */
 		/* actual_length may be nonzero on retry paths */
@@ -405,6 +421,11 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 			break;
 		}
 	}
+
+#if IS_ENABLED(CONFIG_USB_SPRD_LINKFIFO)
+	if (qh && qh->linkfifo)
+		return;
+#endif
 
 	if (qh != NULL && qh->is_ready && !list_empty(&qh->hep->urb_list)) {
 		musb_dbg(musb, "... next ep%d %cX urb %p",
@@ -2936,9 +2957,9 @@ static int musb_urb_enqueue(
 	qh = ret ? NULL : hep->hcpriv;
 	if (qh)
 		urb->hcpriv = qh;
-	spin_unlock_irqrestore(&musb->lock, flags);
 
 	if (musb->is_offload && musb_offload_detect(musb, epd)) {
+		spin_unlock_irqrestore(&musb->lock, flags);
 		dev_dbg(musb->controller, "Don't need to transfer urb\n");
 		musb_offload_enqueue(hcd, urb);
 		return 0;
@@ -2952,8 +2973,17 @@ static int musb_urb_enqueue(
 	 * disabled, testing for empty qh->ring and avoiding qh setup costs
 	 * except for the first urb queued after a config change.
 	 */
-	if (qh || ret)
+	if (qh || ret) {
+#if IS_ENABLED(CONFIG_USB_SPRD_LINKFIFO)
+		if (qh && qh->linkfifo) {
+			dev_dbg(musb->controller, "%s urb %ps\n",  __func__, urb);
+			musb_start_urb(musb, (epd->bEndpointAddress & USB_ENDPOINT_DIR_MASK), qh);
+		}
+#endif
+		spin_unlock_irqrestore(&musb->lock, flags);
 		return ret;
+	}
+	spin_unlock_irqrestore(&musb->lock, flags);
 
 	/* Allocate and initialize qh, minimizing the work done each time
 	 * hw_ep gets reprogrammed, or with irqs blocked.  Then schedule it.
@@ -3082,6 +3112,18 @@ static int musb_urb_enqueue(
 			qh->type_reg, qh->intv_reg);
 #endif
 
+#if IS_ENABLED(CONFIG_USB_SPRD_LINKFIFO)
+	if ((qh->type == USB_ENDPOINT_XFER_ISOC)
+		&& (!(epd->bEndpointAddress & USB_ENDPOINT_DIR_MASK))
+#if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
+		&& (!musb->adaptive_used)
+#endif
+	)
+		qh->linkfifo = true;
+	else
+		qh->linkfifo = false;
+#endif
+
 	/* invariant: hep->hcpriv is null OR the qh that's already scheduled.
 	 * until we get real dma queues (with an entry for each urb/buffer),
 	 * we only have work to do in the former case.
@@ -3159,6 +3201,10 @@ static int musb_cleanup_urb(struct urb *urb, struct musb_qh *qh)
 				is_in ? 'R' : 'T', ep->epnum,
 				urb, status);
 			urb->actual_length += dma->actual_len;
+#if IS_ENABLED(CONFIG_USB_SPRD_LINKFIFO)
+			if (qh->linkfifo)
+				musb_linknode_clear(musb, !is_in, ep->epnum);
+#endif
 		}
 	}
 

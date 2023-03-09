@@ -202,7 +202,8 @@ struct linklist_node_s {
 struct sprd_musb_dma_channel {
 	struct dma_channel	channel;
 	struct sprd_musb_dma_controller	*controller;
-#ifdef CONFIG_USB_SPRD_LINKFIFO
+#if IS_ENABLED(CONFIG_USB_SPRD_LINKFIFO)
+#define CHN_MAX_QUEUE_SIZE 8
 	struct linklist_node_s	*dma_linklist[CHN_MAX_QUEUE_SIZE];
 	dma_addr_t list_dma_addr[CHN_MAX_QUEUE_SIZE];
 #else
@@ -235,5 +236,7 @@ irqreturn_t sprd_dma_interrupt(struct musb *musb, u32 int_hsdma);
 struct dma_controller *sprd_musb_dma_controller_create(struct musb *musb,
 							void __iomem *base);
 void sprd_musb_dma_controller_destroy(struct dma_controller *c);
-
+#if IS_ENABLED(CONFIG_USB_SPRD_LINKFIFO)
+extern void musb_linknode_clear(struct musb *musb, int is_tx, int chan);
+#endif
 #endif	/* __SPRD_MUSBHSDMA_H__ */
