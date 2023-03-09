@@ -95,7 +95,6 @@
 
 /* modify sc27xx tdrp */
 #define SC2730_TDRP_CNT		0x48
-#define SC2721_TDRP_CNT		0x3C
 #define SC27XX_MIN_TDRP_CNT		0x63f
 #define SC27XX_MIN_TDRP_MS		50
 #define SC27XX_TDRP_RANGE		0x640
@@ -366,14 +365,12 @@ static int sc27xx_typec_random_tdrp(struct sc27xx_typec *sc)
 	rand &= 0xfff;
 	rand = SC27XX_MIN_TDRP_CNT + rand % SC27XX_TDRP_RANGE;
 
-	if (sc->var_data->pmic_name == SC2730 || sc->var_data->pmic_name == UMP9620)
+	if (sc->var_data->pmic_name == SC2730 || sc->var_data->pmic_name == UMP9620) {
 		ret = regmap_write(sc->regmap, sc->base + SC2730_TDRP_CNT, rand);
-	else if (sc->var_data->pmic_name == SC2721)
-		ret = regmap_write(sc->regmap, sc->base + SC2721_TDRP_CNT, rand);
-
-	dev_info(sc->dev, "SC27XX_MIN_TERR_CNT = %d: %d ms\n", rand,
-				(rand - SC27XX_MIN_TDRP_CNT) / SC27XX_TDRP_TIMER +
-				SC27XX_MIN_TDRP_MS);
+		dev_info(sc->dev, "SC27XX_MIN_TERR_CNT = %d: %d ms\n", rand,
+					(rand - SC27XX_MIN_TDRP_CNT) / SC27XX_TDRP_TIMER +
+					SC27XX_MIN_TDRP_MS);
+	}
 
 	return ret;
 }
