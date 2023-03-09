@@ -2274,16 +2274,6 @@ static int musb_sprd_pm_resume(struct device *dev)
 
 	dev_info(glue->dev, "%s: enter\n", __func__);
 
-	/* Once the resume is called, the lock is performed
-	 * and keep awake in 8s
-	 */
-	if (glue->dr_mode == USB_DR_MODE_HOST) {
-		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
-		__pm_stay_awake(glue->wake_lock);
-		glue->wake_lock_relaxed = false;
-		dev_info(glue->dev, "Keep awake for 8s in host mode\n");
-	}
-
 	if (musb->is_offload && !musb->offload_used) {
 		if (glue->pmu) {
 			msk = glue->usb_pub_slp_poll_mask;
