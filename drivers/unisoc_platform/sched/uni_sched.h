@@ -29,6 +29,20 @@ static inline struct uni_task_group *get_uni_task_group(struct task_struct *p)
 	return (struct uni_task_group *) (p->sched_task_group->android_vendor_data1);
 }
 
+
+enum cgroup_name {
+	ROOT_GROUP = 0,
+	TOP_APP,
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+	VIP_GROUP,
+#endif
+	FOREGROUND,
+	CAMERA_DAEMON,
+	BACKGROUND,
+	SYSTEM_GROUP,
+	OTHER_GROUPS,
+};
+
 struct pd_cache {
 	unsigned long wake_util;
 	unsigned long cap_orig;
@@ -37,6 +51,43 @@ struct pd_cache {
 	unsigned long base_energy;
 	bool is_idle;
 };
+
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+
+#define SCHED_UI_THREAD_TYPE	0x01
+#define SCHED_ANIMATOR_TYPE	0x02
+#define SCHED_LL_CAMERA_TYPE	0x04
+#define SCHED_AUDIO_TYPE	0x08
+
+#define SCHED_VIP_TASK_TYPE	(SCHED_UI_THREAD_TYPE | SCHED_ANIMATOR_TYPE | \
+				 SCHED_LL_CAMERA_TYPE | SCHED_AUDIO_TYPE)
+
+#define SCHED_VIP_SLICE		4000000U
+#define SCHED_VIP_LIMIT		(4 * SCHED_VIP_SLICE)
+
+#define SCHED_NOT_VIP		0
+#define SCHED_UI_VIP		1
+#define SCHED_ANIMATOR_VIP	2
+#define SCHED_ANIMATOR_UI_VIP	3
+#define SCHED_CAMERA_VIP	4
+#define SCHED_CAMERA_UI_VIP	5
+#define SCHED_AUDIO_VIP		6
+
+extern void enqueue_cfs_vip_task(struct rq *rq, struct task_struct *p);
+extern void dequeue_cfs_vip_task(struct rq *rq, struct task_struct *p);
+#define test_vip_task(uni_task) (uni_task->vip_params & SCHED_VIP_TASK_TYPE)
+
+#else
+static inline void enqueue_cfs_vip_task(struct rq *rq, struct task_struct *p) {}
+static inline void dequeue_cfs_vip_task(struct rq *rq, struct task_struct *p) {}
+#define test_vip_task(uni_task) false
+
+#endif
+
+#define unitsk_to_tsk(unitsk) ({ \
+		void *__mptr = (void *)(unitsk); \
+		((struct task_struct *)(__mptr - \
+		offsetof(struct task_struct, android_vendor_data1))); })
 
 #if IS_ENABLED(CONFIG_SCHED_WALT)
 extern __read_mostly unsigned int walt_ravg_window;
@@ -51,7 +102,6 @@ extern unsigned int sysctl_walt_account_irq_time;
 
 extern void walt_init(void);
 extern u64 sched_ktime_clock(void);
-extern void walt_init_stop_handler(void *data);
 extern void walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p);
 extern void walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p);
 extern unsigned long walt_cpu_util_freq(int cpu);
@@ -123,7 +173,6 @@ static inline u64 sched_ktime_clock(void)
 {
 	return sched_clock();
 }
-static inline void walt_init_stop_handler(void *data) {}
 static inline void walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p) {}
 static inline void walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p) {}
 
@@ -206,6 +255,16 @@ static inline int hung_task_enh_init(void)
 	return 0;
 }
 #endif
+/*
+ * The policy of a RT boosted task (via PI mutex) still is a fair task,
+ * so use prio check as well. The prio check alone is not sufficient
+ * since idle task's prio is also 120.
+ */
+static inline bool is_fair_task(struct task_struct *p)
+{
+	return p->prio >= MAX_RT_PRIO && !is_idle_task(p);
+}
+
 
 static inline int task_group_boost(struct task_struct *p)
 {
@@ -213,6 +272,17 @@ static inline int task_group_boost(struct task_struct *p)
 	struct uni_task_group *wtg = get_uni_task_group(p);
 
 	return wtg->boost;
+#else
+	return 0;
+#endif
+}
+
+static inline int uni_task_group_idx(struct task_struct *p)
+{
+#ifdef CONFIG_UNISOC_GROUP_CTL
+	struct uni_task_group *tg = get_uni_task_group(p);
+
+	return tg->idx;
 #else
 	return 0;
 #endif

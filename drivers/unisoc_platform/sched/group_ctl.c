@@ -6,16 +6,6 @@
 #include <trace/hooks/cgroup.h>
 #include "uni_sched.h"
 
-enum cgroup_name {
-	ROOT_GROUP = 0,
-	TOP_APP,
-	FOREGROUND,
-	CAMERA_DAEMON,
-	BACKGROUND,
-	SYSTEM_GROUP,
-	OTHER_GROUPS,
-};
-
 #define BOOSTGROUPS_COUNT	(OTHER_GROUPS + 1)
 
 /* Boost groups
@@ -169,7 +159,6 @@ void group_boost_enqueue(struct rq *rq, struct task_struct *p)
 	int cpu = cpu_of(rq);
 	struct boost_groups *bg = &per_cpu(cpu_boost_groups, cpu);
 	unsigned long irq_flags;
-	struct uni_task_group *uni_tg;
 	int idx;
 
 	/*
@@ -179,15 +168,10 @@ void group_boost_enqueue(struct rq *rq, struct task_struct *p)
 	 */
 	raw_spin_lock_irqsave(&bg->lock, irq_flags);
 
-	uni_tg = get_uni_task_group(p);
-	if (!uni_tg)
-		goto unlock;
-
-	idx = uni_tg->idx;
+	idx = uni_task_group_idx(p);
 
 	group_boost_tasks_update(p, cpu, idx, ENQUEUE_TASK);
 
-unlock:
 	raw_spin_unlock_irqrestore(&bg->lock, irq_flags);
 }
 
@@ -196,7 +180,6 @@ void group_boost_dequeue(struct rq *rq, struct task_struct *p)
 	int cpu = cpu_of(rq);
 	struct boost_groups *bg = &per_cpu(cpu_boost_groups, cpu);
 	unsigned long irq_flags;
-	struct uni_task_group *uni_tg;
 	int idx;
 
 	/*
@@ -205,14 +188,10 @@ void group_boost_dequeue(struct rq *rq, struct task_struct *p)
 	 */
 	raw_spin_lock_irqsave(&bg->lock, irq_flags);
 
-	uni_tg = get_uni_task_group(p);
-	if (!uni_tg)
-		goto unlock;
-
-	idx = uni_tg->idx;
+	idx = uni_task_group_idx(p);
 
 	group_boost_tasks_update(p, cpu, idx, DEQUEUE_TASK);
-unlock:
+
 	raw_spin_unlock_irqrestore(&bg->lock, irq_flags);
 }
 #endif
@@ -254,6 +233,11 @@ static void update_task_group(struct cgroup_subsys_state *css)
 	if (!strcmp(css->cgroup->kn->name, "top-app")) {
 		uni_tg->idx = TOP_APP;
 		cgrp_table[TOP_APP] = uni_tg;
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+	} else if (!strcmp(css->cgroup->kn->name, "vip-sched")) {
+		uni_tg->idx = VIP_GROUP;
+		cgrp_table[VIP_GROUP] = uni_tg;
+#endif
 	} else if (!strcmp(css->cgroup->kn->name, "foreground")) {
 		uni_tg->idx = FOREGROUND;
 		cgrp_table[FOREGROUND] = uni_tg;
@@ -443,6 +427,35 @@ struct ctl_table root_grp_table[] = {
 	{ },
 };
 
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+struct ctl_table vip_table[] = {
+#ifdef CONFIG_UNISOC_GROUP_BOOST
+	{
+		.procname	= "boost",
+		.data		= (int *)VIP_GROUP,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= sched_group_boost_handler,
+	},
+#endif
+	{
+		.procname	= "account_wait_time",
+		.data		= (int *)VIP_GROUP,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sched_account_wait_time_handler,
+	},
+	{
+		.procname	= "init_task_load_pct",
+		.data		= (int *)VIP_GROUP,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sched_init_load_pct_handler,
+	},
+	{ },
+};
+#endif
+
 struct ctl_table topapp_table[] = {
 #ifdef CONFIG_UNISOC_GROUP_BOOST
 	{
@@ -623,6 +636,13 @@ struct ctl_table boost_table[] = {
 		.mode		= 0555,
 		.child		= root_grp_table,
 	},
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+	{
+		.procname	= "vip-sched",
+		.mode		= 0555,
+		.child		= vip_table,
+	},
+#endif
 	{
 		.procname	= "top-app",
 		.mode		= 0555,

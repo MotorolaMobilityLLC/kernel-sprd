@@ -510,7 +510,81 @@ TRACE_EVENT(sched_boost_task,
 		  __entry->comm, __entry->pid, __entry->util, __entry->boost,
 		  __entry->margin)
 );
-#endif /* _TRACE_WALT_H */
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+TRACE_EVENT(sched_task_setting_handler,
+	TP_PROTO(struct task_struct *p, int param, int val),
+
+	TP_ARGS(p, param, val),
+
+	TP_STRUCT__entry(
+		__array(char,           comm,   TASK_COMM_LEN)
+		__field(pid_t,          pid)
+		__field(int,            param)
+		__field(int,            val)
+	),
+
+	TP_fast_assign(
+		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
+		__entry->pid	= p->pid;
+		__entry->param	= param;
+		__entry->val	= val;
+	),
+
+	TP_printk("comm=%s pid=%d param=%d val=%d",
+		__entry->comm, __entry->pid, __entry->param, __entry->val)
+);
+
+DECLARE_EVENT_CLASS(cfs_vip_task_template,
+
+	TP_PROTO(struct task_struct *p, struct uni_task_struct *unitsk, unsigned int limit),
+
+	TP_ARGS(p, unitsk, limit),
+
+	TP_STRUCT__entry(
+		__array(char,		comm,	TASK_COMM_LEN)
+		__field(pid_t,		pid)
+		__field(int,		prio)
+		__field(int,		vip_level)
+		__field(int,		cpu)
+		__field(u64,		exec)
+		__field(unsigned int,	limit)
+	),
+
+	TP_fast_assign(
+		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
+		__entry->pid		= p->pid;
+		__entry->prio		= p->prio;
+		__entry->vip_level	= unitsk->vip_level;
+		__entry->cpu		= task_cpu(p);
+		__entry->exec		= unitsk->total_exec;
+		__entry->limit		= limit;
+	),
+
+	TP_printk("comm=%s pid=%d prio=%d vip_level=%d cpu=%d exec=%llu limit=%u",
+		__entry->comm, __entry->pid, __entry->prio,
+		__entry->vip_level, __entry->cpu, __entry->exec, __entry->limit)
+);
+/* called upon VIP task de-activation. exec will be more than limit */
+DEFINE_EVENT(cfs_vip_task_template, cfs_deactivate_vip_task,
+	     TP_PROTO(struct task_struct *p, struct uni_task_struct *unitsk, unsigned int limit),
+	     TP_ARGS(p, unitsk, limit));
+
+/* called upon when VIP is returned to run next */
+DEFINE_EVENT(cfs_vip_task_template, cfs_vip_pick_next,
+	     TP_PROTO(struct task_struct *p, struct uni_task_struct *unitsk, unsigned int limit),
+	     TP_ARGS(p, unitsk, limit));
+
+/* called upon when VIP (current) is not preempted by waking task */
+DEFINE_EVENT(cfs_vip_task_template, cfs_vip_wakeup_nopreempt,
+	     TP_PROTO(struct task_struct *p, struct uni_task_struct *unitsk, unsigned int limit),
+	     TP_ARGS(p, unitsk, limit));
+
+/* called upon when VIP (waking task) preempts the current */
+DEFINE_EVENT(cfs_vip_task_template, cfs_vip_wakeup_preempt,
+	     TP_PROTO(struct task_struct *p, struct uni_task_struct *unitsk, unsigned int limit),
+	     TP_ARGS(p, unitsk, limit));
+#endif
+#endif /* _TRACE_H */
 
 #undef TRACE_INCLUDE_PATH
 #define TRACE_INCLUDE_PATH ../../drivers/unisoc_platform/sched

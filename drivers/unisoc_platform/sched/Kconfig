@@ -82,6 +82,20 @@ config UNISOC_ROTATION_TASK
 	  rotation task can improve system performance between big core
 	  and little core.
 
+config UNISOC_SCHED_VIP_TASK
+	bool "Unisoc Sched VIP TASK"
+	depends on UNISOC_SCHED
+	default n
+	help
+	This option enables vip-task feature. In android system, there are often
+	cfs tasks that need low lentency, but cfs scheduler often treats each task
+	fairly, in this case, if the low lentency tasks are frequently preempted
+	by other tasks. this case is what we can not stand. On the other hand, the
+	introduction of group-scheduler makes tasks between different process
+	groups more uncontrollable. To improve the task performance, Introduce
+	vip-task feature. user can set the low lentency task tobe vip task, the
+	vip task could get priority scheduling to improve performance.
+
 config UNISOC_SCHEDUTIL_GOV
 	tristate "Support Unisoc Schedutil Governor"
 	depends on CPU_FREQ && SMP

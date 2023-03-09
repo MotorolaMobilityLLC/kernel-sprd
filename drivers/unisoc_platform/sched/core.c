@@ -202,17 +202,33 @@ static void update_cluster_topology(void)
 	parse_capacity_from_clusters();
 }
 
-static void android_rvh_enqueue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
+static void android_rvh_after_enqueue_task(void *data, struct rq *rq,
+					   struct task_struct *p, int flags)
 {
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+	u64 wallclock = sched_ktime_clock();
+	int freq_flags = 0;
+
 	if (unlikely(uni_sched_disabled))
 		return;
+
+	uni_tsk->last_enqueue_ts = wallclock;
 
 	walt_inc_cumulative_runnable_avg(rq, p);
 
 	group_boost_enqueue(rq, p);
+
+	if (is_fair_task(p))
+		enqueue_cfs_vip_task(rq, p);
+
+	if (p->in_iowait)
+		freq_flags |= SCHED_CPUFREQ_IOWAIT;
+
+	walt_cpufreq_update_util(rq, freq_flags);
 }
 
-static void android_rvh_dequeue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
+static void android_rvh_after_dequeue_task(void *data, struct rq *rq,
+					   struct task_struct *p, int flags)
 {
 	if (unlikely(uni_sched_disabled))
 		return;
@@ -220,25 +236,125 @@ static void android_rvh_dequeue_task(void *data, struct rq *rq, struct task_stru
 	walt_dec_cumulative_runnable_avg(rq, p);
 
 	group_boost_dequeue(rq, p);
+
+	if (is_fair_task(p))
+		dequeue_cfs_vip_task(rq, p);
+
+	walt_cpufreq_update_util(rq, 0);
+}
+
+static void __sched_fork_init(struct task_struct *p)
+{
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+	INIT_LIST_HEAD(&uni_tsk->vip_list);
+	uni_tsk->sum_exec_snapshot_for_slice = 0;
+	uni_tsk->sum_exec_snapshot_for_total = 0;
+	uni_tsk->total_exec = 0;
+	uni_tsk->vip_level = SCHED_NOT_VIP;
+#endif
+	uni_tsk->last_sleep_ts = 0;
+	uni_tsk->last_enqueue_ts = 0;
+}
+
+static void android_rvh_sched_fork_init(void *data, struct task_struct *p)
+{
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	__sched_fork_init(p);
 }
 
 static void register_sched_vendor_hooks(void)
 {
-	register_trace_android_rvh_enqueue_task(android_rvh_enqueue_task, NULL);
-	register_trace_android_rvh_dequeue_task(android_rvh_dequeue_task, NULL);
+	register_trace_android_rvh_sched_fork_init(android_rvh_sched_fork_init, NULL);
+	register_trace_android_rvh_after_enqueue_task(android_rvh_after_enqueue_task, NULL);
+	register_trace_android_rvh_after_dequeue_task(android_rvh_after_dequeue_task, NULL);
 }
 
 static DEFINE_RAW_SPINLOCK(init_lock);
 
+#if IS_ENABLED(CONFIG_SCHED_WALT) || defined(CONFIG_UNISOC_SCHED_VIP_TASK)
+
+static void sched_init_existing_task(struct task_struct *p)
+{
+#if IS_ENABLED(CONFIG_SCHED_WALT)
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+	int i;
+
+	uni_tsk->init_load_pct = 0;
+	uni_tsk->mark_start = 0;
+	uni_tsk->sum = 0;
+	uni_tsk->sum_latest = 0;
+	uni_tsk->curr_window = 0;
+	uni_tsk->prev_window = 0;
+
+	uni_tsk->demand = 0;
+	uni_tsk->demand_scale = 0;
+	for (i = 0; i < RAVG_HIST_SIZE_MAX; ++i)
+		uni_tsk->sum_history[i] = 0;
+#endif
+	__sched_fork_init(p);
+}
 
 static int sched_init_stop_handler(void *data)
 {
+	int cpu;
+	struct task_struct *g, *p;
+#if IS_ENABLED(CONFIG_SCHED_WALT)
+	u64 window_start_ns, nr_windows;
+#endif
+
 	raw_spin_lock(&init_lock);
 
 	if (!uni_sched_disabled)
 		goto unlock;
 
-	walt_init_stop_handler(data);
+	read_lock(&tasklist_lock);
+
+#if IS_ENABLED(CONFIG_SCHED_WALT)
+	window_start_ns = ktime_get_ns();
+	nr_windows = div64_u64(window_start_ns, walt_ravg_window);
+	window_start_ns = (u64)nr_windows * (u64)walt_ravg_window;
+#endif
+
+	for_each_possible_cpu(cpu) {
+		struct rq *rq = cpu_rq(cpu);
+		struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
+
+		raw_spin_rq_lock(rq);
+
+		/* Create task members for idle thread */
+		sched_init_existing_task(rq->idle);
+
+#if IS_ENABLED(CONFIG_SCHED_WALT)
+		uni_rq->push_task = NULL;
+
+		uni_rq->cumulative_runnable_avg = 0;
+		uni_rq->cur_irqload = 0;
+		uni_rq->avg_irqload = 0;
+		uni_rq->irqload_ts = 0;
+		uni_rq->is_busy = 0;
+		uni_rq->sched_flag = 0;
+
+		uni_rq->cumulative_runnable_avg = 0;
+		uni_rq->curr_runnable_sum = uni_rq->prev_runnable_sum = 0;
+
+		uni_rq->window_start = window_start_ns;
+#endif
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+		uni_rq->num_vip_tasks = 0;
+		INIT_LIST_HEAD(&uni_rq->vip_tasks);
+#endif
+		raw_spin_rq_unlock(cpu_rq(cpu));
+	}
+
+	do_each_thread(g, p) {
+		sched_init_existing_task(p);
+	} while_each_thread(g, p);
+
+	read_unlock(&tasklist_lock);
 
 	uni_sched_disabled = false;
 
@@ -247,6 +363,22 @@ unlock:
 
 	return 0;
 }
+#else
+static int sched_init_stop_handler(void *data)
+{
+	raw_spin_lock(&init_lock);
+
+	if (!uni_sched_disabled)
+		goto unlock;
+
+	uni_sched_disabled = false;
+
+unlock:
+	raw_spin_unlock(&init_lock);
+
+	return 0;
+}
+#endif
 
 static void uni_sched_init(struct work_struct *work)
 {

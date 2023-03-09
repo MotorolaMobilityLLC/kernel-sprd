@@ -20,15 +20,6 @@
 	*ptr -= min_t(typeof(*ptr), *ptr, _val);		\
 } while (0)
 
-/*
- * The policy of a RT boosted task (via PI mutex) still is a fair task,
- * so use prio check as well. The prio check alone is not sufficient
- * since idle task's prio is also 120.
- */
-static inline bool is_fair_task(struct task_struct *p)
-{
-	return p->prio >= MAX_RT_PRIO && !is_idle_task(p);
-}
 
 /**
  * is_idle_cpu - is a given CPU idle currently?
@@ -1089,8 +1080,356 @@ static void android_rvh_place_entity(void *data, struct cfs_rq *cfs_rq,
 }
 #endif
 
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+static int get_task_vip_level(struct task_struct *p)
+{
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *) p->android_vendor_data1;
+
+	if (!test_vip_task(uni_tsk))
+		return SCHED_NOT_VIP;
+
+	if (uni_tsk->vip_params & SCHED_AUDIO_TYPE)
+		return SCHED_AUDIO_VIP;
+
+	if (uni_tsk->vip_params & SCHED_LL_CAMERA_TYPE) {
+		if ((uni_tsk->vip_params & SCHED_ANIMATOR_TYPE) ||
+			(uni_tsk->vip_params & SCHED_UI_THREAD_TYPE)) {
+			return SCHED_CAMERA_UI_VIP;
+		} else {
+			return SCHED_CAMERA_VIP;
+		}
+	}
+
+	if (uni_tsk->vip_params & SCHED_ANIMATOR_TYPE) {
+		if (uni_tsk->vip_params & SCHED_UI_THREAD_TYPE)
+			return SCHED_ANIMATOR_UI_VIP;
+		else
+			return SCHED_ANIMATOR_VIP;
+	}
+
+	if (uni_tsk->vip_params & SCHED_UI_THREAD_TYPE)
+		return SCHED_UI_VIP;
+
+	return SCHED_NOT_VIP;
+}
+
+static inline unsigned int cfs_vip_task_limit(struct task_struct *p)
+{
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *) p->android_vendor_data1;
+
+	/* audio tasks are high prio but have only single slice */
+	if (uni_tsk->vip_level == SCHED_AUDIO_VIP)
+		return SCHED_VIP_SLICE;
+
+	return SCHED_VIP_LIMIT;
+}
+
+static void cfs_insert_vip_task(struct uni_rq *uni_rq, struct uni_task_struct *uni_tsk,
+				bool at_front)
+{
+	struct list_head *pos;
+
+	list_for_each(pos, &uni_rq->vip_tasks) {
+		struct uni_task_struct *tmp_tsk = container_of(pos, struct uni_task_struct,
+								vip_list);
+
+		if (at_front) {
+			if (uni_tsk->vip_level >= tmp_tsk->vip_level)
+				break;
+		} else {
+			if (uni_tsk->vip_level > tmp_tsk->vip_level)
+				break;
+		}
+	}
+
+	list_add(&uni_tsk->vip_list, pos->prev);
+	uni_rq->num_vip_tasks++;
+}
+
+static void cfs_deactivate_vip_task(struct rq *rq, struct task_struct *p)
+{
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *) p->android_vendor_data1;
+
+	list_del_init(&uni_tsk->vip_list);
+	uni_tsk->vip_level = SCHED_NOT_VIP;
+	uni_rq->num_vip_tasks--;
+}
+
+/*
+ * MVP task runtime update happens here. Three possibilities:
+ *
+ * de-activated: The MVP consumed its runtime. Non MVP can preempt.
+ * slice expired: MVP slice is expired and other MVP can preempt.
+ * slice not expired: This MVP task can continue to run.
+ */
+static void cfs_account_vip_runtime(struct rq *rq, struct task_struct *curr)
+{
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
+	struct uni_task_struct *uni_curr = (struct uni_task_struct *) curr->android_vendor_data1;
+	u64 slice;
+	unsigned int limit;
+
+	lockdep_assert_held(&rq->__lock);
+
+	/*
+	 * RQ clock update happens in tick path in the scheduler.
+	 * Since we drop the lock in the scheduler before calling
+	 * into vendor hook, it is possible that update flags are
+	 * reset by another rq lock and unlock. Do the update here
+	 * if required.
+	 */
+	if (!(rq->clock_update_flags & RQCF_UPDATED))
+		update_rq_clock(rq);
+
+	if (curr->se.sum_exec_runtime > uni_curr->sum_exec_snapshot_for_total)
+		uni_curr->total_exec =
+		curr->se.sum_exec_runtime - uni_curr->sum_exec_snapshot_for_total;
+	else
+		uni_curr->total_exec = 0;
+
+	if (curr->se.sum_exec_runtime > uni_curr->sum_exec_snapshot_for_slice)
+		slice = curr->se.sum_exec_runtime - uni_curr->sum_exec_snapshot_for_slice;
+	else
+		slice = 0;
+
+	/* slice is not expired */
+	if (slice < SCHED_VIP_SLICE)
+		return;
+
+	uni_curr->sum_exec_snapshot_for_slice = curr->se.sum_exec_runtime;
+	/*
+	 * slice is expired, check if we have to deactivate the
+	 * VIP task, otherwise requeue the task in the list so
+	 * that other VIP tasks gets a chance.
+	 */
+
+	limit = cfs_vip_task_limit(curr);
+	if (uni_curr->total_exec > limit) {
+		cfs_deactivate_vip_task(rq, curr);
+		trace_cfs_deactivate_vip_task(curr, uni_curr, limit);
+		return;
+	}
+
+	if (uni_rq->num_vip_tasks == 1)
+		return;
+
+	/* slice expired. re-queue the task */
+	list_del(&uni_curr->vip_list);
+	uni_rq->num_vip_tasks--;
+	cfs_insert_vip_task(uni_rq, uni_curr, false);
+}
+
+void enqueue_cfs_vip_task(struct rq *rq, struct task_struct *p)
+{
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *) p->android_vendor_data1;
+	int vip_level = get_task_vip_level(p);
+
+	if (vip_level == SCHED_NOT_VIP)
+		return;
+
+	uni_tsk->vip_level = vip_level;
+
+	/*
+	 * This can happen during migration or enq/deq for prio/class change.
+	 * it was once vip but got demoted, it will not be vip until
+	 * it goes to sleep again.
+	 */
+	if (uni_tsk->total_exec >= cfs_vip_task_limit(p))
+		return;
+
+	cfs_insert_vip_task(uni_rq, uni_tsk, task_running(rq, p));
+
+	/*
+	 * We inserted the task at the appropriate position. Take the
+	 * task runtime snapshot. From now onwards we use this point as a
+	 * baseline to enforce the slice and demotion.
+	 */
+	if (!uni_tsk->total_exec) {
+		uni_tsk->sum_exec_snapshot_for_total = p->se.sum_exec_runtime;
+		uni_tsk->sum_exec_snapshot_for_slice = p->se.sum_exec_runtime;
+	}
+}
+
+void dequeue_cfs_vip_task(struct rq *rq, struct task_struct *p)
+{
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *) p->android_vendor_data1;
+
+	if (!list_empty(&uni_tsk->vip_list) && uni_tsk->vip_list.next)
+		cfs_deactivate_vip_task(rq, p);
+
+	/* The total exec time is reset only when sleep. */
+	if (READ_ONCE(p->__state) != TASK_RUNNING)
+		uni_tsk->total_exec = 0;
+}
+
+static void cfs_vip_scheduler_tick(void *data, struct rq *rq)
+{
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
+	struct task_struct *curr = rq->curr;
+	struct uni_task_struct *uni_curr = (struct uni_task_struct *) curr->android_vendor_data1;
+
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	if (!is_fair_task(curr))
+		return;
+
+	raw_spin_rq_lock(rq);
+
+	if (list_empty(&uni_curr->vip_list) || (uni_curr->vip_list.next == NULL))
+		goto out;
+
+	cfs_account_vip_runtime(rq, curr);
+	/*
+	 * If the current is not vip means, we have to re-schedule to
+	 * see if we can run any other task including vip tasks.
+	 */
+	if ((uni_rq->vip_tasks.next != &uni_curr->vip_list) && rq->cfs.h_nr_running > 1)
+		resched_curr(rq);
+
+out:
+	raw_spin_rq_unlock(rq);
+}
+
+/*
+ * only compare p and curr, if the two tasks are both not vip task, decision to CFS.
+ */
+static void cfs_check_preempt_wakeup(void *data, struct rq *rq, struct task_struct *p,
+					  bool *preempt, bool *ignore, int wake_flags,
+					  struct sched_entity *se, struct sched_entity *pse,
+					  int next_buddy_marked, unsigned int granularity)
+{
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
+	struct uni_task_struct *uni_p = (struct uni_task_struct *) p->android_vendor_data1;
+	struct task_struct *curr = rq->curr;
+	struct uni_task_struct *uni_curr =
+				(struct uni_task_struct *)rq->curr->android_vendor_data1;
+	bool resched = false;
+	bool p_is_vip, curr_is_vip;
+
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	p_is_vip = test_vip_task(uni_p) && (!list_empty(&uni_p->vip_list)) &&
+					      uni_p->vip_list.next;
+	curr_is_vip = test_vip_task(uni_curr) && (!list_empty(&uni_curr->vip_list)) &&
+						uni_curr->vip_list.next;
+
+	/* current is not VIP. */
+	if (!curr_is_vip) {
+		if (p_is_vip)
+			goto preempt;
+		return; /* CFS decides preemption */
+	}
+
+	/* current is vip. update its runtime before deciding the preemption. */
+	cfs_account_vip_runtime(rq, curr);
+	resched = (uni_rq->vip_tasks.next != &uni_curr->vip_list);
+
+	/*
+	 * current is no longer eligible to run. It must have been
+	 * picked (because of vip) ahead of other tasks in the CFS
+	 * tree, so drive preemption to pick up the next task from
+	 * the tree, which also includes picking up the first in
+	 * the vip queue.
+	 */
+	if (resched)
+		goto preempt;
+
+	/* current is the first in the queue, so no preemption */
+	*ignore = true;
+	trace_cfs_vip_wakeup_nopreempt(curr, uni_curr, cfs_vip_task_limit(curr));
+	return;
+preempt:
+	*preempt = true;
+	trace_cfs_vip_wakeup_preempt(p, uni_p, cfs_vip_task_limit(p));
+}
+
+#ifdef CONFIG_FAIR_GROUP_SCHED
+/* Walk up scheduling entities hierarchy */
+#define for_each_sched_entity(se) \
+		for (; se; se = se->parent)
+#else /* !CONFIG_FAIR_GROUP_SCHED */
+#define for_each_sched_entity(se) \
+		for (; se; se = NULL)
+#endif
+
+extern void set_next_entity(struct cfs_rq *cfs_rq, struct sched_entity *se);
+static void cfs_replace_next_task_fair(void *data, struct rq *rq, struct task_struct **p,
+					struct sched_entity **se, bool *repick, bool simple,
+					struct task_struct *prev)
+{
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
+	struct uni_task_struct *uni_tsk, *uni_tsk_tmp;
+	struct task_struct *vip;
+	struct cfs_rq *cfs_rq;
+
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	if ((*p) && (*p) != prev && ((*p)->on_cpu == 1 || (*p)->on_rq == 0 ||
+				     (*p)->on_rq == TASK_ON_RQ_MIGRATING ||
+				     task_cpu(*p) != cpu_of(rq))) {
+		pr_err("picked %s(%d) on_cpu=%d on_rq=%d p->cpu=%d cpu_of(rq)=%d kthread=%d\n",
+			(*p)->comm, (*p)->pid, (*p)->on_cpu,
+			(*p)->on_rq, task_cpu(*p), cpu_of(rq), ((*p)->flags & PF_KTHREAD));
+		BUG_ON(1);
+	}
+	/* We don't have vip tasks queued */
+	if (list_empty(&uni_rq->vip_tasks) || (uni_rq->vip_tasks.next == NULL))
+		return;
+
+	list_for_each_entry_safe(uni_tsk, uni_tsk_tmp, &uni_rq->vip_tasks, vip_list) {
+		if (unlikely(!test_vip_task(uni_tsk)))
+			continue;
+		/* Return the first task from vip queue */
+		vip = unitsk_to_tsk(uni_tsk);
+
+#ifdef CONFIG_UNISOC_GROUP_CTL
+		/*task's group must be vip-group */
+		if (unlikely(uni_task_group_idx(vip) != VIP_GROUP))
+			continue;
+#endif
+		*p = vip;
+		*se = &vip->se;
+		*repick = true;
+
+		if (unlikely(simple)) {
+			for_each_sched_entity((*se)) {
+				/*
+				 * TODO If CFS_BANDWIDTH is enabled, we might pick
+				 * from a throttled cfs_rq
+				 */
+				cfs_rq = cfs_rq_of(*se);
+				set_next_entity(cfs_rq, *se);
+			}
+		}
+
+		if ((*p) && (*p) != prev && ((*p)->on_cpu == 1 || (*p)->on_rq == 0 ||
+				     (*p)->on_rq == TASK_ON_RQ_MIGRATING ||
+				     task_cpu(*p) != cpu_of(rq))) {
+			pr_err("picked %s(%d) on_cpu=%d on_rq=%d p->cpu=%d cpu_of(rq)=%d kthread=%d\n",
+			(*p)->comm, (*p)->pid, (*p)->on_cpu,
+			(*p)->on_rq, task_cpu(*p), cpu_of(rq), ((*p)->flags & PF_KTHREAD));
+			BUG_ON(1);
+		}
+
+		trace_cfs_vip_pick_next(vip, uni_tsk, cfs_vip_task_limit(vip));
+
+		break;
+	}
+}
+#endif
+
 void fair_init(void)
 {
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+	register_trace_android_vh_scheduler_tick(cfs_vip_scheduler_tick, NULL);
+	register_trace_android_rvh_check_preempt_wakeup(cfs_check_preempt_wakeup, NULL);
+	register_trace_android_rvh_replace_next_task_fair(cfs_replace_next_task_fair, NULL);
+#endif
 #if IS_ENABLED(CONFIG_SCHED_WALT)
 	register_trace_android_rvh_update_misfit_status(android_rvh_update_misfit_status, NULL);
 	register_trace_android_rvh_cpu_overutilized(walt_cpu_overutilzed, NULL);

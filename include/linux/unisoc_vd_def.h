@@ -65,7 +65,14 @@ struct uni_task_struct {
 	u64 last_sleep_ts;
 	u64 last_enqueue_ts;
 	u64 last_wakeup_ts;
-
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+	struct list_head	vip_list;
+	u64			sum_exec_snapshot_for_slice;
+	u64			sum_exec_snapshot_for_total;
+	u64			total_exec;
+	int			vip_level;
+	u8			vip_params;
+#endif
 	/*
 	 * for debug iowait;
 	 */
@@ -110,6 +117,11 @@ struct uni_rq {
 		CPU_BUSY_PREPARE,
 		CPU_BUSY_SET,
 	} is_busy;
+#endif
+
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+	struct list_head	vip_tasks;
+	int			num_vip_tasks;
 #endif
 };
 

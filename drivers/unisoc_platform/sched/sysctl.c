@@ -119,6 +119,136 @@ unlock_mutex:
 }
 #endif
 
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+enum {
+	TASK_BEGIN = 0,
+	SCHED_UI_THREAD,
+	SCHED_ANIMATOR,
+	SCHED_LL_CAMERA,
+	SCHED_AUDIO_TASK,
+};
+
+static int sysctl_task_read_pid = 1;
+static DEFINE_MUTEX(sysctl_pid_mutex);
+
+static int sched_task_read_pid_handler(struct ctl_table *table, int write,
+					void __user *buffer, size_t *lenp,
+					loff_t *ppos)
+{
+	int ret;
+
+	mutex_lock(&sysctl_pid_mutex);
+	ret = proc_dointvec_minmax(table, write, buffer, lenp, ppos);
+	mutex_unlock(&sysctl_pid_mutex);
+
+	return ret;
+}
+
+static int sched_task_setting_handler(struct ctl_table *table, int write,
+		void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+	int ret, param, val;
+	struct task_struct *task;
+	struct uni_task_struct *uni_task;
+	int pid_and_val[2] = {-1, -1};
+
+	struct ctl_table tmp = {
+		.data   = &pid_and_val,
+		.maxlen = sizeof(pid_and_val),
+		.mode   = table->mode,
+	};
+
+	mutex_lock(&sysctl_pid_mutex);
+
+	if (!write) {
+		task = get_pid_task(find_vpid(sysctl_task_read_pid), PIDTYPE_PID);
+		if (!task) {
+			ret = -ENOENT;
+			goto unlock_mutex;
+		}
+		uni_task = (struct uni_task_struct *) task->android_vendor_data1;
+		pid_and_val[0] = sysctl_task_read_pid;
+		param = (unsigned long)table->data;
+
+		switch (param) {
+		case SCHED_UI_THREAD:
+			pid_and_val[1] = !!(uni_task->vip_params & SCHED_UI_THREAD_TYPE);
+			break;
+		case SCHED_ANIMATOR:
+			pid_and_val[1] = !!(uni_task->vip_params & SCHED_ANIMATOR_TYPE);
+			break;
+		case SCHED_LL_CAMERA:
+			pid_and_val[1] = !!(uni_task->vip_params & SCHED_LL_CAMERA_TYPE);
+			break;
+		case SCHED_AUDIO_TASK:
+			pid_and_val[1] = !!(uni_task->vip_params & SCHED_AUDIO_TYPE);
+			break;
+		default:
+			ret = -EINVAL;
+			goto put_task;
+		}
+		ret = proc_dointvec(&tmp, write, buffer, lenp, ppos);
+		goto put_task;
+	}
+
+	ret = proc_dointvec(&tmp, write, buffer, lenp, ppos);
+	if (ret)
+		goto unlock_mutex;
+
+	if (pid_and_val[0] <= 0 || pid_and_val[1] < 0) {
+		ret = -ENOENT;
+		goto unlock_mutex;
+	}
+
+	/* parsed the values successfully in pid_and_val[] array */
+	task = get_pid_task(find_vpid(pid_and_val[0]), PIDTYPE_PID);
+	if (!task) {
+		ret = -ENOENT;
+		goto unlock_mutex;
+	}
+
+	uni_task = (struct uni_task_struct *) task->android_vendor_data1;
+	param = (unsigned long)table->data;
+	val = pid_and_val[1];
+
+	switch (param) {
+	case SCHED_UI_THREAD:
+		if (val)
+			uni_task->vip_params |= SCHED_UI_THREAD_TYPE;
+		else
+			uni_task->vip_params &= ~SCHED_UI_THREAD_TYPE;
+		break;
+	case SCHED_ANIMATOR:
+		if (val)
+			uni_task->vip_params |= SCHED_ANIMATOR_TYPE;
+		else
+			uni_task->vip_params &= ~SCHED_ANIMATOR_TYPE;
+		break;
+	case SCHED_LL_CAMERA:
+		if (val)
+			uni_task->vip_params |= SCHED_LL_CAMERA_TYPE;
+		else
+			uni_task->vip_params &= ~SCHED_LL_CAMERA_TYPE;
+		break;
+	case SCHED_AUDIO_TASK:
+		if (val)
+			uni_task->vip_params |= SCHED_AUDIO_TYPE;
+		else
+			uni_task->vip_params &= ~SCHED_AUDIO_TYPE;
+		break;
+	default:
+		ret = -EINVAL;
+	}
+
+	trace_sched_task_setting_handler(task, param, val);
+
+put_task:
+	put_task_struct(task);
+unlock_mutex:
+	mutex_unlock(&sysctl_pid_mutex);
+	return ret;
+}
+#endif
 #if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)
 unsigned int sysctl_rotation_enable = 1;
 /* default threshold value is 40ms */
@@ -273,6 +403,45 @@ struct ctl_table sched_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_ONE,
+	},
+#endif
+#ifdef CONFIG_UNISOC_SCHED_VIP_TASK
+	{
+		.procname	= "sched_task_ui",
+		.data		= (int *) SCHED_UI_THREAD,
+		.maxlen		= sizeof(unsigned int) * 2,
+		.mode		= 0644,
+		.proc_handler	= sched_task_setting_handler,
+	},
+	{
+		.procname	= "sched_task_animator",
+		.data		= (int *) SCHED_ANIMATOR,
+		.maxlen		= sizeof(unsigned int) * 2,
+		.mode		= 0644,
+		.proc_handler	= sched_task_setting_handler,
+	},
+	{
+		.procname	= "sched_task_ll_camera",
+		.data		= (int *) SCHED_LL_CAMERA,
+		.maxlen		= sizeof(unsigned int) * 2,
+		.mode		= 0644,
+		.proc_handler	= sched_task_setting_handler,
+	},
+	{
+		.procname	= "sched_task_audio",
+		.data		= (int *) SCHED_AUDIO_TASK,
+		.maxlen		= sizeof(unsigned int) * 2,
+		.mode		= 0644,
+		.proc_handler	= sched_task_setting_handler,
+	},
+	{
+		.procname       = "sched_task_read_pid",
+		.data           = &sysctl_task_read_pid,
+		.maxlen         = sizeof(int),
+		.mode           = 0644,
+		.proc_handler   = sched_task_read_pid_handler,
+		.extra1         = SYSCTL_ONE,
+		.extra2         = SYSCTL_INT_MAX,
 	},
 #endif
 #if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)
