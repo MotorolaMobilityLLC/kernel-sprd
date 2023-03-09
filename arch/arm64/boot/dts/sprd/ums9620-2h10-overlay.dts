@@ -574,6 +574,7 @@
 };
 
 &lcd_nt36672e_truly_mipi_fhd {
+	sprd,phy-bit-clock = <1106000>;
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
 };
