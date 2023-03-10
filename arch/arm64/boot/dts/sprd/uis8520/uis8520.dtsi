@@ -273,6 +273,13 @@
 			ranges;
 		};
 
+		xgmacapb: xgmac-apb {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+		};
+
 		ipaapb: ipa-apb {
 			compatible = "simple-bus";
 			#address-cells = <2>;
@@ -565,6 +572,7 @@
 #include "dma.dtsi"
 //#include "dmc-mpu.dtsi"
 #include "efuse.dtsi"
+#include "ethernet.dtsi"
 #include "glbreg.dtsi"
 #include "gpio.dtsi"
 #include "gpu-natt.dtsi"
