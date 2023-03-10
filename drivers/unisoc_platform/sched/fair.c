@@ -1069,6 +1069,23 @@ static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 	rq->misfit_task_load = max_t(unsigned long, walt_task_util(p), 1);
 }
 
+static void android_rvh_place_entity(void *data, struct cfs_rq *cfs_rq,
+				struct sched_entity *se, int initial, u64 *vruntime)
+{
+	u64 sleep_time;
+
+	/*
+	 * Pull vruntime of the entity being placed to the base level of
+	 * cfs_rq, to prevent boosting it if placed backwards.  If the entity
+	 * slept for a long time, don't even try to compare its vruntime with
+	 * the base as it may be too far off and the comparison may get
+	 * inversed due to s64 overflow.
+	 */
+	sleep_time = rq_clock_task(rq_of(cfs_rq)) - se->exec_start;
+	if ((s64)sleep_time > 60LL * NSEC_PER_SEC)
+		se->vruntime = *vruntime;
+}
+
 void walt_fair_init(void)
 {
 	register_trace_android_rvh_update_misfit_status(android_rvh_update_misfit_status, NULL);
@@ -1081,6 +1098,7 @@ void walt_fair_init(void)
 //	register_trace_android_rvh_find_busiest_queue(walt_find_busiest_queue, NULL);
 	register_trace_android_rvh_find_busiest_group(walt_find_busiest_group, NULL);
 	register_trace_android_rvh_select_task_rq_fair(walt_select_task_rq_fair, NULL);
+	register_trace_android_rvh_place_entity(android_rvh_place_entity, NULL);
 
 	rotation_task_init();
 }
