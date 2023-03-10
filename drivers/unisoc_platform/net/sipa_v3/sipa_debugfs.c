@@ -271,6 +271,42 @@ static const struct file_operations dynamic_alloc_skb_show_fops = {
 	.release = single_release,
 };
 
+static int need_fill_cnt_show(struct seq_file *s, void *unused)
+{
+	struct sipa_plat_drv_cfg *ipa = s->private;
+	int tx, rx, i;
+
+	for (i = 0; i < SIPA_RECV_QUEUES_MAX; i++) {
+		if (ipa->enable_cnt)
+			sipa_hal_get_cmn_fifo_filled_depth(ipa->dev,
+							   SIPA_FIFO_MAP0_OUT + i,
+							   &rx, &tx);
+		else
+			tx = rx = -1;
+
+		seq_printf(s, "------fifo-name: %s------\n",
+			   ipa->cmn_fifo_cfg[SIPA_FIFO_MAP0_OUT + i].fifo_name);
+		seq_printf(s, "need_fill_cnt = %d, tx filled %d rx filled %d\n",
+			   atomic_read(&ipa->receiver->fill_array[i]->need_fill_cnt),
+				       tx, rx);
+		seq_puts(s, "\n");
+	}
+
+	return 0;
+}
+
+static int need_fill_cnt_show_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, need_fill_cnt_show, inode->i_private);
+}
+
+static const struct file_operations need_fill_cnt_show_fops = {
+	.open = need_fill_cnt_show_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
 int sipa_init_debugfs(struct sipa_plat_drv_cfg *ipa)
 {
 	struct dentry *root;
@@ -330,6 +366,12 @@ int sipa_init_debugfs(struct sipa_plat_drv_cfg *ipa)
 		goto err1;
 	}
 
+	file = debugfs_create_file("need_fill_cnt", 0444, root, ipa,
+				   &need_fill_cnt_show_fops);
+	if (!file) {
+		ret = -ENOMEM;
+		goto err1;
+	}
 
 	debugfs_create_symlink("sipa", NULL,
 			       "/sys/kernel/debug/25220000.sipa");

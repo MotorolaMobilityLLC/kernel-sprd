@@ -120,7 +120,7 @@ static int sipa_get_recv_array_node(struct sipa_skb_array *p,
 	*skb = p->array[pos].skb;
 	*dma_addr = p->array[pos].dma_addr;
 	*need_unmap = p->array[pos].need_unmap;
-	/*Ensure that we remove the item from the fifo before
+	/* Ensure that we remove the item from the fifo before
 	 * we update the fifo rp.
 	 */
 	smp_wmb();
@@ -627,8 +627,9 @@ static void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 	struct sipa_skb_receiver *receiver = (struct sipa_skb_receiver *)priv;
 
 	if (evt & SIPA_RECV_WARN_EVT) {
-		dev_err(receiver->dev,
-			"sipa maybe poor resources evt = 0x%x\n", evt);
+		if (net_ratelimit())
+			dev_err(receiver->dev,
+				"sipa maybe poor resources evt = 0x%x\n", evt);
 		receiver->tx_danger_cnt++;
 	}
 
@@ -711,7 +712,6 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 
 	ret = sipa_get_recv_array_node(fill_array, &recv_skb,
 				       &addr, &need_unmap);
-	atomic_inc(&fill_array->need_fill_cnt);
 	if (ret) {
 		dev_err(receiver->dev, "recv addr:0x%llx, but recv_array is empty\n",
 			(u64)node->address);
@@ -756,6 +756,7 @@ recv_err:
 				 DMA_FROM_DEVICE);
 tx_node_err:
 	sipa_hal_add_tx_fifo_rptr(receiver->dev, id, 1);
+	atomic_inc(&fill_array->need_fill_cnt);
 status_err:
 	atomic_dec(&receiver->check_flag);
 

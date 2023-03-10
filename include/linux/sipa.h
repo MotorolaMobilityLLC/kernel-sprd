@@ -399,6 +399,8 @@ u32 sipa_nic_sync_recv_pkts(u32 budget, int fifoid);
 
 int sipa_nic_add_tx_fifo_rptr(u32 num, int fifoid);
 
+void sipa_nic_update_need_fill_cnt(u32 num, int fifoid);
+
 /*
  * Prepare for pam wifi driver.
  */

@@ -790,6 +790,14 @@ int sipa_nic_add_tx_fifo_rptr(u32 num, int fifoid)
 }
 EXPORT_SYMBOL(sipa_nic_add_tx_fifo_rptr);
 
+void sipa_nic_update_need_fill_cnt(u32 num, int fifoid)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	atomic_add(num, &ipa->receiver->fill_array[fifoid]->need_fill_cnt);
+}
+EXPORT_SYMBOL(sipa_nic_update_need_fill_cnt);
+
 int sipa_nic_update_res(enum sipa_rule_tag type, bool has)
 {
 	int ret;
