@@ -172,6 +172,9 @@ static void nuke(struct musb_ep *ep, const int status)
 		struct dma_controller	*c = ep->musb->dma_controller;
 		int value;
 
+		/* flush all */
+		musb_set_hsbt(musb, ep->is_in);
+
 		if (ep->is_in) {
 			/*
 			 * The programming guide says that we must not clear
@@ -974,6 +977,8 @@ static int musb_gadget_enable(struct usb_ep *ep,
 	 * packet size (or fail), set the mode, clear the fifo
 	 */
 	musb_ep_select(mbase, epnum);
+	/* flush all */
+	musb_set_hsbt(musb, usb_endpoint_dir_in(desc));
 	if (usb_endpoint_dir_in(desc)) {
 
 		if (hw_ep->is_shared_fifo)
@@ -1552,6 +1557,9 @@ static void musb_gadget_fifo_flush(struct usb_ep *ep)
 
 	/* disable interrupts */
 	musb_writew(mbase, MUSB_INTRTXE, musb->intrtxe & ~(1 << epnum));
+
+	/* flush all */
+	musb_set_hsbt(musb, musb_ep->is_in);
 
 	if (musb_ep->is_in) {
 		csr = musb_readw(epio, MUSB_TXCSR);

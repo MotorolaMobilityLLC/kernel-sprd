@@ -627,6 +627,19 @@ static inline void musb_platform_clear_ep_rxintr(struct musb *musb, int epnum)
 		musb->ops->clear_ep_rxintr(musb, epnum);
 }
 
+static inline void musb_set_hsbt(struct musb *musb, int is_tx)
+{
+	void __iomem	*mbase = musb->mregs;
+	u32    hsbt = musb_readl(mbase, MUSB_C_T_HSBT);
+
+	if (is_tx)
+		hsbt |= MUSB_CLEAR_TXBUFF_EN;
+	else
+		hsbt |= MUSB_CLEAR_RXBUFF_EN;
+
+	musb_writel(mbase, MUSB_C_T_HSBT, hsbt);
+}
+
 /*
  * gets the "dr_mode" property from DT and converts it into musb_mode
  * if the property is not found or not recognized returns MUSB_OTG
