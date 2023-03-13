@@ -6,3 +6,5 @@ config SPRD_PIKE2_SLEEP
         help
         Select this to enable light sleep function for pike2 soc.
 
+source "drivers/soc/sprd/domain/Kconfig"
+
