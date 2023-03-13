@@ -8,6 +8,7 @@
 #define WCN_BTWF_FILENAME "wcnmodem"
 #define WCN_GNSS_FILENAME "gpsgl"
 #define WCN_GNSS_BD_FILENAME "gpsbd"
+#define WCN_GNSS_GAL_FILENAME "gpsgal"
 #define WCN_GNSSMODEM_FILENAME "gnssmodem"
 
 /* NOTES:If DTS config more than REG_CTRL_CNT_MAX REGs */
@@ -162,8 +163,10 @@ struct wcn_init_data {
 #define WIFI_EFUSE_BLOCK_COUNT (3)
 #define WCN_EFUSE_BLOCK_COUNT (4)
 
+#define MARLIN_SHORT_WAIT_CP_INIT_POLL_TIME (4)
 #define MARLIN_WAIT_CP_INIT_POLL_TIME_MS	(9)	/* 9ms */
 #define MARLIN_WAIT_CP_INIT_COUNT	(512)
+#define MARLIN_SHORT_WAIT_CP_INIT_MAX_TIME	(20000) /* 20s */
 #define MARLIN_WAIT_CP_INIT_MAX_TIME (80000)
 #define WCN_WAIT_SLEEP_MAX_COUNT (150)
 #define WCN_WAIT_SHUTDOWN_MAX_COUNT (16)
