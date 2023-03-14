@@ -1167,6 +1167,15 @@ config REGULATOR_UMP9621
 	  This driver can also be built as a module. If so, the module
 	  will be called ump9621-regulator.
 
+config REGULATOR_ADD_OTG_VBUS
+	tristate "Unisoc add power regulator driver about otg"
+	help
+	  This driver provides support for the otg platform power regulators.
+          This driver controls the vbus through gpio.
+
+          This driver can also be built as a module. If so, the module
+	  will be called add-otg-regulator.
+
 config REGULATOR_SKY81452
 	tristate "Skyworks Solutions SKY81452 voltage regulator"
 	depends on MFD_SKY81452

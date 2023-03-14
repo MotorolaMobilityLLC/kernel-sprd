@@ -136,6 +136,7 @@ obj-$(CONFIG_REGULATOR_S5M8767) += s5m8767.o
 obj-$(CONFIG_REGULATOR_SC2720) += sc2720-regulator.o
 obj-$(CONFIG_REGULATOR_SC2721) += sc2721-regulator.o
 obj-$(CONFIG_REGULATOR_SC2730) += sc2730-regulator.o
+obj-$(CONFIG_REGULATOR_ADD_OTG_VBUS) += add-otg-regulator.o
 obj-$(CONFIG_REGULATOR_SC2731) += sc2731-regulator.o
 obj-$(CONFIG_REGULATOR_SKY81452) += sky81452-regulator.o
 obj-$(CONFIG_REGULATOR_SLG51000) += slg51000-regulator.o
