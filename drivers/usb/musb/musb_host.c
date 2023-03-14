@@ -3385,9 +3385,9 @@ static int musb_bus_suspend(struct usb_hcd *hcd)
 	if (!is_host_active(musb))
 		return 0;
 
-	if (musb->is_offload) {
+	if (musb->is_offload && musb->offload_used) {
 		/* in host audio mode, don't do suspend */
-		WARNING("don't do %s in offload mode\n", __func__);
+		WARNING("don't do %s in offload and used mode\n", __func__);
 		return 0;
 	}
 
