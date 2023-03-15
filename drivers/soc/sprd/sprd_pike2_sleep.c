@@ -680,7 +680,7 @@ static struct sprd_cpuidle_operations sprd_sleep_ops = {
 	.doze_dis = sprd_pike2_doze_dis,
 };
 
-static int sprd_sleep_probe(struct platform_device *pdev)
+static int __init sprd_sleep_probe(struct platform_device *pdev)
 {
 	int ret;
 
