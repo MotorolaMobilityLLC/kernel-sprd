@@ -2500,12 +2500,18 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 		status = musb_platform_set_mode(musb, MUSB_PERIPHERAL);
 		break;
 	case MUSB_OTG:
-		status = musb_host_setup(musb, plat->power);
-		if (status < 0)
-			goto fail3;
+		/*
+		 * start host when ID is ground, do not init here
+		 * //status = musb_host_setup(musb, plat->power);
+		 * //if (status < 0)
+		 * //goto fail3;
+		 */
 		status = musb_gadget_setup(musb);
 		if (status) {
-			musb_host_cleanup(musb);
+			/*
+			 * do not need cleanup also
+			 * //musb_host_cleanup(musb);
+			 */
 			goto fail3;
 		}
 		status = musb_platform_set_mode(musb, MUSB_OTG);
