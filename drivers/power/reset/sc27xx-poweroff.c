@@ -11,7 +11,9 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/pm.h>
+#include <linux/proc_fs.h>
 #include <linux/regmap.h>
+#include <linux/seq_file.h>
 #include <linux/syscore_ops.h>
 
 #define SC2720_PWR_PD_HW	0xc20
@@ -135,8 +137,44 @@ static void sc27xx_poweroff_do_poweroff(void)
 	regmap_write(regmap, pdata->poweroff_reg, SC27XX_PWR_OFF_EN);
 }
 
+static int force_shutdown_proc_read(struct seq_file *s, void *v)
+{
+	seq_printf(s, "%d\n", pdata->poweroff_reg);
+	return 0;
+}
+
+static int force_shutdown_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, force_shutdown_proc_read, NULL);
+}
+
+static ssize_t force_shutdown_proc_write(struct file *file, const char *buf,
+					size_t count, loff_t *data)
+{
+	unsigned long long pwroff;
+	int err;
+
+	err = kstrtoull_from_user(buf, count, 0, &pwroff);
+	if (err)
+		return -EINVAL;
+
+	sc27xx_poweroff_do_poweroff();
+	return 0;
+}
+
+static const struct proc_ops force_shutdown_proc_fops = {
+	.proc_flags = PROC_ENTRY_PERMANENT,
+	.proc_open = force_shutdown_proc_open,
+	.proc_read = seq_read,
+	.proc_write = force_shutdown_proc_write,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
+};
+
 static int sc27xx_poweroff_probe(struct platform_device *pdev)
 {
+	struct proc_dir_entry *de;
+	struct proc_dir_entry *df;
 	pdata = of_device_get_match_data(&pdev->dev);
 	if (!pdata) {
 		dev_err(&pdev->dev, "No matching driver data found\n");
@@ -150,6 +188,14 @@ static int sc27xx_poweroff_probe(struct platform_device *pdev)
 	if (!regmap)
 		return -ENODEV;
 
+	de = proc_mkdir("poweroff", NULL);
+	if (de) {
+		df = proc_create("force_shutdown", 0660, de, &force_shutdown_proc_fops);
+		if (!df)
+			pr_err("create /proc/poweroff/force_shutdown failed\n");
+	} else {
+		pr_err("create /proc/poweroff/ failed\n");
+	}
 	pm_power_off = sc27xx_poweroff_do_poweroff;
 	register_syscore_ops(&poweroff_syscore_ops);
 	return 0;
