@@ -211,6 +211,12 @@
 		vbus-gpio = <&pmic_eic 0 GPIO_ACTIVE_HIGH>;
 	};
 
+	virtual_typec: virtual_typec {
+		compatible = "sprd,virtual-typec";
+		extcon = <&extcon_gpio>;
+		status = "okay";
+	};
+
 	sensorhub {
 		compatible = "sprd,qogirl6-sensorhub", "sprd,sensor-hub";
 	};
