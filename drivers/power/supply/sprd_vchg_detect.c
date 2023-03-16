@@ -122,6 +122,7 @@ static int sprd_vchg_change(struct notifier_block *nb, unsigned long limit, void
 			schedule_work(&info->sprd_vchg_work);
 		} else {
 			info->typec_online = true;
+			schedule_work(&info->ignore_hard_reset_work);
 			dev_err(info->dev, "%s, USB PD hard reset, ignore vbus off\n", SPRD_VCHG_TAG);
 			cancel_delayed_work_sync(&info->pd_hard_reset_work);
 		}
@@ -250,6 +251,18 @@ static void sprd_vchg_pd_hard_reset_work(struct work_struct *work)
 	info->pd_hard_reset = false;
 }
 
+static void ignore_hard_reset_work(struct work_struct *data)
+{
+	struct sprd_vchg_info *info = container_of(data, struct sprd_vchg_info,
+						   ignore_hard_reset_work);
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", SPRD_VCHG_TAG, __LINE__);
+		return;
+	}
+	cm_notify_event(info->psy, CM_EVENT_IGNORE_HARD_RESET, NULL);
+}
+
 static void sprd_vchg_typec_extcon_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -340,6 +353,8 @@ static int sprd_vchg_detect_init(struct sprd_vchg_info *info, struct power_suppl
 		return 0;
 
 	INIT_DELAYED_WORK(&info->pd_hard_reset_work, sprd_vchg_pd_hard_reset_work);
+
+	INIT_WORK(&info->ignore_hard_reset_work, ignore_hard_reset_work);
 
 	info->pd_extcon = extcon_get_edev_by_phandle(dev, 1);
 	if (IS_ERR(info->pd_extcon)) {

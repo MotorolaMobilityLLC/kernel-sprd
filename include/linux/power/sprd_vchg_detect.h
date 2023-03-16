@@ -38,6 +38,7 @@ struct sprd_vchg_info {
 	struct delayed_work pd_hard_reset_work;
 	struct delayed_work typec_extcon_work;
 	struct work_struct sprd_vchg_work;
+	struct work_struct ignore_hard_reset_work;
 	struct wakeup_source *sprd_vchg_ws;
 	struct power_supply *psy;
 	struct sprd_vchg_ops *ops;

@@ -7954,6 +7954,9 @@ static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_type
 	case CM_EVENT_BATT_OVERVOLTAGE:
 		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
 		break;
+	case CM_EVENT_IGNORE_HARD_RESET:
+		cm_enable_fixed_fchg_handshake(cm, false);
+		break;
 	case CM_EVENT_UNKNOWN:
 	case CM_EVENT_OTHERS:
 	default:

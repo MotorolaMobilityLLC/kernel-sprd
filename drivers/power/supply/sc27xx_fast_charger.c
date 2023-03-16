@@ -119,6 +119,7 @@ struct sc27xx_fchg_info {
 	struct power_supply *psy_usb;
 	struct delayed_work work;
 	struct mutex lock;
+	struct mutex sfcp_handshake_lock;
 	struct completion completion;
 	u32 state;
 	u32 base;
@@ -516,7 +517,7 @@ static void sc27xx_fchg_work(struct work_struct *data)
 	struct delayed_work *dwork = to_delayed_work(data);
 	struct sc27xx_fchg_info *info = container_of(dwork, struct sc27xx_fchg_info, work);
 
-	mutex_lock(&info->lock);
+	mutex_lock(&info->sfcp_handshake_lock);
 	if (!info->charger_online) {
 		info->state = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
 		info->detected = false;
@@ -526,10 +527,10 @@ static void sc27xx_fchg_work(struct work_struct *data)
 
 		if (sc27xx_fchg_get_detect_status(info) == POWER_SUPPLY_CHARGE_TYPE_FAST) {
 			/*
-			 * Must release info->lock before send fast charge event
+			 * Must release info->sfcp_handshake_lock before send fast charge event
 			 * to charger manager, otherwise it will cause deadlock.
 			 */
-			mutex_unlock(&info->lock);
+			mutex_unlock(&info->sfcp_handshake_lock);
 			power_supply_changed(info->psy_usb);
 			dev_info(info->dev, "sfcp_enable\n");
 			return;
@@ -538,7 +539,7 @@ static void sc27xx_fchg_work(struct work_struct *data)
 		sc27xx_fchg_disable(info);
 	}
 
-	mutex_unlock(&info->lock);
+	mutex_unlock(&info->sfcp_handshake_lock);
 }
 
 static int sc27xx_fchg_probe(struct platform_device *pdev)
@@ -553,6 +554,7 @@ static int sc27xx_fchg_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	mutex_init(&info->lock);
+	mutex_init(&info->sfcp_handshake_lock);
 	info->dev = &pdev->dev;
 	info->state = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
 	info->pdata = of_device_get_match_data(info->dev);
