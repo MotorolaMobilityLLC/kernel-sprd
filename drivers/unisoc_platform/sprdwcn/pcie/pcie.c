@@ -317,7 +317,6 @@ static int sprd_ep_addr_map(struct wcn_pcie_info *priv)
 	struct outbound_reg *obreg0;
 	struct outbound_reg *obreg1;
 	u32 retries, val;
-	struct wcn_match_data *g_match_config = get_wcn_match_config();
 
 	if (!pcie_bar_vmem(priv, 4)) {
 		WCN_INFO("get bar4 base err\n");
@@ -330,10 +329,13 @@ static int sprd_ep_addr_map(struct wcn_pcie_info *priv)
 							OBREG0_OFFSET_ADDR);
 	obreg1 = (struct outbound_reg *) (pcie_bar_vmem(priv, 4) +
 							OBREG1_OFFSET_ADDR);
+	/*
 	if (g_match_config && g_match_config->unisoc_wcn_m3e)
 		writel(EP_IBAR0_BASE, &ibreg0->lower_target_addr);
 	else
 		writel(EP_IBAR0_BASE, &ibreg0->lower_target_addr);
+	*/
+	writel(EP_IBAR0_BASE, &ibreg0->lower_target_addr);
 
 	writel(0x00000000, &ibreg0->upper_target_addr);
 	writel(0x00000000, &ibreg0->type);
