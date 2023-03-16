@@ -763,7 +763,7 @@ static int vser_init(struct vser_instance *fi_vser)
 		goto err2;
 
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
-	device_create_file(vser_device.this_device, &dev_attr_vser_statistics);
+	ret = device_create_file(vser_device.this_device, &dev_attr_vser_statistics);
 	if (ret)
 		goto err2;
 #endif
