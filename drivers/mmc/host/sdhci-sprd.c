@@ -41,6 +41,11 @@
 #include "sdhci-sprd-ffu.h"
 #include "sdhci-sprd-ffu.c"
 
+#ifdef CONFIG_SPRD_DEBUG
+#include "sdhci-sprd-debugfs.h"
+#include "sdhci-sprd-debugfs.c"
+#endif
+
 #define DRIVER_NAME "sprd-sdhci"
 #define SDHCI_SPRD_DUMP(f, x...) \
 	pr_err("%s: " DRIVER_NAME ": " f, mmc_hostname(host->mmc), ## x)
@@ -1813,6 +1818,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	}
 
 	sdhci_sprd_register_vendor_hook(host);
+
+#ifdef CONFIG_SPRD_DEBUG
+	sdhci_sprd_add_host_debugfs(host);
+#endif
 
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);
