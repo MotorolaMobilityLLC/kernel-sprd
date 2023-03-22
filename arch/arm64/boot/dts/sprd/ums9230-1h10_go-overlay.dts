@@ -836,10 +836,6 @@
 	//sprd,backlight = <&pwm_backlight>;
 };
 
-&lcd_ili9882q_boe_mipi_hd {
-	sprd,sr-width = <720>;
-	sprd,sr-height = <1600>;
-};
 
 &pmic_fchg {
 	status = "okay";
