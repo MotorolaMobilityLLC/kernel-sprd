@@ -29,6 +29,8 @@
 #include <dt-bindings/soc/sprd,qogirn6lite-mask.h>
 #include <dt-bindings/soc/sprd,qogirn6lite-regs.h>
 #include <linux/usb/sprd_usbm.h>
+#include <dt-bindings/mfd/sprd,ump9620-mask.h>
+#include <dt-bindings/mfd/sprd,ump9620-regs.h>
 
 struct sprd_hsphy {
 	struct device		*dev;
@@ -395,6 +397,11 @@ static int sprd_hsphy_init(struct usb_phy *x)
 		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,
 		msk, reg);
 
+#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
+	/* set avdd1v8 force on for usb lowpower */
+	regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+			MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+#endif
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
 		atomic_set(&phy->reset, 1);
@@ -417,7 +424,11 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 
 	dev_info(x->dev, "[%s]enter usbm_event_is_active(%d), usbm_ssphy_get_onoff(%d)\n",
 		__func__, sprd_usbm_event_is_active(), sprd_usbm_ssphy_get_onoff());
-
+#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
+	/* clear avdd1v8 force on for usb lowpower */
+	regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+			MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+#endif
 	sprd_usbm_hsphy_set_onoff(0);
 	if (!sprd_usbm_ssphy_get_onoff()) {
 		/* usb vbus */
