@@ -2167,6 +2167,7 @@ int try_to_unuse(unsigned int type, bool frontswap,
 	struct page *page;
 	swp_entry_t entry;
 	unsigned int i;
+	unsigned int retry_count = 0;
 
 	if (!READ_ONCE(si->inuse_pages))
 		return 0;
@@ -2256,8 +2257,11 @@ retry:
 	 * It's easy and robust (though cpu-intensive) just to keep retrying.
 	 */
 	if (READ_ONCE(si->inuse_pages)) {
-		if (!signal_pending(current))
+		if ((!signal_pending(current)) && retry_count < READ_ONCE(si->inuse_pages)) {
+			retry_count++;
 			goto retry;
+		}
+		pr_emerg("XXXSPRD-retry enough and go out(inuse_pages:%d ,retry_count:%d)\n", si->inuse_pages, retry_count);
 		retval = -EINTR;
 	}
 out:
