@@ -16,8 +16,10 @@ endif
 ifeq ($(BSP_BUILD_FAMILY),sharkl5)
 
 dtb-$(CONFIG_ARCH_SPRD) += ums312-2h10-overlay.dtbo
+dtb-$(CONFIG_ARCH_SPRD) += ums312-2h10-go-overlay.dtbo
 
 ums312-2h10-overlay.dtbo-base := ums312-base.dtb
+ums312-2h10-go-overlay.dtbo-base := ums312-base.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),qogirl6)
