@@ -82,6 +82,7 @@ fi
 FILES="${FILES}
 arch/arm64/boot/dts/sprd/ums312-base.dtb
 arch/arm64/boot/dts/sprd/ums312-2h10-overlay.dtbo
+arch/arm64/boot/dts/sprd/ums312-2h10-go-overlay.dtbo
 vmlinux
 "
 #KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc
