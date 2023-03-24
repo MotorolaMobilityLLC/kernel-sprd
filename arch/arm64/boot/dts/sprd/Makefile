@@ -38,10 +38,14 @@ endif
 ifeq ($(BSP_BUILD_FAMILY),qogirn6pro)
 dtb-$(CONFIG_ARCH_SPRD) += \
 	ums9620-1h10-overlay.dtbo \
-	ums9620-2h10-overlay.dtbo
+	ums9620-2h10-overlay.dtbo \
+	ums9620-2h10_uob-overlay.dtbo \
+	ums9620-2h10_uob_marlin3-overlay.dtbo
 
 ums9620-1h10-overlay.dtbo-base := ums9620-base.dtb
 ums9620-2h10-overlay.dtbo-base := ums9620-base.dtb
+ums9620-2h10_uob-overlay.dtbo-base := ums9620-base.dtb
+ums9620-2h10_uob_marlin3-overlay.dtbo-base := ums9620-base.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),qogirn6l)
