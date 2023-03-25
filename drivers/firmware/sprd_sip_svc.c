@@ -609,12 +609,12 @@ static int sprd_sip_svc_gpu_get_id(u32 *chip_id, u32 *gpu_bin)
 
 	return sprd_sip_remap_err(res.a0);
 }
-static int sprd_sip_svc_gpu_update_voltage_list(u32 is_high_temp)
+static int sprd_sip_svc_gpu_update_voltage_list(u32 temp, u32 pos)
 {
 	struct arm_smccc_res res = {0, 0, 0, 0};
 
 	arm_smccc_smc(SPRD_SIP_SVC_GPU_UPDATE_VOLTAGE_LIST,
-				is_high_temp, 0, 0, 0, 0, 0, 0, &res);
+				temp, pos, 0, 0, 0, 0, 0, &res);
 
 	return sprd_sip_remap_err(res.a0);
 }

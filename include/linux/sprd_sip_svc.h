@@ -175,7 +175,7 @@ struct sprd_sip_svc_npu_ops {
 struct sprd_sip_svc_gpu_ops {
 	struct sprd_sip_svc_rev_info rev;
 	int (*get_id)(u32 *chip_id, u32 *bin_index);
-	int (*update_voltage_list)(u32 is_high_temp);
+	int (*update_voltage_list)(u32 temp, u32 pos);
 };
 
 /**
