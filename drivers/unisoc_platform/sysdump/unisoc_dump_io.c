@@ -18,7 +18,6 @@
 #include <linux/panic_notifier.h>
 #include <linux/platform_device.h>
 #include <linux/sched/signal.h>
-#include <linux/seq_buf.h>
 #include <linux/timekeeping.h>
 #include <../block/blk-mq.h>
 #include <../block/blk-mq-tag.h>
@@ -26,6 +25,7 @@
 #include <../drivers/base/base.h>
 #include "unisoc_dump_io.h"
 #include "unisoc_sysdump.h"
+#include "unisoc_dump_info.h"
 
 #ifdef CONFIG_ARM64
 #include "sysdump64.h"
@@ -33,30 +33,8 @@
 
 #define SPRD_DUMP_IO_SIZE       (9 * 4096)
 
-#define SEQ_printf(m, x...)			\
-do {						\
-	if (m)					\
-		seq_buf_printf(m, x);		\
-	else					\
-		pr_debug(x);			\
-} while (0)
-
-static char *sprd_io_buf;
 static struct seq_buf *sprd_io_seq_buf;
 static const char *blk_dev[] = {"mmcblk0", "mmcblk1", "sda", "sdb", ""};
-
-static int minidump_add_section(const char *name, long vaddr, int size)
-{
-	int ret;
-
-	pr_info("%s in. vaddr : 0x%lx  len :0x%x\n", __func__, vaddr, size);
-	ret = minidump_save_extend_information(name, __pa(vaddr),
-						 __pa(vaddr + size));
-	if (ret)
-		pr_err("%s added to minidump section failed!!\n", name);
-
-	return ret;
-}
 
 static void print_req_contents(void)
 {
@@ -228,7 +206,7 @@ void sprd_dump_io(void)
 	u64 now;
 	struct list_head *pos;
 
-	if (!sprd_io_seq_buf || !sprd_io_buf)
+	if (!sprd_io_seq_buf)
 		return;
 	now = ktime_get_ns();
 	obj = &platform_bus.kobj;
@@ -281,26 +259,13 @@ static struct notifier_block sprd_io_event_nb = {
 	.priority      = INT_MAX - 1,
 };
 
-static int __init sprd_dump_io_init(void)
+int __init sprd_dump_io_init(void)
 {
 	int ret;
 
-	sprd_io_buf = kzalloc(SPRD_DUMP_IO_SIZE, GFP_KERNEL);
-	if (!sprd_io_buf)
-		return -ENOMEM;
-
-	sprd_io_seq_buf = kzalloc(sizeof(*sprd_io_seq_buf), GFP_KERNEL);
-	if (!sprd_io_seq_buf) {
-		ret = -ENOMEM;
-		goto err_io_seq;
-	}
-
-	if (minidump_add_section("io", (unsigned long)(sprd_io_buf), SPRD_DUMP_IO_SIZE)) {
-		ret = -EINVAL;
-		goto err_save;
-	}
-
-	seq_buf_init(sprd_io_seq_buf, sprd_io_buf, SPRD_DUMP_IO_SIZE);
+	ret = minidump_add_section("io", SPRD_DUMP_IO_SIZE, &sprd_io_seq_buf);
+	if (ret)
+		return ret;
 
 	/* register io panic notifier */
 	atomic_notifier_chain_register(&panic_notifier_list,
@@ -310,30 +275,13 @@ static int __init sprd_dump_io_init(void)
 
 	return 0;
 
-err_save:
-	kfree(sprd_io_seq_buf);
-	sprd_io_seq_buf = NULL;
-err_io_seq:
-	kfree(sprd_io_buf);
-	sprd_io_buf = NULL;
-	return ret;
-
 }
 
-static void __exit sprd_dump_io_exit(void)
+void __exit sprd_dump_io_exit(void)
 {
 	atomic_notifier_chain_unregister(&panic_notifier_list,
 						&sprd_io_event_nb);
-	kfree(sprd_io_buf);
-	sprd_io_buf = NULL;
-	kfree(sprd_io_seq_buf);
+
+	minidump_release_section("io", sprd_io_seq_buf);
 	sprd_io_seq_buf = NULL;
-
 }
-
-late_initcall_sync(sprd_dump_io_init);
-module_exit(sprd_dump_io_exit);
-
-MODULE_DESCRIPTION("kernel block stats for Unisoc");
-MODULE_LICENSE("GPL");
-

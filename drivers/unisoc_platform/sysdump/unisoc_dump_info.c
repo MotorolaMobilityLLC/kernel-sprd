@@ -63,7 +63,7 @@ static DEFINE_RAW_SPINLOCK(dump_lock);
 static unsigned long __percpu *irq_stack_symbol;
 #endif
 
-static int minidump_add_section(const char *name, int size, struct seq_buf **save_buf)
+int minidump_add_section(const char *name, int size, struct seq_buf **save_buf)
 {
 	int ret;
 	char *buf;
@@ -73,7 +73,7 @@ static int minidump_add_section(const char *name, int size, struct seq_buf **sav
 	if (!buf)
 		return -ENOMEM;
 
-	seq_buf_temp = kzalloc(sizeof(*unisoc_task_seq_buf), GFP_KERNEL);
+	seq_buf_temp = kzalloc(sizeof(*seq_buf_temp), GFP_KERNEL);
 	if (!seq_buf_temp) {
 		ret = -ENOMEM;
 		goto err_buf;
@@ -100,7 +100,7 @@ err_buf:
 	return ret;
 }
 
-static void minidump_release_section(const char *name, struct seq_buf *save_buf)
+void minidump_release_section(const char *name, struct seq_buf *save_buf)
 {
 	if (!save_buf)
 		return;
@@ -147,7 +147,7 @@ static void minidump_add_irq_stack(void)
 #else
 		sp = irq_stack_base;
 		scnprintf(name, MAX_NAME_LEN, "irqstack%d", cpu);
-		minidump_add_section(name, sp, IRQ_STACK_SIZE);
+		minidump_save_extend_information(name, __pa(sp), __pa(sp + IRQ_STACK_SIZE))
 #endif
 	}
 }
@@ -939,6 +939,9 @@ static int __init unisoc_dumpinfo_init(void)
 	minidump_add_irq_stack();
 	atomic_notifier_chain_register(&panic_notifier_list,
 					&unisoc_kinfo_panic_event_nb);
+
+	sprd_dump_io_init();
+
 	return 0;
 }
 
@@ -953,11 +956,13 @@ static void __exit unisoc_dumpinfo_exit(void)
 	minidump_release_section("meminfo", unisoc_mem_seq_buf);
 	unisoc_mem_seq_buf = NULL;
 	unisoc_free_stack_regs_stats();
+
+	sprd_dump_io_exit();
 }
 
 late_initcall_sync(unisoc_dumpinfo_init);
 module_exit(unisoc_dumpinfo_exit);
 
 MODULE_IMPORT_NS(MINIDUMP);
-MODULE_DESCRIPTION("unisoc dump kernel information");
+MODULE_DESCRIPTION("unisoc dump last kernel information");
 MODULE_LICENSE("GPL");

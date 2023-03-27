@@ -28,6 +28,10 @@ do {						\
 } while (0)
 
 #if IS_ENABLED(CONFIG_UNISOC_LASTKMSG)
+
+extern int minidump_add_section(const char *name, int size, struct seq_buf **save_buf);
+extern void minidump_release_section(const char *name, struct seq_buf *save_buf);
+
 /*
  * save per-cpu's stack and regs in sysdump.
  *
@@ -45,7 +49,22 @@ extern void unisoc_dump_mem_info(void);
  */
 extern void minidump_update_current_stack(int cpu, struct pt_regs *regs);
 
+#if IS_ENABLED(CONFIG_UNISOC_DUMP_IO)
+extern int sprd_dump_io_init(void);
+extern void sprd_dump_io_exit(void);
 #else
+static int sprd_dump_io_init(void)
+{
+	return -EINVAL;
+}
+static void sprd_dump_io_exit(void) {}
+#endif
+#else
+static int minidump_add_section(const char *name, int size, struct seq_buf **save_buf)
+{
+	return -EINVAL;
+}
+static void minidump_release_section(const char *name, struct seq_buf *save_buf) {}
 static inline void unisoc_dump_stack_reg(int cpu, struct pt_regs *pregs) {}
 static inline void unisoc_dump_task_stats(void) {}
 static inline void unisoc_dump_runqueues(void) {}
