@@ -17,11 +17,14 @@
 #include <trace/hooks/thermal.h>
 #include <trace/events/power.h>
 
+#define INVALID_TRIP -1
 #define MAX_CLUSTER_NUM	3
 #define FTRACE_CLUS0_LIMIT_FREQ_NAME "thermal-cpufreq-0-limit"
 #define FTRACE_CLUS1_LIMIT_FREQ_NAME "thermal-cpufreq-1-limit"
 #define FTRACE_CLUS2_LIMIT_FREQ_NAME "thermal-cpufreq-2-limit"
 
+static int trip_switch_on, trip_control;
+static unsigned int last_target_freq[MAX_CLUSTER_NUM];
 static unsigned int thm_enable = 1;
 static unsigned int user_power_range;
 static unsigned int last_user_power_range;
@@ -64,6 +67,49 @@ static void unisoc_thermal_register(void *data, struct cpufreq_policy *policy)
 		}
 }
 
+/* Get IPA related trips. It is trip number not trip temperature. */
+static void get_ipa_trips(struct thermal_zone_device *tz)
+{
+	int i;
+	int last_active = INVALID_TRIP;
+	int last_passive = INVALID_TRIP;
+	bool found_first_passive = false;
+
+	for (i = 0; i < tz->trips; i++) {
+		enum thermal_trip_type type;
+		int ret;
+
+		ret = tz->ops->get_trip_type(tz, i, &type);
+		if (ret) {
+			dev_warn(&tz->device, "Failed to get trip point %d type: %d\n", i, ret);
+			continue;
+		}
+
+		if (type == THERMAL_TRIP_PASSIVE) {
+			if (!found_first_passive) {
+				trip_switch_on = i;
+				found_first_passive = true;
+			} else  {
+				last_passive = i;
+			}
+		} else if (type == THERMAL_TRIP_ACTIVE) {
+			last_active = i;
+		} else {
+			break;
+		}
+	}
+
+	if (last_passive != INVALID_TRIP) {
+		trip_control = last_passive;
+	} else if (found_first_passive) {
+		trip_control = trip_switch_on;
+		trip_switch_on = INVALID_TRIP;
+	} else {
+		trip_switch_on = INVALID_TRIP;
+		trip_control = last_active;
+	}
+}
+
 /* thermal power throttle control */
 static void unisoc_enable_thermal_power_throttle(void *data, bool *enable, bool *override)
 {
@@ -78,13 +124,70 @@ static void unisoc_enable_thermal_power_throttle(void *data, bool *enable, bool 
 /* modify IPA power_range by user_power_range */
 static void unisoc_thermal_power_cap(void *data, unsigned int *power_range)
 {
-	if (user_power_range && user_power_range < *power_range)
+	if (user_power_range && user_power_range < *power_range) {
+		pr_debug("power_range %u, user_power_range %u\n",
+			*power_range, user_power_range);
 		*power_range = user_power_range;
+	}
+}
+
+/* systrace for cpufreq cooling device */
+static void cpufreq_cooling_systrace(int cluster_id, unsigned int freq)
+{
+	switch (cluster_id) {
+	case 0:
+		trace_clock_set_rate(FTRACE_CLUS0_LIMIT_FREQ_NAME,
+			freq, smp_processor_id());
+		break;
+
+	case 1:
+		trace_clock_set_rate(FTRACE_CLUS1_LIMIT_FREQ_NAME,
+			freq, smp_processor_id());
+		break;
+
+	case 2:
+		trace_clock_set_rate(FTRACE_CLUS2_LIMIT_FREQ_NAME,
+			freq, smp_processor_id());
+		break;
+
+	default:
+		break;
+	}
+
+	trace_clock_set_rate("thermal-user-power-range",
+		user_power_range, smp_processor_id());
+}
+
+/* Debug info for cpufreq cooling device */
+static void cpufreq_cdev_debug(struct cpufreq_policy *policy, unsigned int target_freq)
+{
+	int ret, control_temp, cluster_id = -1;
+	struct sprd_thermal_ctl *thm_ctl;
+
+	list_for_each_entry(thm_ctl, &thermal_policy_list, node) {
+		if (thm_ctl->policy == policy) {
+			cluster_id = thm_ctl->cluster_id;
+			break;
+		}
+	}
+
+	if (cluster_id < 0)
+		return;
+
+	ret = soc_tz->ops->get_trip_temp(soc_tz, trip_control, &control_temp);
+	if (!ret && (soc_tz->temperature >= (control_temp-5000) || user_power_range)) {
+		if (target_freq != last_target_freq[cluster_id]) {
+			pr_info("temp:%d clus%d target_max_freq:%u, cpu online:%d, user_power:%u\n",
+				soc_tz->temperature, cluster_id, target_freq,
+				cpumask_weight(cpu_online_mask), user_power_range);
+			last_target_freq[cluster_id] = target_freq;
+		}
+	}
+	cpufreq_cooling_systrace(cluster_id, target_freq);
 }
 
 /* modify thermal target frequency */
-static
-struct cpufreq_policy *find_next_cpufreq_policy(struct cpufreq_policy *curr)
+static struct cpufreq_policy *find_next_cpufreq_policy(struct cpufreq_policy *curr)
 {
 	struct sprd_thermal_ctl *thm_ctl;
 	int next_id = -1;
@@ -118,12 +221,6 @@ static void unisoc_modify_thermal_target_freq(void *data,
 {
 	unsigned int curr_max_freq;
 	struct cpufreq_policy *cpufreq_policy_find;
-	struct thermal_cooling_device *cdev = policy->cdev;
-
-	if (IS_ERR_OR_NULL(cdev)) {
-		pr_err("Failed to get current policy->cdev.\n");
-		return;
-	}
 
 	curr_max_freq = cpufreq_quick_get_max(policy->cpu);
 
@@ -132,28 +229,7 @@ static void unisoc_modify_thermal_target_freq(void *data,
 		if (cpufreq_policy_find->max != cpufreq_policy_find->min)
 			*target_freq = curr_max_freq;
 
-	/* Debug info for cpufreq cooling device */
-	pr_info("cpu%d temp:%d target_freq:%u\n", policy->cpu, soc_tz->temperature, *target_freq);
-
-	switch (cdev->id) {
-	case 0:
-		trace_clock_set_rate(FTRACE_CLUS0_LIMIT_FREQ_NAME,
-			*target_freq, smp_processor_id());
-		break;
-
-	case 1:
-		trace_clock_set_rate(FTRACE_CLUS1_LIMIT_FREQ_NAME,
-			*target_freq, smp_processor_id());
-		break;
-
-	case 2:
-		trace_clock_set_rate(FTRACE_CLUS2_LIMIT_FREQ_NAME,
-			*target_freq, smp_processor_id());
-		break;
-
-	default:
-		break;
-	}
+	cpufreq_cdev_debug(policy, *target_freq);
 }
 
 /* modify request frequency */
@@ -276,6 +352,8 @@ static int sprd_thermal_ctl_init(void)
 		pr_err("Failed to create user_power_range\n");
 		goto remove_file;
 	}
+
+	get_ipa_trips(soc_tz);
 
 	register_trace_android_vh_thermal_register(unisoc_thermal_register, NULL);
 	register_trace_android_vh_enable_thermal_power_throttle(unisoc_enable_thermal_power_throttle, NULL);
