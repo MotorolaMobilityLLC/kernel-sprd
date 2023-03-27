@@ -41,11 +41,7 @@
 				 UTP_TASK_REQ_COMPL |\
 				 UFSHCD_ERROR_MASK)
 /* UIC command timeout, unit: ms */
-#if IS_ENABLED(CONFIG_SPRD_DEBUG)
-#define UIC_CMD_TIMEOUT	300
-#else
 #define UIC_CMD_TIMEOUT	500
-#endif
 
 /* NOP OUT retries waiting for NOP IN response */
 #define NOP_OUT_RETRIES    10
