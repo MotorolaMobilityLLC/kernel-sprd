@@ -405,6 +405,14 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 	}
 }
 
+static bool sdhci_sprd_check_invert(struct sdhci_host *host)
+{
+	if ((host->mmc->index == 0) && (host->timing == MMC_TIMING_MMC_HS))
+		return true;
+
+	return false;
+}
+
 static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 {
 	bool en = false, clk_changed = false;
@@ -416,7 +424,7 @@ static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 		sdhci_sprd_sd_clk_off(host);
 		_sdhci_sprd_set_clock(host, clock);
 
-		if (clock <= 400000)
+		if (clock <= 400000 || sdhci_sprd_check_invert(host))
 			en = true;
 		sdhci_sprd_set_dll_invert(host, SDHCI_SPRD_BIT_CMD_DLY_INV |
 					  SDHCI_SPRD_BIT_POSRD_DLY_INV, en);
