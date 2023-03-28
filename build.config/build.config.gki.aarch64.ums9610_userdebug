@@ -14,6 +14,7 @@ EXT_MODULES="
 ../modules/kernel5.15/gpu/natt
 ../modules/kernel5.15/input/touchscreen/focaltech_ft8756_spi
 ../modules/kernel5.15/input/touchscreen/novatek_nt36xxx
+../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
 ../modules/kernel5.15/wcn/wlan/wlan_combo
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver

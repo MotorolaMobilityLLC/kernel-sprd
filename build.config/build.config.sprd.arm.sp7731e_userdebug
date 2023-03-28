@@ -58,6 +58,7 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/platform/dmaengine_2stage_pcm
 ../modules/kernel5.15/audio/sprd/machine/i2s_card
 ../modules/kernel5.15/gpu/midgard
+../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
 ../modules/kernel5.15/wcn/wlan/wlan_combo

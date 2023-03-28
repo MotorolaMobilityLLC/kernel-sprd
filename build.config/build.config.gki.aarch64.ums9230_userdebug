@@ -31,6 +31,7 @@ EXT_MODULES="
 ../modules/kernel5.15/wcn/bluetooth/driver
 ../modules/common/io/block
 ../modules/common/io/iowait
+../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
 ../modules/kernel5.15/wcn/wlan/wlan_combo
 ../modules/kernel5.15/display/gsp
 ../modules/kernel5.15/display/dispc

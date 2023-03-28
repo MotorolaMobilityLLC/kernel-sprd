@@ -20,6 +20,7 @@ EXT_MODULES="
 ../modules/kernel5.15/input/touchscreen/novatek_nt36xxx
 ../modules/kernel5.15/input/touchscreen/focaltech_ft3680_spi
 ../modules/kernel5.15/input/fingerprint/microarray
+../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
 ../modules/kernel5.15/wcn/wlan/wlan_combo
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
