@@ -162,6 +162,7 @@ static const struct block_device_operations memdisk_ops = {
 	.getgeo = memdisk_getgeo
 };
 
+#if IS_ENABLED(CONFIG_SPRD_MEMDISK_PARTITION)
 static void set_nr_sectors(struct block_device *bdev, sector_t sectors)
 {
 	spin_lock(&bdev->bd_size_lock);
@@ -278,13 +279,14 @@ out_put_disk:
 	put_disk(disk);
 	return ERR_PTR(err);
 }
+#endif
 
 static void memdisk_setup_device(void)
 {
 	int i, ret;
-	int temp;
 	struct request_queue *queue;
 #if IS_ENABLED(CONFIG_SPRD_MEMDISK_PARTITION)
+	int temp;
 	sector_t len;
 	struct partition_meta_info info;
 	struct block_device *part;
