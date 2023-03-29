@@ -1514,5 +1514,4 @@
 #include "qos.dtsi"
 #include "thermal.dtsi"
 #include "sdio.dtsi"
-#include "wcn.dtsi"
 #include "wdt.dtsi"

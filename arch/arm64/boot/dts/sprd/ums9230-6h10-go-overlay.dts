@@ -21,6 +21,7 @@
 #include "battery/ums9230-6h10-go-overlay.dtsi"
 #include "wcn/wcn-integrate-ums2631-register.dtsi"
 #include "reserved-memory/ums9230-6h10-go-overlay.dtsi"
+#include "ums9230/wcn.dtsi"
 
 / {
 
