@@ -29,6 +29,7 @@
 		spi0 = &spi0;
 		spi1 = &spi1;
 		spi2 = &spi2;
+		spi4 = &adi_bus;
 		eth0 = &sipa_eth0;
 		eth1 = &sipa_eth1;
 		eth2 = &sipa_eth2;
@@ -1238,7 +1239,7 @@
 			};
 
 			adi_bus: spi@63a00000 {
-				compatible = "sprd,sharkl5-adi", "sprd,orca-adi";
+				compatible = "sprd,ums512-adi", "sprd,orca-adi";
 				reg = <0 0x63a00000 0 0x200000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
