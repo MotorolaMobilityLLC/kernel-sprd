@@ -1,0 +1,80 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Unisoc SP9863A-1h10 boards DTS file
+ *
+ * Copyright (C) 2019, Unisoc Inc.
+ */
+
+/dts-v1/;
+#include "reserved-memory/sp9863a-common.dtsi"
+#include "sc9863a/sc9863a.dtsi"
+#include "sc2721/sc2721.dtsi"
+
+/ {
+	model = "Spreadtrum SP9863A-1H10 Board";
+
+	compatible = "sprd,sp9863a-1h10", "sprd,sc9863a";
+
+	sprd,sc-id = "sp9863a 1h10 1000";
+
+	aliases {
+		serial0 = &uart0;
+		serial1 = &uart1;
+		spi4 = &adi_bus;
+	};
+
+	memory@80000000 {
+		device_type = "memory";
+		reg = <0x0 0x80000000 0x0 0x80000000>;
+	};
+
+	chosen: chosen {
+		stdout-path = "serial1:115200n8";
+		bootargs = "earlycon console=ttyS1,115200n8 loop.max_part=15
+			    loglevel=1 init=/init root=/dev/ram0 rw printk.devkmsg=on
+			    dummy_hcd.num=0 initcall_debug=1 vmalloc=300M";
+	};
+
+	firmware {
+		android {
+		compatible = "android,firmware";
+		vbmeta {
+		compatible = "android,vbmeta";
+		parts = "vbmeta,boot,init_boot,vendor_boot,dtbo,l_modem,pm_sys,l_ldsp,l_gdsp";
+		};
+		};
+	};
+};
+
+&uart0 {
+	status = "okay";
+};
+
+&uart1 {
+	status = "okay";
+};
+
+&adi_bus {
+	sprd,hw-channels = <33 0x8c20>, <35 0x8cc4>, <36 0x8cd0>,
+			<19 0x8c44>, <20 0x8c44>, <21 0x8c44>, <22 0x8c44>;
+};
+
+&vdd18 {
+	regulator-always-on;
+};
+
+&vddrf18 {
+	regulator-always-on;
+};
+
+&vddrf125 {
+	regulator-always-on;
+};
+
+&vddldomem {
+	regulator-always-on;
+};
+
+&vddsim2 {
+	status = "disabled";
+};

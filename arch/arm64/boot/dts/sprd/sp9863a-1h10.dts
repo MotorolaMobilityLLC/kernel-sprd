@@ -8,6 +8,7 @@
 /dts-v1/;
 
 #include "sc9863a/sc9863a.dtsi"
+#include "sc2721/sc2721.dtsi"
 
 / {
 	model = "Spreadtrum SP9863A-1H10 Board";
@@ -26,7 +27,9 @@
 
 	chosen {
 		stdout-path = "serial1:115200n8";
-		bootargs = "earlycon";
+		bootargs = "earlycon console=ttyS1,115200n8 loop.max_part=7 loglevel=1
+		init=/init root=/dev/ram0 rw printk.devkmsg=on dummy_hcd.num=0 initcall_debug=1
+		vmalloc=300M";
 	};
 };
 
