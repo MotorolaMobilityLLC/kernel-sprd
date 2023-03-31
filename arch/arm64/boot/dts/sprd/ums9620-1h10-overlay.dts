@@ -43,6 +43,7 @@
 				reset-gpios = <&ap_gpio 172 GPIO_ACTIVE_LOW>;
 				enable-gpios = <&ap_gpio 171 GPIO_ACTIVE_LOW>;
 				m2-to-ap-irq-gpios = <&ap_gpio 173 GPIO_ACTIVE_LOW>;
+				ranges;
 				/* xtal-26m-clk-type = "TCXO"; */
 				avdd12-supply = <&vddwcn>;
 				avdd33-supply = <&vddwifipa>;
@@ -78,9 +79,25 @@
 					compatible = "sprd,fm-pcie";
 					sprd,name = "sprd-fm";
 				};
-
+				sprd-wlan {
+					compatible = "sprd,sc2355-pcie-wifi";
+					reg = <0 0x21040064 0 0x0A>,
+						<0 0x25200000 0 0x3000>,
+						<0 0x25000004 0 0x10>;
+					reg-names = "wifi_ipaqos",
+						"pam_wifi_reg_base_remap",
+						"pamwifi_subsys_base";
+					syscons = <&ipa_apb_regs
+							REG_IPA_APB_IPA_EB
+							MASK_IPA_APB_PAM_WIFI_EB>;
+					syscon-names = "enable";
+					interrupts = <GIC_SPI 139 IRQ_TYPE_LEVEL_HIGH>;
+					interrupt-names = "pam-wifi-irq";
+					pamwifi {
+						compatible = "sprd,pamwifi-r2p0";
+					};
+				};
 			};
-
 			sprd-uid {
 				compatible = "sprd,uid";
 				nvmem-cells = <&uid_start>, <&uid_end>;
