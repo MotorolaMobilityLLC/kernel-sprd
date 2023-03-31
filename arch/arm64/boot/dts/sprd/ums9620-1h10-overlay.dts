@@ -62,12 +62,6 @@
 				gnss_common_ctl {
 					compatible = "sprd,gnss";
 					sprd,name = "gnss_common_ctl";
-					status = "disabled";
-				};
-
-				gnss {
-					compatible = "sprd,gnss";
-					status = "disabled";
 				};
 
 				sprd-mtty {
