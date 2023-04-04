@@ -910,6 +910,7 @@ static int sprd_dmc_mpu_remove(struct platform_device *pdev)
 
 static const struct of_device_id sprd_dmc_mpu_of_match[] = {
 	{ .compatible = "sprd,dmc-mpu-r3p0", },
+	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_dmc_mpu_of_match);
 
