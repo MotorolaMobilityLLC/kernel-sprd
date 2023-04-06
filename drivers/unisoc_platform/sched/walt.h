@@ -96,6 +96,7 @@ extern u64 walt_ktime_clock(void);
 extern void walt_rt_init(void);
 extern void walt_fair_init(void);
 extern unsigned long walt_cpu_util_freq(int cpu);
+extern int proc_cpuload_init(void);
 #ifdef CONFIG_UNISOC_HUNG_TASK_ENH
 extern int hung_task_enh_init(void);
 #endif

@@ -1517,6 +1517,8 @@ static void walt_init(struct work_struct *work)
 
 	hdr = register_sysctl_table(walt_base_table);
 
+	proc_cpuload_init();
+
 #ifdef CONFIG_UNISOC_HUNG_TASK_ENH
 	hung_task_enh_init();
 #endif
