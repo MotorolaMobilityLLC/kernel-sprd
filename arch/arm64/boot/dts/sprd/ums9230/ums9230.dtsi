@@ -616,7 +616,7 @@
 				compatible = "sprd,qogirl6-vsp","sprd,sharkl5pro-vsp";
 				reg = <0 0x32000000 0 0xc000>;
 				interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
-
+				sprd,video_ip_version = <20>;
 				reset-syscon = <&ap_ahb_regs REG_AP_AHB_AHB_RST
 					(MASK_AP_AHB_VSP_SOFT_RST |
 					MASK_AP_AHB_VSP_GLOBAL_SOFT_RST)>;

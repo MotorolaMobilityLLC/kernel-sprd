@@ -28,6 +28,7 @@
 		compatible = "sprd,sharkl5pro-vsp";
 		reg = <0 0x20500000 0 0xc000>;
 		interrupts = <GIC_SPI 34 IRQ_TYPE_LEVEL_HIGH>;
+		sprd,video_ip_version = <19>;
 		reset-syscon = <&ap_ahb_regs
 			REG_AP_AHB_RF_AHB_RST
 			(MASK_AP_AHB_RF_VSP_SOFT_RST |
