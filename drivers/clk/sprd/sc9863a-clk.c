@@ -1755,7 +1755,7 @@ static struct clk_hw_onecell_data sc9863a_mm_gate_hws = {
 	.num	= CLK_MM_GATE_NUM,
 };
 
-static struct sprd_reset_map sc9863a_aon_ahb_resets[] = {
+static struct sprd_reset_map sc9863a_mm_ahb_resets[] = {
 	[RESET_MM_AHB_CKG_SOFT_RST]		= { 0x0004, BIT(0), 0x1000 },
 	[RESET_MM_AHB_AXI_MM_EMC_SOFT_RST]	= { 0x0004, BIT(1), 0x1000 },
 	[RESET_MM_AHB_DCAM0_SOFT_RST]		= { 0x0004, BIT(2), 0x1000 },
@@ -1773,8 +1773,8 @@ static const struct sprd_clk_desc sc9863a_mm_gate_desc = {
 	.clk_clks	= sc9863a_mm_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_mm_gate_clks),
 	.hw_clks	= &sc9863a_mm_gate_hws,
-	.resets = sc9863a_aon_ahb_resets,
-	.num_resets = ARRAY_SIZE(sc9863a_aon_ahb_resets),
+	.resets = sc9863a_mm_ahb_resets,
+	.num_resets = ARRAY_SIZE(sc9863a_mm_ahb_resets),
 };
 
 /* camera sensor clocks */
