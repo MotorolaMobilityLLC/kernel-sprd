@@ -1,9 +1,20 @@
 &reserved_memory {
-	ai_reserved: ai@f8a10000 {
-		reg = <0x0 0xf8a10000 0x0 0x00600000>;
+	/* Encrypt and decrypt widevine video */
+	oemcrypto_reserved: oemcrypto@c1100000 {
+		reg = <0x0 0xc1100000 0x0 0x01100000>;
 	};
 
-	fd_reserved: faceid-mem@faa10000 {
-		reg = <0x0 0xfaa10000 0x0 0x02d00000>;
+	widevine_reserved: widevine@e2000000 {
+		compatible = "shared-dma-pool";
+		reg = <0x0 0xe2000000 0x0 0x1a400000>;
+		reusable;
+	};
+
+	ai_reserved: ai@fcc10000 {
+		reg = <0x0 0xfcc10000 0x0 0x00600000>;
+	};
+
+	fd_reserved: faceid-mem@fd210000 {
+		reg = <0x0 0xfd210000 0x0 0x02d00000>;
 	};
 };
