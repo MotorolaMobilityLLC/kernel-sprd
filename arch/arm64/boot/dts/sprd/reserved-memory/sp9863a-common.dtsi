@@ -1,13 +1,8 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 
-//#include "modem-4g-common.dtsi"
+#include "modem-4g-common.dtsi"
 
-/ {
-	reserved_memory: reserved-memory {
-		#address-cells = <2>;
-		#size-cells = <2>;
-		ranges;
-
+&reserved_memory {
 	wcn_reserved: wcn-mem@84000000 {
 		reg = <0x0 0x84000000 0x0 0x00300000>;
 	};
@@ -22,27 +17,19 @@
 		reg = <0x0 0x84d80000 0x0 0x4000000>;
 	};
 
-	cp-modem@89600000 {
+	cp-mem@89600000 {
 		reg = <0x0 0x89600000 0x0 0x03e80000>;
 	};
-
 
 	sipc-mem@8e000000 {
 		reg = <0x0 0x8e000000 0x0 0x00980000>;
 	};
 
-/* must be 1M aligned */
-	sml-mem@b0000000 {
-		reg = <0x0 0xb0000000 0x0 0x00020000>;
-	};
-
 	tos-mem@b0040000 {
-		reg = <0x0 0xb0020000 0x0 0x01fe0000>;
+		reg = <0x0 0xb0040000 0x0 0x01fc0000>;
 	};
 
 	sh-mem@b6000000 {
 		reg = <0x0 0xb2000000 0x0 0x00100000>;
-	};
-
 	};
 };
