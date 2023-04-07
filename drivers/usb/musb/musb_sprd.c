@@ -1410,12 +1410,24 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		/* Increment pm usage count in host state.*/
 		pm_runtime_get_sync(musb->controller);
 
-		ret = musb_host_setup(musb, plat->power);
-		if (ret) {
-			dev_err(glue->dev, "musb_host_setup failed: %d\n", ret);
-			regulator_disable(glue->vbus);
-			pm_runtime_put_sync(musb->controller);
-			return ret;
+		if (musb->port_mode != MUSB_HOST) {
+			ret = musb_host_setup(musb, plat->power);
+			if (ret) {
+				dev_err(glue->dev, "musb_host_setup failed: %d\n", ret);
+				regulator_disable(glue->vbus);
+				pm_runtime_put_sync(musb->controller);
+				return ret;
+			}
+		} else {
+			/*
+			 * for host only mode, musb_host_setup is already called
+			 * in musb_init_controller.
+			 * It's not removed in musb_init_controller because of EDIFIER earphone.
+			 * This earphone sometimes is not recognized after
+			 * musb_host_setup/musb_host_cleanup.
+			 * It's only happened in N6P. N6L doesn't have this issue.
+			 */
+			dev_info(glue->dev, "host only mode\n");
 		}
 		MUSB_HST_MODE(musb);
 		musb->xceiv->otg->state = OTG_STATE_A_IDLE;
@@ -1438,7 +1450,9 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 	} else {
 		dev_info(glue->dev, "%s: turn off host\n", __func__);
 
-		musb_host_cleanup(musb);
+		if (musb->port_mode != MUSB_HOST)
+			musb_host_cleanup(musb);
+
 		ret = regulator_disable(glue->vbus);
 		if (ret)
 			dev_err(glue->dev, "Failed to disable vbus: %d\n", ret);
@@ -2103,9 +2117,12 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	}
 
 	glue->usb_data_enabled = 1;
-	ret = musb_sprd_usb_notify_init(pdev, glue);
-	if (ret)
-		dev_err(glue->dev, "usb_notify_init err %d\n", ret);
+
+	if (!is_slave) {
+		ret = musb_sprd_usb_notify_init(pdev, glue);
+		if (ret)
+			dev_err(glue->dev, "usb_notify_init err %d\n", ret);
+	}
 
 	glue->audio_nb.notifier_call = musb_sprd_audio_notifier;
 	ret = register_sprd_usbm_notifier(&glue->audio_nb, SPRD_USBM_EVENT_HOST_MUSB);

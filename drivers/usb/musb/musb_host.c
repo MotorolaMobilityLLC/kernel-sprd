@@ -3686,7 +3686,12 @@ int musb_host_setup(struct musb *musb, int power_budget)
 	struct usb_hcd *hcd = musb->hcd;
 
 	if (musb->port_mode == MUSB_HOST) {
-		MUSB_HST_MODE(musb);
+		/*
+		 * although the default mode is host,
+		 * it's not means host most is activated.
+		 * so, let glue to set this value.
+		 * //MUSB_HST_MODE(musb);
+		 */
 		musb->xceiv->otg->state = OTG_STATE_A_IDLE;
 	}
 	otg_set_host(musb->xceiv->otg, &hcd->self);
