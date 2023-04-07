@@ -838,8 +838,8 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 
-				aon-busmonitor@3{
-					compatible  = "sprd,sharkl5-busmonitor", "sprd,sharkle-busmonitor";
+				aon-bm@3{
+					compatible  = "sprd,busmonitor";
 					interrupts = <GIC_SPI 34
 					IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x3>;

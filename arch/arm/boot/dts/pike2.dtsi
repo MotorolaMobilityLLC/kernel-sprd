@@ -644,8 +644,8 @@
 				#address-cells = <1>;
 				#size-cells = <0>;
 
-				aon-busmonitor@3{
-					compatible  = "sprd,sharkl5-busmonitor", "sprd,pike2-busmonitor";
+				aon-bm@3{
+					compatible  = "sprd,busmonitor";
 					interrupts =
 						<GIC_SPI 5 IRQ_TYPE_LEVEL_HIGH>,
 						<GIC_SPI 9 IRQ_TYPE_LEVEL_HIGH>,
