@@ -2342,9 +2342,9 @@ static struct clk_hw_onecell_data ums9230_audcpapb_gate_hws = {
 };
 
 static struct sprd_reset_map ums9230_audcp_apb_resets[] = {
-	[RESET_AUDCP_APB_WDG_SOFT_RST]	= { 0x0004, BIT(1), 0x1000 },
-	[RESET_AUDCP_APB_TMR0_SOFT_RST]	= { 0x0004, BIT(2), 0x1000 },
-	[RESET_AUDCP_APB_TMR1_SOFT_RST]	= { 0x0004, BIT(3), 0x1000 },
+	[RESET_AUDCP_APB_WDG_SOFT_RST]	= { 0x0004, BIT(1), 0x100 },
+	[RESET_AUDCP_APB_TMR0_SOFT_RST]	= { 0x0004, BIT(2), 0x100 },
+	[RESET_AUDCP_APB_TMR1_SOFT_RST]	= { 0x0004, BIT(3), 0x100 },
 };
 
 static const struct sprd_clk_desc ums9230_audcpapb_gate_desc = {
