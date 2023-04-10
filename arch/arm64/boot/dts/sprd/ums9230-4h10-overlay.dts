@@ -459,7 +459,7 @@
 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
-		dvdd-gpios = <&ap_gpio 11 0>;
+		dvdd-gpios = <&ap_gpio 137 0>;
 		vddcammot-supply = <&vddcammot>;
 		reset-gpios = <&ap_gpio 45 0>;
 		power-down-gpios = <&ap_gpio 47 0>;
@@ -479,7 +479,7 @@
 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
-		dvdd-gpios = <&ap_gpio 11 0>;
+		dvdd-gpios = <&ap_gpio 137 0>;
 		vddcammot-supply = <&vddcammot>;
 		reset-gpios = <&ap_gpio 44 0>;
 		power-down-gpios = <&ap_gpio 46 0>;
