@@ -215,6 +215,11 @@
 		};
 	};
 
+	top_dvfs_apb_regs: syscon@322a0000 {
+		compatible = "sprd,ums312-glbregs", "syscon";
+		reg = <0 0x322a0000 0 0x8000>;
+	};
+
 	gpu_apb_regs: syscon@60100000 {
 		compatible = "sprd,ums312-glbregs", "syscon",
 			     "simple-mfd";
