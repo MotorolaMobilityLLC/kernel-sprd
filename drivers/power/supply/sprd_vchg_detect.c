@@ -68,7 +68,9 @@ static void sprd_vchg_work(struct work_struct *data)
 		/* if use typec extcon notify charger,
 		 * wait for BC1.2 detect charger type.
 		 */
-		while (info->chgr_online && retry_cnt > 0) {
+		s64 curr = ktime_to_ms(ktime_get_boottime());
+
+		while (info->chgr_online && retry_cnt > 0 && curr >= 10000) {
 			if (info->usb_phy->chg_type != UNKNOWN_TYPE)
 				break;
 			retry_cnt--;

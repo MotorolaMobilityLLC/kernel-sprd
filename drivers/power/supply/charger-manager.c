@@ -73,6 +73,7 @@
 /* Fixed fast charge parameters */
 #define CM_FIXED_FCHG_DISABLE_BATTERY_VOLTAGE	3400000
 #define CM_FIXED_FCHG_DISABLE_CURRENT		1000000
+#define CM_FIXED_FCHG_C2C_CURRENT		1000000
 #define CM_FIXED_FCHG_TRANSITION_CURRENT_1P5A	1500000
 #define CM_FIXED_FCHG_VOLTAGE_5V_THRESHOLD	6500000
 #define CM_FIXED_FCHG_ENABLE_COUNT		3
@@ -201,6 +202,7 @@ static void cm_update_charger_type_status(struct charger_manager *cm);
 static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp);
 static bool cm_charger_is_support_fchg(struct charger_manager *cm);
 static int cm_get_battery_temperature(struct charger_manager *cm, int *temp);
+static bool cm_pd_is_ac_online(struct charger_manager *cm);
 
 static void cm_cap_remap_init_boundary(struct charger_desc *desc, int index, struct device *dev)
 {
@@ -1701,8 +1703,13 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 				desc->charge_voltage_drop = desc->fast_charge_voltage_drop;
 			break;
 		}
-		desc->charge_limit_cur = desc->cur.dcp_cur;
-		desc->input_limit_cur = desc->cur.dcp_limit;
+		if (!cm_pd_is_ac_online(cm)) {
+			desc->charge_limit_cur = CM_FIXED_FCHG_C2C_CURRENT;
+			desc->input_limit_cur = CM_FIXED_FCHG_C2C_CURRENT;
+		} else {
+			desc->charge_limit_cur = desc->cur.dcp_cur;
+			desc->input_limit_cur = desc->cur.dcp_limit;
+		}
 		thm_info->adapter_default_charge_vol = 5;
 		if (desc->jeita_size[SPRD_BATTERY_JEITA_DCP]) {
 			desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_DCP];
@@ -4773,7 +4780,8 @@ static void fast_charge_handler(struct charger_manager *cm)
 
 	if (cm->desc->is_fast_charge && !cm->desc->enable_fast_charge)
 		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
-					   CM_CHARGE_INFO_INPUT_LIMIT));
+					   CM_CHARGE_INFO_INPUT_LIMIT |
+					   CM_CHARGE_INFO_JEITA_LIMIT));
 
 	/*
 	 * Once the fast charge is identified, it is necessary to open
@@ -5725,6 +5733,9 @@ static bool cm_pd_is_ac_online(struct charger_manager *cm)
 	struct sprd_tcpm_port *port;
 	struct power_supply *psy;
 	int i, index = 0;
+
+	if (!cm->fchg_info->pd_enable)
+		return true;
 
 	psy = power_supply_get_by_name(SPRD_FCHG_TCPM_PD_NAME);
 	if (!psy) {
