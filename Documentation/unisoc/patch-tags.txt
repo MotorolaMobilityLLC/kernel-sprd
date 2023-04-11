@@ -84,6 +84,7 @@ devfreq:sprd:
 devicetree:bindings:*
 dmaengine:sprd:
 dma-buf:
+dma:
 Documentation:
 Documentation:unisoc:
 drm:sprd:
