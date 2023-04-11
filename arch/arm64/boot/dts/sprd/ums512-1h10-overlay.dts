@@ -32,15 +32,13 @@
 				fpint-gpios = <&eic_async 13 0>;
 			};
 
+			sprd-uid {
+				compatible = "sprd,uid";
+				nvmem-cells = <&uid_start>, <&uid_end>;
+				nvmem-cell-names = "uid_start", "uid_end";
+			};
 		};
 	};
-
-	sprd-uid {
-		compatible = "sprd,uid";
-		nvmem-cells = <&uid_start>, <&uid_end>;
-		nvmem-cell-names = "uid_start", "uid_end";
-	};
-
 };
 
 &adi_bus {
