@@ -265,6 +265,9 @@
 };
 
 &dpu {
+	/* if we need use fastcall for widevine, open the following config */
+	// sprd,widevine-use-fastcall;
+
 	status = "okay";
 };
 
