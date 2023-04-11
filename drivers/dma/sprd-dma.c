@@ -1348,7 +1348,7 @@ static int __maybe_unused sprd_dma_runtime_resume(struct device *dev)
 	return ret;
 }
 
-static int __maybe_unused sprd_dma_suspend_late(struct device *dev)
+static int __maybe_unused sprd_dma_suspend_noirq(struct device *dev)
 {
 	if ((pm_runtime_status_suspended(dev)) ||
 	    (atomic_read(&(dev->power.usage_count)) > 1))
@@ -1370,7 +1370,7 @@ static const struct dev_pm_ops sprd_dma_pm_ops = {
 	SET_RUNTIME_PM_OPS(sprd_dma_runtime_suspend,
 			   sprd_dma_runtime_resume,
 			   NULL)
-	SET_LATE_SYSTEM_SLEEP_PM_OPS(sprd_dma_suspend_late,
+	SET_NOIRQ_SYSTEM_SLEEP_PM_OPS(sprd_dma_suspend_noirq,
 				     sprd_dma_resume_early)
 };
 
