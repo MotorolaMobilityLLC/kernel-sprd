@@ -1837,6 +1837,66 @@ static void sc27xx_cc_status(struct sc27xx_pd *pd, u32 status)
 	sprd_tcpm_cc_change(pd->sprd_tcpm_port);
 }
 
+static void sc27xx_cc_status_use_pdhub_c2c(struct sc27xx_pd *pd, u32 status)
+{
+	u32 cc_rp, rp_sts = SC27XX_TYPEC_VBUS_CL(status);
+
+	switch (rp_sts) {
+	case 0:
+		cc_rp = SPRD_TYPEC_CC_RP_DEF;
+		break;
+	case 1:
+		cc_rp = SPRD_TYPEC_CC_RP_1_5;
+		break;
+	case 2:
+		cc_rp = SPRD_TYPEC_CC_RP_3_0;
+		break;
+	default:
+		cc_rp = SPRD_TYPEC_CC_OPEN;
+		break;
+	}
+
+	switch (pd->state) {
+	case SC27XX_ATTACHED_SNK:
+	case SC27XX_DEBUG_CABLE:
+		if (pd->cc_polarity == SPRD_TYPEC_POLARITY_CC1) {
+			pd->cc1 = cc_rp;
+			pd->cc2 = SPRD_TYPEC_CC_OPEN;
+		} else {
+			pd->cc1 = SPRD_TYPEC_CC_OPEN;
+			pd->cc2 = cc_rp;
+		}
+		break;
+
+	case SC27XX_ATTACHED_SRC:
+	case SC27XX_AUDIO_CABLE:
+		if (pd->cc_polarity == SPRD_TYPEC_POLARITY_CC1) {
+			pd->cc1 = SPRD_TYPEC_CC_RD;
+			pd->cc2 = SPRD_TYPEC_CC_OPEN;
+		} else {
+			pd->cc1 = SPRD_TYPEC_CC_OPEN;
+			pd->cc2 = SPRD_TYPEC_CC_RD;
+		}
+		break;
+
+	case SC27XX_POWERED_CABLE:
+		if (pd->cc_polarity == SPRD_TYPEC_POLARITY_CC1) {
+			pd->cc1 = SPRD_TYPEC_CC_RD;
+			pd->cc2 = SPRD_TYPEC_CC_RA;
+		} else {
+			pd->cc1 = SPRD_TYPEC_CC_RA;
+			pd->cc2 = SPRD_TYPEC_CC_RD;
+		}
+		break;
+	default:
+		pd->cc1 = SPRD_TYPEC_CC_OPEN;
+		pd->cc2 = SPRD_TYPEC_CC_OPEN;
+		break;
+	}
+
+	sprd_tcpm_cc_change(pd->sprd_tcpm_port);
+}
+
 static int sc27xx_pd_typec_connect(struct sc27xx_pd *pd)
 {
 	enum typec_data_role data_role = TYPEC_DEVICE;
@@ -1926,6 +1986,32 @@ static int sc27xx_pd_set_typec_rp_level(struct sc27xx_pd *pd, enum sprd_typec_cc
 	return 0;
 }
 
+static int sc27xx_pd_update_header(struct sc27xx_pd *pd)
+{
+	int ret;
+
+	if (pd->state == SC27XX_ATTACHED_SNK) {
+		sprd_pd_log(pd, "update head cfg");
+		ret = regmap_update_bits(pd->regmap,
+					 pd->base + SC27XX_PD_HEAD_CFG,
+					 SC27XX_PD_POWER_ROLE, 0);
+		if (ret < 0) {
+			sprd_pd_log(pd, "write head cfg power role fail, ret = %d", ret);
+			return ret;
+		}
+
+		ret = regmap_update_bits(pd->regmap,
+					 pd->base + SC27XX_PD_HEAD_CFG,
+					 SC27XX_PD_DATA_ROLE, 0);
+		if (ret < 0) {
+			sprd_pd_log(pd, "write head cfg data role fail, ret = %d", ret);
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
 static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 {
 	u32 val = 0;
@@ -1980,9 +2066,13 @@ static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 	if (pd->use_pdhub_c2c && pd->state == SC27XX_ATTACHED_SRC)
 		sc27xx_pd_set_typec_rp_level(pd, SPRD_TYPEC_CC_RP_3_0);
 
+	sc27xx_pd_update_header(pd);
 	sc27xx_pd_reset(pd, true);
 	sc27xx_cc_polarity_status(pd, val);
-	sc27xx_cc_status(pd, val);
+	if (!pd->use_pdhub_c2c)
+		sc27xx_cc_status(pd, val);
+	else
+		sc27xx_cc_status_use_pdhub_c2c(pd, val);
 	sc27xx_get_vbus_status(pd);
 
 	return 0;

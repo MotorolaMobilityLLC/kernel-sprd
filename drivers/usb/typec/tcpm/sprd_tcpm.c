@@ -3722,7 +3722,6 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 				      __func__, __LINE__);
 		}
 		if (port->power_role_swap) {
-			port->power_role_swap = false;
 			port->power_role_swap_hard_reset = false;
 			sprd_tcpm_set_typec_roles(port, TYPEC_PORT_DRP, TYPEC_DEVICE);
 			sprd_tcpm_log(port, "SNK_READY clear power role swap flag");
@@ -3745,8 +3744,9 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		 * When avoiding PPS charging, the upper layer is notified
 		 * repeatedly if the USB type is changed.
 		*/
-		if (port->usb_type != port->last_usb_type) {
+		if (port->usb_type != port->last_usb_type || port->power_role_swap) {
 			port->last_usb_type = port->usb_type;
+			port->power_role_swap = false;
 			power_supply_changed(port->psy);
 		}
 		break;
