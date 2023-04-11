@@ -9,6 +9,16 @@ if SPRD_COMMON_CLK
 
 # SoC Drivers
 
+config SPRD_UDX710_CLK
+	tristate "Support for the Unisoc UDX710 clocks"
+	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
+	default ARM64 && ARCH_SPRD
+	help
+	  Support for the global clock controller on udx710 devices.
+          different config parameter define different way to load devices.
+	  Say Y if you want to use peripheral devices on udx710 SoC.
+	  Say M if you want to use peripheral devices on udx710 SoC as module.
+
 config SPRD_SC9860_CLK
 	tristate "Support for the Spreadtrum SC9860 clocks"
 	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
