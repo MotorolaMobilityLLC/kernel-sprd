@@ -1,0 +1,29 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * UNISOC SP9863 board common DTS file
+ *
+ * Copyright (C) 2021, Unisoc Inc.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include "lcd/lcd_dummy_mipi.dtsi"
+#include "reserved-memory/sp9863a-1h10-overlay.dtsi"
+
+/ {
+	model = "Unisoc SP9863A 1H10 board";
+
+	compatible = "sprd,sp986a-1h10-go";
+
+	sprd,sc-id = "sp9863a 1h10 go";
+
+	sprd,board_id = <0x1900>; //XX00:base board,XX00~XXFF:customize board
+
+	fragment {
+		target-path = "/";
+		__overlay__ {
+		};
+	};
+};
+

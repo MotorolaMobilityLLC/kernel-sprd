@@ -7,8 +7,10 @@ ifeq ($(BSP_BUILD_ANDROID_OS),y)
 ifeq ($(BSP_BUILD_FAMILY),sharkl3)
 
 dtb-$(CONFIG_ARCH_SPRD) += sp9863a-1h10-overlay.dtbo
+dtb-$(CONFIG_ARCH_SPRD) += sp9863a-1h10-go-overlay.dtbo
 
 sp9863a-1h10-overlay.dtbo-base := sp9863a-base.dtb
+sp9863a-1h10-go-overlay.dtbo-base := sp9863a-base.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),sharkl5Pro)
