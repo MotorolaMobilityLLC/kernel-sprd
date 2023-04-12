@@ -1306,13 +1306,17 @@ static void android_rvh_after_enqueue_task(void *data, struct rq *rq, struct tas
 {
 	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
 	u64 wallclock = walt_ktime_clock();
+	int freq_flags = 0;
 
 	if (unlikely(walt_disabled))
 		return;
 
+	if (p->in_iowait)
+		freq_flags |= SCHED_CPUFREQ_IOWAIT;
+
 	uni_tsk->last_enqueue_ts = wallclock;
 
-	walt_cpufreq_update_util(rq, 0);
+	walt_cpufreq_update_util(rq, freq_flags);
 }
 
 static void android_rvh_dequeue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
