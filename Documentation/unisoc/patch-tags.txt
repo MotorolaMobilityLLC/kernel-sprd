@@ -150,6 +150,7 @@ mmc:host:
 mm:emem:
 mm:memblock:
 mm:vmscan:
+mtd:rawnand:sprd:
 
 net:
 net:ims_bridge:
