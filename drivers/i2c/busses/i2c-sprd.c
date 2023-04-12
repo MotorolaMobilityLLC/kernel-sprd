@@ -88,6 +88,7 @@
 #define DMA_XFER_TIMEOUT	5000
 
 /* dynamic modify clk_freq flag  */
+#define	I2C_3M4_FLAG		0x0100
 #define	I2C_1M_FLAG		0x0080
 #define	I2C_400K_FLAG		0x0040
 
@@ -335,11 +336,12 @@ static int sprd_i2c_handle_msg(struct i2c_adapter *i2c_adap,
 		sprd_i2c_send_stop(i2c_dev, !!is_last_msg);
 	}
 
-	if (msg->flags & I2C_400K_FLAG) {
+	if (msg->flags & I2C_400K_FLAG)
 		sprd_i2c_set_clk(i2c_dev, 400000);
-	} else if (msg->flags & I2C_1M_FLAG) {
+	else if (msg->flags & I2C_1M_FLAG)
 		sprd_i2c_set_clk(i2c_dev, 1000000);
-	}
+	else if (msg->flags & I2C_3M4_FLAG)
+		sprd_i2c_set_clk(i2c_dev, 3400000);
 	/*
 	 * We should enable rx fifo full interrupt to get data when receiving
 	 * full data.
@@ -542,6 +544,8 @@ static int sprd_i2c_dma_handle_msg(struct i2c_adapter *i2c_adap,
 		sprd_i2c_set_clk(i2c_dev, 400000);
 	else if (msg->flags & I2C_1M_FLAG)
 		sprd_i2c_set_clk(i2c_dev, 1000000);
+	else if (msg->flags & I2C_3M4_FLAG)
+		sprd_i2c_set_clk(i2c_dev, 3400000);
 
 	sprd_i2c_opt_start(i2c_dev);
 
@@ -706,6 +710,8 @@ static void sprd_i2c_set_clk(struct sprd_i2c *i2c_dev, u32 freq)
 	else if (freq == I2C_MAX_STANDARD_MODE_FREQ)
 		writel((4 * apb_clk) / 1000000, i2c_dev->base + ADDR_STA0_DVD);
 	else if (freq == I2C_MAX_FAST_MODE_PLUS_FREQ)
+		writel((8 * apb_clk) / 10000000, i2c_dev->base + ADDR_STA0_DVD);
+	else if (freq == I2C_MAX_HIGH_SPEED_MODE_FREQ)
 		writel((8 * apb_clk) / 10000000, i2c_dev->base + ADDR_STA0_DVD);
 }
 
@@ -883,10 +889,11 @@ static int sprd_i2c_probe(struct platform_device *pdev)
 	if (!of_property_read_u32(dev->of_node, "clock-frequency", &prop))
 		i2c_dev->bus_freq = prop;
 
-	/* We only support 100k and 400k now, otherwise will return error. */
+	/* We only support 100k\400k\1m\3.4m now, otherwise will return error. */
 	if (i2c_dev->bus_freq != I2C_MAX_STANDARD_MODE_FREQ &&
 			i2c_dev->bus_freq != I2C_MAX_FAST_MODE_FREQ &&
-			i2c_dev->bus_freq != I2C_MAX_FAST_MODE_PLUS_FREQ)
+			i2c_dev->bus_freq != I2C_MAX_FAST_MODE_PLUS_FREQ &&
+			i2c_dev->bus_freq != I2C_MAX_HIGH_SPEED_MODE_FREQ)
 		return -EINVAL;
 
 	ret = sprd_i2c_clk_init(i2c_dev);
