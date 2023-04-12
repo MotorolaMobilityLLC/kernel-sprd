@@ -268,29 +268,7 @@ static inline void sdhci_sprd_writew(struct sdhci_host *host, u16 val, int reg)
 
 static inline void sdhci_sprd_writeb(struct sdhci_host *host, u8 val, int reg)
 {
-	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
-
 	if (unlikely(reg == SDHCI_SOFTWARE_RESET)) {
-		/*
-		 * Command CRC error may occur during data transmission like CMD19/cmd21.
-		 * The Sdio Controller can not forcibly reset the data line during data
-		 * transmission. Otherwise, the Sdio Controller may fail to access the
-		 * memory, resulting in memory stampede. So here we need to work around it.
-		 */
-		if (sprd_host->tuning_flag && unlikely(val == SDHCI_RESET_DATA) &&
-			(SDHCI_GET_CMD(sdhci_readw(host, SDHCI_COMMAND)) != MMC_SET_BLOCKLEN) &&
-			(sprd_host->int_status & SDHCI_INT_CMD_ERR_MASK)) {
-
-			pr_debug("%s: Exit Error Reset,Int 0x%x, CMD%d, dly:0x%x\n",
-				mmc_hostname(host->mmc),
-				sprd_host->int_status,
-				SDHCI_GET_CMD(sdhci_readw(host, SDHCI_COMMAND)),
-				sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_DLY));
-
-			sprd_host->int_status = 0;
-			return;
-		}
-
 		/*
 		 * Since BIT(3) of SDHCI_SOFTWARE_RESET is reserved according to the
 		 * standard specification, sdhci_reset() write this register directly
@@ -711,6 +689,7 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	int mid_step;
 	int final_phase;
 	u32 dll_cfg, mid_dll_cnt, dll_cnt, dll_dly;
+	bool cfg_use_adma = false;
 
 	sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
 
@@ -742,6 +721,13 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 		dll_dly &= ~SDHCI_SPRD_CMD_DLY_MASK;
 		dll_dly |= (sprd_host->cpst_cmd_dly << 8);
 		sprd_host->cpst_cmd_dly = 0;
+	}
+
+	/* config dma mode in tuning. */
+	if (!cfg_use_adma && (host->flags & SDHCI_USE_ADMA) && strcmp(mmc_hostname(mmc), "mmc0")) {
+		cfg_use_adma = true;
+		host->flags &= ~SDHCI_USE_ADMA;
+		host->flags |= SDHCI_USE_SDMA;
 	}
 
 	do {
@@ -865,6 +851,12 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 
 out:
 	host->flags &= ~SDHCI_HS400_TUNING;
+
+	if (cfg_use_adma) {
+		host->flags &= ~SDHCI_USE_SDMA;
+		host->flags |= SDHCI_USE_ADMA;
+	}
+
 	kfree(ranges);
 	kfree(value_t);
 
