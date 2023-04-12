@@ -224,6 +224,8 @@ static int stat_read(struct seq_file *m, void *v)
 
 	seq_puts(m, "Subsys information:\n");
 
+	mutex_lock(&info_mutex);
+
 	list_for_each_entry(pos, &info_node_list, list) {
 		info_src = pos->get(pos->data);
 		if (info_src != NULL)
@@ -232,6 +234,8 @@ static int stat_read(struct seq_file *m, void *v)
 
 	for (i = 0; stat_print[i]; ++i)
 		(stat_print[i])(m);
+
+	mutex_unlock(&info_mutex);
 
 	return 0;
 }
@@ -253,6 +257,8 @@ static int slp_cnt_read(struct seq_file *m, void *v)
 	struct info_node *pos;
 	int slp_cnt = -1;
 
+	mutex_lock(&info_mutex);
+
 	list_for_each_entry(pos, &info_node_list, list) {
 		if (strcmp(pos->name, "soc_sys"))
 			continue;
@@ -260,15 +266,20 @@ static int slp_cnt_read(struct seq_file *m, void *v)
 		pos->info = pos->get(pos->data);
 		if (!pos->info) {
 			pr_err("%s: Get %s error\n", __func__, pos->name);
+			mutex_unlock(&info_mutex);
 			return -ENXIO;
 		}
 
-		if (pos->info->slp_cnt == -1)
+		if (pos->info->slp_cnt == -1) {
+			mutex_unlock(&info_mutex);
 			return -EINVAL;
+		}
 
 		slp_cnt = (int)pos->info->slp_cnt;
 		break;
 	}
+
+	mutex_unlock(&info_mutex);
 
 	seq_printf(m, "%d\n", slp_cnt);
 
