@@ -172,6 +172,8 @@
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 43 &ap_dma 44>;
 				status = "disabled";
 				syscon-names = "i2c_rst";
 				syscons =
@@ -186,6 +188,8 @@
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 41 &ap_dma 42>;
 				status = "disabled";
 				syscon-names = "i2c_rst";
 				syscons =
@@ -200,6 +204,8 @@
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 39 &ap_dma 40>;
 				status = "disabled";
 				syscon-names = "i2c_rst";
 				syscons =
@@ -1150,4 +1156,5 @@
 	};
 
 };
+
 

@@ -182,6 +182,8 @@
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 43 &ap_dma 44>;
 				status = "disabled";
 			};
 
@@ -192,6 +194,8 @@
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 41 &ap_dma 42>;
 				status = "disabled";
 			};
 
@@ -202,6 +206,8 @@
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 39 &ap_dma 40>;
 				status = "disabled";
 			};
 
@@ -212,6 +218,8 @@
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 37 &ap_dma 38>;
 				status = "disabled";
 			};
 
@@ -222,6 +230,8 @@
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 35 &ap_dma 36>;
 				status = "disabled";
 			};
 
@@ -1288,3 +1298,4 @@
 		compatible = "unisoc,apipe";
 	};
 };
+

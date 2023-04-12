@@ -258,6 +258,8 @@
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 43 &ap_dma 44>;
 				status = "disabled";
 				reset-names = "i2c_rst";
 				resets = <&apapb_gate RESET_AP_APB_I2C0_SOFT_RST>;
@@ -271,6 +273,8 @@
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 41 &ap_dma 42>;
 				status = "disabled";
 				reset-names = "i2c_rst";
 				resets = <&apapb_gate RESET_AP_APB_I2C1_SOFT_RST>;
@@ -284,6 +288,8 @@
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 39 &ap_dma 40>;
 				status = "disabled";
 				reset-names = "i2c_rst";
 				resets = <&apapb_gate RESET_AP_APB_I2C2_SOFT_RST>;
@@ -297,6 +303,8 @@
 				clock-frequency = <400000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 37 &ap_dma 38>;
 				status = "disabled";
 				reset-names = "i2c_rst";
 				resets = <&apapb_gate RESET_AP_APB_I2C3_SOFT_RST>;
@@ -310,6 +318,8 @@
 				clock-frequency = <100000>;
 				#address-cells = <1>;
 				#size-cells = <0>;
+				dma-names = "rx", "tx";
+				dmas = <&ap_dma 35 &ap_dma 36>;
 				status = "disabled";
 				reset-names = "i2c_rst";
 				resets = <&apapb_gate RESET_AP_APB_I2C4_SOFT_RST>;
@@ -1537,3 +1547,4 @@
 		compatible = "unisoc,apipe";
 	};
 };
+
