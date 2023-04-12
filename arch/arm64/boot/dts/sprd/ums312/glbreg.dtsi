@@ -162,6 +162,12 @@
 		reg = <0 0x31050000 0 0x10000>;
 	};
 
+	topdvfs_controller: topdvfsctrl@322a0000 {
+		compatible = "sprd,sharkl5-topdvfs", "syscon";
+		#syscon-cells = <2>;
+		reg = <0 0x322a0000 0 0x8000>;
+	};
+
 	audcp_apb_regs: syscon@0x3350d000 {
 		compatible = "sprd,ums312-glbregs", "syscon",
 			     "simple-mfd";
