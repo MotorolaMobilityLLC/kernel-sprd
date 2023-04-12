@@ -55,6 +55,7 @@ EXT_MODULES="
 ../modules/common/camera/flash/ocp8137
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/sensor
+../modules/common/camera/mmdvfs
 ../modules/kernel5.15/video/sprd-jpg
 "
 fi
