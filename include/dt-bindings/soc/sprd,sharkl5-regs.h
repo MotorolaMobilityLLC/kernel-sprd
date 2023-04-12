@@ -1257,6 +1257,8 @@
 #define REG_AON_CLK_CORE_CGM_CPHY_CFG_CFG                                               0x011c
 #define REG_AON_CLK_CORE_CGM_CSI_PHY_SCAN_ONLY_CFG                                      0x0120
 #define REG_AON_CLK_CORE_CGM_WCDMA_SLICE_SCAN_ONLY_CFG                                  0x0124
+#define REG_TOP_DVFS_DCDC_MM_SW_DVFS_CTRL                                               0x0018
+#define REG_TOP_DVFS_APB_SUBSYS_SW_DVFS_EN_CFG                                          0x0150
 #define REG_AP_APB_APB_EB                                                               0x0000
 #define REG_AP_APB_APB_RST                                                              0x0004
 #define REG_AP_APB_APB_MISC_CTRL                                                        0x0008
