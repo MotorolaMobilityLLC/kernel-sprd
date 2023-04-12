@@ -28,6 +28,12 @@
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+
+#define pr_fmt(fmt) "sprd_dmc: " fmt
+
 #define PUB_MONITOR_CLK		128	/* 128MHz */
 #define PUB_DFS_MONITOR_CLK	65	/* 6.5MHz */
 #define PUB_STATUS_MON_CTRL_OFFSET	0x6200
@@ -38,7 +44,12 @@
 #define DMC_PROC_NAME "sprd_dmc"
 #define DDR_PROPERTY_NAME "property"
 #define DDR_INFO_NAME "ddr_info"
+#define PUB_MONITOR_ENABLE_NAME "enable"
+#define PUB_MONITOR_STATUS_NAME "status"
 #define INVALID_RES_IDX  0xffffffff
+#define PROC_RW_PERMS 0666
+#define PROC_RO_PERMS 0444
+
 /*
  * new requirement: all register value is clear to 0,
  * when enable signle change from 0 to 1;
@@ -68,9 +79,10 @@ struct dmc_data {
 struct dmc_drv_data {
 	struct pub_monitor_dbg reg_val;
 	struct proc_dir_entry *proc_dir;
-	struct dentry *monitor_dir;
 	struct proc_dir_entry *property;
 	struct proc_dir_entry *info;
+	struct proc_dir_entry *pub_monitor_enable;
+	struct proc_dir_entry *pub_monitor_status;
 	void __iomem *mon_base;
 	void __iomem *dmc_base;
 	int pub_mon_enabled;
@@ -184,49 +196,33 @@ static const struct proc_ops sprd_ddr_info_fops = {
 	.proc_release = single_release,
 };
 
-static int sprd_ddr_proc_creat(void)
+static int sprd_ddr_proc_creat(struct dmc_drv_data *pdrv_data)
 {
-	drv_data.proc_dir = proc_mkdir(DMC_PROC_NAME, NULL);
-	if (!drv_data.proc_dir)
+	if (!pdrv_data)
+		return -EINVAL;
+
+	pdrv_data->proc_dir = proc_mkdir(DMC_PROC_NAME, NULL);
+	if (!pdrv_data->proc_dir)
 		return -ENOMEM;
 
-	drv_data.property = proc_create_data(DDR_PROPERTY_NAME, 0444,
-					     drv_data.proc_dir,
-					     &sprd_ddr_size_fops, NULL);
-	if (!drv_data.property) {
+	pdrv_data->property = proc_create_data(DDR_PROPERTY_NAME, PROC_RO_PERMS,
+					       pdrv_data->proc_dir,
+					       &sprd_ddr_size_fops, NULL);
+	if (!pdrv_data->property) {
 		remove_proc_entry(DMC_PROC_NAME, NULL);
 		return -ENOMEM;
 	}
-	drv_data.info = proc_create_data(DDR_INFO_NAME, 0444,
-					 drv_data.proc_dir, &sprd_ddr_info_fops,
-					 NULL);
-	if (!drv_data.info) {
-		remove_proc_entry(DDR_PROPERTY_NAME, drv_data.proc_dir);
+
+	pdrv_data->info = proc_create_data(DDR_INFO_NAME, PROC_RO_PERMS,
+					   pdrv_data->proc_dir,
+					   &sprd_ddr_info_fops, NULL);
+	if (!pdrv_data->info) {
+		remove_proc_entry(DDR_PROPERTY_NAME, pdrv_data->proc_dir);
 		remove_proc_entry(DMC_PROC_NAME, NULL);
 		return -ENOMEM;
 	}
-	return 0;
-}
-#endif
-
-static int sprd_get_ddr_cur_freq(struct notifier_block *nb,
-				 unsigned long action, void *data)
-{
-	g_ddr_cur_freq = (readl_relaxed(drv_data.dmc_base + 0x12c) >> 8) & 0x7;
-	pr_info("ddr_cur_freq: %d\n", g_ddr_cur_freq);
 
 	return 0;
-}
-
-static struct notifier_block dmc_panic_event_nb = {
-	.notifier_call  = sprd_get_ddr_cur_freq,
-	.priority       = INT_MAX,
-};
-
-static void sprd_get_panic_freq_init(void)
-{
-	pr_info("register ddr painc_callback func\n");
-	atomic_notifier_chain_register(&panic_notifier_list, &dmc_panic_event_nb);
 }
 
 static void sprd_pub_monitor_reg_get(void)
@@ -312,12 +308,11 @@ static int sprd_pub_monitor_status_open(struct inode *inodep,
 	return single_open(filep, sprd_pub_monitor_status_show, NULL);
 }
 
-static const struct file_operations pub_monitor_status_fops = {
-	.open = sprd_pub_monitor_status_open,
-	.read = seq_read,
-	.write = NULL,
-	.llseek = seq_lseek,
-	.release = single_release,
+static const struct proc_ops pub_monitor_status_fops = {
+	.proc_open = sprd_pub_monitor_status_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
 };
 
 static int sprd_pub_monitor_enable_show(struct seq_file *m, void *v)
@@ -384,25 +379,67 @@ static ssize_t sprd_pub_monitor_enable_write(struct file *filep,
 	return len;
 }
 
-static const struct file_operations pub_monitor_enable_fops = {
-	.open = sprd_pub_monitor_enable_open,
-	.read = seq_read,
-	.write = sprd_pub_monitor_enable_write,
-	.llseek = seq_lseek,
-	.release = single_release,
+static const struct proc_ops pub_monitor_enable_fops = {
+	.proc_open = sprd_pub_monitor_enable_open,
+	.proc_read = seq_read,
+	.proc_write = sprd_pub_monitor_enable_write,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
 };
 
-static int sprd_pub_monitor_init(void)
+static int sprd_pub_monitor_proc_create(struct dmc_drv_data *pdrv_data)
 {
-	drv_data.monitor_dir = debugfs_create_dir("sprd_pub_monitor", NULL);
-	if (!drv_data.monitor_dir) {
-		pr_err("pub_monitor creat dir error\n");
+	if (!pdrv_data)
+		return -EINVAL;
+
+	if (!pdrv_data->proc_dir)
+		return -ENOMEM;
+
+	pdrv_data->pub_monitor_enable = proc_create_data(PUB_MONITOR_ENABLE_NAME, PROC_RW_PERMS,
+							 pdrv_data->proc_dir,
+							 &pub_monitor_enable_fops, NULL);
+
+	if (!pdrv_data->pub_monitor_enable) {
+		pr_err("pub_monitor enable create fail\n");
 		return -ENOMEM;
 	}
-	debugfs_create_file("enable", 0664, drv_data.monitor_dir, NULL,
-			    &pub_monitor_enable_fops);
-	debugfs_create_file("status", 0444, drv_data.monitor_dir, NULL,
-			    &pub_monitor_status_fops);
+
+	pdrv_data->pub_monitor_status = proc_create_data(PUB_MONITOR_STATUS_NAME, PROC_RO_PERMS,
+							 pdrv_data->proc_dir,
+							 &pub_monitor_status_fops, NULL);
+
+	if (!pdrv_data->pub_monitor_status) {
+		pr_err("pub_monitor status create fail\n");
+		remove_proc_entry(PUB_MONITOR_ENABLE_NAME, pdrv_data->proc_dir);
+		return -ENOMEM;
+	}
+
+	return 0;
+}
+
+#endif
+
+static int sprd_get_ddr_cur_freq(struct notifier_block *nb,
+				 unsigned long action, void *data)
+{
+	g_ddr_cur_freq = (readl_relaxed(drv_data.dmc_base + 0x12c) >> 8) & 0x7;
+	pr_info("ddr_cur_freq: %d\n", g_ddr_cur_freq);
+
+	return 0;
+}
+
+static struct notifier_block dmc_panic_event_nb = {
+	.notifier_call  = sprd_get_ddr_cur_freq,
+	.priority       = INT_MAX,
+};
+
+static int sprd_get_panic_freq_init(struct notifier_block *event_nb)
+{
+	if (!event_nb)
+		return -EINVAL;
+
+	pr_info("register ddr painc_callback func\n");
+	atomic_notifier_chain_register(&panic_notifier_list, event_nb);
 
 	return 0;
 }
@@ -413,6 +450,7 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 	struct resource *res = NULL;
 	void __iomem *io_addr;
 	u32 i;
+	int result = 0;
 
 	pdata = of_device_get_match_data(&pdev->dev);
 	if (!pdata) {
@@ -435,7 +473,9 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 		    readl_relaxed(io_addr + pdata->mr_offset[i]);
 		iounmap(io_addr);
 #ifdef CONFIG_PROC_FS
-		sprd_ddr_proc_creat();
+		result = sprd_ddr_proc_creat(&drv_data);
+		if (result)
+			dev_warn(&pdev->dev, "sprd_ddr_proc creat fail\n");
 #endif
 	}
 
@@ -447,7 +487,11 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 		drv_data.mon_base = devm_ioremap_resource(&pdev->dev, res);
 		if (IS_ERR(drv_data.mon_base))
 			return (int)PTR_ERR(drv_data.mon_base);
-		sprd_pub_monitor_init();
+#ifdef CONFIG_PROC_FS
+		result = sprd_pub_monitor_proc_create(&drv_data);
+		if (result)
+			dev_warn(&pdev->dev, "sprd_pub_monitor_proc creat fail\n");
+#endif
 	}
 
 	if (pdata->dmc_res != INVALID_RES_IDX) {
@@ -456,7 +500,9 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 			drv_data.dmc_base = devm_ioremap_resource(&pdev->dev, res);
 			if (IS_ERR(drv_data.dmc_base))
 				return (int)PTR_ERR(drv_data.dmc_base);
-			sprd_get_panic_freq_init();
+			result = sprd_get_panic_freq_init(&dmc_panic_event_nb);
+			if (result)
+				dev_warn(&pdev->dev, "sprd_pub_monitor_proc creat fail\n");
 		}
 	}
 
@@ -465,13 +511,30 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 
 static int sprd_dmc_remove(struct platform_device *pdev)
 {
-	debugfs_remove(drv_data.monitor_dir);
-	if (drv_data.property != NULL)
+	if (drv_data.property != NULL) {
 		remove_proc_entry(DDR_PROPERTY_NAME, drv_data.proc_dir);
-	if (drv_data.info != NULL)
+		drv_data.property = NULL;
+	}
+
+	if (drv_data.info != NULL) {
 		remove_proc_entry(DDR_INFO_NAME, drv_data.proc_dir);
-	if (drv_data.proc_dir != NULL)
+		drv_data.info = NULL;
+	}
+
+	if (drv_data.pub_monitor_enable != NULL) {
+		remove_proc_entry(PUB_MONITOR_ENABLE_NAME, drv_data.proc_dir);
+		drv_data.pub_monitor_enable = NULL;
+	}
+
+	if (drv_data.pub_monitor_status != NULL) {
+		remove_proc_entry(PUB_MONITOR_STATUS_NAME, drv_data.proc_dir);
+		drv_data.pub_monitor_status = NULL;
+	}
+
+	if (drv_data.proc_dir != NULL) {
 		remove_proc_entry(DMC_PROC_NAME, NULL);
+		drv_data.proc_dir = NULL;
+	}
 
 	atomic_notifier_chain_unregister(&panic_notifier_list, &dmc_panic_event_nb);
 	return 0;
