@@ -9,7 +9,6 @@
 #include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/kernel.h>
-#include <linux/platform_device.h>
 #include <linux/debugfs.h>
 #include <linux/printk.h>
 #include <linux/unisoc_npu_cooling.h>
@@ -39,18 +38,6 @@ int npu_cooling_device_unregister(void)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(npu_cooling_device_unregister);
-
-static int __init sprd_npu_cooling_device_init(void)
-{
-	return 0;
-}
-
-static void __exit sprd_npu_cooling_device_exit(void)
-{
-}
-
-late_initcall(sprd_npu_cooling_device_init);
-module_exit(sprd_npu_cooling_device_exit);
 
 MODULE_DESCRIPTION("sprd npu cooling driver");
 MODULE_LICENSE("GPL v2");

@@ -9,7 +9,6 @@
 #include <linux/err.h>
 #include <linux/slab.h>
 #include <linux/kernel.h>
-#include <linux/platform_device.h>
 #include <linux/debugfs.h>
 #include <linux/printk.h>
 #include <linux/unisoc_gpu_cooling.h>
@@ -40,18 +39,6 @@ int destroy_gpu_cooling_device(void)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(destroy_gpu_cooling_device);
-
-static int __init sprd_gpu_cooling_device_init(void)
-{
-	return 0;
-}
-
-static void __exit sprd_gpu_cooling_device_exit(void)
-{
-}
-
-late_initcall(sprd_gpu_cooling_device_init);
-module_exit(sprd_gpu_cooling_device_exit);
 
 MODULE_DESCRIPTION("sprd gpu cooling driver");
 MODULE_LICENSE("GPL v2");
