@@ -221,7 +221,8 @@
 #define CLK_DET_32K_EB		94
 #define CLK_TMR_EB		95
 #define CLK_APLL_TEST_EB	96
-#define CLK_AON_APB_GATE_NUM	(CLK_APLL_TEST_EB + 1)
+#define CLK_DJTAG_TCK_EB	97
+#define CLK_AON_APB_GATE_NUM	(CLK_DJTAG_TCK_EB + 1)
 
 #define CLK_GPU			0
 #define CLK_GPU_CLK_NUM		(CLK_GPU + 1)
