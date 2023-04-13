@@ -18,4 +18,24 @@ config SPRD_IPA_SUPPORT
 		This will enable hardware fast path.
 		Hash table and entries on dma.
 		Software fastpath will disnable when this marco open.
+
+config SPRD_SFP_TEST
+	bool "Do snfp test"
+	depends on SPRD_SFP_SUPPORT
+	default m
+	help
+		This will include ipa test module.
+		Do snfp self test.
+		Echo m to test proc file
+		to run foward rule config.
+
+config SPRD_SFP_GCOV
+	bool "open gcov for Software Network Fast Processing"
+	depends on GCOV_PROFILE_MODULES
+	help
+		This will enable gcov.
+		Based on Software Network Fast Processing.
+		Say y in configs.
+		Perform statistics on the entire directory.
+
 endmenu

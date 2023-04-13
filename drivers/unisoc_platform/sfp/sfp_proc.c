@@ -15,6 +15,7 @@
 #include <linux/module.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
+#include <linux/sipa.h>
 #include <linux/ip.h>
 #include <linux/in.h>
 #include <net/route.h>
@@ -31,7 +32,130 @@ static struct proc_dir_entry *sfp_proc_fwd;
 static struct proc_dir_entry *sfp_proc_ipa;
 static struct proc_dir_entry *sfp_proc_enable;
 static struct proc_dir_entry *sfp_proc_tether_scheme;
+#if IS_ENABLED(CONFIG_SPRD_SFP_TEST)
 static struct proc_dir_entry *sfp_test;
+static struct proc_dir_entry *sfp_test_result;
+
+/********Sfp Test and result show********************************/
+static int sfp_test_proc_show(struct seq_file *seq, void *v)
+{
+	//seq_printf(seq, "do test=0x%02x\n", test_count);
+	return 0;
+}
+
+static ssize_t sfp_test_proc_write(struct file *file,
+				   const char __user *buffer,
+				   size_t count,
+				   loff_t *pos)
+{
+	unsigned int level;
+	int ret;
+
+	if (count > 0) {
+		ret = kstrtouint_from_user(buffer, count, 10, &level);
+		FP_PRT_DBG(FP_PRT_DEBUG,
+			   "test_proc = %d, ret %d\n", level, ret);
+		if (ret < 0)
+			return -EFAULT;
+		if (level > 0)
+			sfp_test_init(level);
+	}
+	return count;
+}
+
+static int sfp_test_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sfp_test_proc_show, NULL);
+}
+
+static const struct proc_ops proc_sfp_file_test_ops = {
+	.proc_open  = sfp_test_proc_open,
+	.proc_read  = seq_read,
+	.proc_write  = sfp_test_proc_write,
+	.proc_lseek  = seq_lseek,
+	.proc_release = single_release,
+};
+
+static int sfp_test_result_proc_show(struct seq_file *seq, void *v)
+{
+	seq_printf(seq, "%d\n", test_result);
+	return 0;
+}
+
+static ssize_t sfp_test_result_proc_write(struct file *file,
+					  const char __user *buffer,
+					  size_t count,
+					  loff_t *pos)
+{
+	int result;
+	int ret;
+
+	if (count > 0) {
+		ret = kstrtouint_from_user(buffer, count, 10, &result);
+		FP_PRT_DBG(FP_PRT_DEBUG,
+			   "test_result_proc = %d, ret %d\n", result, ret);
+		if (ret < 0)
+			return -EFAULT;
+
+		test_result = result;
+	}
+	return count;
+}
+
+static int sfp_test_result_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sfp_test_result_proc_show, NULL);
+}
+
+static const struct proc_ops proc_sfp_file_test_result_ops = {
+	.proc_open  = sfp_test_result_proc_open,
+	.proc_read  = seq_read,
+	.proc_write  = sfp_test_result_proc_write,
+	.proc_lseek  = seq_lseek,
+	.proc_release = single_release,
+};
+
+static int sfp_test_proc_create_data(void)
+{
+	int ret;
+
+	sfp_test = proc_create_data("test", proc_nfp_perms,
+				    procdir,
+				    &proc_sfp_file_test_ops,
+				    NULL);
+
+	if (!sfp_test) {
+		pr_err("nfp: failed to create sfp/test file\n");
+		ret = -ENOMEM;
+		goto no_test_entry;
+	}
+
+	sfp_test_result = proc_create_data("test_result", proc_nfp_perms,
+					   procdir,
+					   &proc_sfp_file_test_result_ops,
+					   NULL);
+
+	if (!sfp_test_result) {
+		pr_err("nfp: failed to create sfp/test result file\n");
+		ret = -ENOMEM;
+		goto no_test_result_entry;
+	}
+
+	return 0;
+
+no_test_result_entry:
+	remove_proc_entry("test_result", procdir);
+no_test_entry:
+	remove_proc_entry("test", procdir);
+
+	return ret;
+}
+#else
+static int sfp_test_proc_create_data(void)
+{
+	return 0;
+}
+#endif /* CONFIG_SPRD_SFP_TEST */
 
 unsigned int fp_dbg_lvl = FP_PRT_ALL;
 
@@ -362,45 +486,6 @@ static const struct proc_ops proc_sfp_file_debug_ops = {
 	.proc_release = single_release,
 };
 
-static int sfp_test_proc_show(struct seq_file *seq, void *v)
-{
-	//seq_printf(seq, "do test=0x%02x\n", test_count);
-	return 0;
-}
-
-static ssize_t sfp_test_proc_write(struct file *file,
-				   const char __user *buffer,
-				   size_t count,
-				   loff_t *pos)
-{
-	unsigned int level;
-	int ret;
-
-	if (count > 0) {
-		ret = kstrtouint_from_user(buffer, count, 10, &level);
-		FP_PRT_DBG(FP_PRT_DEBUG,
-			   "test_proc = %d, ret %d\n", level, ret);
-		if (ret < 0)
-			return -EFAULT;
-		//if (level > 0)
-		//	sfp_test_init(level);
-	}
-	return count;
-}
-
-static int sfp_test_proc_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, sfp_test_proc_show, NULL);
-}
-
-static const struct proc_ops proc_sfp_file_test_ops = {
-	.proc_open  = sfp_test_proc_open,
-	.proc_read  = seq_read,
-	.proc_write  = sfp_test_proc_write,
-	.proc_lseek  = seq_lseek,
-	.proc_release = single_release,
-};
-
 /********Mgr_fp fwd show********************************/
 static int sfp_mgr_fwd_proc_show(struct seq_file *seq, void *v)
 {
@@ -718,32 +803,25 @@ int sfp_proc_create(void)
 		goto no_ipa_entry;
 	}
 
-	sfp_test = proc_create_data("test", proc_nfp_perms,
-				    procdir,
-				    &proc_sfp_file_test_ops,
-				    NULL);
+	sfp_test_proc_create_data();
 
-	if (!sfp_test) {
-		pr_err("nfp: failed to create sfp/test file\n");
-		ret = -ENOMEM;
-		goto no_test_entry;
-	}
 	return 0;
-no_test_entry:
-	remove_proc_entry("debug", procdir);
+
 no_tether_scheme_entry:
 	remove_proc_entry("tether_scheme", procdir);
 no_enable_entry:
 	remove_proc_entry("enable", procdir);
 no_debug_entry:
-	remove_proc_entry("sfp_fwd_entries", procdir);
+	remove_proc_entry("debug", procdir);
 no_fwd_entry:
-	remove_proc_entry("mgr_fwd_entries", procdir);
+	remove_proc_entry("sfp_fwd_entries", procdir);
 no_mgr_fwd_entry:
-	remove_proc_entry("sfp", NULL);
+	remove_proc_entry("mgr_fwd_entries", procdir);
 no_ipa_entry:
 	remove_proc_entry("ipa_fwd_entries", procdir);
 no_dir:
+	remove_proc_entry("sfp", NULL);
+
 	return ret;
 #endif
 }
@@ -751,6 +829,7 @@ EXPORT_SYMBOL(sfp_proc_create);
 
 void nfp_proc_exit(void)
 {
+	remove_proc_entry("test_result", procdir);
 	remove_proc_entry("test", procdir);
 	remove_proc_entry("debug", procdir);
 	remove_proc_entry("tether_scheme", procdir);

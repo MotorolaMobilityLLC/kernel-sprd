@@ -1060,7 +1060,7 @@ static int sfp_check_netdevice_change(struct net_device *dev)
 	return ifindex;
 }
 
-static void sfp_clear_fwd_table(int ifindex)
+void sfp_clear_fwd_table(int ifindex)
 {
 	struct sfp_mgr_fwd_tuple_hash *tuple_hash;
 	int i;
