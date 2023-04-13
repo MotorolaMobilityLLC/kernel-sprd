@@ -1011,6 +1011,8 @@ static SPRD_SC_GATE_CLK_FW_NAME(tmr_eb, "tmr-eb", "ext-26m", 0x134,
 				0x1000, BIT(11), CLK_IGNORE_UNUSED, 0);
 static SPRD_SC_GATE_CLK_FW_NAME(apll_test_eb, "apll-test-eb", "ext-26m", 0x134,
 				0x1000, BIT(18), CLK_IGNORE_UNUSED, 0);
+static SPRD_GATE_CLK_FW_NAME(djtag_tck_eb, "djtag-tck-eb", "ext-26m", 0x3044,
+				BIT(10), CLK_IGNORE_UNUSED, 0);
 
 static struct sprd_clk_common *sc9832e_aonapb_gate[] = {
 	/* address base is 0x402e0000 */
@@ -1111,6 +1113,7 @@ static struct sprd_clk_common *sc9832e_aonapb_gate[] = {
 	&det_32k_eb.common,
 	&tmr_eb.common,
 	&apll_test_eb.common,
+	&djtag_tck_eb.common,
 };
 
 static struct clk_hw_onecell_data sc9832e_aonapb_gate_hws = {
@@ -1212,6 +1215,7 @@ static struct clk_hw_onecell_data sc9832e_aonapb_gate_hws = {
 		[CLK_DET_32K_EB]	= &det_32k_eb.common.hw,
 		[CLK_TMR_EB]		= &tmr_eb.common.hw,
 		[CLK_APLL_TEST_EB]	= &apll_test_eb.common.hw,
+		[CLK_DJTAG_TCK_EB]	= &djtag_tck_eb.common.hw,
 	},
 	.num	= CLK_AON_APB_GATE_NUM,
 };
