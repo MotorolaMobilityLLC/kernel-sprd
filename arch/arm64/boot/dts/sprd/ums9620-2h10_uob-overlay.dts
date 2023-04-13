@@ -17,7 +17,9 @@
 #include <dt-bindings/mfd/sprd,ump9620-mask.h>
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
-#include "wcn/wcn-marlin3lite-umw2652-register.dtsi"
+#include "wcn/wcn_modules.h"
+#include "wcn/interface/wcn-sdio-register.dtsi"
+#include "wcn/chip/wcn-marlin3lite-umw2652-register.dtsi"
 
 / {
 

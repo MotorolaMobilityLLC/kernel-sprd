@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-only
+&sprd_marlin3 {
+	wcn-dump {
+		btwf-dump {
+							/* base    size    offset    domain*/
+			sprd,sdio-reg = <0x40140000 0x10000 0 SDIO>;
+		};
+	};
+};

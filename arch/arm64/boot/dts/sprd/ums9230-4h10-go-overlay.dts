@@ -18,9 +18,11 @@
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "touchscreen/ums9230-spi3-gpio144-145-tp.dtsi"
-#include "wcn/wcn-marlin3lite-umw2652-register.dtsi"
 #include "reserved-memory/ums9230-4h10-go-overlay.dtsi"
 #include "battery/ums9230-4h10-go-overlay.dtsi"
+#include "wcn/wcn_modules.h"
+#include "wcn/interface/wcn-sdio-register.dtsi"
+#include "wcn/chip/wcn-marlin3lite-umw2652-register.dtsi"
 
 / {
 

@@ -19,9 +19,10 @@
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "touchscreen/ums9230-spi3-gpio144-145-tp.dtsi"
 #include "battery/ums9230-1h10_go-overlay.dtsi"
-#include "wcn/wcn-integrate-ums2631-register.dtsi"
 #include "reserved-memory/ums9230-1h10-go-overlay.dtsi"
 #include "ums9230/wcn.dtsi"
+#include "wcn/wcn_modules.h"
+#include "wcn/chip/wcn-integrate-sharkl6-register.dtsi"
 
 / {
 
