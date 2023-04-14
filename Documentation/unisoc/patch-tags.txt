@@ -152,6 +152,7 @@ mm:emem:
 mm:memblock:
 mm:vmscan:
 mtd:rawnand:sprd:
+mtd:nand:raw:
 
 net:
 net:ims_bridge:
