@@ -414,8 +414,12 @@ static int sprd_ssphy_init(struct usb_phy *x)
 		ret |= regmap_update_bits(phy->ana_g0l,
 				REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,	msk, reg);
 
-		regmap_write(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
-						phy->device_eye_pattern);
+		if (phy->is_host)
+			regmap_write(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
+				     phy->host_eye_pattern);
+		else
+			regmap_write(phy->ana_g0l, REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_TRIMMING,
+				     phy->device_eye_pattern);
 	}
 
 	/* utmisrp_bvalid  sys vbus valid:0x64900D14*/
