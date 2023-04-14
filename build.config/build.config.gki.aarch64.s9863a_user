@@ -42,6 +42,7 @@ fi
 FILES="${FILES}
 arch/arm64/boot/dts/sprd/sp9863a-base.dtb
 arch/arm64/boot/dts/sprd/sp9863a-1h10-overlay.dtbo
+arch/arm64/boot/dts/sprd/sp9863a-1h10-go-overlay.dtbo
 vmlinux
 "
 #KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc
