@@ -30,6 +30,7 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd_audio/audiocpboot
 ../modules/kernel5.15/audio/sprd_audio/mcdt/mcdt_r1p0
 ../modules/kernel5.15/audio/sprd_audio/audiopipe
+../modules/kernel5.15/audio/sprd_audio/usb_offload
 ../modules/kernel5.15/audio/sprd/machine/sprd_card
 ../modules/kernel5.15/audio/sprd/platform/platform_routing
 ../modules/kernel5.15/audio/sprd/platform/dmaengine_pcm
