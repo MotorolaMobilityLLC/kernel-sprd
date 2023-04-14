@@ -16,7 +16,8 @@
 		clock-names = "enable", "tck";
 		syscon = <&aon_apb_regs REG_AON_APB_APB_RST3
 			MASK_AON_APB_DJTAG_SOFT_RST>;
-		clocks = <&aonapb_gate CLK_DJTAG_EB>;
+		clocks = <&aonapb_gate CLK_DJTAG_EB>,
+			<&aonapb_gate CLK_DJTAG_TCK_EB>;
 		hwlocks = <&hwlock 10>;
 		hwlock-names = "djtag";
 
