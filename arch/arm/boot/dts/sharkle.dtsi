@@ -831,7 +831,7 @@
 					MASK_AON_APB_DJTAG_SOFT_RST>;
 				clock-names = "enable", "tck";
 				clocks = <&aonapb_gate CLK_DJTAG_EB>,
-					<&aonapb_gate CLK_DISP_EMC_EB>;
+					<&aonapb_gate CLK_DJTAG_TCK_EB>;
 				hwlocks = <&hwlock 10>;
 				hwlock-names = "djtag";
 
