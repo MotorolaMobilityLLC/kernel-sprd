@@ -20,6 +20,7 @@ struct apsys_dvfs_reg {
 	u32 reserved_0x0044_0x0048[2];
 	u32 ap_dvfs_cgm_cfg_dbg;
 	u32 ap_dvfs_state_dbg;
+	u32 reserved_0x0054_0x0070[8];
 	u32 vsp_index0_map;
 	u32 vsp_index1_map;
 	u32 vsp_index2_map;
@@ -37,6 +38,7 @@ struct apsys_dvfs_reg {
 	u32 dispc_index5_map;
 	u32 dispc_index6_map;
 	u32 dispc_index7_map;
+	u32 reserved_0x0114_0x0118[2];
 	u32 vsp_dvfs_index_cfg;
 	u32 vsp_dvfs_index_idle_cfg;
 	u32 dispc_dvfs_index_cfg;
@@ -44,6 +46,10 @@ struct apsys_dvfs_reg {
 	u32 ap_freq_upd_state;
 	u32 ap_gfree_wait_delay_cfg;
 	u32 ap_freq_upd_type_cfg;
+	u32 reserved_0x0138_0x013c[2];
+	u32 ap_dfs_idle_disable_cfg;
+	u32 ap_dvfs_vol_ctrl;
+	u32 reserved_0x0148_0x014c[2];
 	u32 ap_dvfs_reserved_reg_cfg0;
 	u32 ap_dvfs_reserved_reg_cfg1;
 	u32 ap_dvfs_reserved_reg_cfg2;
