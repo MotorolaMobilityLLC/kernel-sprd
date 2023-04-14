@@ -728,9 +728,9 @@
 				assigned-clock-parents = <&ext_26m>,
 							 <&ext_26m>,
 							 <&ext_26m>;
-				counter-bits = "8bit",
-					       "8bit",
-					       "8bit";
+				counter-bits = "10bit",
+					       "10bit",
+					       "10bit";
 				#pwm-cells = <2>;
 				status = "disabled";
 			};
