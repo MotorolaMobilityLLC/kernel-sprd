@@ -1992,8 +1992,11 @@
 
 # required by sipa_core.ko
   free_pages
+  get_cpu_idle_time_us
+  kernel_cpustat
   memremap
   memunmap
+  nf_conntrack_register_notifier
   pm_wakeup_dev_event
   skb_dequeue
   skb_queue_tail
@@ -2685,6 +2688,11 @@
   ufshcd_release
   ufshcd_remove
 
+# required by ursp_report.ko
+  netlink_broadcast
+  raw_notifier_chain_unregister
+  sock_i_uid
+
 # required by usb-storage.ko
   blk_queue_bounce_limit
   blk_queue_max_hw_sectors
@@ -2840,3 +2848,5 @@
   set_blocksize
   submit_bio_wait
 
+# required by zsmalloc.ko
+  wait_on_page_bit
