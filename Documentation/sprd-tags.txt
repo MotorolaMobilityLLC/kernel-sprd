@@ -66,6 +66,7 @@ block:zram:
 
 cgroup:
 char:hw_random:
+char:rpmb:
 clk:sprd:
 clocksource:sprd:
 coresight:

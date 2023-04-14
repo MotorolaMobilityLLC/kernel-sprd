@@ -164,12 +164,12 @@ static struct sc27xx_adc_linear_graph ump9620_bat_det_graph = {
 	200, 476,
 };
 
-static const struct sc27xx_adc_linear_graph sc2721_big_scale_graph_calib = {
+static const struct sc27xx_adc_linear_graph sc2731_big_scale_graph_calib = {
 	4200, 850,
 	3600, 728,
 };
 
-static const struct sc27xx_adc_linear_graph sc2721_small_scale_graph_calib = {
+static const struct sc27xx_adc_linear_graph sc2731_small_scale_graph_calib = {
 	1000, 838,
 	100, 84,
 };
@@ -228,11 +228,11 @@ static int sc27xx_adc_scale_calibration(struct sc27xx_adc_data *data,
 	size_t len;
 
 	if (big_scale) {
-		calib_graph = data->var_data->bscale_cal;
+		calib_graph = &sc2731_big_scale_graph_calib;
 		graph = &big_scale_graph;
 		cell_name = "big_scale_calib";
 	} else {
-		calib_graph = data->var_data->sscale_cal;
+		calib_graph = &sc2731_small_scale_graph_calib;
 		graph = &small_scale_graph;
 		cell_name = "small_scale_calib";
 	}
@@ -1024,8 +1024,8 @@ static const struct sc27xx_adc_variant_data sc2731_data = {
 	.clk_en = SC2731_ARM_CLK_EN,
 	.scale_shift = SC2721_ADC_SCALE_SHIFT,
 	.scale_mask = SC2721_ADC_SCALE_MASK,
-	.bscale_cal = &sc2721_big_scale_graph_calib,
-	.sscale_cal = &sc2721_small_scale_graph_calib,
+	.bscale_cal = &sc2731_big_scale_graph_calib,
+	.sscale_cal = &sc2731_small_scale_graph_calib,
 	.init_scale = sc2731_adc_scale_init,
 	.get_ratio = sc2731_adc_get_ratio,
 };
@@ -1036,8 +1036,8 @@ static const struct sc27xx_adc_variant_data sc2721_data = {
 	.clk_en = SC2721_ARM_CLK_EN,
 	.scale_shift = SC2721_ADC_SCALE_SHIFT,
 	.scale_mask = SC2721_ADC_SCALE_MASK,
-	.bscale_cal = &sc2721_big_scale_graph_calib,
-	.sscale_cal = &sc2721_small_scale_graph_calib,
+	.bscale_cal = &sc2731_big_scale_graph_calib,
+	.sscale_cal = &sc2731_small_scale_graph_calib,
 	.init_scale = sc2731_adc_scale_init,
 	.get_ratio = sc2721_adc_get_ratio,
 };

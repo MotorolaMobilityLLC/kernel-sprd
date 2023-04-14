@@ -1455,10 +1455,6 @@ static void pagetypeinfo_showblockcount_print(struct seq_file *m,
 		if (!page)
 			continue;
 
-		/* Watch for unexpected holes punched in the memmap */
-		if (!memmap_valid_within(pfn, page, zone))
-			continue;
-
 		if (page_zone(page) != zone)
 			continue;
 
@@ -2233,10 +2229,6 @@ static void pagetypeinfo_showblockcount_dump(struct seq_buf *m,
 
 		page = pfn_to_online_page(pfn);
 		if (!page)
-			continue;
-
-		/* Watch for unexpected holes punched in the memmap */
-		if (!memmap_valid_within(pfn, page, zone))
 			continue;
 
 		if (page_zone(page) != zone)
