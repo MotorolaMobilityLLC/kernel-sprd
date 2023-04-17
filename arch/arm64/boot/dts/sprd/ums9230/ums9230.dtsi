@@ -751,7 +751,8 @@
 
 			dpu: dpu@31000000 {
 				compatible = "sprd,qogirl6-dpu";
-				reg = <0x0 0x31000000 0x0 0x1000>;
+				reg = <0x0 0x31000000 0x0 0x1000>,
+				      <0x0 0x31001000 0x0 0x1000>;
 				disp-reset-syscon = <&ap_ahb_regs 0x0004 0x2>;
 				iommu-reset-syscon = <&ap_ahb_regs 0x0004 0x4000>;
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
