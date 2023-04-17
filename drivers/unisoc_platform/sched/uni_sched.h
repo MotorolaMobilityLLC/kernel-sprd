@@ -148,6 +148,8 @@ static inline unsigned long task_util_est(struct task_struct *p)
 extern struct ctl_table sched_base_table[];
 extern unsigned int sysctl_sched_uclamp_threshold;
 extern unsigned int sysctl_sched_task_util_prefer_little;
+extern unsigned int sysctl_sched_long_running_rt_task_ms;
+extern unsigned int sysctl_sched_rt_task_timeout_panic;
 #if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
 extern unsigned int sysctl_sched_uclamp_min_to_boost;
 #endif
@@ -193,6 +195,8 @@ static inline int same_cluster(int src_cpu, int dst_cpu)
 extern void rt_init(void);
 extern void fair_init(void);
 extern int proc_cpuload_init(void);
+extern int sched_long_running_rt_task_ms_handler(struct ctl_table *table, int write,
+	void __user *buffer, size_t *lenp, loff_t *ppos);
 
 #ifdef CONFIG_UNISOC_HUNG_TASK_ENH
 extern int hung_task_enh_init(void);

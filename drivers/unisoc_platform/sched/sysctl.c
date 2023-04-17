@@ -23,7 +23,10 @@ unsigned int sysctl_sched_spc_threshold = 100;
 #endif
 #if IS_ENABLED(CONFIG_SCHED_WALT)
 static int one_hundred = 100;
+static int two_thousand = 2000;
 unsigned int sysctl_walt_account_irq_time = 1;
+unsigned int sysctl_sched_long_running_rt_task_ms = CONFIG_UNISOC_RT_TIMEOUT_DETECT_MS;
+unsigned int sysctl_sched_rt_task_timeout_panic;
 #endif
 unsigned int sysctl_sched_task_util_prefer_little;
 
@@ -192,6 +195,24 @@ struct ctl_table sched_table[] = {
 		.procname	= "walt_account_irq_time",
 		.data		= &sysctl_walt_account_irq_time,
 		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
+	},
+	{
+		.procname	= "sched_long_running_rt_task_ms",
+		.data		= &sysctl_sched_long_running_rt_task_ms,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sched_long_running_rt_task_ms_handler,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= &two_thousand,
+	},
+	{
+		.procname	= "sched_rt_task_timeout_panic",
+		.data		= &sysctl_sched_rt_task_timeout_panic,
+		.maxlen		= sizeof(int),
 		.mode		= 0644,
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= SYSCTL_ZERO,

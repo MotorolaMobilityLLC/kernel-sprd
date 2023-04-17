@@ -101,4 +101,16 @@ config UNISOC_HUNG_TASK_ENH
 	  of the list.
 	  If N, check all tasks.
 
+config UNISOC_RT_TIMEOUT_DETECT_MS
+	int "Unisoc long running rt task detect"
+	range 0 2000
+	default 0
+	depends on UNISOC_SCHED
+	help
+	  This feature is used to detect long running rt task and print warn
+	  info.
+	  In userdebug version, this feature should be enabled by default,
+	  and the default timeout is 800.
+	  In user version, user decides whether to open it by sysctl.
+
 endmenu

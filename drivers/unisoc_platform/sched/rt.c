@@ -9,7 +9,97 @@
 
 #if IS_ENABLED(CONFIG_SCHED_WALT)
 
+#define MSEC_TO_NSEC (1000 * 1000)
+
 static DEFINE_PER_CPU(cpumask_var_t, walt_local_cpu_mask);
+DEFINE_PER_CPU(u64, rt_task_arrival_time) = 0;
+static bool long_running_rt_task_trace_rgstrd;
+
+static void rt_task_arrival_marker(void *unused, bool preempt,
+	struct task_struct *prev, struct task_struct *next)
+{
+	unsigned int cpu = raw_smp_processor_id();
+
+	if ((next->policy == SCHED_FIFO || next->policy == SCHED_RR) && next != cpu_rq(cpu)->stop)
+		per_cpu(rt_task_arrival_time, cpu) = rq_clock_task(this_rq());
+	else
+		per_cpu(rt_task_arrival_time, cpu) = 0;
+}
+
+static void long_running_rt_task_notifier(void *unused, struct rq *rq)
+{
+	struct task_struct *curr = rq->curr;
+	unsigned int cpu = raw_smp_processor_id();
+	char buf[200] = {0};
+
+	if (!sysctl_sched_long_running_rt_task_ms)
+		return;
+
+	if (!per_cpu(rt_task_arrival_time, cpu))
+		return;
+
+	if (per_cpu(rt_task_arrival_time, cpu) &&
+		curr->policy != SCHED_FIFO && curr->policy != SCHED_RR) {
+		/*
+		 * It is possible that the scheduling policy for the current
+		 * task might get changed after task arrival time stamp is
+		 * noted during sched_switch of RT task. To avoid such false
+		 * positives, reset arrival time stamp.
+		 */
+		per_cpu(rt_task_arrival_time, cpu) = 0;
+		return;
+	}
+
+	/*
+	 * Since we are called from the main tick, rq clock task must have
+	 * been updated very recently. Use it directly, instead of
+	 * update_rq_clock_task() to avoid warnings.
+	 */
+	if (rq->clock_task -
+		per_cpu(rt_task_arrival_time, cpu)
+			> sysctl_sched_long_running_rt_task_ms * MSEC_TO_NSEC) {
+		sprintf(buf,
+			"RT task %s (%d) runtime > %u now=%llu task arrival time=%llu runtime=%llu\n",
+			curr->comm, curr->pid,
+			sysctl_sched_long_running_rt_task_ms * MSEC_TO_NSEC,
+			rq->clock_task,
+			per_cpu(rt_task_arrival_time, cpu),
+			rq->clock_task -
+			per_cpu(rt_task_arrival_time, cpu));
+		if (sysctl_sched_rt_task_timeout_panic) {
+			panic("%s", buf);
+		} else {
+			printk_deferred("%s", buf);
+			WARN_ON(1);
+		}
+	}
+}
+
+int sched_long_running_rt_task_ms_handler(struct ctl_table *table, int write,
+				       void __user *buffer, size_t *lenp,
+				       loff_t *ppos)
+{
+	int ret;
+	static DEFINE_MUTEX(mutex);
+
+	mutex_lock(&mutex);
+
+	ret = proc_douintvec_minmax(table, write, buffer, lenp, ppos);
+
+	if (sysctl_sched_long_running_rt_task_ms > 0 &&
+			sysctl_sched_long_running_rt_task_ms < 800)
+		sysctl_sched_long_running_rt_task_ms = 800;
+
+	if (write && !long_running_rt_task_trace_rgstrd) {
+		register_trace_sched_switch(rt_task_arrival_marker, NULL);
+		register_trace_android_vh_scheduler_tick(long_running_rt_task_notifier, NULL);
+		long_running_rt_task_trace_rgstrd = true;
+	}
+
+	mutex_unlock(&mutex);
+
+	return ret;
+}
 
 static int is_idle_cpu(int cpu)
 {
@@ -278,6 +368,12 @@ void rt_init(void)
 
 	register_trace_android_rvh_select_task_rq_rt(walt_select_task_rq_rt, NULL);
 	register_trace_android_rvh_find_lowest_rq(walt_rt_filter_energy_cpu, NULL);
+
+	if (sysctl_sched_long_running_rt_task_ms > 0) {
+		register_trace_sched_switch(rt_task_arrival_marker, NULL);
+		register_trace_android_vh_scheduler_tick(long_running_rt_task_notifier, NULL);
+		long_running_rt_task_trace_rgstrd = true;
+	}
 #endif
 	register_trace_android_rvh_rto_next_cpu(android_rvh_rto_next_cpu, NULL);
 }
