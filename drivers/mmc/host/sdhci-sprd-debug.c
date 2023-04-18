@@ -34,6 +34,8 @@
 #include <linux/mmc/sdio_func.h>
 
 #define MMC_ARRAY_SIZE 14	/* 2^(14-2) = 4096ms/blocks */
+#define MMC_SPEED_0M 0
+#define MMC_SPEED_1M 100
 /*
  * convert ms to index: (ilog2(ms) + 1)
  * array[6]++ means the time is: 32ms <= time < 64ms
@@ -52,6 +54,7 @@ struct mmc_debug_info {
 	u32 cmd;
 	u32 arg;
 	u32 blocks;
+	u32 intmask;
 	u32 cnt_time;
 	u64 read_total_blocks;
 	u64 write_total_blocks;
@@ -75,15 +78,21 @@ static struct mmc_debug_info mmc_debug[3] = {
 	{.name = "mmc0"}, {.name = "mmc1"}, {.name = "mmc2"}
 };
 
-void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host)
+static void mmc_debug_is_emmc(struct sdhci_host *host, struct mmc_debug_info *info)
+{
+	bool flag = true;
+
+	if (HOST_IS_EMMC_TYPE(host->mmc) && info->mrq &&
+		host->mmc->cqe_ops->cqe_timeout)
+		host->mmc->cqe_ops->cqe_timeout(host->mmc, info->mrq, &flag);
+}
+
+static void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host)
 {
 	u64 read_speed = 0;
 	u64 write_speed = 0;
 	u64 wspeed_temp = 0, rspeed_temp = 0;
 	u64 wspeed_mod = 0, rspeed_mod = 0;
-#if IS_ENABLED(CONFIG_MMC_SWCQ)
-	bool flag = true;
-#endif
 
 	if ((ktime_to_ms(ktime_get()) - info->cnt_time) > (10000ULL)) {
 		/* calculate read/write speed */
@@ -107,12 +116,9 @@ void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host)
 		pr_err("|__speed%7s: r= %lld.%lld M/s, w= %lld.%lld M/s, r_blk= %d, w_blk= %d\n",
 			info->name, rspeed_temp, rspeed_mod, wspeed_temp, wspeed_mod,
 			info->read_total_blocks, info->write_total_blocks);
-#if IS_ENABLED(CONFIG_MMC_SWCQ)
-		if (!strcmp(info->name, "mmc0") && info->mrq && host->mmc->cqe_ops->cqe_timeout &&
-			((read_speed > 0 && read_speed < 100) ||
-			(write_speed > 0 && write_speed < 100)))
-			host->mmc->cqe_ops->cqe_timeout(host->mmc, info->mrq, &flag);
-#endif
+		if ((read_speed > MMC_SPEED_0M && read_speed < MMC_SPEED_1M) ||
+			(write_speed > MMC_SPEED_0M && write_speed < MMC_SPEED_1M))
+			mmc_debug_is_emmc(host, info);
 
 		/* clear mmc_debug structure except name*/
 		memset(&info->cmd, 0, sizeof(struct mmc_debug_info) - 8);
@@ -120,7 +126,7 @@ void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host)
 	}
 }
 
-void mmc_debug_calc(struct mmc_debug_info *info)
+static void mmc_debug_calc(struct mmc_debug_info *info)
 {
 	u32 cmd = info->cmd;
 
@@ -142,23 +148,12 @@ void mmc_debug_calc(struct mmc_debug_info *info)
 	}
 }
 
-void mmc_debug_is_emmc(struct sdhci_host *host, struct mmc_debug_info *info)
-{
-#if IS_ENABLED(CONFIG_MMC_SWCQ)
-		bool flag = true;
-
-	if (!strcmp(info->name, "mmc0") && info->mrq &&
-		host->mmc->cqe_ops->cqe_timeout)
-		host->mmc->cqe_ops->cqe_timeout(host->mmc, info->mrq, &flag);
-#endif
-}
-
-void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info *info, u32 type)
+static void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info *info)
 {
 	u8 index;
 	u32 msecs;
 
-	if (type & SDHCI_INT_CMD_MASK) {
+	if (info->intmask & SDHCI_INT_RESPONSE) {
 		/* cmd interrupt respond */
 		info->end_time = ktime_get();
 		msecs = ktime_to_ms(info->end_time - info->start_time);
@@ -170,7 +165,9 @@ void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info *info, 
 			info->mrq, sdhci_readl(host, SDHCI_RESPONSE));
 			mmc_debug_is_emmc(host, info);
 		}
-	} else if (type & SDHCI_INT_DATA_MASK) {
+	}
+
+	if (info->intmask & SDHCI_INT_DATA_END) {
 		/* data interrupt respond */
 		info->end_time = ktime_get();
 		msecs = ktime_to_ms(info->end_time - info->start_time);
@@ -189,7 +186,7 @@ void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info *info, 
 	}
 }
 
-void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 type)
+void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 intmask)
 {
 	struct mmc_debug_info *info = NULL;
 	u8 i;
@@ -203,7 +200,7 @@ void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 type
 	if (!info)
 		return;
 
-	if (!type && cmd) {
+	if (!intmask && cmd) {
 		/* send cmd */
 		info->cmd = cmd->opcode;
 		info->arg = cmd->arg;
@@ -214,8 +211,10 @@ void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 type
 		return;
 	}
 
-	if (info->start_time)
-		mmc_debug_handle_rsp(host, info, type);
+	/* handle mmc interrupt */
+	info->intmask = intmask;
+	if (!(intmask & SDHCI_INT_ERROR_MASK) && info->start_time)
+		mmc_debug_handle_rsp(host, info);
 }
 EXPORT_SYMBOL(mmc_debug_update);
 
