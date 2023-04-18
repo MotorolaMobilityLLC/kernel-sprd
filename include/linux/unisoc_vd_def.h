@@ -28,6 +28,7 @@
  */
 
 struct uni_task_struct {
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	#define RAVG_HIST_SIZE_MAX  6
 	/*
 	 * 'mark_start' marks the beginning of an event (task waking up, task
@@ -60,6 +61,7 @@ struct uni_task_struct {
 	 * of this task
 	 */
 	u32 init_load_pct;
+#endif
 	u64 last_sleep_ts;
 	u64 last_enqueue_ts;
 	u64 last_wakeup_ts;
@@ -94,6 +96,7 @@ struct uni_rq {
 	struct sched_cluster	*cluster;
 
 	unsigned long sched_flag;
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	u64 cumulative_runnable_avg;
 	u64 window_start;
 	u64 curr_runnable_sum;
@@ -107,6 +110,7 @@ struct uni_rq {
 		CPU_BUSY_PREPARE,
 		CPU_BUSY_SET,
 	} is_busy;
+#endif
 };
 
 #ifdef CONFIG_UCLAMP_TASK_GROUP
@@ -123,10 +127,12 @@ struct uni_task_group {
 	/* Boost value for tasks in CGroup */
 	int boost;
 
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	int account_wait_time;
 	u32 init_task_load_pct;
 
 	int prefer_active;
+#endif
 };
 #endif
 

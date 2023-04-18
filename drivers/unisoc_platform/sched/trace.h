@@ -11,6 +11,7 @@
 
 #include <linux/tracepoint.h>
 
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 struct uni_task_ravg;
 struct uni_rq;
 struct pd_cache;
@@ -390,6 +391,7 @@ TRACE_EVENT(sched_task_rotation,
 		__entry->src_pid, __entry->dst_pid
 	)
 );
+#endif
 #endif
 #ifdef CONFIG_UNISOC_GROUP_BOOST
 /*

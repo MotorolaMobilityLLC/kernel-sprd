@@ -4,9 +4,8 @@
  */
 
 #include <linux/sysctl.h>
-#include "walt.h"
+#include "uni_sched.h"
 
-static int one_hundred = 100;
 static int one_thousand = 1000;
 
 #if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
@@ -22,7 +21,10 @@ EXPORT_SYMBOL_GPL(sysctl_sched_uclamp_threshold);
 #ifdef CONFIG_UNISOC_GROUP_BOOST
 unsigned int sysctl_sched_spc_threshold = 100;
 #endif
+#if IS_ENABLED(CONFIG_SCHED_WALT)
+static int one_hundred = 100;
 unsigned int sysctl_walt_account_irq_time = 1;
+#endif
 unsigned int sysctl_sched_task_util_prefer_little;
 
 /*up cap margin default value: ~20%*/
@@ -32,8 +34,8 @@ static unsigned int sysctl_sched_cap_margin_up_pct[MAX_CLUSTERS] = {
 static unsigned int sysctl_sched_cap_margin_dn_pct[MAX_CLUSTERS]  = {
 					[0 ... MAX_CLUSTERS-1] = 80};
 
-unsigned int sched_cap_margin_up[WALT_NR_CPUS] = { [0 ... WALT_NR_CPUS-1] = 1280};
-unsigned int sched_cap_margin_dn[WALT_NR_CPUS] = { [0 ... WALT_NR_CPUS-1] = 1280};
+unsigned int sched_cap_margin_up[UNI_NR_CPUS] = { [0 ... UNI_NR_CPUS-1] = 1280};
+unsigned int sched_cap_margin_dn[UNI_NR_CPUS] = { [0 ... UNI_NR_CPUS-1] = 1280};
 
 #ifdef CONFIG_PROC_SYSCTL
 static void sched_update_cap_migrate_values(bool up)
@@ -141,7 +143,8 @@ struct ctl_table rotation_table[] = {
 	{ },
 };
 #endif
-struct ctl_table walt_table[] = {
+struct ctl_table sched_table[] = {
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	{
 		.procname	= "sched_walt_init_task_load_pct",
 		.data		= &sysctl_sched_walt_init_task_load_pct,
@@ -186,6 +189,16 @@ struct ctl_table walt_table[] = {
 		.extra2		= SYSCTL_ONE,
 	},
 	{
+		.procname	= "walt_account_irq_time",
+		.data		= &sysctl_walt_account_irq_time,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
+	},
+#endif
+	{
 		.procname	= "sched_uclamp_threshold",
 		.data		= &sysctl_sched_uclamp_threshold,
 		.maxlen		= sizeof(unsigned int),
@@ -214,15 +227,6 @@ struct ctl_table walt_table[] = {
 		.extra2		= &one_thousand,
 	},
 #endif
-	{
-		.procname	= "walt_account_irq_time",
-		.data		= &sysctl_walt_account_irq_time,
-		.maxlen		= sizeof(unsigned int),
-		.mode		= 0644,
-		.proc_handler	= proc_dointvec_minmax,
-		.extra1		= SYSCTL_ZERO,
-		.extra2		= SYSCTL_ONE,
-	},
 #ifdef CONFIG_PROC_SYSCTL
 	{
 		.procname	= "sched_cap_margin_up",
@@ -257,19 +261,21 @@ struct ctl_table walt_table[] = {
 		.child		= rotation_table,
 	},
 #endif
+#ifdef CONFIG_UNISOC_GROUP_CTL
 	{
 		.procname	= "group_ctl",
 		.mode		= 0555,
 		.child		= boost_table,
 	},
+#endif
 	{ }
 };
 
-struct ctl_table walt_base_table[] = {
+struct ctl_table sched_base_table[] = {
 	{
-		.procname	= "walt",
+		.procname	= "unisched",
 		.mode		= 0555,
-		.child		= walt_table,
+		.child		= sched_table,
 	},
 	{ },
 };

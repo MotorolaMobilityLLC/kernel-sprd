@@ -9,21 +9,15 @@
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/cpufreq.h>
+#include <linux/sched/cpufreq.h>
+#include <linux/sched/prio.h>
 #include <trace/events/power.h>
 #include <trace/hooks/sched.h>
 
-#if IS_ENABLED(CONFIG_SCHED_WALT)
-#include "walt.h"
-#else
-#include <linux/sched/cpufreq.h>
-#include <linux/sched/prio.h>
-#include "../../../kernel/sched/sched.h"
-
-#endif
+#include "uni_sched.h"
 
 #define IOWAIT_BOOST_MIN	(SCHED_CAPACITY_SCALE / 8)
 #define DEFAULT_CPUMASK_FREQ_MARGIN		25
-
 
 struct sugov_tunables {
 	struct gov_attr_set	attr_set;
@@ -1158,9 +1152,7 @@ struct cpufreq_governor unisoc_gov_schedutil = {
 	.limits			= usc_sugov_limits,
 };
 
-cpufreq_governor_init(unisoc_gov_schedutil);
-cpufreq_governor_exit(unisoc_gov_schedutil);
-
-MODULE_DESCRIPTION("CPUfreq policy governor 'schedutil_unisoc'");
-MODULE_LICENSE("GPL");
-
+int uscfreq_gov_register(void)
+{
+	return cpufreq_register_governor(&unisoc_gov_schedutil);
+}

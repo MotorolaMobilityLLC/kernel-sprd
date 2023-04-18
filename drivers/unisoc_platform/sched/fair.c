@@ -5,7 +5,9 @@
 
 #include <trace/hooks/sched.h>
 
-#include "walt.h"
+#include "uni_sched.h"
+
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 
 /*
  * Remove and clamp on negative, from a local variable.
@@ -167,7 +169,7 @@ static void check_for_task_rotation(struct rq *src_rq)
 	if (big_task < BIG_TASK_NUM)
 		return;
 
-	wc = walt_ktime_clock();
+	wc = sched_ktime_clock();
 	for_each_possible_cpu(i) {
 		struct rq *rq = cpu_rq(i);
 		struct task_struct *curr_task = rq->curr;
@@ -495,7 +497,7 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 	unsigned int min_exit_lat = UINT_MAX;
 	struct cpuidle_state *idle;
 	struct perf_domain *pd;
-	struct pd_cache pdc[WALT_NR_CPUS];
+	struct pd_cache pdc[UNI_NR_CPUS];
 	struct cpumask cpus;
 
 	rcu_read_lock();
@@ -705,7 +707,7 @@ static void walt_select_task_rq_fair(void *data, struct task_struct *p, int prev
 {
 	int sync;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	/* just record the last cpu */
@@ -763,7 +765,7 @@ static void walt_migrate_queued_task(void *data, struct rq *rq,
 				     struct rq_flags *rf, struct task_struct *p,
 				     int new_cpu, int *detached)
 {
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	/*
@@ -787,7 +789,7 @@ static void walt_can_migrate_task(void *data, struct task_struct *p,
 {
 	struct uni_rq *uni_rq = (struct uni_rq *) task_rq(p)->android_vendor_data1;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	/* Don't detach task if it is under active migration */
@@ -800,7 +802,7 @@ static void walt_find_busiest_group(void *data, struct sched_group *busiest,
 {
 	int busiest_cpu;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	if (!busiest)
@@ -824,7 +826,7 @@ static void walt_find_busiest_group(void *data, struct sched_group *busiest,
  *                                     struct cpumask *env_cpus,
  *                                     struct rq **busiest, int *done)
  * {
- *         if (static_branch_unlikely(&walt_disabled))
+ *         if (static_branch_unlikely(&uni_sched_disabled))
  *                 return;
  * }
  */
@@ -832,7 +834,7 @@ static void walt_find_busiest_group(void *data, struct sched_group *busiest,
 static void walt_nohz_balancer_kick(void *data, struct rq *rq,
 					unsigned int *flags, int *done)
 {
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	if (rq->nr_running >= 2 && (cpu_overutilized(rq->cpu) ||
@@ -852,7 +854,7 @@ static void walt_find_new_ilb(void *data, struct cpumask *nohz_idle_cpus_mask,
 	unsigned long best_cap, best_cap_cpu = -1;
 	int is_small_cpu;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	cpumask_and(&idle_cpus, nohz_idle_cpus_mask,
@@ -978,7 +980,7 @@ static void android_vh_scheduler_tick(void *unused, struct rq *rq)
 	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 	int ret;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	if (!is_fair_task(p) || !rq->misfit_task_load ||
@@ -1031,7 +1033,7 @@ out_unlock:
 
 static void walt_cpu_overutilzed(void *data, int cpu, int *overutilized)
 {
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	*overutilized = cpu_overutilized(cpu);
@@ -1043,7 +1045,7 @@ static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 	struct uni_task_struct *uni_tsk;
 	struct uni_rq *uni_rq;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	*need_update = false;
@@ -1085,9 +1087,11 @@ static void android_rvh_place_entity(void *data, struct cfs_rq *cfs_rq,
 	if ((s64)sleep_time > 60LL * NSEC_PER_SEC)
 		se->vruntime = *vruntime;
 }
+#endif
 
-void walt_fair_init(void)
+void fair_init(void)
 {
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	register_trace_android_rvh_update_misfit_status(android_rvh_update_misfit_status, NULL);
 	register_trace_android_rvh_cpu_overutilized(walt_cpu_overutilzed, NULL);
 	register_trace_android_vh_scheduler_tick(android_vh_scheduler_tick, NULL);
@@ -1101,4 +1105,5 @@ void walt_fair_init(void)
 	register_trace_android_rvh_place_entity(android_rvh_place_entity, NULL);
 
 	rotation_task_init();
+#endif
 }

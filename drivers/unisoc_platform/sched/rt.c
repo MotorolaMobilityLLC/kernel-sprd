@@ -5,7 +5,9 @@
 
 #include <trace/hooks/sched.h>
 
-#include "walt.h"
+#include "uni_sched.h"
+
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 
 static DEFINE_PER_CPU(cpumask_var_t, walt_local_cpu_mask);
 
@@ -76,7 +78,7 @@ static void walt_rt_filter_energy_cpu(void *data, struct task_struct *task,
 	unsigned long min_util = UINT_MAX;
 	struct cpuidle_state *idle;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	if (!ret)
@@ -164,7 +166,7 @@ static void walt_select_task_rq_rt(void *data, struct task_struct *p, int cpu,
 	bool may_not_preempt;
 	int ret;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	/* For anything but wake ups, just return the task_cpu */
@@ -245,9 +247,25 @@ unlock:
 	rcu_read_unlock();
 
 }
+#endif
 
-void walt_rt_init(void)
+static void android_rvh_rto_next_cpu(void *data, int rto_cpu,
+					struct cpumask *rto_mask, int *cpu)
 {
+	struct cpumask tmp_cpumask;
+	int curr_cpu = smp_processor_id();
+
+	cpumask_and(&tmp_cpumask, rto_mask, cpu_active_mask);
+
+	if (rto_cpu == -1 && cpumask_weight(&tmp_cpumask) == 1 &&
+			     cpumask_test_cpu(curr_cpu, &tmp_cpumask))
+		*cpu = -1;
+
+}
+
+void rt_init(void)
+{
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	unsigned int i;
 
 	for_each_possible_cpu(i) {
@@ -260,5 +278,6 @@ void walt_rt_init(void)
 
 	register_trace_android_rvh_select_task_rq_rt(walt_select_task_rq_rt, NULL);
 	register_trace_android_rvh_find_lowest_rq(walt_rt_filter_energy_cpu, NULL);
-
+#endif
+	register_trace_android_rvh_rto_next_cpu(android_rvh_rto_next_cpu, NULL);
 }

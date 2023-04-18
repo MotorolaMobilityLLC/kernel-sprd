@@ -3,7 +3,8 @@
  * Copyright (c) 2022, Unisoc, Inc.
  */
 
-#include "walt.h"
+#include <trace/hooks/cgroup.h>
+#include "uni_sched.h"
 
 enum cgroup_name {
 	ROOT_GROUP = 0,
@@ -64,7 +65,6 @@ unsigned long boosted_cpu_util(int cpu, unsigned long util)
 
 	return util + margin;
 }
-EXPORT_SYMBOL_GPL(boosted_cpu_util);
 
 static inline bool
 group_boost_cpu_active(int idx, struct boost_groups *bg)
@@ -164,7 +164,7 @@ static int group_boost_val_update(int idx, int boost)
 	return 0;
 }
 
-void walt_group_boost_enqueue(struct rq *rq, struct task_struct *p)
+void group_boost_enqueue(struct rq *rq, struct task_struct *p)
 {
 	int cpu = cpu_of(rq);
 	struct boost_groups *bg = &per_cpu(cpu_boost_groups, cpu);
@@ -191,7 +191,7 @@ unlock:
 	raw_spin_unlock_irqrestore(&bg->lock, irq_flags);
 }
 
-void walt_group_boost_dequeue(struct rq *rq, struct task_struct *p)
+void group_boost_dequeue(struct rq *rq, struct task_struct *p)
 {
 	int cpu = cpu_of(rq);
 	struct boost_groups *bg = &per_cpu(cpu_boost_groups, cpu);
@@ -217,19 +217,21 @@ unlock:
 }
 #endif
 
-static void walt_init_tg_params(struct task_group *tg)
+static void init_tg_params(struct task_group *tg)
 {
 	struct uni_task_group *uni_tg;
 
 	uni_tg = (struct uni_task_group *) tg->android_vendor_data1;
 
 	uni_tg->boost = 0;
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	uni_tg->account_wait_time = 1;
 	uni_tg->init_task_load_pct = 0;
 	uni_tg->prefer_active = 0;
+#endif
 }
 
-static void walt_update_root_group(struct cgroup_subsys_state *css)
+static void update_root_group(struct cgroup_subsys_state *css)
 {
 	struct task_group *tg = css_tg(css);
 	struct uni_task_group *uni_tg;
@@ -239,10 +241,10 @@ static void walt_update_root_group(struct cgroup_subsys_state *css)
 	uni_tg->idx = ROOT_GROUP;
 	cgrp_table[ROOT_GROUP] = uni_tg;
 
-	walt_init_tg_params(tg);
+	init_tg_params(tg);
 }
 
-void walt_update_task_group(struct cgroup_subsys_state *css)
+static void update_task_group(struct cgroup_subsys_state *css)
 {
 	struct task_group *tg = css_tg(css);
 	struct uni_task_group *uni_tg;
@@ -269,7 +271,7 @@ void walt_update_task_group(struct cgroup_subsys_state *css)
 		cgrp_table[OTHER_GROUPS] = uni_tg;
 	}
 
-	walt_init_tg_params(tg);
+	init_tg_params(tg);
 }
 
 #ifdef CONFIG_UNISOC_GROUP_BOOST
@@ -324,6 +326,7 @@ unlock_mutex:
 	return ret;
 }
 #endif
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 static int sched_account_wait_time_handler(struct ctl_table *table, int write,
 				 void __user *buffer, size_t *lenp,
 				 loff_t *ppos)
@@ -409,6 +412,7 @@ unlock_mutex:
 
 	return ret;
 }
+#endif
 
 struct ctl_table root_grp_table[] = {
 #ifdef CONFIG_UNISOC_GROUP_BOOST
@@ -420,6 +424,7 @@ struct ctl_table root_grp_table[] = {
 		.proc_handler	= sched_group_boost_handler,
 	},
 #endif
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	{
 		.procname	= "account_wait_time",
 		.data		= (int *)ROOT_GROUP,
@@ -434,6 +439,7 @@ struct ctl_table root_grp_table[] = {
 		.mode		= 0644,
 		.proc_handler	= sched_init_load_pct_handler,
 	},
+#endif
 	{ },
 };
 
@@ -447,6 +453,7 @@ struct ctl_table topapp_table[] = {
 		.proc_handler	= sched_group_boost_handler,
 	},
 #endif
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	{
 		.procname	= "account_wait_time",
 		.data		= (int *)TOP_APP,
@@ -461,6 +468,7 @@ struct ctl_table topapp_table[] = {
 		.mode		= 0644,
 		.proc_handler	= sched_init_load_pct_handler,
 	},
+#endif
 	{ },
 };
 
@@ -474,6 +482,7 @@ struct ctl_table foreground_table[] = {
 		.proc_handler	= sched_group_boost_handler,
 	},
 #endif
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	{
 		.procname	= "account_wait_time",
 		.data		= (int *)FOREGROUND,
@@ -488,6 +497,7 @@ struct ctl_table foreground_table[] = {
 		.mode		= 0644,
 		.proc_handler	= sched_init_load_pct_handler,
 	},
+#endif
 	{ },
 };
 
@@ -501,6 +511,7 @@ struct ctl_table camera_daemon_table[] = {
 		.proc_handler	= sched_group_boost_handler,
 	},
 #endif
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	{
 		.procname	= "account_wait_time",
 		.data		= (int *)CAMERA_DAEMON,
@@ -515,6 +526,7 @@ struct ctl_table camera_daemon_table[] = {
 		.mode		= 0644,
 		.proc_handler	= sched_init_load_pct_handler,
 	},
+#endif
 	{ },
 };
 
@@ -528,6 +540,7 @@ struct ctl_table background_table[] = {
 		.proc_handler	= sched_group_boost_handler,
 	},
 #endif
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	{
 		.procname	= "account_wait_time",
 		.data		= (int *)BACKGROUND,
@@ -542,6 +555,7 @@ struct ctl_table background_table[] = {
 		.mode		= 0644,
 		.proc_handler	= sched_init_load_pct_handler,
 	},
+#endif
 	{ },
 };
 
@@ -555,6 +569,7 @@ struct ctl_table system_table[] = {
 		.proc_handler	= sched_group_boost_handler,
 	},
 #endif
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	{
 		.procname	= "account_wait_time",
 		.data		= (int *)SYSTEM_GROUP,
@@ -569,6 +584,7 @@ struct ctl_table system_table[] = {
 		.mode		= 0644,
 		.proc_handler	= sched_init_load_pct_handler,
 	},
+#endif
 	{ },
 };
 
@@ -582,6 +598,7 @@ struct ctl_table other_group_table[] = {
 		.proc_handler	= sched_group_boost_handler,
 	},
 #endif
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	{
 		.procname	= "account_wait_time",
 		.data		= (int *)OTHER_GROUPS,
@@ -596,6 +613,7 @@ struct ctl_table other_group_table[] = {
 		.mode		= 0644,
 		.proc_handler	= sched_init_load_pct_handler,
 	},
+#endif
 	{ },
 };
 
@@ -638,7 +656,15 @@ struct ctl_table boost_table[] = {
 	{ }
 };
 
-void walt_init_group_control(void)
+static void android_rvh_cpu_cgroup_online(void *data, struct cgroup_subsys_state *css)
+{
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	update_task_group(css);
+}
+
+void init_group_control(void)
 {
 	struct cgroup_subsys_state *css = &root_task_group.css;
 	struct cgroup_subsys_state *top_css = css;
@@ -654,9 +680,11 @@ void walt_init_group_control(void)
 	}
 #endif
 	rcu_read_lock();
-	walt_update_root_group(top_css);
+	update_root_group(top_css);
 	css_for_each_child(css, top_css)
-		walt_update_task_group(css);
+		update_task_group(css);
 	rcu_read_unlock();
+
+	register_trace_android_rvh_cpu_cgroup_online(android_rvh_cpu_cgroup_online, NULL);
 }
 

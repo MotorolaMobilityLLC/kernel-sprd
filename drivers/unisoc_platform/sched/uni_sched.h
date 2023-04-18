@@ -3,8 +3,8 @@
  * Copyright (c) 2016-2022, The Linux Foundation. All rights reserved.
  * Copyright (c) 2022, Unisoc, Inc.
  */
-#ifndef _WALT_H
-#define _WALT_H
+#ifndef _UNI_SCHED_H
+#define _UNI_SCHED_H
 
 #include <linux/module.h>
 #include <linux/sched.h>
@@ -14,108 +14,10 @@
 #include "trace.h"
 #include "../../../kernel/sched/sched.h"
 
-#define WALT_NR_CPUS	8
+#define UNI_NR_CPUS	8
 #define MAX_CLUSTERS	3
 
-extern bool walt_disabled;
-
-extern __read_mostly unsigned int walt_ravg_window;
-
-enum task_event {
-	PUT_PREV_TASK   = 0,
-	PICK_NEXT_TASK  = 1,
-	TASK_WAKE       = 2,
-	TASK_MIGRATE    = 3,
-	TASK_UPDATE     = 4,
-	IRQ_UPDATE	= 5,
-};
-
-struct pd_cache {
-	unsigned long wake_util;
-	unsigned long cap_orig;
-	unsigned long cap;
-	unsigned long thermal_pressure;
-	unsigned long base_energy;
-	bool is_idle;
-};
-
-extern struct ctl_table walt_base_table[];
-extern struct ctl_table boost_table[];
-extern unsigned int sysctl_sched_walt_cross_window_util;
-extern unsigned int sysctl_walt_io_is_busy;
-extern unsigned int sysctl_walt_busy_threshold;
-extern unsigned int sysctl_sched_walt_init_task_load_pct;
-extern unsigned int sysctl_sched_walt_cpu_high_irqload;
-extern unsigned int sysctl_sched_uclamp_threshold;
-extern unsigned int sysctl_walt_account_irq_time;
-extern unsigned int sysctl_sched_task_util_prefer_little;
-#if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
-extern unsigned int sysctl_sched_uclamp_min_to_boost;
-#endif
-#define scale_demand(d) ((d) / (walt_ravg_window >> SCHED_CAPACITY_SHIFT))
-
-extern unsigned int min_max_possible_capacity;
-extern unsigned int max_possible_capacity;
-extern unsigned int sched_cap_margin_up[WALT_NR_CPUS];
-extern unsigned int sched_cap_margin_dn[WALT_NR_CPUS];
-
-extern struct list_head cluster_head;
-extern int num_sched_clusters;
-#define for_each_sched_cluster(cluster) \
-	list_for_each_entry_rcu(cluster, &cluster_head, list)
-
-static inline int cluster_first_cpu(struct sched_cluster *cluster)
-{
-	return cpumask_first(&cluster->cpus);
-}
-
-static inline bool is_max_capacity_cpu(int cpu)
-{
-	return arch_scale_cpu_capacity(cpu) == max_possible_capacity;
-}
-
-static inline bool is_min_capacity_cpu(int cpu)
-{
-	return arch_scale_cpu_capacity(cpu) == min_max_possible_capacity;
-}
-
-static inline bool is_min_capacity_cluster(struct sched_cluster *cluster)
-{
-	return is_min_capacity_cpu(cluster_first_cpu(cluster));
-}
-
-static inline int same_cluster(int src_cpu, int dst_cpu)
-{
-	struct uni_rq *src_uni_rq = (struct uni_rq *) cpu_rq(src_cpu)->android_vendor_data1;
-	struct uni_rq *dest_uni_rq = (struct uni_rq *) cpu_rq(dst_cpu)->android_vendor_data1;
-
-	return src_uni_rq->cluster == dest_uni_rq->cluster;
-}
-
-extern u64 walt_ktime_clock(void);
-extern void walt_rt_init(void);
-extern void walt_fair_init(void);
-extern unsigned long walt_cpu_util_freq(int cpu);
-extern int proc_cpuload_init(void);
-#ifdef CONFIG_UNISOC_HUNG_TASK_ENH
-extern int hung_task_enh_init(void);
-#endif
-
-extern void walt_update_task_group(struct cgroup_subsys_state *css);
-extern void walt_init_group_control(void);
-#ifdef CONFIG_UNISOC_GROUP_BOOST
-extern void walt_group_boost_enqueue(struct rq *rq, struct task_struct *p);
-extern void walt_group_boost_dequeue(struct rq *rq, struct task_struct *p);
-extern int cpu_group_boost(int cpu);
-extern unsigned long boosted_cpu_util(int cpu, unsigned long util);
-#else
-static inline void walt_group_boost_enqueue(struct rq *rq, struct task_struct *p) { };
-static inline void walt_group_boost_dequeue(struct rq *rq, struct task_struct *p) { };
-static inline int cpu_group_boost(int cpu)
-{
-	return 0;
-}
-#endif
+extern bool uni_sched_disabled;
 
 static inline struct task_group *css_tg(struct cgroup_subsys_state *css)
 {
@@ -127,31 +29,32 @@ static inline struct uni_task_group *get_uni_task_group(struct task_struct *p)
 	return (struct uni_task_group *) (p->sched_task_group->android_vendor_data1);
 }
 
-static inline unsigned int tg_init_load_pct(struct task_struct *p)
-{
-	struct uni_task_group *wtg = get_uni_task_group(p);
+struct pd_cache {
+	unsigned long wake_util;
+	unsigned long cap_orig;
+	unsigned long cap;
+	unsigned long thermal_pressure;
+	unsigned long base_energy;
+	bool is_idle;
+};
 
-	return wtg->init_task_load_pct;
-}
+#if IS_ENABLED(CONFIG_SCHED_WALT)
+extern __read_mostly unsigned int walt_ravg_window;
+extern unsigned int sysctl_sched_walt_cross_window_util;
+extern unsigned int sysctl_walt_io_is_busy;
+extern unsigned int sysctl_walt_busy_threshold;
+extern unsigned int sysctl_sched_walt_init_task_load_pct;
+extern unsigned int sysctl_sched_walt_cpu_high_irqload;
+extern unsigned int sysctl_walt_account_irq_time;
 
-static inline unsigned int tg_account_wait_time(struct task_struct *p)
-{
-	struct uni_task_group *wtg = get_uni_task_group(p);
+#define scale_demand(d) ((d) / (walt_ravg_window >> SCHED_CAPACITY_SHIFT))
 
-	return wtg->account_wait_time;
-}
-
-
-static inline int task_group_boost(struct task_struct *p)
-{
-#ifdef CONFIG_UNISOC_GROUP_BOOST
-	struct uni_task_group *wtg = get_uni_task_group(p);
-
-	return wtg->boost;
-#else
-	return 0;
-#endif
-}
+extern void walt_init(void);
+extern u64 sched_ktime_clock(void);
+extern void walt_init_stop_handler(void *data);
+extern void walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p);
+extern void walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p);
+extern unsigned long walt_cpu_util_freq(int cpu);
 
 #define WALT_HIGH_IRQ_TIMEOUT 3
 static inline int walt_cpu_high_irqload(int cpu)
@@ -192,8 +95,138 @@ static inline unsigned long walt_cpu_util(int cpu)
 	return min_t(unsigned long, cpu_util, capacity_orig_of(cpu));
 }
 
+static inline unsigned int tg_init_load_pct(struct task_struct *p)
+{
+#ifdef CONFIG_UNISOC_GROUP_CTL
+	struct uni_task_group *wtg = get_uni_task_group(p);
+
+	return wtg->init_task_load_pct;
+#else
+	return 0;
+#endif
+}
+
+static inline unsigned int tg_account_wait_time(struct task_struct *p)
+{
+#ifdef CONFIG_UNISOC_GROUP_CTL
+	struct uni_task_group *wtg = get_uni_task_group(p);
+
+	return wtg->account_wait_time;
+#else
+	return 0;
+#endif
+}
+
+#else
+static inline void walt_init(void) {}
+static inline u64 sched_ktime_clock(void)
+{
+	return sched_clock();
+}
+static inline void walt_init_stop_handler(void *data) {}
+static inline void walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p) {}
+static inline void walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p) {}
+
+static inline unsigned long task_util(struct task_struct *p)
+{
+	return READ_ONCE(p->se.avg.util_avg);
+}
+
+static inline unsigned long _task_util_est(struct task_struct *p)
+{
+	struct util_est ue = READ_ONCE(p->se.avg.util_est);
+
+	return max(ue.ewma, (ue.enqueued & ~UTIL_AVG_UNCHANGED));
+}
+
+static inline unsigned long task_util_est(struct task_struct *p)
+{
+	return max(task_util(p), _task_util_est(p));
+}
+#endif
+
+extern struct ctl_table sched_base_table[];
+extern unsigned int sysctl_sched_uclamp_threshold;
+extern unsigned int sysctl_sched_task_util_prefer_little;
+#if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
+extern unsigned int sysctl_sched_uclamp_min_to_boost;
+#endif
+
+extern unsigned int min_max_possible_capacity;
+extern unsigned int max_possible_capacity;
+extern unsigned int sched_cap_margin_up[UNI_NR_CPUS];
+extern unsigned int sched_cap_margin_dn[UNI_NR_CPUS];
+
+extern struct list_head cluster_head;
+extern int num_sched_clusters;
+#define for_each_sched_cluster(cluster) \
+	list_for_each_entry_rcu(cluster, &cluster_head, list)
+
+static inline int cluster_first_cpu(struct sched_cluster *cluster)
+{
+	return cpumask_first(&cluster->cpus);
+}
+
+static inline bool is_max_capacity_cpu(int cpu)
+{
+	return arch_scale_cpu_capacity(cpu) == max_possible_capacity;
+}
+
+static inline bool is_min_capacity_cpu(int cpu)
+{
+	return arch_scale_cpu_capacity(cpu) == min_max_possible_capacity;
+}
+
+static inline bool is_min_capacity_cluster(struct sched_cluster *cluster)
+{
+	return is_min_capacity_cpu(cluster_first_cpu(cluster));
+}
+
+static inline int same_cluster(int src_cpu, int dst_cpu)
+{
+	struct uni_rq *src_uni_rq = (struct uni_rq *) cpu_rq(src_cpu)->android_vendor_data1;
+	struct uni_rq *dest_uni_rq = (struct uni_rq *) cpu_rq(dst_cpu)->android_vendor_data1;
+
+	return src_uni_rq->cluster == dest_uni_rq->cluster;
+}
+
+extern void rt_init(void);
+extern void fair_init(void);
+extern int proc_cpuload_init(void);
+
+#ifdef CONFIG_UNISOC_HUNG_TASK_ENH
+extern int hung_task_enh_init(void);
+#else
+static inline int hung_task_enh_init(void)
+{
+	return 0;
+}
+#endif
+
+static inline int task_group_boost(struct task_struct *p)
+{
 #ifdef CONFIG_UNISOC_GROUP_BOOST
+	struct uni_task_group *wtg = get_uni_task_group(p);
+
+	return wtg->boost;
+#else
+	return 0;
+#endif
+}
+
+#ifdef CONFIG_UNISOC_GROUP_CTL
+
+extern struct ctl_table boost_table[];
+extern void init_group_control(void);
+
+#ifdef CONFIG_UNISOC_GROUP_BOOST
+
 extern unsigned int sysctl_sched_spc_threshold;
+extern void group_boost_enqueue(struct rq *rq, struct task_struct *p);
+extern void group_boost_dequeue(struct rq *rq, struct task_struct *p);
+extern int cpu_group_boost(int cpu);
+extern unsigned long boosted_cpu_util(int cpu, unsigned long util);
+
 static inline int group_boost_margin(long util, int boost)
 {
 	int margin;
@@ -219,7 +252,11 @@ static inline int group_boost_margin(long util, int boost)
 
 static inline unsigned long boosted_task_util(struct task_struct *task)
 {
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	unsigned long util = walt_task_util(task);
+#else
+	unsigned long util = task_util_est(task);
+#endif
 	int boost = task_group_boost(task);
 	int margin = group_boost_margin(util, boost);
 
@@ -228,15 +265,48 @@ static inline unsigned long boosted_task_util(struct task_struct *task)
 	return util + margin;
 }
 #else
+static inline void group_boost_enqueue(struct rq *rq, struct task_struct *p) { };
+static inline void group_boost_dequeue(struct rq *rq, struct task_struct *p) { };
+static inline int cpu_group_boost(int cpu)
+{
+	return 0;
+}
 static inline unsigned long boosted_cpu_util(int cpu, unsigned long util)
 {
 	return util;
 }
 static inline unsigned long boosted_task_util(struct task_struct *task)
 {
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 	return walt_task_util(task);
+#else
+	return task_util_est(task);
+#endif
 }
 #endif
+#else
+static inline void update_task_group(struct cgroup_subsys_state *css) {}
+static inline void init_group_control(void) {}
+static inline void group_boost_enqueue(struct rq *rq, struct task_struct *p) { };
+static inline void group_boost_dequeue(struct rq *rq, struct task_struct *p) { };
+static inline int cpu_group_boost(int cpu)
+{
+	return 0;
+}
+static inline unsigned long boosted_cpu_util(int cpu, unsigned long util)
+{
+	return util;
+}
+static inline unsigned long boosted_task_util(struct task_struct *task)
+{
+#if IS_ENABLED(CONFIG_SCHED_WALT)
+	return walt_task_util(task);
+#else
+	return task_util_est(task);
+#endif
+}
+#endif
+
 
 #ifdef CONFIG_UCLAMP_TASK
 #if IS_ENABLED(CONFIG_UCLAMP_MIN_TO_BOOST)
@@ -336,7 +406,7 @@ static inline bool uclamp_blocked(struct task_struct *p)
 #else
 static inline unsigned long uclamp_task_util(struct task_struct *p)
 {
-	return boost_task_util(p);
+	return boosted_task_util(p);
 }
 
 static inline
@@ -352,7 +422,7 @@ static inline bool uclamp_blocked(struct task_struct *p)
 }
 #endif
 
-#ifdef CONFIG_CPU_FREQ
+#if IS_ENABLED(CONFIG_SCHED_WALT)
 struct walt_update_util_data {
 	void (*func)(struct walt_update_util_data *data, u64 time, unsigned int flags);
 };
@@ -375,6 +445,12 @@ static inline void walt_cpufreq_update_util(struct rq *rq, unsigned int flags)
 }
 #else
 static inline void walt_cpufreq_update_util(struct rq *rq, unsigned int flags) {}
+#endif
+
+#if IS_ENABLED(CONFIG_UNISOC_SCHEDUTIL_GOV)
+extern int uscfreq_gov_register(void);
+#else
+static inline int uscfreq_gov_register(void) {}
 #endif
 
 #if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)
@@ -415,4 +491,4 @@ static inline void clear_reserved(int cpu) { }
 static inline void rotation_task_init(void) { }
 static inline void check_for_task_rotation(struct rq *src_rq) { }
 #endif
-#endif /* _WALT_H */
+#endif /* _UNI_SCHED_H */

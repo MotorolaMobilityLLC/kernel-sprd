@@ -8,53 +8,79 @@ config UNISOC_SCHED
 	tristate "Support Unisoc Scheduler Features"
 	depends on SMP
 	help
-	This is the base of unisoc specifec scheduler, including WALT, EAS, RT,
-	cpufreq governor and so on...
+	  This is the base of unisoc specifec scheduler, including WALT, EAS, RT,
+	  cpufreq governor and so on...
 
 config SCHED_WALT
 	tristate "Support Window Assisted Load Tracking"
-	depends on SMP
 	depends on UNISOC_SCHED
 	help
-	This feature will allow the scheduler to get utilzation for tasks
-	and runqueues based on window assisted load tracking. The util can be
-	used to guide eas/load_balance/rt task placement as well as
-	task frequency requirements for cpufreq governors.
+	  This feature will allow the scheduler to get utilzation for tasks
+	  and runqueues based on window assisted load tracking. The util can be
+	  used to guide eas/load_balance/rt task placement as well as
+	  task frequency requirements for cpufreq governors.
+
+config UNISOC_SCHED_OPTIMIC_ON_A7
+	bool "Support scheduler optimization in arm-v7"
+	depends on ARM && UNISOC_SCHED
+	default n
+	help
+	  This feature will allow arm-v7 cpus use some scheduler
+	  optimization.
+	  If you want use unisoc schedutil on v7 chips,
+	  set it to be y.
+
+config UNISOC_GROUP_CTL
+	bool "Support Unisoc Group Control"
+	depends on CGROUP_SCHED && UNISOC_SCHED
+	help
+	  This feature introduce unisoc group control feature.
+	  In Android system, the tasks would be set to be into
+	  different groups such as top-app, foreground, background and so on.
+	  This feeature can set different scheduler policy for different groups.
 
 choice
 	prompt "select how to boost the cpu/task util"
-	default UNISOC_GROUP_BOOST
+	default UNISOC_GROUP_NO_BOOST
+
+config UNISOC_GROUP_NO_BOOST
+	bool "no boost"
+	depends on UNISOC_SCHED
+	help
+	  We have different cpu/task util boost policies,
+	  such as stune and transform uclamp to stune.
+	  If you can not decide how to boost,
+	  choose this.
 
 config UNISOC_GROUP_BOOST
 	bool "Using group boost just like schedtune"
-	depends on SCHED_WALT
-	depends on UCLAMP_TASK
+	depends on UNISOC_GROUP_CTL
 	help
-	This feature is porting from schedtune's boost params. It can boost the
-	task and cpu when setting the val to be bigger than 0. Also It can deboost
-	the task and cpu when setting the val to be smaller than 0.
+	  This feature is porting from schedtune's boost params. It can boost
+	  the task and cpu when setting the val to be bigger than 0. Also It
+	  can deboost the task and cpu when setting the val to be smaller than 0.
 
 config UCLAMP_MIN_TO_BOOST
 	bool "Transform uclamp_min to schedtune.boost"
-	depends on SCHED_WALT
+	depends on UNISOC_SCHED
 	depends on UCLAMP_TASK
 	help
-	This feature would transform the uclamp_min to stune.boost.
-	Meantime, add sysctl to let users could disable the feature and using
-	the original uclamp.
+	  This feature would transform the uclamp_min to stune.boost.
+	  Meantime, add sysctl to let users could disable the feature and using
+	  the original uclamp.
 
 endchoice
 
 config UNISOC_ROTATION_TASK
 	bool "Unisoc rotation task"
 	depends on SMP
-	depends on SCHED_WALT
+	depends on UNISOC_SCHED
 	default n
 	help
-	This option enables task rotation feature. In ARM big.little cpu
-	topology, benchmark app may start NR_CPUS big tasks to run,
-	rotation task can improve system performance between big core
-	and little core.
+	  This option enables task rotation feature. In ARM big.little cpu
+	  topology, benchmark app may start NR_CPUS big tasks to run,
+	  rotation task can improve system performance between big core
+	  and little core.
 
 config UNISOC_SCHEDUTIL_GOV
 	tristate "Support Unisoc Schedutil Governor"

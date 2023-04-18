@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
-#include "walt.h"
+#include "uni_sched.h"
 
 DEFINE_PER_CPU(struct walt_update_util_data __rcu *, walt_cpufreq_update_util_data);
 

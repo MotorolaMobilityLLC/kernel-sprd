@@ -1,0 +1,315 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * Copyright (c) 2023, Unisoc, Inc.
+ */
+
+#define pr_fmt(fmt)	"unisoc-sched: " fmt
+
+#include <trace/hooks/sched.h>
+#include <trace/hooks/topology.h>
+#include <linux/kmemleak.h>
+
+#include "uni_sched.h"
+
+#define CREATE_TRACE_POINTS
+#include "trace.h"
+
+bool uni_sched_disabled = true;
+
+unsigned int min_max_possible_capacity = 1024;
+unsigned int max_possible_capacity = 1024; /* max(rq->max_possible_capacity) */
+
+struct list_head cluster_head;
+int num_sched_clusters;
+
+static struct sched_cluster init_cluster = {
+	.list			= LIST_HEAD_INIT(init_cluster.list),
+	.id			= 0,
+	.capacity		= 1024,
+};
+
+static void init_clusters(void)
+{
+	init_cluster.cpus = *cpu_possible_mask;
+	raw_spin_lock_init(&init_cluster.load_lock);
+	INIT_LIST_HEAD(&cluster_head);
+	list_add(&init_cluster.list, &cluster_head);
+}
+
+static void insert_cluster(struct sched_cluster *cluster, struct list_head *head)
+{
+	struct sched_cluster *tmp;
+	struct list_head *iter = head;
+
+	list_for_each_entry(tmp, head, list) {
+		if (arch_scale_cpu_capacity(cpumask_first(&cluster->cpus))
+			< arch_scale_cpu_capacity(cpumask_first(&tmp->cpus)))
+			break;
+		iter = &tmp->list;
+	}
+
+	list_add(&cluster->list, iter);
+}
+
+static struct sched_cluster *alloc_new_cluster(const struct cpumask *cpus)
+{
+	struct sched_cluster *cluster = NULL;
+
+	cluster = kzalloc(sizeof(struct sched_cluster), GFP_ATOMIC);
+	BUG_ON(!cluster);
+
+	INIT_LIST_HEAD(&cluster->list);
+
+	raw_spin_lock_init(&cluster->load_lock);
+	cluster->cpus = *cpus;
+
+	return cluster;
+}
+
+static void add_cluster(const struct cpumask *cpus, struct list_head *head)
+{
+	struct sched_cluster *cluster = alloc_new_cluster(cpus);
+	int i;
+	struct uni_rq *uni_rq;
+
+	for_each_cpu(i, cpus) {
+		uni_rq = (struct uni_rq *) cpu_rq(i)->android_vendor_data1;
+		uni_rq->cluster = cluster;
+	}
+	insert_cluster(cluster, head);
+	num_sched_clusters++;
+}
+
+static void cleanup_clusters(struct list_head *head)
+{
+	struct sched_cluster *cluster, *tmp;
+	int i;
+	struct uni_rq *uni_rq;
+
+	list_for_each_entry_safe(cluster, tmp, head, list) {
+		for_each_cpu(i, &cluster->cpus) {
+			uni_rq = (struct uni_rq *) cpu_rq(i)->android_vendor_data1;
+			uni_rq->cluster = &init_cluster;
+		}
+		list_del(&cluster->list);
+		num_sched_clusters--;
+		kfree(cluster);
+	}
+}
+
+static inline void assign_cluster_ids(struct list_head *head)
+{
+	struct sched_cluster *cluster;
+	int pos = 0;
+
+	list_for_each_entry(cluster, head, list) {
+		cluster->id = pos;
+		pos++;
+	}
+
+	WARN_ON(pos > MAX_CLUSTERS);
+}
+
+static inline void
+move_list(struct list_head *dst, struct list_head *src, bool sync_rcu)
+{
+	struct list_head *first, *last;
+
+	first = src->next;
+	last = src->prev;
+
+	if (sync_rcu) {
+		INIT_LIST_HEAD_RCU(src);
+		synchronize_rcu();
+	}
+
+	first->prev = dst;
+	dst->prev = last;
+	last->next = dst;
+
+	/* Ensure list sanity beore making the head visible to all CPUs. */
+	smp_mb();
+	dst->next = first;
+}
+
+static void parse_capacity_from_clusters(void)
+{
+	struct sched_cluster *cluster;
+	unsigned long biggest_cap = 0, smallest_cap = ULONG_MAX;
+
+	for_each_sched_cluster(cluster) {
+		unsigned long cap = arch_scale_cpu_capacity(cluster_first_cpu(cluster));
+
+		if (cap > biggest_cap)
+			biggest_cap = cap;
+
+		if (cap < smallest_cap)
+			smallest_cap = cap;
+
+		cluster->capacity = cap;
+	}
+
+	max_possible_capacity = biggest_cap;
+	min_max_possible_capacity = smallest_cap;
+}
+
+static void get_possible_siblings(int cpuid, struct cpumask *cluster_cpus)
+{
+	int cpu;
+	struct cpu_topology *cpuid_topo = &cpu_topology[cpuid];
+	unsigned long cpu_cap, cpuid_cap = arch_scale_cpu_capacity(cpuid);
+
+	if (cpuid_topo->package_id == -1)
+		return;
+
+	for_each_possible_cpu(cpu) {
+		cpu_cap = arch_scale_cpu_capacity(cpu);
+
+		if (cpu_cap != cpuid_cap)
+			continue;
+		cpumask_set_cpu(cpu, cluster_cpus);
+	}
+}
+
+static void update_cluster_topology(void)
+{
+	struct cpumask cpus = *cpu_possible_mask;
+	struct cpumask cluster_cpus;
+	struct list_head new_head;
+	int i;
+
+	INIT_LIST_HEAD(&new_head);
+
+	for_each_cpu(i, &cpus) {
+		cpumask_clear(&cluster_cpus);
+		get_possible_siblings(i, &cluster_cpus);
+		if (cpumask_empty(&cluster_cpus)) {
+			WARN(1, "WALT: Invalid cpu topology!!");
+			cleanup_clusters(&new_head);
+			return;
+		}
+		cpumask_andnot(&cpus, &cpus, &cluster_cpus);
+		add_cluster(&cluster_cpus, &new_head);
+	}
+
+	assign_cluster_ids(&new_head);
+
+	/*
+	 * Ensure cluster ids are visible to all CPUs before making
+	 * cluster_head visible.
+	 */
+	move_list(&cluster_head, &new_head, false);
+	parse_capacity_from_clusters();
+}
+
+static void android_rvh_enqueue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
+{
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	walt_inc_cumulative_runnable_avg(rq, p);
+
+	group_boost_enqueue(rq, p);
+}
+
+static void android_rvh_dequeue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
+{
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	walt_dec_cumulative_runnable_avg(rq, p);
+
+	group_boost_dequeue(rq, p);
+}
+
+static void register_sched_vendor_hooks(void)
+{
+	register_trace_android_rvh_enqueue_task(android_rvh_enqueue_task, NULL);
+	register_trace_android_rvh_dequeue_task(android_rvh_dequeue_task, NULL);
+}
+
+static DEFINE_RAW_SPINLOCK(init_lock);
+
+
+static int sched_init_stop_handler(void *data)
+{
+	raw_spin_lock(&init_lock);
+
+	if (!uni_sched_disabled)
+		goto unlock;
+
+	walt_init_stop_handler(data);
+
+	uni_sched_disabled = false;
+
+unlock:
+	raw_spin_unlock(&init_lock);
+
+	return 0;
+}
+
+static void uni_sched_init(struct work_struct *work)
+{
+	struct ctl_table_header *hdr;
+	static atomic_t already_inited = ATOMIC_INIT(0);
+
+	might_sleep();
+
+	if (atomic_cmpxchg(&already_inited, 0, 1))
+		return;
+
+	walt_init();
+
+	init_clusters();
+
+	register_sched_vendor_hooks();
+
+	init_group_control();
+
+	rt_init();
+
+	fair_init();
+
+	update_cluster_topology();
+
+	stop_machine(sched_init_stop_handler, NULL, NULL);
+
+	hdr = register_sysctl_table(sched_base_table);
+
+	uscfreq_gov_register();
+}
+
+static DECLARE_WORK(sched_init_work, uni_sched_init);
+static void android_vh_update_topology_flags_workfn(void *unused, void *unused2)
+{
+	schedule_work(&sched_init_work);
+}
+
+#define UNI_VENDOR_DATA_TEST(unistruct, kstruct)		\
+	BUILD_BUG_ON(sizeof(unistruct) > (sizeof(u64) *	\
+			ARRAY_SIZE(((kstruct *)0)->android_vendor_data1)))
+
+static __init int sched_module_init(void)
+{
+	UNI_VENDOR_DATA_TEST(struct uni_task_struct, struct task_struct);
+	UNI_VENDOR_DATA_TEST(struct uni_rq, struct rq);
+	UNI_VENDOR_DATA_TEST(struct uni_task_group, struct task_group);
+
+	register_trace_android_vh_update_topology_flags_workfn(
+			android_vh_update_topology_flags_workfn, NULL);
+
+	if (topology_update_done)
+		schedule_work(&sched_init_work);
+#ifdef CONFIG_UNISOC_SCHED_OPTIMIC_ON_A7
+	else
+		schedule_work(&sched_init_work);
+#endif
+
+	hung_task_enh_init();
+
+	proc_cpuload_init();
+
+	return 0;
+}
+core_initcall(sched_module_init);
+MODULE_LICENSE("GPL v2");

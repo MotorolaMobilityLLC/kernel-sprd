@@ -4,19 +4,18 @@
  * Copyright (c) 2022, Unisoc, Inc.
  */
 
-#define pr_fmt(fmt)	"unisoc-sched: " fmt
-
-#include <linux/kmemleak.h>
 #include <linux/syscore_ops.h>
-
-#include <trace/hooks/cgroup.h>
 #include <trace/hooks/sched.h>
-#include <trace/hooks/topology.h>
+#include "uni_sched.h"
 
-#include "walt.h"
-
-#define CREATE_TRACE_POINTS
-#include "trace.h"
+enum task_event {
+	PUT_PREV_TASK   = 0,
+	PICK_NEXT_TASK  = 1,
+	TASK_WAKE       = 2,
+	TASK_MIGRATE    = 3,
+	TASK_UPDATE     = 4,
+	IRQ_UPDATE	= 5,
+};
 
 #define WINDOW_STATS_RECENT		0
 #define WINDOW_STATS_MAX		1
@@ -48,9 +47,6 @@ static unsigned int sync_cpu;
 static ktime_t ktime_last;
 static __read_mostly bool walt_ktime_suspended;
 
-unsigned int min_max_possible_capacity = 1024;
-unsigned int max_possible_capacity = 1024; /* max(rq->max_possible_capacity) */
-
 unsigned long walt_cpu_util_freq(int cpu)
 {
 	u64 walt_cpu_util;
@@ -71,7 +67,6 @@ unsigned long walt_cpu_util_freq(int cpu)
 
 	return min_t(unsigned long, walt_cpu_util, capacity_orig_of(cpu));
 }
-EXPORT_SYMBOL_GPL(walt_cpu_util_freq);
 
 static inline unsigned int walt_task_load(struct uni_task_struct *uni_tsk)
 {
@@ -87,8 +82,7 @@ static inline void fixup_cum_window_demand(struct rq *rq, s64 delta)
 		uni_rq->cum_window_demand = 0;
 }
 
-static void
-walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p)
+void walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p)
 {
 	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
 	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
@@ -106,8 +100,7 @@ walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p)
 		fixup_cum_window_demand(rq, uni_tsk->demand);
 }
 
-static void
-walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p)
+void walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p)
 {
 	struct uni_rq *uni_rq = (struct uni_rq *)rq->android_vendor_data1;
 	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
@@ -139,7 +132,7 @@ walt_fixup_cumulative_runnable_avg(struct rq *rq, struct uni_task_struct *uni_ts
 	fixup_cum_window_demand(rq, task_load_delta);
 }
 
-u64 walt_ktime_clock(void)
+u64 sched_ktime_clock(void)
 {
 	if (unlikely(walt_ktime_suspended))
 		return ktime_to_ns(ktime_last);
@@ -788,7 +781,7 @@ static void walt_mark_task_starting(struct task_struct *p)
 		return;
 	}
 
-	wallclock = walt_ktime_clock();
+	wallclock = sched_ktime_clock();
 	uni_tsk->mark_start = wallclock;
 	uni_tsk->last_wakeup_ts = wallclock;
 }
@@ -835,7 +828,7 @@ static void walt_account_irqtime(int cpu, struct task_struct *curr, u64 delta)
 	cur_jiffies_ts = get_jiffies_64();
 
 	if (is_idle_task(curr))
-		walt_update_task_ravg(curr, rq, IRQ_UPDATE, walt_ktime_clock(),
+		walt_update_task_ravg(curr, rq, IRQ_UPDATE, sched_ktime_clock(),
 				 delta);
 
 	nr_windows = cur_jiffies_ts - uni_rq->irqload_ts;
@@ -880,7 +873,7 @@ static void walt_fixup_busy_time(struct task_struct *p, int new_cpu)
 	lockdep_assert_rq_held(src_rq);
 	lockdep_assert_rq_held(dest_rq);
 
-	wallclock = walt_ktime_clock();
+	wallclock = sched_ktime_clock();
 
 	walt_update_task_ravg(task_rq(p)->curr, task_rq(p),
 			TASK_UPDATE, wallclock, 0);
@@ -970,188 +963,6 @@ static void walt_init_new_task_load(struct task_struct *p)
 
 	__sched_fork_init(p);
 }
-struct list_head cluster_head;
-int num_sched_clusters;
-
-static struct sched_cluster init_cluster = {
-	.list			= LIST_HEAD_INIT(init_cluster.list),
-	.id			= 0,
-	.capacity		= 1024,
-};
-
-static void init_clusters(void)
-{
-	init_cluster.cpus = *cpu_possible_mask;
-	raw_spin_lock_init(&init_cluster.load_lock);
-	INIT_LIST_HEAD(&cluster_head);
-	list_add(&init_cluster.list, &cluster_head);
-}
-
-static void insert_cluster(struct sched_cluster *cluster, struct list_head *head)
-{
-	struct sched_cluster *tmp;
-	struct list_head *iter = head;
-
-	list_for_each_entry(tmp, head, list) {
-		if (arch_scale_cpu_capacity(cpumask_first(&cluster->cpus))
-			< arch_scale_cpu_capacity(cpumask_first(&tmp->cpus)))
-			break;
-		iter = &tmp->list;
-	}
-
-	list_add(&cluster->list, iter);
-}
-
-static struct sched_cluster *alloc_new_cluster(const struct cpumask *cpus)
-{
-	struct sched_cluster *cluster = NULL;
-
-	cluster = kzalloc(sizeof(struct sched_cluster), GFP_ATOMIC);
-	BUG_ON(!cluster);
-
-	INIT_LIST_HEAD(&cluster->list);
-
-	raw_spin_lock_init(&cluster->load_lock);
-	cluster->cpus = *cpus;
-
-	return cluster;
-}
-
-static void add_cluster(const struct cpumask *cpus, struct list_head *head)
-{
-	struct sched_cluster *cluster = alloc_new_cluster(cpus);
-	int i;
-	struct uni_rq *uni_rq;
-
-	for_each_cpu(i, cpus) {
-		uni_rq = (struct uni_rq *) cpu_rq(i)->android_vendor_data1;
-		uni_rq->cluster = cluster;
-	}
-	insert_cluster(cluster, head);
-	num_sched_clusters++;
-}
-
-static void cleanup_clusters(struct list_head *head)
-{
-	struct sched_cluster *cluster, *tmp;
-	int i;
-	struct uni_rq *uni_rq;
-
-	list_for_each_entry_safe(cluster, tmp, head, list) {
-		for_each_cpu(i, &cluster->cpus) {
-			uni_rq = (struct uni_rq *) cpu_rq(i)->android_vendor_data1;
-			uni_rq->cluster = &init_cluster;
-		}
-		list_del(&cluster->list);
-		num_sched_clusters--;
-		kfree(cluster);
-	}
-}
-
-static inline void assign_cluster_ids(struct list_head *head)
-{
-	struct sched_cluster *cluster;
-	int pos = 0;
-
-	list_for_each_entry(cluster, head, list) {
-		cluster->id = pos;
-		pos++;
-	}
-
-	WARN_ON(pos > MAX_CLUSTERS);
-}
-
-static inline void
-move_list(struct list_head *dst, struct list_head *src, bool sync_rcu)
-{
-	struct list_head *first, *last;
-
-	first = src->next;
-	last = src->prev;
-
-	if (sync_rcu) {
-		INIT_LIST_HEAD_RCU(src);
-		synchronize_rcu();
-	}
-
-	first->prev = dst;
-	dst->prev = last;
-	last->next = dst;
-
-	/* Ensure list sanity beore making the head visible to all CPUs. */
-	smp_mb();
-	dst->next = first;
-}
-
-static void parse_capacity_from_clusters(void)
-{
-	struct sched_cluster *cluster;
-	unsigned long biggest_cap = 0, smallest_cap = ULONG_MAX;
-
-	for_each_sched_cluster(cluster) {
-		unsigned long cap = arch_scale_cpu_capacity(cluster_first_cpu(cluster));
-
-		if (cap > biggest_cap)
-			biggest_cap = cap;
-
-		if (cap < smallest_cap)
-			smallest_cap = cap;
-
-		cluster->capacity = cap;
-	}
-
-	max_possible_capacity = biggest_cap;
-	min_max_possible_capacity = smallest_cap;
-}
-
-static void get_possible_siblings(int cpuid, struct cpumask *cluster_cpus)
-{
-	int cpu;
-	struct cpu_topology *cpuid_topo = &cpu_topology[cpuid];
-	unsigned long cpu_cap, cpuid_cap = arch_scale_cpu_capacity(cpuid);
-
-	if (cpuid_topo->package_id == -1)
-		return;
-
-	for_each_possible_cpu(cpu) {
-		cpu_cap = arch_scale_cpu_capacity(cpu);
-
-		if (cpu_cap != cpuid_cap)
-			continue;
-		cpumask_set_cpu(cpu, cluster_cpus);
-	}
-}
-
-static void walt_update_cluster_topology(void)
-{
-	struct cpumask cpus = *cpu_possible_mask;
-	struct cpumask cluster_cpus;
-	struct list_head new_head;
-	int i;
-
-	INIT_LIST_HEAD(&new_head);
-
-	for_each_cpu(i, &cpus) {
-		cpumask_clear(&cluster_cpus);
-		get_possible_siblings(i, &cluster_cpus);
-		if (cpumask_empty(&cluster_cpus)) {
-			WARN(1, "WALT: Invalid cpu topology!!");
-			cleanup_clusters(&new_head);
-			return;
-		}
-		cpumask_andnot(&cpus, &cpus, &cluster_cpus);
-		add_cluster(&cluster_cpus, &new_head);
-	}
-
-	assign_cluster_ids(&new_head);
-
-	/*
-	 * Ensure cluster ids are visible to all CPUs before making
-	 * cluster_head visible.
-	 */
-	move_list(&cluster_head, &new_head, false);
-	parse_capacity_from_clusters();
-}
 
 static void walt_init_existing_task_load(struct task_struct *p)
 {
@@ -1198,19 +1009,9 @@ static void note_task_waking(struct task_struct *p, u64 wallclock)
 	uni_tsk->last_wakeup_ts = wallclock;
 }
 
-bool walt_disabled = true;
-
-static void android_rvh_cpu_cgroup_online(void *data, struct cgroup_subsys_state *css)
-{
-	if (unlikely(walt_disabled))
-		return;
-
-	walt_update_task_group(css);
-}
-
 static void android_rvh_build_perf_domains(void *data, bool *eas_check)
 {
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	*eas_check = true;
@@ -1221,7 +1022,7 @@ static void android_rvh_sched_cpu_starting(void *data, int cpu)
 	unsigned long flags;
 	struct rq *rq = cpu_rq(cpu);
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	raw_spin_rq_lock_irqsave(rq, flags);
@@ -1234,7 +1035,7 @@ static void android_rvh_sched_cpu_dying(void *data, int cpu)
 	struct rq *rq = cpu_rq(cpu);
 	struct rq_flags rf;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	rq_lock_irqsave(rq, &rf);
@@ -1244,7 +1045,7 @@ static void android_rvh_sched_cpu_dying(void *data, int cpu)
 
 static void android_rvh_sched_fork_init(void *data, struct task_struct *p)
 {
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	__sched_fork_init(p);
@@ -1252,7 +1053,7 @@ static void android_rvh_sched_fork_init(void *data, struct task_struct *p)
 
 static void android_rvh_wake_up_new_task(void *data, struct task_struct *p)
 {
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	walt_init_new_task_load(p);
@@ -1260,7 +1061,7 @@ static void android_rvh_wake_up_new_task(void *data, struct task_struct *p)
 
 static void android_rvh_new_task_stats(void *data, struct task_struct *p)
 {
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	walt_mark_task_starting(p);
@@ -1268,7 +1069,7 @@ static void android_rvh_new_task_stats(void *data, struct task_struct *p)
 
 static void android_rvh_set_task_cpu(void *data, struct task_struct *p, unsigned int new_cpu)
 {
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	walt_fixup_busy_time(p, new_cpu);
@@ -1281,34 +1082,24 @@ static void android_rvh_try_to_wake_up(void *data, struct task_struct *p)
 	struct rq_flags rf;
 	u64 wallclock;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	rq_lock_irqsave(rq, &rf);
-	wallclock = walt_ktime_clock();
+	wallclock = sched_ktime_clock();
 	walt_update_task_ravg(rq->curr, rq, TASK_UPDATE, wallclock, 0);
 	walt_update_task_ravg(p, rq, TASK_WAKE, wallclock, 0);
 	note_task_waking(p, wallclock);
 	rq_unlock_irqrestore(rq, &rf);
 }
 
-static void android_rvh_enqueue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
-{
-	if (unlikely(walt_disabled))
-		return;
-
-	walt_inc_cumulative_runnable_avg(rq, p);
-
-	walt_group_boost_enqueue(rq, p);
-}
-
 static void android_rvh_after_enqueue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
 {
 	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
-	u64 wallclock = walt_ktime_clock();
+	u64 wallclock = sched_ktime_clock();
 	int freq_flags = 0;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	if (p->in_iowait)
@@ -1319,19 +1110,9 @@ static void android_rvh_after_enqueue_task(void *data, struct rq *rq, struct tas
 	walt_cpufreq_update_util(rq, freq_flags);
 }
 
-static void android_rvh_dequeue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
-{
-	if (unlikely(walt_disabled))
-		return;
-
-	walt_dec_cumulative_runnable_avg(rq, p);
-
-	walt_group_boost_dequeue(rq, p);
-}
-
 static void android_rvh_after_dequeue_task(void *data, struct rq *rq, struct task_struct *p, int flags)
 {
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	walt_cpufreq_update_util(rq, 0);
@@ -1341,18 +1122,18 @@ static void android_rvh_tick_entry(void *data, struct rq *rq)
 {
 	lockdep_assert_rq_held(rq);
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	walt_set_window_start(rq);
-	walt_update_task_ravg(rq->curr, rq, TASK_UPDATE, walt_ktime_clock(), 0);
+	walt_update_task_ravg(rq->curr, rq, TASK_UPDATE, sched_ktime_clock(), 0);
 
 	walt_cpufreq_update_util(rq, 0);
 }
 
 static void android_rvh_account_irq_end(void *data, struct task_struct *curr, int cpu, s64 delta)
 {
-	if (unlikely(walt_disabled) ||
+	if (unlikely(uni_sched_disabled) ||
 				unlikely(!sysctl_walt_account_irq_time))
 		return;
 
@@ -1363,9 +1144,9 @@ static void android_rvh_schedule(void *data, struct task_struct *prev,
 				 struct task_struct *next, struct rq *rq)
 {
 	struct uni_task_struct *prev_uni_tsk = (struct uni_task_struct *)prev->android_vendor_data1;
-	u64 wallclock = walt_ktime_clock();
+	u64 wallclock = sched_ktime_clock();
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	if (likely(prev != next)) {
@@ -1378,19 +1159,6 @@ static void android_rvh_schedule(void *data, struct task_struct *prev,
 		walt_update_task_ravg(prev, rq, TASK_UPDATE, wallclock, 0);
 	}
 }
-static void android_rvh_rto_next_cpu(void *data, int rto_cpu,
-					struct cpumask *rto_mask, int *cpu)
-{
-	struct cpumask tmp_cpumask;
-	int curr_cpu = smp_processor_id();
-
-	cpumask_and(&tmp_cpumask, rto_mask, cpu_active_mask);
-
-	if (rto_cpu == -1 && cpumask_weight(&tmp_cpumask) == 1 &&
-			     cpumask_test_cpu(curr_cpu, &tmp_cpumask))
-		*cpu = -1;
-
-}
 
 static void walt_effective_cpu_util(void *data, int cpu, unsigned long util_cfs,
 				    unsigned long max, int type,
@@ -1401,7 +1169,7 @@ static void walt_effective_cpu_util(void *data, int cpu, unsigned long util_cfs,
 	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
 	u64 prev_runnable_sum;
 
-	if (unlikely(walt_disabled))
+	if (unlikely(uni_sched_disabled))
 		return;
 
 	walt_cpu_util = uni_rq->cumulative_runnable_avg;
@@ -1432,30 +1200,20 @@ static void register_walt_vendor_hooks(void)
 	register_trace_android_rvh_new_task_stats(android_rvh_new_task_stats, NULL);
 	register_trace_android_rvh_set_task_cpu(android_rvh_set_task_cpu, NULL);
 	register_trace_android_rvh_try_to_wake_up(android_rvh_try_to_wake_up, NULL);
-	register_trace_android_rvh_enqueue_task(android_rvh_enqueue_task, NULL);
 	register_trace_android_rvh_after_enqueue_task(android_rvh_after_enqueue_task, NULL);
-	register_trace_android_rvh_dequeue_task(android_rvh_dequeue_task, NULL);
 	register_trace_android_rvh_after_dequeue_task(android_rvh_after_dequeue_task, NULL);
 	register_trace_android_rvh_tick_entry(android_rvh_tick_entry, NULL);
 	register_trace_android_rvh_account_irq_end(android_rvh_account_irq_end, NULL);
 	register_trace_android_rvh_schedule(android_rvh_schedule, NULL);
 	register_trace_android_rvh_effective_cpu_util(walt_effective_cpu_util, NULL);
-	register_trace_android_rvh_cpu_cgroup_online(android_rvh_cpu_cgroup_online, NULL);
 }
 
-static DEFINE_RAW_SPINLOCK(init_lock);
-
-static int walt_init_stop_handler(void *data)
+void walt_init_stop_handler(void *data)
 {
 	int cpu;
 	struct task_struct *g, *p;
 	u64 window_start_ns, nr_windows;
 	struct uni_rq *uni_rq;
-
-	raw_spin_lock(&init_lock);
-
-	if (!walt_disabled)
-		goto unlock;
 
 	read_lock(&tasklist_lock);
 
@@ -1483,75 +1241,11 @@ static int walt_init_stop_handler(void *data)
 		walt_init_existing_task_load(p);
 	} while_each_thread(g, p);
 
-	walt_disabled = false;
-
 	read_unlock(&tasklist_lock);
-unlock:
-	raw_spin_unlock(&init_lock);
-
-	return 0;
 }
 
-static void walt_init(struct work_struct *work)
+void walt_init(void)
 {
-	struct ctl_table_header *hdr;
-	static atomic_t already_inited = ATOMIC_INIT(0);
-
-	might_sleep();
-
-	if (atomic_cmpxchg(&already_inited, 0, 1))
-		return;
-
 	register_syscore_ops(&walt_syscore_ops);
-
-	init_clusters();
-
-	walt_init_group_control();
-
 	register_walt_vendor_hooks();
-	walt_rt_init();
-	walt_fair_init();
-	walt_update_cluster_topology();
-
-	stop_machine(walt_init_stop_handler, NULL, NULL);
-
-	hdr = register_sysctl_table(walt_base_table);
-
-	proc_cpuload_init();
-
-#ifdef CONFIG_UNISOC_HUNG_TASK_ENH
-	hung_task_enh_init();
-#endif
-
 }
-
-static DECLARE_WORK(walt_init_work, walt_init);
-static void android_vh_update_topology_flags_workfn(void *unused, void *unused2)
-{
-	schedule_work(&walt_init_work);
-}
-
-#define UNI_VENDOR_DATA_TEST(unistruct, kstruct)		\
-	BUILD_BUG_ON(sizeof(unistruct) > (sizeof(u64) *	\
-			ARRAY_SIZE(((kstruct *)0)->android_vendor_data1)))
-
-static __init int walt_module_init(void)
-{
-	UNI_VENDOR_DATA_TEST(struct uni_task_struct, struct task_struct);
-	UNI_VENDOR_DATA_TEST(struct uni_rq, struct rq);
-	UNI_VENDOR_DATA_TEST(struct uni_task_group, struct task_group);
-
-	register_trace_android_rvh_rto_next_cpu(android_rvh_rto_next_cpu, NULL);
-
-	register_trace_android_vh_update_topology_flags_workfn(
-			android_vh_update_topology_flags_workfn, NULL);
-
-	if (topology_update_done)
-		schedule_work(&walt_init_work);
-
-	pr_info("walt sched module init done\n");
-
-	return 0;
-}
-core_initcall(walt_module_init);
-MODULE_LICENSE("GPL v2");
