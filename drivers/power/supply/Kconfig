@@ -779,6 +779,16 @@ config FUEL_GAUGE_SC27XX
 	  Say Y here to enable support for fuel gauge with SC27XX
 	  PMIC chips.
 
+config FUEL_GAUGE_UMP96XX
+	tristate "Spreadtrum UMP96XX fuel gauge driver"
+	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	depends on IIO
+	help
+	 Say Y here to enable support for fuel gauge
+	 with UMP96XX PMIC chips.
+	 Since the MFD_UMP96XX_PMIC is not defined,
+	 we can only depend on the mfd of SC27XX_PMIC.
+
 config CHARGER_UCS1002
 	tristate "Microchip UCS1002 USB Port Power Controller"
 	depends on I2C
