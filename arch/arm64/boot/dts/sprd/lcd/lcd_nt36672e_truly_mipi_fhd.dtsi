@@ -16,7 +16,6 @@
 					sprd,height-mm = <152>;
 
 					sprd,vrr-enabled;
-					sprd,vrr-max-layers = <3>;
 
 					sprd,slice-width = <540>;
 					sprd,slice-height = <8>;
