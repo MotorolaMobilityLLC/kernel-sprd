@@ -91,7 +91,7 @@
 		};
 
 		pmic_fgu: fgu@800 {
-			compatible = "sprd,ump9620-fgu", "sprd,sc27xx-fgu";
+			compatible = "sprd,ump9620-fgu", "sprd,sprd-fgu";
 			reg = <0x800>;
 			bat-detect-gpio = <&pmic_eic 3 GPIO_ACTIVE_HIGH>;
 			nvmem-cell-names = "fgu_calib";
