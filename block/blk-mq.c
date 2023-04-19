@@ -2022,6 +2022,8 @@ static blk_qc_t blk_mq_make_request(struct request_queue *q, struct bio *bio)
 
 	trace_block_getrq(q, bio, bio->bi_opf);
 
+	if (IOPRIO_PRIO_CLASS(bio->bi_ioprio) == IOPRIO_CLASS_NONE)
+		bio->bi_ioprio = get_current_ioprio();
 	rq_qos_track(q, rq, bio);
 
 	cookie = request_to_qc_t(data.hctx, rq);
