@@ -113,6 +113,7 @@ struct sgm41511_charger_info {
 	u64 last_wdt_time;
 	bool need_disable_Q1;
 	struct alarm otg_timer;
+	bool disable_wdg;
 	bool otg_enable;
 	bool is_charger_online;
 	bool disable_power_path;
@@ -535,6 +536,24 @@ static void sgm41511_dump_register(struct sgm41511_charger_info *info)
 	}
 }
 
+static int sgm41511_charger_enable_wdg(struct sgm41511_charger_info *info,
+				       bool en)
+{
+	int ret;
+
+	if (en)
+		ret = sgm41511_update_bits(info, SGM4151X_REG_05,
+					   SGM41511_REG_WATCHDOG_TIMER_MASK,
+					   0x01 << SGM41511_REG_WATCHDOG_TIMER_SHIFT);
+	else
+		ret = sgm41511_update_bits(info, SGM4151X_REG_05,
+					   SGM41511_REG_WATCHDOG_TIMER_MASK, 0);
+	if (ret)
+		dev_err(info->dev, "%s:Failed to update %d\n", __func__, en);
+
+	return ret;
+}
+
 static int sgm41511_charger_start_charge(struct sgm41511_charger_info *info)
 {
 	int ret = 0;
@@ -545,13 +564,9 @@ static int sgm41511_charger_start_charge(struct sgm41511_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "disable HIZ mode failed\n");
 
-	ret = sgm41511_update_bits(info, SGM4151X_REG_05,
-				   SGM41511_REG_WATCHDOG_TIMER_MASK,
-				   0x01 << SGM41511_REG_WATCHDOG_TIMER_SHIFT);
-	if (ret) {
-		dev_err(info->dev, "Failed to enable sgm41511 watchdog\n");
+	ret = sgm41511_charger_enable_wdg(info, true);
+	if (ret)
 		return ret;
-	}
 
 	ret = sgm41511_enable_charger(info);
 	if (ret)
@@ -577,7 +592,7 @@ static void sgm41511_charger_stop_charge(struct sgm41511_charger_info *info)
 {
 	int ret;
 
-	dev_info(info->dev, "%s:line%d: start charge\n", __func__, __LINE__);
+	dev_info(info->dev, "%s:line%d: stop charge\n", __func__, __LINE__);
 
 	if (info->role == SGM41511_ROLE_MASTER) {
 		if (boot_calibration) {
@@ -614,10 +629,7 @@ static void sgm41511_charger_stop_charge(struct sgm41511_charger_info *info)
 			dev_err(info->dev, "Failed to disable power path\n");
 	}
 
-	ret = sgm41511_update_bits(info, SGM4151X_REG_05,
-				   SGM41511_REG_WATCHDOG_TIMER_MASK, 0);
-	if (ret)
-		dev_err(info->dev, "Failed to disable sgm41511 watchdog\n");
+	sgm41511_charger_enable_wdg(info, false);
 }
 
 static int sgm41511_charger_set_current(struct sgm41511_charger_info *info, u32 cur)
@@ -1167,6 +1179,14 @@ static int sgm41511_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
+	ret = sgm41511_charger_enable_wdg(info, true);
+	if (ret)
+		return ret;
+
+	ret = sgm41511_charger_feed_watchdog(info);
+	if (ret)
+		return ret;
+
 	ret = sgm41511_exit_hiz_mode(info);
 	if (ret)
 		dev_err(info->dev, "Failed to enable power path\n");
@@ -1210,6 +1230,10 @@ static int sgm41511_charger_disable_otg(struct regulator_dev *dev)
 		dev_err(info->dev, "disable sgm41511 otg failed\n");
 		return ret;
 	}
+
+	ret = sgm41511_charger_enable_wdg(info, false);
+	if (ret)
+		return ret;
 
 	/* Enable charger detection function to identify the charger type */
 	if (!info->use_typec_extcon) {
@@ -1321,6 +1345,7 @@ static int sgm41511_charger_probe(struct i2c_client *client,
 	}
 
 	info->use_typec_extcon = device_property_read_bool(dev, "use-typec-extcon");
+	info->disable_wdg = device_property_read_bool(dev, "disable-otg-wdg-in-sleep");
 
 	ret = device_property_read_bool(dev, "role-slave");
 	if (ret)
@@ -1511,10 +1536,14 @@ static int sgm41511_charger_suspend(struct device *dev)
 
 	cancel_delayed_work_sync(&info->wdt_work);
 
-	dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
-	now = ktime_get_boottime();
-	add = ktime_set(SGM41511_OTG_ALARM_TIMER_S, 0);
-	alarm_start(&info->otg_timer, ktime_add(now, add));
+	if (info->disable_wdg) {
+		sgm41511_charger_enable_wdg(info, false);
+	} else {
+		dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
+		now = ktime_get_boottime();
+		add = ktime_set(SGM41511_OTG_ALARM_TIMER_S, 0);
+		alarm_start(&info->otg_timer, ktime_add(now, add));
+	}
 
 	return 0;
 }
@@ -1534,7 +1563,10 @@ static int sgm41511_charger_resume(struct device *dev)
 	if (!info->otg_enable)
 		return 0;
 
-	alarm_cancel(&info->otg_timer);
+	if (info->disable_wdg)
+		sgm41511_charger_enable_wdg(info, true);
+	else
+		alarm_cancel(&info->otg_timer);
 
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
 

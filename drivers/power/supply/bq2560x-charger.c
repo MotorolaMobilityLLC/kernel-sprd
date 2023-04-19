@@ -165,6 +165,7 @@ struct bq2560x_charger_info {
 	bool charging;
 	bool need_disable_Q1;
 	int termination_cur;
+	bool disable_wdg;
 	bool otg_enable;
 	unsigned int irq_gpio;
 	bool is_wireless_charge;
@@ -518,6 +519,24 @@ bq2560x_charger_get_charge_voltage(struct bq2560x_charger_info *info,
 	return 0;
 }
 
+static int bq2560x_charger_enable_wdg(struct bq2560x_charger_info *info,
+				      bool en)
+{
+	int ret;
+
+	if (en)
+		ret = bq2560x_update_bits(info, BQ2560X_REG_5,
+					  BQ2560X_REG_WATCHDOG_TIMER_MASK,
+					  0x01 << BQ2560X_REG_WATCHDOG_TIMER_SHIFT);
+	else
+		ret = bq2560x_update_bits(info, BQ2560X_REG_5,
+					  BQ2560X_REG_WATCHDOG_TIMER_MASK, 0);
+	if (ret)
+		dev_err(info->dev, "%s:Failed to update %d\n", __func__, en);
+
+	return ret;
+}
+
 static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 {
 	int ret = 0;
@@ -529,13 +548,9 @@ static int bq2560x_charger_start_charge(struct bq2560x_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "disable HIZ mode failed\n");
 
-	ret = bq2560x_update_bits(info, BQ2560X_REG_5,
-				 BQ2560X_REG_WATCHDOG_TIMER_MASK,
-				 0x01 << BQ2560X_REG_WATCHDOG_TIMER_SHIFT);
-	if (ret) {
-		dev_err(info->dev, "Failed to enable bq2560x watchdog\n");
+	ret = bq2560x_charger_enable_wdg(info, true);
+	if (ret)
 		return ret;
-	}
 
 	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
@@ -617,10 +632,7 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info, bool 
 			dev_err(info->dev, "Failed to disable power path\n");
 	}
 
-	ret = bq2560x_update_bits(info, BQ2560X_REG_5,
-				  BQ2560X_REG_WATCHDOG_TIMER_MASK, 0);
-	if (ret)
-		dev_err(info->dev, "Failed to disable bq2560x watchdog\n");
+	bq2560x_charger_enable_wdg(info, false);
 }
 
 static int bq2560x_charger_set_current(struct bq2560x_charger_info *info, u32 cur)
@@ -1617,6 +1629,14 @@ static int bq2560x_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
+	ret = bq2560x_charger_enable_wdg(info, true);
+	if (ret)
+		return ret;
+
+	ret = bq2560x_charger_feed_watchdog(info);
+	if (ret)
+		return ret;
+
 	ret = bq2560x_charger_set_power_path_status(info, true);
 	if (ret)
 		dev_err(info->dev, "Failed to enable power path\n");
@@ -1660,6 +1680,10 @@ static int bq2560x_charger_disable_otg(struct regulator_dev *dev)
 		dev_err(info->dev, "disable bq2560x otg failed\n");
 		return ret;
 	}
+
+	ret = bq2560x_charger_enable_wdg(info, false);
+	if (ret)
+		return ret;
 
 	/* Enable charger detection function to identify the charger type */
 	if (!info->use_typec_extcon) {
@@ -1780,6 +1804,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	}
 
 	info->use_typec_extcon = device_property_read_bool(dev, "use-typec-extcon");
+	info->disable_wdg = device_property_read_bool(dev, "disable-otg-wdg-in-sleep");
 
 	ret = device_property_read_bool(dev, "role-slave");
 	if (ret)
@@ -1998,9 +2023,13 @@ static int bq2560x_charger_suspend(struct device *dev)
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->cur_work);
 
-	now = ktime_get_boottime();
-	add = ktime_set(BQ2560X_OTG_ALARM_TIMER_S, 0);
-	alarm_start(&info->otg_timer, ktime_add(now, add));
+	if (info->disable_wdg) {
+		bq2560x_charger_enable_wdg(info, false);
+	} else {
+		now = ktime_get_boottime();
+		add = ktime_set(BQ2560X_OTG_ALARM_TIMER_S, 0);
+		alarm_start(&info->otg_timer, ktime_add(now, add));
+	}
 
 	return 0;
 }
@@ -2020,7 +2049,10 @@ static int bq2560x_charger_resume(struct device *dev)
 	if (!info->otg_enable)
 		return 0;
 
-	alarm_cancel(&info->otg_timer);
+	if (info->disable_wdg)
+		bq2560x_charger_enable_wdg(info, true);
+	else
+		alarm_cancel(&info->otg_timer);
 
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
 	schedule_delayed_work(&info->cur_work, 0);
