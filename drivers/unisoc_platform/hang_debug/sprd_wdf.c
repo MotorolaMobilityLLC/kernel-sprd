@@ -53,9 +53,9 @@ static DEFINE_PER_CPU(struct hrtimer, sprd_wdt_hrtimer);
 static DEFINE_PER_CPU(int, g_enable);
 struct watchdog_device *wdd;
 /* set default watchdog time */
-static u64 g_interval = 8;
-static u64 g_timeout = 40;
-static u64 g_pretimeout = 20;
+static u32 g_interval = CONFIG_SPRD_WDF_FEED_TIME_MS;
+static u32 g_timeout = CONFIG_SPRD_WDT_TIMEOUT_MS;
+static u32 g_pretimeout = CONFIG_SPRD_WDT_PRETIMEOUT_MS;
 static int wdt_disable;
 
 static DEFINE_SPINLOCK(thread_lock);
@@ -79,7 +79,7 @@ static enum hrtimer_restart sprd_wdt_timer_func(struct hrtimer *hrtimer)
 
 	__this_cpu_write(g_enable, 1);
 	wake_up_process(__this_cpu_read(hang_debug_task_store));
-	hrtimer_forward_now(hrtimer, ms_to_ktime(g_interval * MSEC_PER_SEC));
+	hrtimer_forward_now(hrtimer, ms_to_ktime(g_interval));
 	return HRTIMER_RESTART;
 }
 
@@ -89,7 +89,7 @@ static void sprd_wdf_hrtimer_enable(unsigned int cpu)
 
 	hrtimer_init(hrtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	hrtimer->function = sprd_wdt_timer_func;
-	hrtimer_start(hrtimer, ms_to_ktime(g_interval * MSEC_PER_SEC),
+	hrtimer_start(hrtimer, ms_to_ktime(g_interval),
 		      HRTIMER_MODE_REL_PINNED);
 }
 
@@ -144,7 +144,7 @@ static void hang_debug_unpark(unsigned int cpu)
 		wdd->ops->start(wdd);
 #endif
 	hrtimer_start(this_cpu_ptr(&sprd_wdt_hrtimer),
-			ms_to_ktime(g_interval * MSEC_PER_SEC),
+			ms_to_ktime(g_interval),
 			HRTIMER_MODE_REL_PINNED);
 out:
 	mutex_unlock(&wdf_mutex);
@@ -190,7 +190,7 @@ static void smp_hrtimer_start(void *data)
 
 	pr_debug("hrtimer restart on cpu%d\n", cpu);
 	hrtimer_start(this_cpu_ptr(&sprd_wdt_hrtimer),
-			ms_to_ktime(g_interval * MSEC_PER_SEC),
+			ms_to_ktime(g_interval),
 			HRTIMER_MODE_REL_PINNED);
 }
 
@@ -198,7 +198,7 @@ static int hang_debug_proc_read(struct seq_file *s, void *v)
 {
 	int cpu;
 
-	seq_printf(s, "WDF: interval=%llu pretimeout=%llu timeout=%llu bitmap=0x%08x/0x%08x\n",
+	seq_printf(s, "WDF: interval=%u pretimeout=%u timeout=%u bitmap=0x%08x/0x%08x\n",
 		       g_interval, g_pretimeout, g_timeout,
 		       cpu_feed_bitmap, cpu_feed_mask);
 
@@ -214,23 +214,34 @@ static int hang_debug_proc_open(struct inode *inode, struct file *file)
 	return single_open(file, hang_debug_proc_read, NULL);
 }
 
+static int timeout_interval_valid(u32 timeout, u32 pretimeout, u32 interval)
+{
+	if (timeout < 100 || pretimeout < 100 || interval < 50) {
+		pr_err("The value entered2 is too small.\n");
+		return -EINVAL;
+	}
+	if (timeout < pretimeout || (timeout - pretimeout) < interval || timeout < interval) {
+		pr_err("The value entered is not standard.\n");
+		return -EINVAL;
+	}
+	return 0;
+}
+
 static ssize_t hang_debug_proc_write(struct file *file, const char *buf,
 	size_t count, loff_t *data)
 {
-	u64 timeout;
-	u64 pretimeout;
-	int err, cpu;
+	u32 timeout;
+	u32 pretimeout;
+	u32 interval;
+	int cpu;
+	char input[40];
 
-	err = kstrtoull_from_user(buf, count, 0, &timeout);
-	if (err)
+	if (copy_from_user(input, buf, min(count, sizeof(input))))
+		return -EINVAL;
+	if (sscanf(input, "%u %u %u", &timeout, &pretimeout, &interval) < 3)
 		return -EINVAL;
 
-	if (!timeout || timeout < 5) {
-		pr_err("Input timeout must bigger than 5.\n");
-		return -EINVAL;
-	}
-
-	if (g_timeout != timeout) {
+	if (!timeout_interval_valid(timeout, pretimeout, interval)) {
 		mutex_lock(&wdf_mutex);
 		cpu_feed_bitmap = 0;
 
@@ -239,21 +250,28 @@ static ssize_t hang_debug_proc_write(struct file *file, const char *buf,
 			hrtimer_cancel(per_cpu_ptr(&sprd_wdt_hrtimer, cpu));
 
 		g_timeout = timeout;
+		g_pretimeout = pretimeout;
+		g_interval = interval;
 
-		pretimeout = timeout;
-		pretimeout = div_u64(pretimeout, 2);
-
-		g_interval = timeout;
-		g_interval = div_u64(g_interval, 5);
-
-		pr_notice("timeout = %llu interval = %llu\n", g_timeout, g_interval);
+		pr_notice("timeout = %u pretimeout = %u interval = %u\n",
+				g_timeout, g_pretimeout, g_interval);
 
 #if IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
-		/* set new timeout and touch watchdog */
-		if (wdd->ops->set_timeout)
-			wdd->ops->set_timeout(wdd, (u32)g_timeout);
-		if (wdd->ops->set_pretimeout)
-			wdd->ops->set_pretimeout(wdd, pretimeout);
+		/* set new timeout and touch watchdog
+		 * If timeout less-than 40000ms, priority setting pretime. vice versa
+		 * notice: timeout maximum value is 60000ms
+		 */
+		if (g_timeout < 40000) {
+			if (wdd->ops->set_pretimeout)
+				wdd->ops->set_pretimeout(wdd, g_pretimeout);
+			if (wdd->ops->set_timeout)
+				wdd->ops->set_timeout(wdd, g_timeout);
+		} else {
+			if (wdd->ops->set_timeout)
+				wdd->ops->set_timeout(wdd, g_timeout);
+			if (wdd->ops->set_pretimeout)
+				wdd->ops->set_pretimeout(wdd, g_pretimeout);
+		}
 		if (wdd->ops->start)
 			wdd->ops->start(wdd);
 #endif

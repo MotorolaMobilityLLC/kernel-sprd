@@ -57,10 +57,11 @@
 
 /* 1s equal to 32768 counter steps */
 #define SPRD_WDT_FIQ_CNT_STEP		32768
+#define SPRD_WDT_FIQ_PRINT_LOG		131072
 
 #define SPRD_WDT_FIQ_UNLOCK_KEY		0xe551
-#define SPRD_WDT_FIQ_MIN_TIMEOUT		3
-#define SPRD_WDT_FIQ_MAX_TIMEOUT		60
+#define SPRD_WDT_FIQ_MIN_TIMEOUT		3000
+#define SPRD_WDT_FIQ_MAX_TIMEOUT		60000
 
 #define SPRD_WDT_FIQ_CNT_HIGH_SHIFT		16
 #define SPRD_WDT_FIQ_LOW_VALUE_MASK		GENMASK(15, 0)
@@ -69,9 +70,9 @@
 #define SPRD_DSWDTEN_MAGIC "enabled"
 #define SPRD_DSWDTEN_MAGIC_LEN_MAX  10
 
-#define SPRD_WDT_SLEEP_KICKTIME		540
-#define SPRD_WDT_SLEEP_PRETIMEOUT	(600-570)
-#define SPRD_WDT_SLEEP_TIMEOUT		600
+#define SPRD_WDT_SLEEP_KICKTIME		540000
+#define SPRD_WDT_SLEEP_PRETIMEOUT	(600000-570000)
+#define SPRD_WDT_SLEEP_TIMEOUT		600000
 
 /* used for ap hang reboot */
 #define SPRD_WDT_RESET_TIMEOUT          0xe551
@@ -158,11 +159,14 @@ static int sprd_wdt_fiq_load_value(struct sprd_wdt_fiq *wdt, u32 timeout,
 			       u32 pretimeout)
 {
 	u32 val, delay_cnt = 0;
-	u32 tmr_step = timeout * SPRD_WDT_FIQ_CNT_STEP;
-	u32 prtmr_step = pretimeout * SPRD_WDT_FIQ_CNT_STEP;
+	u32 tmr_step = timeout * SPRD_WDT_FIQ_CNT_STEP / 1000;
+	u32 prtmr_step = pretimeout * SPRD_WDT_FIQ_CNT_STEP / 1000;
 
-	pr_err("sprd_wdt_fiq: sprd wdt load value timeout =%d, pretimeout =%d\n",
-	       timeout, pretimeout);
+	/*if the set timeout value is greater than 4s printk this log*/
+	if (tmr_step > SPRD_WDT_FIQ_PRINT_LOG) {
+		pr_err("sprd_wdt_fiq: sprd wdt load value timeout =%d, pretimeout =%d\n",
+			timeout, pretimeout);
+	}
 	wdt->wdt_load = jiffies;
 
 	/*
@@ -294,6 +298,8 @@ static int sprd_wdt_fiq_set_timeout(struct watchdog_device *wdd,
 {
 	struct sprd_wdt_fiq *wdt = to_sprd_wdt_fiq(wdd);
 
+	if (timeout < wdd->pretimeout)
+		return -EINVAL;
 	if (timeout == wdd->timeout)
 		return 0;
 
@@ -307,7 +313,7 @@ static int sprd_wdt_fiq_set_pretimeout(struct watchdog_device *wdd,
 {
 	struct sprd_wdt_fiq *wdt = to_sprd_wdt_fiq(wdd);
 
-	if (new_pretimeout < wdd->min_timeout)
+	if (wdd->timeout < new_pretimeout)
 		return -EINVAL;
 
 	wdd->pretimeout = new_pretimeout;
