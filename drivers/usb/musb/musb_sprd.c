@@ -880,6 +880,7 @@ static int musb_sprd_audio_notifier(struct notifier_block *nb,
 				    unsigned long event, void *data)
 {
 	struct sprd_glue *glue = container_of(nb, struct sprd_glue, audio_nb);
+	unsigned long flags;
 
 	if (glue->is_audio_dev == event) {
 		dev_info(glue->dev, "ignore repeate audio event.\n");
@@ -890,18 +891,28 @@ static int musb_sprd_audio_notifier(struct notifier_block *nb,
 
 	glue->is_audio_dev = event;
 
+	spin_lock_irqsave(&glue->lock, flags);
 	/* map audio event to id event */
 	if (glue->is_audio_dev) {
 		glue->xceiv->last_event = USB_EVENT_ID;
 		glue->id_state = MUSB_ID_GROUND;
+		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
+		__pm_stay_awake(glue->wake_lock);
+		glue->wake_lock_relaxed = false;
 	} else {
 		glue->xceiv->last_event = USB_EVENT_NONE;
 		glue->id_state = MUSB_ID_FLOAT;
+		glue->chg_state = USB_CHG_STATE_UNDETECT;
+		glue->charging_mode = false;
+		glue->retry_chg_detect_count = 0;
+		if (!glue->wake_lock_relaxed) {
+			del_timer_sync(&glue->relax_wakelock_timer);
+			__pm_relax(glue->wake_lock);
+			glue->wake_lock_relaxed = true;
+		}
 	}
+	spin_unlock_irqrestore(&glue->lock, flags);
 
-	glue->chg_state = USB_CHG_STATE_UNDETECT;
-	glue->charging_mode = false;
-	glue->retry_chg_detect_count = 0;
 	queue_work(glue->musb_wq, &glue->resume_work);
 	return NOTIFY_DONE;
 }
@@ -1471,7 +1482,6 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		}
 #endif
 
-		usb_phy_vbus_off(glue->xceiv);
 		/* Decrement pm usage count when leave host state.*/
 		pm_runtime_put_sync(musb->controller);
 
@@ -1571,6 +1581,9 @@ static int musb_sprd_suspend(struct sprd_glue *glue)
 		mutex_unlock(&glue->suspend_resume_mutex);
 		return 0;
 	}
+
+	if (glue->dr_mode == USB_DR_MODE_HOST)
+		usb_phy_vbus_off(glue->xceiv);
 
 	atomic_set(&glue->musb_runtime_suspended, 1);
 	musb_sprd_disable_all_interrupts(musb);
@@ -1751,8 +1764,14 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 
 		if (!test_bit(ID, &glue->inputs)) {
 			dev_dbg(glue->dev, "!id\n");
-			glue->drd_state = DRD_STATE_HOST_IDLE;
-			rework = true;
+			if (!pm_runtime_suspended(glue->dev)) {
+				dev_info(glue->dev, "waiting glue suspended in host mode\n");
+				rework = true;
+				delay = MUSB_RUNTIME_CHECK_DELAY;
+			} else {
+				glue->drd_state = DRD_STATE_HOST_IDLE;
+				rework = true;
+			}
 		} else if (test_bit(B_SESS_VLD, &glue->inputs)) {
 			dev_dbg(glue->dev, "b_sess_vld\n");
 			if (!musb_sprd_is_udc_start(glue)) {
