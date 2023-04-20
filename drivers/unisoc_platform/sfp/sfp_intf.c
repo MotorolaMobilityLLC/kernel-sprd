@@ -558,8 +558,9 @@ static int sfp_check_mod_pkts(u32 ifindex,
 	if (!sfp_ret)
 		return -SFP_FAIL;
 
-	if (skb->dev->header_ops)
+	if (skb->dev && skb->dev->header_ops)
 		skb_push(skb, ETH_HLEN);
+
 	return out_ifindex;
 }
 
