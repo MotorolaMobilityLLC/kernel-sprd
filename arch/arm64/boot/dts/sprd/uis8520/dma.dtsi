@@ -8,9 +8,9 @@
 
 &apahb {
 	ap_dma: dma-controller@20000 {
-			compatible = "sprd,qogirn6pro-dma", "sprd,sc9860-dma";
-			reg = <0x20000 0x4000>;
-			interrupts = <GIC_SPI 219 IRQ_TYPE_LEVEL_HIGH>;
+			compatible = "sprd,uis8520-dma", "sprd,sc9860-dma";
+			reg = <0x70000 0x4000>;
+			interrupts = <GIC_SPI 165 IRQ_TYPE_LEVEL_HIGH>;
 			#dma-cells = <1>;
 			#dma-channels = <28>;
 			clock-names = "enable";
@@ -20,7 +20,7 @@
 
 &apagcp {
 	agcp_dma: dma-controller@56650000 {
-			compatible = "sprd,qogirn6pro-dma", "sprd,sc9860-dma";
+			compatible = "sprd,uis8520-dma", "sprd,sc9860-dma";
 			reg = <0 0x56650000 0 0x4000>;
 			interrupts = <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
 			#dma-cells = <1>;
