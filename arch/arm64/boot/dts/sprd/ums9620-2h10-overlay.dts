@@ -56,6 +56,7 @@
 				sprd,check-emmc-ufs = "need_to_check_emmc_or_ufs";
 				sprd,btwf-file-name = "/dev/block/by-name/wcnmodem";
 				sprd,gnss-file-name = "/vendor/firmware/gnssmodem.bin";
+				btwf-wakeup-lock;
 				adma-tx;
 				adma-rx;
 				/*
