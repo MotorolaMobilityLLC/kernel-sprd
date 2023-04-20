@@ -22,7 +22,7 @@ EXT_MODULES="
 ../modules/kernel5.15/input/touchscreen/novatek_nt36xxx
 ../modules/kernel5.15/npu/vdsp
 ../modules/common/camera/power
-../modules/common/camera/core
+../modules/common/camera/cam_sys
 ../modules/common/camera/cpp
 ../modules/common/camera/flash/ocp8137
 ../modules/common/camera/flash/flash_drv

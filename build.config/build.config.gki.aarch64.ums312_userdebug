@@ -51,7 +51,7 @@ EXT_MODULES="
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
 ../modules/common/camera/power
-../modules/common/camera/core
+../modules/common/camera/cam_sys
 ../modules/common/camera/cpp
 ../modules/common/camera/flash/ocp8137
 ../modules/common/camera/flash/flash_drv

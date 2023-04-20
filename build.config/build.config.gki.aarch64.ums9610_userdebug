@@ -51,7 +51,7 @@ EXT_MODULES="
 ../modules/common/io/block
 ../modules/common/io/iowait
 ../modules/common/camera/power
-../modules/common/camera/core
+../modules/common/camera/cam_sys
 ../modules/common/camera/cpp
 ../modules/common/camera/flash/ocp8137
 ../modules/common/camera/flash/flash_drv
