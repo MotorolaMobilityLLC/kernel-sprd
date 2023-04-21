@@ -23,33 +23,41 @@ static int kmsg_get_flag;
 #define LAST_KMSG_OFFSET	0
 #define LAST_ANDROID_LOG_OFFSET	(1 * 1024 * 1024)
 
-static int get_last_kmsg(char *buf, size_t buf_size, const char *why)
+int get_kernel_log_to_buffer(char *buf, size_t buf_size)
 {
 	struct kmsg_dump_iter iter;
 	size_t dump_size;
-	int header_size = 0;
 
 	if (!buf)
 		return -1;
-	if (kmsg_get_flag > 0) {
-		return -1;
-	}
-	mutex_lock(&kmsg_buf_lock);
-	kmsg_get_flag = 1;
+
 	kmsg_dump_rewind(&iter);
 
-	/* Write dump header. */
-	if (why)
-		header_size = snprintf(buf, buf_size, "%s\n", why);
 	/* Write dump contents. */
+	if (!kmsg_dump_get_buffer(&iter, true, buf, buf_size, &dump_size)) {
+		pr_err("get last kernel message failed\n");
+		return -1;
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL(get_kernel_log_to_buffer);
+static void get_last_kmsg(char *buf, size_t buf_size, const char *why)
+{
+	int header_size = 0;
+
+	if (!buf)
+		return;
+	if (kmsg_get_flag > 0)
+		return;
+	kmsg_get_flag = 1;
+
+	header_size = snprintf(buf, buf_size, "%s\n", why);
+
 	header_size = ALIGN(header_size, 8);
 	buf_size -= header_size;
-	if (!kmsg_dump_get_buffer(&iter, true, buf + header_size, buf_size, &dump_size)) {
-		mutex_unlock(&kmsg_buf_lock);
-		pr_err("get last kernel message failed\n");
-	}
-	mutex_unlock(&kmsg_buf_lock);
-	return 0;
+	if (get_kernel_log_to_buffer(buf + header_size, buf_size))
+		pr_err("save kernel log to buffer failed!\n");
 }
 static int write_data_to_partition(struct file *filp, char *buf, size_t buf_size, int offset)
 {
@@ -91,8 +99,9 @@ static int save_log_to_partition_handler(struct notifier_block *nb, unsigned lon
 	}
 
 	/* handle last kmsg */
-
+	mutex_lock(&kmsg_buf_lock);
 	get_last_kmsg(kmsg_buf, KMSG_BUF_SIZE, buf);
+	mutex_unlock(&kmsg_buf_lock);
 
 	ret = write_data_to_partition(plog_file, kmsg_buf, KMSG_BUF_SIZE, LAST_KMSG_OFFSET);
 	if (ret)
@@ -136,10 +145,13 @@ static void last_kmsg_handler(struct kmsg_dumper *dumper,
 	const char *why;
 
 	why = kmsg_dump_reason(reason);
-	if (kmsg_buf == NULL)
+	if (kmsg_buf == NULL) {
 		pr_err("no available buf, do nothing!\n");
-	else
+	} else {
+		mutex_lock(&kmsg_buf_lock);
 		get_last_kmsg(kmsg_buf, KMSG_BUF_SIZE, why);
+		mutex_unlock(&kmsg_buf_lock);
+	}
 }
 
 static struct notifier_block sysdump_log_notifier = {

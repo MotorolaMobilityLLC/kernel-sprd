@@ -39,7 +39,9 @@ extern char *ylog_buffer;
   */
 extern void sysdump_ipi(void *p, struct pt_regs *regs);
 
+extern int get_kernel_log_to_buffer(char *buf, size_t buf_size);
 
+extern unsigned long unisoc_virt_to_phys(const void *kaddr);
 #if IS_ENABLED(CONFIG_SPRD_MINI_SYSDUMP)
 /**
   * for wdh and so on...
@@ -67,4 +69,7 @@ static inline int minidump_change_extend_information(const char *name,
 }
 static inline void sysdump_ipi(void *p, struct pt_regs *regs) {}
 static inline void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason) {}
+static inline int get_kernel_log_to_buffer(char *buf, size_t buf_size) { return -1; }
+static inline unsigned long unisoc_virt_to_phys(const void *kaddr) { return 0; }
+
 #endif /*CONFIG_SPRD_SYSDUMP*/

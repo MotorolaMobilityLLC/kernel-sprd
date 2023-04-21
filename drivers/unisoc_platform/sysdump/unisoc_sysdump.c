@@ -379,7 +379,7 @@ unsigned long unisoc_virt_to_phys(const void *kaddr)
 
 	return (unsigned long)__pa(kaddr);
 }
-
+EXPORT_SYMBOL(unisoc_virt_to_phys);
 /**
  * save extend debug information of modules in minidump, such as: cm4, iram...
  *

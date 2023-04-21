@@ -23,6 +23,7 @@
 #include <uapi/linux/sched/types.h>
 #include <linux/sched/task_stack.h>
 #include <linux/sched/mm.h>
+#include <linux/semaphore.h>
 #include <linux/slab.h>
 #include <linux/kthread.h>
 #include <linux/ptrace.h>
@@ -37,6 +38,14 @@ static atomic_t hang_detect_counter;
 static char *hang_info;
 static int hang_info_index;
 static struct task_struct *hd_thread;
+static struct task_struct *hdinfo_thread;
+static struct semaphore hang_detect_sema;
+#define NH_LOGBUF_SIZE (128 * 1024)
+char nh_log_buf[NH_LOGBUF_SIZE];
+#ifdef CONFIG_SPRD_DEBUG
+static int dump_info_enable;
+static int panic_enable; /* only for debug version */
+#endif
 
 static void log_to_hang_info(const char *fmt, ...)
 {
@@ -56,7 +65,6 @@ static void log_to_hang_info(const char *fmt, ...)
 	va_end(ap);
 	hang_info_index += len;
 }
-#ifndef CONFIG_SPRD_DEBUG
 static struct core_task_info core_task[CORE_TASK_NUM_MAX] = {
 	{1, "init"},
 	{0, "surfaceflinger"},
@@ -591,53 +599,101 @@ static void save_native_hang_monitor_data(void)
 
 	reset_core_task_info();
 }
-#endif
+
 static void reset_hang_info(void)
 {
 	memset(hang_info, 0, HANG_INFO_MAX);
 	hang_info_index = 0;
 }
+static void get_current_kernel_log(void)
+{
+	int ret;
+
+	pr_emerg("start save kernel log\n");
+	if (get_kernel_log_to_buffer(nh_log_buf, NH_LOGBUF_SIZE))
+		pr_err("get_current kernel log fail!\n");
+
+	ret = minidump_save_extend_information("nh_log_buf", unisoc_virt_to_phys(nh_log_buf),
+			unisoc_virt_to_phys(nh_log_buf + NH_LOGBUF_SIZE));
+	if (ret < 0)
+		pr_err("add nh_log_buf fail, ret = %d\n", ret);
+}
+static int hang_detect_thread_info(void *arg)
+{
+	/* unsigned long flags; */
+	struct sched_param param;
+	void *tmp_arg = NULL;
+
+	tmp_arg = arg;
+	param.sched_priority = 99;
+	sched_setscheduler(current, SCHED_FIFO, &param);
+	pr_emerg("[Native Hang Detect] hang_detect info thread starts.\n");
+	while (!kthread_should_stop()) {
+		down(&hang_detect_sema);
+		/* get kernel log first */
+		get_current_kernel_log();
+		reset_hang_info();
+		log_to_hang_info("[Native Hang detect]Dump process bt.\n");
+		save_native_hang_monitor_data();
+
+		pr_emerg("hang detect save data finish ......\n");
+	}
+
+	return 0;
+
+}
+
+#ifdef CONFIG_SPRD_DEBUG
+static int log_saved_flag;
+#endif
+
 static int hang_detect_thread(void *arg)
 {
 	void *tem_arg = NULL;
 	/* unsigned long flags; */
 	struct sched_param param;
-#ifdef CONFIG_SPRD_DEBUG
-	static int trigger_flag;
-#endif
+
 	tem_arg = arg;
 	param.sched_priority = 99;
 	sched_setscheduler(current, SCHED_FIFO, &param);
-	reset_hang_info();
-	pr_debug("[Native Hang Detect] hang_detect thread starts.\n");
+	pr_notice("[Native Hang Detect] hang_detect thread starts.\n");
 	while (!kthread_should_stop()) {
 		if (hang_detect_enabled) {
 			if (atomic_add_negative(0, &hang_detect_counter)) {
 #ifdef CONFIG_SPRD_DEBUG
-				/* no panic on userdeug, and show data one shot .*/
-				if (trigger_flag != 0) {
-					pr_err("[Native Hang Detect] ");
-					pr_err("hang_detect_counter:%d ...\n",
-						atomic_read(&hang_detect_counter));
+				/* no panic on userdeug */
+				pr_emerg("[Native Hang Detect] ");
+				pr_emerg("hang_detect_counter:%d ...\n",
+					atomic_read(&hang_detect_counter));
+				/* save kernel log for native hung first time */
+				if (!log_saved_flag) {
+					get_current_kernel_log();
+					log_saved_flag = 1;
+				}
+
+				if (dump_info_enable > 0) {
+					up(&hang_detect_sema);
+					dump_info_enable--;
+				}
+				if (panic_enable) {
+					pr_emerg("panic enable = %d, panic!!\n", panic_enable);
+					panic("Native hang monitor trigger");
+				} else {
 					msleep(1000);
 					continue;
 				}
-				trigger_flag = 1;
 #endif
-				log_to_hang_info("[Native Hang detect]Dump process bt.\n");
 #ifndef CONFIG_SPRD_DEBUG
-				save_native_hang_monitor_data();
-				pr_err("[Native Hang Detect] hang_detect_counter:%d, ",
+				pr_emerg("[Native Hang Detect] hang_detect_counter:%d, ",
 					atomic_read(&hang_detect_counter));
-				pr_err("hang detect save data finish ......\n");
-				pr_err("[Native Hang Detect] hang_detect_counter:%d, ",
-					atomic_read(&hang_detect_counter));
-				pr_err("we should trigger panic...\n");
-				/* wait for wdh */
-				msleep(40 * 1000);
+				up(&hang_detect_sema);
+				/* wait for info save 10s, wdh 40s */
+				msleep(50 * 1000);
 				/* check hang_detect_counter before panic */
-				if (atomic_add_negative(0, &hang_detect_counter))
+				if (atomic_add_negative(0, &hang_detect_counter)) {
+					pr_emerg("we should trigger panic...\n");
 					panic("Native hang monitor trigger");
+				}
 #endif
 			}
 			atomic_dec(&hang_detect_counter);
@@ -649,12 +705,8 @@ static int hang_detect_thread(void *arg)
 			pr_notice("[Native Hang Detect] hang_detect disabled.\n");
 		}
 
-		msleep(1000); /*	detecet 1s in default */
+		msleep(1000); /* detect 1s in default */
 	}
-#ifdef CONFIG_SPRD_DEBUG
-	/* should reset trigger_flag before exit */
-	trigger_flag = 0;
-#endif
 	return 0;
 }
 
@@ -736,6 +788,10 @@ static int monitor_hang_show(struct seq_file *m, void *v)
 	SEQ_printf(m, "hang_detect_enabled: %d ,hang_detect_timeout = %d s ",
 		hang_detect_enabled, hang_detect_timeout);
 	SEQ_printf(m, "hang_detect_counter: %d\n", atomic_read(&hang_detect_counter));
+#ifdef CONFIG_SPRD_DEBUG
+	SEQ_printf(m, "panic_enable: %d\n", panic_enable);
+	SEQ_printf(m, "dump_info_enable: %d\n", dump_info_enable);
+#endif
 	return 0;
 }
 
@@ -755,29 +811,47 @@ static ssize_t monitor_hang_proc_write(struct file *filp, const char __user *buf
 			return -1;
 		}
 		write_buf[count] = '\0';
-
+		pr_info("%s copy_from_user:%s\n", __func__, write_buf);
 		if (!strncmp(write_buf, "on", 2)) {
-			pr_info("%s copy_from_user on !!\n", __func__);
-
 			/*	create hang detect thread */
 			if (!hang_detect_enabled) {
 				pr_info("%s:create hang_detect_thread !\n", __func__);
 				hd_thread = kthread_run(hang_detect_thread, NULL,
 							"native_hang_detect");
+				hdinfo_thread = kthread_run(hang_detect_thread_info, NULL,
+						"native_hang_detect_info");
 				hang_detect_enabled = 1;
 			} else {
 				pr_info("%s:hang_detect_thread already run !\n", __func__);
 			}
 		} else if (!strncmp(write_buf, "off", 3)) {
-			pr_info("%s copy_from_user off !!\n", __func__);
 			/*	stop &  hang detect thread */
 			if (!hang_detect_enabled) {
 				pr_info("%s:hang_detect_thread already stop !\n", __func__);
 			} else {
 				pr_info("%s:stop hang_detect_thread !\n", __func__);
 				kthread_stop(hd_thread);
+				kthread_stop(hdinfo_thread);
 				hang_detect_enabled = 0;
 			}
+#ifdef CONFIG_SPRD_DEBUG
+		} else if (!strncmp(write_buf, "panic-on", 8)) {
+			/* panic when timeout for debug */
+			panic_enable = 1;
+			pr_emerg("set panic_enable to 1");
+		} else if (!strncmp(write_buf, "panic-off", 9)) {
+			/* no panic when timeout for debug */
+			panic_enable = 0;
+			pr_emerg("set panic_enable to 0");
+		} else if (!strncmp(write_buf, "timeout", 7)) {
+			/* timeout */
+			atomic_set(&hang_detect_counter, 0);
+			pr_emerg("set hang_detect_counter to 0");
+		} else if (!strncmp(write_buf, "dump-info", 9)) {
+			/* dump info for debug */
+			dump_info_enable = 1;
+			pr_emerg("set dump_info_enable to 1");
+#endif
 		} else {
 			pr_err("%s invalid string , do nothing !!\n", __func__);
 		}
@@ -811,7 +885,11 @@ static int monitor_hang_init(void)
 		return -ENOMEM;
 
 	atomic_set(&hang_detect_counter, WAIT_BOOT_COMPLETE);
-
+	sema_init(&hang_detect_sema, 0);
+#ifdef CONFIG_SPRD_DEBUG
+	panic_enable = 0;
+	dump_info_enable = 0;
+#endif
 	/* hang info buffer alloc */
 	hang_info = (char *)kzalloc(HANG_INFO_MAX, GFP_KERNEL);
 	if (hang_info != NULL) {

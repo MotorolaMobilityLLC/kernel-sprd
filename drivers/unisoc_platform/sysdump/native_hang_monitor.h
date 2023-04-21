@@ -38,7 +38,7 @@
 #define TASK_STATE_TO_CHAR_STR "RSDTtZXxKWP"
 
 
-#define SYSDUMP_PROC_BUF_LEN    6
+#define SYSDUMP_PROC_BUF_LEN    16
 extern void get_native_hang_monitor_buffer(unsigned long *addr, unsigned long *size,
 						unsigned long *start);
 
