@@ -33,6 +33,8 @@ EXT_MODULES="
 ../modules/kernel5.15/wcn/wlan/wlan_combo
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
+../modules/kernel5.15/display/gsp
+../modules/kernel5.15/display/dispc
 "
 fi
 #camera module version config
