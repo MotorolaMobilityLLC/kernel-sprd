@@ -486,6 +486,7 @@ struct sprd_tcpm_port {
 	enum typec_role pwr_role;
 	enum typec_data_role data_role;
 	enum typec_pwr_opmode pwr_opmode;
+	enum typec_orientation orientation;
 
 	struct usb_pd_identity partner_ident;
 	struct typec_partner_desc partner_desc;

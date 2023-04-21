@@ -902,9 +902,15 @@ static int sprd_tcpm_mux_set(struct sprd_tcpm_port *port, int state,
 	sprd_tcpm_log(port, "Requesting mux state %d, usb-role %d, orientation %d",
 		      state, usb_role, orientation);
 
-	ret = typec_set_orientation(port->typec_port, orientation);
-	if (ret)
-		return ret;
+	if (port->orientation != orientation) {
+		ret = typec_set_orientation(port->typec_port, orientation);
+		if (ret)
+			return ret;
+
+		sprd_tcpm_log(port, "Requesting new orientation %d, old orientation %d",
+			      orientation, port->orientation);
+		port->orientation = orientation;
+	}
 
 	if (port->role_sw) {
 		ret = usb_role_switch_set_role(port->role_sw, usb_role);
