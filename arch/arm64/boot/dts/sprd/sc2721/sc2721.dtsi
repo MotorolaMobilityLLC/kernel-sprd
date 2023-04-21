@@ -105,16 +105,6 @@
 			reg = <0xc00>, <0xecc>, <0xec0>;
 		};
 
-		sprd_audio_codec_ana: audio-codec@700 {
-			compatible = "unisoc,sc2721-audio-codec",
-				"unisoc,sc2731-audio-codec";
-			#sound-dai-cells = <1>;
-			reg = <0x700>;
-			interrupts = <6>;
-		//	sprd,syscon-pmu-apb = <&pmu_apb_regs>;
-			status = "disabled";
-		};
-
 		pmic_smpl: smpl@c00 {
 			compatible = "sprd,sc27xx-smpl", "sprd,sc2721-smpl";
 			reg = <0xc00>;
@@ -142,5 +132,6 @@
 	};
 };
 
+#include "audio-codec.dtsi"
 #include "efuse.dtsi"
 #include "regulator.dtsi"

@@ -725,11 +725,13 @@
 
 
 /* Include other IP modules in ALPHABETICAL order */
+#include "audio.dtsi"
 #include "ddr-dfs.dtsi"
 #include "dma.dtsi"
 #include "glbreg.dtsi"
 #include "gpio.dtsi"
 #include "i2c.dtsi"
+#include "i2s.dtsi"
 #include "modem.dtsi"
 #include "pwm.dtsi"
 #include "pin-controller.dtsi"

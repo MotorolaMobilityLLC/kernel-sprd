@@ -10,6 +10,86 @@
 	pin_controller: pinctrl@402a0000 {
 		compatible = "sprd,sharkl3-pinctrl";
 		reg = <0 0x402a0000 0 0x10000>;
-	};
 
+		vbc_iis1_0: iismtx-inf0-8 {
+			pins = "SHARKL3_IIS_INF0_SYS_SEL";
+			sprd,control = <0x8>;
+		};
+		ap_iis0_0: iismtx-inf0-0 {
+			pins = "SHARKL3_IIS_INF0_SYS_SEL";
+			sprd,control = <0x0>;
+		};
+		ap_iis1_0: iismtx-inf0-1 {
+			pins = "SHARKL3_IIS_INF0_SYS_SEL";
+			sprd,control = <0x1>;
+		};
+		tgdsp_iis0_0: iismtx-inf0-4 {
+			pins = "SHARKL3_IIS_INF0_SYS_SEL";
+			sprd,control = <0x4>;
+		};
+		tgdsp_iis1_0: iismtx-inf0-5 {
+			pins = "SHARKL3_IIS_INF0_SYS_SEL";
+			sprd,control = <0x5>;
+		};
+		pubcp_iis0_0: iismtx-inf0-3 {
+			pins = "SHARKL3_IIS_INF0_SYS_SEL";
+			sprd,control = <0x3>;
+		};
+		vbc_iis1_3: iismtx-inf3-8 {
+			pins = "SHARKL3_IIS_INF3_SYS_SEL";
+			sprd,control = <0x8>;
+		};
+		ap_iis0_3: iismtx-inf3-0 {
+			pins = "SHARKL3_IIS_INF3_SYS_SEL";
+			sprd,control = <0x0>;
+		};
+		tgdsp_iis0_3: iismtx-inf3-4 {
+			pins = "SHARKL3_IIS_INF3_SYS_SEL";
+			sprd,control = <0x4>;
+		};
+		tgdsp_iis1_3: iismtx-inf3-5 {
+			pins = "SHARKL3_IIS_INF3_SYS_SEL";
+			sprd,control = <0x5>;
+		};
+		pubcp_iis0_3: iismtx-inf3-3 {
+			pins = "SHARKL3_IIS_INF3_SYS_SEL";
+			sprd,control = <0x3>;
+		};
+		wcn_iis0_3: iismtx-inf3-11 {
+			pins = "SHARKL3_IIS_INF3_SYS_SEL";
+			sprd,control = <0xb>;
+		};
+		vbc_iis1_4: iismtx-inf4-8 {
+			pins = "SHARKL3_IIS_INF4_SYS_SEL";
+			sprd,control = <0x8>;
+		};
+		ap_iis0_4: iismtx-inf4-0 {
+			pins = "SHARKL3_IIS_INF4_SYS_SEL";
+			sprd,control = <0x0>;
+		};
+		tgdsp_iis0_4: iismtx-inf4-4 {
+			pins = "SHARKL3_IIS_INF4_SYS_SEL";
+			sprd,control = <0x4>;
+		};
+		tgdsp_iis1_4: iismtx-inf4-5 {
+			pins = "SHARKL3_IIS_INF4_SYS_SEL";
+			sprd,control = <0x5>;
+		};
+		pubcp_iis0_4: iismtx-inf4-3 {
+			pins = "SHARKL3_IIS_INF4_SYS_SEL";
+			sprd,control = <0x3>;
+		};
+		wcn_iis0_4: iismtx-inf4-11 {
+			pins = "SHARKL3_IIS_INF4_SYS_SEL";
+			sprd,control = <0xb>;
+		};
+		iis_loop_3_4_enable: iismtx-inf3-inf4-loop-1 {
+			pins = "SHARKL3_IIS_INF4_INF3_LOOP";
+			sprd,control = <0x1>;
+		};
+		iis_loop_3_4_disable: iismtx-inf3-inf4-loop-0 {
+			pins = "SHARKL3_IIS_INF4_INF3_LOOP";
+			sprd,control = <0x0>;
+		};
+	};
 };
