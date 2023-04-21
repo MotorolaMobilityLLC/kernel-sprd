@@ -174,6 +174,7 @@ struct sdhci_sprd_host {
 	u32 tuning_flag;
 	u32 cpst_cmd_dly;
 	u32 int_status;
+	bool cmd_dly_all_pass;
 };
 
 enum sdhci_sprd_tuning_type {
@@ -690,6 +691,7 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	int final_phase;
 	u32 dll_cfg, mid_dll_cnt, dll_cnt, dll_dly;
 	bool cfg_use_adma = false;
+	int cmd_error = 0;
 
 	sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
 
@@ -742,8 +744,30 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 		} else if (type == SDHCI_SPRD_TUNING_SD_UHS_CMD) {
 			value = !mmc_send_tuning_cmd(mmc);
 		} else {
-			value = !mmc_send_tuning(mmc, opcode, NULL);
+			value = !mmc_send_tuning(mmc, opcode, &cmd_error);
 		}
+
+		/*
+		 * if data tuning occur cmd error and previous cmd tuning all pass,
+		 * it means the current cmd delay is not a good one.
+		 * then reset cmd delay to 0
+		 */
+		if ((type == SDHCI_SPRD_TUNING_SD_UHS_DATA) && cmd_error) {
+			pr_info("%s: cmd error %d occurs in data tuning, dly = 0x%x\n",
+				mmc_hostname(mmc), cmd_error, dll_dly);
+			if (sprd_host->cmd_dly_all_pass == true) {
+				dll_dly &= ~SDHCI_SPRD_CMD_DLY_MASK;
+				sdhci_sprd_set_dll_value(host, &p[mmc->ios.timing],
+					MMC_SET_BLOCKLEN, 0, SDHCI_SPRD_TUNING_SD_UHS_CMD);
+
+				i--;
+				cmd_error = 0;
+				sprd_host->tuning_flag = 0;
+				sprd_host->cmd_dly_all_pass = false;
+				continue;
+			}
+		}
+
 		sprd_host->tuning_flag = 0;
 
 		if ((!prev_vl) && value) {
@@ -819,6 +843,11 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	pr_info("%s: the best tuning step range %d-%d(the length is %d)\n",
 		mmc_hostname(mmc), ranges[longest_range].start,
 		ranges[longest_range].end, longest_range_len);
+
+	if ((longest_range_len == dll_cnt) && (type == SDHCI_SPRD_TUNING_SD_UHS_CMD))
+		sprd_host->cmd_dly_all_pass = true;
+	else
+		sprd_host->cmd_dly_all_pass = false;
 
 	mid_step = ranges[longest_range].start + longest_range_len / 2;
 	mid_step %= dll_cnt;
