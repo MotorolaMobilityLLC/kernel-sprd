@@ -1188,12 +1188,19 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 			sdwc->start_host_retry_count = 0;
 			rework = true;
 		} else if (test_bit(A_AUDIO, &sdwc->inputs)) {
+			unsigned long flags;
+
 			dev_dbg(sdwc->dev, "A_AUDIO\n");
 			dwc3_sprd_otg_start_host(sdwc, 0);
 
 			/* start musb */
-			call_sprd_usbm_event_notifiers(SPRD_USBM_EVENT_HOST_MUSB,
-										true, NULL);
+			spin_lock_irqsave(&sdwc->lock, flags);
+			/* to make sure id is still grounded */
+			if (sdwc->id_state == DWC3_ID_GROUND)
+				call_sprd_usbm_event_notifiers(SPRD_USBM_EVENT_HOST_MUSB,
+											true, NULL);
+			spin_unlock_irqrestore(&sdwc->lock, flags);
+
 			sdwc->drd_state = DRD_STATE_HOST_AUDIO;
 			sdwc->start_host_retry_count = 0;
 			rework = true;
