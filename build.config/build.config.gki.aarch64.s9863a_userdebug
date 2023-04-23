@@ -29,6 +29,7 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/machine/sprd_card
 ../modules/kernel5.15/audio/sprd/machine/i2s_card
 ../modules/kernel5.15/audio/sprd/dai/i2s
+../modules/kernel5.15/gpu/rogue/driver/build/linux/sharkl3_android
 ../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
 ../modules/kernel5.15/wcn/wlan/wlan_combo
 ../modules/kernel5.15/wcn/fm/driver
