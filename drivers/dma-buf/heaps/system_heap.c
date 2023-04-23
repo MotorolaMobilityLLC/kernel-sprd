@@ -21,9 +21,10 @@
 #include <linux/scatterlist.h>
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
+#include <linux/mm/emem.h>
 
 #include "page_pool.h"
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 #include <linux/rbtree.h>
 #include <linux/kthread.h>
 #include <linux/sched/task.h>
@@ -46,7 +47,7 @@ struct system_heap_buffer {
 	void *vaddr;
 
 	bool uncached;
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	struct rb_node node;
 	pid_t pid;
 	char task_name[TASK_COMM_LEN];
@@ -55,7 +56,7 @@ struct system_heap_buffer {
 #endif
 };
 
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 struct system_device {
 	struct rb_root buffers;
 	struct mutex buffer_lock;
@@ -238,7 +239,7 @@ static int system_heap_dma_buf_end_cpu_access(struct dma_buf *dmabuf,
 	return 0;
 }
 
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 int dmabuf_sysheap_map_user(struct dma_heap *heap, struct system_heap_buffer *buffer,
 	struct vm_area_struct *vma)
 {
@@ -269,7 +270,7 @@ static int system_heap_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 	struct sg_table *table = &buffer->sg_table;
 	unsigned long addr = vma->vm_start;
 	struct sg_page_iter piter;
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	struct dma_heap *heap = buffer->heap;
 	struct task_struct *task = current->group_leader;
 	pid_t pid = task_pid_nr(task);
@@ -280,7 +281,7 @@ static int system_heap_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 	if (buffer->uncached)
 		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
 
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	ret = dmabuf_sysheap_map_user(heap, buffer, vma);
 
 	if (ret)
@@ -417,7 +418,7 @@ static void system_heap_dma_buf_release(struct dma_buf *dmabuf)
 	struct scatterlist *sg;
 	int i, j;
 
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	struct system_device *dev = internal_dev;
 	mutex_lock(&dev->buffer_lock);
 	rb_erase(&buffer->node, &dev->buffers);
@@ -473,7 +474,7 @@ static struct page *alloc_largest_available(unsigned long size,
 	return NULL;
 }
 
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 static void dmabuf_sysbuffer_add(struct system_device *dev, struct system_heap_buffer *buffer)
 {
 	struct rb_node **p = &dev->buffers.rb_node;
@@ -514,7 +515,7 @@ static struct dma_buf *system_heap_do_allocate(struct dma_heap *heap,
 	struct list_head pages;
 	struct page *page, *tmp_page;
 	int i, ret = -ENOMEM;
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	struct system_device *dev = internal_dev;
 	struct timespec64 ts;
 #endif
@@ -561,7 +562,7 @@ static struct dma_buf *system_heap_do_allocate(struct dma_heap *heap,
 		list_del(&page->lru);
 	}
 
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	mutex_lock(&dev->buffer_lock);
 	dmabuf_sysbuffer_add(dev, buffer);
 	mutex_unlock(&dev->buffer_lock);
@@ -634,7 +635,7 @@ static long system_get_pool_size(struct dma_heap *heap)
 	return num_pages << PAGE_SHIFT;
 }
 
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 int dmabuf_debug_sysheap_show_printk(struct dma_heap *heap, void *data)
 {
 	int i;
@@ -717,7 +718,7 @@ static struct dma_buf *system_uncached_heap_not_initialized(struct dma_heap *hea
 	return ERR_PTR(-EBUSY);
 }
 
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 static int dmabuf_e_show_mem_handler(struct notifier_block *nb,
 				unsigned long val, void *data)
 {
@@ -740,6 +741,8 @@ static int dmabuf_e_show_mem_handler(struct notifier_block *nb,
 static struct notifier_block dmabuf_e_show_mem_notifier = {
 	.notifier_call = dmabuf_e_show_mem_handler,
 };
+#else
+static struct notifier_block dmabuf_e_show_mem_notifier;
 #endif
 
 static struct dma_heap_ops system_uncached_heap_ops = {
@@ -751,7 +754,7 @@ static int system_heap_create(void)
 {
 	struct dma_heap_export_info exp_info;
 	int i;
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	struct system_device *sysdev;
 
 	sysdev = kzalloc(sizeof(*sysdev), GFP_KERNEL);
@@ -790,7 +793,7 @@ static int system_heap_create(void)
 	if (IS_ERR(sys_uncached_heap))
 		return PTR_ERR(sys_uncached_heap);
 
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	sysdev->buffers = RB_ROOT;
 	mutex_init(&sysdev->buffer_lock);
 	internal_dev = sysdev;
@@ -802,6 +805,7 @@ static int system_heap_create(void)
 #ifdef CONFIG_E_SHOW_MEM
 	register_e_show_mem_notifier(&dmabuf_e_show_mem_notifier);
 #endif
+	register_unisoc_show_mem_notifier(&dmabuf_e_show_mem_notifier);
 
 	return 0;
 }

@@ -12,7 +12,7 @@
 #include <linux/cdev.h>
 #include <linux/types.h>
 
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 #include <linux/sched.h>
 
 #define MAX_MAP_USER  15
