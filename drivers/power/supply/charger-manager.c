@@ -3859,7 +3859,7 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		cm->charging_start_time = 0;
 		cm->charging_end_time = ktime_to_ms(ktime_get_boottime());
 		cm_cp_control_switch(cm, enable);
-		cm_fixed_fchg_control_switch(cm, enable);
+		cm_fixed_fchg_disable(cm);
 		cm_ir_compensation_enable(cm, enable);
 		err = try_charger_enable_by_psy(cm, enable);
 		if (!err) {
@@ -3870,6 +3870,7 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		mutex_lock(&cm->desc->keep_awake_mtx);
 		if (!err)
 			cm->charger_enabled = enable;
+		cm_fixed_fchg_control_switch(cm, enable);
 		if (!err && cm->desc->keep_awake) {
 			dev_info(cm->dev, "Release charger_manager_wakelock when disable charge\n");
 			__pm_relax(cm->charge_ws);
@@ -4899,6 +4900,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm_enable_fixed_fchg_handshake(cm, false);
 		try_charger_enable(cm, false);
 		cm->charger_enabled = false;
+		cancel_delayed_work_sync(&cm->fixed_fchg_work);
 		cm_set_charger_present(cm, false);
 		cancel_delayed_work_sync(&cm_monitor_work);
 		cancel_delayed_work_sync(&cm->cp_work);
