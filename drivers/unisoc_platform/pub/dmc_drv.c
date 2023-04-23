@@ -209,6 +209,7 @@ static int sprd_ddr_proc_creat(struct dmc_drv_data *pdrv_data)
 					       pdrv_data->proc_dir,
 					       &sprd_ddr_size_fops, NULL);
 	if (!pdrv_data->property) {
+		pr_err("ddr property create fail\n");
 		remove_proc_entry(DMC_PROC_NAME, NULL);
 		return -ENOMEM;
 	}
@@ -217,6 +218,7 @@ static int sprd_ddr_proc_creat(struct dmc_drv_data *pdrv_data)
 					   pdrv_data->proc_dir,
 					   &sprd_ddr_info_fops, NULL);
 	if (!pdrv_data->info) {
+		pr_err("ddr info create fail\n");
 		remove_proc_entry(DDR_PROPERTY_NAME, pdrv_data->proc_dir);
 		remove_proc_entry(DMC_PROC_NAME, NULL);
 		return -ENOMEM;
@@ -299,6 +301,7 @@ static int sprd_pub_monitor_status_show(struct seq_file *m, void *v)
 	seq_printf(m, "dfs_cnt: %d\n", (drv_data.reg_val.dfs_cnt & 0x3ff));
 	seq_printf(m, "total_time:%lldns, sts_time:%lldns\n", total_tm, sts_tm);
 	sprd_pub_monitor_enable(1);
+
 	return 0;
 }
 
@@ -318,6 +321,7 @@ static const struct proc_ops pub_monitor_status_fops = {
 static int sprd_pub_monitor_enable_show(struct seq_file *m, void *v)
 {
 	seq_printf(m, "%d\n", drv_data.pub_mon_enabled);
+
 	return 0;
 }
 
@@ -435,8 +439,10 @@ static struct notifier_block dmc_panic_event_nb = {
 
 static int sprd_get_panic_freq_init(struct notifier_block *event_nb)
 {
-	if (!event_nb)
+	if (!event_nb) {
+		pr_err("event_nb is null\n");
 		return -EINVAL;
+	}
 
 	pr_info("register ddr painc_callback func\n");
 	atomic_notifier_chain_register(&panic_notifier_list, event_nb);
@@ -475,7 +481,7 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 #ifdef CONFIG_PROC_FS
 		result = sprd_ddr_proc_creat(&drv_data);
 		if (result)
-			dev_warn(&pdev->dev, "sprd_ddr_proc creat fail\n");
+			dev_err(&pdev->dev, "sprd_ddr_proc creat fail\n");
 #endif
 	}
 
@@ -490,19 +496,19 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 #ifdef CONFIG_PROC_FS
 		result = sprd_pub_monitor_proc_create(&drv_data);
 		if (result)
-			dev_warn(&pdev->dev, "sprd_pub_monitor_proc creat fail\n");
+			dev_err(&pdev->dev, "sprd_pub_monitor_proc creat fail\n");
 #endif
 	}
 
 	if (pdata->dmc_res != INVALID_RES_IDX) {
 		res = platform_get_resource(pdev, IORESOURCE_MEM, pdata->dmc_res);
-		if (res != NULL) {
+		if (res) {
 			drv_data.dmc_base = devm_ioremap_resource(&pdev->dev, res);
 			if (IS_ERR(drv_data.dmc_base))
 				return (int)PTR_ERR(drv_data.dmc_base);
 			result = sprd_get_panic_freq_init(&dmc_panic_event_nb);
 			if (result)
-				dev_warn(&pdev->dev, "sprd_pub_monitor_proc creat fail\n");
+				dev_err(&pdev->dev, "sprd_get_panic_freq creat fail\n");
 		}
 	}
 
@@ -511,32 +517,33 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 
 static int sprd_dmc_remove(struct platform_device *pdev)
 {
-	if (drv_data.property != NULL) {
+	if (drv_data.property) {
 		remove_proc_entry(DDR_PROPERTY_NAME, drv_data.proc_dir);
 		drv_data.property = NULL;
 	}
 
-	if (drv_data.info != NULL) {
+	if (drv_data.info) {
 		remove_proc_entry(DDR_INFO_NAME, drv_data.proc_dir);
 		drv_data.info = NULL;
 	}
 
-	if (drv_data.pub_monitor_enable != NULL) {
+	if (drv_data.pub_monitor_enable) {
 		remove_proc_entry(PUB_MONITOR_ENABLE_NAME, drv_data.proc_dir);
 		drv_data.pub_monitor_enable = NULL;
 	}
 
-	if (drv_data.pub_monitor_status != NULL) {
+	if (drv_data.pub_monitor_status) {
 		remove_proc_entry(PUB_MONITOR_STATUS_NAME, drv_data.proc_dir);
 		drv_data.pub_monitor_status = NULL;
 	}
 
-	if (drv_data.proc_dir != NULL) {
+	if (drv_data.proc_dir) {
 		remove_proc_entry(DMC_PROC_NAME, NULL);
 		drv_data.proc_dir = NULL;
 	}
 
 	atomic_notifier_chain_unregister(&panic_notifier_list, &dmc_panic_event_nb);
+
 	return 0;
 }
 
