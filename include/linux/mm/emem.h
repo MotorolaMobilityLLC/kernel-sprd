@@ -4,7 +4,18 @@
 #define __ENHANCE_MEMINFO
 
 void unisoc_enhanced_show_mem(void);
+#if IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)
 int register_unisoc_show_mem_notifier(struct notifier_block *nb);
 int unregister_unisoc_show_mem_notifier(struct notifier_block *nb);
+#else
+static inline int register_unisoc_show_mem_notifier(struct notifier_block *nb)
+{
+	return 0;
+}
+static inline int unregister_unisoc_show_mem_notifier(struct notifier_block *nb)
+{
+	return 0;
+}
+#endif
 
 #endif

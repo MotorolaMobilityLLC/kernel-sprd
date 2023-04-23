@@ -34,6 +34,7 @@
 #include <linux/debugfs.h>
 #include <linux/cpuhotplug.h>
 #include <linux/part_stat.h>
+#include <linux/mm/emem.h>
 
 #include "zram_drv.h"
 
@@ -2021,7 +2022,7 @@ static const struct attribute_group *zram_disk_attr_groups[] = {
 	NULL,
 };
 
-#ifdef CONFIG_E_SHOW_MEM
+#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 static int zram_e_show_mem_cb(int id, void *ptr, void *data)
 {
 	struct zram *zram = (struct zram *)ptr;
@@ -2070,6 +2071,8 @@ static int zram_e_show_mem_handler(struct notifier_block *nb,
 static struct notifier_block zram_e_show_mem_notifier = {
 	.notifier_call = zram_e_show_mem_handler,
 };
+#else
+static struct notifier_block zram_e_show_mem_notifier;
 #endif
 
 /*
@@ -2306,6 +2309,7 @@ static int __init zram_init(void)
 #ifdef CONFIG_E_SHOW_MEM
 	register_e_show_mem_notifier(&zram_e_show_mem_notifier);
 #endif
+	register_unisoc_show_mem_notifier(&zram_e_show_mem_notifier);
 	return 0;
 
 out_error:
@@ -2318,6 +2322,7 @@ static void __exit zram_exit(void)
 #ifdef CONFIG_E_SHOW_MEM
 	unregister_e_show_mem_notifier(&zram_e_show_mem_notifier);
 #endif
+	unregister_unisoc_show_mem_notifier(&zram_e_show_mem_notifier);
 	destroy_devices();
 }
 
