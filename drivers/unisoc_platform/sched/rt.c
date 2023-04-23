@@ -46,13 +46,17 @@ static inline bool walt_rt_task_fits_capacity(struct task_struct *p, int cpu)
 {
 	unsigned long cpu_cap;
 	unsigned long task_util;
+	unsigned long thermal_pressure = arch_scale_thermal_pressure(cpu);
 
 	task_util = uclamp_task_util(p);
 
 	cpu_cap = capacity_orig_of(cpu);
-	cpu_cap -= arch_scale_thermal_pressure(cpu);
+	cpu_cap -= thermal_pressure;
 
-	return cpu_cap > task_util;
+	if (!thermal_pressure && is_max_capacity_cpu(cpu))
+		return true;
+
+	return cpu_cap >= task_util;
 }
 #else
 static inline bool walt_rt_task_fits_capacity(struct task_struct *p, int cpu)
