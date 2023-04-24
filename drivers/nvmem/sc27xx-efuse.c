@@ -147,15 +147,55 @@ static int sc27xx_efuse_poll_status(struct sc27xx_efuse *efuse, u32 bits)
 	return 0;
 }
 
+static int sc27xx_efuse_raw_read(struct sc27xx_efuse *efuse, int blk_index, u32 *val)
+{
+	int ret = 0;
+	/*
+	 * Before reading, we should ensure the efuse controller is in
+	 * standby state.
+	 */
+	ret = sc27xx_efuse_poll_status(efuse, SC27XX_EFUSE_STANDBY);
+	if (ret)
+		return -EBUSY;
+	/* Set the block address to be read. */
+	ret = regmap_write(efuse->regmap,
+			efuse->base + SC27XX_EFUSE_BLOCK_INDEX,
+			blk_index & SC27XX_EFUSE_BLOCK_MASK);
+	if (ret)
+		return -EBUSY;
+	/* Start reading process from efuse memory. */
+	ret = regmap_update_bits(efuse->regmap,
+			efuse->base + SC27XX_EFUSE_MODE_CTRL,
+			SC27XX_EFUSE_RD_START, SC27XX_EFUSE_RD_START);
+	if (ret)
+		return -EBUSY;
+	/*
+	 * Polling the read done status to make sure the reading process
+	 * is completed, that means the data can be read out now.
+	 */
+	ret = sc27xx_efuse_poll_status(efuse, SC27XX_EFUSE_RD_DONE);
+	if (ret)
+		return -EBUSY;
+	/* Read data from efuse memory. */
+	ret = regmap_read(efuse->regmap, efuse->base + SC27XX_EFUSE_DATA_RD, val);
+	if (ret)
+		return -EBUSY;
+	/* Clear the read done flag. */
+	ret = regmap_update_bits(efuse->regmap, efuse->base + SC27XX_EFUSE_MODE_CTRL,
+			SC27XX_EFUSE_CLR_RDDONE, SC27XX_EFUSE_CLR_RDDONE);
+
+	return ret;
+}
+
 static int ump962x_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sc27xx_efuse *efuse = context;
 	u32 buf, blk_index = offset / SC27XX_EFUSE_BLOCK_WIDTH;
-	u32 blk_offset = (offset % SC27XX_EFUSE_BLOCK_WIDTH) * BITS_PER_BYTE;
-	int ret;
+	u32 bytes_offset = offset % SC27XX_EFUSE_BLOCK_WIDTH;
+	u32 bytes_max = SC27XX_EFUSE_BLOCK_WIDTH * efuse->var_data->block_max;
+	int ret, i;
 
-	if (blk_index >= (efuse->var_data->block_max) ||
-			bytes > SC27XX_EFUSE_BLOCK_WIDTH)
+	if (offset + bytes > bytes_max || bytes == 0)
 		return -EINVAL;
 
 	ret = sc27xx_efuse_lock(efuse);
@@ -176,7 +216,6 @@ static int ump962x_efuse_read(void *context, u32 offset, void *val, size_t bytes
 		ret = regmap_update_bits(efuse->regmap, UMP9621_EFUSE_RTC,
 			UMP96XX_EFUSE_RTC_EN, UMP96XX_EFUSE_RTC_EN);
 	}
-
 	if (ret)
 		goto unlock_efuse;
 
@@ -191,22 +230,33 @@ static int ump962x_efuse_read(void *context, u32 offset, void *val, size_t bytes
 				 SC27XX_EFUSE_CLR_RDDONE,
 				 SC27XX_EFUSE_CLR_RDDONE);
 
-	/* Read data from efuse memory. */
-	ret = regmap_read(efuse->regmap, (efuse->base + SC27XX_EFUSE_BLOCK_REG) + (0x4 * blk_index),
-		  &buf);
-	if (ret)
-		goto disable_efuse;
+	for (i = 0; i < bytes; blk_index++) {
+		/* Read data from efuse memory. */
+		ret = regmap_read(efuse->regmap,
+				(efuse->base + SC27XX_EFUSE_BLOCK_REG) + (0x4 * blk_index), &buf);
 
+		if (ret)
+			goto disable_efuse;
+
+		if (i == 0) {
+			buf >>= (bytes_offset * BITS_PER_BYTE);
+			memcpy(val, &buf, SC27XX_EFUSE_BLOCK_WIDTH - bytes_offset);
+			i += (SC27XX_EFUSE_BLOCK_WIDTH - bytes_offset);
+		} else {
+			if (bytes - i >= SC27XX_EFUSE_BLOCK_WIDTH) {
+				memcpy(val + i, &buf, SC27XX_EFUSE_BLOCK_WIDTH);
+				i += SC27XX_EFUSE_BLOCK_WIDTH;
+			} else {
+				memcpy(val + i, &buf, bytes - i);
+				i = bytes;
+			}
+		}
+	}
 disable_efuse:
 	/* Disable the efuse controller after reading. */
 	regmap_update_bits(efuse->regmap, efuse->var_data->module_en, SC27XX_EFUSE_EN, 0);
 unlock_efuse:
 	sc27xx_efuse_unlock(efuse);
-
-	if (!ret) {
-		buf >>= blk_offset;
-		memcpy(val, &buf, bytes);
-	}
 
 	return ret;
 }
@@ -215,11 +265,11 @@ static int sc27xx_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sc27xx_efuse *efuse = context;
 	u32 buf, blk_index = offset / SC27XX_EFUSE_BLOCK_WIDTH;
-	u32 blk_offset = (offset % SC27XX_EFUSE_BLOCK_WIDTH) * BITS_PER_BYTE;
-	int ret;
+	u32 bytes_offset = offset % SC27XX_EFUSE_BLOCK_WIDTH;
+	u32 bytes_max = SC27XX_EFUSE_BLOCK_WIDTH * efuse->var_data->block_max;
+	int ret, i;
 
-	if (blk_index > (efuse->var_data->block_max) ||
-			bytes > SC27XX_EFUSE_BLOCK_WIDTH)
+	if (offset + bytes > bytes_max || bytes == 0)
 		return -EINVAL;
 
 	ret = sc27xx_efuse_lock(efuse);
@@ -232,59 +282,32 @@ static int sc27xx_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 	if (ret)
 		goto unlock_efuse;
 
-	/*
-	 * Before reading, we should ensure the efuse controller is in
-	 * standby state.
-	 */
-	ret = sc27xx_efuse_poll_status(efuse, SC27XX_EFUSE_STANDBY);
-	if (ret)
-		goto disable_efuse;
+	for (i = 0; i < bytes; blk_index++) {
+		/* Read data from efuse memory. */
+		ret = sc27xx_efuse_raw_read(efuse, blk_index, &buf);
 
-	/* Set the block address to be read. */
-	ret = regmap_write(efuse->regmap,
-			   efuse->base + SC27XX_EFUSE_BLOCK_INDEX,
-			   blk_index & SC27XX_EFUSE_BLOCK_MASK);
-	if (ret)
-		goto disable_efuse;
+		if (ret)
+			goto disable_efuse;
 
-	/* Start reading process from efuse memory. */
-	ret = regmap_update_bits(efuse->regmap,
-				 efuse->base + SC27XX_EFUSE_MODE_CTRL,
-				 SC27XX_EFUSE_RD_START,
-				 SC27XX_EFUSE_RD_START);
-	if (ret)
-		goto disable_efuse;
-
-	/*
-	 * Polling the read done status to make sure the reading process
-	 * is completed, that means the data can be read out now.
-	 */
-	ret = sc27xx_efuse_poll_status(efuse, SC27XX_EFUSE_RD_DONE);
-	if (ret)
-		goto disable_efuse;
-
-	/* Read data from efuse memory. */
-	ret = regmap_read(efuse->regmap, efuse->base + SC27XX_EFUSE_DATA_RD,
-			  &buf);
-	if (ret)
-		goto disable_efuse;
-
-	/* Clear the read done flag. */
-	ret = regmap_update_bits(efuse->regmap,
-				 efuse->base + SC27XX_EFUSE_MODE_CTRL,
-				 SC27XX_EFUSE_CLR_RDDONE,
-				 SC27XX_EFUSE_CLR_RDDONE);
-
+		if (i == 0) {
+			buf >>= (bytes_offset * BITS_PER_BYTE);
+			memcpy(val, &buf, SC27XX_EFUSE_BLOCK_WIDTH - bytes_offset);
+			i += (SC27XX_EFUSE_BLOCK_WIDTH - bytes_offset);
+		} else {
+			if (bytes - i >= SC27XX_EFUSE_BLOCK_WIDTH) {
+				memcpy(val + i, &buf, SC27XX_EFUSE_BLOCK_WIDTH);
+				i += SC27XX_EFUSE_BLOCK_WIDTH;
+			} else {
+				memcpy(val + i, &buf, bytes - i);
+				i = bytes;
+			}
+		}
+	}
 disable_efuse:
 	/* Disable the efuse controller after reading. */
 	regmap_update_bits(efuse->regmap, efuse->var_data->module_en, SC27XX_EFUSE_EN, 0);
 unlock_efuse:
 	sc27xx_efuse_unlock(efuse);
-
-	if (!ret) {
-		buf >>= blk_offset;
-		memcpy(val, &buf, bytes);
-	}
 
 	return ret;
 }
