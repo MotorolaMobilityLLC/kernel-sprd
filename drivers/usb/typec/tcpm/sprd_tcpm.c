@@ -2992,6 +2992,7 @@ static int sprd_tcpm_src_attach(struct sprd_tcpm_port *port)
 	sprd_tcpm_log(port, "%s:line%d pd_capable flase", __func__, __LINE__);
 
 	port->partner = NULL;
+	sprd_tcpm_typec_connect(port);
 
 	port->attached = true;
 	port->send_discover = true;
@@ -3110,6 +3111,7 @@ static int sprd_tcpm_snk_attach(struct sprd_tcpm_port *port)
 	sprd_tcpm_log(port, "%s:line%d pd_capable flase", __func__, __LINE__);
 
 	port->partner = NULL;
+	sprd_tcpm_typec_connect(port);
 
 	port->attached = true;
 	port->send_discover = true;
@@ -3459,7 +3461,6 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 
 
 		sprd_tcpm_swap_complete(port, 0);
-		sprd_tcpm_typec_connect(port);
 
 		sprd_tcpm_check_send_discover(port);
 		/*
@@ -3741,7 +3742,6 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 
 		sprd_tcpm_update_limit_current(port);
 		sprd_tcpm_swap_complete(port, 0);
-		sprd_tcpm_typec_connect(port);
 		sprd_tcpm_check_send_discover(port);
 		sprd_tcpm_fixed_pd_complete(port);
 		sprd_tcpm_pps_complete(port, port->pps_status);
