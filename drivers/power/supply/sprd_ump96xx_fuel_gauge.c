@@ -1126,7 +1126,8 @@ static void ump96xx_fgu_dump_fgu_info(struct sprd_fgu_info *info,
 {
 	switch (dump_level) {
 	case DUMP_FGU_INFO_LEVEL_0:
-		dev_info(info->dev, "dump_level = %d is too low and has no premission to dump fgu info!!!");
+		dev_info(info->dev, "dump_level = %d is too low and has no premission to dump fgu info!!!",
+			 DUMP_FGU_INFO_LEVEL_0);
 		break;
 	case DUMP_FGU_INFO_LEVEL_1:
 		dev_info(info->dev, "ump96xx_fgu_info : init_clbcnt = %lld, start_work_clbcnt = %lld, cur_clbcnt = %lld, cur_1000ma_adc = %d, vol_1000mv_adc = %d, calib_resist = %d\n",

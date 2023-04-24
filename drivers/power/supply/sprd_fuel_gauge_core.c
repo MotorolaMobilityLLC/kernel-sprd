@@ -4602,7 +4602,7 @@ static void sprd_fgu_sr_calib_suspend_check(struct sprd_fgu_data *data)
 		dev_info(data->dev, "%s suspend calib: awake_time = %llds > %ds, or awake_avg_cur_ma = %dmA > %dmA and awake_time = %llds > %ds, need to clear_sr_time_array!\n",
 			 __func__, awake_time, SPRD_FGU_SR_AWAKE_MAX_TIME_S,
 			 abs(data->awake_avg_cur_ma), SPRD_FGU_SR_AWAKE_AVG_CUR_MA,
-			 SPRD_FGU_SR_AWAKE_BIG_CUR_MAX_TIME_S, awake_time);
+			 awake_time, SPRD_FGU_SR_AWAKE_BIG_CUR_MAX_TIME_S);
 	} else if (awake_time > 0) {
 		data->sr_time_awake[data->sr_index_awake] = awake_time;
 		data->sr_index_awake++;
