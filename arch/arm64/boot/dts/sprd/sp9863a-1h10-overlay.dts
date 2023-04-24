@@ -61,6 +61,10 @@
 					wakeup-source;
 				};
 			};
+			fingerprint@0 {
+				compatible = "microarray,afs121";
+				fpint-gpios = <&ap_gpio 130 0>;
+			};
 
 			pwm_backlight: sprd_backlight {
 				compatible = "sprd,sharkl3-backlight";
