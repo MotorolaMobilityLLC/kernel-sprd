@@ -8,6 +8,7 @@
 /dts-v1/;
 #include "reserved-memory/sp9863a-common.dtsi"
 #include "sc9863a/sc9863a.dtsi"
+#include "trusty/sp9863a.dtsi"
 #include "sc2721/sc2721.dtsi"
 
 / {
