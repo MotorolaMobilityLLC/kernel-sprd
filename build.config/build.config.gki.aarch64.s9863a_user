@@ -29,6 +29,7 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/machine/i2s_card
 ../modules/kernel5.15/audio/sprd/dai/i2s
 ../modules/kernel5.15/gpu/rogue/driver/build/linux/sharkl3_android
+../modules/kernel5.15/input/fingerprint/microarray
 ../modules/kernel5.15/input/touchscreen/adaptive-ts
 ../modules/kernel5.15/input/touchscreen/adaptive_ts_transsion
 ../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
