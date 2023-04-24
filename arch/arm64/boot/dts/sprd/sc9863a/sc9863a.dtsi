@@ -590,6 +590,78 @@
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
 		};
+		mm {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			iommu_dcam: iommu@60a0c000 {
+				compatible = "unisoc,iommuexl3-dcam";
+				reg = <0 0x60a00000 0 0xc000>,
+					<0 0x60a0c000 0 0x60>;
+				iova-base = <0x40000000>;
+				iova-size = <0x20000000>;
+				reg_name = "mmu_interrupt_reg", "mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+			iommu_isp: iommu@60bffc00 {
+				compatible = "unisoc,iommuexl3-isp";
+				/* sharkl3 isp need pagetalbe size */
+				reg = <0 0x60b00000 0 0xffc00>,
+					<0 0x60bffc00 0 0x400>;
+				iova-base = <0x50000000>;
+				iova-size = <0x20000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			iommu_vsp: iommu@62200000 {
+				compatible = "unisoc,iommuexl3-vsp";
+				reg = <0x0 0x62200000 0x0 0x80>,
+					<0x0 0x62200000 0x0 0x80>;
+				iova-base = <0x20000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			iommu_jpg: iommu@62300300 {
+				compatible = "unisoc,iommuexl3-jpg";
+				reg = <0x0 0x62300000 0x0 0x300>,
+					<0x0 0x62300300 0x0 0x80>;
+				iova-base = <0x70000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			iommu_cpp: iommu@62400200 {
+				compatible = "unisoc,iommuexl3-cpp";
+				reg = <0 0x62400000 0 0x200>,
+					<0 0x62400200 0 0x60>;
+				iova-base = <0x60000000>;
+				iova-size = <0x8000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+
+			iommu_dispc: iommu@63000000 {
+				compatible = "unisoc,iommuexl3-dispc";
+				reg = <0x0 0x63000000 0x0 0x800>,
+					<0x0 0x63000800 0x0 0x80>;
+				iova-base = <0x30000000>;
+				iova-size = <0x10000000>;
+				reg_name = "mmu_interrupt_reg","mmu_reg";
+				status = "disabled";
+				#iommu-cells = <0>;
+			};
+		};
 	};
 };
 
