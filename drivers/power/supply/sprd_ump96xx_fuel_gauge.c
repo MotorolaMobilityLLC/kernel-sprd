@@ -1178,7 +1178,8 @@ struct sprd_fgu_device_ops ump96xx_fgu_dev_ops = {
 	.dump_fgu_info = ump96xx_fgu_dump_fgu_info,
 };
 
-struct sprd_fgu_info *sprd_fgu_info_register(struct device *dev)
+#if IS_ENABLED(CONFIG_FUEL_GAUGE_UMP96XX)
+struct sprd_fgu_info *ump96xx_fgu_info_register(struct device *dev)
 {
 	struct sprd_fgu_info *info = NULL;
 	int ret = 0, i;
@@ -1258,6 +1259,7 @@ struct sprd_fgu_info *sprd_fgu_info_register(struct device *dev)
 
 	return info;
 }
-EXPORT_SYMBOL_GPL(sprd_fgu_info_register);
+EXPORT_SYMBOL_GPL(ump96xx_fgu_info_register);
+#endif
 
 MODULE_LICENSE("GPL v2");

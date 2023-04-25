@@ -155,5 +155,8 @@ struct sprd_fgu_device_ops {
 	void (*remove)(struct sprd_fgu_info *info);
 	void (*shutdown)(struct sprd_fgu_info *info);
 };
-
-struct sprd_fgu_info *sprd_fgu_info_register(struct device *dev);
+#if IS_ENABLED(CONFIG_FUEL_GAUGE_SC27XX)
+struct sprd_fgu_info *sc27xx_fgu_info_register(struct device *dev);
+#elif IS_ENABLED(CONFIG_FUEL_GAUGE_UMP96XX)
+struct sprd_fgu_info *ump96xx_fgu_info_register(struct device *dev);
+#endif

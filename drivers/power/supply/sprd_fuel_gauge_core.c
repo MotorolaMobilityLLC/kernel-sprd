@@ -363,8 +363,8 @@ struct sprd_fgu_data {
 	bool probe_initialized;
 };
 
-static bool is_charger_mode;
-static bool allow_charger_enable;
+static bool charge_mode;
+static bool cali_or_auto_mode;
 static void sprd_fgu_capacity_calibration(struct sprd_fgu_data *data, bool int_mode);
 static void sprd_fgu_discharging_calibration(struct sprd_fgu_data *data, int *cap);
 static int sprd_fgu_resistance_algo(struct sprd_fgu_data *data, int cur_ua, int vol_uv);
@@ -622,30 +622,23 @@ static int sprd_fgu_get_boot_mode(struct sprd_fgu_data *data)
 {
 	struct device_node *cmdline_node;
 	const char *cmd_line;
-	char *match;
-	char result[5];
-	int ret;
+	int ret = 0;
 
 	cmdline_node = of_find_node_by_path("/chosen");
 	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
 	if (ret)
 		return ret;
 
-	if (strncmp(cmd_line, "charger", strlen("charger")) == 0)
-		is_charger_mode =  true;
+	if (strstr(cmd_line, "boot.mode=charger"))
+		charge_mode =  true;
+	else if (strstr(cmd_line, "boot.mode=cali") ||
+		 strstr(cmd_line, "boot.mode=autotest"))
+		cali_or_auto_mode = true;
 
-	match = strstr(cmd_line, "androidboot.mode=");
-	if (match) {
-		memcpy(result, (match + strlen("androidboot.mode=")), sizeof(result) - 1);
-		dev_info(data->dev, "result = %s\n", result);
-		if ((!strcmp(result, "cali")) || (!strcmp(result, "auto")))
-			allow_charger_enable = true;
-	}
+	dev_info(data->dev, "charge_mode = %d, cali_or_auto_mode = %d\n",
+		 charge_mode, cali_or_auto_mode);
 
-	dev_info(data->dev, "cmd_line = %s，allow_charger_enable = %d\n", cmd_line,
-		 allow_charger_enable);
-
-	return 0;
+	return ret;
 }
 
 static int sprd_fgu_set_basp_volt(struct sprd_fgu_data *data, int max_volt_uv)
@@ -854,42 +847,42 @@ static void sprd_fgu_capacity_loss_by_temperature(struct sprd_fgu_data *data, in
 	int temp_cap, ret;
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
 
-	if (data->cap_table_len > 0) {
-		temp_cap = sprd_fgu_temp2cap(data->cap_temp_table,
-					     data->cap_table_len, data->bat_temp);
-		/*
-		 * Battery capacity at different temperatures, we think
-		 * the change is linear, the follow the formula: y = ax + k
-		 *
-		 * for example: display 100% at 25 degrees need to display
-		 * 100% at -10 degrees, display 10% at 25 degrees need to
-		 * display 0% at -10 degrees, substituting the above special
-		 * points will deduced follow formula.
-		 * formula 1:
-		 * Capacity_Delta = 100 - Capacity_Percentage(T1)
-		 * formula 2:
-		 * Capacity_temp = (Capacity_Percentage(current) -
-		 * Capacity_Delta) * 100 /(100 - Capacity_Delta)
-		 */
-		*cap = DIV_ROUND_CLOSEST((*cap + temp_cap - 1000) * 1000, temp_cap);
-		if (*cap < 0) {
-			dev_info(data->dev, "%s Capacity_temp < 0, adjust !!!\n", __func__);
-			*cap = 0;
-		} else if (*cap > SPRD_FGU_FCC_PERCENT) {
-			dev_info(data->dev, "%s Capacity_temp > 1000, adjust !!!\n", __func__);
-			*cap = SPRD_FGU_FCC_PERCENT;
+	if (data->cap_table_len <= 0)
+		return;
+
+	temp_cap = sprd_fgu_temp2cap(data->cap_temp_table, data->cap_table_len, data->bat_temp);
+	/*
+	 * Battery capacity at different temperatures, we think
+	 * the change is linear, the follow the formula: y = ax + k
+	 *
+	 * for example: display 100% at 25 degrees need to display
+	 * 100% at -10 degrees, display 10% at 25 degrees need to
+	 * display 0% at -10 degrees, substituting the above special
+	 * points will deduced follow formula.
+	 * formula 1:
+	 * Capacity_Delta = 100 - Capacity_Percentage(T1)
+	 * formula 2:
+	 * Capacity_temp = (Capacity_Percentage(current) -
+	 * Capacity_Delta) * 100 /(100 - Capacity_Delta)
+	 */
+	*cap = DIV_ROUND_CLOSEST((*cap + temp_cap - 1000) * 1000, temp_cap);
+	if (*cap < 0) {
+		dev_info(data->dev, "%s Capacity_temp < 0, adjust !!!\n", __func__);
+		*cap = 0;
+	} else if (*cap > SPRD_FGU_FCC_PERCENT) {
+		dev_info(data->dev, "%s Capacity_temp > 1000, adjust !!!\n", __func__);
+		*cap = SPRD_FGU_FCC_PERCENT;
+	}
+
+	if (*cap <= 5) {
+		ret =  fgu_info->ops->get_vbat_now(fgu_info, &data->batt_mv);
+		if (ret) {
+			dev_err(data->dev, "get battery vol error.\n");
+			return;
 		}
 
-		if (*cap <= 5) {
-			ret =  fgu_info->ops->get_vbat_now(fgu_info, &data->batt_mv);
-			if (ret) {
-				dev_err(data->dev, "get battery vol error.\n");
-				return;
-			}
-
-			if (data->batt_mv > SPRD_FGU_LOW_VBAT_REGION)
-				*cap = 5;
-		}
+		if (data->batt_mv > SPRD_FGU_LOW_VBAT_REGION)
+			*cap = 5;
 	}
 }
 
@@ -938,15 +931,22 @@ static int sprd_fgu_get_basp_volt(struct sprd_fgu_data *data, int *max_volt_uv)
 static void sprd_fgu_dump_battery_info(struct sprd_fgu_data *data, char *str)
 {
 	int i, j;
+	char *buf = "";
 
-	dev_info(data->dev, "%s, ocv_table_len = %d, temp_table_len = %d, rabat_table_len = %d, basp_ocv_table_len = %d\n",
+	snprintf(buf, PAGE_SIZE, "%s, ocv_table_len = %d,\n"
+		 "temp_table_len = %d, rabat_table_len = %d,\n"
+		 "basp_ocv_table_len = %d, basp_full_design_table_len = %d,\n"
+		 "basp_voltage_max_table_len = %d, track.end_vol = %d,\n"
+		 "track.end_cur = %d, first_calib_volt = %d, total_mah = %d,\n"
+		 "max_volt_uv = %d, internal_resist = %d, min_volt_uv = %d",
 		 str, data->rbat_ocv_table_len, data->rbat_temp_table_len,
-		 data->rabat_table_len, data->basp_ocv_table_len);
-	dev_info(data->dev, "basp_full_design_table_len = %d, basp_voltage_max_table_len = %d, track.end_vol = %d, track.end_cur = %d, first_calib_volt = %d\n",
+		 data->rabat_table_len, data->basp_ocv_table_len,
 		 data->basp_full_design_table_len, data->basp_voltage_max_table_len,
-		 data->track.end_vol, data->track.end_cur, data->first_calib_volt);
-	dev_info(data->dev, "total_mah = %d, max_volt_uv = %d, internal_resist = %d, min_volt_uv = %d\n",
-		 data->total_mah, data->max_volt_uv, data->internal_resist, data->min_volt_uv);
+		 data->track.end_vol, data->track.end_cur, data->first_calib_volt,
+		 data->total_mah, data->max_volt_uv, data->internal_resist,
+		 data->min_volt_uv);
+	dev_info(data->dev, "%s\n", buf);
+
 	if (data->rbat_temp_table_len > 0) {
 		for (i = 0; i < data->rbat_temp_table_len; i++)
 			dev_info(data->dev, "%s, internal_resistance_temp[%d] = %d\n",
@@ -1919,7 +1919,7 @@ static int sprd_fgu_get_property(struct power_supply *psy,
 		if (data->debug_info.temp_debug_en)
 			val->intval = data->debug_info.debug_temp;
 		else if (data->temp_table_len <= 0 ||
-			 (data->bat_present == 0 && allow_charger_enable))
+			 (data->bat_present == 0 && cali_or_auto_mode))
 			val->intval = 200;
 		else {
 			ret = sprd_fgu_get_temp(data, &value);
@@ -3113,6 +3113,7 @@ static void sprd_fgu_cap_track_state_done(struct sprd_fgu_data *data, int *cycle
 	int ret, ibat_avg_ma = 0, vbat_avg_mv = 0, ibat_now_ma = 0;
 	int delta_mah, total_mah, design_mah, start_mah, end_mah, cur_cc_uah;
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	char *buf = "";
 
 	*cycle = SPRD_FGU_CAPACITY_TRACK_3S;
 
@@ -3203,11 +3204,13 @@ static void sprd_fgu_cap_track_state_done(struct sprd_fgu_data *data, int *cycle
 	start_mah = (total_mah * data->track.start_cap) / 1000;
 	end_mah = start_mah + delta_mah;
 
-	dev_info(data->dev, "Capacity track end: cur_cc_mah = %d, start_cc_mah = %d, delta_mah = %d, total_mah = %d, design_mah = %d\n",
-		 cur_cc_uah / 1000, data->track.start_cc_mah,
-		 delta_mah, total_mah, design_mah);
-	dev_info(data->dev, "start_mah = %d, end_mah = %d, ibat_avg_ma = %d, ibat_now_ma = %d, vbat_avg_mv = %d\n",
-		 start_mah, end_mah, ibat_avg_ma, ibat_now_ma, vbat_avg_mv);
+	snprintf(buf, PAGE_SIZE, "Capacity track end: cur_cc_mah = %d, start_cc_mah = %d,\n"
+		 "delta_mah = %d, total_mah = %d, design_mah = %d, start_mah = %d,\n"
+		 "end_mah = %d, ibat_avg_ma = %d, ibat_now_ma = %d, vbat_avg_mv = %d",
+		 cur_cc_uah / 1000, data->track.start_cc_mah, delta_mah,
+		 total_mah, design_mah, start_mah, end_mah, ibat_avg_ma,
+		 ibat_now_ma, vbat_avg_mv);
+	dev_info(data->dev, "%s\n", buf);
 
 	data->track.state = CAP_TRACK_IDLE;
 	if (((end_mah > design_mah) && ((end_mah - design_mah) < design_mah / 10)) ||
@@ -3347,6 +3350,46 @@ static void sprd_fgu_cap_track_work(struct work_struct *work)
 	work_cycle = sprd_fgu_cap_track_state_machine(data);
 
 	schedule_delayed_work(&data->cap_track_work, msecs_to_jiffies(work_cycle * 1000));
+}
+
+static int sprd_fgu_cap_track_register_usb_notify(struct sprd_fgu_data *data)
+{
+	int ret = 0;
+
+	if (!data->track.cap_tracking || !data->track.end_vol || !data->track.end_cur) {
+		dev_warn(data->dev, "Not support fgu track. cap_tracking = %d, end_vol = %d, end_cur = %d\n",
+			 data->track.cap_tracking, data->track.end_vol, data->track.end_cur);
+		data->track.cap_tracking = false;
+		return ret;
+	}
+
+	if (data->use_typec_extcon) {
+		data->edev = extcon_get_edev_by_phandle(data->dev, 0);
+		if (IS_ERR(data->edev)) {
+			ret = PTR_ERR(data->edev);
+			dev_err(data->dev, "failed to find vbus extcon device, ret = %d.\n", ret);
+			ret = -EPROBE_DEFER;
+			return ret;
+		}
+		INIT_WORK(&data->typec_extcon_work, sprd_fgu_typec_extcon_work);
+		data->extcon_nb.notifier_call = sprd_fgu_extcon_event;
+		ret = devm_extcon_register_notifier_all(data->dev, data->edev, &data->extcon_nb);
+		if (ret) {
+			dev_err(data->dev, "Can't register extcon, ret = %d\n", ret);
+			return ret;
+		}
+	} else {
+		data->usb_notify.notifier_call = sprd_fgu_usb_change;
+		ret = usb_register_notifier(data->usb_phy, &data->usb_notify);
+		if (ret)
+			dev_err(data->dev, "failed to register notifier:%d\n", ret);
+	}
+
+	data->track.state = CAP_TRACK_INIT;
+	dev_info(data->dev, "end_vol = %d, end_cur = %d\n",
+		 data->track.end_vol, data->track.end_cur);
+
+	return ret;
 }
 
 static void sprd_fgu_work(struct work_struct *work)
@@ -4092,6 +4135,30 @@ disable_fgu:
 	return ret;
 }
 
+static int sprd_fgu_info_register(struct sprd_fgu_data *data)
+{
+	int ret = 0;
+
+#if IS_ENABLED(CONFIG_FUEL_GAUGE_SC27XX)
+	data->fgu_info = sc27xx_fgu_info_register(data->dev);
+	if (IS_ERR(data->fgu_info)) {
+		dev_err(data->dev, "failed to get fgu_info!!!\n");
+		return -EPROBE_DEFER;
+	}
+#elif IS_ENABLED(CONFIG_FUEL_GAUGE_UMP96XX)
+	data->fgu_info = ump96xx_fgu_info_register(data->dev);
+	if (IS_ERR(data->fgu_info)) {
+		dev_err(data->dev, "failed to get fgu_info!!!\n");
+		return -EPROBE_DEFER;
+	}
+#else
+	dev_err(data->dev, "failed to get pmic macro define!!!\n");
+	return -EINVAL;
+#endif
+
+	return ret;
+}
+
 static int sprd_fgu_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -4151,11 +4218,9 @@ static int sprd_fgu_probe(struct platform_device *pdev)
 	if (ret)
 		dev_err(dev, "%s init cap remap table fail\n", __func__);
 
-	data->fgu_info = sprd_fgu_info_register(dev);
-	if (IS_ERR(data->fgu_info)) {
-		dev_err(dev, "failed to get fgu_info!!!\n");
-		return -EPROBE_DEFER;
-	}
+	ret = sprd_fgu_info_register(data);
+	if (ret)
+		return ret;
 
 	ret = device_property_read_u32(dev,
 				       "sprd,comp-resistance-mohm",
@@ -4247,43 +4312,13 @@ static int sprd_fgu_probe(struct platform_device *pdev)
 	}
 
 	device_init_wakeup(dev, true);
-	pm_wakeup_event(data->dev, SPRD_FGU_TRACK_WAKE_UP_MS);
-
-	if (!data->track.cap_tracking || !data->track.end_vol || !data->track.end_cur) {
-		dev_warn(dev, "Not support fgu track. cap_tracking = %d, end_vol = %d, end_cur = %d\n",
-			 data->track.cap_tracking, data->track.end_vol, data->track.end_cur);
-		data->track.cap_tracking = false;
-	}
+	if (!cali_or_auto_mode)
+		pm_wakeup_event(data->dev, SPRD_FGU_TRACK_WAKE_UP_MS);
 
 	/* init capacity track function */
-	if (data->track.cap_tracking) {
-		if (data->use_typec_extcon) {
-			data->edev = extcon_get_edev_by_phandle(data->dev, 0);
-			if (IS_ERR(data->edev)) {
-				ret = PTR_ERR(data->edev);
-				dev_err(dev, "failed to find vbus extcon device, ret = %d.\n", ret);
-				ret = -EPROBE_DEFER;
-				goto err;
-			}
-			INIT_WORK(&data->typec_extcon_work, sprd_fgu_typec_extcon_work);
-			data->extcon_nb.notifier_call = sprd_fgu_extcon_event;
-			ret = devm_extcon_register_notifier_all(dev, data->edev, &data->extcon_nb);
-			if (ret) {
-				dev_err(dev, "Can't register extcon, ret = %d\n", ret);
-				goto err;
-			}
-		} else {
-			data->usb_notify.notifier_call = sprd_fgu_usb_change;
-			ret = usb_register_notifier(data->usb_phy, &data->usb_notify);
-			if (ret) {
-				dev_err(dev, "failed to register notifier:%d\n", ret);
-				goto err;
-			}
-		}
-		data->track.state = CAP_TRACK_INIT;
-		dev_info(data->dev, "end_vol = %d, end_cur = %d\n",
-			 data->track.end_vol, data->track.end_cur);
-	}
+	ret = sprd_fgu_cap_track_register_usb_notify(data);
+	if (ret)
+		goto err;
 
 	INIT_DELAYED_WORK(&data->fgu_work, sprd_fgu_work);
 	INIT_DELAYED_WORK(&data->cap_track_work, sprd_fgu_cap_track_work);
@@ -4692,6 +4727,7 @@ static const struct dev_pm_ops sprd_fgu_pm_ops = {
 };
 
 static const struct of_device_id sprd_fgu_of_match[] = {
+	{ .compatible = "sprd,sc27xx-fgu", },
 	{ .compatible = "sprd,ump9620-fgu", },
 	{ .compatible = "sprd,ump518-fgu", },
 	{ }
