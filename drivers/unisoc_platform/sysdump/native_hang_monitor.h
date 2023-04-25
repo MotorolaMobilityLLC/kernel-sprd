@@ -60,4 +60,12 @@ struct core_task_info {
 	int pid;
 	char name[CORE_TASK_NAME_SIZE];
 };
+
+#if IS_ENABLED(CONFIG_SPRD_MODULES_NOTIFY)
+extern int sprd_modules_init(void);
+extern void  sprd_modules_exit(void);
+#else
+static inline int sprd_modules_init(void) { return 0; }
+static inline void  sprd_modules_exit(void) {}
+#endif
 #endif /*	__RT_MINITOR__H__	*/

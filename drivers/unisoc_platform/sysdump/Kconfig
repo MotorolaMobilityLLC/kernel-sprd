@@ -45,3 +45,13 @@ config SPRD_CLOSE_CRASH_KEY
 	help
 		This option disables Spreatrum crash_key which tigger kernel panic
 		to debug.
+
+config SPRD_MODULES_NOTIFY
+	tristate "monitor every modules loading time"
+	depends on SPRD_TIMER
+	default n
+	help
+	  Say y here to enable Debug support.
+	  When in doubt, say n
+	  this is a debug feature that monitor every modules loading time
+	  when bootup

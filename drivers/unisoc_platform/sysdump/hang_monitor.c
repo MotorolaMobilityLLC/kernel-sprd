@@ -904,6 +904,7 @@ static int monitor_hang_init(void)
 		return -1;
 	}
 
+	sprd_modules_init();
 	return err;
 }
 
@@ -913,6 +914,7 @@ static void monitor_hang_exit(void)
 
 	ClearPageReserved(virt_to_page(hang_info));
 	kfree(hang_info);
+	sprd_modules_exit();
 }
 
 module_init(monitor_hang_init);
