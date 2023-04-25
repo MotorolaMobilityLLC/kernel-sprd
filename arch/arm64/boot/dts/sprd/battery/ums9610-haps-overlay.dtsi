@@ -116,8 +116,6 @@
 	sprd,support-pd-pps;
 	sprd,pd-fixed-max-microwatt = <18000000>;
 
-	cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
-
 	monitored-battery = <&bat>;
 	cm-capacity-track;
 	cm-keep-awake;
@@ -176,6 +174,7 @@
 
 &pmic_fgu {
 	monitored-battery = <&bat>;
+	fgu-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 	sprd,calib-resistance-micro-ohms = <4850>;
 	sprd,comp-resistance-mohm = <20>;
 

@@ -135,8 +135,6 @@
 	monitored-battery = <&bat>;
 	cm-keep-awake;
 
-	cm-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
-
 	phys = <&hsphy>;
 };
 
@@ -159,6 +157,7 @@
 
 &pmic_fgu {
 	monitored-battery = <&bat>;
+	fgu-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 	sprd,calib-resistance-micro-ohms = <10000>;
 	sprd,comp-resistance-mohm = <13>;
 
