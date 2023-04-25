@@ -707,3 +707,4 @@
 #include "glbreg.dtsi"
 #include "dma.dtsi"
 #include "uart.dtsi"
+#include "gpio.dtsi"
