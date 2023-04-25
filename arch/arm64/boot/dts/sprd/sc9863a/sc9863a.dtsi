@@ -539,7 +539,7 @@
 			};
 		};
 
-		ap-ahb {
+		apahb: ap-ahb {
 			compatible = "simple-bus";
 			#address-cells = <2>;
 			#size-cells = <2>;
@@ -569,7 +569,7 @@
 				assigned-clock-parents = <&rpll CLK_RPLL_390M>;
 			};
 		};
-		aon {
+		aon: aon {
 			compatible = "simple-bus";
 			#address-cells = <2>;
 			#size-cells = <2>;
@@ -705,4 +705,5 @@
 
 /* Include other IP modules in ALPHABETICAL order */
 #include "glbreg.dtsi"
+#include "dma.dtsi"
 #include "uart.dtsi"
