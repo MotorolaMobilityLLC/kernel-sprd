@@ -709,3 +709,4 @@
 #include "pwm.dtsi"
 #include "uart.dtsi"
 #include "gpio.dtsi"
+#include "pin-controller.dtsi"
