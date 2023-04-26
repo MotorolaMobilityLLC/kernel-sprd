@@ -52,8 +52,8 @@
 	};
 
 	chosen {
-		stdout-path = "serial1:115200n8";
-		bootargs = "earlycon console=ttyS1,115200n8 loop.max_part=7 loglevel=1
+		stdout-path = "serial1:921600n8";
+		bootargs = "earlycon console=ttyS1,921600n8 loop.max_part=7 loglevel=1
 			    log_buf_len=1M firmware_class.path=/vendor/firmware,/odm/firmware
 			    printk.devkmsg=on dummy_hcd.num=0 swiotlb=1 initcall_debug=1
 			    nosoftlockup";

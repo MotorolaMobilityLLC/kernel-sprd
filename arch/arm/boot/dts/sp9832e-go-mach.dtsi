@@ -23,7 +23,7 @@
 
 	chosen: chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,115200n8 console=ttyS1,115200n8 loop.max_part=7 loglevel=1 init=/init root=/dev/ram0 rw vmalloc=360M printk.devkmsg=on initcall_debug=1 swiotlb=1";
+		bootargs = "earlycon=sprd_serial,0x70100000,921600n8 console=ttyS1,921600n8 loop.max_part=7 loglevel=1 init=/init root=/dev/ram0 rw vmalloc=360M printk.devkmsg=on initcall_debug=1 swiotlb=1";
 	};
 
 	memory: memory@80000000 {
