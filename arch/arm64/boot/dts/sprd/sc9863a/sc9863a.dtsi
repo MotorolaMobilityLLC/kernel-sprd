@@ -706,5 +706,6 @@
 /* Include other IP modules in ALPHABETICAL order */
 #include "glbreg.dtsi"
 #include "dma.dtsi"
+#include "pwm.dtsi"
 #include "uart.dtsi"
 #include "gpio.dtsi"
