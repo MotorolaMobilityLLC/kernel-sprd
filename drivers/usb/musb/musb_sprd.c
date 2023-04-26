@@ -33,6 +33,8 @@
 #include <linux/mfd/syscon.h>
 #include <linux/regmap.h>
 #include <linux/usb/gadget.h>
+#include <linux/usb/sprd_commonphy.h>
+#include <linux/usb/sprd_typec.h>
 #include <linux/usb/sprd_usbm.h>
 
 #include "musb_core.h"
@@ -168,6 +170,7 @@ struct sprd_glue {
 	struct timer_list		relax_wakelock_timer;
 	bool				wake_lock_relaxed;
 	bool				use_singlefifo;
+	bool				use_pdhub_c2c;
 };
 
 static int boot_charging;
@@ -792,13 +795,19 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		return NOTIFY_DONE;
 	}
 
-	if (glue->dr_mode == USB_DR_MODE_HOST) {
+	if (glue->dr_mode == USB_DR_MODE_HOST && !glue->use_pdhub_c2c) {
 		dev_info(glue->dev, "ignore vbus state in dr mode host\n");
 		return NOTIFY_DONE;
 	}
 
-	if (glue->drd_state == DRD_STATE_HOST_IDLE) {
+	if (glue->drd_state == DRD_STATE_HOST_IDLE && !glue->use_pdhub_c2c) {
 		dev_info(glue->dev, "ignore vbus state in host idle\n");
+		return NOTIFY_DONE;
+	}
+
+	if (glue->use_pdhub_c2c && sc27xx_get_dr_swap_executing() &&
+		!sc27xx_get_current_status_detach_or_attach()) {
+		dev_info(glue->dev, "ignore dr_swap: vbus, typec has been out.\n");
 		return NOTIFY_DONE;
 	}
 
@@ -807,9 +816,13 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 	glue->vbus_active = event;
 
 	if (glue->vbus_active && glue->chg_state == USB_CHG_STATE_UNDETECT) {
-		glue->xceiv->last_event = USB_EVENT_VBUS;
-		queue_delayed_work(glue->sm_usb_wq, &glue->chg_detect_work, 0);
-		return NOTIFY_DONE;
+		if (glue->use_pdhub_c2c && sc27xx_get_dr_swap_executing()) {
+			glue->chg_state = USB_CHG_STATE_DETECTED;
+		} else {
+			glue->xceiv->last_event = USB_EVENT_VBUS;
+			queue_delayed_work(glue->sm_usb_wq, &glue->chg_detect_work, 0);
+			return NOTIFY_DONE;
+		}
 	}
 
 	if (!glue->vbus_active) {
@@ -847,6 +860,12 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 
 	if (glue->id_state == id) {
 		dev_info(glue->dev, "ignore repeate id event.\n");
+		return NOTIFY_DONE;
+	}
+
+	if (glue->use_pdhub_c2c && sc27xx_get_dr_swap_executing() &&
+		!sc27xx_get_current_status_detach_or_attach()) {
+		dev_info(glue->dev, "ignore dr_swap: id, typec has been out.\n");
 		return NOTIFY_DONE;
 	}
 
@@ -1400,12 +1419,14 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 	if (on) {
 		dev_info(glue->dev, "%s: turn on host\n", __func__);
 
-		if (!regulator_is_enabled(glue->vbus)) {
-			dev_info(glue->dev, "%s: regulator enable\n", __func__);
-			ret = regulator_enable(glue->vbus);
-			if (ret) {
-				dev_err(glue->dev, "Failed to enable vbus: %d\n", ret);
-				return ret;
+		if (!glue->use_pdhub_c2c) {
+			if (!regulator_is_enabled(glue->vbus)) {
+				dev_info(glue->dev, "%s: regulator enable\n", __func__);
+				ret = regulator_enable(glue->vbus);
+				if (ret) {
+					dev_err(glue->dev, "Failed to enable vbus: %d\n", ret);
+					return ret;
+				}
 			}
 		}
 
@@ -1464,9 +1485,11 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		if (musb->port_mode != MUSB_HOST)
 			musb_host_cleanup(musb);
 
-		ret = regulator_disable(glue->vbus);
-		if (ret)
-			dev_err(glue->dev, "Failed to disable vbus: %d\n", ret);
+		if (!glue->use_pdhub_c2c) {
+			ret = regulator_disable(glue->vbus);
+			if (ret)
+				dev_err(glue->dev, "Failed to disable vbus: %d\n", ret);
+		}
 
 		/* disable usb audio offload */
 		if (musb->is_offload) {
@@ -1785,6 +1808,10 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 				 * cable disconnect or in bus suspend.
 				 */
 				pm_runtime_get_sync(glue->dev);
+				/*switch dpdm to phy*/
+				if (glue->use_pdhub_c2c)
+					call_sprd_usbphy_event_notifiers(SPRD_USBPHY_EVENT_TYPEC,
+						true, NULL);
 				musb_sprd_otg_start_peripheral(glue, 1);
 				glue->drd_state = DRD_STATE_PERIPHERAL;
 				rework = true;
@@ -1862,6 +1889,10 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 			glue->start_host_retry_count = 0;
 			rework = true;
 		} else {
+			/*switch dpdm to phy*/
+			if (glue->use_pdhub_c2c)
+				call_sprd_usbphy_event_notifiers(SPRD_USBPHY_EVENT_TYPEC,
+						true, NULL);
 			ret = musb_sprd_otg_start_host(glue, 1);
 			if ((ret == -EPROBE_DEFER) &&
 						glue->start_host_retry_count < 3) {
@@ -2154,6 +2185,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	wakeup_source_add(glue->wake_lock);
 	glue->pd_wake_lock = wakeup_source_create("musb-sprd-pd");
 	wakeup_source_add(glue->pd_wake_lock);
+	glue->use_pdhub_c2c = of_property_read_bool(node, "use_pdhub_c2c");
 
 	timer_setup(&glue->relax_wakelock_timer, sprd_relax_wakelock_timer, 0);
 	glue->wake_lock_relaxed = true;
