@@ -181,6 +181,7 @@ struct sdhci_sprd_host {
 	bool support_ice;
 	void __iomem *cqe_mem;	/* SPRD CQE mapped address (if available) */
 	void __iomem *ice_mem;	/* SPRD ICE mapped address (if available) */
+	struct sprd_host_tuning_info *tuning_info;
 	u32 tuning_flag;
 	u32 cpst_cmd_dly;
 	u32 int_status;
@@ -816,6 +817,8 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 			sprd_host->wait_read_idle = false;
 		}
 
+		sprd_host_tuning_info_update_index(host, i);
+
 		sdhci_sprd_set_dll_value(host, &dll_dly, opcode, i, type);
 
 		sprd_host->tuning_flag = 1;
@@ -882,9 +885,11 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 
 	if (range_count == 0) {
 		pr_warn("%s: all tuning phases fail!\n", mmc_hostname(mmc));
+		sprd_host_tuning_info_dump(host);
 		err = -EIO;
 		goto out;
 	}
+
 	if (type == SDHCI_SPRD_TUNING_SD_HS) {
 		if ((range_count > 1) && (ranges[range_count - 1].end == 127)
 				&& (ranges[0].start == 0)) {
@@ -1213,6 +1218,9 @@ static u32 sdhci_sprd_cqe_irq(struct sdhci_host *host, u32 intmask)
 
 	if (intmask & SDHCI_INT_ERROR_MASK)
 		sdhci_sprd_dump_vendor_regs(host);
+
+	if (sprd_host->tuning_flag)
+		sprd_host_tuning_info_update_intstatus(host);
 
 	if (!sdhci_cqe_irq(host, intmask, &cmd_error, &data_error))
 		return intmask;
@@ -1778,6 +1786,8 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	sdhci_sprd_phy_param_parse(sprd_host, pdev->dev.of_node);
 
 	sprd_host->pdev = pdev;
+
+	sprd_host->tuning_info = &sprd_tuning_info[host->mmc->index];
 
 	sprd_host->pinctrl = devm_pinctrl_get(&pdev->dev);
 	if (!IS_ERR(sprd_host->pinctrl)) {

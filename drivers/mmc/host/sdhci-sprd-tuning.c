@@ -21,6 +21,67 @@
 #include "../core/mmc_ops.h"
 #include "../core/card.h"
 
+#define MMC_TUNING_RANGE 512
+#define SDHCI_SPRD_DLL_DLY 0x204
+
+struct sprd_host_tuning_info {
+	u32 cur_idx;
+	u32 send_cmd_result[MMC_TUNING_RANGE];
+	u32 response[MMC_TUNING_RANGE];
+	u32 present_state[MMC_TUNING_RANGE];
+	u32 int_status[MMC_TUNING_RANGE];
+	u32 dll_delay[MMC_TUNING_RANGE];
+};
+
+struct sprd_host_tuning_info sprd_tuning_info[3];
+
+void sprd_host_tuning_info_dump(struct sdhci_host *host)
+{
+	struct sprd_host_tuning_info *info;
+	u32 i;
+
+	info = &sprd_tuning_info[host->mmc->index];
+
+	for (i = 0; i <= info->cur_idx; i++) {
+		pr_err("%s: %3dth tuning: %s 0x10:%08x 0x24:%08x 0x30:%08x 0x204:%08x\n",
+			mmc_hostname(host->mmc),
+			i,
+			info->send_cmd_result[i] == 1 ? "success" : " failed",
+			info->response[i],
+			info->present_state[i],
+			info->int_status[i],
+			info->dll_delay[i]);
+	}
+}
+
+void sprd_host_tuning_info_update_index(struct sdhci_host *host, int index)
+{
+	struct sprd_host_tuning_info *info;
+
+	info = &sprd_tuning_info[host->mmc->index];
+
+	info->cur_idx = index;
+}
+
+void sprd_host_tuning_info_update_intstatus(struct sdhci_host *host)
+{
+	struct sprd_host_tuning_info *info;
+	u32 int_status;
+
+	info = &sprd_tuning_info[host->mmc->index];
+
+	int_status = sdhci_readl(host, SDHCI_INT_STATUS);
+	if (int_status & SDHCI_INT_ERROR_MASK)
+		info->send_cmd_result[info->cur_idx] = 0;
+	else
+		info->send_cmd_result[info->cur_idx] = 1;
+
+	info->response[info->cur_idx] = sdhci_readl(host, SDHCI_RESPONSE);
+	info->present_state[info->cur_idx] = sdhci_readl(host, SDHCI_PRESENT_STATE);
+	info->int_status[info->cur_idx] = sdhci_readl(host, SDHCI_INT_STATUS);
+	info->dll_delay[info->cur_idx] = sdhci_readl(host, SDHCI_SPRD_DLL_DLY);
+}
+
 int mmc_send_tuning_cmd(struct mmc_host *host)
 {
 	struct mmc_command cmd = {};
