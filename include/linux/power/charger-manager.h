@@ -722,6 +722,7 @@ struct charger_desc {
 	int adapter_max_vbus;
 
 	u32 pd_port_partner;
+	u32 charge_type_poll_count;
 };
 
 #define PSY_NAME_MAX	30
@@ -773,6 +774,7 @@ struct charger_manager {
 	struct delayed_work ir_compensation_work;
 	struct delayed_work fixed_fchg_work;
 	struct delayed_work cp_work;
+	struct delayed_work charger_type_update_work;
 	int emergency_stop;
 
 	char psy_name_buf[PSY_NAME_MAX + 1];

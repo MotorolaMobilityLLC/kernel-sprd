@@ -116,6 +116,9 @@
 
 #define CM_CP_WORK_TIME_MS			500
 
+#define CM_CHARGER_TYPE_WORK_TIME_MS		500
+#define CM_CHARGER_TYPE_TIME_OUT_CNT		20
+
 #define CM_CAP_ONE_TIME_24S			24
 #define CM_CAP_ONE_TIME_20S			20
 #define CM_CAP_ONE_TIME_16S			16
@@ -4379,6 +4382,9 @@ static int cm_use_typec_charger_type_polling(struct charger_manager *cm)
 	if (cm->vchg_info && !cm->vchg_info->use_typec_extcon)
 		return 0;
 
+	if (!is_ext_usb_pwr_online(cm))
+		return 0;
+
 	if (cm->desc->is_fast_charge)
 		return 0;
 
@@ -4392,12 +4398,36 @@ static int cm_use_typec_charger_type_polling(struct charger_manager *cm)
 	if (cm->vchg_info->charger_type_cnt > 1) {
 		dev_info(cm->dev, "%s: update charger type:%d\n", __func__, type);
 		cm->desc->charger_type = type;
+		cm_update_charger_type_status(cm);
 		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
 					   CM_CHARGE_INFO_INPUT_LIMIT |
 					   CM_CHARGE_INFO_JEITA_LIMIT));
+		power_supply_changed(cm->charger_psy);
 	}
 
 	return ret;
+}
+
+static void cm_charger_type_update_check_start(struct charger_manager *cm)
+{
+	if (cm->vchg_info->use_typec_extcon &&
+	    cm->desc->charger_type == POWER_SUPPLY_USB_TYPE_UNKNOWN &&
+	    cm->desc->charge_type_poll_count < CM_CHARGER_TYPE_TIME_OUT_CNT) {
+		cm->desc->charge_type_poll_count++;
+		schedule_delayed_work(&cm->charger_type_update_work,
+				      msecs_to_jiffies(CM_CHARGER_TYPE_WORK_TIME_MS));
+	}
+}
+
+static void cm_charger_type_update_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct charger_manager *cm = container_of(dwork,
+						  struct charger_manager,
+						  charger_type_update_work);
+
+	cm_use_typec_charger_type_polling(cm);
+	cm_charger_type_update_check_start(cm);
 }
 
 /**
@@ -4494,7 +4524,6 @@ static bool _cm_monitor(struct charger_manager *cm)
 		cm->emergency_stop = 0;
 		cm->charging_status = 0;
 		try_charger_enable(cm, true);
-		cm_use_typec_charger_type_polling(cm);
 
 		if (!cm->desc->cp.cp_running && !cm_check_primary_charger_enabled(cm)
 		    && !cm->desc->force_set_full) {
@@ -4751,6 +4780,8 @@ static void fast_charge_handler(struct charger_manager *cm)
 	if (cm_suspended)
 		device_set_wakeup_capable(cm->dev, true);
 
+	cancel_delayed_work_sync(&cm->charger_type_update_work);
+
 	cm_charger_is_support_fchg(cm);
 	if (cm->desc->fast_charger_type == CM_CHARGER_TYPE_FAST ||
 	    cm->desc->fast_charger_type == CM_CHARGER_TYPE_ADAPTIVE) {
@@ -4862,6 +4893,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
 					   CM_CHARGE_INFO_INPUT_LIMIT |
 					   CM_CHARGE_INFO_JEITA_LIMIT));
+		cm_charger_type_update_check_start(cm);
 	} else {
 		if (cm->desc->xts_limit_cur)
 			cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
@@ -4872,6 +4904,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm_set_charger_present(cm, false);
 		cancel_delayed_work_sync(&cm_monitor_work);
 		cancel_delayed_work_sync(&cm->cp_work);
+		cancel_delayed_work_sync(&cm->charger_type_update_work);
 		_cm_monitor(cm);
 
 		cm->desc->force_pps_diasbled = false;
@@ -4904,6 +4937,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 					 SPRD_VOTE_TYPE_ALL, 0, 0, 0, cm);
 		cm->desc->xts_limit_cur = false;
 		cm->desc->adapter_max_vbus = 0;
+		cm->desc->charge_type_poll_count = 0;
 	}
 
 	cm_update_charger_type_status(cm);
@@ -7592,6 +7626,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&cm->fixed_fchg_work, cm_fixed_fchg_work);
 	INIT_DELAYED_WORK(&cm->cp_work, cm_cp_work);
 	INIT_DELAYED_WORK(&cm->ir_compensation_work, cm_ir_compensation_works);
+	INIT_DELAYED_WORK(&cm->charger_type_update_work, cm_charger_type_update_work);
 
 	mutex_init(&cm->desc->charge_info_mtx);
 
