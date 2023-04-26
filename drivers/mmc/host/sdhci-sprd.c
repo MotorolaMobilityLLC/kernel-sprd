@@ -53,6 +53,9 @@
 #define SDHCI_SPRD_DUMP(f, x...) \
 	pr_err("%s: " DRIVER_NAME ": " f, mmc_hostname(host->mmc), ## x)
 
+#define HOST_IS_SD_TYPE(c) (((c)->caps2 & (MMC_CAP2_NO_MMC | MMC_CAP2_NO_SDIO)) \
+					== (MMC_CAP2_NO_MMC | MMC_CAP2_NO_SDIO))
+
 #define SEND_SD_SWITCH	6
 
 /* SDHCI_ARGUMENT2 register high 16bit */
@@ -1792,6 +1795,12 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	host->caps1 = sdhci_readl(host, SDHCI_CAPABILITIES_1);
 	host->caps1 &= ~(SDHCI_SUPPORT_SDR50 | SDHCI_SUPPORT_SDR104 |
 			 SDHCI_SUPPORT_DDR50);
+
+	if (HOST_IS_SD_TYPE(host->mmc)) {
+		ret = mmc_regulator_get_supply(host->mmc);
+		if (ret)
+			goto pm_runtime_disable;
+	}
 
 	ret = sdhci_setup_host(host);
 	if (ret)
