@@ -797,8 +797,10 @@
 
 
 /* Include other IP modules in ALPHABETICAL order */
+#include "bm.dtsi"
 #include "ddr-dfs.dtsi"
 #include "dma.dtsi"
+#include "dmc-mpu.dtsi"
 #include "glbreg.dtsi"
 #include "cam.dtsi"
 #include "csi.dtsi"
