@@ -11,8 +11,8 @@
 		reg = <0x0 0x88000000 0x0 0x00200000>;
 	};
 
-	audiodsp_reserved: audiodsp-mem@89000000 {
-		reg = <0x0 0x89000000 0x0 0x00600000>;
+	audiodsp_reserved: audiodsp-mem@88f00000 {
+		reg = <0x0 0x88f00000 0x0 0x00700000>;
 	};
 
 	/* The uboot_log_reserved node is added in uboot. base:0x9de8 0000, size:0x40000 */

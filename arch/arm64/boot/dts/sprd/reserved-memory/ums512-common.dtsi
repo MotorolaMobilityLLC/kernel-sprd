@@ -9,8 +9,8 @@
 		reg = <0x0 0x88000000 0x0 0x00300000>;
 	};
 
-	audiodsp_reserved: audiodsp-mem@89000000 {
-		reg = <0x0 0x89000000 0x0 0x00600000>;
+	audiodsp_reserved: audiodsp-mem@88f00000 {
+		reg = <0x0 0x88f00000 0x0 0x00700000>;
 	};
 
 };

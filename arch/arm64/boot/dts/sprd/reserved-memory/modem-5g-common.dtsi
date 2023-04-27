@@ -31,12 +31,12 @@
 			reg = <0x0 0xae600000 0x0 0x00300000>;
 		};
 
-		audio_reserved: audio-mem@af700000 {
-			reg = <0x0 0xaf700000 0x0 0x00300000>;
+		audio_reserved: audio-mem@af600000 {
+			reg = <0x0 0xaf600000 0x0 0x00300000>;
 		};
 
-		audiodsp_reserved: audiodsp-mem@afa00000 {
-			reg = <0x0 0xafa00000 0x0 0x00600000>;
+		audiodsp_reserved: audiodsp-mem@af900000 {
+			reg = <0x0 0xaf900000 0x0 0x00700000>;
 		};
 
 		/* must be 1M aligned */
