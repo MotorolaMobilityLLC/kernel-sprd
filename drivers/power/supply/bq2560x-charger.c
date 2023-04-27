@@ -102,7 +102,9 @@
 #define BQ2560X_NORMAL_CHARGER_VOLTAGE_MAX	6500000
 
 #define BQ2560X_WAKE_UP_MS			1000
-#define BQ2560X_CURRENT_WORK_MS			msecs_to_jiffies(100)
+#define BQ2560X_CURRENT_WORK_MS			100
+
+#define BQ2560X_WAIT_WL_VBUS_STABLE_CUR_THR	200000
 
 #define BQ2560X_PROBE_TIMEOUT			msecs_to_jiffies(3000)
 
@@ -873,7 +875,7 @@ static void bq2560x_check_wireless_charge(struct bq2560x_charger_info *info, boo
 			dev_err(info->dev, "%s:set charge current failed\n", __func__);
 
 		pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
-		schedule_delayed_work(&info->cur_work, BQ2560X_CURRENT_WORK_MS);
+		schedule_delayed_work(&info->cur_work, msecs_to_jiffies(BQ2560X_CURRENT_WORK_MS));
 	} else if (info->is_wireless_charge && !enable) {
 		info->new_charge_limit_cur = info->current_charge_limit_cur;
 		info->current_charge_limit_cur = BQ2560X_REG_ICHG_LSB * 1000;
@@ -938,7 +940,7 @@ static void bq2560x_current_work(struct work_struct *data)
 	struct delayed_work *dwork = to_delayed_work(data);
 	struct bq2560x_charger_info *info =
 		container_of(dwork, struct bq2560x_charger_info, cur_work);
-	int ret = 0;
+	int ret = 0, delay_work_ms = 10 * BQ2560X_CURRENT_WORK_MS;
 	bool need_return = false;
 
 	if (!info) {
@@ -987,7 +989,10 @@ static void bq2560x_current_work(struct work_struct *data)
 	dev_info(info->dev, "set charge_limit_cur %duA, input_limit_curr %duA\n",
 		 info->current_charge_limit_cur, info->current_input_limit_cur);
 
-	schedule_delayed_work(&info->cur_work, BQ2560X_CURRENT_WORK_MS);
+	if (info->current_charge_limit_cur < BQ2560X_WAIT_WL_VBUS_STABLE_CUR_THR)
+		delay_work_ms = BQ2560X_CURRENT_WORK_MS * 50;
+
+	schedule_delayed_work(&info->cur_work, msecs_to_jiffies(delay_work_ms));
 }
 
 static bool bq2560x_probe_is_ready(struct bq2560x_charger_info *info)
@@ -1135,7 +1140,8 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 			cancel_delayed_work_sync(&info->cur_work);
 			info->new_charge_limit_cur = val->intval;
 			pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
-			schedule_delayed_work(&info->cur_work, BQ2560X_CURRENT_WORK_MS * 2);
+			schedule_delayed_work(&info->cur_work,
+					      msecs_to_jiffies(BQ2560X_CURRENT_WORK_MS * 2));
 			break;
 		}
 
@@ -1148,7 +1154,8 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 			cancel_delayed_work_sync(&info->cur_work);
 			info->new_input_limit_cur = val->intval;
 			pm_wakeup_event(info->dev, BQ2560X_WAKE_UP_MS);
-			schedule_delayed_work(&info->cur_work, BQ2560X_CURRENT_WORK_MS * 2);
+			schedule_delayed_work(&info->cur_work,
+					      msecs_to_jiffies(BQ2560X_CURRENT_WORK_MS * 2));
 			break;
 		}
 

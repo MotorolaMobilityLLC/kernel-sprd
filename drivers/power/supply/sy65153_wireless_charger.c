@@ -206,8 +206,6 @@ struct sy65153_wl_charger_info {
 	struct mutex    wireless_chg_pg_lock;
 	struct mutex    wireless_chg_intb_lock;
 	struct power_supply    *wl_psy;
-	struct usb_phy *usb_phy;
-	struct notifier_block usb_notify;
 	struct sy65153_wl_charger_sysfs *sysfs;
 
 	unsigned int irq_gpio;
@@ -980,43 +978,6 @@ static int sy65153_register_sysfs(struct sy65153_wl_charger_info *info)
 	return ret;
 }
 
-static int sy65153_wl_charger_usb_change(struct notifier_block *nb,
-					 unsigned long limit, void *data)
-{
-	struct sy65153_wl_charger_info *info =
-		container_of(nb, struct sy65153_wl_charger_info, usb_notify);
-
-	info->limit = limit;
-
-	if (info->limit) {
-		gpio_set_value(info->switch_chg_en_gpio, 0);
-		gpio_set_value(info->switch_flag_en_gpio, 0);
-	}
-
-	return NOTIFY_OK;
-}
-
-static void sy65153_wl_charger_detect_status(struct sy65153_wl_charger_info *info)
-{
-	u32 min, max;
-
-	/*
-	 * If the USB charger status has been USB_CHARGER_PRESENT before
-	 * registering the notifier, we should start to charge with getting
-	 * the charge current.
-	 */
-	if (info->usb_phy->chg_state != USB_CHARGER_PRESENT)
-		return;
-
-	usb_phy_get_charger_current(info->usb_phy, &min, &max);
-	info->limit = min;
-
-	if (info->limit) {
-		gpio_set_value(info->switch_chg_en_gpio, 0);
-		gpio_set_value(info->switch_flag_en_gpio, 0);
-	}
-}
-
 static void sy65153_wl_charger_intb_int_work(struct work_struct *work)
 {
 	struct sy65153_wl_charger_info *info =
@@ -1082,7 +1043,9 @@ static void sy65153_wl_charger_pg_int_work(struct work_struct *work)
 		if (ret)
 			dev_err(info->dev, "%s:Fail to set vout, ret = %d\n", __func__, ret);
 
-		gpio_set_value(info->switch_chg_en_gpio, 0);
+		if (gpio_is_valid(info->switch_chg_en_gpio))
+			gpio_set_value(info->switch_chg_en_gpio, 0);
+
 		gpio_set_value(info->switch_flag_en_gpio, 1);
 		sy65153_wl_charger_set_rx_ilim(info, SY65153_ILIM_MAX);
 		info->online = 1;
@@ -1099,9 +1062,9 @@ static void sy65153_wl_charger_pg_int_work(struct work_struct *work)
 		info->online = 0;
 	}
 
-	dev_info(info->dev, "is_charging = %d , online = %d, rpp type =  0x%x, "
+	dev_info(info->dev, "%s, is_charging = %d , online = %d, rpp type =  0x%x, "
 		 "pg_value = %d, vout_value = %d, pg_retry_cnt = %d\n",
-		 info->is_charging, info->online, rpp_type, pg_value,
+		 __func__, info->is_charging, info->online, rpp_type, pg_value,
 		 vout_value, info->pg_retry_cnt);
 
 	mutex_unlock(&info->wireless_chg_pg_lock);
@@ -1156,12 +1119,9 @@ static int sy65153_wl_charger_parse_dt(struct sy65153_wl_charger_info *info)
 	}
 
 	info->switch_chg_en_gpio  = of_get_named_gpio(node, "switch_chg_en_gpio", 0);
-	if (!gpio_is_valid(info->switch_chg_en_gpio)) {
+	if (!gpio_is_valid(info->switch_chg_en_gpio))
 		dev_err(info->dev, "[SY65153] [%s] fail_switch_chg_en_gpio %d\n",
 			__func__, info->switch_chg_en_gpio);
-		ret = -EINVAL;
-		goto err_irq_gpio;
-	}
 
 	info->switch_flag_en_gpio  = of_get_named_gpio(node, "switch_flag_en_gpio", 0);
 	if (!gpio_is_valid(info->switch_flag_en_gpio)) {
@@ -1184,8 +1144,9 @@ static int sy65153_wl_charger_parse_dt(struct sy65153_wl_charger_info *info)
 err_switch_flag_en_gpio:
 	gpio_free(info->switch_flag_en_gpio);
 err_switch_chg_en_gpio:
-	gpio_free(info->switch_chg_en_gpio);
-err_irq_gpio:
+	if (gpio_is_valid(info->switch_chg_en_gpio))
+		gpio_free(info->switch_chg_en_gpio);
+
 	gpio_free(info->irq_gpio);
 
 	return ret;
@@ -1204,12 +1165,14 @@ static int sy65153_wl_charger_init_gpio(struct sy65153_wl_charger_info *info)
 		goto err_irq_gpio;
 	}
 
-	ret = devm_gpio_request_one(info->dev,  info->switch_chg_en_gpio,
-				    GPIOF_DIR_OUT | GPIOF_INIT_LOW, "switch_chg_en_gpio");
-	if (ret) {
-		dev_err(info->dev, "init switch chg en gpio fail\n");
-		ret = -EINVAL;
-		goto err_switch_chg_en_gpio;
+	if (gpio_is_valid(info->switch_chg_en_gpio)) {
+		ret = devm_gpio_request_one(info->dev,  info->switch_chg_en_gpio,
+					    GPIOF_DIR_OUT | GPIOF_INIT_LOW, "switch_chg_en_gpio");
+		if (ret) {
+			dev_err(info->dev, "init switch chg en gpio fail\n");
+			ret = -EINVAL;
+			goto err_switch_chg_en_gpio;
+		}
 	}
 
 	ret = devm_gpio_request_one(info->dev,  info->switch_flag_en_gpio,
@@ -1228,7 +1191,9 @@ static int sy65153_wl_charger_init_gpio(struct sy65153_wl_charger_info *info)
 		goto err_power_good_gpio;
 	}
 
-	gpio_set_value(info->switch_chg_en_gpio, 0);
+	if (gpio_is_valid(info->switch_chg_en_gpio))
+		gpio_set_value(info->switch_chg_en_gpio, 0);
+
 	gpio_set_value(info->switch_flag_en_gpio, 0);
 
 	return 0;
@@ -1236,9 +1201,10 @@ static int sy65153_wl_charger_init_gpio(struct sy65153_wl_charger_info *info)
 err_power_good_gpio:
 	gpio_free(info->power_good_gpio);
 err_switch_flag_en_gpio:
-	gpio_free(info->switch_chg_en_gpio);
+	gpio_free(info->switch_flag_en_gpio);
 err_switch_chg_en_gpio:
-	gpio_free(info->switch_chg_en_gpio);
+	if (gpio_is_valid(info->switch_chg_en_gpio))
+		gpio_free(info->switch_chg_en_gpio);
 err_irq_gpio:
 	gpio_free(info->irq_gpio);
 
@@ -1297,12 +1263,17 @@ static int sy65153_wl_charger_hw_init(struct sy65153_wl_charger_info *info)
 		dev_err(info->dev, "fail to get fw minor revision, ret = %d\n", ret);
 
 	ret = sy65153_wl_charger_parse_dt(info);
-	if (ret)
+	if (ret) {
+		dev_err(info->dev, "%s, failed to obtain dts parameters, ret = %d\n",
+			__func__, ret);
 		return ret;
+	}
 
 	ret = sy65153_wl_charger_init_gpio(info);
-	if (ret)
+	if (ret) {
+		dev_err(info->dev, "%s, failed to init gpio, ret = %d\n", __func__, ret);
 		return ret;
+	}
 
 	ret = sy65153_wl_charger_init_interrupt(info);
 
@@ -1327,13 +1298,6 @@ static int sy65153_wl_charger_probe(struct i2c_client *client,
 	if (IS_ERR(info->regmap)) {
 		dev_err(&client->dev, "i2c to regmap fail\n");
 		return PTR_ERR(info->regmap);
-	}
-
-	info->usb_phy = devm_usb_get_phy_by_phandle(dev, "phys", 0);
-	if (IS_ERR(info->usb_phy)) {
-		dev_err(dev, "failed to find USB phy\n");
-		ret = -EPROBE_DEFER;
-		goto err_regmap_exit;
 	}
 
 	info->client = client;
@@ -1361,14 +1325,9 @@ static int sy65153_wl_charger_probe(struct i2c_client *client,
 
 	device_init_wakeup(info->dev, true);
 	ret = sy65153_wl_charger_hw_init(info);
-	if (ret)
-		goto err_mutex_lock;
-
-	info->usb_notify.notifier_call = sy65153_wl_charger_usb_change;
-	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
 	if (ret) {
-		dev_err(dev, "failed to register notifier:%d\n", ret);
-		goto err_wl_psy;
+		dev_err(info->dev, "%s, failed to init hardwave, ret = %d\n", __func__, ret);
+		goto err_mutex_lock;
 	}
 
 	ret = sy65153_register_sysfs(info);
@@ -1377,24 +1336,23 @@ static int sy65153_wl_charger_probe(struct i2c_client *client,
 		goto error_sysfs;
 	}
 
-	sy65153_wl_charger_detect_status(info);
 	sy65153_detect_pg_int(info);
 
+	dev_err(info->dev, "%s, probe successful!!!\n", __func__);
 	return 0;
 
 error_sysfs:
 	sysfs_remove_group(&info->wl_psy->dev.kobj, &info->sysfs->attr_g);
-	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
-err_wl_psy:
 	power_supply_unregister(info->wl_psy);
 	gpio_free(info->power_good_gpio);
-	gpio_free(info->switch_chg_en_gpio);
-	gpio_free(info->switch_chg_en_gpio);
+	gpio_free(info->switch_flag_en_gpio);
+	if (gpio_is_valid(info->switch_chg_en_gpio))
+		gpio_free(info->switch_chg_en_gpio);
+
 	gpio_free(info->irq_gpio);
 err_mutex_lock:
 	mutex_destroy(&info->wireless_chg_pg_lock);
 	mutex_destroy(&info->wireless_chg_intb_lock);
-err_regmap_exit:
 	regmap_exit(info->regmap);
 
 	return ret;

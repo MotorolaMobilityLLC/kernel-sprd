@@ -4845,26 +4845,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 
 	if (is_ext_pwr_online(cm)) {
 		cm_set_charger_present(cm, true);
-		if (is_ext_usb_pwr_online(cm) && type == CM_EVENT_WL_CHG_START_STOP) {
-			dev_warn(cm->dev, "usb charging, does not need start wl charge\n");
-			return;
-		} else if (is_ext_usb_pwr_online(cm)) {
-			if (cm->desc->wl_charge_en) {
-				try_wireless_charger_enable(cm, false);
-				try_charger_enable(cm, false);
-				cm->desc->wl_charge_en = false;
-			}
-
-			if (!cm->desc->is_fast_charge) {
-				ret = get_usb_charger_type(cm, &cm->desc->charger_type);
-				if (ret)
-					dev_warn(cm->dev, "Fail to get usb charger type, ret = %d", ret);
-
-				cm_enable_fixed_fchg_handshake(cm, true);
-			}
-
-			cm->desc->usb_charge_en = true;
-		} else {
+		if (is_ext_wl_pwr_online(cm)) {
 			if (cm->desc->usb_charge_en) {
 				cm_enable_fixed_fchg_handshake(cm, false);
 				try_charger_enable(cm, false);
@@ -4888,6 +4869,23 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 
 			try_wireless_charger_enable(cm, true);
 			cm->desc->wl_charge_en = true;
+		} else {
+			if (cm->desc->wl_charge_en) {
+				try_wireless_charger_enable(cm, false);
+				try_charger_enable(cm, false);
+				cm->desc->wl_charge_en = false;
+			}
+
+			if (!cm->desc->is_fast_charge) {
+				ret = get_usb_charger_type(cm, &cm->desc->charger_type);
+				if (ret)
+					dev_warn(cm->dev, "Fail to get usb charger type, ret = %d",
+						 ret);
+
+				cm_enable_fixed_fchg_handshake(cm, true);
+			}
+
+			cm->desc->usb_charge_en = true;
 		}
 
 		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
@@ -5808,7 +5806,11 @@ static bool cm_pd_is_ac_online(struct charger_manager *cm)
 static void cm_update_charger_type_status(struct charger_manager *cm)
 {
 
-	if (is_ext_usb_pwr_online(cm)) {
+	if (is_ext_wl_pwr_online(cm)) {
+		wireless_main.ONLINE = 1;
+		ac_main.ONLINE = 0;
+		usb_main.ONLINE = 0;
+	} else if (is_ext_usb_pwr_online(cm)) {
 		switch (cm->desc->charger_type) {
 		case CM_CHARGER_TYPE_DCP:
 		case CM_CHARGER_TYPE_FAST:
@@ -5834,10 +5836,6 @@ static void cm_update_charger_type_status(struct charger_manager *cm)
 			usb_main.ONLINE = 1;
 			break;
 		}
-	} else if (is_ext_wl_pwr_online(cm)) {
-		wireless_main.ONLINE = 1;
-		ac_main.ONLINE = 0;
-		usb_main.ONLINE = 0;
 	} else {
 		wireless_main.ONLINE = 0;
 		ac_main.ONLINE = 0;
@@ -7664,7 +7662,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Cannot register wireless_main.psy with name \"%s\"\n",
 			wireless_main.psd.name);
 		return PTR_ERR(wireless_main.psy);
-
 	}
 
 	ac_main.cm = cm;
@@ -7673,7 +7670,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Cannot register usb_main.psy with name \"%s\"\n",
 			ac_main.psd.name);
 		return PTR_ERR(ac_main.psy);
-
 	}
 
 	usb_main.cm = cm;
@@ -7682,7 +7678,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Cannot register usb_main.psy with name \"%s\"\n",
 			usb_main.psd.name);
 		return PTR_ERR(usb_main.psy);
-
 	}
 
 	mutex_init(&cm->desc->keep_awake_mtx);
