@@ -41,6 +41,9 @@
 #include "sdhci-sprd-ffu.h"
 #include "sdhci-sprd-ffu.c"
 
+#include "sdhci-sprd-health.h"
+#include "sdhci-sprd-health.c"
+
 #ifdef CONFIG_SPRD_DEBUG
 #include "sdhci-sprd-debugfs.h"
 #include "sdhci-sprd-debugfs.c"
@@ -203,8 +206,15 @@ static const struct sdhci_sprd_phy_cfg sdhci_sprd_phy_cfgs[] = {
 
 #define TO_SPRD_HOST(host) sdhci_pltfm_priv(sdhci_priv(host))
 
-static void sdhci_sprd_set_powp(void *data, struct mmc_card *card)
+static void sdhci_sprd_health_and_powp(void *data, struct mmc_card *card)
 {
+	int err;
+
+	/* mmc health init */
+	err = sprd_mmc_health_init(card);
+	if (err)
+		pr_err("sprd_mmc_health_init: function error = %d\n", err);
+	/* mmc powp handle */
 	if (!mmc_check_wp_fn(card->host))
 		mmc_set_powp(card);
 }
@@ -1620,7 +1630,7 @@ static void sdhci_sprd_register_vendor_hook(struct sdhci_host *host)
 	}
 	if (!strcmp(mmc_hostname(host->mmc), "mmc0")) {
 		register_trace_android_rvh_mmc_partition_status(
-			sdhci_sprd_set_powp,
+			sdhci_sprd_health_and_powp,
 			NULL);
 	}
 }
