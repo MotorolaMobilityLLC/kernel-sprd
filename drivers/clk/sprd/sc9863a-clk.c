@@ -515,6 +515,18 @@ static const struct clk_parent_data aon_tmr_parents[] = {
 static SPRD_MUX_CLK_DATA(aon_tmr_clk, "aon-tmr-clk", aon_tmr_parents, 0x2b0,
 			 0, 1, SC9863A_MUX_FLAG);
 
+static const struct clk_parent_data hw_i2c_parents[] = {
+	{ .hw = &rco_4m.hw  },
+	{ .hw = &rco_25m.hw },
+	{ .fw_name = "ext-26m" },
+	{ .hw = &twpll_48m.hw },
+	{ .hw = &twpll_51m2.hw },
+	{ .fw_name = "rco-100m" },
+	{ .hw = &twpll_153m6.hw },
+};
+static SPRD_MUX_CLK_DATA(hw_i2c_clk, "hw-i2c-clk", hw_i2c_parents, 0x2b4,
+			 0, 3, SC9863A_MUX_FLAG);
+
 static const struct clk_parent_data power_cpu_parents[] = {
 	{ .fw_name = "ext-26m" },
 	{ .hw = &rco_25m.hw  },
@@ -777,6 +789,7 @@ static struct sprd_clk_common *sc9863a_aon_clks[] = {
 	&aon_pmu_clk.common,
 	&pmu_26m_clk.common,
 	&aon_tmr_clk.common,
+	&hw_i2c_clk.common,
 	&power_cpu_clk.common,
 	&ap_axi.common,
 	&sdio0_2x.common,
@@ -851,6 +864,7 @@ static struct clk_hw_onecell_data sc9863a_aon_clk_hws = {
 		[CLK_AON_PMU]		= &aon_pmu_clk.common.hw,
 		[CLK_PMU_26M]		= &pmu_26m_clk.common.hw,
 		[CLK_AON_TMR]		= &aon_tmr_clk.common.hw,
+		[CLK_HW_I2C]		= &hw_i2c_clk.common.hw,
 		[CLK_POWER_CPU]		= &power_cpu_clk.common.hw,
 		[CLK_AP_AXI]		= &ap_axi.common.hw,
 		[CLK_SDIO0_2X]		= &sdio0_2x.common.hw,
