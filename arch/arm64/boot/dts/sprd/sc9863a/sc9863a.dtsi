@@ -723,11 +723,12 @@
 
 
 /* Include other IP modules in ALPHABETICAL order */
-#include "glbreg.dtsi"
 #include "dma.dtsi"
-#include "pwm.dtsi"
-#include "uart.dtsi"
+#include "glbreg.dtsi"
 #include "gpio.dtsi"
+#include "i2c.dtsi"
+#include "modem.dtsi"
+#include "pwm.dtsi"
 #include "pin-controller.dtsi"
 #include "spi.dtsi"
-#include "modem.dtsi"
+#include "uart.dtsi"
