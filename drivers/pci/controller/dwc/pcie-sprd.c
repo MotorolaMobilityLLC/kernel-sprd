@@ -286,6 +286,12 @@ static int sprd_add_pcie_port(struct dw_pcie *pci, struct platform_device *pdev)
 	device_init_wakeup(dev, true);
 
 no_wakeup:
+	if (device_property_read_bool(pci->dev, "ep-poweron-late")) {
+		dev_warn(pci->dev,
+			 "pcie ep may has not been powered yet, defer init\n");
+		ctrl->defer_init = 1;
+		return 0;
+	}
 
 	return dw_pcie_host_init(&pci->pp);
 }
@@ -382,6 +388,9 @@ static int sprd_pcie_host_shutdown(struct platform_device *pdev)
 	struct dw_pcie *pci = ctrl->pci;
 	struct pci_bus *root_bus;
 
+	if (ctrl->defer_init)
+		goto power_off;
+
 	root_bus = to_root_bus_from_pdev(pdev);
 
 	/*
@@ -394,6 +403,8 @@ static int sprd_pcie_host_shutdown(struct platform_device *pdev)
 	sprd_pcie_remove_bus(root_bus);
 	sprd_pcie_save_dwc_reg(pci);
 	sprd_pcie_ltssm_enable(pci, false);
+
+power_off:
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-shutdown-syscons");
 	if (ret < 0)
 		dev_err(&pdev->dev,
@@ -437,13 +448,22 @@ static int sprd_pcie_host_reinit(struct platform_device *pdev)
 			"set pcie reinit syscons fail, return %d\n", ret);
 		goto power_off;
 	}
-
-	sprd_pcie_buserr_enable(pci);
+	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-aspml1p2-syscons");
+	if (ret < 0)
+		dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
 
 	ret = sprd_pcie_check_vendor_id(pci);
 	if (ret)
 		goto power_off;
 
+	if (ctrl->defer_init) {
+		ret = dw_pcie_host_init(pp);
+		if (ret)
+			goto power_off;
+		return 0;
+	}
+
+	sprd_pcie_buserr_enable(pci);
 	dw_pcie_setup_rc(pp);
 
 	sprd_pcie_ltssm_enable(pci, true);
@@ -455,9 +475,6 @@ static int sprd_pcie_host_reinit(struct platform_device *pdev)
 	}
 
 	sprd_pcie_restore_dwc_reg(pci);
-	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-aspml1p2-syscons");
-	if (ret < 0)
-		dev_err(&pdev->dev, "get pcie aspml1.2 syscons fail\n");
 
 	return 0;
 
@@ -518,8 +535,13 @@ int sprd_pcie_configure_device(struct platform_device *pdev)
 		}
 	}
 
-	root_bus = to_root_bus_from_pdev(pdev);
-	sprd_pcie_rescan_bus(root_bus);
+	if (ctrl->defer_init)
+		ctrl->defer_init = 0;
+	else {
+		root_bus = to_root_bus_from_pdev(pdev);
+		sprd_pcie_rescan_bus(root_bus);
+	}
+
 	ctrl->is_powered = 1;
 	mutex_unlock(&ctrl->sprd_pcie_mutex);
 
@@ -655,7 +677,7 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 
 	ctrl->is_powered = 1;
 
-	if (dw_pcie_wait_for_link(pci)) {
+	if (!dw_pcie_link_up(pci)) {
 		dev_info(dev,
 			 "the EP has not been ready yet, power off the RC\n");
 		sprd_pcie_host_shutdown(pdev);

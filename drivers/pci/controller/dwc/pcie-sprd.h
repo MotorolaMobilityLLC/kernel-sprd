@@ -110,6 +110,9 @@ struct sprd_pcie {
 
 	/* when pci enter suspend cannot reinit the pci */
 	unsigned int reinit_disable:1;
+
+	/* When the EP is powered on late, we need set it */
+	unsigned int defer_init:1;
 	int retries;
 #ifdef CONFIG_PM_SLEEP
 	struct notifier_block	pm_notify;
