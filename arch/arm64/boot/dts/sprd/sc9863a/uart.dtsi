@@ -6,7 +6,7 @@
  *
  */
 
-&apb {
+&apapb {
 	uart0: serial@0 {
 		compatible = "sprd,sc9863a-uart",
 			     "sprd,sc9836-uart";

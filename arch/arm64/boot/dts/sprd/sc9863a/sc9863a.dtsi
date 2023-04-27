@@ -157,7 +157,7 @@
 		#size-cells = <2>;
 		ranges;
 
-		apb: apb@70000000 {
+		apapb: ap-apb@70000000 {
 			compatible = "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
@@ -710,3 +710,4 @@
 #include "uart.dtsi"
 #include "gpio.dtsi"
 #include "pin-controller.dtsi"
+#include "spi.dtsi"
