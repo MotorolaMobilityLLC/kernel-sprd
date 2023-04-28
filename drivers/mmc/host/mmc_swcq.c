@@ -769,7 +769,7 @@ static struct mmc_request *prepare_cmdq_extmrq(struct mmc_swcq *swcq,
 	struct mmc_host *mmc = swcq->mmc;
 	struct mmc_card *card = mmc->card;
 	struct mmc_blk_request *brq_new;
-	int rt = IS_RT_CLASS_REQ(req);
+	int rt = RT_TYPE(req) ? 0 : IS_RT_CLASS_REQ(req);
 	bool do_rel_wr, do_data_tag;
 	u32 readcmd, writecmd;
 	u32 req_flags = mrq->data->flags;
