@@ -960,7 +960,7 @@
 				sprd,dvfs-scene-low = <0>;
 				sprd,dvfs-range-max = <2>;
 				sprd,dvfs-range-min = <0>;
-				};
+			};
 
 			mm_domain: campower-domain {
 				compatible = "sprd,sharkl3-camsys-domain";
