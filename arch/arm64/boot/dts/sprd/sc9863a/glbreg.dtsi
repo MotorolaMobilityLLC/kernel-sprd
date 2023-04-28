@@ -9,18 +9,19 @@
 #include <dt-bindings/soc/sprd,sharkl3-mask.h>
 
 &soc {
-	pmu_regs: syscon@402b0000 {
+	pmu_apb_regs: syscon@402b0000 {
 		compatible = "sprd,sc9863a-glbregs", "syscon",
-				 "simple-mfd";
+			     "simple-mfd";
 		#syscon-cells = <2>;
-		reg = <0 0x402b0000 0 0x4000>;
+		reg = <0 0x402b0000 0 0x6000>;
 		#address-cells = <1>;
 		#size-cells = <1>;
-		ranges = <0 0 0x402b0000 0x4000>;
+		ranges = <0 0 0x402b0000 0x6000>;
 
 		pmu_gate: pmu-gate {
 			compatible = "sprd,sc9863a-pmu-gate";
-			reg = <0 0x4000>;
+			reg = <0x0 0x6000>;
+			sprd,syscon = <&pmu_apb_regs>; /* 0x402b0000 */
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;

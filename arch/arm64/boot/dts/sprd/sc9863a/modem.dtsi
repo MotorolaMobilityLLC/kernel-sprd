@@ -32,8 +32,8 @@
 		compatible = "unisoc,modem";
 		/* 0xff is invalid register offset */
 		syscon0 = <&aon_apb_regs 0xff 0x0>;
-		syscon1 = <&pmu_regs 0xff 0x0>;
-		syscon2 = <&pmu_regs 0xb0 0x80>;
+		syscon1 = <&pmu_apb_regs 0xff 0x0>;
+		syscon2 = <&pmu_apb_regs 0xb0 0x80>;
 		syscon3 = <&aon_apb_regs 0xff 0x0>;
 		syscon4 = <&aon_apb_regs 0xff 0x0>;
 		syscon-names = "shutdown", "deepsleep", "corereset",
@@ -45,10 +45,10 @@
 		compatible = "unisoc,modem";
 		sprd,decoup = "cproc-use-decoup";
 		/* 0xff is invalid register offset */
-		syscon0 = <&pmu_regs 0x48 0x2000000>;
-		syscon1 = <&pmu_regs 0xcc 0x40000>;
+		syscon0 = <&pmu_apb_regs 0x48 0x2000000>;
+		syscon1 = <&pmu_apb_regs 0xcc 0x40000>;
 		syscon2 = <&aon_apb_regs 0x284 0x400>;
-		syscon3 = <&pmu_regs 0xb0 0x2>;
+		syscon3 = <&pmu_apb_regs 0xb0 0x2>;
 		syscon4 = <&aon_apb_regs 0xff 0x0>;
 		syscon5 = <&aon_apb_regs 0x130 0x30000>;
 		syscon-names = "shutdown", "deepsleep", "corereset",
