@@ -187,6 +187,7 @@ config SPECULATIVE_PAGE_FAULT_STATS
 
 config E_SHOW_MEM
 	bool "Enhanced show memory"
+	depends on ARM
 	default n
 	help
 	  Enable mem info show for DMA-BUF, GPU, ZRAM, Vmalloc etc.
