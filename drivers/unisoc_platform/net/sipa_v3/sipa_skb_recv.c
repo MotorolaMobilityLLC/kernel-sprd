@@ -642,7 +642,18 @@ static bool sipa_check_recv_node_value(struct sipa_node_desc_tag *node,
 {
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 	struct sipa_skb_receiver *receiver = ipa->receiver;
+	struct skb_shared_info *shinfo;
 	int retry = 10;
+
+	if (node->length > SIPA_RECV_BUF_LEN - NET_SKB_PAD -
+	    SKB_DATA_ALIGN(sizeof(struct skb_shared_info))) {
+		dev_err(receiver->dev, "node transfer length long is %d\n",
+			node->length);
+		shinfo = skb_shinfo(recv_skb);
+		memset(shinfo, 0, offsetof(struct skb_shared_info, dataref));
+
+		return false;
+	}
 
 	while ((addr != node->address || !node->src) && --retry)
 		sipa_hal_sync_node_from_tx_fifo(receiver->dev, id, -1);
