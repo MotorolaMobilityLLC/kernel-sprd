@@ -33,6 +33,9 @@ EXT_MODULES="
 ../modules/common/io/block
 ../modules/common/io/iowait
 ../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
+../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_common_ctl
+../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_dbg
+../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_pmnotify_ctl
 ../modules/kernel5.15/wcn/wlan/wlan_combo
 ../modules/kernel5.15/display/gsp
 ../modules/kernel5.15/display/dispc
