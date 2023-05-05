@@ -13,6 +13,7 @@
 #include <linux/mtd/nand.h>
 
 #include "sprd_nand_param.h"
+#include "sprd_nfc_dbg.h"
 
 /* reg memory map --checked */
 #define NFC_START_REG 0x00
@@ -88,6 +89,10 @@ enum {
 	ONLY_ECC_MODE
 };
 
+enum {
+	DBG_SAV_STOP = 0,
+	DBG_SAV_START
+};
 /**************SNFC_Register******************************/
 #define SNFC_COM_CFG		(0x0190)
 #define SNFC_STATUS			(0x0194)

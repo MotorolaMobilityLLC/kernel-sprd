@@ -124,6 +124,10 @@ void sprd_nfc_cmd_exec(struct sprd_nfc *host, struct nand_inst *program, u32 rep
 	if (if_use_int)
 		sprd_nfc_writel(host, (program->int_bits & 0xF), NFC_INT_REG);
 
+#ifdef CONFIG_MTD_NAND_SPRD_DEBUG
+	sprd_nfc_dbg_sav_exec(host, DBG_SAV_STOP);
+#endif
+
 	sprd_nfc_writel(host, host->nfc_start | CTRL_NFC_CMD_START, NFC_START_REG);
 }
 EXPORT_SYMBOL(sprd_nfc_cmd_exec);
@@ -144,14 +148,22 @@ int sprd_nfc_cmd_wait(struct sprd_nfc *host, struct nand_inst *program)
 		       || (SPRD_NAND_GET_INT_VAL(regval) & (INT_DONE & program->int_bits)),
 				0, nfc_timeout_val);
 
+#ifdef CONFIG_MTD_NAND_SPRD_DEBUG
+	sprd_nfc_dbg_sav_exec(host, DBG_SAV_START);
+#endif
+
 	if (ret) {
 		dev_err(host->dev, "cmd %s wait timeout.\n", program->program_name);
 		goto out;
 	}
 
 	if (SPRD_NAND_GET_INT_VAL(regval) & ((INT_TO | INT_STSMCH | INT_WP)
-			       & program->int_bits))
+			       & program->int_bits)) {
 		ret = -EIO;
+#ifdef CONFIG_MTD_NAND_SPRD_DEBUG
+		sprd_nfc_dbg_sav_last_err(host);
+#endif
+	}
 
 out:
 	return ret;
@@ -1418,6 +1430,9 @@ static struct sprd_nfc_ops sprd_nfc_ops = {
 struct sprd_nfc *sprd_nfc_alloc_host(struct device *dev, u8 intf_type)
 {
 	struct sprd_nfc *host;
+#ifdef CONFIG_MTD_NAND_SPRD_DEBUG
+	int ret;
+#endif
 
 	host = devm_kzalloc(dev, sizeof(*host), GFP_KERNEL);
 	if (!host)
@@ -1432,6 +1447,12 @@ struct sprd_nfc *sprd_nfc_alloc_host(struct device *dev, u8 intf_type)
 		sprd_snfc_attach((struct sprd_nfc *)host);
 	else
 		host->cs_max = CFG0_CS_MAX;
+
+#ifdef CONFIG_MTD_NAND_SPRD_DEBUG
+	ret = sprd_nfc_dbg_init(host);
+	if (ret)
+		dev_err(dev, "nfc dbg init failed: %d\n", ret);
+#endif
 
 	return host;
 }
@@ -1450,6 +1471,10 @@ int sprd_nfc_setup_host(struct sprd_nfc *host,
 
 	host->int_ops->init_reg_state1(host);
 	host->int_ops->init_inst(host);
+
+#ifdef CONFIG_MTD_NAND_SPRD_DEBUG
+	sprd_nfc_dbg_sav_startup(host);
+#endif
 
 	if (host->intf_type == INTF_TYPE_SPI)
 		return sprd_snfc_setup_host((struct sprd_nfc *)host);

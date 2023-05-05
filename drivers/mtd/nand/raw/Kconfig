@@ -30,6 +30,15 @@ config MTD_NAND_SPRD_DEVICE_INFO_FROM_H
 	  from header.
 	  It only work if MTD_NAND_SPRD and self are on.
 
+config MTD_NAND_SPRD_DEBUG
+	depends on MTD_NAND_SPRD
+	default y
+	help
+	  When NAND flash on platforms using an UNISOC NAND controller
+	  as a DT device ,enabling this will allow you to debug if it can
+	  not work.
+	  It only work if MTD_NAND_SPRD and self are on.
+
 config MTD_NAND_DENALI
 	tristate
 
