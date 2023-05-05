@@ -60,7 +60,7 @@
 &ddr_dfs {
 	sprd-scene = "lcdoff", "lcdon", "camlow", "camhigh",
 		"boost", "faceid", "camveryhigh", "top", "boot-opt";
-	sprd-freq = <256 384 512 768 1333 1333 0xbacd 0xbacd 1333>;
+	sprd-freq = <256 768 384 512 1333 1333 0xbacd 0xbacd 1333>;
 };
 
 &dmabuf {
