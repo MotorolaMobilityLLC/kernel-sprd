@@ -12,6 +12,7 @@
 #include "reserved-memory/sp9863a-1h10-overlay.dtsi"
 #include <dt-bindings/input/input.h>
 #include <dt-bindings/gpio/gpio.h>
+#include "touchscreen/sp9863a-i2c3-gpio144-145-tp.dtsi"
 
 / {
 	model = "Unisoc SP9863A 1H10 board";
