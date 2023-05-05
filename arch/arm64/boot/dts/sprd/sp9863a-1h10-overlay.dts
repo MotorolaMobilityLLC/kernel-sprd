@@ -57,6 +57,12 @@
 	};
 };
 
+&ddr_dfs {
+	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+		"camhigh", "camveryhigh", "top", "boot-opt";
+	sprd-freq = <933 400 233 622 622 933 933 933>;
+};
+
 &pin_controller {
 	pinctrl-names =
 	/* keyout0 ~ keyout2 */
