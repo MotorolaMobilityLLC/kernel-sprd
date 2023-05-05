@@ -66,10 +66,10 @@ static int __sprd_get_temp(struct shell_sensor *psensor, int *temp)
 
 	for (i = 0; i < psensor->nsensor; i++) {
 		for (j = 0; j < psensor->ntemp; j++) {
-			if (j > index)
-				coeff_index = j - index - 1;
+			if (index + 1 + j < psensor->ntemp)
+				coeff_index = index + 1 + j;
 			else
-				coeff_index = psensor->ntemp + j - index - 1;
+				coeff_index = index + 1 + j - psensor->ntemp;
 			sum_temp += psensor->coeff[i][j] * psensor->hty_temp[i][coeff_index];
 		}
 	}
