@@ -589,6 +589,19 @@
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
 			};
+
+			mailbox: mailbox@400a0000 {
+				compatible = "unisoc,mailbox";
+				reg = <0 0x400a0000 0 0x8000>,
+				      <0 0x400a8000 0 0x8000>;
+				reg-names = "inbox", "outbox";
+				sprd,mailbox_clk = <&aon_apb_regs 0x4 0x200000>;
+				interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 119 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "inbox", "outbox", "oob-outbox";
+				#mbox-cells = <2>;
+			};
 		};
 		mm {
 			compatible = "simple-bus";
@@ -663,6 +676,12 @@
 			};
 		};
 	};
+
+	sipc: sipc-virt {
+		compatible = "unisoc,sipc-virt-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
 };
 
 &sdio0 {
@@ -711,3 +730,4 @@
 #include "gpio.dtsi"
 #include "pin-controller.dtsi"
 #include "spi.dtsi"
+#include "modem.dtsi"
