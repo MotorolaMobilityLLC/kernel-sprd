@@ -38,6 +38,8 @@
 
 static struct mutex coresight_mutex_lock;
 
+static char cs_buf[CS_BUF_SZ];
+
 extern void sprd_enable_coresight_atb_clk(struct device *dev);
 
 static bool is_power_on(struct cs_context_t *cs_context)
@@ -85,9 +87,7 @@ static int tmc_read_prepare(struct tmc_drvdata_group *drvdata)
 	int reg_num;
 	char *buf, *buf0;
 
-	buf0 = kzalloc(drvdata->size, GFP_KERNEL);
-	if (!buf0)
-		return -ENOMEM;
+	buf0 = cs_buf;
 
 	drvdata->len = drvdata->size; /* len is important */
 	drvdata->buf = buf0;
@@ -155,6 +155,7 @@ static int tmc_read_unprepare(struct tmc_drvdata_group *drvdata)
 			ret = sprd_tmc_read_unprepare_etb(&(drvdata->cs_context[i].context));
 			if (drvdata->cs_context[i].context.mode == CS_MODE_SYSFS)
 				kfree(drvdata->cs_context[i].context.buf);
+
 			if (ret) {
 				pr_err("%s: sprd_tmc_read_unprepare_etb fail!\n", __func__);
 				ret = -EINVAL;
@@ -163,7 +164,6 @@ static int tmc_read_unprepare(struct tmc_drvdata_group *drvdata)
 		}
 	}
 
-	kfree(drvdata->buf);
 	dev_info(drvdata->dev, "TMC read end\n");
 
 	return ret;
@@ -178,11 +178,11 @@ static int tmc_open(struct inode *inode, struct file *file)
 
 	while (tmr_cnt--) {
 		if (mutex_trylock(&coresight_mutex_lock)) {
-			dev_info(drvdata->dev, "get lock ok!\n");
+			dev_info(drvdata->dev, "%s:get lock ok!\n", __func__);
 			break;
 		}
 		if (tmr_cnt == 0) {
-			dev_info(drvdata->dev, "get lock time out!\n");
+			dev_info(drvdata->dev, "%s:get lock time out!\n", __func__);
 			return -EBUSY;
 		}
 		msleep(50);
@@ -190,13 +190,14 @@ static int tmc_open(struct inode *inode, struct file *file)
 
 	ret = tmc_read_prepare(drvdata);
 	if (ret) {
-		pr_info(" tmc_read_prepare fail\n");
+		dev_info(drvdata->dev, "%s:tmc_read_prepare fail!\n", __func__);
+		mutex_unlock(&coresight_mutex_lock);
 		return ret;
 	}
 
 	nonseekable_open(inode, file);
 
-	dev_dbg(drvdata->dev, "%s: successfully opened\n", __func__);
+	dev_info(drvdata->dev, "%s: successfully opened\n", __func__);
 	return 0;
 }
 
@@ -224,7 +225,8 @@ static ssize_t tmc_read(struct file *file, char __user *data, size_t len,
 		__func__, len, (int)drvdata->len, (int)*ppos);
 
 	if (copy_to_user(data, bufp, len)) {
-		dev_dbg(drvdata->dev, "%s: copy_to_user failed\n", __func__);
+		dev_info(drvdata->dev, "%s: copy_to_user failed\n", __func__);
+		mutex_unlock(&coresight_mutex_lock);
 		return -EFAULT;
 	}
 
@@ -237,19 +239,22 @@ static ssize_t tmc_read(struct file *file, char __user *data, size_t len,
 
 static int tmc_release(struct inode *inode, struct file *file)
 {
-	int ret;
+	int ret = 0;
 	struct tmc_drvdata_group *drvdata = container_of(file->private_data,
 						   struct tmc_drvdata_group, miscdev);
 
 	ret = tmc_read_unprepare(drvdata);
-	if (ret)
-		return ret;
+	if (ret) {
+		dev_info(drvdata->dev, "%s:tmc_read_unprepare fail!\n", __func__);
+		goto out;
+	}
 
-	dev_dbg(drvdata->dev, "%s: released\n", __func__);
+	dev_info(drvdata->dev, "%s: released end!\n", __func__);
 
+out:
 	mutex_unlock(&coresight_mutex_lock);
+	return ret;
 
-	return 0;
 }
 
 static const struct file_operations tmc_fops = {

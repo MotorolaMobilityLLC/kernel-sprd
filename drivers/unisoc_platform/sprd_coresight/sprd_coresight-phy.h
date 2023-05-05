@@ -23,6 +23,7 @@
 #define CS_ELEMENT_NUM		20
 #define CS_FUNNEL_REGS_NUM	2
 #define CS_TMC_REGS_NUM		12
+#define CS_BUF_SZ		0xc400 /* 49k,0xc038+0x200 */
 
 enum CS_TYPE_E {
 	CS_FUNNEL,
