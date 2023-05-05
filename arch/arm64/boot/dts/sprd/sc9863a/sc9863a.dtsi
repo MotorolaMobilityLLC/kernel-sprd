@@ -737,7 +737,7 @@
 #include "pin-controller.dtsi"
 #include "spi.dtsi"
 #include "uart.dtsi"
-#include "modem.dtsi"
 #include "efuse.dtsi"
 #include "gpu.dtsi"
 #include "usb.dtsi"
+#include "dispc.dtsi"
