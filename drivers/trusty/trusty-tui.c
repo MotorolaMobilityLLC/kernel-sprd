@@ -22,12 +22,17 @@
 #include <linux/slab.h>
 
 #define TUI_MINOR 187
+#define USER_DEBUG_CMD 1000
 
 struct tui_status {
 	int tui_notify;
 	int tui_state;
-	int end_tui_from_tos;
 	struct wait_queue_head tui_wq;
+};
+
+enum {
+	TUI_CANCEL_NOTIFY = 1,
+	TUI_NORMAL_EXIT_NOTIFY = 2,
 };
 
 static struct tui_status *s_ts;
@@ -41,7 +46,7 @@ EXPORT_SYMBOL(is_in_tui);
 void notify_cancel_tui(void)
 {
 	if (s_ts) {
-		s_ts->tui_notify = 1; // TUI_CANCEL_NOTIFY
+		s_ts->tui_notify = TUI_CANCEL_NOTIFY;
 		wake_up_interruptible(&s_ts->tui_wq);
 	}
 }
@@ -93,6 +98,7 @@ static ssize_t tui_read(struct file *file, char __user *user_buf, size_t count, 
 // tui_write: set state
 static ssize_t tui_write(struct file *file, const char __user *user_buf, size_t count, loff_t *ppos)
 {
+	int input_data = 0;
 	struct tui_status *ts = file->private_data;
 
 	if (count != sizeof(int)) {
@@ -101,11 +107,20 @@ static ssize_t tui_write(struct file *file, const char __user *user_buf, size_t 
 		return -EINVAL;
 	}
 
-	if (copy_from_user(&ts->tui_state, user_buf, sizeof(int)))
+	if (copy_from_user(&input_data, user_buf, sizeof(int)))
 		return -EFAULT;
 
-	if (!ts->tui_state) { // exit tui normally, wake up poll
-		ts->end_tui_from_tos = 1;
+	if (input_data < USER_DEBUG_CMD)
+		s_ts->tui_state = input_data;
+	else { // user debug cmd
+		if (is_in_tui())
+			notify_cancel_tui();
+		else
+			pr_info("not in tui state, ignore this debug cmd.");
+	}
+
+	if (!input_data) { // exit tui normally, wake up poll
+		s_ts->tui_notify = TUI_NORMAL_EXIT_NOTIFY;
 		wake_up_interruptible(&ts->tui_wq);
 	}
 	return sizeof(int);
@@ -120,11 +135,6 @@ static __poll_t tui_poll(struct file *file, poll_table *wait)
 	if (ts->tui_notify > 0) {
 		mask |= POLLIN;
 		pr_info("tui wake up pollin");
-	}
-	if (ts->end_tui_from_tos > 0) {
-		mask |= POLLERR;
-		ts->end_tui_from_tos = 0;
-		pr_info("tui wake up pollerr");
 	}
 	return mask;
 }
