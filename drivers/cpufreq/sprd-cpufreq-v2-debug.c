@@ -245,7 +245,7 @@ int sprd_debug_exit(void)
 	struct cluster_den *cluster_den;
 	int cluster_num, i;
 
-	if (chip.dev)
+	if (!chip.dev)
 		return -EINVAL;
 
 	/* cluster */
