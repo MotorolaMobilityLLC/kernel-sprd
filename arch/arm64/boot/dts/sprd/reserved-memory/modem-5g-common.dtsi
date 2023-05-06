@@ -16,7 +16,7 @@
 			reg = <0x0 0x87800000 0x0 0x00800000>;
 		};
 
-		cp_reserved: cp-modem@88000000 {
+		cp_reserved: cp-mem@88000000 {
 			no-map;
 			reg = <0x0 0x88000000 0x0 0x1d000000>;
 		};
