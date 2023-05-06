@@ -82,6 +82,9 @@ vmlinux
 #KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc
 GKI_MODULES_LIST=android/gki_aarch64_modules
 
+#KO STRIP
+export DO_NOT_STRIP_MODULES=0
+
 MODULES_ORDER=""
 TRIM_NONLISTED_KMI=""
 KMI_SYMBOL_LIST_STRICT_MODE=""

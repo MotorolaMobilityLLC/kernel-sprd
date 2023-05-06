@@ -92,6 +92,9 @@ arch/arm/boot/dts/sp9863a-base.dtb
 arch/arm/boot/dts/sp9863a-1h10-go_32b-overlay.dtbo
 "
 
+#KO STRIP
+export DO_NOT_STRIP_MODULES=0
+
 MODULES_ORDER=""
 TRIM_NONLISTED_KMI=""
 KMI_SYMBOL_LIST_STRICT_MODE=""
