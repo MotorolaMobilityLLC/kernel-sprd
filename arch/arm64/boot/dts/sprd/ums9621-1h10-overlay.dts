@@ -429,16 +429,21 @@
 
 &hsphy {
 	vdd-supply = <&vddusb33>;
-	extcon = <&extcon_gpio>;
+	extcon = <&pmic_typec>;
 	sprd,hsphy-device-eye-pattern = <0x067bd1c0>;
 	sprd,hsphy-host-eye-pattern = <0x067bd1c0>;
 	status = "okay";
 };
 
 &usb {
-	extcon = <&extcon_gpio>, <&pmic_typec>;
+	extcon = <&pmic_typec>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
 	status = "okay";
+	use_pdhub_c2c;
+};
+
+&pmic_typec {
+	use_pdhub_c2c;
 };
 
 &lcd_nt36672e_truly_mipi_fhd {
