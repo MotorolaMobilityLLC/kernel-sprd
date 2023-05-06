@@ -3291,6 +3291,7 @@ static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 			 * and its URB list has emptied, recycle this qh.
 			 */
 			if (qh->is_ready && list_empty(&qh->hep->urb_list)) {
+				musb_ep_set_qh(qh->hw_ep, is_in, NULL);
 				qh->hep->hcpriv = NULL;
 				list_del(&qh->ring);
 				kfree(qh);
