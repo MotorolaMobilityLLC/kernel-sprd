@@ -737,3 +737,4 @@
 #include "modem.dtsi"
 #include "efuse.dtsi"
 #include "gpu.dtsi"
+#include "usb.dtsi"

@@ -127,3 +127,9 @@
 		function = "func4";
 	};
 };
+
+&usb{
+	extcon = <&extcon_gpio>, <&pmic_typec>;
+	status = "okay";
+	/*vbus-supply = <&vddvbus>;*/
+};

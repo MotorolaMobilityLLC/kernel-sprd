@@ -44,6 +44,11 @@
 			    dummy_hcd.num=0 initcall_debug=1 vmalloc=300M";
 	};
 
+	extcon_gpio: extcon-gpio {
+		compatible = "linux,extcon-usb-gpio";
+		vbus-gpio = <&pmic_eic 0 0>;
+		};
+
 	firmware {
 		android {
 		compatible = "android,firmware";
@@ -95,4 +100,15 @@
 
 &vddsim2 {
 	status = "disabled";
+};
+
+&hsphy {
+	vdd-supply = <&vddusb33>;
+	extcon = <&extcon_gpio>;
+	status = "okay";
+};
+
+&usb {
+	extcon = <&extcon_gpio>;
+	status = "okay";
 };
