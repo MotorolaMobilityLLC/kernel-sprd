@@ -307,6 +307,26 @@ static const struct file_operations need_fill_cnt_show_fops = {
 	.release = single_release,
 };
 
+static int wifi_ul_flwctrl_show(struct seq_file *s, void *unused)
+{
+	struct sipa_plat_drv_cfg *ipa = s->private;
+
+	seq_printf(s, "wifi ul flowctrl happen %d times\n", ipa->receiver->wifi_ul_flowctrl);
+	return 0;
+}
+
+static int wifi_ul_flwctrl_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, wifi_ul_flwctrl_show, inode->i_private);
+}
+
+static const struct file_operations wifi_ul_flwctrl_fops = {
+	.open = wifi_ul_flwctrl_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
 int sipa_init_debugfs(struct sipa_plat_drv_cfg *ipa)
 {
 	struct dentry *root;
@@ -368,6 +388,13 @@ int sipa_init_debugfs(struct sipa_plat_drv_cfg *ipa)
 
 	file = debugfs_create_file("need_fill_cnt", 0444, root, ipa,
 				   &need_fill_cnt_show_fops);
+	if (!file) {
+		ret = -ENOMEM;
+		goto err1;
+	}
+
+	file = debugfs_create_file("wifi_ul_flowctrl", 0444, root, ipa,
+				   &wifi_ul_flwctrl_fops);
 	if (!file) {
 		ret = -ENOMEM;
 		goto err1;

@@ -1018,6 +1018,8 @@ void sipa_hal_resume_glb_reg_cfg(struct device *dev)
 
 	ipa->glb_ops.enable_def_interrupt_src(glb_base);
 	ipa->glb_ops.set_def_flow_ctl_to_src_blk(glb_base);
+	ipa->glb_ops.set_wifi_ul_map0_int_sel(glb_base, true);
+	ipa->glb_ops.set_map_flow_ctl_to_wifi(glb_base, true);
 	ipa->glb_ops.map_multi_fifo_mode_en(glb_base, false);
 	ipa->multi_mode = false;
 	ipa->glb_ops.set_map_fifo_cnt(glb_base, SIPA_RECV_QUEUES_MAX);
@@ -1249,3 +1251,194 @@ bail:
 	return ret;
 }
 EXPORT_SYMBOL(sipa_config_ofilter);
+
+/**
+ * Description: block flow ctrl status to another fifo for map,
+ * when map fifo enter flow ctrl,notify other fifo.
+ * @status: enable or disable
+ * true for enable
+ * false for disable
+ */
+void sipa_hal_set_map_flow_ctl_to_wifi(bool status)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *glb_base = ipa->glb_virt_base;
+
+	ipa->glb_ops.set_map_flow_ctl_to_wifi(glb_base, status);
+}
+EXPORT_SYMBOL(sipa_hal_set_map_flow_ctl_to_wifi);
+
+/**
+ * Description: set ipa map0 fifo interrupt source status;
+ * this operation can make others fifo interrupt appear on map0 fifo,
+ * but map0 fifo interrupt reg do not record it, we should clear interrupt
+ * in corresponding fifo reg.
+ * default:map0 out map0
+ * @status:enable or disable
+ * true for enable
+ * false for disable
+ */
+void sipa_hal_set_wifi_ul_map0_int_sel(bool status)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *glb_base = ipa->glb_virt_base;
+
+	ipa->glb_ops.set_wifi_ul_map0_int_sel(glb_base, status);
+}
+EXPORT_SYMBOL(sipa_hal_set_wifi_ul_map0_int_sel);
+
+/**
+ * Description: if true ipa will continue receive node when enter
+ * flow ctrl,but the node will send to free fifo directly;
+ * if false ipa will stop receive node,should software
+ * recover it to receive node when exit flow ctrl.
+ * @id: common fifo id
+ * @status: true or false
+ * @return 0 set success else set fail
+ */
+int sipa_hal_cmn_fifo_non_stop_on_flowctl(enum sipa_cmn_fifo_index id,
+					  bool status)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *fifo_base = NULL;
+
+	if (id >= SIPA_FIFO_MAX) {
+		pr_err("fifo id is invalid!\n");
+		return -EINVAL;
+	}
+
+	fifo_base = ipa->cmn_fifo_cfg[id].fifo_reg_base;
+
+	ipa->fifo_ops.cmn_fifo_non_stop_on_flowctl(fifo_base, status);
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_hal_cmn_fifo_non_stop_on_flowctl);
+
+int sipa_hal_cmn_fifo_flowctl_recover(enum sipa_cmn_fifo_index id)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *fifo_base = NULL;
+
+	if (id >= SIPA_FIFO_MAX) {
+		pr_err("fifo id is invalid!\n");
+		return -EINVAL;
+	}
+
+	fifo_base = ipa->cmn_fifo_cfg[id].fifo_reg_base;
+	ipa->fifo_ops.cmn_fifo_flowctl_recover(fifo_base);
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_hal_cmn_fifo_flowctl_recover);
+
+int sipa_hal_check_cmn_fifo_flowctl(enum sipa_cmn_fifo_index id)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *fifo_base = NULL;
+	int ret;
+
+	if (id >= SIPA_FIFO_MAX) {
+		pr_err("fifo id is invalid!\n");
+		return -EINVAL;
+	}
+
+	fifo_base = ipa->cmn_fifo_cfg[id].fifo_reg_base;
+	ret = ipa->fifo_ops.check_cmn_fifo_flowctl(fifo_base);
+	if (ret)
+		return true;
+
+	return false;
+}
+EXPORT_SYMBOL(sipa_hal_check_cmn_fifo_flowctl);
+
+int sipa_hal_check_cmn_fifo_enter_flowctl(enum sipa_cmn_fifo_index id)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *fifo_base = NULL;
+	int ret;
+
+	if (id >= SIPA_FIFO_MAX) {
+		pr_err("fifo id is invalid!\n");
+		return -EINVAL;
+	}
+
+	fifo_base = ipa->cmn_fifo_cfg[id].fifo_reg_base;
+	ret = ipa->fifo_ops.check_cmn_fifo_enter_flowctl(fifo_base);
+	if (ret)
+		return true;
+
+	return false;
+}
+EXPORT_SYMBOL(sipa_hal_check_cmn_fifo_enter_flowctl);
+
+int sipa_hal_check_cmn_fifo_exit_flowctl(enum sipa_cmn_fifo_index id)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *fifo_base = NULL;
+	int ret;
+
+	if (id >= SIPA_FIFO_MAX) {
+		pr_err("fifo id is invalid!\n");
+		return -EINVAL;
+	}
+
+	fifo_base = ipa->cmn_fifo_cfg[id].fifo_reg_base;
+	ret = ipa->fifo_ops.check_cmn_fifo_exit_flowctl(fifo_base);
+	if (ret)
+		return true;
+
+	return false;
+}
+EXPORT_SYMBOL(sipa_hal_check_cmn_fifo_exit_flowctl);
+
+int sipa_hal_clr_cmn_fifo_flowctl_interrupt(enum sipa_cmn_fifo_index id)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *fifo_base = NULL;
+
+	if (id >= SIPA_FIFO_MAX) {
+		pr_err("fifo id is invalid!\n");
+		return -EINVAL;
+	}
+
+	fifo_base = ipa->cmn_fifo_cfg[id].fifo_reg_base;
+	ipa->fifo_ops.clr_cmn_fifo_flowctl_interrupt(fifo_base);
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_hal_clr_cmn_fifo_flowctl_interrupt);
+
+int sipa_hal_clr_cfifo_flowctl_enter_inter(enum sipa_cmn_fifo_index id)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *fifo_base = NULL;
+
+	if (id >= SIPA_FIFO_MAX) {
+		pr_err("fifo id is invalid!\n");
+		return -EINVAL;
+	}
+
+	fifo_base = ipa->cmn_fifo_cfg[id].fifo_reg_base;
+	ipa->fifo_ops.clr_cfifo_flowctl_enter_inter(fifo_base);
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_hal_clr_cfifo_flowctl_enter_inter);
+
+int sipa_hal_clr_cfifo_flowctl_exit_inter(enum sipa_cmn_fifo_index id)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	void __iomem *fifo_base = NULL;
+
+	if (id >= SIPA_FIFO_MAX) {
+		pr_err("fifo id is invalid!\n");
+		return -EINVAL;
+	}
+
+	fifo_base = ipa->cmn_fifo_cfg[id].fifo_reg_base;
+	ipa->fifo_ops.clr_cfifo_flowctl_exit_inter(fifo_base);
+
+	return 0;
+}
+EXPORT_SYMBOL(sipa_hal_clr_cfifo_flowctl_exit_inter);

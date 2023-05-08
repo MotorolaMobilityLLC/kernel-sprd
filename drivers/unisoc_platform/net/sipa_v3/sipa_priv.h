@@ -32,6 +32,8 @@
 			    SIPA_HAL_TXFIFO_OVERFLOW | \
 			    SIPA_HAL_ERRORCODE_IN_TX_FIFO)
 
+#define SIPA_RECV_NO_EVT SIPA_HAL_ERROR
+
 #define SIPA_MULTI_IRQ_NUM	8
 
 #define SIPA_EB_NUM	2
@@ -381,6 +383,7 @@ struct sipa_skb_receiver {
 	u32 tx_danger_cnt;
 	u32 rx_danger_cnt;
 	u32 alloc_skb_cnt;
+	u32 wifi_ul_flowctrl;
 };
 
 struct sipa_fifo_phy_ops {
@@ -428,6 +431,14 @@ struct sipa_fifo_phy_ops {
 				 u32 tx_exit_watermark,
 				 u32 rx_entry_watermark,
 				 u32 rx_exit_watermark);
+	void (*cmn_fifo_non_stop_on_flowctl)(void __iomem *fifo_base, bool status);
+	bool (*check_cmn_fifo_flowctl)(void __iomem *fifo_base);
+	bool (*check_cmn_fifo_enter_flowctl)(void __iomem *fifo_base);
+	bool (*check_cmn_fifo_exit_flowctl)(void __iomem *fifo_base);
+	void (*cmn_fifo_flowctl_recover)(void __iomem *fifo_base);
+	void (*clr_cmn_fifo_flowctl_interrupt)(void __iomem *fifo_base);
+	void (*clr_cfifo_flowctl_enter_inter)(void __iomem *fifo_base);
+	void (*clr_cfifo_flowctl_exit_inter)(void __iomem *fifo_base);
 	int (*set_node_intr)(enum sipa_cmn_fifo_index id,
 			     struct sipa_cmn_fifo_cfg_tag *b,
 			     u32 enable);
@@ -673,6 +684,8 @@ struct sipa_glb_phy_ops {
 						u32 addr);
 	void (*traffic_counter_clr)(void __iomem *reg_base);
 	void (*traffic_counter_en)(void __iomem *reg_base, bool enable);
+	void (*set_wifi_ul_map0_int_sel)(void __iomem *reg_base,
+					 bool status);
 	void (*map0_interrupt_src_en)(void __iomem *reg_base, u32 src,
 				      bool enable);
 	void (*map1_interrupt_src_en)(void __iomem *reg_base, u32 src,
@@ -765,6 +778,8 @@ struct sipa_glb_phy_ops {
 	int (*ctrl_def_chksum_en)(void __iomem *reg_base);
 	void (*enable_def_interrupt_src)(void __iomem *reg_base);
 	void (*set_def_flow_ctl_to_src_blk)(void __iomem *reg_base);
+	void (*set_map_flow_ctl_to_wifi)(void __iomem *reg_base,
+					 bool status);
 	void (*fill_ifilter_ipv4)(void __iomem *reg_base, u32 data);
 	void (*fill_ifilter_ipv6)(void __iomem *reg_base, u32 data);
 	void (*fill_ofilter_ipv4)(void __iomem *reg_base, u32 data);
@@ -927,4 +942,5 @@ void sipa_reinit_recv_array(struct device *dev);
 
 struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 			      int *netid, u32 *src_id, u32 *dst_id, u32 index, int fifoid);
+void sipa_single_middle_core(void);
 #endif /* _SIPA_PRIV_H_ */

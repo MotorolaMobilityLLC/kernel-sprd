@@ -626,6 +626,24 @@ static void sipa_receiver_notify_cb(void *priv, enum sipa_hal_evt_type evt,
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
 	struct sipa_skb_receiver *receiver = (struct sipa_skb_receiver *)priv;
 
+	if (evt == SIPA_RECV_NO_EVT) {
+		if (sipa_hal_check_cmn_fifo_enter_flowctl(SIPA_FIFO_WIFI_UL)) {
+			sipa_hal_clr_cfifo_flowctl_enter_inter(SIPA_FIFO_WIFI_UL);
+			dev_err(receiver->dev,
+				"wifi ul fifo enter flowctrl, %d times\n",
+				++receiver->wifi_ul_flowctrl);
+			sipa_single_middle_core();
+		}
+
+		if (sipa_hal_check_cmn_fifo_exit_flowctl(SIPA_FIFO_WIFI_UL)) {
+			sipa_hal_clr_cfifo_flowctl_exit_inter(SIPA_FIFO_WIFI_UL);
+			dev_err(receiver->dev,
+				"wifi ul fifo exit flowctrl\n");
+		}
+		/* there is no interrupt for map cfifo */
+		return;
+	}
+
 	if (evt & SIPA_RECV_WARN_EVT) {
 		if (net_ratelimit())
 			dev_err(receiver->dev,

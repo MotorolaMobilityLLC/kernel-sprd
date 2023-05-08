@@ -3374,10 +3374,25 @@ static void ipa_phy_enable_def_interrupt_src(void __iomem *reg_base)
 				      true);
 }
 
+static void ipa_phy_set_wifi_ul_map0_int_sel(void __iomem *reg_base,
+					     bool status)
+{
+	ipa_phy_map0_interrupt_src_en(reg_base,
+				      IPA_WIFI_UL_MAP0_INT_SEL_MASK,
+				      status);
+}
+
 static void ipa_phy_set_def_flow_ctl_to_src_blk(void __iomem *reg_base)
 {
 	ipa_phy_set_flow_ctl_to_src_blk(reg_base, IPA_MAP_FLOW_CTL_TO_CP_MASK,
 					true);
+}
+
+static void ipa_phy_set_map_flow_ctl_to_wifi(void __iomem *reg_base, bool status)
+{
+	ipa_phy_set_flow_ctl_to_src_blk(reg_base,
+					IPA_MAP_FLOW_CTL_TO_WIFI_MASK,
+					status);
 }
 
 static int ipa_phy_ctrl_def_hash_en(void __iomem *reg_base)
@@ -3680,6 +3695,7 @@ void sipa_glb_ops_init(struct sipa_glb_phy_ops *glb_ops)
 	glb_ops->get_cp_fetch_node_l4_cnt = ipa_phy_get_cp_fetch_node_l4_cnt;
 	glb_ops->traffic_counter_clr = ipa_phy_traffic_counter_clr;
 	glb_ops->traffic_counter_en = ipa_phy_traffic_counter_en;
+	glb_ops->set_wifi_ul_map0_int_sel = ipa_phy_set_wifi_ul_map0_int_sel;
 	glb_ops->map0_interrupt_src_en = ipa_phy_map0_interrupt_src_en;
 	glb_ops->map1_interrupt_src_en = ipa_phy_map1_interrupt_src_en;
 	glb_ops->map2_interrupt_src_en = ipa_phy_map2_interrupt_src_en;
@@ -3703,8 +3719,8 @@ void sipa_glb_ops_init(struct sipa_glb_phy_ops *glb_ops)
 	glb_ops->get_resume_status = ipa_phy_get_resume_status;
 	glb_ops->get_fifo_irq_status = ipa_phy_get_fifo_irq_status;
 	glb_ops->enable_def_interrupt_src = ipa_phy_enable_def_interrupt_src;
-	glb_ops->set_def_flow_ctl_to_src_blk =
-		ipa_phy_set_def_flow_ctl_to_src_blk;
+	glb_ops->set_def_flow_ctl_to_src_blk = ipa_phy_set_def_flow_ctl_to_src_blk;
+	glb_ops->set_map_flow_ctl_to_wifi = ipa_phy_set_map_flow_ctl_to_wifi;
 	glb_ops->ctrl_def_hash_en = ipa_phy_ctrl_def_hash_en;
 	glb_ops->ctrl_def_chksum_en = ipa_phy_ctrl_def_chksum_en;
 

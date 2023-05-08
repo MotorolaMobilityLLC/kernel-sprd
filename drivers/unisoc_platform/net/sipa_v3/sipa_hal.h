@@ -112,4 +112,15 @@ int sipa_hal_sync_node_to_rx_fifo(struct device *dev,
 int sipa_hal_sync_node_from_tx_fifo(struct device *dev,
 				    enum sipa_cmn_fifo_index fifo_id,
 				    int budget);
+void sipa_hal_set_map_flow_ctl_to_wifi(bool status);
+void sipa_hal_set_wifi_ul_map0_int_sel(bool status);
+int sipa_hal_cmn_fifo_non_stop_on_flowctl(enum sipa_cmn_fifo_index id,
+					  bool status);
+int sipa_hal_cmn_fifo_flowctl_recover(enum sipa_cmn_fifo_index id);
+int sipa_hal_check_cmn_fifo_flowctl(enum sipa_cmn_fifo_index id);
+int sipa_hal_clr_cmn_fifo_flowctl_interrupt(enum sipa_cmn_fifo_index id);
+int sipa_hal_check_cmn_fifo_enter_flowctl(enum sipa_cmn_fifo_index id);
+int sipa_hal_check_cmn_fifo_exit_flowctl(enum sipa_cmn_fifo_index id);
+int sipa_hal_clr_cfifo_flowctl_enter_inter(enum sipa_cmn_fifo_index id);
+int sipa_hal_clr_cfifo_flowctl_exit_inter(enum sipa_cmn_fifo_index id);
 #endif /* !_SIPA_HAL_H_ */

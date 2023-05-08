@@ -758,6 +758,8 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 		return -EPROBE_DEFER;
 	}
 
+	dev_dbg(ipa->dev, "%s ep id is %d\n", __func__, in->id);
+
 	sipa_set_enabled(true);
 	ep->connected = true;
 	ep->suspended = false;
@@ -1604,7 +1606,7 @@ void sipa_udp_is_port(bool is_port)
 }
 EXPORT_SYMBOL(sipa_udp_is_port);
 
-static void sipa_single_middle_core(void)
+void sipa_single_middle_core(void)
 {
 	int max, cpu_num = 0, cpu_num_before;
 	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();

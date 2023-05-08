@@ -46,7 +46,7 @@
 #define SIAP_FIFO_MAP6_OUT_OFFSET	0x780l
 #define SIAP_FIFO_MAP7_OUT_OFFSET       0x800l
 
-/*Common fifo reg*/
+/* common fifo reg */
 #define IPA_COMMON_RX_FIFO_DEPTH	0x00l
 #define IPA_COMMON_RX_FIFO_WR		0x04l
 #define IPA_COMMON_RX_FIFO_RD		0x08l
@@ -61,7 +61,6 @@
 #define IPA_INT_GEN_CTL_TX_FIFO_VALUE	0x2Cl
 #define IPA_INT_GEN_CTL_EN		0x30l
 #define IPA_DROP_PACKET_CNT		0x34l
-#define IPA_FLOW_CTRL_CONFIG		0x38l
 #define IPA_TX_FIFO_FLOW_CTRL		0x3Cl
 #define IPA_RX_FIFO_FLOW_CTRL		0x40l
 #define IPA_RX_FIFO_FULL_NEG_PULSE_NUM	0x44l
@@ -76,7 +75,7 @@
 #define IPA_ERRCODE_INT_ADDR_LOW	0x68l
 #define IPA_ERRCODE_INT_PATTERN		0x6Cl
 
-/* Fifo interrupt enable bit*/
+/* fifo interrupt enable bit */
 #define IPA_TXFIFO_INT_THRES_ONESHOT_EN		BIT(11)
 #define IPA_TXFIFO_INT_THRES_SW_EN		BIT(10)
 #define IPA_TXFIFO_INT_DELAY_TIMER_SW_EN	BIT(9)
@@ -91,7 +90,7 @@
 #define IPA_TX_FIFO_DELAY_TIMER_EN		BIT(0)
 #define IPA_INT_EN_BIT_GROUP			0x00000FFFl
 
-/*Fifo interrupt status bit*/
+/* fifo interrupt status bit */
 #define IPA_INT_TX_FIFO_THRESHOLD_SW_STS	BIT(22)
 #define IPA_INT_EXIT_FLOW_CTRL_STS		BIT(20)
 #define IPA_INT_ENTER_FLOW_CTRL_STS		BIT(19)
@@ -104,17 +103,24 @@
 #define IPA_INT_DROP_PACKT_OCCUR		BIT(12)
 #define IPA_INT_INT_STS_GROUP			0x5FF000l
 
-/*Fifo interrupt clear bit*/
+/* fifo interrupt clear bit */
 #define IPA_TX_FIFO_TIMER_CLR_BIT		BIT(0)
 #define IPA_TX_FIFO_THRESHOLD_CLR_BIT		BIT(1)
 #define IPA_TX_FIFO_INTR_CLR_BIT		BIT(2)
-#define IPA_ENTRY_FLOW_CONTROL_CLR_BIT		BIT(3)
+#define IPA_ENTER_FLOW_CONTROL_CLR_BIT		BIT(3)
 #define IPA_EXIT_FLOW_CONTROL_CLR_BIT		BIT(4)
 #define IPA_DROP_PACKET_INTR_CLR_BIT		BIT(5)
 #define IPA_ERROR_CODE_INTR_CLR_BIT		BIT(6)
 #define IPA_TX_FIFO_OVERFLOW_CLR_BIT		BIT(7)
 #define IPA_TX_FIFO_FULL_INT_CLR_BIT		BIT(8)
 #define IPA_INT_STS_CLR_GROUP			(0x000001FFl)
+
+/* fifo flow control config */
+#define IPA_CMN_FIFO_FLOW_CTL_CONFIG		(GENMASK(1, 0))
+#define IPA_CMN_FIFO_FLOW_CTL_RECOVER		BIT(2)
+#define IPA_CMN_FIFO_FLOW_CTL_STOP_RECEIVE	BIT(3)
+#define IPA_CMN_FIFO_FLOW_CTL_NON_STOP		BIT(4)
+#define IPA_FLOW_CTRL_CONFIG			0x38l
 
 #define NODE_DESCRIPTION_SIZE			16l
 /**
@@ -867,6 +873,122 @@ static int ipa_phy_set_flow_ctrl_config(void __iomem *fifo_base,
 	if ((tmp & 0x00000003) != config)
 		return -EIO;
 	return 0;
+}
+
+static void ipa_phy_cmn_fifo_non_stop_on_flowctl(void __iomem *fifo_base,
+						 bool status)
+{
+	u32 tmp = 0;
+	void __iomem *fifo_reg_addr;
+
+	fifo_reg_addr = fifo_base + IPA_FLOW_CTRL_CONFIG;
+
+	tmp = readl_relaxed(fifo_reg_addr);
+
+	if (status)
+		tmp |= IPA_CMN_FIFO_FLOW_CTL_NON_STOP;
+	else
+		tmp &= ~(IPA_CMN_FIFO_FLOW_CTL_NON_STOP);
+
+	writel_relaxed(tmp, fifo_reg_addr);
+}
+
+static void ipa_phy_cmn_fifo_flowctl_recover(void __iomem *fifo_base)
+{
+	u32 tmp = 0;
+	void __iomem *fifo_reg_addr;
+
+	fifo_reg_addr = fifo_base + IPA_FLOW_CTRL_CONFIG;
+
+	tmp = readl_relaxed(fifo_reg_addr);
+	tmp |= IPA_CMN_FIFO_FLOW_CTL_RECOVER;
+	writel_relaxed(tmp, fifo_reg_addr);
+
+	tmp = readl_relaxed(fifo_reg_addr);
+	tmp &= ~(IPA_CMN_FIFO_FLOW_CTL_RECOVER);
+	writel_relaxed(tmp, fifo_reg_addr);
+}
+
+static bool ipa_phy_check_cmn_fifo_flowctl(void __iomem *fifo_base)
+{
+	void __iomem *fifo_reg_addr;
+	u32 tmp = 0;
+
+	fifo_reg_addr = fifo_base + IPA_INT_GEN_CTL_EN;
+
+	tmp = readl_relaxed(fifo_reg_addr);
+
+	if (tmp & IPA_INT_ENTER_FLOW_CTRL_STS &&
+	    tmp & IPA_INT_EXIT_FLOW_CTRL_STS)
+		return true;
+	else
+		return false;
+}
+
+static bool ipa_phy_check_cmn_fifo_enter_flowctl(void __iomem *fifo_base)
+{
+	void __iomem *fifo_reg_addr;
+	u32 tmp = 0;
+
+	fifo_reg_addr = fifo_base + IPA_INT_GEN_CTL_EN;
+
+	tmp = readl_relaxed(fifo_reg_addr);
+
+	if (tmp & IPA_INT_ENTER_FLOW_CTRL_STS)
+		return true;
+
+	return false;
+}
+
+static bool ipa_phy_check_cmn_fifo_exit_flowctl(void __iomem *fifo_base)
+{
+	void __iomem *fifo_reg_addr;
+	u32 tmp = 0;
+
+	fifo_reg_addr = fifo_base + IPA_INT_GEN_CTL_EN;
+
+	tmp = readl_relaxed(fifo_reg_addr);
+
+	if (tmp & IPA_INT_EXIT_FLOW_CTRL_STS)
+		return true;
+
+	return false;
+}
+
+static void ipa_phy_clr_cmn_fifo_flowctl_interrupt(void __iomem *fifo_base)
+{
+	void __iomem *fifo_reg_addr;
+	u32 tmp = 0;
+
+	fifo_reg_addr = fifo_base + IPA_INT_GEN_CTL_CLR;
+
+	tmp = readl_relaxed(fifo_reg_addr);
+	tmp |= IPA_ENTER_FLOW_CONTROL_CLR_BIT | IPA_EXIT_FLOW_CONTROL_CLR_BIT;
+	writel_relaxed(tmp, fifo_reg_addr);
+}
+
+static void ipa_phy_clr_cfifo_flowctl_enter_inter(void __iomem *fifo_base)
+{
+	void __iomem *fifo_reg_addr;
+	u32 tmp = 0;
+
+	fifo_reg_addr = fifo_base + IPA_INT_GEN_CTL_CLR;
+
+	tmp = readl_relaxed(fifo_reg_addr);
+	tmp |= IPA_ENTER_FLOW_CONTROL_CLR_BIT;
+	writel_relaxed(tmp, fifo_reg_addr);
+}
+
+static void ipa_phy_clr_cfifo_flowctl_exit_inter(void __iomem *fifo_base)
+{
+	void __iomem *fifo_reg_addr;
+	u32 tmp = 0;
+
+	fifo_reg_addr = fifo_base + IPA_INT_GEN_CTL_CLR;
+
+	tmp = readl_relaxed(fifo_reg_addr);
+	tmp |= IPA_EXIT_FLOW_CONTROL_CLR_BIT;
+	writel_relaxed(tmp, fifo_reg_addr);
 }
 
 /**
@@ -2241,8 +2363,10 @@ static int ipa_cmn_fifo_traverse_int_bit(enum sipa_cmn_fifo_index id,
 	int_status = readl_relaxed(fifo_base + IPA_INT_GEN_CTL_EN);
 	int_status &= IPA_INT_INT_STS_GROUP;
 
-	if (!int_status)
+	if (!int_status) {
+		ipa_cfg->fifo_irq_callback(ipa_cfg->priv, int_status, id, irq);
 		return 0;
+	}
 
 	if (int_status & IPA_INT_EXIT_FLOW_CTRL_STS) {
 		ipa_cfg->exit_flow_ctrl_cnt++;
@@ -2251,7 +2375,7 @@ static int ipa_cmn_fifo_traverse_int_bit(enum sipa_cmn_fifo_index id,
 
 	if (int_status & IPA_INT_ENTER_FLOW_CTRL_STS) {
 		ipa_cfg->enter_flow_ctrl_cnt++;
-		clr_sts |= IPA_ENTRY_FLOW_CONTROL_CLR_BIT;
+		clr_sts |= IPA_ENTER_FLOW_CONTROL_CLR_BIT;
 	}
 
 	if (int_status & IPA_INT_ERRORCODE_IN_TX_FIFO_STS)
@@ -2304,6 +2428,14 @@ void sipa_fifo_ops_init(struct sipa_fifo_phy_ops *ops)
 	ops->set_src_dst_term = ipa_cmn_fifo_phy_set_src_dst_term;
 	ops->enable_flowctrl_irq = ipa_cmn_fifo_phy_enable_flowctrl_irq;
 	ops->set_flowctrl_mode = ipa_cmn_fifo_phy_set_flowctrl_mode;
+	ops->cmn_fifo_non_stop_on_flowctl = ipa_phy_cmn_fifo_non_stop_on_flowctl;
+	ops->check_cmn_fifo_flowctl = ipa_phy_check_cmn_fifo_flowctl;
+	ops->check_cmn_fifo_enter_flowctl = ipa_phy_check_cmn_fifo_enter_flowctl;
+	ops->check_cmn_fifo_exit_flowctl = ipa_phy_check_cmn_fifo_exit_flowctl;
+	ops->cmn_fifo_flowctl_recover = ipa_phy_cmn_fifo_flowctl_recover;
+	ops->clr_cmn_fifo_flowctl_interrupt = ipa_phy_clr_cmn_fifo_flowctl_interrupt;
+	ops->clr_cfifo_flowctl_exit_inter = ipa_phy_clr_cfifo_flowctl_exit_inter;
+	ops->clr_cfifo_flowctl_enter_inter = ipa_phy_clr_cfifo_flowctl_enter_inter;
 	ops->set_node_intr = ipa_cmn_fifo_phy_set_node_intr;
 	ops->set_overflow_intr = ipa_cmn_fifo_phy_set_overflow_intr;
 	ops->set_tx_full_intr = ipa_cmn_fifo_phy_set_tx_full_intr;
