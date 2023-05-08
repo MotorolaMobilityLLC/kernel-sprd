@@ -128,3 +128,11 @@
 	};
 };
 
+&dmabuf {
+	fd_reserved {
+		label = "carveout_fd";
+		memory-region = <&fd_reserved>;
+	};
+};
+
+
