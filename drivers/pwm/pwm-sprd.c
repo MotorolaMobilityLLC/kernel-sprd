@@ -177,7 +177,8 @@ static int sprd_pwm_config(struct sprd_pwm_chip *spc, struct pwm_device *pwm,
 	 * given settings (MOD = SPRD_PWM_MOD_MAX and input clock).
 	 */
 	mod = sprd_pwm_count_match(spc, pwm);
-	duty = duty_ns * mod / period_ns;
+	tmp = (u64)duty_ns * mod;
+	duty = DIV_ROUND_CLOSEST_ULL(tmp, period_ns);
 
 	tmp = (u64)chn->clk_rate * period_ns;
 	do_div(tmp, NSEC_PER_SEC);
