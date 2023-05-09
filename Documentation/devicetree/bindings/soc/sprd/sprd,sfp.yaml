@@ -10,5 +10,3 @@ description: SFP stands for soft fast path, it is a module to configure IPA rout
 Required properties:
   compatible:
     - "sprd,sfp": soft fast path
-    - "sprd,tether_scheme": for setting acceleration way, 0 stands for hard-way, 1 stands for soft-way, 2 stands for half-hard-half-soft
-    - "sprd,enable": for switch of the SFP, 0 stands for disable, 1 stands for enable
