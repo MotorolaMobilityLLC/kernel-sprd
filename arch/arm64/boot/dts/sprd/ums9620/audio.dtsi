@@ -53,7 +53,7 @@
 		compatible = "unisoc,audio-mem-sharkl5", "unisoc,audio-mem-sharkl5pro";
 		memory-region = <&audio_reserved &audiodsp_reserved>;
 		/*
-		 * base is 0xaf700000 for ums9520
+		 * base is 0xaf600000 for ums9520
 		 * 1. reserved ddr layout total 3M:
 		 * 2M (ap used. include dma data,dma node(dynamic),
 		 * dsp log(65K), dsp pcm(65K)) + 1k(cmd param) 2K + 16b(cmd) +
@@ -62,27 +62,27 @@
 		 */
 		ddr32-ap-dsp-map-offset = <0x0>;
 		/*
-		 * 2M for dynamic alloc, 0xaf700000 - 0xaf900000 ddr32-dma,
+		 * 2M for dynamic alloc, 0xaf600000 - 0xaf800000 ddr32-dma,
 		 * 1M for other
 		 */
-		sprd,ddr32-dma = <0xaf700000 0x200000>;
-		/* 512K,  0xaf900000 - 0xaf980000*/
-		sprd,ddr32-dspmemdump = <0xaf900000 0x80000>;
-		/* 1K cmd para, 0xaf980000 - 0xaf980400 */
-		sprd,cmdaddr = <0xaf980000 0x400>;
-		/* 2K + 16byte,0xaf980400 - 0xaf980e10 */
-		sprd,smsg-addr = <0xaf980400 0xa10>;
-		/* 1K AUDIO_STRUCT_PARA 0xaf980e10 - 0xaf981210*/
-		sprd,shmaddr-aud-str = <0xaf980e10 0x400>;
+		sprd,ddr32-dma = <0xaf600000 0x200000>;
+		/* 512K,  0xaf800000 - 0xaf880000*/
+		sprd,ddr32-dspmemdump = <0xaf800000 0x80000>;
+		/* 1K cmd para, 0xaf880000 - 0xaf880400 */
+		sprd,cmdaddr = <0xaf880000 0x400>;
+		/* 2K + 16byte,0xaf880400 - 0xaf880e10 */
+		sprd,smsg-addr = <0xaf880400 0xa10>;
+		/* 1K AUDIO_STRUCT_PARA 0xaf880e10 - 0xaf881210*/
+		sprd,shmaddr-aud-str = <0xaf880e10 0x400>;
 		/* DSP_VBC_PARA: 5K->4K, nxp/cvs: 1K->2K */
-		/* 4K DSP_VBC_PARA, 0xaf981210 - 0xaf982210 */
-		sprd,shmaddr-dsp-vbc = <0xaf981210 0x1000>;
-		/* 2K nxp/cvs para, 0xaf982210 - 0xaf982a10 */
-		sprd,shmaddr-nxp = <0xaf982210 0x800>;
-		/* 2K ivsence smartpa param, 0xaf982a10 - 0xaf983a10 */
-		sprd,shmaddr-dsp-smartpa = <0xaf982a10 0x1000>;
-		/* 1K REG DUMP, 0xaf983a10 - 0xaf983e10 */
-		sprd,shmaddr-reg-dump = <0xaf983a10 0x400>;
+		/* 4K DSP_VBC_PARA, 0xaf881210 - 0xaf882210 */
+		sprd,shmaddr-dsp-vbc = <0xaf881210 0x1000>;
+		/* 2K nxp/cvs para, 0xaf882210 - 0xaf882a10 */
+		sprd,shmaddr-nxp = <0xaf882210 0x800>;
+		/* 2K ivsence smartpa param, 0xaf882a10 - 0xaf883a10 */
+		sprd,shmaddr-dsp-smartpa = <0xaf882a10 0x1000>;
+		/* 1K REG DUMP, 0xaf883a10 - 0xaf883e10 */
+		sprd,shmaddr-reg-dump = <0xaf883a10 0x400>;
 
 		/* 2. iram layout total 32K */
 		sprd,iram-ap-base =  <0x56800000>;
