@@ -392,6 +392,10 @@
 	status = "okay";
 };
 
+&sfp {
+	sfp,enable-pamwifi;
+};
+
 &usb {
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
