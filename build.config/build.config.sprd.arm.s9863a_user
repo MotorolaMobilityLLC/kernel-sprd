@@ -44,7 +44,7 @@ EXT_MODULES="
 ../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_common_ctl
 ../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_dbg
 ../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_pmnotify_ctl
-../modules/kernel5.15/video/sprd-vsp
+../modules/kernel5.15/video/sprd-vpu
 ../modules/kernel5.15/video/sprd-jpg
 ../modules/kernel5.15/video/sprd-vsp-power
 ../modules/common/camera/power
