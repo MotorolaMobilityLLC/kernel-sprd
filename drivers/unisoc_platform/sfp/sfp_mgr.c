@@ -72,12 +72,29 @@ static const char * const sfp_netdev[] = {
 				  };
 
 #define IPA_TERM_MAX 32
-static const char * const ipa_netdev[IPA_TERM_MAX] = {
+
+static char *ipa_netdev[IPA_TERM_MAX] = {
 				    [1] = "sipa_usb",
-				    [2] = "wlan",
 				    [6] = "sipa_eth",
 				    [25] = "usb",
 				  };
+
+static bool ipa_pamwifi_enable;
+
+static void set_sfp_ipa_pamwifi_enable(bool enable)
+{
+	ipa_pamwifi_enable = enable;
+
+	if (unlikely(ipa_pamwifi_enable)) {
+		FP_PRT_DBG(FP_PRT_ERR, "ipa_pamwifi is disabled\n");
+		return;
+	}
+
+	FP_PRT_DBG(FP_PRT_INFO, "set ipa_pamwifi_enable to %d\n", ipa_pamwifi_enable);
+
+	if (ipa_pamwifi_enable)
+		ipa_netdev[2] = "wlan";
+}
 
 #define IPA_BAN_MAX 4
 static const char * const ipa_banned_netdev[IPA_BAN_MAX] = {
@@ -805,10 +822,11 @@ int sfp_filter_mgr_fwd_create_entries(u8 pf, struct sk_buff *skb)
 	/* wifi/bt-pan does not support IPA due to their hardware drawback */
 	cur_tether_scheme = get_sfp_tether_scheme();
 	if (!(cur_tether_scheme == SFP_SOFT_PATH)) {
-		if (is_banned_ipa_netdev(skb->dev) ||
-		    is_banned_ipa_netdev(rt->dst.dev)) {
+		if ((is_banned_ipa_netdev(skb->dev) ||
+		     is_banned_ipa_netdev(rt->dst.dev)) &&
+		     !ipa_pamwifi_enable) {
 			FP_PRT_DBG(FP_PRT_DEBUG,
-				   "dev filted, won't create sfp\n");
+				   "dev is filtered, won't create sfp\n");
 			return 0;
 		}
 	}
@@ -1225,21 +1243,20 @@ static int sfp_parse_dt(struct device *dev)
 {
 	int ret;
 	u32 data;
+	bool pamwifi_enable = false;
 	struct device_node *np = dev->of_node;
-
-	ret = of_property_read_u32(np, "sprd,sfp", &data);
-	if (ret) {
-		dev_err(dev, "read sprd,sfp fail ret %d\n", ret);
-		return ret;
-	}
 
 	ret = of_property_read_u32(np, "tether_scheme", &data);
 	if (ret) {
-		dev_info(dev, "fail to read tether_scheme, %d\n", ret);
-		return 0;
+		dev_err(dev, "fail to read tether_scheme, %d\n", ret);
+		return ret;
 	}
 
 	set_sfp_tether_scheme(data);
+
+	pamwifi_enable = of_property_read_bool(np, "sfp,enable-pamwifi");
+
+	set_sfp_ipa_pamwifi_enable(pamwifi_enable);
 
 	return 0;
 }
