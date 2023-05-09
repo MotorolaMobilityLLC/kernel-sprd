@@ -1055,7 +1055,7 @@ int sc2332_start_ap(struct sprd_priv *priv, struct sprd_vif *vif, u8 *beacon,
 	ch = ieee80211_get_channel(priv->wiphy, freq);
 	if (ch) {
 		cfg80211_chandef_create(&chandef, ch, NL80211_CHAN_HT20);
-		cfg80211_ch_switch_notify(vif->ndev, &chandef, 0);
+		cfg80211_ch_switch_notify(vif->ndev, &chandef, 0, 0);
 	} else {
 		netdev_err(vif->ndev, "%s, ch is null!\n", __func__);
 	}
