@@ -1219,6 +1219,7 @@
 				compatible = "sprd,sharkl3-vsp";
 				reg = <0x62200000 0xc000>;
 				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+				sprd,video_ip_version = <16>;
 				reset-syscon = <&mm_vsp_ahb_regs  REG_MM_VSP_AHB_AHB_RST
 					(MASK_MM_VSP_AHB_VSP_SOFT_RST |
 					MASK_MM_VSP_AHB_VSP_GLB_SOFT_RST)>;

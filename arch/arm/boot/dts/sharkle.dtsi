@@ -426,7 +426,7 @@
 				compatible = "sprd,sharkle-vsp";
 				reg = <0x21900000 0xc000>;
 				interrupts = <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
-
+				sprd,video_ip_version = <14>;
 				reset-syscon = <&ap_ahb_regs REG_AP_AHB_AHB_RST
 					MASK_AP_AHB_VSP_SOFT_RST>;
 				vsp-domain-eb-syscon = <&aon_apb_regs
