@@ -395,7 +395,7 @@ static bool task_can_place_on_cpu(struct task_struct *p, int cpu)
 static inline int select_cpu_when_overutiled(struct task_struct *p, int prev_cpu,
 					     struct pd_cache *pdc)
 {
-	int cpu, best_active_cpu = -1, best_idle_cpu = -1;
+	int cpu, best_active_cpu = -1, best_idle_cpu = -1, target = -1;
 	int max_cap_idle = INT_MIN, max_spare = INT_MIN, least_running = INT_MAX;
 	struct cpuidle_state *idle;
 	unsigned int min_exit_lat = UINT_MAX;
@@ -405,6 +405,9 @@ static inline int select_cpu_when_overutiled(struct task_struct *p, int prev_cpu
 		int cpu_cap = pdc[cpu].cap;
 		struct rq *rq = cpu_rq(cpu);
 		unsigned int idle_exit_latency = UINT_MAX;
+
+		if (cpu_halted(cpu))
+			continue;
 
 		if (!cpumask_test_cpu(cpu, p->cpus_ptr) || is_reserved(cpu))
 			continue;
@@ -443,8 +446,17 @@ static inline int select_cpu_when_overutiled(struct task_struct *p, int prev_cpu
 		}
 	}
 
-	if (best_active_cpu == -1)
+	if (best_active_cpu == -1) {
+		if (cpu_halted(prev_cpu)) {
+			cpumask_t non_halted;
+			/* choose the lowest-order, unhalted, allowed CPU */
+			cpumask_andnot(&non_halted, p->cpus_ptr, cpu_halt_mask);
+			target = cpumask_first(&non_halted);
+			if (target < nr_cpu_ids)
+				prev_cpu = target;
+		}
 		best_active_cpu = prev_cpu;
+	}
 
 	return best_idle_cpu >= 0 ? best_idle_cpu : best_active_cpu;
 }
@@ -499,7 +511,8 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 	if (sync && cpu_rq(cpu)->nr_running == 1 &&
 	    cpumask_test_cpu(cpu, p->cpus_ptr) &&
 	    is_min_capacity_cpu(cpu) &&
-	    task_can_place_on_cpu(p, cpu)) {
+	    task_can_place_on_cpu(p, cpu) &&
+	    !cpu_halted(cpu)) {
 		rcu_read_unlock();
 		return cpu;
 	}
@@ -519,6 +532,7 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 		int max_spare_cap_cpu = -1;
 
 		cpumask_and(&cpus, perf_domain_span(pd), cpu_active_mask);
+		cpumask_andnot(&cpus, &cpus, cpu_halt_mask);
 
 		if (cpumask_empty(&cpus))
 			continue;

@@ -249,6 +249,35 @@ extern int sched_long_running_rt_task_ms_handler(struct ctl_table *table, int wr
 	void __user *buffer, size_t *lenp, loff_t *ppos);
 extern int init_multithread_opt(void);
 
+enum pause_reason {
+	PAUSE_CORE_CTL	= 0x01,
+	PAUSE_THERMAL	= 0x02,
+	PAUSE_HYP	= 0x04,
+};
+
+extern struct cpumask __cpu_halt_mask;
+#define cpu_halt_mask ((struct cpumask *)&__cpu_halt_mask)
+
+#ifdef CONFIG_UNISOC_SCHED_PAUSE_CPU
+#define cpu_halted(cpu) ((cpu < nr_cpu_ids) && cpumask_test_cpu((cpu), cpu_halt_mask))
+extern int pause_cpus(struct cpumask *cpus, enum pause_reason reason);
+extern int resume_cpus(struct cpumask *cpus, enum pause_reason reason);
+extern void core_pause_init(void);
+extern int core_ctl_init(void);
+extern bool halt_check_last(int cpu);
+extern int is_cpu_paused(int cpu);
+#else
+#define cpu_halted(cpu) 0
+static inline void core_pause_init(void)
+{
+}
+
+static inline int core_ctl_init(void)
+{
+	return 0;
+}
+#endif
+
 #ifdef CONFIG_UNISOC_HUNG_TASK_ENH
 extern int hung_task_enh_init(void);
 #else

@@ -175,6 +175,7 @@ static void walt_rt_filter_energy_cpu(void *data, struct task_struct *task,
 		return; /* No targets found */
 
 	cpumask_and(lowest_mask, lowest_mask, cpu_active_mask);
+	cpumask_andnot(lowest_mask, lowest_mask, cpu_halt_mask);
 
 	/* fast path for prev_cpu */
 	if (cpumask_test_cpu(prev_cpu, lowest_mask) && is_idle_cpu(prev_cpu) &&
@@ -243,6 +244,14 @@ static void walt_rt_filter_energy_cpu(void *data, struct task_struct *task,
 	}
 
 	*best_cpu = best_idle_cpu > 0 ? best_idle_cpu : best_active_cpu;
+
+	/*
+	 * Walt was not able to find a non-halted best cpu. Ensure that
+	 * find_lowest_rq doesn't use a halted cpu going forward, but
+	 * does a best effort itself to find a good CPU.
+	 */
+	if (*best_cpu == -1)
+		cpumask_andnot(lowest_mask, lowest_mask, cpu_halt_mask);
 }
 
 static void walt_select_task_rq_rt(void *data, struct task_struct *p, int cpu,
@@ -332,8 +341,16 @@ static void walt_select_task_rq_rt(void *data, struct task_struct *p, int cpu,
 	if (target != -1 &&
 	    (may_not_preempt || p->prio < cpu_rq(target)->rt.highest_prio.curr))
 		*new_cpu = target;
-
 unlock:
+	/* if backup or chosen cpu is halted, pick something else */
+	if (cpu_halted(*new_cpu)) {
+		cpumask_t non_halted;
+		/* choose the lowest-order, unhalted, allowed CPU */
+		cpumask_andnot(&non_halted, p->cpus_ptr, cpu_halt_mask);
+		target = cpumask_first(&non_halted);
+		if (target < nr_cpu_ids)
+			*new_cpu = target;
+	}
 	rcu_read_unlock();
 
 }

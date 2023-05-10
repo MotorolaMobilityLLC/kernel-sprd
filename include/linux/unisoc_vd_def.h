@@ -81,6 +81,12 @@ struct uni_task_struct {
 #ifdef CONFIG_UNISOC_HUNG_TASK_ENH
 	u8 hung_detect_status;
 #endif
+
+#ifdef CONFIG_UNISOC_SCHED_PAUSE_CPU
+	struct task_struct	*percpu_tsk;
+	struct list_head	percpu_kthread_node;
+	cpumask_t		cpus_requested;
+#endif
 };
 
 struct sched_cluster {
@@ -122,6 +128,10 @@ struct uni_rq {
 #ifdef CONFIG_UNISOC_SCHED_VIP_TASK
 	struct list_head	vip_tasks;
 	int			num_vip_tasks;
+#endif
+
+#ifdef CONFIG_UNISOC_SCHED_PAUSE_CPU
+	u32 enqueue_counter;
 #endif
 };
 

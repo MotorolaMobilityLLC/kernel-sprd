@@ -127,4 +127,14 @@ config UNISOC_RT_TIMEOUT_DETECT_MS
 	  and the default timeout is 800.
 	  In user version, user decides whether to open it by sysctl.
 
+config UNISOC_SCHED_PAUSE_CPU
+	bool "Support pause cpu feature"
+	depends on UNISOC_SCHED
+	help
+	  Enable pause cpu feature.it would set the cpu as paused and migrate task
+	  from the run-queue of the paused cpu to other cpu,to give a chance to the
+	  paused cpu to reach quickly an idle state.
+	  If y thermal policy would use this feature to let cpu enter into an idle
+	  state to lower the temperature of SoC.
+
 endmenu

@@ -32,6 +32,8 @@
 #endif
 #include <trace/events/thermal.h>
 
+#include "../sched/uni_sched.h"
+
 #define MAX_SENSOR_NUMBER	8
 #define GOV_NAME "power_allocator"
 static atomic_t in_suspend;
@@ -145,19 +147,10 @@ struct cpu_cooling_device {
 	struct task_struct *update_thread;
 };
 
-static int (*cpu_isolate_fun)(struct cpumask *mask, int type);
-static int (*cpu_isolated_fun)(int cpu);
+static int (*pause_cpus_fun)(struct cpumask *mask, enum pause_reason reason);
+static int (*resume_cpus_fun)(struct cpumask *mask, enum pause_reason reason);
+static int (*is_cpu_paused_fun)(int cpu);
 static DEFINE_IDA(cpu_ida);
-
-int cpu_isolate_funs(unsigned long fun1, unsigned long fun2)
-{
-	cpu_isolate_fun = (void *)fun1;
-	cpu_isolated_fun = (void *)fun2;
-	pr_info("isolate flag:%d\n", (cpu_isolate_fun && cpu_isolated_fun) ? 1 : 0);
-
-	return 0;
-}
-EXPORT_SYMBOL_GPL(cpu_isolate_funs);
 
 static int get_cluster_id(int cpu)
 {
@@ -255,31 +248,43 @@ static int cpu_get_cur_state(struct thermal_cooling_device *cdev,
 	return 0;
 }
 
+static DEFINE_MUTEX(core_ctl_lock);
 static int cpu_down_cpus(struct cpu_cooling_device *cpu_cdev,
 			u32 cur_cpus, u32 target_cpus)
 {
-	int ret;
-	u32 cpu, first, ncpus;
+	int ret = 0;
+	int cpu, first, ncpus;
 	struct cpumask mask;
 
 	first = cpumask_first(&cpu_cdev->allowed_cpus);
 	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
 
-	if (cpu_isolate_fun && cpu_isolated_fun) {
-		pr_info("cpu%d isolate cpus:%d curr_cpus:%u target_cpus:%u\n",
+	if (pause_cpus_fun && is_cpu_paused_fun) {
+		pr_info("cpu%d need pause cpus:%d curr_cpus:%u target_cpus:%u\n",
 			first, cur_cpus - target_cpus, cur_cpus, target_cpus);
 		cpumask_clear(&mask);
 		for (cpu = (first + ncpus - 1); cpu >= first; cpu--) {
 			if (cur_cpus == target_cpus)
 				break;
-			if ((target_cpus < cur_cpus) && !cpu_isolated_fun(cpu)) {
+			if ((target_cpus < cur_cpus) && !is_cpu_paused_fun(cpu)) {
 				cpumask_set_cpu(cpu, &mask);
-				cpumask_set_cpu(cpu, &cpu_cdev->idle_cpus);
 				cur_cpus--;
 			}
 		}
-		if (!cpumask_empty(&mask))
-			cpu_isolate_fun(&mask, 0);
+
+		if (!cpumask_empty(&mask)) {
+			mutex_lock(&core_ctl_lock);
+			ret = pause_cpus_fun(&mask, PAUSE_THERMAL);
+			mutex_unlock(&core_ctl_lock);
+			if (ret < 0) {
+				pr_err("Error pause cpu:%*pbl\n", cpumask_pr_args(&mask));
+				return -EINVAL;
+			}
+			cpumask_or(&cpu_cdev->idle_cpus, &cpu_cdev->idle_cpus, &mask);
+			pr_info("thermal pause cpus:%*pbl\n",
+				cpumask_pr_args(&cpu_cdev->idle_cpus));
+		}
+
 	} else {
 		pr_info("cpu%d hotplug out cpus:%d curr_cpus:%u target_cpus:%u\n",
 			first, cur_cpus - target_cpus, cur_cpus, target_cpus);
@@ -298,37 +303,42 @@ static int cpu_down_cpus(struct cpu_cooling_device *cpu_cdev,
 
 	}
 
-	return 0;
+	return ret;
 }
 
 static int cpu_up_cpus(struct cpu_cooling_device *cpu_cdev,
 			u32 cur_cpus, u32 target_cpus)
 {
-	int ret;
-	u32 cpu, first, ncpus;
+	int ret = 0;
+	int cpu, first, ncpus;
 	struct cpumask mask;
 
 	first = cpumask_first(&cpu_cdev->allowed_cpus);
 	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
 
-	if (cpu_isolate_fun && cpu_isolated_fun) {
-		pr_info("cpu%d unisolate cpus:%d curr_cpus:%u target_cpus:%u\n",
+	if (resume_cpus_fun && is_cpu_paused_fun) {
+		pr_info("cpu%d need resume cpus:%d curr_cpus:%u target_cpus:%u\n",
 			first, target_cpus - cur_cpus, cur_cpus, target_cpus);
 		cpumask_clear(&mask);
 		for (cpu = first; cpu < first + ncpus; cpu++) {
 			if (cur_cpus == target_cpus)
 				break;
-			if ((target_cpus > cur_cpus) &&
-				cpu_online(cpu) && cpu_isolated_fun(cpu)) {
+			if ((target_cpus > cur_cpus) && is_cpu_paused_fun(cpu)) {
 				cpumask_set_cpu(cpu, &mask);
-				cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
 				cur_cpus++;
 			}
 		}
-		if (!cpumask_empty(&mask))
-			cpu_isolate_fun(&mask, 1);
-
-		return 0;
+		if (!cpumask_empty(&mask)) {
+			mutex_lock(&core_ctl_lock);
+			ret = resume_cpus_fun(&mask, PAUSE_THERMAL);
+			mutex_unlock(&core_ctl_lock);
+			if (ret < 0) {
+				pr_err("Error resume cpu:%*pbl\n", cpumask_pr_args(&mask));
+				ret = -EINVAL;
+			}
+			cpumask_andnot(&cpu_cdev->idle_cpus, &cpu_cdev->idle_cpus, &mask);
+			pr_info("thermal resume cpus:%*pbl\n", cpumask_pr_args(&mask));
+		}
 
 	} else {
 		pr_info("cpu%d hotplug in cpus:%d curr_cpus:%u target_cpus:%u\n",
@@ -347,7 +357,7 @@ static int cpu_up_cpus(struct cpu_cooling_device *cpu_cdev,
 		}
 	}
 
-	return 0;
+	return ret;
 }
 
 static void cpu_update_target_cpus(struct cpu_cooling_device *cpu_cdev)
@@ -1548,6 +1558,12 @@ static int destroy_cpu_cooling_device(void)
 
 static int __init sprd_cpu_cooling_device_init(void)
 {
+#ifdef CONFIG_UNISOC_SCHED_PAUSE_CPU
+	pause_cpus_fun = (void *)pause_cpus;
+	resume_cpus_fun = (void *)resume_cpus;
+	is_cpu_paused_fun = (void *)is_cpu_paused;
+#endif
+
 	return create_cpu_cooling_device();
 }
 

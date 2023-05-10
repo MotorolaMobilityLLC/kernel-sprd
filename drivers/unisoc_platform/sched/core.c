@@ -22,6 +22,9 @@ unsigned int max_possible_capacity = 1024; /* max(rq->max_possible_capacity) */
 struct list_head cluster_head;
 int num_sched_clusters;
 
+/* if a cpu is halting */
+struct cpumask __cpu_halt_mask = { CPU_BITS_NONE };
+
 static struct sched_cluster init_cluster = {
 	.list			= LIST_HEAD_INIT(init_cluster.list),
 	.id			= 0,
@@ -209,6 +212,17 @@ static void android_rvh_after_enqueue_task(void *data, struct rq *rq,
 	u64 wallclock = sched_ktime_clock();
 	int freq_flags = 0;
 
+#ifdef CONFIG_UNISOC_SCHED_PAUSE_CPU
+	struct uni_rq *wrq = (struct uni_rq *) rq->android_vendor_data1;
+
+	if (!is_per_cpu_kthread(p))
+		wrq->enqueue_counter++;
+	if (cpu_halted(cpu_of(rq)) && !(p->flags & PF_KTHREAD) && halt_check_last(cpu_of(rq)))
+		pr_err("Non Kthread Started on halted cpu_of(rq)=%d comm=%s(%d) affinity=0x%x\n",
+			 cpu_of(rq), p->comm, p->pid,
+			 ((unsigned int)*(cpumask_bits(p->cpus_ptr))));
+#endif
+
 	if (unlikely(uni_sched_disabled))
 		return;
 
@@ -296,6 +310,11 @@ static void sched_init_existing_task(struct task_struct *p)
 		uni_tsk->sum_history[i] = 0;
 #endif
 	__sched_fork_init(p);
+
+#ifdef CONFIG_UNISOC_SCHED_PAUSE_CPU
+	cpumask_copy(&uni_tsk->cpus_requested, &p->cpus_mask);
+#endif
+
 }
 
 static int sched_init_stop_handler(void *data)
@@ -409,6 +428,9 @@ static void uni_sched_init(struct work_struct *work)
 	hdr = register_sysctl_table(sched_base_table);
 
 	uscfreq_gov_register();
+
+	core_pause_init();
+	core_ctl_init();
 }
 
 static DECLARE_WORK(sched_init_work, uni_sched_init);
