@@ -21,7 +21,8 @@
 			&agcp_dma 14 &agcp_dma 14
 			&agcp_dma 12 &agcp_dma 6
 			&agcp_dma 19 &agcp_dma 20
-			&agcp_dma 23 &agcp_dma 24>;
+			&agcp_dma 23 &agcp_dma 24
+			&agcp_dma 14>;
 
 		dma-names =
 			"normal_p_l", "normal_p_r",
@@ -37,7 +38,8 @@
 			/* recognise_c same as voice_c, voice_pcm_p same as loop_p */
 			"recognise_c", "voice_pcm_p",
 			"hifi_p", "hifi_fast_p",
-			"iis0_rx", "iis0_tx";
+			"iis0_rx", "iis0_tx",
+			"dspvadcap_c";
 		power-domains = <&agdsp_domain>;
 	};
 
