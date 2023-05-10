@@ -101,7 +101,7 @@ static inline int task_fits_capacity(struct task_struct *p, unsigned long capaci
 	if (capacity_orig_of(task_cpu(p)) > capacity_orig_of(cpu))
 		margin = sched_cap_margin_dn[cpu];
 	else
-		margin = sched_cap_margin_up[cpu];
+		margin = sched_cap_margin_up[task_cpu(p)];
 
 	return uclamp_task_util(p) * margin < capacity * 1024;
 }
@@ -114,7 +114,7 @@ static inline int util_fits_capacity(unsigned long util, unsigned long capacity,
 	if (capacity_orig_of(prev_cpu) > capacity_orig_of(cpu))
 		margin = sched_cap_margin_dn[cpu];
 	else
-		margin = sched_cap_margin_up[cpu];
+		margin = sched_cap_margin_up[prev_cpu];
 
 	return util * margin < capacity * 1024;
 }
@@ -396,7 +396,7 @@ static bool task_can_place_on_cpu(struct task_struct *p, int cpu)
 	if (capacity_orig_of(task_cpu(p)) > capacity_orig)
 		margin = sched_cap_margin_dn[cpu];
 	else
-		margin = sched_cap_margin_up[cpu];
+		margin = sched_cap_margin_up[task_cpu(p)];
 
 	return cpu_util * margin <  capacity * 1024;
 }
