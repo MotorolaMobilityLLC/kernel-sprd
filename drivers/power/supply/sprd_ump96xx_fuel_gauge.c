@@ -403,7 +403,7 @@ static int ump96xx_fgu_get_fgu_sts(struct sprd_fgu_info *info,
 static int ump96xx_fgu_suspend_calib_check_relax_counter_sts(struct sprd_fgu_info *info)
 {
 	int ret = -EINVAL;
-	u32 int_status;
+	u32 int_status = 0;
 
 	mutex_lock(&info->lock);
 	if (info->slp_cap_calib.relax_cnt_int_ocurred) {
