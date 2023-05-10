@@ -90,65 +90,29 @@
 			front_sensor: front-sensor {
 				compatible = "sprd,shell-thermal";
 				#thermal-sensor-cells = <0>;
-				sensor-names = "battery",
-						"board-thmzone",
+				sensor-names = "board-thmzone",
 						"pa-thmzone",
 						"chg-thmzone";
-				temp-coeff = <3450 4562 4267 4135 5174 5258 8753
-						966 1530 3008 3021 2380 1894 745
-						6010 6332 5300 4423 4532 5950 10206
-						1916 5326 4557 4932 5549 3245 4574>;
-				coeff-offset = <4000>;
-				temp-const = <630>;
-				const-offset = <2000>;
+				temp-coeff = <258 6021 6717 6220 6403 5567 1932
+						22394 6883 6595 7336 7926 8495 9599
+						10327 6204 6741 7261 6727 6692 10702>;
+				coeff-offset = <7000>;
+				temp-const = <904>;
+				const-offset = <5000>;
 			};
 
 			back_sensor: back-sensor {
 				compatible = "sprd,shell-thermal";
 				#thermal-sensor-cells = <0>;
-				sensor-names = "battery",
-						"board-thmzone",
+				sensor-names = "board-thmzone",
 						"pa-thmzone",
 						"chg-thmzone";
-				temp-coeff = <322 4112 4545 4054 5138 5000 10815
-						829 1141 2558 2645 1886 1441 380
-						5899 6526 5713 4828 4838 6388 11096
-						1852 5631 4901 5224 5799 3497 4939>;
+				temp-coeff = <719 3481 3711 3601 3420 2466 2753
+						10130 4929 4812 4919 5107 5523 8347
+						5330 3649 3909 4031 3694 3576 5893>;
 				coeff-offset = <4000>;
-				temp-const = <515>;
-				const-offset = <2000>;
-			};
-
-			left_sensor: left-sensor {
-				compatible = "sprd,shell-thermal";
-				#thermal-sensor-cells = <0>;
-				sensor-names = "battery",
-						"board-thmzone",
-						"pa-thmzone",
-						"chg-thmzone";
-				temp-coeff = <8918 6032 5755 4646 6411 5968 6377
-						1246 1937 3439 3614 2973 2568 699
-						5088 7642 6623 6152 5712 7170 11906
-						3498 6971 5889 5866 7108 3965 5822>;
-				coeff-offset = <5000>;
-				temp-const = <25>;
-				const-offset = <2000>;
-			};
-
-			right_sensor: right-sensor {
-				compatible = "sprd,shell-thermal";
-				#thermal-sensor-cells = <0>;
-				sensor-names = "battery",
-						"board-thmzone",
-						"pa-thmzone",
-						"chg-thmzone";
-				temp-coeff = <2252 4617 4480 3506 5765 5259 11383
-						1454 1525 3074 2972 2298 1904 243
-						3768 6359 5443 4526 4526 6126 10859
-						1284 5224 4694 5196 5660 3136 4466>;
-				coeff-offset = <4000>;
-				temp-const = <364>;
-				const-offset = <2000>;
+				temp-const = <837>;
+				const-offset = <4000>;
 			};
 
 			sprd-uid {
@@ -179,16 +143,6 @@
 &back_thmzone {
 	status = "okay";
 	thermal-sensors = <&back_sensor>;
-};
-
-&left_thmzone {
-	status = "okay";
-	thermal-sensors = <&left_sensor>;
-};
-
-&right_thmzone {
-	status = "okay";
-	thermal-sensors = <&right_sensor>;
 };
 
 &adi_bus {
