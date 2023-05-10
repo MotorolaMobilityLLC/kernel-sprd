@@ -137,10 +137,6 @@
 	};
 };
 
-&chosen {
-	bootargs_ext = "androidboot.hardware=ums9230_4h10 androidboot.dtbo_idx=0";
-};
-
 &i2c0 {
 	status = "okay";
 	clock-frequency = <400000>;
