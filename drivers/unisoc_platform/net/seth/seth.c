@@ -58,8 +58,6 @@
 #define SETH_NAPI_WEIGHT 64
 #define SETH_TX_WEIGHT 16
 
-#define ARPHRD_PUREIP 530
-
 #define SETH_NAME_SIZE 16
 
 #define SMSG_EVENT_SBLOCK_SEND	0x1
@@ -879,12 +877,10 @@ static int seth_probe(struct platform_device *pdev)
 		dev_err(dev, "alloc_netdev() failed.\n");
 		return -ENOMEM;
 	}
-	/* If net_device's type is ARPHRD_RAWIP, the ipv6 interface identifier
-	 * specified by the network will be covered by addrconf_ifid_eui48,
-	 * this will casue ipv6 fail in some test environment. So set the seth
-	 * net_device's type to ARPHRD_PUREIP here.
+	/* If net_device's type is ARPHRD_PUREIP, will cause problems with clat464 scenario.
+	 * So set the seth net_device's type to ARPHRD_RAWIP here.
 	 */
-	netdev->type = ARPHRD_PUREIP;
+	netdev->type = ARPHRD_RAWIP;
 	netdev->flags |= IFF_NOARP;
 
 	seth = netdev_priv(netdev);

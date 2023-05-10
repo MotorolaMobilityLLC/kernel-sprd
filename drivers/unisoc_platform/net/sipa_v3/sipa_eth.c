@@ -37,7 +37,6 @@
 
 #define SIPA_ETH_NAPI_WEIGHT 64
 #define SIPA_ETH_IFACE_PREF "sipa_eth"
-#define ARPHRD_PUREIP 530
 
 static unsigned long queue_lock_flags;
 static spinlock_t queue_lock; /* spin-lock for queue status protection */
@@ -341,12 +340,10 @@ static int sipa_eth_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 
-	/* If net_device's type is ARPHRD_RAWIP, the ipv6 interface identifier
-	 * specified by the network will be covered by addrconf_ifid_eui48,
-	 * this will casue ipv6 fail in some test environment.
-	 * So set the sipa_eth net_device's type to ARPHRD_PUREIP here.
+	/* If net_device's type is ARPHRD_PUREIP, will cause problems with clat464 scenario.
+	 * So set the sipa_eth net_device's type to ARPHRD_RAWIP here.
 	 */
-	netdev->type = ARPHRD_PUREIP;
+	netdev->type = ARPHRD_RAWIP;
 	netdev->flags |= IFF_NOARP;
 
 	sipa_eth = netdev_priv(netdev);
