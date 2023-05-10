@@ -1342,7 +1342,9 @@
 				reg = <0x30010000 0x10000>,
 					<0x10001000 0x1000>,
 					<0x10003000 0x1000>,
-					<0x10004000 0x1000>;
+					<0x10004000 0x1000>,
+					<0x10008000 0x1000>,
+					<0x10005000 0x1000>;
 				interrupts = <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>;
 				clock-names = "clk_cs", "cs_src";
 				clocks = <&aon_clk CLK_CSSYS>, <&pll CLK_TWPLL_153M6>;
