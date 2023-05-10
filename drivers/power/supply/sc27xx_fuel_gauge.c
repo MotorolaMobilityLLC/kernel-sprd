@@ -4592,21 +4592,20 @@ disable_fgu:
 static int sc27xx_fgu_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct device_node *np = pdev->dev.of_node;
+	struct device_node *np;
 	struct power_supply_config fgu_cfg = { };
 	struct sc27xx_fgu_data *data;
 	int ret, irq;
 
-	if (!np || !dev) {
+	if (!dev) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
 	}
 
+	np = pdev->dev.of_node;
 	data = devm_kzalloc(dev, sizeof(*data), GFP_KERNEL);
-	if (!data) {
-		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+	if (!data)
 		return -ENOMEM;
-	}
 
 	data->normal_temp_cap = SC27XX_FGU_MAGIC_NUMBER;
 	data->chg_sts = POWER_SUPPLY_STATUS_DISCHARGING;

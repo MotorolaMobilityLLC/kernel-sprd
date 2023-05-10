@@ -3494,7 +3494,7 @@ static ssize_t sprd_fgu_reg_val_show(struct device *dev,
 		container_of(attr, struct sprd_fgu_sysfs,
 			     attr_sprd_fgu_reg_val);
 	struct sprd_fgu_data *data = sysfs->data;
-	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	struct sprd_fgu_info *fgu_info;
 	u32 reg_val;
 	int ret;
 
@@ -3503,6 +3503,7 @@ static ssize_t sprd_fgu_reg_val_show(struct device *dev,
 		return snprintf(buf, PAGE_SIZE, "%s sprd_fgu_data is null\n", __func__);
 	}
 
+	fgu_info = data->fgu_info;
 	ret = fgu_info->ops->get_reg_val(fgu_info, data->debug_info.sel_reg_id, &reg_val);
 	if (ret)
 		return snprintf(buf, PAGE_SIZE, "Fail to read [REG_0x%x], ret = %d\n",
@@ -3553,13 +3554,14 @@ static ssize_t sprd_fgu_enable_sleep_calib_show(struct device *dev,
 		container_of(attr, struct sprd_fgu_sysfs,
 			     attr_sprd_fgu_enable_sleep_calib);
 	struct sprd_fgu_data *data = sysfs->data;
-	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	struct sprd_fgu_info *fgu_info;
 
 	if (!data) {
 		dev_err(dev, "%s sprd_fgu_data is null\n", __func__);
 		return snprintf(buf, PAGE_SIZE, "%s sprd_fgu_data is null\n", __func__);
 	}
 
+	fgu_info = data->fgu_info;
 	return snprintf(buf, PAGE_SIZE, "capacity sleep calibration function [%s]\n",
 			fgu_info->slp_cap_calib.support_slp_calib ? "Enabled" : "Disabled");
 }
@@ -3572,7 +3574,7 @@ static ssize_t sprd_fgu_enable_sleep_calib_store(struct device *dev,
 		container_of(attr, struct sprd_fgu_sysfs,
 			     attr_sprd_fgu_enable_sleep_calib);
 	struct sprd_fgu_data *data = sysfs->data;
-	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	struct sprd_fgu_info *fgu_info;
 	bool enbale_slp_calib;
 	int ret;
 
@@ -3581,6 +3583,7 @@ static ssize_t sprd_fgu_enable_sleep_calib_store(struct device *dev,
 		return count;
 	}
 
+	fgu_info = data->fgu_info;
 	ret =  kstrtobool(buf, &enbale_slp_calib);
 	if (ret) {
 		dev_err(data->dev, "fail to get sleep_calib info, ret = %d\n", ret);
@@ -3603,13 +3606,14 @@ static ssize_t sprd_fgu_relax_cnt_th_show(struct device *dev,
 		container_of(attr, struct sprd_fgu_sysfs,
 			     attr_sprd_fgu_relax_cnt_th);
 	struct sprd_fgu_data *data = sysfs->data;
-	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	struct sprd_fgu_info *fgu_info;
 
 	if (!data) {
 		dev_err(dev, "%s sprd_fgu_data is null\n", __func__);
 		return snprintf(buf, PAGE_SIZE, "%s sprd_fgu_data is null\n", __func__);
 	}
 
+	fgu_info = data->fgu_info;
 	return snprintf(buf, PAGE_SIZE, "[power_low_cnt_th][%d]\n",
 			fgu_info->slp_cap_calib.power_low_counter_threshold);
 }
@@ -3622,7 +3626,7 @@ static ssize_t sprd_fgu_relax_cnt_th_store(struct device *dev,
 		container_of(attr, struct sprd_fgu_sysfs,
 			     attr_sprd_fgu_relax_cnt_th);
 	struct sprd_fgu_data *data = sysfs->data;
-	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	struct sprd_fgu_info *fgu_info;
 	u32 power_low_cnt;
 	int ret;
 
@@ -3631,6 +3635,7 @@ static ssize_t sprd_fgu_relax_cnt_th_store(struct device *dev,
 		return count;
 	}
 
+	fgu_info = data->fgu_info;
 	ret =  kstrtouint(buf, 10, &power_low_cnt);
 	if (ret) {
 		dev_err(data->dev, "fail to get power_low_cnt info, ret = %d\n", ret);
@@ -3653,13 +3658,14 @@ static ssize_t sprd_fgu_relax_cur_th_show(struct device *dev,
 		container_of(attr, struct sprd_fgu_sysfs,
 			     attr_sprd_fgu_relax_cur_th);
 	struct sprd_fgu_data *data = sysfs->data;
-	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	struct sprd_fgu_info *fgu_info;
 
 	if (!data) {
 		dev_err(dev, "%s sprd_fgu_data is null\n", __func__);
 		return snprintf(buf, PAGE_SIZE, "%s sprd_fgu_data is null\n", __func__);
 	}
 
+	fgu_info = data->fgu_info;
 	return snprintf(buf, PAGE_SIZE, "[relax_cur_th][%d]\n",
 			fgu_info->slp_cap_calib.relax_cur_threshold);
 }
@@ -3672,7 +3678,7 @@ static ssize_t sprd_fgu_relax_cur_th_store(struct device *dev,
 		container_of(attr, struct sprd_fgu_sysfs,
 			     attr_sprd_fgu_relax_cur_th);
 	struct sprd_fgu_data *data = sysfs->data;
-	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	struct sprd_fgu_info *fgu_info;
 	u32 relax_cur;
 	int ret;
 
@@ -3681,6 +3687,7 @@ static ssize_t sprd_fgu_relax_cur_th_store(struct device *dev,
 		return count;
 	}
 
+	fgu_info = data->fgu_info;
 	ret =  kstrtouint(buf, 10, &relax_cur);
 	if (ret) {
 		dev_err(data->dev, "fail to get relax_cur info, ret = %d\n", ret);
@@ -4162,16 +4169,17 @@ static int sprd_fgu_info_register(struct sprd_fgu_data *data)
 static int sprd_fgu_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct device_node *np = pdev->dev.of_node;
+	struct device_node *np;
 	struct power_supply_config fgu_cfg = { };
 	struct sprd_fgu_data *data;
 	int ret, irq;
 
-	if (!np || !dev) {
+	if (!dev) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
 	}
 
+	np = pdev->dev.of_node;
 	data = devm_kzalloc(dev, sizeof(*data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
