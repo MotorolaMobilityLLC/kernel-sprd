@@ -27,7 +27,6 @@
 #include <linux/slab.h>
 #include <linux/sysfs.h>
 #include <linux/uaccess.h>
-
 #include <linux/of_device.h>
 #include <linux/of_address.h>
 #include <linux/of_irq.h>
@@ -139,6 +138,7 @@ static void sprd_ptm_set_lty_trace_enable(struct sprd_ptm_dev *sdev)
 	writel_relaxed(PTM_ENABLE |
 		       PTM_BW_LTCY_CNT_EN |
 		       PTM_BW_LTCY_ALL_TRACE_EN |
+		       PTM_TRACE_QOS_BWITCY_EN |
 		       PTM_LTCY_TRACE_EN_MSK << PTM_LTCY_TRACE_EN_OFFSET,
 		       sdev->base + PTM_EN);
 }
@@ -292,9 +292,85 @@ static void sprd_ptm_funnel_disable(struct sprd_ptm_dev *sdev)
 	ptm_cs_lock(funnel_base);
 }
 
+static int of_get_ptm_memory_info(struct sprd_ptm_dev *mem, struct device_node *np)
+{
+	struct device_node *node;
+	struct resource r;
+	int ret;
+
+	node = of_find_node_by_name(NULL, "reserved-memory");
+	if (!node) {
+		pr_err("of_find_node_by_name:get reserved-memory fail\n");
+		return -EINVAL;
+		}
+	node = of_find_node_by_name(NULL, "ptm-mem");
+	if (!node) {
+		pr_err("of_find_node_by_name:get ptm reserverd info fail\n");
+		return -EINVAL;
+		}
+	ret = of_address_to_resource(node, 0, &r);
+	of_node_put(node);
+	if (ret) {
+		pr_err("invalid ptm reserved memory node!\n");
+		return -EINVAL;
+		}
+
+	mem->ptm_addr = r.start;
+	mem->ptm_size = resource_size(&r);
+	pr_info("ptm memory addr:0x%lx size:0x%lx\n",
+			mem->ptm_addr, mem->ptm_size);
+	return 0;
+}
+
+static void sprd_ptm_etr_enable(struct sprd_ptm_dev *sdev)
+{
+	void __iomem *etr_base = sdev->mode_info.trace.etr_base;
+
+	ptm_cs_unlock(etr_base);
+	writel_relaxed(PTM_CORESIGHT_UNLOCK, etr_base + PTM_CORESIGHT_LAR);
+	writel_relaxed(0x1, etr_base + PTM_TMC_AXICTL);
+	writel_relaxed(0x1000, etr_base + PTM_TMC_FFCR);
+	writel_relaxed(0x7, etr_base + PTM_TMC_PSCR);
+	writel_relaxed(sdev->ptm_size, etr_base + PTM_TMC_RSZ);
+	writel_relaxed(sdev->ptm_addr, etr_base + PTM_TMC_DBALO);
+	writel_relaxed(0x0, etr_base + PTM_TMC_DBAHI);
+	writel_relaxed(0x1, etr_base + PTM_TMC_CTL);
+	ptm_cs_lock(etr_base);
+}
+
+static void sprd_ptm_etr_disable(struct sprd_ptm_dev *sdev)
+{
+	void __iomem *etr_base = sdev->mode_info.trace.etr_base;
+
+	ptm_cs_unlock(etr_base);
+	writel_relaxed(0x0, etr_base + PTM_TMC_CTL);
+	ptm_cs_lock(etr_base);
+}
+
+static void sprd_ptm_replicator_enable(struct sprd_ptm_dev *sdev)
+{
+	void __iomem *replicator_base = sdev->mode_info.trace.replicator_base;
+
+	ptm_cs_unlock(replicator_base);
+	writel_relaxed(0xFF, replicator_base);
+	writel_relaxed(0x0, replicator_base + 0x4);
+	ptm_cs_lock(replicator_base);
+}
+
+static void sprd_ptm_replicator_disable(struct sprd_ptm_dev *sdev)
+{
+	void __iomem *replicator_base = sdev->mode_info.trace.replicator_base;
+
+	ptm_cs_unlock(replicator_base);
+	writel_relaxed(0x0, replicator_base);
+	writel_relaxed(0x0, replicator_base + 0x4);
+	ptm_cs_lock(replicator_base);
+}
+
 static int sprd_ptm_trace_enable(struct sprd_ptm_dev *sdev)
 {
 	u32 winlen = sdev->mode_info.trace.winlen;
+	u32 out_mod = sdev->mode_info.trace.out_mode;
 	bool cmd_eb = sdev->mode_info.trace.cmd_eb;
 	int ret;
 
@@ -303,7 +379,12 @@ static int sprd_ptm_trace_enable(struct sprd_ptm_dev *sdev)
 	if (ret)
 		return ret;
 
-	sprd_ptm_tpiu_enable(sdev);
+	if (out_mod == TPIU_MODE) {
+		sprd_ptm_tpiu_enable(sdev);
+	} else {
+		sprd_ptm_etr_enable(sdev);
+		sprd_ptm_replicator_enable(sdev);
+}
 	sprd_ptm_etf_enable(sdev);
 	sprd_ptm_funnel_enable(sdev);
 
@@ -322,9 +403,15 @@ static int sprd_ptm_trace_enable(struct sprd_ptm_dev *sdev)
 
 static int sprd_ptm_trace_disable(struct sprd_ptm_dev *sdev)
 {
+	u32 out_mod = sdev->mode_info.trace.out_mode;
 	sprd_ptm_funnel_disable(sdev);
 	sprd_ptm_etf_disable(sdev);
-	sprd_ptm_tpiu_disable(sdev);
+	if (out_mod == TPIU_MODE) {
+		sprd_ptm_tpiu_disable(sdev);
+	} else {
+		sprd_ptm_etr_disable(sdev);
+		sprd_ptm_replicator_disable(sdev);
+	}
 	clk_disable_unprepare(sdev->clk_cs);
 
 	sdev->mode_info.trace.trace_st = false;
@@ -1048,10 +1135,39 @@ static ssize_t cmd_show(struct device *dev,
 }
 static DEVICE_ATTR_RW(cmd);
 
+static ssize_t trace_out_store(struct device *dev,
+			       struct device_attribute *attr,
+			       const char *buf, size_t count)
+{
+	struct sprd_ptm_dev *sdev = dev_get_drvdata(dev);
+	u32 out_mode;
+	int ret;
+
+	ret = kstrtouint(buf, 0, &out_mode);
+	if (ret)
+		return ret;
+	sdev->mode_info.trace.out_mode = out_mode;
+	return strnlen(buf, count);
+}
+
+static ssize_t trace_out_show(struct device *dev,
+			      struct device_attribute *attr,
+			      char *buf)
+{
+	struct sprd_ptm_dev *sdev = dev_get_drvdata(dev);
+	enum ptm_trace_out_mode out_mode = sdev->mode_info.trace.out_mode;
+
+	return sprintf(buf, "trace out mode is %s\n",
+		       out_mode ? "ETR OUT" : "TPIU OUT");
+}
+
+static DEVICE_ATTR_RW(trace_out);
+
 static struct attribute *ptm_trace_attrs[] = {
 	&dev_attr_trace.attr,
 	&dev_attr_winlen.attr,
 	&dev_attr_cmd.attr,
+	&dev_attr_trace_out.attr,
 	NULL,
 };
 
@@ -1070,6 +1186,7 @@ static int sprd_ptm_probe(struct platform_device *pdev)
 	int i, ret;
 	u32 args[2];
 
+	struct device_node *np = pdev->dev.of_node;
 	ptm_ver_info = of_device_get_match_data(&pdev->dev);
 	if (!ptm_ver_info)
 		return -EINVAL;
@@ -1120,7 +1237,22 @@ static int sprd_ptm_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Error: ptm get tpiu base addr failed\n");
 		return PTR_ERR(tpiu_base);
 	}
-
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 4);
+	sdev->mode_info.trace.replicator_base = devm_ioremap(&pdev->dev,
+							     res->start,
+							     resource_size(res));
+	if (IS_ERR_OR_NULL(sdev->mode_info.trace.replicator_base)) {
+		dev_err(&pdev->dev, "Error: ptm get replicator base addr failed\n");
+		return PTR_ERR(sdev->mode_info.trace.replicator_base);
+	}
+	res = platform_get_resource(pdev, IORESOURCE_MEM, 5);
+	sdev->mode_info.trace.etr_base = devm_ioremap(&pdev->dev,
+						      res->start,
+						      resource_size(res));
+	if (IS_ERR_OR_NULL(sdev->mode_info.trace.etr_base)) {
+		dev_err(&pdev->dev, "Error: ptm get soc etr base addr failed\n");
+		return PTR_ERR(sdev->mode_info.trace.etr_base);
+	}
 	/* get name of each ddr channel */
 	for (i = 0; i < sdev->pub_chn; i++) {
 		if (of_property_read_string_index(pdev->dev.of_node,
@@ -1162,6 +1294,7 @@ static int sprd_ptm_probe(struct platform_device *pdev)
 	sdev->mode_info.trace.tmc_base = tmc_base;
 	sdev->mode_info.trace.tpiu_base = tpiu_base;
 	sdev->mode_info.trace.winlen = BM_TRACE_DEF_WINLEN;
+	sdev->mode_info.trace.out_mode = TPIU_MODE;
 	sdev->chn_info.lty_mode = ADD_OS_IN_OS;
 	sdev->misc.name = PTM_NAME;
 	sdev->misc.parent = &pdev->dev;
@@ -1179,6 +1312,7 @@ static int sprd_ptm_probe(struct platform_device *pdev)
 		return ret;
 	}
 	/* save the sdev as private data */
+	of_get_ptm_memory_info(sdev, np);
 	spin_lock_init(&sdev->slock);
 	init_completion(&sdev->comp);
 	platform_set_drvdata(pdev, sdev);

@@ -37,6 +37,11 @@
 #define PTM_TMC_BUFWM			0x34
 #define PTM_TMC_FFCR			0x304
 #define PTM_CORESIGHT_LAR		0xfb0
+#define PTM_TMC_PSCR			0x308
+#define PTM_TMC_AXICTL			0x110
+#define PTM_TMC_DBALO			0x118
+#define PTM_TMC_DBAHI			0x11c
+#define PTM_TMC_RSZ			0x4
 
 /* PTM_EN */
 #ifndef CONFIG_SPRD_PTM_R6P2
@@ -51,6 +56,7 @@
 #define PTM_ENABLE			BIT(0)
 #define PTM_LTCY_TRACE_EN_OFFSET	7
 #define PTM_LTCY_TRACE_EN_MSK		GENMASK(8, 0)
+#define PTM_TRACE_QOS_BWITCY_EN		BIT(29)
 
 /* INT_STU */
 #define PTM_F_UP_INT_RAW		BIT(4)
@@ -112,6 +118,11 @@ enum ptm_trace_mode {
 	AUTO_TRACE_MOD,
 };
 
+enum ptm_trace_out_mode {
+	TPIU_MODE,
+	ETR_MODE,
+};
+
 enum sprd_ptm_mode {
 	INIT_MODE,
 	LEGACY_MODE,
@@ -138,8 +149,11 @@ union sprd_ptm_mod_info {
 		void __iomem		*funnel_base;
 		void __iomem		*tmc_base;
 		void __iomem		*tpiu_base;
+		void __iomem		*replicator_base;
+		void __iomem		*etr_base;
 		u32			winlen;
 		u32			funnel_port;
+		u32			out_mode;
 		bool			cmd_eb;
 		bool			trace_st;
 	} trace;
@@ -170,6 +184,8 @@ struct sprd_ptm_dev {
 	struct sprd_ptm_chn_info	chn_info;
 	const struct ptm_pvt_para	*pvt_data;
 	const char			**sprd_ptm_list;
+	u32				ptm_addr;
+	u32				ptm_size;
 };
 
 struct ptm_pvt_para {
