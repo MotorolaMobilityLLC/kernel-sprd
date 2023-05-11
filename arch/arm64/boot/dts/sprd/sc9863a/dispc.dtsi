@@ -20,23 +20,6 @@
 		};
 	};
 
-	gsp_core0: gsp@0x63000000 {
-				compatible = "sprd,gsp-core";
-				reg = <0x0 0x63000000 0x0 0x2000>;
-				core-id = <0>;
-				kcfg-num = <16>;
-				interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
-				iommus = <&iommu_dispc>;
-
-				clock-names = "clk_dpu_core_src",
-								"clk_dpu_core",
-								"clk_aon_apb_disp_eb";
-
-				clocks = <&pll CLK_TWPLL_384M>,
-						<&aon_clk CLK_DPU>,
-						<&aonapb_gate CLK_DISP_EB>;
-			};
-
 	iommu_dispc: iommu@63000000 {
 				compatible = "unisoc,iommuexl3-dispc";
 				reg = <0x0 0x63000000 0x0 0x800>,
@@ -111,10 +94,27 @@
 			};
 		};
 	};
+
+	gsp_core0: gsp@63000000 {
+		compatible = "sprd,gsp-core";
+		reg = <0x0 0x63000000 0x0 0x2000>;
+		core-id = <0>;
+		kcfg-num = <16>;
+		interrupts = <GIC_SPI 51 IRQ_TYPE_LEVEL_HIGH>;
+		iommus = <&iommu_dispc>;
+
+		clock-names = "clk_dpu_core_src",
+						"clk_dpu_core",
+						"clk_aon_apb_disp_eb";
+
+		clocks = <&pll CLK_TWPLL_384M>,
+				<&aon_clk CLK_DPU>,
+				<&aonapb_gate CLK_DISP_EB>;
+	};
 };
 
 / {
-		gsp: sprd-gsp {
+	gsp: sprd-gsp {
 		compatible = "sprd,gsp-r6p0-sharkl3";
 		name = "sprd-gsp";
 		core-cnt = <1>;
@@ -125,6 +125,7 @@
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>;
+		gsp = <&gsp>;
 	};
 };
 
@@ -152,5 +153,4 @@
 &dsi {
 	clock-names = "clk_aon_apb_disp_eb";
 	clocks = <&aonapb_gate CLK_DISP_EB>;
-
 };
