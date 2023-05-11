@@ -31,9 +31,7 @@
 #include <dt-bindings/soc/sprd,sharkle-mask.h>
 #include <dt-bindings/soc/sprd,sharkle-regs.h>
 
-#define AP_AHB_USB20_TUNEHSAMP		BIT(31)
 #define BYPASS_FSLS_DISCONNECTED	BIT(9)
-
 
 struct sprd_hsphy {
 	struct device		*dev;
@@ -45,6 +43,10 @@ struct sprd_hsphy {
 	struct wakeup_source	*wake_lock;
 	struct work_struct	work;
 	unsigned long		event;
+	u32			host_otg_ctrl0;
+	u32			device_otg_ctrl0;
+	u32			host_otg_ctrl1;
+	u32			device_otg_ctrl1;
 	u32			vdd_vol;
 	u32			phy_tune;
 	atomic_t		reset;
@@ -60,6 +62,10 @@ struct sprd_hsphy {
 #define BIT_DP_DM_BC_ENB			BIT(0)
 #define VOLT_LO_LIMIT				1200
 #define VOLT_HI_LIMIT				600
+
+#define TUNEHSAMP_SHIFT			30
+#define TUNEEQ_SHIFT			0
+#define TFREGRES_SHIFT			8
 
 static void sprd_hsphy_charger_detect_work(struct work_struct *work)
 {
@@ -96,6 +102,12 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 	u32 reg1;
 
 	if (on) {
+		reg1 = phy->host_otg_ctrl0;
+		writel_relaxed(reg1, phy->base + REG_AP_AHB_OTG_CTRL0);
+
+		reg1 = phy->host_otg_ctrl1;
+		writel_relaxed(reg1, phy->base + REG_AP_AHB_OTG_CTRL1);
+
 		reg1 = readl_relaxed(phy->base + REG_AP_AHB_OTG_PHY_CTRL);
 		reg1 &= ~MASK_AP_AHB_USB2_PHY_IDDIG;
 		reg1 |= MASK_AP_AHB_OTG_DPPULLDOWN | MASK_AP_AHB_OTG_DMPULLDOWN;
@@ -106,6 +118,12 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 		writel_relaxed(reg1, phy->base + REG_AP_AHB_OTG_CTRL0);
 		phy->is_host = true;
 	} else {
+		reg1 = phy->device_otg_ctrl0;
+		writel_relaxed(reg1, phy->base + REG_AP_AHB_OTG_CTRL0);
+
+		reg1 = phy->device_otg_ctrl1;
+		writel_relaxed(reg1, phy->base + REG_AP_AHB_OTG_CTRL1);
+
 		reg1 = readl_relaxed(phy->base + REG_AP_AHB_OTG_PHY_CTRL);
 		reg1 |= MASK_AP_AHB_USB2_PHY_IDDIG;
 		reg1 &= ~(MASK_AP_AHB_OTG_DPPULLDOWN |
@@ -158,11 +176,6 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	reg1 = readl_relaxed(phy->base + REG_AP_AHB_OTG_PHY_CTRL);
 	reg1 &= ~(MASK_AP_AHB_UTMI_WIDTH_SEL|MASK_AP_AHB_USB2_DATABUS16_8);
 	writel_relaxed(reg1, phy->base + REG_AP_AHB_OTG_PHY_CTRL);
-
-	reg1 = readl_relaxed(phy->base + REG_AP_AHB_OTG_CTRL0);
-	reg1 &= ~MASK_AP_AHB_USB20_TUNEHSAMP;
-	reg1 |= AP_AHB_USB20_TUNEHSAMP;
-	writel_relaxed(reg1, phy->base + REG_AP_AHB_OTG_CTRL0);
 
 	/* for SPRD phy sampler sel */
 	reg1 = readl_relaxed(phy->base + REG_AP_AHB_OTG_CTRL1);
@@ -327,6 +340,106 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 	queue_work(system_unbound_wq, &phy->work);
 
 	return 0;
+}
+
+static int sprd_eyepatt_tunehsamp_set(struct sprd_hsphy *phy, struct device *dev)
+{
+	int ret = 0;
+	u8 val[2];
+
+	ret = of_property_read_u8_array(dev->of_node, "sprd,hsphy-tunehsamp", val, 2);
+
+	if (ret < 0) {
+		dev_err(dev, "unable to get hsphy-device-tunehsamp\n");
+		return ret;
+	}
+
+	/* device setting */
+	phy->device_otg_ctrl0 &= ~MASK_AP_AHB_USB20_TUNEHSAMP;
+	phy->device_otg_ctrl0 |= (u32)val[0] << TUNEHSAMP_SHIFT;
+
+	/* host setting */
+	phy->host_otg_ctrl0 &= ~MASK_AP_AHB_USB20_TUNEHSAMP;
+	phy->host_otg_ctrl0 |= (u32)val[1] << TUNEHSAMP_SHIFT;
+
+	return 0;
+}
+
+static int sprd_eyepatt_tuneeq_set(struct sprd_hsphy *phy, struct device *dev)
+{
+	int ret = 0;
+	u8 val[2];
+
+	ret = of_property_read_u8_array(dev->of_node, "sprd,hsphy-tuneeq", val, 2);
+
+	if (ret < 0) {
+		dev_err(dev, "unable to get hsphy-tuneeq\n");
+		return ret;
+	}
+
+	/* device setting */
+	phy->device_otg_ctrl1 &= ~MASK_AP_AHB_USB20_TUNEEQ;
+	phy->device_otg_ctrl1 |= (u32)val[0] << TUNEEQ_SHIFT;
+
+	/* host setting */
+	phy->host_otg_ctrl1 &= ~MASK_AP_AHB_USB20_TUNEEQ;
+	phy->host_otg_ctrl1 |= (u32)val[1] << TUNEEQ_SHIFT;
+
+	return 0;
+}
+
+static int sprd_eyepatt_tfregres_set(struct sprd_hsphy *phy, struct device *dev)
+{
+	int ret = 0;
+	u8 val[2];
+
+	ret = of_property_read_u8_array(dev->of_node, "sprd,hsphy-tfregres", val, 2);
+
+	if (ret < 0) {
+		dev_err(dev, "unable to get hsphy-tfregres\n");
+		return ret;
+	}
+
+	/* device setting */
+	phy->device_otg_ctrl1 &= ~MASK_AP_AHB_USB20_TFREGRES;
+	phy->device_otg_ctrl1 |= (u32)val[0] << TFREGRES_SHIFT;
+
+	/* host setting */
+	phy->host_otg_ctrl1 &= ~MASK_AP_AHB_USB20_TFREGRES;
+	phy->host_otg_ctrl1 |= (u32)val[1] << TFREGRES_SHIFT;
+
+	return 0;
+}
+
+static int sprd_eye_pattern_prepared(struct sprd_hsphy *phy, struct device *dev)
+{
+	int ret = 0;
+
+	/* set default OTG_CTRL */
+	phy->device_otg_ctrl0 = readl_relaxed(phy->base + REG_AP_AHB_OTG_CTRL0);
+	phy->device_otg_ctrl1 = readl_relaxed(phy->base + REG_AP_AHB_OTG_CTRL1);
+	dev_info(dev, "%s: default device REG_AP_AHB_OTG_CTRL0: 0x%x\n",
+		__func__, phy->device_otg_ctrl0);
+	dev_info(dev, "%s: default device REG_AP_AHB_OTG_CTRL1: 0x%x\n",
+		__func__, phy->device_otg_ctrl1);
+
+	phy->host_otg_ctrl0 = readl_relaxed(phy->base + REG_AP_AHB_OTG_CTRL0);
+	phy->host_otg_ctrl1 = readl_relaxed(phy->base + REG_AP_AHB_OTG_CTRL1);
+	dev_info(dev, "%s: default host REG_AP_AHB_OTG_CTRL0: 0x%x\n", __func__,
+		phy->host_otg_ctrl0);
+	dev_info(dev, "%s: default host REG_AP_AHB_OTG_CTRL1: 0x%x\n", __func__,
+		phy->host_otg_ctrl1);
+
+	/* set eyepatt tunehsamp */
+	ret |= sprd_eyepatt_tunehsamp_set(phy, dev);
+
+	/* set eyepatt tuneeq */
+	ret |= sprd_eyepatt_tuneeq_set(phy, dev);
+
+	/* set eyepatt tfregres */
+	ret |= sprd_eyepatt_tfregres_set(phy, dev);
+
+	return ret;
 }
 
 static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x);
@@ -498,6 +611,10 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "ap USB PHY syscon failed!\n");
 		return PTR_ERR(hsphy_glb);
 	}
+
+	ret = sprd_eye_pattern_prepared(phy, dev);
+	if (ret < 0)
+		dev_warn(dev, "sprd_eye_pattern_prepared failed, ret = %d\n", ret);
 
 	phy->dp = devm_iio_channel_get(dev, "dp");
 	phy->dm = devm_iio_channel_get(dev, "dm");

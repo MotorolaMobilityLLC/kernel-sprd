@@ -36,14 +36,21 @@ struct sprd_hsphy {
 	struct regmap           *hsphy_glb;
 	struct regmap           *ana_g2;
 	struct regmap           *pmic;
+	u32			host_eye_pattern;
+	u32			device_eye_pattern;
 	u32			vdd_vol;
 	atomic_t		reset;
 	atomic_t		inited;
 	bool			is_host;
 };
 
-#define TUNEHSAMP_2_6MA		(3 << 25)
-#define TFREGRES_TUNE_VALUE	(0x14 << 19)
+#define BIT_ANLG_PHY_G2_ANALOG_USB20_USB20_TUNEHSAMP       0x06000000
+#define BIT_ANLG_PHY_G2_ANALOG_USB20_USB20_TFREGRES        0x01f80000
+#define BIT_ANLG_PHY_G2_ANALOG_USB20_USB20_TUNEEQ          0x7
+
+#define TUNEHSAMP_SHIFT			25
+#define TUNEEQ_SHIFT			0
+#define TFREGRES_SHIFT			19
 
 #define FULLSPEED_USB33_TUNE		2700000
 
@@ -67,6 +74,10 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 	int ret = 0;
 
 	if (on) {
+		reg = phy->host_eye_pattern;
+		regmap_write(phy->ana_g2,
+			REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING, reg);
+
 		msk = MASK_AON_APB_USB2_PHY_IDDIG;
 		ret |= regmap_update_bits(phy->hsphy_glb,
 			REG_AON_APB_OTG_PHY_CTRL, msk, 0);
@@ -90,6 +101,10 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 			msk, reg);
 		phy->is_host = true;
 	} else {
+		reg = phy->device_eye_pattern;
+		regmap_write(phy->ana_g2,
+			REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING, reg);
+
 		reg = msk = MASK_AON_APB_USB2_PHY_IDDIG;
 		ret |= regmap_update_bits(phy->hsphy_glb,
 			REG_AON_APB_OTG_PHY_CTRL, msk, reg);
@@ -162,14 +177,6 @@ static int sprd_hsphy_init(struct usb_phy *x)
 
 	reg = msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_DATABUS16_8;
 	regmap_update_bits(phy->ana_g2, REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1, msk, reg);
-
-	reg = TUNEHSAMP_2_6MA;
-	msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_TUNEHSAMP;
-	regmap_update_bits(phy->ana_g2, REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING, msk, reg);
-
-	reg = TFREGRES_TUNE_VALUE;
-	msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_TFREGRES;
-	regmap_update_bits(phy->ana_g2, REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING, msk, reg);
 
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
@@ -298,6 +305,102 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 	return 0;
 }
 
+static int sprd_eyepatt_tunehsamp_set(struct sprd_hsphy *phy, struct device *dev)
+{
+	int ret = 0;
+	u8 val[2];
+
+	ret = of_property_read_u8_array(dev->of_node, "sprd,hsphy-tunehsamp", val, 2);
+
+	if (ret < 0) {
+		dev_err(dev, "unable to get hsphy-device-tunehsamp\n");
+		return ret;
+	}
+
+	/* device setting */
+	phy->device_eye_pattern &= ~BIT_ANLG_PHY_G2_ANALOG_USB20_USB20_TUNEHSAMP;
+	phy->device_eye_pattern |= (u32)val[0] << TUNEHSAMP_SHIFT;
+
+	/* host setting */
+	phy->host_eye_pattern &= ~BIT_ANLG_PHY_G2_ANALOG_USB20_USB20_TUNEHSAMP;
+	phy->host_eye_pattern |= (u32)val[1] << TUNEHSAMP_SHIFT;
+
+	return 0;
+}
+
+static int sprd_eyepatt_tuneeq_set(struct sprd_hsphy *phy, struct device *dev)
+{
+	int ret = 0;
+	u8 val[2];
+
+	ret = of_property_read_u8_array(dev->of_node, "sprd,hsphy-tuneeq", val, 2);
+
+	if (ret < 0) {
+		dev_err(dev, "unable to get hsphy-tuneeq\n");
+		return ret;
+	}
+
+	/* device setting */
+	phy->device_eye_pattern &= ~BIT_ANLG_PHY_G2_ANALOG_USB20_USB20_TUNEEQ;
+	phy->device_eye_pattern |= (u32)val[0] << TUNEEQ_SHIFT;
+
+	/* host setting */
+	phy->host_eye_pattern &= ~BIT_ANLG_PHY_G2_ANALOG_USB20_USB20_TUNEEQ;
+	phy->host_eye_pattern |= (u32)val[1] << TUNEEQ_SHIFT;
+
+	return 0;
+}
+
+static int sprd_eyepatt_tfregres_set(struct sprd_hsphy *phy, struct device *dev)
+{
+	int ret = 0;
+	u8 val[2];
+
+	ret = of_property_read_u8_array(dev->of_node, "sprd,hsphy-tfregres", val, 2);
+
+	if (ret < 0) {
+		dev_err(dev, "unable to get hsphy-tfregres\n");
+		return ret;
+	}
+
+	/* device setting */
+	phy->device_eye_pattern &= ~BIT_ANLG_PHY_G2_ANALOG_USB20_USB20_TFREGRES;
+	phy->device_eye_pattern |= (u32)val[0] << TFREGRES_SHIFT;
+
+	/* host setting */
+	phy->host_eye_pattern &= ~BIT_ANLG_PHY_G2_ANALOG_USB20_USB20_TFREGRES;
+	phy->host_eye_pattern |= (u32)val[1] << TFREGRES_SHIFT;
+
+	return 0;
+}
+
+static int sprd_eye_pattern_prepared(struct sprd_hsphy *phy, struct device *dev)
+{
+	int ret = 0;
+
+	/* set default eyepatt */
+	regmap_read(phy->ana_g2, REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
+				&phy->device_eye_pattern);
+	dev_info(dev, "%s: default device eye_pattern: 0x%x\n", __func__,
+				phy->device_eye_pattern);
+
+	regmap_read(phy->ana_g2, REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
+				&phy->host_eye_pattern);
+	dev_info(dev, "%s: default host eye_pattern: 0x%x\n", __func__,
+				phy->host_eye_pattern);
+
+	/* set eyepatt tunehsamp */
+	ret |= sprd_eyepatt_tunehsamp_set(phy, dev);
+
+	/* set eyepatt tuneeq */
+	ret |= sprd_eyepatt_tuneeq_set(phy, dev);
+
+	/* set eyepatt tfregres */
+	ret |= sprd_eyepatt_tfregres_set(phy, dev);
+
+	return ret;
+}
+
 static enum usb_charger_type sprd_hsphy_charger_detect(struct usb_phy *x)
 {
 	return sprd_bc1p2_charger_detect(x);
@@ -406,6 +509,10 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		ret = PTR_ERR(phy->hsphy_glb);
 		goto platform_device_err;
 	}
+
+	ret = sprd_eye_pattern_prepared(phy, dev);
+	if (ret < 0)
+		dev_warn(dev, "sprd_eye_pattern_prepared failed, ret = %d\n", ret);
 
 	/* enable usb module */
 	reg = msk = (MASK_AON_APB_OTG_UTMI_EB | MASK_AON_APB_ANA_EB);
