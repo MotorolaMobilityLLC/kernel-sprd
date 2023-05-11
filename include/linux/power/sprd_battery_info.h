@@ -16,6 +16,8 @@
 #define SPRD_BATTERY_BASP_OCV_TABLE_MAX		20
 #define SPRD_BATTERY_OCV_TEMP_MAX		20
 
+#define SPRD_BATTERY_STEP_CHG_TABLE_NAME	"step-chg-jeita-table"
+
 enum sprd_battery_jeita_types {
 	SPRD_BATTERY_JEITA_DCP = 0,
 	SPRD_BATTERY_JEITA_SDP,
@@ -42,6 +44,12 @@ static const char * const sprd_battery_jeita_type_names[] = {
 struct sprd_battery_jeita_table {
 	int temp;
 	int recovery_temp;
+	int current_ua;
+	int term_volt;
+};
+
+struct sprd_battery_step_chg_table {
+	int jeita_inr;
 	int current_ua;
 	int term_volt;
 };
@@ -177,6 +185,9 @@ struct sprd_battery_info {
 	struct sprd_battery_jeita_table *jeita_table[SPRD_BATTERY_JEITA_MAX];
 	u32 max_current_jeita_index[SPRD_BATTERY_JEITA_MAX];
 	u32 sprd_battery_jeita_size[SPRD_BATTERY_JEITA_MAX];
+
+	struct sprd_battery_step_chg_table *step_chg_table;
+	u32 sprd_battery_step_chg_size;
 
 	struct sprd_battery_ir_compensation ir;
 };

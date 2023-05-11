@@ -91,8 +91,10 @@
 #define CM_CP_ADJUST_VOLTAGE_THRESHOLD		(5 * 1000 / CM_CP_WORK_TIME_MS)
 #define CM_CP_ACC_VBAT_HTHRESHOLD		3850000
 #define CM_CP_VBAT_STEP1			300000
-#define CM_CP_VBAT_STEP2			150000
-#define CM_CP_VBAT_STEP3			50000
+#define CM_CP_VBAT_STEP2			200000
+#define CM_CP_VBAT_STEP3			100000
+#define CM_CP_VBAT_STEP4			50000
+#define CM_CP_VBAT_STEP5			10000
 #define CM_CP_IBAT_STEP1			2000000
 #define CM_CP_IBAT_STEP2			1000000
 #define CM_CP_IBAT_STEP3			100000
@@ -103,6 +105,8 @@
 #define CM_CP_IBUS_STEP2			500000
 #define CM_CP_IBUS_STEP3			100000
 #define CM_CP_DEFAULT_TAPER_CURRENT		1000000
+
+#define CM_CP_STEP_CHG_DOWN_COUNT		2
 
 #define CM_PPS_5V_PROG_MAX			6200000
 #define CM_PPS_VOLTAGE_11V			11000000
@@ -1203,7 +1207,6 @@ static bool cm_reset_basp_parameters(struct charger_manager *cm, int volt_uv)
 	}
 
 	cm->desc->ir_comp.us = volt_uv;
-	cm->desc->cp.cp_target_vbat = volt_uv;
 	cm->desc->constant_charge_voltage_max_uv = volt_uv;
 	cm->desc->fullbatt_uV = volt_uv - cm->desc->fullbatt_voltage_offset_uv;
 
@@ -2440,7 +2443,11 @@ static void cm_ir_compensation(struct charger_manager *cm, enum cm_ir_comp_state
 	if (cm_get_ibat_avg(cm, &ibat_avg))
 		return;
 
-	target_cccv = ir_sts->us + (ibat_avg / 1000)  * ir_sts->rc;
+	if (state == CM_IR_COMP_STATE_CP && cm->desc->psy_cp_stat && cm->desc->psy_cp_stat[1])
+		ibat_avg /= 2;
+
+	ir_sts->ir_drop = (ibat_avg / 1000) * ir_sts->rc;
+	target_cccv = ir_sts->us + ir_sts->ir_drop;
 
 	if (target_cccv < ir_sts->us_lower_limit)
 		target_cccv = ir_sts->us_lower_limit;
@@ -3015,6 +3022,190 @@ static void cm_cp_check_vbus_status(struct charger_manager *cm)
 			 __func__, fault->vbus_error_lo, fault->vbus_error_hi);
 }
 
+static void cm_step_interval_polling(struct charger_manager *cm, int ir_drop)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	int i, step_chg_target_ibat = -EINVAL, step_chg_target_vbat = -EINVAL;
+
+	for (i = 0; i < cm->desc->step_chg_table_size; i++) {
+		if (cp->jeita_status == cm->desc->step_chg_table[i].jeita_inr &&
+		    cp->vbat_uV < cm->desc->step_chg_table[i].term_volt + ir_drop) {
+			step_chg_target_ibat = cm->desc->step_chg_table[i].current_ua;
+			step_chg_target_vbat = cm->desc->step_chg_table[i].term_volt;
+			break;
+		}
+	}
+
+	cp->cur_step_chg_ibat = step_chg_target_ibat;
+	cp->cur_step_chg_vbat = step_chg_target_vbat;
+}
+
+static void cm_step_chg_update_interval_status(struct charger_manager *cm,
+					       int last_step_chg_vbat,
+					       int last_step_chg_ibat,
+					       int ir_drop)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+
+	/* The last step interval parameter is invalid. */
+	if (last_step_chg_ibat <= 0) {
+		cp->step_down_trigger = 0;
+		cm_step_interval_polling(cm, ir_drop);
+		goto update_step_interval;
+	}
+
+	/* Step invariant interval. */
+	if (last_step_chg_ibat > 0 && cp->cur_step_chg_ibat == last_step_chg_ibat) {
+		cm_step_interval_polling(cm, ir_drop);
+		/* The step interval parameter is invalid this time. */
+		if (cp->cur_step_chg_ibat < 0) {
+			cp->step_down_trigger = 0;
+			goto update_step_interval;
+		}
+
+		return;
+	}
+
+	/* Step down interval. */
+	if (last_step_chg_ibat > 0 && cp->cur_step_chg_ibat < last_step_chg_ibat) {
+		/* Step charging interval CV stage */
+		if (cp->ibat_uA < cp->cur_step_chg_ibat) {
+			cp->step_down_trigger++;
+			if (cp->step_down_trigger >= CM_CP_STEP_CHG_DOWN_COUNT) {
+				cp->step_down_trigger = 0;
+				goto update_step_interval;
+			}
+		} else {
+			cp->step_down_trigger = 0;
+		}
+
+		return;
+	}
+
+	/* Step up interval. */
+	if (last_step_chg_ibat > 0 && cp->cur_step_chg_ibat > last_step_chg_ibat) {
+		cp->step_down_trigger = 0;
+		/* Stpe charging, anti-shake section */
+		if (cp->vbat_uV > cp->cur_step_chg_vbat + ir_drop - 50000) {
+			cp->cur_step_chg_ibat = last_step_chg_ibat;
+			cp->cur_step_chg_vbat = last_step_chg_vbat;
+		}
+
+		goto update_step_interval;
+	}
+
+update_step_interval:
+	cp->step_chg_ibat = cp->cur_step_chg_ibat;
+	cp->step_chg_vbat = cp->cur_step_chg_vbat;
+}
+
+static void cm_update_step_chg_status(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	int last_step_chg_ibat, last_step_chg_vbat;
+	int ir_drop = 0;
+
+	if (!cm->desc->support_step_chg)
+		return;
+
+	if (cm->desc->step_chg_disabled) {
+		cp->step_chg_ibat = -EINVAL;
+		cp->step_chg_vbat = -EINVAL;
+		if (!cp->disable_step_chg_log) {
+			dev_err(cm->dev, "%s, force off step chg.\n", __func__);
+			cp->disable_step_chg_log = true;
+		}
+
+		return;
+	}
+
+	/* The current jeita interval anomaly scene. */
+	if (cp->jeita_status < 0) {
+		cp->step_chg_ibat = -EINVAL;
+		cp->step_chg_vbat = -EINVAL;
+		dev_err(cm->dev, "%s, jeita_status = %d, the current jeita interval is abnormal\n",
+			__func__, cp->jeita_status);
+		return;
+	}
+
+	if (cm->desc->ir_comp.rc && cm->desc->ir_comp.ir_drop > 0)
+		ir_drop = cm->desc->ir_comp.ir_drop;
+
+	last_step_chg_ibat = cp->step_chg_ibat;
+	last_step_chg_vbat = cp->step_chg_vbat;
+
+	/* Jeita interval changed. */
+	if (cp->jeita_status != cp->last_jeita_status) {
+		last_step_chg_ibat = -EINVAL;
+		cp->cur_step_chg_ibat = -EINVAL;
+		cp->cur_step_chg_vbat = -EINVAL;
+		cp->step_down_trigger = 0;
+		cp->last_jeita_status = cp->jeita_status;
+
+		cm_step_interval_polling(cm, ir_drop);
+		cp->step_chg_ibat = cp->cur_step_chg_ibat;
+		cp->step_chg_vbat = cp->cur_step_chg_vbat;
+	} else {
+		cm_step_chg_update_interval_status(cm, ir_drop,
+						   last_step_chg_vbat,
+						   last_step_chg_ibat);
+	}
+
+	dev_dbg(cm->dev, "%s, stpe_chg_cv = [%duV %duA], step_chg_real_cv = [%duV %duA %duV %duA]\n"
+		, __func__, cp->step_chg_vbat, cp->step_chg_ibat, cp->cur_step_chg_vbat,
+		cp->cur_step_chg_ibat, last_step_chg_vbat, last_step_chg_ibat);
+
+	dev_dbg(cm->dev, "%s, jeita_status = %d, ibat_uA = %d, vbat_uV = %d, ir_drop = %d\n",
+		__func__, cp->jeita_status, cp->ibat_uA, cp->vbat_uV, ir_drop);
+}
+
+static void cm_check_target_vbat(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	int target_vbat, ir_drop = 0;
+
+	if (cm->desc->ir_comp.rc && cm->desc->ir_comp.ir_drop > 0)
+		ir_drop = cm->desc->ir_comp.ir_drop;
+
+	target_vbat = cm->desc->constant_charge_voltage_max_uv + ir_drop;
+
+	if (cp->step_chg_vbat > 0)
+		target_vbat = min(target_vbat, cp->step_chg_vbat + ir_drop);
+
+	if (cp->jeita_vbat > 0)
+		target_vbat = min(target_vbat, cp->jeita_vbat + ir_drop);
+
+	if (cp->ir_vbat > 0)
+		target_vbat = min(target_vbat, cp->ir_vbat);
+
+	cp->cp_target_vbat = target_vbat;
+
+	dev_dbg(cm->dev, "%s, cp_target_vbat = %d, constant_charge_voltage_max_uv = %d\n",
+		__func__, cp->cp_target_vbat, cm->desc->constant_charge_voltage_max_uv);
+
+	dev_dbg(cm->dev, "%s, step_chg_vbat = %d, jeita_vbat = %d, ir_vbat = %d, ir_drop = %d\n",
+		__func__, cp->step_chg_vbat, cp->jeita_vbat, cp->ir_vbat, ir_drop);
+}
+
+static void cm_check_target_ibat(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	int target_ibat;
+
+	target_ibat = cp->cp_max_ibat;
+
+	if (cp->jeita_ibat > 0)
+		target_ibat = min(target_ibat, cp->jeita_ibat);
+
+	if (cp->step_chg_ibat > 0)
+		target_ibat = min(target_ibat, cp->step_chg_ibat);
+
+	cp->cp_target_ibat = target_ibat;
+
+	dev_dbg(cm->dev, "%s, cp_max_ibat = %d, jeita_ibat = %d, step_chg_ibat = %d, target_ibat = %d\n",
+	       __func__, cp->cp_max_ibat, cp->jeita_ibat, cp->step_chg_ibat, cp->cp_target_ibat);
+}
+
 static void cm_check_target_ibus(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
@@ -3054,10 +3245,14 @@ static int cm_cp_vbat_step_algo(struct charger_manager *cm)
 	delta_vbat_uV = cp->cp_target_vbat - cp->vbat_uV;
 
 	if (cp->vbat_uV > 0 && delta_vbat_uV > CM_CP_VBAT_STEP1)
-		vbat_step = CM_CP_VSTEP * 3;
+		vbat_step = CM_CP_VSTEP * 5;
 	else if (cp->vbat_uV > 0 && delta_vbat_uV > CM_CP_VBAT_STEP2)
-		vbat_step = CM_CP_VSTEP * 2;
+		vbat_step = CM_CP_VSTEP * 4;
 	else if (cp->vbat_uV > 0 && delta_vbat_uV > CM_CP_VBAT_STEP3)
+		vbat_step = CM_CP_VSTEP * 3;
+	else if (cp->vbat_uV > 0 && delta_vbat_uV > CM_CP_VBAT_STEP4)
+		vbat_step = CM_CP_VSTEP * 2;
+	else if (cp->vbat_uV > 0 && delta_vbat_uV > CM_CP_VBAT_STEP5)
 		vbat_step = CM_CP_VSTEP;
 	else if (cp->vbat_uV > 0 && delta_vbat_uV < 0)
 		vbat_step = -CM_CP_VSTEP * 2;
@@ -3078,6 +3273,10 @@ static int cm_cp_ibat_step_algo(struct charger_manager *cm)
 		ibat_step = CM_CP_VSTEP * 2;
 	else if (cp->ibat_uA > 0 && delta_ibat_uA > CM_CP_IBAT_STEP3)
 		ibat_step = CM_CP_VSTEP;
+	else if (cp->ibat_uA > 0 && delta_ibat_uA < -CM_CP_IBAT_STEP1 / 2)
+		ibat_step = -CM_CP_VSTEP * 6;
+	else if (cp->ibat_uA > 0 && delta_ibat_uA < -CM_CP_IBAT_STEP2 / 2)
+		ibat_step = -CM_CP_VSTEP * 4;
 	else if (cp->ibat_uA > 0 && delta_ibat_uA < 0)
 		ibat_step = -CM_CP_VSTEP * 2;
 
@@ -3157,11 +3356,13 @@ static void cm_cp_tune_algo(struct charger_manager *cm)
 	int ibus_step = 0;
 	int alarm_step = 0;
 
-	/* check battery voltage*/
-	vbat_step = cm_cp_vbat_step_algo(cm);
-
 	/* check battery current*/
+	cm_check_target_ibat(cm);
 	ibat_step = cm_cp_ibat_step_algo(cm);
+
+	/* check battery voltage*/
+	cm_check_target_vbat(cm);
+	vbat_step = cm_cp_vbat_step_algo(cm);
 
 	/* check bus voltage*/
 	vbus_step = cm_cp_vbus_step_algo(cm);
@@ -3192,16 +3393,16 @@ static void cm_cp_tune_algo(struct charger_manager *cm)
 					  vbus_step), ibus_step), alarm_step);
 	cm_check_target_vbus(cm);
 
-	dev_info(cm->dev, "%s, vbatt = %duV, ibatt = %duA, vbus = %duV, ibus = %duA, "
-		 "cp_target_vbat = %duV, cp_target_ibat = %duA, cp_target_vbus = %duV, "
-		 "cp_target_ibus = %duA, cp_taper_current = %duA, taper_cnt = %d, "
-		 "vbat_step = %d, ibat_step = %d, vbus_step = %d, ibus_step = %d, alarm_step = %d, "
-		 "adapter_max_vbus = %duV, adapter_max_ibus = %duA, ucp_cnt = %d\n",
-		 __func__, cp->vbat_uV, cp->ibat_uA, cp->vbus_uV, cp->ibus_uA,
-		 cp->cp_target_vbat, cp->cp_target_ibat, cp->cp_target_vbus,
-		 cp->cp_target_ibus, cp->cp_taper_current, cp->cp_taper_trigger_cnt,
-		 vbat_step, ibat_step, vbus_step, ibus_step, alarm_step,
-		 cp->adapter_max_vbus, cp->adapter_max_ibus, cp->cp_ibat_ucp_cnt);
+	dev_info(cm->dev, "%s, cp = [%duV %duA %duV %duA], ir_drop = %duV, ucp_cnt = %d\n",
+		 __func__, cp->vbus_uV, cp->ibus_uA, cp->vbat_uV, cp->ibat_uA,
+		 cm->desc->ir_comp.ir_drop, cp->cp_ibat_ucp_cnt);
+
+	dev_info(cm->dev, "%s, cp_target = [%duV %duA %duV %duA], jeita_status = %d\n",
+		 __func__, cp->cp_target_vbus, cp->cp_target_ibus, cp->cp_target_vbat,
+		 cp->cp_target_ibat, cp->jeita_status);
+
+	 dev_info(cm->dev, "%s, tune_step = [%d %d %d %d %d]\n",
+		  __func__, vbus_step, ibus_step, vbat_step, ibat_step, alarm_step);
 
 	if (cp->cp_last_target_vbus != cp->cp_target_vbus) {
 		if (cm_adjust_fchg_voltage(cm, cp->cp_target_vbus)) {
@@ -3324,10 +3525,19 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 		return;
 	}
 
+	dev_info(cm->dev, "%s, adapter = [%duV %duA]\n",
+		 __func__, cp->adapter_max_vbus, cp->adapter_max_ibus);
 	cm_init_cp(cm);
 
 	cp->recovery = false;
 	cm->desc->enable_fast_charge = true;
+	cm->desc->cp.jeita_status = -EINVAL;
+	cp->last_jeita_status = -EINVAL;
+	cm->desc->cp.jeita_ibat = -EINVAL;
+	cm->desc->cp.jeita_vbat = -EINVAL;
+	cm->desc->cp.step_chg_ibat = -EINVAL;
+	cm->desc->cp.step_chg_vbat = -EINVAL;
+	cm->desc->cp.ir_vbat = -EINVAL;
 
 	cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
 				   CM_CHARGE_INFO_INPUT_LIMIT |
@@ -3352,8 +3562,8 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	else
 		cp->cp_target_vbus =  CM_CP_VBUS_ERRORLO_THRESHOLD(cp->vbat_uV) + 2 * CM_CP_VSTEP;
 
-	dev_dbg(cm->dev, "%s, target_ibat = %d, cp_target_vbus = %d\n",
-		 __func__, cp->cp_target_ibat, cp->cp_target_vbus);
+	dev_dbg(cm->dev, "%s, jeita_ibat = %d, cp_target_vbus = %d\n",
+		 __func__, cp->jeita_ibat, cp->cp_target_vbus);
 
 	cm_check_target_vbus(cm);
 	cm_adjust_fchg_voltage(cm, cp->cp_target_vbus);
@@ -3426,7 +3636,10 @@ static void cm_cp_state_tune(struct charger_manager *cm)
 
 	cm_ir_compensation(cm, CM_IR_COMP_STATE_CP, &target_vbat);
 	if (target_vbat > 0)
-		cp->cp_target_vbat = target_vbat;
+		cp->ir_vbat = target_vbat;
+
+	cm_update_step_chg_status(cm);
+	cm_check_target_vbat(cm);
 
 	if (cp->flt.bat_therm_fault || cp->flt.die_therm_fault ||
 	    cp->flt.bus_therm_fault) {
@@ -3508,6 +3721,7 @@ static void cm_cp_state_exit(struct charger_manager *cm)
 	cp->cp_fault_event = false;
 	cp->cp_ibat_ucp_cnt = 0;
 	cp->cp_state_tune_log = false;
+	cp->disable_step_chg_log = false;
 	cp->cp_taper_trigger_cnt = 0;
 }
 
@@ -4243,7 +4457,9 @@ static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_stat
 	if (cm->desc->cp.cp_running && !cm_check_primary_charger_enabled(cm)) {
 		dev_info(cm->dev, "cp target terminate voltage = %d, target current = %d\n",
 			 term_volt, target_cur);
-		cm->desc->cp.cp_target_ibat = target_cur;
+		cm->desc->cp.jeita_status = jeita_status;
+		cm->desc->cp.jeita_ibat = target_cur;
+		cm->desc->cp.jeita_vbat = term_volt;
 		goto exit;
 	}
 
@@ -6007,7 +6223,7 @@ static ssize_t jeita_control_store(struct device *dev,
 	}
 
 	cm = sysfs->cm;
-	if (!cm) {
+	if (!cm || !cm->dev) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -ENOMEM;
 	}
@@ -6022,9 +6238,64 @@ static ssize_t jeita_control_store(struct device *dev,
 	if (ret)
 		return ret;
 
+	dev_info(cm->dev, "%s[%d], enabled=%d, jeita_disabled=%d\n",
+		 __func__, __LINE__, enabled, desc->jeita_disabled);
 	if (desc->jeita_disabled == enabled)
 		desc->jeita_info.jeita_changed = true;
 	desc->jeita_disabled = !enabled;
+	desc->step_chg_disabled = !enabled;
+
+	return count;
+}
+
+static ssize_t step_chg_control_show(struct device *dev,  struct device_attribute *attr, char *buf)
+{
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_step_chg_control);
+	struct charger_desc *desc;
+
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	desc = sysfs->cm->desc;
+	if (!desc) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	return sprintf(buf, "%d\n", !desc->step_chg_disabled);
+}
+
+static ssize_t step_chg_control_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t count)
+{
+	int ret;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_step_chg_control);
+	struct charger_manager *cm;
+	bool enabled;
+
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm || !cm->desc || !cm->dev) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	ret =  kstrtobool(buf, &enabled);
+	if (ret)
+		return ret;
+
+	cm->desc->step_chg_disabled = !enabled;
+	dev_info(cm->dev, "%s[%d], step_chg_disabled=%d\n",
+		 __func__, __LINE__, cm->desc->step_chg_disabled);
 
 	dev_info(cm->dev, "%s:line%d jeita enable = %d\n", __func__, __LINE__, enabled);
 
@@ -6490,6 +6761,30 @@ static ssize_t support_fast_charge_show(struct device *dev,
 	return sprintf(buf, "%d\n", support_fast_charge);
 }
 
+static ssize_t support_step_chg_show(struct device *dev,
+				     struct device_attribute *attr, char *buf)
+{
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_support_step_chg);
+	struct charger_manager *cm;
+	bool support_step_chg = false;
+
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm || !cm->desc) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	support_step_chg = cm->desc->support_step_chg;
+
+	return sprintf(buf, "%d\n", support_step_chg);
+}
+
 /**
  * charger_manager_prepare_sysfs - Prepare sysfs entry for each charger
  * @cm: the Charger Manager representing the battery.
@@ -6533,13 +6828,15 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		sysfs->attrs[0] = &sysfs->attr_externally_control.attr;
 		sysfs->attrs[1] = &sysfs->attr_stop_charge.attr;
 		sysfs->attrs[2] = &sysfs->attr_jeita_control.attr;
-		sysfs->attrs[3] = &sysfs->attr_cp_num.attr;
-		sysfs->attrs[4] = &sysfs->attr_charge_pump_present.attr;
-		sysfs->attrs[5] = &sysfs->attr_charge_pump_current.attr;
-		sysfs->attrs[6] = &sysfs->attr_enable_power_path.attr;
-		sysfs->attrs[7] = &sysfs->attr_keep_awake.attr;
-		sysfs->attrs[8] = &sysfs->attr_support_fast_charge.attr;
-		sysfs->attrs[9] = NULL;
+		sysfs->attrs[3] = &sysfs->attr_step_chg_control.attr;
+		sysfs->attrs[4] = &sysfs->attr_cp_num.attr;
+		sysfs->attrs[5] = &sysfs->attr_charge_pump_present.attr;
+		sysfs->attrs[6] = &sysfs->attr_charge_pump_current.attr;
+		sysfs->attrs[7] = &sysfs->attr_enable_power_path.attr;
+		sysfs->attrs[8] = &sysfs->attr_keep_awake.attr;
+		sysfs->attrs[9] = &sysfs->attr_support_fast_charge.attr;
+		sysfs->attrs[10] = &sysfs->attr_support_step_chg.attr;
+		sysfs->attrs[11] = NULL;
 
 		sysfs->attr_grp.name = name;
 		sysfs->attr_grp.attrs = sysfs->attrs;
@@ -6556,6 +6853,12 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		sysfs->attr_jeita_control.attr.mode = 0644;
 		sysfs->attr_jeita_control.show = jeita_control_show;
 		sysfs->attr_jeita_control.store = jeita_control_store;
+
+		sysfs_attr_init(&sysfs->attr_step_chg_control.attr);
+		sysfs->attr_step_chg_control.attr.name = "step_chg_control";
+		sysfs->attr_step_chg_control.attr.mode = 0644;
+		sysfs->attr_step_chg_control.show = step_chg_control_show;
+		sysfs->attr_step_chg_control.store = step_chg_control_store;
 
 		sysfs_attr_init(&sysfs->attr_cp_num.attr);
 		sysfs->attr_cp_num.attr.name = "cp_num";
@@ -6590,6 +6893,11 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		sysfs->attr_support_fast_charge.attr.name = "support_fast_charge";
 		sysfs->attr_support_fast_charge.attr.mode = 0444;
 		sysfs->attr_support_fast_charge.show = support_fast_charge_show;
+
+		sysfs_attr_init(&sysfs->attr_support_step_chg.attr);
+		sysfs->attr_support_step_chg.attr.name = "support_step_chg";
+		sysfs->attr_support_step_chg.attr.mode = 0444;
+		sysfs->attr_support_step_chg.show = support_step_chg_show;
 
 		sysfs_attr_init(&sysfs->attr_externally_control.attr);
 		sysfs->attr_externally_control.attr.name = "externally_control";
@@ -6689,6 +6997,27 @@ static int cm_init_jeita_table(struct sprd_battery_info *info,
 	jeita_info_init(&desc->jeita_info);
 
 	return 0;
+}
+
+static bool cm_init_step_chg_table(struct sprd_battery_info *info,
+				   struct charger_desc *desc, struct device *dev)
+{
+	if (!info->sprd_battery_step_chg_size || !info->step_chg_table)
+		return false;
+
+	desc->step_chg_table_size = info->sprd_battery_step_chg_size;
+
+	desc->step_chg_table = devm_kmemdup(dev, info->step_chg_table,
+					    desc->step_chg_table_size *
+					    sizeof(struct sprd_battery_step_chg_table),
+					    GFP_KERNEL);
+	if (!desc->step_chg_table) {
+		dev_warn(dev, "%s, fail to kmemdup %s\n",
+			 __func__, SPRD_BATTERY_STEP_CHG_TABLE_NAME);
+		return false;
+	}
+
+	return true;
 }
 
 static const struct of_device_id charger_manager_match[] = {
@@ -6896,9 +7225,7 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	cm->desc->constant_charge_voltage_max_uv = info.constant_charge_voltage_max_uv;
 	cm->desc->fullbatt_voltage_offset_uv = info.fullbatt_voltage_offset_uv;
 	cm->desc->fchg_ocv_threshold = info.fast_charge_ocv_threshold_uv;
-	cm->desc->cp.cp_target_vbat = info.constant_charge_voltage_max_uv;
 	cm->desc->cp.cp_max_ibat = info.cur.flash_cur;
-	cm->desc->cp.cp_target_ibat = info.cur.flash_cur;
 	cm->desc->cp.cp_max_ibus = info.cur.flash_limit;
 	cm->desc->cur.sdp_limit = info.cur.sdp_limit;
 	cm->desc->cur.sdp_cur = info.cur.sdp_cur;
@@ -6920,11 +7247,10 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	cm->desc->fullbatt_uA = info.fullbatt_current_uA;
 	cm->desc->first_fullbatt_uA = info.first_fullbatt_current_uA;
 
-	dev_info(cm->dev, "SPRD_BATTERY_INFO: internal_resist= %d, us= %d, constant_charge_voltage_max_uv= %d, fchg_ocv_threshold= %d, cp_target_vbat= %d, cp_max_ibat= %d, cp_target_ibat= %d, cp_max_ibus= %d, sdp_limit= %d, sdp_cur= %d, dcp_limit= %d, dcp_cur= %d, cdp_limit= %d, cdp_cur= %d unknown_limit= %d, unknown_cur= %d, fchg_limit= %d, fchg_cur= %d, flash_limit= %d, flash_cur= %d, wl_bpp_limit= %d, wl_bpp_cur= %d, wl_epp_limit= %d, wl_epp_cur= %d, fullbatt_uV= %d, fullbatt_uA= %d, cm->desc->first_fullbatt_uA= %d, us_upper_limit= %d, rc= %d, cp_upper_limit_offset= %d\n",
+	dev_info(cm->dev, "SPRD_BATTERY_INFO: internal_resist= %d, us= %d, constant_charge_voltage_max_uv= %d, fchg_ocv_threshold= %d, cp_max_ibat= %d, cp_max_ibus= %d, sdp_limit= %d, sdp_cur= %d, dcp_limit= %d, dcp_cur= %d, cdp_limit= %d, cdp_cur= %d unknown_limit= %d, unknown_cur= %d, fchg_limit= %d, fchg_cur= %d, flash_limit= %d, flash_cur= %d, wl_bpp_limit= %d, wl_bpp_cur= %d, wl_epp_limit= %d, wl_epp_cur= %d, fullbatt_uV= %d, fullbatt_uA= %d, cm->desc->first_fullbatt_uA= %d, us_upper_limit= %d, rc= %d, cp_upper_limit_offset= %d\n",
 		 cm->desc->internal_resist, cm->desc->ir_comp.us,
 		 cm->desc->constant_charge_voltage_max_uv, cm->desc->fchg_ocv_threshold,
-		 cm->desc->cp.cp_target_vbat, cm->desc->cp.cp_max_ibat,
-		 cm->desc->cp.cp_target_ibat, cm->desc->cp.cp_max_ibus, cm->desc->cur.sdp_limit,
+		 cm->desc->cp.cp_max_ibat, cm->desc->cp.cp_max_ibus, cm->desc->cur.sdp_limit,
 		 cm->desc->cur.sdp_cur, cm->desc->cur.dcp_limit, cm->desc->cur.dcp_cur,
 		 cm->desc->cur.cdp_limit, cm->desc->cur.cdp_cur, cm->desc->cur.unknown_limit,
 		 cm->desc->cur.unknown_cur, cm->desc->cur.fchg_limit, cm->desc->cur.fchg_cur,
@@ -6939,6 +7265,10 @@ static int cm_get_bat_info(struct charger_manager *cm)
 		sprd_battery_put_battery_info(cm->charger_psy, &info);
 		return ret;
 	}
+
+	cm->desc->support_step_chg = cm_init_step_chg_table(&info, cm->desc, cm->dev);
+	dev_info(cm->dev, "%s, step charging: %s\n",
+		 __func__, cm->desc->support_step_chg ? "support" : "nonsupport");
 
 	if (cm->desc->fullbatt_uV == 0)
 		dev_info(cm->dev, "Ignoring full-battery voltage threshold as it is not supplied\n");

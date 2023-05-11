@@ -640,6 +640,39 @@ static int sprd_battery_parse_jeita_table(struct sprd_battery_info *info,
 	return 0;
 }
 
+static void sprd_battery_parse_step_chg_table(struct sprd_battery_info *info,
+					      struct device_node *battery_np,
+					      struct power_supply *psy)
+{
+	struct sprd_battery_step_chg_table *table;
+	const __be32 *list;
+	int i, size;
+
+	list = of_get_property(battery_np, SPRD_BATTERY_STEP_CHG_TABLE_NAME, &size);
+	if (!list || !size) {
+		dev_err(&psy->dev, "%s, failed to get %s\n",
+			__func__, SPRD_BATTERY_STEP_CHG_TABLE_NAME);
+		return;
+	}
+
+	info->sprd_battery_step_chg_size =
+		size / (sizeof(struct sprd_battery_step_chg_table) /
+			sizeof(int) * sizeof(__be32));
+
+	table = devm_kzalloc(&psy->dev, sizeof(struct sprd_battery_step_chg_table) *
+		     (info->sprd_battery_step_chg_size + 1), GFP_KERNEL);
+	if (!table)
+		return;
+
+	for (i = 0; i < info->sprd_battery_step_chg_size; i++) {
+		table[i].jeita_inr = be32_to_cpu(*list++);
+		table[i].current_ua = be32_to_cpu(*list++);
+		table[i].term_volt = be32_to_cpu(*list++);
+	}
+
+	info->step_chg_table = table;
+}
+
 struct sprd_battery_ocv_table *sprd_battery_find_ocv2cap_table(struct sprd_battery_info *info,
 							       int temp, int *table_len)
 {
@@ -882,6 +915,8 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 		dev_err(&psy->dev, "Fail to parse jeita table, err = %d\n", err);
 		return err;
 	}
+
+	sprd_battery_parse_step_chg_table(info, battery_np, psy);
 
 	return 0;
 }

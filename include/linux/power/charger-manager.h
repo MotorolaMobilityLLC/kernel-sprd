@@ -260,13 +260,15 @@ struct charger_sysfs_ctl_item {
 	struct device_attribute attr_stop_charge;
 	struct device_attribute attr_externally_control;
 	struct device_attribute attr_jeita_control;
+	struct device_attribute attr_step_chg_control;
 	struct device_attribute attr_cp_num;
 	struct device_attribute attr_charge_pump_present;
 	struct device_attribute attr_charge_pump_current;
 	struct device_attribute attr_enable_power_path;
 	struct device_attribute attr_keep_awake;
 	struct device_attribute attr_support_fast_charge;
-	struct attribute *attrs[10];
+	struct device_attribute attr_support_step_chg;
+	struct attribute *attrs[12];
 
 	struct charger_manager *cm;
 };
@@ -310,6 +312,7 @@ struct cm_ir_compensation {
 	bool ir_compensation_en;
 	int ibat_index;
 	int last_target_cccv;
+	int ir_drop;
 };
 
 /*
@@ -413,6 +416,19 @@ struct cm_charge_pump_status {
 	bool cp_soft_alarm_event;
 	bool cp_fault_event;
 	bool cp_state_tune_log;
+
+	int jeita_status;
+	int last_jeita_status;
+	int jeita_ibat;
+	int jeita_vbat;
+	int step_chg_ibat;
+	int step_chg_vbat;
+	int cur_step_chg_ibat;
+	int cur_step_chg_vbat;
+	int step_down_trigger;
+	bool disable_step_chg_log;
+
+	int ir_vbat;
 
 	struct cm_fault_status  flt;
 	struct cm_alarm_status  alm;
@@ -678,6 +694,11 @@ struct charger_desc {
 	int force_jeita_status;
 	bool jeita_disabled;
 	struct cm_jeita_info jeita_info;
+
+	struct sprd_battery_step_chg_table *step_chg_table;
+	u32 step_chg_table_size;
+	bool support_step_chg;
+	bool step_chg_disabled;
 
 	int temperature;
 	int internal_resist;
