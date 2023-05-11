@@ -83,7 +83,7 @@ static int sprd_bc1p2_redetect_control(bool enable)
 static enum usb_charger_type sprd_bc1p2_detect(void)
 {
 	enum usb_charger_type type;
-	u32 status = 0, val;
+	u32 status = 0, val = 0;
 	int ret, cnt = UMP96XX_CHG_DET_RETRY_COUNT;
 
 	cnt += det_delay_ms / UMP96XX_CHG_DET_DELAY_MS;
@@ -136,9 +136,8 @@ bc1p2_detect_end:
 static enum usb_charger_type sprd_bc1p2_try_once_detect(void)
 {
 	enum usb_charger_type type = UNKNOWN_TYPE;
-	u32 status = 0, val;
+	u32 status = 0, val = 0;
 	int ret;
-
 
 	ret = regmap_read(bc1p2->regmap, bc1p2->data->charge_status, &val);
 	if (ret)
