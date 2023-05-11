@@ -33,8 +33,6 @@
 #include <linux/usb.h>
 #include <linux/usb/ch9.h>
 #include <linux/usb/composite.h>
-#include <linux/time64.h>
-#include <linux/timekeeping.h>
 
 #define VSER_BULK_BUFFER_SIZE	(4096 * 4)
 #define MAX_INST_NAME_LEN	40
@@ -88,14 +86,16 @@ struct vser_dev {
 	u32					dl_rx_packet_count;
 	u32					dl_sent_packet_count;
 	u32					dl_sent_failed_packet_count;
-	unsigned long		dl_rx_bytes;
-	unsigned long		dl_sent_bytes;
+	u64					dl_rx_bytes;
+	u64					dl_sent_bytes;
 
-	unsigned long		min_time_per_xfer;
-	unsigned long		max_time_per_xfer;
-	unsigned long		ave_time_per_xfer;
+	u64					max_cb_time_per_xfer;
 
-	unsigned long		total_transfer_time;
+	u64					min_time_per_xfer;
+	u64					max_time_per_xfer;
+	u64					ave_time_per_xfer;
+
+	u64					total_transfer_time;
 	struct timer_list	log_print_timer;
 #endif
 
@@ -295,13 +295,15 @@ static void vser_complete_in(struct usb_ep *ep, struct usb_request *req)
 static void vser_pass_complete_in(struct usb_ep *ep, struct usb_request *req)
 {
 	struct vser_dev *dev = _vser_dev;
-	struct timespec64		tv_end;
-	struct timespec64		*tv_begin = req->context;
-	unsigned long			transfer_time;
+	ktime_t		tv_end;
+	ktime_t		*tv_begin = req->context;
+	u64			transfer_time;
+	ktime_t		cb_end;
+	ktime_t		cb_begin;
+	u64			cb_time;
 
-	ktime_get_real_ts64(&tv_end);
-	transfer_time = (tv_end.tv_sec - tv_begin->tv_sec) * 1000000000
-						+ (tv_end.tv_nsec - tv_begin->tv_nsec);
+	tv_end = ktime_get();
+	transfer_time = ktime_to_ns(ktime_sub(tv_end, *tv_begin));
 	if (transfer_time < dev->min_time_per_xfer)
 		dev->min_time_per_xfer = transfer_time;
 	if (transfer_time > dev->max_time_per_xfer)
@@ -316,9 +318,15 @@ static void vser_pass_complete_in(struct usb_ep *ep, struct usb_request *req)
 
 	vser_req_put(dev, &dev->tx_pass_idle, req);
 
+	cb_begin = ktime_get();
 	if (bulk_in_complete_function != NULL)
 		bulk_in_complete_function(req->buf, req->length,
 						s_callback_data);
+	cb_end = ktime_get();
+	cb_time = ktime_to_ns(ktime_sub(cb_end, cb_begin));
+
+	if (cb_time > dev->max_cb_time_per_xfer)
+		dev->max_cb_time_per_xfer = cb_time;
 
 	wake_up(&dev->write_wq);
 }
@@ -412,7 +420,7 @@ static int vser_create_bulk_endpoints(struct vser_dev *dev,
 
 		for (i = 0; i < TX_REQ_BYPASS_MAX; i++) {
 			struct usb_request *req = NULL;
-			struct timespec64	*tv_begin = NULL;
+			ktime_t			*tv_begin = NULL;
 
 			req = usb_ep_alloc_request(dev->ep_in, GFP_KERNEL);
 			if (!req) {
@@ -421,7 +429,7 @@ static int vser_create_bulk_endpoints(struct vser_dev *dev,
 				goto fail;
 			}
 
-			tv_begin = kmalloc(sizeof(struct timespec64), GFP_KERNEL);
+			tv_begin = kmalloc(sizeof(ktime_t), GFP_KERNEL);
 			if (!tv_begin) {
 				vser_free_all_request(dev);
 				ret = -ENOMEM;
@@ -677,11 +685,13 @@ static ssize_t vser_statistics_show(struct device *dev,
 {
 	struct vser_dev *vdev = _vser_dev;
 
-	vdev->ave_time_per_xfer = vdev->total_transfer_time / vdev->dl_sent_packet_count;
+	vdev->ave_time_per_xfer = vdev->total_transfer_time;
+	do_div(vdev->ave_time_per_xfer, vdev->dl_sent_packet_count);
 
-	return sprintf(buf, "u32 dl_rx_packet_count= %u;\nul dl_rx_bytes= %lu;\n"
-	"u32 dl_sent_packet_count= %u;\nul dl_sent_bytes= %lu;\nu32 dl_sent_failed_packet_count= %u;\n"
-	"ul min_time_per_xfer= %lu(ns);\nul max_time_per_xfer= %lu(ns);\nul ave_time_per_xfer= %lu(ns);\n",
+	return sprintf(buf, "u32 dl_rx_packet_count= %u;\nu64 dl_rx_bytes= %llu;\n"
+	"u32 dl_sent_packet_count= %u;\nu64 dl_sent_bytes= %llu;\nu32 dl_sent_failed_packet_count= %u;\n"
+	"u64 min_time_per_xfer= %llu(ns);\nu64 max_time_per_xfer= %llu(ns);\nu64 ave_time_per_xfer= %llu(ns);\n"
+	"u64 max_cb_time_per_xfer= %llu(ns);\n",
 	vdev->dl_rx_packet_count,
 	vdev->dl_rx_bytes,
 	vdev->dl_sent_packet_count,
@@ -689,7 +699,8 @@ static ssize_t vser_statistics_show(struct device *dev,
 	vdev->dl_sent_failed_packet_count,
 	vdev->min_time_per_xfer,
 	vdev->max_time_per_xfer,
-	vdev->ave_time_per_xfer
+	vdev->ave_time_per_xfer,
+	vdev->max_cb_time_per_xfer
 	);
 }
 
@@ -699,11 +710,13 @@ static void vser_log_print_timer_func(struct timer_list *timer)
 {
 	struct vser_dev *dev = from_timer(dev, timer, log_print_timer);
 
-	dev->ave_time_per_xfer = dev->total_transfer_time / dev->dl_sent_packet_count;
+	dev->ave_time_per_xfer = dev->total_transfer_time;
+	do_div(dev->ave_time_per_xfer, dev->dl_sent_packet_count);
 
-	pr_info("u32 dl_rx_packet_count= %u; ul dl_rx_bytes= %lu; "
-	"u32 dl_sent_packet_count= %u; ul dl_sent_bytes= %lu; u32 dl_sent_failed_packet_count= %u; "
-	"ul min_time_per_xfer= %lu(ns); ul max_time_per_xfer= %lu(ns); ul ave_time_per_xfer= %lu(ns);\n",
+	pr_info("u32 dl_rx_packet_count= %u; u64 dl_rx_bytes= %llu; "
+	"u32 dl_sent_packet_count= %u; u64 dl_sent_bytes= %llu; u32 dl_sent_failed_packet_count= %u; "
+	"u64 min_time_per_xfer= %llu(ns); u64 max_time_per_xfer= %llu(ns); u64 ave_time_per_xfer= %llu(ns); "
+	"u64 max_cb_time_per_xfer= %llu(ns);\n",
 	dev->dl_rx_packet_count,
 	dev->dl_rx_bytes,
 	dev->dl_sent_packet_count,
@@ -711,7 +724,8 @@ static void vser_log_print_timer_func(struct timer_list *timer)
 	dev->dl_sent_failed_packet_count,
 	dev->min_time_per_xfer,
 	dev->max_time_per_xfer,
-	dev->ave_time_per_xfer
+	dev->ave_time_per_xfer,
+	dev->max_cb_time_per_xfer
 	);
 
 	mod_timer(&dev->log_print_timer, jiffies + msecs_to_jiffies(5000));
@@ -858,6 +872,7 @@ static void vser_function_unbind(struct usb_configuration *c,
 	dev->max_time_per_xfer = 0;
 	dev->min_time_per_xfer = 0;
 	dev->total_transfer_time = 0;
+	dev->max_cb_time_per_xfer = 0;
 
 	del_timer(&dev->log_print_timer);
 #endif
@@ -1168,10 +1183,11 @@ ssize_t vser_pass_user_write(char *buf, size_t count)
 
 		xfer = count;
 		if (req != 0) {
+			ktime_t	*tv_begin = req->context;
 			req->buf = buf;
 			req->length = xfer;
-			ktime_get_real_ts64(req->context);
 
+			*tv_begin = ktime_get();
 			ret = usb_ep_queue(dev->ep_in, req, GFP_ATOMIC);
 			if (ret < 0) {
 				pr_debug("%s: xfer error %d\n", __func__, ret);
