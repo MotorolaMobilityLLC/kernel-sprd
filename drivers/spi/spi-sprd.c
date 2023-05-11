@@ -339,9 +339,8 @@ static void sprd_spi_chipselect(struct spi_device *sdev, bool cs)
 {
 	struct spi_controller *sctlr = sdev->controller;
 	struct sprd_spi *ss = spi_controller_get_devdata(sctlr);
-	u32 val;
+	u32 val = readl_relaxed(ss->base + SPRD_SPI_CTL0);
 
-	val = readl_relaxed(ss->base + SPRD_SPI_CTL0);
 	/*  The SPI controller will pull down CS pin if cs is 0 */
 	if (!cs) {
 		val &= ~SPRD_SPI_CS0_VALID;
@@ -355,6 +354,7 @@ static void sprd_spi_chipselect(struct spi_device *sdev, bool cs)
 static int sprd_spi_write_only_receive(struct sprd_spi *ss, u32 len)
 {
 	u32 val;
+	int ret = (int)len;
 
 	/* Clear the start receive bit and reset receive data number */
 	val = readl_relaxed(ss->base + SPRD_SPI_CTL4);
@@ -371,7 +371,7 @@ static int sprd_spi_write_only_receive(struct sprd_spi *ss, u32 len)
 	val |= SPRD_SPI_START_RX;
 	writel_relaxed(val, ss->base + SPRD_SPI_CTL4);
 
-	return len;
+	return ret;
 }
 
 static int sprd_spi_write_bufs_u8(struct sprd_spi *ss, u32 len)
@@ -776,6 +776,7 @@ static int sprd_spi_dma_txrx_bufs(struct spi_device *sdev,
 	sprd_spi_dma_enable(ss, true);
 	wait_for_completion(&(ss->xfer_completion));
 
+trans_complete:
 	if (dma_tmp_txbuf != NULL) {
 		dma_unmap_single(ss->dev,
 				 ss->dma.dma_phys_addr,
@@ -783,8 +784,6 @@ static int sprd_spi_dma_txrx_bufs(struct spi_device *sdev,
 				 DMA_TO_DEVICE);
 		kfree(dma_tmp_txbuf);
 	}
-
-trans_complete:
 	sprd_spi_dma_enable(ss, false);
 	sprd_spi_enter_idle(ss);
 	sprd_spi_irq_disable(ss);
@@ -808,9 +807,8 @@ static void sprd_spi_set_speed(struct sprd_spi *ss, u32 speed_hz)
 static void sprd_spi_init_hw(struct sprd_spi *ss, struct spi_transfer *t)
 {
 	u16 word_delay, itvl_num;
-	u32 val;
+	u32 val = readl_relaxed(ss->base + SPRD_SPI_CTL0);
 
-	val = readl_relaxed(ss->base + SPRD_SPI_CTL0);
 	val &= ~(SPRD_SPI_SCK_REV | SPRD_SPI_NG_TX | SPRD_SPI_NG_RX);
 	/* Set default chip selection, clock phase and clock polarity */
 	val |= ss->hw_mode & SPI_CPHA ? SPRD_SPI_NG_RX : SPRD_SPI_NG_TX;
@@ -1066,9 +1064,7 @@ static bool sprd_spi_can_dma(struct spi_controller *sctlr,
 
 static int sprd_spi_dma_init(struct platform_device *pdev, struct sprd_spi *ss)
 {
-	int ret;
-
-	ret = sprd_spi_dma_request(ss);
+	int ret = sprd_spi_dma_request(ss);
 	if (ret) {
 		if (ret == -EPROBE_DEFER)
 			return ret;
@@ -1176,8 +1172,10 @@ static int sprd_spi_probe(struct platform_device *pdev)
 
 	ss = spi_controller_get_devdata(sctlr);
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
-	if (!res)
-		return -ENOMEM;
+	if (!res) {
+		ret = -ENOMEM;
+		goto free_controller;
+	}
 
 	ss->base = devm_ioremap_resource(&pdev->dev, res);
 	if (IS_ERR(ss->base)) {
@@ -1260,9 +1258,7 @@ static int sprd_spi_remove(struct platform_device *pdev)
 {
 	struct spi_controller *sctlr = platform_get_drvdata(pdev);
 	struct sprd_spi *ss = spi_controller_get_devdata(sctlr);
-	int ret;
-
-	ret = pm_runtime_get_sync(ss->dev);
+	int ret = pm_runtime_get_sync(ss->dev);
 	if (ret < 0) {
 		pm_runtime_put_noidle(ss->dev);
 		dev_err(ss->dev, "failed to resume SPI controller\n");
