@@ -1896,7 +1896,7 @@ static const struct clk_parent_data gpu_parents[] = {
 };
 
 static SPRD_COMP_CLK_DATA(gpu_core_clk, "gpu-core-clk", gpu_parents,
-			  0x4, 4, 3, 8, 3, SPRD_GATE_NON_AON);
+			  0x4, 4, 3, 8, 3, 0);
 
 static SPRD_GATE_CLK_HW(gpu_mem_gate, "gpu-mem-gate", &gpu_eb.common.hw,
 			0x8, BIT(0), 0, SPRD_GATE_NON_AON);
