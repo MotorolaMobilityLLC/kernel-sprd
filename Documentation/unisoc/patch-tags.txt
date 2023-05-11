@@ -205,6 +205,7 @@ trusty:
 tty:
 
 unisoc_platform:
+unisoc_platform:net:
 unisoc_platform:soc:
 unisoc_platform:audio:
 unisoc_platform:cpufreq:
