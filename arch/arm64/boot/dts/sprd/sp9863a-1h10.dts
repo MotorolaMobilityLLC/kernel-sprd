@@ -7,6 +7,7 @@
 
 /dts-v1/;
 
+#include <dt-bindings/gpio/gpio.h>
 #include "sc9863a/sc9863a.dtsi"
 #include "sc2721/sc2721.dtsi"
 #include "reserved-memory/sp9863a-common.dtsi"
