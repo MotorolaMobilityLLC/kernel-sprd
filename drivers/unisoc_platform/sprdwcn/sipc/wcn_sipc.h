@@ -129,6 +129,7 @@ struct sipc_chn_info {
 };
 
 int wcn_sipc_channel_dir(int index);
+int wcn_sipc_chn_status(int index);
 struct sipc_chn_info *wcn_sipc_channel_get(int index);
 void wcn_sipc_chn_set_status_all_false(void);
 

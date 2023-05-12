@@ -249,11 +249,12 @@ static void wcn_sbuf_status(u8 dst, u8 channel)
 
 	timeout = jiffies + msecs_to_jiffies(1000);
 	while (1) {
-		if (!sbuf_status(dst, channel)) {
+		/*channel 3-4 index[1]:ATCMD*/
+		if (!sbuf_status(dst, channel) && wcn_sipc_chn_status(SIPC_ATCMD_RX) == true) {
 			break;
 		} else if (time_after(jiffies, timeout)) {
-			WCN_INFO("channel %d-%d is not ready!\n",
-				 dst, channel);
+			WCN_INFO("channel %d-%d is [%d], not ready!\n",
+				 dst, channel, sbuf_status(dst, channel));
 			break;
 		}
 		msleep(20);
