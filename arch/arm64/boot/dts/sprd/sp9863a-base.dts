@@ -137,7 +137,6 @@
 	status = "okay";
 };
 
-
 &dpu {
 	sprd,logo-memory = <&logo_reserved>;
 	status = "okay";
@@ -168,5 +167,17 @@
 };
 
 &dphy {
+	status = "okay";
+};
+
+&vsp {
+	status = "okay";
+};
+
+&vsp_pd {
+	status = "okay";
+};
+
+&iommu_vsp {
 	status = "okay";
 };

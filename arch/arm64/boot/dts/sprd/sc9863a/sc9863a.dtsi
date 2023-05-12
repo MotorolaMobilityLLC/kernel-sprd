@@ -741,3 +741,5 @@
 #include "gpu.dtsi"
 #include "usb.dtsi"
 #include "dispc.dtsi"
+#include "vsp.dtsi"
+
