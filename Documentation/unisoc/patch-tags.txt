@@ -87,6 +87,7 @@ dma-buf:
 dma:
 Documentation:
 Documentation:unisoc:
+Documentation:dt-bindings:
 drm:sprd:
 drm:sprd:cabc:
 drm:sprd:dphy:
@@ -217,6 +218,7 @@ unisoc_platform:mm:
 unisoc_platform:modem_loader:
 unisoc_platform:sched:
 unisoc_platform:sipc:
+unisoc_platform:sfp:
 unisoc_platform:thermal:
 unisoc_platform:wcn:
 unisoc_platform:wlan:
