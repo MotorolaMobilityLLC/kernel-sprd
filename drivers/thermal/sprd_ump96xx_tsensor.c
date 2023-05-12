@@ -19,6 +19,7 @@
 #define UMP96XX_TSEN_INDEX_MASK		GENMASK(7, 0)
 #define UMP96XX_TSEN_INDEX_SHIFT	12
 #define UMP96XX_TSEN_FRAC_MASK		GENMASK(11, 0)
+#define ABNORMAL_TEMP			160000
 
 /* Temperature query table according to integral index */
 /*26MHZ TSX
@@ -337,7 +338,7 @@ static const struct thermal_zone_of_device_ops tsensor_thermal_ops = {
 
 static int tsen_enable(struct regmap *regmap, unsigned int base)
 {
-	unsigned int value, tmp;
+	unsigned int value = 0, tmp = 0;
 	int ret = 0;
 
 	if (modem_flag | gnss_flag) {
@@ -494,7 +495,7 @@ static int modem_tsen_control(struct regmap *regmap, unsigned int base, bool en)
 
 static int modem_tsen_read(struct regmap *regmap, unsigned int base, int *temp)
 {
-	int ret = 0, th, tl, rawdata;
+	int ret = 0, th = 0, tl = 0, rawdata = 0;
 	int index, frac, t, i = 0;
 
 	mutex_lock(&tsen_mutex);
@@ -533,7 +534,8 @@ static int modem_tsen_read(struct regmap *regmap, unsigned int base, int *temp)
 
 static ssize_t modem_tsen_show(struct device_driver *dev, char *buf)
 {
-	int ret = -1, tsen_temp;
+	int ret = -1, tsen_temp = ABNORMAL_TEMP;
+	int len = 0;
 
 	ret = modem_tsen_control(tsen_mager.regmap, tsen_mager.base, true);
 	if (ret)
@@ -544,8 +546,9 @@ static ssize_t modem_tsen_show(struct device_driver *dev, char *buf)
 	ret = modem_tsen_control(tsen_mager.regmap, tsen_mager.base, false);
 	if (!ret)
 		pr_info("close success\n");
+	len = sizeof(buf);
 
-	return sprintf(buf, "%d\n", tsen_temp);
+	return snprintf(buf, len, "%d\n", tsen_temp);
 }
 
 static DRIVER_ATTR_RO(modem_tsen);
