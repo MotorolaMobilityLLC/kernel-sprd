@@ -136,6 +136,16 @@ struct wcn_sipc_data_ops {
 	void (*sipc_push_list_dequeue)(struct sipc_chn_info *sipc_chn);
 };
 
+void wcn_sipc_chn_set_status(void *data, bool flag)
+{
+	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)data;
+	WCN_INFO("wcn_sipc_chn_set_status chn: %d ,  flag:%d\n", sipc_chn->chn, flag);
+	if (flag)
+		sipc_chn->sipc_chn_status = true;
+	else
+		sipc_chn->sipc_chn_status = false;
+}
+
 struct wcn_sipc_data_ops  sipc_data_ops[] = {
 	{
 		.sipc_send = wcn_sipc_sbuf_push,
@@ -271,6 +281,10 @@ int wcn_sipc_channel_dir(int index)
 	return g_sipc_chn[index].inout;
 }
 
+int wcn_sipc_chn_status(int index)
+{
+	return g_sipc_chn[index].sipc_chn_status;
+}
 struct sipc_chn_info *wcn_sipc_channel_get(int index)
 {
 	return &g_sipc_chn[index];
@@ -554,6 +568,13 @@ static void wcn_sipc_sbuf_notifer(int event, void *data)
 			}
 		} while (cnt == buf_len);
 		break;
+	case SBUF_NOTIFY_READY:
+		WCN_INFO("sbuf index %d dts[%d] chn[%d] read event[%d]\n",
+						sipc_chn->index, sipc_chn->dst, sipc_chn->chn, event);
+		/*only set status index[1]:ATCMD*/
+		if (sipc_chn->index == SIPC_ATCMD_RX)
+			wcn_sipc_chn_set_status(sipc_chn, true);
+		break;
 	default:
 		WCN_ERR("sbuf read event[%d] invalid\n", event);
 	}
@@ -708,16 +729,6 @@ static void wcn_sipc_sblk_recv(struct sipc_chn_info *sipc_chn)
 			WCN_ERR("release sblock[%d] err:%d\n",
 				sipc_chn->chn, ret);
 	}
-}
-
-void wcn_sipc_chn_set_status(void *data, bool flag)
-{
-	struct sipc_chn_info *sipc_chn = (struct sipc_chn_info *)data;
-	WCN_INFO("wcn_sipc_chn_set_status chn: %d ,  flag:%d\n", sipc_chn->chn, flag);
-	if (flag)
-		sipc_chn->sipc_chn_status = true;
-	else
-		sipc_chn->sipc_chn_status = false;
 }
 
 void wcn_sipc_chn_set_status_all_false(void)
