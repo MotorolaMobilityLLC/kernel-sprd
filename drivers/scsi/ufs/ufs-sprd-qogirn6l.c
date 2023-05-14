@@ -719,6 +719,8 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 		err = ufs_sprd_phy_init(hba);
 		if (err)
 			dev_err(hba->dev, "Phy setup failed (%d)\n", err);
+
+		ufshcd_dme_set(hba, UIC_ARG_MIB(0xd0f9), 0x1);
 		break;
 	default:
 		dev_err(hba->dev, "%s: invalid status %d\n", __func__, status);
