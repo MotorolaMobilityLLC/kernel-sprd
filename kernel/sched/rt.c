@@ -475,7 +475,7 @@ static inline bool rt_task_fits_capacity(struct task_struct *p, int cpu)
 	unsigned int cpu_cap;
 
 	/* Only heterogeneous systems can benefit from this check */
-	if (!static_branch_unlikely(&sched_asym_cpucapacity))
+	if (!sched_asym_cpucap_active())
 		return true;
 
 	min_cap = uclamp_eff_value(p, UCLAMP_MIN);
@@ -1828,7 +1828,7 @@ static int find_lowest_rq(struct task_struct *task)
 	 * If we're on asym system ensure we consider the different capacities
 	 * of the CPUs when searching for the lowest_mask.
 	 */
-	if (static_branch_unlikely(&sched_asym_cpucapacity)) {
+	if (sched_asym_cpucap_active()) {
 
 		ret = cpupri_find_fitness(&task_rq(task)->rd->cpupri,
 					  task, lowest_mask,
@@ -2635,7 +2635,7 @@ DEFINE_SCHED_CLASS(rt) = {
 	.balance		= balance_rt,
 	.pick_task		= pick_task_rt,
 	.select_task_rq		= select_task_rq_rt,
-	.set_cpus_allowed       = set_cpus_allowed_common_cb,
+	.set_cpus_allowed       = set_cpus_allowed_common,
 	.rq_online              = rq_online_rt,
 	.rq_offline             = rq_offline_rt,
 	.task_woken		= task_woken_rt,

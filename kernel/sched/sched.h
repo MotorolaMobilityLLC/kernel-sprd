@@ -1559,7 +1559,6 @@ struct rq_flags {
 	 */
 	unsigned int clock_update_flags;
 #endif
-
 };
 
 #ifdef CONFIG_SMP
@@ -1830,6 +1829,11 @@ DECLARE_PER_CPU(struct sched_domain __rcu *, sd_asym_packing);
 DECLARE_PER_CPU(struct sched_domain __rcu *, sd_asym_cpucapacity);
 extern struct static_key_false sched_asym_cpucapacity;
 
+static __always_inline bool sched_asym_cpucap_active(void)
+{
+	return static_branch_unlikely(&sched_asym_cpucapacity);
+}
+
 struct sched_group_capacity {
 	atomic_t		ref;
 	/*
@@ -1904,13 +1908,6 @@ static inline void dirty_sched_domain_sysctl(int cpu)
 #endif
 
 extern int sched_update_scaling(void);
-
-static inline const struct cpumask *task_user_cpus(struct task_struct *p)
-{
-	if (!p->user_cpus_ptr)
-		return cpu_possible_mask; /* &init_task.cpus_mask */
-	return p->user_cpus_ptr;
-}
 
 extern void flush_smp_call_function_from_idle(void);
 
@@ -2168,12 +2165,6 @@ extern const u32		sched_prio_to_wmult[40];
 
 #define RETRY_TASK		((void *)-1UL)
 
-struct affinity_context {
-	const struct cpumask *new_mask;
-	struct cpumask *user_mask;
-	unsigned int flags;
-};
-
 struct sched_class {
 
 #ifdef CONFIG_UCLAMP_TASK
@@ -2317,19 +2308,7 @@ extern void update_group_capacity(struct sched_domain *sd, int cpu);
 
 extern void trigger_load_balance(struct rq *rq);
 
-extern void set_cpus_allowed_dl(struct task_struct *p, struct affinity_context *ctx);
-extern void set_cpus_allowed_common(struct task_struct *p, struct affinity_context *ctx);
-
-static inline void set_cpus_allowed_common_cb(struct task_struct *p, const struct cpumask *new_mask, u32 flags)
-{
-	struct affinity_context ac = {
-		.new_mask  = new_mask,
-		.flags     = flags,
-	};
-
-	WARN_ONCE(1, "Unexpected use of sched_class::set_cpus_allowed()");
-	set_cpus_allowed_common(p, &ac);
-}
+extern void set_cpus_allowed_common(struct task_struct *p, const struct cpumask *new_mask, u32 flags);
 
 static inline struct task_struct *get_push_task(struct rq *rq)
 {
@@ -2995,6 +2974,15 @@ static inline bool uclamp_is_used(void)
 	return static_branch_likely(&sched_uclamp_used);
 }
 #else /* CONFIG_UCLAMP_TASK */
+static inline unsigned long uclamp_eff_value(struct task_struct *p,
+					     enum uclamp_id clamp_id)
+{
+	if (clamp_id == UCLAMP_MIN)
+		return 0;
+
+	return SCHED_CAPACITY_SCALE;
+}
+
 static inline
 unsigned long uclamp_rq_util_with(struct rq *rq, unsigned long util,
 				  struct task_struct *p)
