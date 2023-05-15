@@ -27,6 +27,55 @@
 
 static struct ufs_perf_s ufs_perf;
 
+void ufs_sprd_get_gic_reg(struct ufs_hba *hba)
+{
+	int ret;
+	u32 regdata[4];
+	u32 gic_reg_satrt;
+	u32 gic_reg_size;
+	struct device_node *gic_node;
+	struct irq_desc *ufs_irq_desc;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	gic_node = of_find_compatible_node(NULL, NULL, "arm,gic-v3");
+	if (!gic_node) {
+		dev_err(hba->dev, "get gic node failed!\n");
+		return;
+	}
+
+	ret = of_property_read_u32_array(gic_node, "reg", regdata, 4);
+	if (ret < 0) {
+		dev_err(hba->dev, "get gic reg failed!\n");
+		return;
+	}
+
+	ufs_irq_desc = irq_to_desc(hba->irq);
+	if (!ufs_irq_desc) {
+		dev_err(hba->dev, "get ufs_irq_desc failed!\n");
+		return;
+	}
+
+	/* gic enable addr = gic base addr + gic enable offset + hardware irq / 32 * 4 */
+	gic_reg_satrt = regdata[1] + 0x100 + (ufs_irq_desc->irq_data.hwirq / 32) * 4;
+	gic_reg_size = regdata[3];
+
+	host->gic_reg_enable = ioremap(gic_reg_satrt, gic_reg_size);
+	if (!host->gic_reg_enable)
+		dev_err(hba->dev, "gic reg ioremap failed!\n");
+}
+
+void ufs_sprd_print_gic_reg(struct ufs_hba *hba)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	if (host->gic_reg_enable) {
+		dev_err(hba->dev,
+			"gic:enable=0x%x gic:pending=0x%x gic:error=0x%x\n",
+			readl(host->gic_reg_enable), readl(host->gic_reg_enable + 0x100),
+			readl(host->gic_reg_enable + 0xd00));
+	}
+}
+
 static bool ufs_sprd_is_acc_forbid_after_h8_ee(struct ufs_hba *hba)
 {
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);

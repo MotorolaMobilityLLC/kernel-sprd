@@ -329,6 +329,8 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	host->hba = hba;
 	ufshcd_set_variant(hba, host);
 
+	ufs_sprd_get_gic_reg(hba);
+
 	host->check_stat_after_suspend = ufs_sprd_check_stat_after_suspend;
 
 	host->caps |= UFS_SPRD_CAP_ACC_FORBIDDEN_AFTER_H8_EE;
@@ -946,5 +948,8 @@ const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops = {
 	.suspend = ufs_sprd_suspend,
 	.event_notify = ufs_sprd_update_evt_hist,
 	.program_key = ufs_sprd_program_key,
+#if IS_ENABLED(CONFIG_SPRD_DEBUG)
+	.print_gic_reg = ufs_sprd_print_gic_reg,
+#endif
 };
 EXPORT_SYMBOL(ufs_hba_sprd_ums9621_vops);

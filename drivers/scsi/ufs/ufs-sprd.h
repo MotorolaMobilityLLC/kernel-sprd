@@ -36,6 +36,8 @@ struct ufs_sprd_host {
 	u32 times_post_compare_fail;
 	struct completion pwm_async_done;
 	struct completion hs_async_done;
+	/* gic enable register address */
+	void __iomem *gic_reg_enable;
 
 	int (*check_stat_after_suspend)(struct ufs_hba *hba,
 					enum ufs_notify_change_status);
@@ -92,6 +94,8 @@ static inline unsigned int ms_to_index(unsigned int ms)
 
 int ufs_sprd_get_syscon_reg(struct device_node *np,
 			    struct syscon_ufs *reg, const char *name);
+void ufs_sprd_get_gic_reg(struct ufs_hba *hba);
+void ufs_sprd_print_gic_reg(struct ufs_hba *hba);
 
 extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops;
 extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops;

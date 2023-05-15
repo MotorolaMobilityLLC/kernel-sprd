@@ -790,6 +790,7 @@ static enum blk_eh_timer_return ufs_sprd_eh_timed_out(struct scsi_cmnd *scmd)
 	struct Scsi_Host *host = scmd->device->host;
 	struct ufs_hba *hba = shost_priv(host);
 
+	ufs_sprd_print_gic_reg(hba);
 	ufs_sprd_update_err_cnt(hba, 0, UFS_SCSI_TIMEOUT);
 
 	if (sprd_ufs_debug_is_supported(hba) == TRUE)
