@@ -233,7 +233,7 @@ static int sprd_snfc_erase(struct sprd_nfc *host, u32 page)
 
 	host->nfc_sts_mach_val = MACH_ERASE;
 	host->nfc_time0_val = host->nfc_time0_e;
-	host->nfc_cfg0_val = (host->nfc_cfg0 | CFG0_SET_NFC_MODE(2));
+	host->nfc_cfg0_val = (host->nfc_cfg0 | CFG0_SET_NFC_MODE(ONLY_NAND_MODE));
 
 	host->int_ops->cmd_change(host, inst, page);
 	sprd_nfc_cmd_exec(host, inst, 1, 0);
