@@ -261,8 +261,10 @@
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&pmic_typec>;
-	sprd,hsphy-device-eye-pattern = <0x0613d1c0>;
-	sprd,hsphy-host-eye-pattern = <0x04f3d1c0>;
+	/* first value is device eye-patt setting, the second is host */
+	sprd,hsphy-tunehsamp = /bits/ 8 <0x03 0x03>;
+	sprd,hsphy-tuneeq = /bits/ 8 <0x00 0x00>;
+	sprd,hsphy-tfregres = /bits/ 8 <0x02 0x02>;
 	status = "okay";
 };
 
