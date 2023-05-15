@@ -24,6 +24,7 @@
 #include "ufs-sprd-bootdevice.h"
 #include "ufs-sprd-debug.h"
 #include "ufshpb.h"
+#include "ufs-sprd-health-device.h"
 
 static struct ufs_perf_s ufs_perf;
 
@@ -113,6 +114,13 @@ static void ufs_sprd_vh_prepare_command(void *data, struct ufs_hba *hba,
 
 	if (unlikely(host->ffu_is_process == TRUE))
 		prepare_command_send_in_ffu_state(hba, lrbp, err);
+
+	if ((lrbp->cmd->cmnd[0] == READ_BUFFER) || (lrbp->cmd->cmnd[0] == WRITE_BUFFER)) {
+		if (hba->dev_info.wmanufacturerid == UFS_VENDOR_YMTC) {
+			if ((lrbp->cmd->cmnd[1] & WB_MODE_MASK) == VENDOR_SPECIFIC_MODE)
+				lrbp->lun = 0;
+		}
+	}
 
 	return;
 }
@@ -235,6 +243,7 @@ static void ufs_sprd_vh_update_sysfs(void *data,
 					struct ufs_hba *hba)
 {
 	ufs_sprd_sysfs_add_nodes(hba);
+	ufs_sprd_sysfs_add_health_device_nodes(hba);
 }
 
 static void ufs_sprd_vh_send_cmd(void *data,
