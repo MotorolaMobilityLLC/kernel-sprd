@@ -29,7 +29,7 @@
 #include "sipa_debug.h"
 #include "sipa_priv.h"
 #include "sipa_hal.h"
-
+#include "sipa_test.h"
 
 static int sipa_flow_ctrl_show(struct seq_file *s, void *unused)
 {
@@ -400,10 +400,14 @@ int sipa_init_debugfs(struct sipa_plat_drv_cfg *ipa)
 		goto err1;
 	}
 
+	ipa->debugfs_root = root;
+
+	ret = sipa_test_init(ipa);
+	if (ret)
+		goto err1;
+
 	debugfs_create_symlink("sipa", NULL,
 			       "/sys/kernel/debug/25220000.sipa");
-
-	ipa->debugfs_root = root;
 
 	return 0;
 

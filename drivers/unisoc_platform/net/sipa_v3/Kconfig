@@ -33,4 +33,15 @@ config UNISOC_SIPA_USB
 	  This module is a usb network card virtualized on the basis of sipa,
 	  it is only used to send Cellular network data.
 
+config UNISOC_SIPA_V3_GCOV
+	bool "open gcov for sipa_v3"
+	default n
+	depends on GCOV_PROFILE_MODULES
+	help
+	  Say Y here to enable sipa_v3 gcov, this can support ltp for sipa_v3.
+          so sipa_v3 gcov will success.
+
+	  It is only enable for sipa v3 gcov, this can make ltp for SIPA_V3
+          be ok.
+
 endmenu
