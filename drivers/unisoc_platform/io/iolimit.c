@@ -13,6 +13,9 @@
 #include <linux/sched/signal.h>
 #include <trace/hooks/mm.h>
 
+#define CREATE_TRACE_POINTS
+#include "trace.h"
+
 //IO control's window is selected as (1/8)s.
 #define WAIT_PARTS_NUM		(8)
 #define WAIT_INTERNAL_JIF	(HZ/WAIT_PARTS_NUM)
@@ -102,6 +105,8 @@ void do_io_write_bandwidth_control(int count)
 	struct cgroup_subsys_state *css;
 	int io_space_cnt;
 	int ret;
+	unsigned long start_time = jiffies;
+	unsigned long delta;
 
 repeat:
 	rcu_read_lock();
@@ -147,7 +152,9 @@ repeat:
 out_rcu:
 	rcu_read_unlock();
 out:
-	return;
+	delta = jiffies - start_time;
+	if (delta > 0)
+		trace_iolimit_write_control(delta);
 }
 
 static void io_write_bandwidth_control(void *data, void *unuse)
