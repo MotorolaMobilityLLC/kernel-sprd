@@ -184,6 +184,7 @@ struct sdhci_sprd_host {
 	u32 tuning_flag;
 	u32 cpst_cmd_dly;
 	u32 int_status;
+	bool tuning_merged;
 	bool cmd_dly_all_pass;
 	bool wait_read_idle;
 };
@@ -973,22 +974,32 @@ out:
 
 static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 {
+	struct sdhci_host *host = mmc_priv(mmc);
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	enum sdhci_sprd_tuning_type type = SDHCI_SPRD_TUNING_DEFAULT;
 	int err = 0;
 
 	/*
 	 * For better compatibility with some SD Cards,
-	 * it must tuning CMD Line and DATA Line separately
+	 * if a sd card failed in tuning CMD and DATA line merged,
+	 * it must tuning CMD Line and DATA Line separately afterwards
 	 */
 	if (!strcmp(mmc_hostname(mmc), "mmc1")) {
-		if ((mmc->ios.timing == MMC_TIMING_UHS_SDR104) ||
-			(mmc->ios.timing == MMC_TIMING_UHS_SDR50))
+		if (sprd_host->tuning_merged == false &&
+			((mmc->ios.timing == MMC_TIMING_UHS_SDR104) ||
+			 (mmc->ios.timing == MMC_TIMING_UHS_SDR50)))
 			type = SDHCI_SPRD_TUNING_SD_UHS_CMD;
 		else if (mmc->ios.timing == MMC_TIMING_SD_HS)
 			type = SDHCI_SPRD_TUNING_SD_HS;
 	}
 
 	err = sdhci_sprd_tuning(mmc, opcode, type);
+	if (!strcmp(mmc_hostname(mmc), "mmc1") && err && sprd_host->tuning_merged) {
+		pr_err("%s: cmd and data tuning merged failed, afterwards tuning separately\n",
+			mmc_hostname(mmc));
+		sprd_host->tuning_merged = false;
+	}
+
 	if (!err && (type == SDHCI_SPRD_TUNING_SD_UHS_CMD)) {
 		type = SDHCI_SPRD_TUNING_SD_UHS_DATA;
 		err = sdhci_sprd_tuning(mmc, opcode, type);
@@ -1132,6 +1143,9 @@ static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 				       mmc_hostname(host->mmc), ret);
 			mmc->ios.vdd = old_vdd;
 			mmc->ios.signal_voltage = old_signal_voltage;
+
+			// restore tuning cmd and data merged after card removed
+			sprd_host->tuning_merged = true;
 		}
 
 		sdhci_sprd_signal_voltage_on_off(host, 0);
@@ -1879,6 +1893,7 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	host->mmc->max_current_180 = SDHCI_SPRD_MAX_CUR;
 
 	sprd_host->flags = host->flags;
+	sprd_host->tuning_merged = true;
 
 	if (sprd_host->support_swcq) {
 		ret = mmc_hsq_swcq_init(host, pdev);
