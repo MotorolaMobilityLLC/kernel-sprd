@@ -3,7 +3,7 @@
 	fragment {
 		target-path = "/";
 		__overlay__ {
-			cpwcn-btwf {
+			cpwcn_btwf {
 				wcn-dump {
 					btwf-dump {
 						/* base    size    offset    domain */
@@ -43,7 +43,7 @@
 	fragment {
 		target-path = "/";
 		__overlay__ {
-			cpwcn-gnss {
+			cpwcn_gnss {
 				wcn-dump {
 					gnss-dump {
 						/* Ordered according to GNSS dump parse script */
