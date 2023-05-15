@@ -378,8 +378,10 @@ static void sprd_complete_tx_dma(void *data)
 
 	status = dmaengine_tx_status(i2c_dev->dma.dma_chan[SPRD_I2C_TX],
 					i2c_dev->dma.cookie, &state);
-	if (status != DMA_COMPLETE)
-		dev_err(i2c_dev->dev, "tx dma tansfer complete status error!\n");
+	if (status != DMA_COMPLETE) {
+		dev_err(i2c_dev->dev, "tx dma_chn tansfer complete status error!\n");
+		i2c_dev->err = -ECOMM;
+	}
 
 	complete(&i2c_dev->dma_complete);
 }
@@ -392,8 +394,10 @@ static void sprd_complete_rx_dma(void *data)
 
 	status = dmaengine_tx_status(i2c_dev->dma.dma_chan[SPRD_I2C_RX],
 					i2c_dev->dma.cookie, &state);
-	if (status != DMA_COMPLETE)
-		dev_err(i2c_dev->dev, "rx dma tansfer complete status error!\n");
+	if (status != DMA_COMPLETE) {
+		dev_err(i2c_dev->dev, "rx dma_chn tansfer complete status error!\n");
+		i2c_dev->err = -ECOMM;
+	}
 
 	complete(&i2c_dev->dma_complete);
 }
@@ -536,7 +540,6 @@ static int sprd_i2c_dma_handle_msg(struct i2c_adapter *i2c_adap,
 		}
 	}
 
-	sprd_i2c_enable_dma(i2c_dev, true);
 	reinit_completion(&i2c_dev->complete);
 	reinit_completion(&i2c_dev->dma_complete);
 
@@ -547,12 +550,16 @@ static int sprd_i2c_dma_handle_msg(struct i2c_adapter *i2c_adap,
 	else if (msg->flags & I2C_3M4_FLAG)
 		sprd_i2c_set_clk(i2c_dev, 3400000);
 
+	sprd_i2c_enable_dma(i2c_dev, true);
 	sprd_i2c_opt_start(i2c_dev);
 
 	i2c_time_left = wait_for_completion_timeout(&i2c_dev->complete,
 				msecs_to_jiffies(I2C_DMA_XFER_TIMEOUT));
 	dma_time_left = wait_for_completion_timeout(&i2c_dev->dma_complete,
 				msecs_to_jiffies(DMA_XFER_TIMEOUT));
+
+	sprd_i2c_clear_start(i2c_dev);
+	sprd_i2c_enable_dma(i2c_dev, false);
 
 	if (msg->flags & I2C_M_RD) {
 		dma_unmap_single(i2c_dev->dev,
@@ -568,9 +575,6 @@ static int sprd_i2c_dma_handle_msg(struct i2c_adapter *i2c_adap,
 		i2c_put_dma_safe_msg_buf(dma_buf_write, msg, true);
 	}
 
-	sprd_i2c_clear_start(i2c_dev);
-	sprd_i2c_enable_dma(i2c_dev, false);
-
 	if ((!i2c_time_left) || (!dma_time_left)) {
 		dev_err(i2c_dev->dev, "addr: 0x%x dma transfertimeout!\n", msg->addr);
 		sprd_i2c_dump_reg(i2c_dev);
@@ -582,10 +586,7 @@ static int sprd_i2c_dma_handle_msg(struct i2c_adapter *i2c_adap,
 		return -ETIMEDOUT;
 	}
 
-	if (!i2c_dev->ack_flag)
-		return -EIO;
-
-	return 0;
+	return i2c_dev->err;
 }
 
 static int sprd_i2c_dma_request(struct sprd_i2c *i2c_dev)
@@ -644,27 +645,36 @@ static int sprd_i2c_master_xfer(struct i2c_adapter *i2c_adap,
 				struct i2c_msg *msgs, int num)
 {
 	struct sprd_i2c *i2c_dev = i2c_adap->algo_data;
-	int im, ret;
+	int im = 0;
+	int ret;
 
 	ret = pm_runtime_resume_and_get(i2c_dev->dev);
 	if (ret < 0)
 		return ret;
 
-	sprd_i2c_enable(i2c_dev);
-
-	for (im = 0; im < num; im++) {
-		if (!i2c_dev->dma.dma_enable) {
-			ret = sprd_i2c_handle_msg(i2c_adap, &msgs[im], im == num - 1);
-			if (ret)
-				goto err_msg;
-		} else {
-			ret = sprd_i2c_dma_handle_msg(i2c_adap, &msgs[im], im == num - 1);
-			if (ret)
-				goto err_msg;
+	if (i2c_dev->dma.dma_enable) {
+		ret = sprd_i2c_dma_request(i2c_dev);
+		if (ret) {
+			dev_err(i2c_dev->dev, "i2c xfer dma request failed!\n");
+			goto err_msg;
 		}
 	}
 
+	sprd_i2c_enable(i2c_dev);
+
+	for (im = 0; im < num; im++) {
+		if (!i2c_dev->dma.dma_enable)
+			ret = sprd_i2c_handle_msg(i2c_adap, &msgs[im], im == num - 1);
+		else
+			ret = sprd_i2c_dma_handle_msg(i2c_adap, &msgs[im], im == num - 1);
+
+		if (ret)
+			goto err_msg;
+	}
+
 err_msg:
+	if (i2c_dev->dma.dma_enable)
+		sprd_i2c_dma_release(i2c_dev);
 	pm_runtime_mark_last_busy(i2c_dev->dev);
 	pm_runtime_put_autosuspend(i2c_dev->dev);
 
@@ -795,11 +805,15 @@ static irqreturn_t sprd_i2c_isr(int irq, void *dev_id)
 static irqreturn_t sprd_i2c_dma_isr(int irq, void *dev_id)
 {
 	struct sprd_i2c *i2c_dev = dev_id;
+	struct i2c_msg *msg = i2c_dev->msg;
 
 	i2c_dev->err = 0;
 	i2c_dev->ack_flag = !(readl(i2c_dev->base + I2C_STATUS) & I2C_RX_ACK);
-	if (!i2c_dev->ack_flag)
+	if (!i2c_dev->ack_flag) {
+		if (msg->flags & I2C_M_RD)
+			complete(&i2c_dev->dma_complete);
 		i2c_dev->err = -EIO;
+	}
 
 	sprd_i2c_clear_irq(i2c_dev);
 	sprd_i2c_clear_ack(i2c_dev);
@@ -918,14 +932,13 @@ static int sprd_i2c_probe(struct platform_device *pdev)
 		dev_info(i2c_dev->dev, "dma_TX_chnID = %d\n",
 			i2c_dev->dma.dma_chan[SPRD_I2C_TX]->chan_id);
 		i2c_dev->dma.dma_enable = true;
+		sprd_i2c_dma_release(i2c_dev);
 		init_completion(&i2c_dev->dma_complete);
 	}
 
 	ret = clk_prepare_enable(i2c_dev->clk);
-	if (ret) {
-		sprd_i2c_dma_release(i2c_dev);
+	if (ret)
 		return ret;
-	}
 
 	sprd_i2c_enable(i2c_dev);
 
@@ -985,9 +998,6 @@ static int sprd_i2c_remove(struct platform_device *pdev)
 	i2c_del_adapter(&i2c_dev->adap);
 	clk_disable_unprepare(i2c_dev->clk);
 
-	if (i2c_dev->dma.dma_enable)
-		sprd_i2c_dma_release(i2c_dev);
-
 	pm_runtime_put_noidle(i2c_dev->dev);
 	pm_runtime_disable(i2c_dev->dev);
 
@@ -1015,10 +1025,6 @@ static int __maybe_unused sprd_i2c_runtime_suspend(struct device *dev)
 	struct sprd_i2c *i2c_dev = dev_get_drvdata(dev);
 
 	clk_disable_unprepare(i2c_dev->clk);
-
-	if (i2c_dev->dma.dma_enable)
-		sprd_i2c_dma_release(i2c_dev);
-
 	return 0;
 }
 
@@ -1028,18 +1034,6 @@ static int __maybe_unused sprd_i2c_runtime_resume(struct device *dev)
 	int ret;
 
 	ret = clk_prepare_enable(i2c_dev->clk);
-	if (ret)
-		return ret;
-
-	if (!i2c_dev->dma.dma_enable)
-		return 0;
-
-	ret = sprd_i2c_dma_request(i2c_dev);
-	if (ret) {
-		clk_disable_unprepare(i2c_dev->clk);
-		dev_err(i2c_dev->dev, "runime resume dma request failed!\n");
-	}
-
 	return ret;
 
 }
