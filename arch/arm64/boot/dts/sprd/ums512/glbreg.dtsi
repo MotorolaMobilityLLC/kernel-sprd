@@ -137,6 +137,8 @@
 		apapb_gate: apapb-gate {
 			compatible = "sprd,ums512-apapb-gate";
 			reg = <0x0 0x3000>;
+			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
 			#clock-cells = <1>;
 			#reset-cells = <1>;
 		};
@@ -152,9 +154,9 @@
 
 		gpu_clk: gpu-clk {
 			compatible = "sprd,ums512-gpu-clk";
+			reg = <0x0 0x100>;
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
-			reg = <0x0 0x100>;
 			#clock-cells = <1>;
 			#reset-cells = <1>;
 		};
