@@ -17,6 +17,9 @@
 #include "lcd/lcd_nt35596_boe_mipi_fhd.dtsi"
 #include "reserved-memory/sp9863a-1h10-overlay.dtsi"
 #include "touchscreen/sp9863a-i2c3-gpio144-145-tp.dtsi"
+#include "sc9863a/sc9863a-wcn.dtsi"
+#include "wcn/wcn_modules.h"
+#include "wcn/chip/wcn-integrate-sharkl3-register.dtsi"
 
 / {
 	model = "Unisoc SP9863A 1H10 board";
