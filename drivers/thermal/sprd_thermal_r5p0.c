@@ -99,7 +99,7 @@
 #define SPRD_OTPTEMP			120000
 #define SPRD_HOTTEMP			75000
 #define SPRD_RAW_DATA_LOW		0
-#define SPRD_RAW_DATA_HIGH		1000
+#define SPRD_RAW_DATA_HIGH		1023
 #define SPRD_THM_SEN_NUM		8
 #define SPRD_THM_DT_OFFSET		24
 #define SPRD_THM_RATION_OFFSET		17
@@ -521,23 +521,17 @@ disable_clk:
 	return ret;
 }
 
-static int sprd_thm_hw_suspend(struct sprd_thermal_data *thm)
+static void sprd_thm_hw_suspend(struct sprd_thermal_data *thm)
 {
 	struct sprd_thermal_sensor *sen, *temp;
-	int ret;
 
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node) {
 		sprd_thm_update_bits(sen->base + SPRD_THM_CTL,
 				     sen->enable, 0x0);
 	}
 
-	ret = sprd_thm_poll_ready_status(thm);
-	if (ret)
-		return ret;
-
 	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL,
 			     SPRD_THM_EN, 0x0);
-	return ret;
 }
 
 static int sprd_thm_hw_resume(struct sprd_thermal_data *thm)
@@ -564,21 +558,18 @@ static int sprd_thm_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct sprd_thermal_data *thm = dev_get_drvdata(&pdev->dev);
 	struct sprd_thermal_sensor *sen, *temp;
-	int ret;
 
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node)
 		sen->ready = false;
 
-	ret = sprd_thm_hw_suspend(thm);
-	if (ret)
-		dev_info(&pdev->dev, "thermal suspend fail\n");
+	sprd_thm_hw_suspend(thm);
 
 	writel(0x00, thm->regbase + SPRD_THM_CTL);
 	udelay(2000);
 
 	clk_disable_unprepare(thm->clk);
 
-	return ret;
+	return 0;
 }
 
 static int sprd_thm_resume(struct platform_device *pdev)
