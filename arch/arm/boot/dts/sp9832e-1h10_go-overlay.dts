@@ -90,10 +90,9 @@
 								124872 43 >;
 			};
 
-			sunwave-fp {
-				compatible = "sunwave,fingerprint";
-				sunwave,reset-gpio = <&ap_gpio 131 0>;
-				sunwave,irq-gpio = <&eic_async 13 0>;
+			fingerprint@0 {
+				compatible = "microarray,afs121";
+				fpint-gpios = <&eic_async 13 0>;
 			};
 
 			pwm_backlight: sprd_backlight {
