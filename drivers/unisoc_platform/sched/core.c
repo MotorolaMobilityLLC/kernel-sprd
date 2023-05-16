@@ -441,6 +441,8 @@ static __init int sched_module_init(void)
 
 	proc_cpuload_init();
 
+	init_multithread_opt();
+
 	return 0;
 }
 core_initcall(sched_module_init);

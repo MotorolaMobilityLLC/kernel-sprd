@@ -29,6 +29,7 @@ unsigned int sysctl_sched_long_running_rt_task_ms = CONFIG_UNISOC_RT_TIMEOUT_DET
 unsigned int sysctl_sched_rt_task_timeout_panic;
 #endif
 unsigned int sysctl_sched_task_util_prefer_little;
+unsigned int sysctl_cpu_multi_thread_opt;
 
 /*up cap margin default value: ~20%*/
 static unsigned int sysctl_sched_cap_margin_up_pct[MAX_CLUSTERS] = {
@@ -366,6 +367,15 @@ struct ctl_table sched_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= &one_thousand,
+	},
+	{
+		.procname	= "sched_cpu_multi_thread_opt",
+		.data		= &sysctl_cpu_multi_thread_opt,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
 	},
 #ifdef CONFIG_UNISOC_GROUP_BOOST
 	{
