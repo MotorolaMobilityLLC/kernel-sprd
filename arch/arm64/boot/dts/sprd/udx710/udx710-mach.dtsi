@@ -24,6 +24,10 @@
 			reg = <0x0 0x80000000 0x0 0x00001000>;
 		};
 
+		sysdump_reserved: sysdumpinfo-mem@80001000 {
+			reg = <0x0 0x80001000 0x0 0x00001000>;
+		};
+
 		sml_reserved: sml-mem@85300000 {
 			reg = <0x0 0x85300000 0x0 0x00020000>;
 		};
@@ -54,7 +58,6 @@
 		};
 
 		uboot_reserved: sysdump-uboot@9f000000 {
-			compatible = "detour-mem";
 			reg = <0x0 0x9f000000 0x0 0x00fc0000>;
 		};
 	};
