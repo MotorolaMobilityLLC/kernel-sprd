@@ -63,10 +63,10 @@ endif
 
 ifeq ($(BSP_BUILD_FAMILY),qogirn6l)
 dtb-$(CONFIG_ARCH_SPRD) += \
-    ums9610-haps-overlay.dtbo \
-    ums9610-zebu-flash-overlay.dtbo \
+	ums9610-haps-overlay.dtbo \
+	ums9610-zebu-flash-overlay.dtbo \
 	ums9621-1h10-overlay.dtbo \
-    ums9610-zebu-overlay.dtbo
+	ums9610-zebu-overlay.dtbo
 
 ums9610-haps-overlay.dtbo-base := ums9610-base.dtb
 ums9621-1h10-overlay.dtbo-base := ums9621-base.dtb
@@ -76,9 +76,22 @@ endif
 
 ifeq ($(BSP_BUILD_FAMILY),qogirn7)
 dtb-$(CONFIG_ARCH_SPRD) += \
-    ums9650-haps-overlay.dtbo
+	ums9650-haps-overlay.dtbo
 
 ums9650-haps-overlay.dtbo-base := ums9650-base.dtb
+endif
+
+ifeq ($(BSP_BUILD_FAMILY),uis8520)
+dtb-$(CONFIG_ARCH_SPRD) += \
+	uis8520-k515-zebu-overlay.dtbo \
+	uis8520-k515-haps-overlay.dtbo \
+	uis8520-haps-nand-overlay.dtbo \
+	uis8520-haps-spi-nand-overlay.dtbo
+
+uis8520-k515-zebu-overlay.dtbo-base := uis8520-base.dtb
+uis8520-k515-haps-overlay.dtbo-base := uis8520-base.dtb
+uis8520-haps-nand-overlay.dtbo-base := uis8520-base.dtb
+uis8520-haps-spi-nand-overlay.dtbo-base := uis8520-base.dtb
 endif
 
 endif #//BSP_BUILD_ANDROID_OS
