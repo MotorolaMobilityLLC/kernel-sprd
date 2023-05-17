@@ -4,9 +4,15 @@ KERNEL_DIR=${KERNEL_DIR}"/.."
 BUILD_SYSTEM_DLKM=0
 DEFCONFIG=ums9230_gki_defconfig
 FRAGMENT_CONFIG=${KERNEL_DIR}/arch/arm64/configs/sprd_gki_sharkl6_debug.fragment
+UMS9230_BASE_CONFIG="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig
+                     ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_gki_sharkl6.fragment
+                    "
+if [[ $BSP_PRODUCT_NAME_TAIL == "Skynet" ]]; then
+	UMS9230_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_${BSP_PRODUCT_NAME_TAIL}.fragment"
+fi
+
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \
-${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig \
-${KERNEL_DIR}/arch/arm64/configs/sprd_gki_sharkl6.fragment ${ROOT_DIR}/${FRAGMENT_CONFIG}"
+${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${UMS9230_BASE_CONFIG} ${ROOT_DIR}/${FRAGMENT_CONFIG}"
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG}"
 
 if [[ $BSP_SPECIFIED_KO_CONFIG == "true" && $BSP_UD_PREBUILTS_FLAG == "true" ]]; then
