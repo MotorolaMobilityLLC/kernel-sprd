@@ -7644,7 +7644,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	psy_cfg.attr_grp = desc->sysfs_groups;
 	psy_cfg.of_node = np;
 
-	cm->charger_psy = power_supply_register(&pdev->dev,
+	cm->charger_psy = devm_power_supply_register(&pdev->dev,
 						&cm->charger_psy_desc,
 						&psy_cfg);
 	if (IS_ERR(cm->charger_psy)) {
@@ -7657,7 +7657,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 		ARRAY_SIZE(charger_manager_supplied_to);
 
 	wireless_main.cm = cm;
-	wireless_main.psy = power_supply_register(&pdev->dev, &wireless_main.psd, NULL);
+	wireless_main.psy = devm_power_supply_register(&pdev->dev, &wireless_main.psd, NULL);
 	if (IS_ERR(wireless_main.psy)) {
 		dev_err(&pdev->dev, "Cannot register wireless_main.psy with name \"%s\"\n",
 			wireless_main.psd.name);
@@ -7665,7 +7665,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	ac_main.cm = cm;
-	ac_main.psy = power_supply_register(&pdev->dev, &ac_main.psd, NULL);
+	ac_main.psy = devm_power_supply_register(&pdev->dev, &ac_main.psd, NULL);
 	if (IS_ERR(ac_main.psy)) {
 		dev_err(&pdev->dev, "Cannot register usb_main.psy with name \"%s\"\n",
 			ac_main.psd.name);
@@ -7673,7 +7673,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	}
 
 	usb_main.cm = cm;
-	usb_main.psy = power_supply_register(&pdev->dev, &usb_main.psd, NULL);
+	usb_main.psy = devm_power_supply_register(&pdev->dev, &usb_main.psd, NULL);
 	if (IS_ERR(usb_main.psy)) {
 		dev_err(&pdev->dev, "Cannot register usb_main.psy with name \"%s\"\n",
 			usb_main.psd.name);
@@ -7758,7 +7758,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 err:
 
-	power_supply_unregister(cm->charger_psy);
 	wakeup_source_remove(cm->charge_ws);
 
 	return ret;
