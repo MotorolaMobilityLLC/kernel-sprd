@@ -6,9 +6,9 @@
  *
  */
 
-&soc {
-	pin_controller: pinctrl@32450000 {
-		compatible = "sprd,sharkl5Pro-pinctrl";
-		reg = <0 0x32450000 0 0x3000>;
+&aon {
+	pin_controller: pinctrl@64710000 {
+		compatible = "sprd,qogirl6-pinctrl";
+		reg = <0 0x64710000 0 0x10000>;
 	};
 };

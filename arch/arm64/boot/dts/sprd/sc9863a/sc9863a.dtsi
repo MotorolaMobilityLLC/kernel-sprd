@@ -725,7 +725,6 @@
 
 
 /* Include other IP modules in ALPHABETICAL order */
-#include "audio.dtsi"
 #include "ddr-dfs.dtsi"
 #include "dma.dtsi"
 #include "glbreg.dtsi"
@@ -735,6 +734,7 @@
 #include "modem.dtsi"
 #include "pwm.dtsi"
 #include "pin-controller.dtsi"
+#include "audio.dtsi"
 #include "spi.dtsi"
 #include "uart.dtsi"
 #include "efuse.dtsi"
@@ -742,4 +742,3 @@
 #include "usb.dtsi"
 #include "dispc.dtsi"
 #include "vsp.dtsi"
-

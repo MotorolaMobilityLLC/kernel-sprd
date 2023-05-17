@@ -262,3 +262,25 @@
 		status = "disabled";
 	};
 };
+
+&pin_controller {
+	vbc_iis3_0: iis-matrix-cfg-inf0@e {
+		pins = "SHARKL5_IIS_INF0_SYS_SEL";
+		sprd,control = <0xe>;
+	};
+
+	vbc_iism0_0: iis-matrix-cfg-inf0@f {
+		pins = "SHARKL5_IIS_INF0_SYS_SEL";
+		sprd,control = <0xf>;
+	};
+
+	vbc_iis_to_pad: vbc-iis-inf-sys@0 {
+		pins = "SHARKL5_VBC_IIS_INF_SYS_SEL";
+		sprd,control = <0x0>;
+	};
+
+	vbc_iis_to_aon_usb: vbc-iis-inf-sys@1 {
+		pins = "SHARKL5_VBC_IIS_INF_SYS_SEL";
+		sprd,control = <0x1>;
+	};
+};

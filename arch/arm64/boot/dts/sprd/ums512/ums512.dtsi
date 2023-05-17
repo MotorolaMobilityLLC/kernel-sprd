@@ -428,7 +428,6 @@
 /* Include other IP modules in ALPHABETICAL order */
 #include "apb_prot.dtsi"
 #include "apcpu-dvfs.dtsi"
-#include "audio.dtsi"
 #include "bm.dtsi"
 #include "cam.dtsi"
 #include "coresight.dtsi"
@@ -448,6 +447,7 @@
 #include "mipi-serdes.dtsi"
 #include "modem.dtsi"
 #include "pin-controller.dtsi"
+#include "audio.dtsi"
 #include "power.dtsi"
 #include "ptm.dtsi"
 #include "qos.dtsi"

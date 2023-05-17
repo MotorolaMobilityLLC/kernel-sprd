@@ -410,7 +410,6 @@
 
 /* Include other IP modules ALPHABETICALLY */
 #include "apb_prot.dtsi"
-#include "audio.dtsi"
 #include "apcpu-dvfs.dtsi"
 #include "bm.dtsi"
 #include "cam.dtsi"
@@ -430,6 +429,7 @@
 #include "mipi-serdes.dtsi"
 #include "modem.dtsi"
 #include "pin-controller.dtsi"
+#include "audio.dtsi"
 #include "power.dtsi"
 #include "ptm.dtsi"
 #include "sensorhub.dtsi"
