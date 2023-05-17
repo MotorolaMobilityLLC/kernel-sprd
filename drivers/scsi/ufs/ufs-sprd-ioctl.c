@@ -6,8 +6,6 @@
  *
  */
 
-#include <linux/reboot.h>
-
 #include "ufshcd.h"
 #include "ufs-sprd.h"
 #include "ufs-sprd-ioctl.h"
@@ -116,6 +114,7 @@ int sprd_ufs_ioctl_ffu(struct scsi_device *dev, void __user *buf_user)
 	struct ufs_sprd_host *sprd_ufs = ufshcd_get_variant(hba);
 	struct ufs_ioctl_ffu_data *idata = NULL;
 	struct ufs_ioctl_ffu_data *idata_user = NULL;
+	int rst_retries = 5;
 	int err = 0;
 	u32 attr = 0;
 
@@ -127,36 +126,40 @@ int sprd_ufs_ioctl_ffu(struct scsi_device *dev, void __user *buf_user)
 
 	idata_user = kzalloc(sizeof(struct ufs_ioctl_ffu_data), GFP_KERNEL);
 	if (!idata_user) {
-		kfree(idata);
 		err = -ENOMEM;
 		goto out;
 	}
 
-	err = copy_from_user(idata_user, buf_user,
-		sizeof(struct ufs_ioctl_ffu_data));
+	err = copy_from_user(idata_user, buf_user, sizeof(struct ufs_ioctl_ffu_data));
 	if (err) {
 		dev_err(hba->dev,
 			"%s: failed copying buffer from user, err %d\n",
 			__func__, err);
-		kfree(idata);
-		kfree(idata_user);
+		goto out;
+	}
+
+	if (idata_user->buf_byte > UFS_IOCTL_FFU_MAX_FW_SIZE) {
+		dev_err(hba->dev,
+			"%s: fw size(%d) exceeds max limit 2MB, stop FFU!\n",
+			__func__, idata_user->buf_byte);
+		err = -EFBIG;
 		goto out;
 	}
 
 	memcpy(idata, idata_user, sizeof(struct ufs_ioctl_ffu_data));
-
-	idata->buf_ptr = NULL;
 	idata->buf_ptr = kzalloc(idata->buf_byte, GFP_KERNEL);
-
 	if (!idata->buf_ptr) {
 		err = -ENOMEM;
-		goto out_release_mem;
+		goto out;
 	}
 
-	if (copy_from_user(idata->buf_ptr,
-		(void __user *)idata_user->buf_ptr, idata->buf_byte)) {
-		err = -EFAULT;
-		goto out_release_mem;
+	err = copy_from_user(idata->buf_ptr,
+		(void __user *)idata_user->buf_ptr, idata->buf_byte);
+	if (err) {
+		dev_err(hba->dev,
+			"%s: failed copying FW from user, err %d\n",
+			__func__, err);
+		goto out;
 	}
 
 	sprd_ufs->ffu_is_process = TRUE;
@@ -170,6 +173,20 @@ int sprd_ufs_ioctl_ffu(struct scsi_device *dev, void __user *buf_user)
 	sprd_ufs->ffu_is_process = FALSE;
 
 	/*
+	 * To achieve fw update during boot step, new FW is activated
+	 * directly using reset UFS.
+	 */
+	do {
+		err = ufshcd_link_recovery(hba);
+		if (err)
+			dev_err(hba->dev, "%s: ufs reset failed, err %d\n",
+				__func__, err);
+	} while (err && --rst_retries);
+
+	if (err)
+		goto out;
+
+	/*
 	 * Check bDeviceFFUStatus attribute
 	 *
 	 * For reference only since UFS spec. said the status is valid after
@@ -177,33 +194,31 @@ int sprd_ufs_ioctl_ffu(struct scsi_device *dev, void __user *buf_user)
 	 */
 	err = ufshcd_query_attr(hba, UPIU_QUERY_OPCODE_READ_ATTR,
 		QUERY_ATTR_IDN_FFU_STATUS, 0, 0, &attr);
-
 	if (err) {
 		dev_err(hba->dev, "%s: query bDeviceFFUStatus failed, err %d\n",
 			__func__, err);
-		goto out_release_mem;
+		goto out;
 	}
 
-	if (attr > UFS_FFU_STATUS_SUCCESSFUL_UPDATE)
+	if (attr != UFS_FFU_STATUS_SUCCESSFUL_UPDATE) {
 		dev_err(hba->dev, "%s: bDeviceFFUStatus shows fail %d (ref only)\n",
 			__func__, attr);
-	else
-		dev_info(hba->dev, "%s: UFS FFU UPDATE SUCCESS!!!\n", __func__);
+		err = -EFAULT;
+	} else {
+		dev_notice(hba->dev, "%s: UFS FFU UPDATE SUCCESS!!!\n", __func__);
+	}
 
-out_release_mem:
-	if (idata->buf_ptr != NULL)
-		kfree(idata->buf_ptr);
-	if (idata != NULL)
-		kfree(idata);
-	if (idata_user != NULL)
-		kfree(idata_user);
 out:
+	if (idata)
+		kfree(idata->buf_ptr);
+	kfree(idata);
+	kfree(idata_user);
+
 	/*
 	 * UFS might not be used normally after FFU.
 	 * Just reboot system (including device) to avoid following
 	 * false alarm. For example, I/O errors.
 	 */
-	emergency_restart();
 
 	return err;
 }
@@ -221,7 +236,7 @@ int sprd_ufs_ioctl_get_dev_info(struct scsi_device *dev, void __user *buf_user)
 {
 	struct ufs_hba *hba;
 	struct ufs_ioctl_query_device_info *idata = NULL;
-	int err;
+	int err = 0;
 
 	if (dev)
 		hba = shost_priv(dev->host);
@@ -236,7 +251,6 @@ int sprd_ufs_ioctl_get_dev_info(struct scsi_device *dev, void __user *buf_user)
 	}
 
 	idata = kzalloc(sizeof(struct ufs_ioctl_query_device_info), GFP_KERNEL);
-
 	if (!idata) {
 		err = -ENOMEM;
 		goto out;
@@ -244,13 +258,13 @@ int sprd_ufs_ioctl_get_dev_info(struct scsi_device *dev, void __user *buf_user)
 
 	/* extract params from user buffer */
 	err = copy_from_user(idata, buf_user, sizeof(struct ufs_ioctl_query_device_info));
-
 	if (err) {
 		dev_err(hba->dev,
 			"%s: failed copying buffer from user, err %d\n",
 			__func__, err);
 		goto out_release_mem;
 	}
+
 	memcpy(idata->vendor, dev->vendor, UFS_IOCTL_FFU_MAX_VENDOR_BYTES);
 	memcpy(idata->model, dev->model, UFS_IOCTL_FFU_MAX_MODEL_BYTES);
 	memcpy(idata->fw_rev, dev->rev, UFS_IOCTL_FFU_MAX_FW_VER_BYTES);
@@ -267,7 +281,7 @@ out_release_mem:
 	kfree(idata);
 out:
 
-	return 0;
+	return err;
 }
 
 int sprd_ufs_ioctl_get_pwr_info(struct scsi_device *dev, void __user *buf_user, unsigned int cmd)
@@ -340,7 +354,7 @@ out:
 	return err;
 }
 
-static int wait_for_ufs_all_complete(struct ufs_hba *hba, int timeout_ms)
+static int ffu_wait_for_all_cmd_complete(struct ufs_hba *hba, int timeout_ms)
 {
 	if (hba == NULL)
 		return -EINVAL;
@@ -350,7 +364,7 @@ static int wait_for_ufs_all_complete(struct ufs_hba *hba, int timeout_ms)
 		/* wait 1 ms */
 		udelay(1000);
 	}
-	dev_err(hba->dev, "%s: outstanding req : 0x%lx\n", __func__,
+	dev_err(hba->dev, "%s: outstanding req(0x%lx) during UFS FFU process\n", __func__,
 		hba->outstanding_reqs);
 	return -ETIMEDOUT;
 }
@@ -358,15 +372,10 @@ static int wait_for_ufs_all_complete(struct ufs_hba *hba, int timeout_ms)
 void prepare_command_send_in_ffu_state(struct ufs_hba *hba,
 				       struct ufshcd_lrb *lrbp, int *err)
 {
-	int ret = 0;
-
 	if (lrbp->cmd->cmnd[0] == WRITE_BUFFER &&
 	    (lrbp->cmd->cmnd[1] & WB_MODE_MASK) == DOWNLOAD_MODE) {
 		/* wait for ufs all complete timeout time 1s */
-		ret = wait_for_ufs_all_complete(hba, 1000);
-		dev_err(hba->dev,
-			"%s: FFU process, wait_for_ufs_all_complete:%d",
-			__func__, ret);
+		ffu_wait_for_all_cmd_complete(hba, 1000);
 	} else {
 		dev_dbg(hba->dev, "%s: ffu in progress\n", __func__);
 		*err = SCSI_MLQUEUE_HOST_BUSY;

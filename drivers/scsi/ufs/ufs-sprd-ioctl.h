@@ -19,6 +19,7 @@
 #define UFS_IOCTL_FFU_MAX_FW_VER_BYTES              (4)
 #define UFS_IOCTL_FFU_MAX_MODEL_BYTES               (16)
 #define UFS_IOCTL_FFU_MAX_VENDOR_BYTES              (8)
+#define UFS_IOCTL_FFU_MAX_FW_SIZE                   (0x200000) /* 2MB */
 
 /* FFU */
 #define WB_MODE_MASK (0x1F)
