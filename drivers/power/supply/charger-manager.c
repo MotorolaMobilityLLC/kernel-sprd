@@ -3831,7 +3831,7 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		 * Save start time of charging to limit
 		 * maximum possible charging time.
 		 */
-		cm->charging_start_time = ktime_to_ms(ktime_get());
+		cm->charging_start_time = ktime_to_ms(ktime_get_boottime());
 		cm->charging_end_time = 0;
 
 		err = try_charger_enable_by_psy(cm, enable);
@@ -3857,7 +3857,7 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		 * of battery after full-batt.
 		 */
 		cm->charging_start_time = 0;
-		cm->charging_end_time = ktime_to_ms(ktime_get());
+		cm->charging_end_time = ktime_to_ms(ktime_get_boottime());
 		cm_cp_control_switch(cm, enable);
 		cm_fixed_fchg_control_switch(cm, enable);
 		cm_ir_compensation_enable(cm, enable);
@@ -3956,7 +3956,7 @@ static void fullbatt_vchk(struct work_struct *work)
 static void check_charging_duration(struct charger_manager *cm)
 {
 	struct charger_desc *desc = cm->desc;
-	u64 curr = ktime_to_ms(ktime_get());
+	u64 curr = ktime_to_ms(ktime_get_boottime());
 	u64 duration;
 	int ret = false;
 
