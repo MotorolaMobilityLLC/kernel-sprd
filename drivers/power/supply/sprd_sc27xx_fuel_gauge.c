@@ -217,14 +217,16 @@ static int sc27xx_fgu_cap2clbcnt(struct sprd_fgu_info *info, int total_mah, int 
 	return DIV_ROUND_CLOSEST(cur_mah * 36 * info->cur_1000ma_adc * SC27XX_FGU_SAMPLE_HZ, 10);
 }
 
-static int sc27xx_fgu_clbcnt2uah(struct sprd_fgu_info *info, int clbcnt)
+static int sc27xx_fgu_clbcnt2uah(struct sprd_fgu_info *info, s64 clbcnt)
 {
+	s64 uah;
+
 	/*
 	 * Convert coulomb counter to delta capacity (uAh), and set multiplier
 	 * as 10 to improve the precision.
 	 * formula: 1000 uAh = 3.6 coulomb
 	 */
-	s64 uah = DIV_ROUND_CLOSEST(clbcnt * 10 * 1000, 36 * SC27XX_FGU_SAMPLE_HZ);
+	uah = DIV_S64_ROUND_CLOSEST(clbcnt * 10 * 1000, 36 * SC27XX_FGU_SAMPLE_HZ);
 
 	if (uah > 0)
 		uah = uah + info->cur_1000ma_adc / 2;
@@ -1037,7 +1039,8 @@ static int sc27xx_fgu_reset_cc_mah(struct sprd_fgu_info *info, int total_mah, in
 
 static int sc27xx_fgu_get_cc_uah(struct sprd_fgu_info *info, int *cc_uah, bool is_adjust)
 {
-	int ret = 0, cur_clbcnt, delta_clbcnt;
+	int ret = 0, cur_clbcnt;
+	s64 delta_clbcnt;
 
 	ret = sc27xx_fgu_get_clbcnt(info, &cur_clbcnt);
 	if (ret) {
