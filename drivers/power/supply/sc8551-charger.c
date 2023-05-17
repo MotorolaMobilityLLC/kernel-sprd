@@ -2112,6 +2112,7 @@ static void sc8551_charger_shutdown(struct i2c_client *client)
 	struct sc8551 *sc = i2c_get_clientdata(client);
 
 	sc8551_enable_adc(sc, false);
+	sc8551_enable_charge(sc, false);
 	cancel_delayed_work_sync(&sc->wdt_work);
 }
 
