@@ -9,10 +9,27 @@
 #include <linux/mm.h>
 #include <linux/mm/emem.h>
 #include <linux/module.h>
+#include <linux/notifier.h>
 #include <linux/swap.h>
+
+static BLOCKING_NOTIFIER_HEAD(unisoc_show_mem_notify_list);
+
+int register_unisoc_show_mem_notifier(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_register(&unisoc_show_mem_notify_list, nb);
+}
+EXPORT_SYMBOL_GPL(register_unisoc_show_mem_notifier);
+
+int unregister_unisoc_show_mem_notifier(struct notifier_block *nb)
+{
+	return blocking_notifier_chain_unregister(&unisoc_show_mem_notify_list, nb);
+}
+EXPORT_SYMBOL_GPL(unregister_unisoc_show_mem_notifier);
 
 void unisoc_enhanced_show_mem(void)
 {
+	/* Module used pages */
+	unsigned long used = 0;
 	struct sysinfo si;
 	void (*fun)(unsigned int filter, nodemask_t *nodemask);
 
@@ -27,4 +44,7 @@ void unisoc_enhanced_show_mem(void)
 		(si.totalram) << (PAGE_SHIFT - 10),
 		(si.bufferram) << (PAGE_SHIFT - 10),
 		total_swapcache_pages() << (PAGE_SHIFT - 10));
+
+	blocking_notifier_call_chain(&unisoc_show_mem_notify_list, 0, &used);
 }
+

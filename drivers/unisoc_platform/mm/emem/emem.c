@@ -13,8 +13,11 @@
 #include <linux/mm.h>
 #include <linux/mm/emem.h>
 #include <linux/module.h>
+#include <linux/notifier.h>
 #include <linux/proc_fs.h>
 #include <linux/profile.h>
+#include <linux/sched/signal.h>
+#include <linux/swap.h>
 #include <linux/workqueue.h>
 
 /* killed process oom score adj threshold */
@@ -61,6 +64,80 @@ static void unisoc_emem_workfn(struct work_struct *work)
 	}
 }
 
+static struct task_struct *check_lock_task_mm(struct task_struct *p)
+{
+	struct task_struct *t;
+
+	rcu_read_lock();
+	for_each_thread(p, t) {
+		task_lock(t);
+		if (likely(t->mm))
+			goto found;
+		task_unlock(t);
+	}
+	t = NULL;
+found:
+	rcu_read_unlock();
+
+	return t;
+}
+
+static void dump_tasks_info(void)
+{
+	struct task_struct *p;
+	struct task_struct *task;
+	struct sysinfo si;
+
+	si_swapinfo(&si);
+	pr_info("Enhanced Mem-info :TASK\n");
+	pr_info("Detail:\n");
+	pr_info("[ pid ]   uid  tgid total_vm      rss   swap cpu oom_score_adj name\n");
+
+	rcu_read_lock();
+	for_each_process(p) {
+		/* check unkillable tasks */
+		if (is_global_init(p))
+			continue;
+		if (p->flags & PF_KTHREAD)
+			continue;
+		task = check_lock_task_mm(p);
+		if (!task) {
+			/*
+			 * This is a kthread or all of p's threads have already
+			 * detached their mm's.  There's no need to report
+			 * them; they can't be oom killed anyway.
+			 */
+			continue;
+		}
+		pr_info("[%5d] %5d %5d %8lu %8lu %6lu %3u         %5d %s\n",
+			task->pid, from_kuid(&init_user_ns, task_uid(task)),
+			task->tgid, task->mm->total_vm, get_mm_rss(task->mm),
+			get_mm_counter(task->mm, MM_SWAPENTS),
+			task_cpu(task),
+			task->signal->oom_score_adj, task->comm);
+		task_unlock(task);
+	}
+	rcu_read_unlock();
+
+	pr_info("Total used:\n");
+	pr_info("     anon: %lu kB\n", ((global_node_page_state(NR_ACTIVE_ANON)
+		     + global_node_page_state(NR_INACTIVE_ANON)) << PAGE_SHIFT)
+			/ 1024);
+	pr_info("   swaped: %lu kB\n", ((si.totalswap - si.freeswap)
+		<< PAGE_SHIFT) / 1024);
+}
+
+static int e_show_mem_handler(struct notifier_block *nb,
+			unsigned long val, void *data)
+{
+	dump_tasks_info();
+	return 0;
+}
+
+static struct notifier_block e_show_mem_notifier = {
+	.notifier_call = e_show_mem_handler,
+};
+
 static ssize_t emem_trigger_write(struct file *file, const char __user *buf,
 				size_t count, loff_t *ppos)
 {
@@ -95,12 +172,14 @@ const struct proc_ops proc_emem_trigger_operations = {
 static int emem_init(void)
 {
 	INIT_WORK(&unisoc_emem_work, unisoc_emem_workfn);
+	register_unisoc_show_mem_notifier(&e_show_mem_notifier);
 	proc_create("emem_trigger", 0200, NULL, &proc_emem_trigger_operations);
 	return 0;
 }
 
 static void emem_exit(void)
 {
+	unregister_unisoc_show_mem_notifier(&e_show_mem_notifier);
 	remove_proc_entry("emem_trigger", NULL);
 }
 
