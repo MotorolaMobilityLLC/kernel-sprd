@@ -317,7 +317,7 @@ static int of_get_ptm_memory_info(struct sprd_ptm_dev *mem, struct device_node *
 
 	mem->ptm_addr = r.start;
 	mem->ptm_size = resource_size(&r);
-	pr_info("ptm memory addr:0x%lx size:0x%lx\n",
+		pr_info("ptm memory addr:0x%x size:0x%x\n",
 			mem->ptm_addr, mem->ptm_size);
 	return 0;
 }
