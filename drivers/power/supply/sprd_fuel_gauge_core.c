@@ -931,21 +931,15 @@ static int sprd_fgu_get_basp_volt(struct sprd_fgu_data *data, int *max_volt_uv)
 static void sprd_fgu_dump_battery_info(struct sprd_fgu_data *data, char *str)
 {
 	int i, j;
-	char *buf = "";
 
-	snprintf(buf, PAGE_SIZE, "%s, ocv_table_len = %d,\n"
-		 "temp_table_len = %d, rabat_table_len = %d,\n"
-		 "basp_ocv_table_len = %d, basp_full_design_table_len = %d,\n"
-		 "basp_voltage_max_table_len = %d, track.end_vol = %d,\n"
-		 "track.end_cur = %d, first_calib_volt = %d, total_mah = %d,\n"
-		 "max_volt_uv = %d, internal_resist = %d, min_volt_uv = %d",
+	dev_info(data->dev, "%s, ocv_table_len = %d, temp_table_len = %d, rabat_table_len = %d, basp_ocv_table_len = %d, basp_full_design_table_len = %d, basp_voltage_max_table_len = %d\n"
+		 "track.end_vol = %d, track.end_cur = %d, first_calib_volt = %d, total_mah = %d, max_volt_uv = %d, internal_resist = %d, min_volt_uv = %d\n",
 		 str, data->rbat_ocv_table_len, data->rbat_temp_table_len,
 		 data->rabat_table_len, data->basp_ocv_table_len,
 		 data->basp_full_design_table_len, data->basp_voltage_max_table_len,
 		 data->track.end_vol, data->track.end_cur, data->first_calib_volt,
 		 data->total_mah, data->max_volt_uv, data->internal_resist,
 		 data->min_volt_uv);
-	dev_info(data->dev, "%s\n", buf);
 
 	if (data->rbat_temp_table_len > 0) {
 		for (i = 0; i < data->rbat_temp_table_len; i++)
@@ -3113,7 +3107,6 @@ static void sprd_fgu_cap_track_state_done(struct sprd_fgu_data *data, int *cycle
 	int ret, ibat_avg_ma = 0, vbat_avg_mv = 0, ibat_now_ma = 0;
 	int delta_mah, total_mah, design_mah, start_mah, end_mah, cur_cc_uah;
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
-	char *buf = "";
 
 	*cycle = SPRD_FGU_CAPACITY_TRACK_3S;
 
@@ -3204,13 +3197,11 @@ static void sprd_fgu_cap_track_state_done(struct sprd_fgu_data *data, int *cycle
 	start_mah = (total_mah * data->track.start_cap) / 1000;
 	end_mah = start_mah + delta_mah;
 
-	snprintf(buf, PAGE_SIZE, "Capacity track end: cur_cc_mah = %d, start_cc_mah = %d,\n"
-		 "delta_mah = %d, total_mah = %d, design_mah = %d, start_mah = %d,\n"
-		 "end_mah = %d, ibat_avg_ma = %d, ibat_now_ma = %d, vbat_avg_mv = %d",
+	dev_info(data->dev, "Capacity track end: cur_cc_mah = %d, start_cc_mah = %d, delta_mah = %d, total_mah = %d, design_mah = %d\n"
+		 "start_mah = %d, end_mah = %d, ibat_avg_ma = %d, ibat_now_ma = %d, vbat_avg_mv = %d\n",
 		 cur_cc_uah / 1000, data->track.start_cc_mah, delta_mah,
 		 total_mah, design_mah, start_mah, end_mah, ibat_avg_ma,
 		 ibat_now_ma, vbat_avg_mv);
-	dev_info(data->dev, "%s\n", buf);
 
 	data->track.state = CAP_TRACK_IDLE;
 	if (((end_mah > design_mah) && ((end_mah - design_mah) < design_mah / 10)) ||
