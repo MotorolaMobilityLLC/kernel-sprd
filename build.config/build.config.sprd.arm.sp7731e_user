@@ -76,6 +76,7 @@ fi
 export BSP_BOARD_CAMERA_MODULE_ISP_VERSION="dcam_r6p0_isp_r6p91"
 export BSP_BOARD_CAMERA_MODULE_CPP_VERSION="lite_r3p0"
 export BSP_BOARD_CAMERA_MODULE_CSI_VERSION="r2p0"
+export BSP_BOARD_CAMERA_MODULE_VSP_ADAPT_VERSION="pike2"
 #camera module dvfs config
 
 #wcn bt driver config
