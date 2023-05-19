@@ -480,8 +480,10 @@
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&pmic_typec>;
-	sprd,hsphy-device-eye-pattern = <0x067bd1c0>;
-	sprd,hsphy-host-eye-pattern = <0x067bd1c0>;
+	/* first value is reserverd, the second is host */
+	sprd,hsphy-tunehsamp = /bits/ 8 <0x03 0x03>;
+	sprd,hsphy-tuneeq = /bits/ 8 <0x00 0x00>;
+	sprd,hsphy-tfregres = /bits/ 8 <0x0f 0x0f>;
 	status = "okay";
 };
 
@@ -495,8 +497,10 @@
 &ssphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&pmic_typec>;
-	sprd,hsphy-device-eye-pattern = <0x067bd1c0>;
-	sprd,hsphy-host-eye-pattern = <0x067bd1c0>;
+	/* first value is device eye-patt setting, the second is host */
+	sprd,ssphy-tunehsamp = /bits/ 8 <0x03 0x03>;
+	sprd,ssphy-tuneeq = /bits/ 8 <0x00 0x00>;
+	sprd,ssphy-tfregres = /bits/ 8 <0x0f 0x0f>;
 	status = "okay";
 };
 
