@@ -1229,7 +1229,7 @@
 			};
 
 			watchdog@63940000 {
-				compatible = "sprd,orca-wdt";
+				compatible = "sprd,wdt-r2p0-fiq";
 				reg = <0 0x63940000 0 0x10000>;
 				interrupts = <GIC_SPI 79 IRQ_TYPE_LEVEL_HIGH>;
 				timeout-sec = <12>;
