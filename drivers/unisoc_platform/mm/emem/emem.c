@@ -14,6 +14,7 @@
 #include <linux/kernel.h>
 #include <linux/mm.h>
 #include <linux/mm/emem.h>
+#include <linux/mmzone.h>
 #include <linux/module.h>
 #include <linux/notifier.h>
 #include <linux/proc_fs.h>
@@ -21,6 +22,7 @@
 #include <linux/sched/signal.h>
 #include <linux/slab.h>
 #include <linux/swap.h>
+#include <linux/vmalloc.h>
 #include <linux/workqueue.h>
 
 #include "../../../mm/slab.h"
@@ -110,6 +112,17 @@ static inline void dump_slabinfo(void)
 }
 #endif
 
+static void dump_vmalloc_info(void)
+{
+	unsigned long used_pages;
+
+	used_pages = vmalloc_nr_pages();
+	pr_info("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("Vmalloc info:\n");
+	pr_info("VmallocTotal:%8luKB\n", (unsigned long)VMALLOC_TOTAL >> 10);
+	pr_info("VmallocUsed:%10luKB\n", used_pages << (PAGE_SHIFT - 10));
+}
+
 static struct task_struct *check_lock_task_mm(struct task_struct *p)
 {
 	struct task_struct *t;
@@ -178,6 +191,7 @@ static int e_show_mem_handler(struct notifier_block *nb,
 {
 	dump_tasks_info();
 	dump_slabinfo();
+	dump_vmalloc_info();
 	return 0;
 }
 
