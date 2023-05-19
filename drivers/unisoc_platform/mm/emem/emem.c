@@ -5,6 +5,8 @@
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
+#include <linux/android_debug_symbols.h>
+#include <linux/cache.h>
 #include <linux/delay.h>
 #include <linux/fs.h>
 #include <linux/init.h>
@@ -17,8 +19,11 @@
 #include <linux/proc_fs.h>
 #include <linux/profile.h>
 #include <linux/sched/signal.h>
+#include <linux/slab.h>
 #include <linux/swap.h>
 #include <linux/workqueue.h>
+
+#include "../../../mm/slab.h"
 
 /* killed process oom score adj threshold */
 #define DEFAULT_PROC_ADJ		900
@@ -63,6 +68,47 @@ static void unisoc_emem_workfn(struct work_struct *work)
 			unisoc_enhance_meminfo(EMEM_SHOW_KILL_ADJ900_INTERVAL);
 	}
 }
+
+#ifdef CONFIG_SLUB_DEBUG
+static void dump_slabinfo(void)
+{
+	struct kmem_cache *s;
+	struct slabinfo sinfo;
+	struct list_head *slab_caches;
+	struct mutex *slab_mutex;
+	unsigned long slab_total;
+
+	slab_caches = android_debug_symbol(ADS_SLAB_CACHES);
+	slab_mutex = android_debug_symbol(ADS_SLAB_MUTEX);
+
+	if (!mutex_trylock(slab_mutex)) {
+		pr_warn("excessive unreclaimable slab but cannot dump stats\n");
+		return;
+	}
+	pr_info("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n");
+	pr_info("Slab info:\n");
+	pr_info("Name   Used   Total  <active_objs> <num_objs> <objsize> <objperslab> <pagesperslab> <active_slabs> <num_slabs>\n");
+
+	list_for_each_entry(s, slab_caches, list) {
+		get_slabinfo(s, &sinfo);
+		if (sinfo.num_objs > 0) {
+			pr_info("%-17s %6luKB %6luKB %6lu %6lu %6u %4u %4d %6lu %6lu\n", s->name,
+				(sinfo.active_objs * s->size) / 1024,
+				(sinfo.num_objs * s->size) / 1024,
+				sinfo.active_objs, sinfo.num_objs, s->size, sinfo.objects_per_slab,
+				(1 << sinfo.cache_order), sinfo.active_slabs, sinfo.num_slabs);
+			slab_total = slab_total + ((sinfo.num_slabs * (1 << sinfo.cache_order))
+					<< (PAGE_SHIFT - 10));
+		}
+	}
+	pr_info("slab total:%10luKB\n", slab_total);
+	mutex_unlock(slab_mutex);
+}
+#else
+static inline void dump_slabinfo(void)
+{
+}
+#endif
 
 static struct task_struct *check_lock_task_mm(struct task_struct *p)
 {
@@ -131,6 +177,7 @@ static int e_show_mem_handler(struct notifier_block *nb,
 			unsigned long val, void *data)
 {
 	dump_tasks_info();
+	dump_slabinfo();
 	return 0;
 }
 
