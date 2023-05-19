@@ -1029,9 +1029,8 @@ static int snfp_test_thread_15(void *arg)
 
 static int snfp_test_thread_n(void *arg)
 {
-	int n = *((int *)arg);
+	FP_PRT_DBG(FP_PRT_WARN, "Sfp test doesn't support > 15\n");
 
-	sfp_ipa_tbl_add_2048(n);
 	return 0;
 }
 
