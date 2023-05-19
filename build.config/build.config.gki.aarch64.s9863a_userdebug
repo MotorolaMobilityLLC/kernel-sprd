@@ -44,6 +44,7 @@ EXT_MODULES="
 ../modules/kernel5.15/dmabufheap
 ../modules/kernel5.15/video/sprd-vsp-power
 ../modules/kernel5.15/video/sprd-vsp
+../modules/kernel5.15/video/sprd-jpg
 "
 fi
 #camera module version config
