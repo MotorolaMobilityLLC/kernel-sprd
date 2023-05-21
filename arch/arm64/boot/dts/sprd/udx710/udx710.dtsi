@@ -483,6 +483,7 @@
 			compatible = "sprd,udx710-pmu-gate";
 			sprd,syscon = <&pmu_apb_regs>;	/* 0x64010000 */
 			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
 			#clock-cells = <1>;
 		};
 
@@ -490,6 +491,7 @@
 			compatible = "sprd,udx710-g3-pll";
 			sprd,syscon = <&anlg_phy_g3_regs>; /* 0x634b0000 */
 			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
 			#clock-cells = <1>;
 		};
 
@@ -497,6 +499,7 @@
 			compatible = "sprd,udx710-aon-gate";
 			sprd,syscon = <&aon_apb_regs>; /* 0x64020000 */
 			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
 			#clock-cells = <1>;
 		};
 
@@ -504,6 +507,7 @@
 			compatible = "sprd,udx710-apahb-gate";
 			sprd,syscon = <&ap_ahb_regs>; /* 0x21000000 */
 			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
 			#clock-cells = <1>;
 		};
 
@@ -511,6 +515,7 @@
 			compatible = "sprd,udx710-ap-clk";
 			reg = <0 0x21100000 0 0x1000>;
 			clocks = <&ext_26m>, <&ext_32k>;
+			clock-names = "ext-26m", "ext-32k";
 			#clock-cells = <1>;
 		};
 
@@ -518,6 +523,7 @@
 			compatible = "sprd,udx710-apapb-gate";
 			sprd,syscon = <&ap_apb_regs>; /* 0x24000000 */
 			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
 			#clock-cells = <1>;
 		};
 
@@ -525,6 +531,7 @@
 			compatible = "sprd,udx710-ipa-gate";
 			sprd,syscon = <&ap_ipa_ahb_regs>;
 			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
 			#clock-cells = <1>;
 		};
 
@@ -532,6 +539,7 @@
 			compatible = "sprd,udx710-audcpapb-gate";
 			sprd,syscon = <&audcp_apb_regs>; /* 0x3350d000 */
 			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
 			#clock-cells = <1>;
 		};
 
@@ -539,6 +547,7 @@
 			compatible = "sprd,udx710-audcpahb-gate";
 			sprd,syscon = <&audcp_ahb_regs>; /* 0x335e0000 */
 			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
 			#clock-cells = <1>;
 		};
 
@@ -546,6 +555,7 @@
 			compatible = "sprd,udx710-aon-clk";
 			reg = <0 0x63170000 0 0x1000>;
 			clocks = <&ext_26m>, <&rco_100m>, <&ext_32k>, <&clk_12m>;
+			clock-names = "ext-26m", "rco-100m", "ext-32k", "clk-12m";
 			#clock-cells = <1>;
 		};
 
@@ -553,6 +563,7 @@
 			compatible = "sprd,udx710-apcpu-clk";
 			reg = <0 0x63970000 0 0x1000>;
 			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
 			#clock-cells = <1>;
 		};
 
@@ -560,6 +571,7 @@
 			compatible = "sprd,udx710-spahb-gate";
 			reg = <0 0x62010000 0 0x3000>;
 			clocks = <&ext_26m>;
+			clock-names = "ext-26m";
 			#clock-cells = <1>;
 		};
 
