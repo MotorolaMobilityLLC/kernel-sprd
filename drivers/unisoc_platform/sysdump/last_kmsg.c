@@ -19,6 +19,7 @@ static char *kmsg_buf;
 #define DEFAULT_REASON "Normal"
 #define PANIC_REASON "Panic"
 static int kmsg_get_flag;
+int shutdown_save_log_flag;
 
 #define LAST_KMSG_OFFSET	0
 #define LAST_ANDROID_LOG_OFFSET	(1 * 1024 * 1024)
@@ -88,9 +89,10 @@ static int save_log_to_partition_handler(struct notifier_block *nb, unsigned lon
 {
 	int ret;
 	static struct file *plog_file;
-	struct timespec64 ts;
 
-	ktime_get_ts64(&ts);
+	if (shutdown_save_log_flag == 1)
+		return 0;
+
 	plog_file = filp_open_block(devicename, O_RDWR | O_DSYNC | O_NOATIME | O_EXCL, 0);
 	if (IS_ERR(plog_file)) {
 		ret = PTR_ERR(plog_file);
@@ -119,7 +121,6 @@ static int save_log_to_partition_handler(struct notifier_block *nb, unsigned lon
 
 	fput(plog_file);
 
-	ktime_get_ts64(&ts);
 	return 0;
 
 }
@@ -138,12 +139,29 @@ const char *kmsg_dump_reason(enum kmsg_dump_reason reason)
 		return "Unknown";
 	}
 }
+void shutdown_save_log_to_partition(char *time, char *reason)
+{
+	char save_reason[100] = {0};
 
+	shutdown_save_log_flag = 0;
+	if ((time != NULL) && (reason != NULL))
+		snprintf(save_reason, 99, "%s-%s-%s\n", "shutdown_error", time, reason);
+	else
+		snprintf(save_reason, 99, "%s\n", "shutdown_error");
+
+	if (save_log_to_partition_handler(NULL, 0, save_reason)) {
+		pr_err("save log to partition failed!\n");
+		return;
+	}
+	shutdown_save_log_flag = 1;
+}
+EXPORT_SYMBOL(shutdown_save_log_to_partition);
 static void last_kmsg_handler(struct kmsg_dumper *dumper,
 		enum kmsg_dump_reason reason)
 {
 	const char *why;
 
+	shutdown_save_log_flag = 0;
 	why = kmsg_dump_reason(reason);
 	if (kmsg_buf == NULL) {
 		pr_err("no available buf, do nothing!\n");
