@@ -548,6 +548,11 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 
 	res = platform_get_resource_byname(pdev, IORESOURCE_MEM,
 					   "phy_glb_regs");
+	if (!res) {
+		dev_err(dev, "missing memory resource\n");
+		return -ENODEV;
+	}
+
 	phy->base = devm_ioremap(dev, res->start, resource_size(res));
 	if (IS_ERR(phy->base))
 		return PTR_ERR(phy->base);
