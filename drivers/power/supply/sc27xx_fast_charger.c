@@ -618,6 +618,9 @@ static int sc27xx_fchg_probe(struct platform_device *pdev)
 
 static int sc27xx_fchg_remove(struct platform_device *pdev)
 {
+	struct sc27xx_fchg_info *info = platform_get_drvdata(pdev);
+
+	cancel_delayed_work_sync(&info->work);
 	return 0;
 }
 
