@@ -16,6 +16,7 @@
 #include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
+//#include "lcd/lcd_nt36672e_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "touchscreen/ums9230-spi3-gpio144-145-tp.dtsi"
 #include "battery/ums9230-6h10-overlay.dtsi"
@@ -456,6 +457,11 @@
 };
 
 &lcd_g40396_truly_mipi_fhd {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1600>;
+};
+
+&lcd_nt36672e_truly_mipi_fhd_nodsc {
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
 };
