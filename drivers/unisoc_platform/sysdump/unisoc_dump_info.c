@@ -147,7 +147,7 @@ static void minidump_add_irq_stack(void)
 #else
 		sp = irq_stack_base;
 		scnprintf(name, MAX_NAME_LEN, "irqstack%d", cpu);
-		minidump_save_extend_information(name, __pa(sp), __pa(sp + IRQ_STACK_SIZE))
+		minidump_save_extend_information(name, __pa(sp), __pa(sp + IRQ_STACK_SIZE));
 #endif
 	}
 }
