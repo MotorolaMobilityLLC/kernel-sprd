@@ -454,9 +454,15 @@ static int sprd_thm_suspend(struct device *dev)
 
 static int sprd_thm_resume(struct device *dev)
 {
+	int ret;
 	struct sprd_thermal_data *thm = dev_get_drvdata(dev);
 
-	clk_prepare_enable(thm->clk);
+	ret = clk_prepare_enable(thm->clk);
+	if (ret) {
+		dev_err(dev, "resume clock prepare enable failed\n");
+		return ret;
+	}
+
 	sprd_hw_thm_resume(thm);
 	queue_delayed_work(system_power_efficient_wq,
 			   &thm->thm_resume_work, msecs_to_jiffies(500));
