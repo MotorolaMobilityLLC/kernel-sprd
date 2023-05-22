@@ -220,7 +220,7 @@ unisoc_platform:sched:
 unisoc_platform:sipc:
 unisoc_platform:sfp:
 unisoc_platform:thermal:
-unisoc_platform:wcn:
+unisoc_platform:sprdwcn:
 unisoc_platform:wlan:
 
 usb:core:
