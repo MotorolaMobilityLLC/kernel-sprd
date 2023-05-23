@@ -374,6 +374,7 @@ struct sc27xx_pd {
 	bool can_communication;
 	struct timespec64 rx_err_start_time;
 	struct timespec64 hard_reset_start_time;
+	bool vbus_only;
 };
 
 /*
@@ -1940,12 +1941,51 @@ static int sc27xx_pd_typec_connect(struct sc27xx_pd *pd)
 	return 0;
 }
 
+static int sc27xx_pd_typec_connect_vbus_only(struct sc27xx_pd *pd)
+{
+	enum typec_data_role data_role = TYPEC_DEVICE;
+	enum typec_role power_role = TYPEC_SINK;
+	enum typec_role vconn_role = TYPEC_SINK;
+	struct typec_partner_desc desc = {0, TYPEC_ACCESSORY_NONE, NULL, 0x0300};
+
+	sprd_pd_log(pd, "connect, use_pdhub_c2c = %d", pd->use_pdhub_c2c);
+
+	if (!pd->use_pdhub_c2c)
+		return 0;
+
+	sprd_pd_log(pd, "is_sink = %d, is_source = %d", pd->is_sink, pd->is_source);
+
+	if (!pd->is_sink && !pd->is_source)
+		return 0;
+
+	sprd_pd_log(pd, "vbus only, pd->state = %d", pd->state);
+
+	pd->sprd_tcpm_port->partner = typec_register_partner(pd->sprd_tcpm_port->typec_port, &desc);
+	if (!pd->sprd_tcpm_port->partner)
+		return -ENODEV;
+
+	sprd_pd_log(pd, "connect, register typec partner");
+
+	typec_set_pwr_opmode(pd->sprd_tcpm_port->typec_port, TYPEC_PWR_MODE_USB);
+	typec_set_pwr_role(pd->sprd_tcpm_port->typec_port, power_role);
+	typec_set_data_role(pd->sprd_tcpm_port->typec_port, data_role);
+	typec_set_vconn_role(pd->sprd_tcpm_port->typec_port, vconn_role);
+
+	return 0;
+}
+
 static int sc27xx_pd_typec_disconnect(struct sc27xx_pd *pd)
 {
 	sprd_pd_log(pd, "disconnect, use_pdhub_c2c = %d", pd->use_pdhub_c2c);
 
 	if (!pd->use_pdhub_c2c)
 		return 0;
+
+	if (pd->vbus_only) {
+		sprd_pd_log(pd, "disconnect, unregister typec partner");
+		typec_unregister_partner(pd->sprd_tcpm_port->partner);
+		pd->sprd_tcpm_port->partner = NULL;
+	}
 
 	typec_set_pwr_opmode(pd->sprd_tcpm_port->typec_port, TYPEC_PWR_MODE_USB);
 	typec_set_pwr_role(pd->sprd_tcpm_port->typec_port, TYPEC_SINK);
@@ -2040,6 +2080,12 @@ static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 		sprd_pd_log(pd, "use pdhub c2c typec plug in");
 		pd->typec_online = true;
 		sc27xx_pd_typec_connect(pd);
+	} else if (pd->use_pdhub_c2c && pd->is_sink) {
+		sprd_pd_log(pd, "use pdhub c2c typec plug in, vbus only");
+		pd->typec_online = true;
+		pd->vbus_only = true;
+		sc27xx_pd_typec_connect_vbus_only(pd);
+		goto out;
 	} else if (!pd->use_pdhub_c2c && (pd->state == SC27XX_ATTACHED_SNK ||
 					  pd->state == SC27XX_ATTACHED_SRC)) {
 		sprd_pd_log(pd, "typec plug in");
@@ -2061,6 +2107,11 @@ static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 			if (ret < 0)
 				dev_err(pd->dev, "failed to set rx error irq en, ret = %d\n", ret);
 		}
+		if (pd->vbus_only) {
+			sprd_pd_log(pd, "vbus only, typec plug out");
+			pd->vbus_only = false;
+			goto out;
+		}
 	}
 
 	if (pd->use_pdhub_c2c && pd->state == SC27XX_ATTACHED_SRC)
@@ -2075,6 +2126,7 @@ static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 		sc27xx_cc_status_use_pdhub_c2c(pd, val);
 	sc27xx_get_vbus_status(pd);
 
+out:
 	return 0;
 }
 
