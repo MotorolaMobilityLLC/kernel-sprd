@@ -243,6 +243,7 @@ struct sprd_fgu_data {
 	struct power_supply *battery;
 	u32 base;
 	struct mutex lock;
+	struct mutex discharge_lock;
 	struct gpio_desc *gpiod;
 	struct iio_channel *channel;
 	struct iio_channel *charge_chan;
@@ -2432,6 +2433,7 @@ static bool sprd_fgu_discharging_trend(struct sprd_fgu_data *data)
 	static int dischg_cnt;
 	int i;
 
+	mutex_lock(&data->discharge_lock);
 	if (dischg_cnt >= SPRD_FGU_DISCHG_CNT)
 		dischg_cnt = 0;
 
@@ -2450,6 +2452,7 @@ static bool sprd_fgu_discharging_trend(struct sprd_fgu_data *data)
 	for (i = 0; i < SPRD_FGU_DISCHG_CNT; i++) {
 		if (!data->dischg_trend[i]) {
 			discharging =  false;
+			mutex_unlock(&data->discharge_lock);
 			return discharging;
 		}
 	}
@@ -2457,10 +2460,12 @@ static bool sprd_fgu_discharging_trend(struct sprd_fgu_data *data)
 	if (data->chg_sts == POWER_SUPPLY_STATUS_CHARGING && discharging)
 		dev_info(data->dev, "%s: discharging\n", __func__);
 
+	mutex_unlock(&data->discharge_lock);
 	return discharging;
 
 charging:
 	data->dischg_trend[dischg_cnt++] = false;
+	mutex_unlock(&data->discharge_lock);
 	return discharging;
 }
 
@@ -4255,6 +4260,7 @@ static int sprd_fgu_probe(struct platform_device *pdev)
 
 	data->bat_present = !!ret;
 	mutex_init(&data->lock);
+	mutex_init(&data->discharge_lock);
 	init_completion(&data->probe_init);
 
 	fgu_cfg.drv_data = data;
@@ -4349,6 +4355,7 @@ static int sprd_fgu_probe(struct platform_device *pdev)
 err:
 	sprd_fgu_disable(data);
 	mutex_destroy(&data->lock);
+	mutex_destroy(&data->discharge_lock);
 	return ret;
 }
 
