@@ -76,8 +76,7 @@ static int __sprd_get_temp(struct shell_sensor *psensor, int *temp)
 	sum_temp = sum_temp/10000 + psensor->const_temp;
 	*temp = sum_temp;
 	psensor->index++;
-	if (psensor->resume_flag)
-		psensor->resume_flag = 0;
+	psensor->resume_flag = 0;
 	if (index == psensor->ntemp - 1)
 		psensor->index = 0;
 
