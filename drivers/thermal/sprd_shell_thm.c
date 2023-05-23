@@ -134,7 +134,7 @@ static int sprd_temp_sen_parse_dt(struct device *dev, struct shell_sensor *psens
 	}
 
 	count = (size_t)of_property_count_strings(np, "sensor-names");
-	if (count < 0UL) {
+	if (count < 0) {
 		dev_err(dev, "sensor names not found\n");
 		return count;
 	}
@@ -152,7 +152,7 @@ static int sprd_temp_sen_parse_dt(struct device *dev, struct shell_sensor *psens
 	}
 
 	count = (size_t)of_property_count_elems_of_size(np, "temp-coeff", sizeof(u32));
-	if (count < 0UL) {
+	if (count < 0) {
 		dev_err(dev, "temp coeff not found\n");
 		return count;
 	}
