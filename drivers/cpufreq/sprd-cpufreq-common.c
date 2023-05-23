@@ -87,6 +87,7 @@ static int sprd_cpufreq_bin_read(struct device_node *np,
 
 	memcpy(val, buf, min(len, sizeof(u32)));
 	kfree(buf);
+	buf = NULL;
 
 	return 0;
 }

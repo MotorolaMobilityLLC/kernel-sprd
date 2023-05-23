@@ -688,7 +688,7 @@ static int sprd_cpufreq_set_target(struct sprd_cpufreq_driver_data *cpufreq_data
 				       sprd_get_gpu_target_voltage() / 1000);
 				sprd_cpu_gpu_volt_unlock();
 			}
-				ret = sprd_cpufreq_set_clock(cpufreq_data, old_freq_hz);
+			ret = sprd_cpufreq_set_clock(cpufreq_data, old_freq_hz);
 			goto exit_err;
 		}
 	}
@@ -1460,6 +1460,9 @@ static int sprd_cpufreq_suspend(struct cpufreq_policy *policy)
 {
 	struct sprd_cpufreq_driver_data *c;
 
+	if (!policy)
+		return -ENODEV;
+
 	c = policy->driver_data;
 	if (!c)
 		return 0;
@@ -1480,6 +1483,9 @@ static int sprd_cpufreq_suspend(struct cpufreq_policy *policy)
 static int sprd_cpufreq_resume(struct cpufreq_policy *policy)
 {
 	struct sprd_cpufreq_driver_data *c;
+
+	if (!policy)
+		return -ENODEV;
 
 	c = policy->driver_data;
 	if (!c)
