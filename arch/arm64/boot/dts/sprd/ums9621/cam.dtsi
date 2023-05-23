@@ -57,6 +57,8 @@
 			<&mm_gate CLK_SYS_MST_BUSMON_EN>,
 			<&g5l_pll CLK_TGPLL_153M6>,
 			<&g5l_pll CLK_TGPLL_512M>;
+		sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+		sprd,csi-switch = <&mm_csi_switch_regs>;
 		#power-domain-cells = <0>;
 		status = "okay";
 	};

@@ -607,6 +607,7 @@
 					<&mm_clk CLK_MM_MTX>,
 					<&pll1 CLK_TWPLL_512M>,
 					<&pll1 CLK_ISPPLL_468M>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				mm_qos_threshold = <&mm_qos_threshold>;
 				#power-domain-cells = <0>;
 				status = "okay";

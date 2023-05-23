@@ -38,6 +38,7 @@
 			<&mm_gate CLK_ISP_AHB_EB>, /* TBC */
 			<&mm_clk CLK_MM_MTX>,
 			<&pll2 CLK_ISPPLL_468M>;
+		sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 		mm_qos_threshold = <&mm_qos_threshold>;
 		#power-domain-cells = <0>;
 		status = "okay";

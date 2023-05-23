@@ -76,6 +76,8 @@
 			<&g5l_pll CLK_TGPLL_512M>,
 			<&mm_clk CLK_MM_SYS_CFG>,
 			<&g5l_pll CLK_TGPLL_128M>;
+		sprd,cam-ahb-syscon = <&mm_ahb_regs>;
+		sprd,csi-switch = <&mm_csi_switch_regs>;
 		#power-domain-cells = <0>;
 		status = "okay";
 	};
