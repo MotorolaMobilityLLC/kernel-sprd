@@ -532,7 +532,7 @@
 			ranges;
 
 			eic_debounce: gpio@631d0000 {
-				compatible = "sprd,orca-eic-debounce", "sprd,sharkl5-eic-debounce";
+				compatible = "sprd,udx710-eic-debounce", "sprd,sc9860-eic-debounce";
 				reg = <0 0x631d0000 0 0x80>,
 				      <0 0x631e0000 0 0x80>,
 				      <0 0x631f0000 0 0x80>,
@@ -545,7 +545,7 @@
 			};
 
 			eic_latch: gpio@631d0080 {
-				compatible = "sprd,orca-eic-latch", "sprd,sharkl5-eic-latch";
+				compatible = "sprd,udx710-eic-latch", "sprd,sc9860-eic-latch";
 				reg = <0 0x631d0080 0 0x20>,
 				      <0 0x631e0080 0 0x20>,
 				      <0 0x631f0080 0 0x20>,
@@ -558,7 +558,7 @@
 			};
 
 			eic_async: gpio@631d00a0 {
-				compatible = "sprd,orca-eic-async", "sprd,sharkl5-eic-async";
+				compatible = "sprd,udx710-eic-async", "sprd,sc9860-eic-async";
 				reg = <0 0x631d00a0 0 0x20>,
 				      <0 0x631e00a0 0 0x20>,
 				      <0 0x631f00a0 0 0x20>,
@@ -571,7 +571,7 @@
 			};
 
 			eic_sync: gpio@631d00c0 {
-				compatible = "sprd,orca-eic-sync", "sprd,sharkl5-eic-sync";
+				compatible = "sprd,udx710-eic-sync", "sprd,sc9860-eic-sync";
 				reg = <0 0x631d00c0 0 0x20>,
 				      <0 0x631e00c0 0 0x20>,
 				      <0 0x631f00c0 0 0x20>,
@@ -615,7 +615,7 @@
 			};
 
 			ap_gpio: gpio@632d0000 {
-				compatible = "sprd,orca-gpio", "sprd,sharkl5-gpio";
+				compatible = "sprd,udx710-gpio", "sprd,sc9860-gpio";
 				reg = <0 0x632d0000 0 0x10000>;
 				gpio-controller;
 				#gpio-cells = <2>;
