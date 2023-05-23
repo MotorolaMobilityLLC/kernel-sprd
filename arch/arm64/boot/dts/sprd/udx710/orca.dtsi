@@ -444,14 +444,14 @@
 			ranges;
 
 			dmc_mpu: dmc-mpu@61030000 {
-				compatible = "sprd,orca-dmc-mpu";
+				compatible = "sprd,dmc-mpu";
 				reg = <0 0x61030000 0 0x10000>;
 				interrupts = <GIC_SPI 111 IRQ_TYPE_LEVEL_HIGH>;
 				syscon-names = "irq_clr", "irq_en";
-				syscons = <&pub_apb_regs
+				mpu-irq-clr-syscon = <&pub_apb_regs
 					   REG_PUB_APB_REG_PUB_INT_CTRL
-					   MASK_PUB_APB_REG_DMC_MPU_VIO_INT_CLR>,
-					  <&pub_apb_regs
+					   MASK_PUB_APB_REG_DMC_MPU_VIO_INT_CLR>;
+				mpu-irq-en-syscon = <&pub_apb_regs
 					   REG_PUB_APB_REG_PUB_INT_CTRL
 					   MASK_PUB_APB_REG_DMC_MPU_VIO_INT_EN>;
 				sprd,channel-num = <7>;
@@ -499,7 +499,6 @@
 						<0>, <0>, <0>, <0>, <0>,
 						<0>;
 				sprd,ddr-offset = <0x80000000>;
-				status = "disabled";
 			};
 
 			dmc_controller: dmc-controller@61050000  {
@@ -860,7 +859,7 @@
 				compatible = "sprd,djtag";
 				reg = <0 0x63650000 0 0x1000>;
 				syscon-names = "soft_rst";
-				syscons = <&aon_apb_regs REG_AON_APB_RF_APB_RST3
+				syscon = <&aon_apb_regs REG_AON_APB_RF_APB_RST3
 					   MASK_AON_APB_RF_DJTAG_SOFT_RST>;
 				clock-names = "enable", "tck";
 				clocks = <&aonapb_gate CLK_DJTAG_EB>,
@@ -872,7 +871,7 @@
 				#size-cells = <0>;
 
 				ap-busmonitor@0{
-					compatible  = "sprd,orca-busmonitor";
+					compatible  = "sprd,busmonitor";
 					interrupts = <GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x0>;
 					sprd,bm-num = <14>;
@@ -937,7 +936,7 @@
 				};
 
 				apcpu-busmonitor@1{
-					compatible  = "sprd,orca-busmonitor";
+					compatible  = "sprd,busmonitor";
 					interrupts = <GIC_SPI 165 IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x1>;
 					sprd,bm-num = <2>;
@@ -958,7 +957,7 @@
 				};
 
 				pscp-busmonitor@2{
-					compatible  = "sprd,orca-busmonitor";
+					compatible  = "sprd,busmonitor";
 					interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x2>;
 					sprd,bm-num = <14>;
@@ -1023,7 +1022,7 @@
 				};
 
 				v3phy-busmonitor@3{
-					compatible  = "sprd,orca-busmonitor";
+					compatible  = "sprd,busmonitor";
 					interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x3>;
 					sprd,bm-num = <16>;
@@ -1097,7 +1096,7 @@
 				};
 
 				nrcp-busmonitor@4{
-					compatible  = "sprd,orca-busmonitor";
+					compatible  = "sprd,busmonitor";
 					interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x4>;
 					sprd,bm-num = <14>;
@@ -1162,7 +1161,7 @@
 				};
 
 				audcp-busmonitor@5{
-					compatible  = "sprd,orca-busmonitor";
+					compatible  = "sprd,busmonitor";
 					interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x5>;
 					sprd,bm-num = <4>;
@@ -1189,7 +1188,7 @@
 				};
 
 				aon-busmonitor@7{
-					compatible  = "sprd,orca-busmonitor";
+					compatible  = "sprd,busmonitor";
 					interrupts = <GIC_SPI 81 IRQ_TYPE_LEVEL_HIGH>;
 					reg = <0x7>;
 					sprd,bm-num = <7>;
@@ -1254,7 +1253,7 @@
 			};
 
 			apb_bm: apb-busmonitor@64030000 {
-				compatible = "sprd,orca-apb-busmonitor";
+				compatible = "sprd,apb-busmonitor";
 				reg = <0 0x64030000 0 0x1000>;
 				interrupts = <GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>;
 				sprd,target-addr = <0 0>;
