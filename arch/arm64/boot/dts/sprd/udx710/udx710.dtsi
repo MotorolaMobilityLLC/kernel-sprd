@@ -485,6 +485,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		g3_pll: g3-pll {
@@ -501,6 +502,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		apahb_gate: apahb-gate {
@@ -509,6 +511,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		ap_clk: clock-controller@21100000 {
@@ -525,6 +528,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		ipa_gate: ipa-gate {
@@ -533,6 +537,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		audcpapb_gate: audcpapb-gate {
@@ -541,6 +546,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		audcpahb_gate: audcpahb-gate {
@@ -549,6 +555,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		aon_clk: clock-controller@63170000 {
@@ -573,6 +580,7 @@
 			clocks = <&ext_26m>;
 			clock-names = "ext-26m";
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		funnel@78002000 {

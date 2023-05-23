@@ -1235,7 +1235,7 @@
 			};
 
 			hwlock: hwspinlock@64000000 {
-				compatible = "sprd,orca-hwspinlock";
+				compatible = "sprd,hwspinlock-r3p0";
 				reg = <0 0x64000000 0 0x10000>;
 				#hwlock-cells = <1>;
 				clock-names = "enable";
