@@ -993,6 +993,7 @@
 					MASK_AON_APB_CLK_MM_VSP_EMC_EB |
 					MASK_AON_APB_CLK_MM_VSP_AHB_EB |
 					MASK_AON_APB_CLK_VSP_EB)>;
+				sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 				#power-domain-cells = <0>;
 				status = "disabled";
 			};
