@@ -30,6 +30,7 @@ unsigned int sysctl_sched_rt_task_timeout_panic;
 #endif
 unsigned int sysctl_sched_task_util_prefer_little;
 unsigned int sysctl_cpu_multi_thread_opt;
+unsigned int sysctl_multi_thread_heavy_load_runtime = 1000;
 
 /*up cap margin default value: ~20%*/
 static unsigned int sysctl_sched_cap_margin_up_pct[MAX_CLUSTERS] = {
@@ -376,6 +377,15 @@ struct ctl_table sched_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_ONE,
+	},
+	{
+		.procname	= "sched_multi_thread_heavy_load_runtime_ms",
+		.data		= &sysctl_multi_thread_heavy_load_runtime,
+		.maxlen		= sizeof(int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ONE,
+		.extra2		= &one_thousand,
 	},
 #ifdef CONFIG_UNISOC_GROUP_BOOST
 	{

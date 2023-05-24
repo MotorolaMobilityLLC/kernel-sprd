@@ -13,8 +13,8 @@
 
 #include "uni_sched.h"
 
-#define HEAVY_LOAD_RUNTIME     (1024000000)
 #define HEAVY_LOAD_SCALE       (80)
+#define NS_TO_MS               1000000
 
 static bool multi_thread_enable(void)
 {
@@ -49,7 +49,7 @@ static void check_preempt_tick_handler(void *data, struct task_struct *p,
 				struct sched_entity *curr, unsigned int granularity)
 {
 	if (unlikely(multi_thread_enable() && is_heavy_load_task(p)))
-		*ideal_runtime = HEAVY_LOAD_RUNTIME;
+		*ideal_runtime = sysctl_multi_thread_heavy_load_runtime * NS_TO_MS;
 }
 
 static void check_preempt_wakeup_handler(void *data, struct rq *rq, struct task_struct *p,
