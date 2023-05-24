@@ -55,7 +55,7 @@
 
 	sprd-sysdump {
 		memory-region = <&memory>;
-		memory-region-re = <&ddrbist_reserved>, <&cp_reserved>, <&scproc_pubpm>,
+		memory-region-re = <&ddrbist_reserved>, <&cp_reserved>,
 				   <&smem_reserved>, <&nrphyiqmem_reserved>;
 	};
 

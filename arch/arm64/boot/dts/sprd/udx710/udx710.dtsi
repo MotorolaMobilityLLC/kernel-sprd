@@ -736,6 +736,12 @@
 			};
 		};
 	};
+
+	sipc: sipc-virt {
+		compatible = "unisoc,sipc-virt-bus";
+		#address-cells = <1>;
+		#size-cells = <0>;
+	};
 };
 
 &sdio3 {

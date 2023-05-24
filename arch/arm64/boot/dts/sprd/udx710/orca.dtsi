@@ -624,14 +624,18 @@
 				interrupts = <GIC_SPI 61 IRQ_TYPE_LEVEL_HIGH>;
 			};
 
-			aon_mailbox: mailbox@63300000 {
-				compatible = "sprd,mailbox";
-				reg = <0 0x63300000 0 0x40000>;
-				syscons = <&aon_apb_regs 0x4 0x4>;
-				syscon-names = "clk";
+			mailbox: mailbox@63300000 {
+				compatible = "unisoc,mailbox";
+				reg = <0 0x63300000 0 0x10000>,
+				      <0 0x63310000 0 0x10000>,
+				      <0 0x63320000 0 0x20000>;
+				reg-names = "inbox", "outbox", "common";
+				sprd,mailbox_clk = <&aon_apb_regs 0x4 0x4>;
 				interrupts = <GIC_SPI 82 IRQ_TYPE_LEVEL_HIGH>,
-					     <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>;
-				sprd,core-cnt = <9>;
+					     <GIC_SPI 83 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 84 IRQ_TYPE_LEVEL_HIGH>;
+				interrupt-names = "inbox", "outbox", "oob-outbox";
+				#mbox-cells = <2>;
 			};
 
 			ap_efuse: efuse@63400000 {
