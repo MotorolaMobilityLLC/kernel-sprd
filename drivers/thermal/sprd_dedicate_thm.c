@@ -125,7 +125,7 @@ static int sprd_thm_cal_read(struct device_node *np, const char *cell_id,
 {
 	struct nvmem_cell *cell;
 	void *buf;
-	size_t len;
+	size_t len = 0;
 
 	cell = of_nvmem_cell_get(np, cell_id);
 	if (IS_ERR(cell))
@@ -140,6 +140,7 @@ static int sprd_thm_cal_read(struct device_node *np, const char *cell_id,
 	memcpy(val, buf, min(len, sizeof(u32)));
 
 	kfree(buf);
+	buf = NULL;
 	nvmem_cell_put(cell);
 
 	return 0;
