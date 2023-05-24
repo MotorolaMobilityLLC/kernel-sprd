@@ -29,6 +29,7 @@
 #include <linux/ptrace.h>
 #include <asm/stacktrace.h>
 #include <linux/seq_file.h>
+#include <../shutdown_detect/shutdown_detect.h>
 #include "native_hang_monitor.h"
 #include "unisoc_sysdump.h"
 
@@ -691,6 +692,8 @@ static int hang_detect_thread(void *arg)
 				msleep(50 * 1000);
 				/* check hang_detect_counter before panic */
 				if (atomic_add_negative(0, &hang_detect_counter)) {
+					if (get_shutdown_flag())
+						continue;
 					pr_emerg("we should trigger panic...\n");
 					panic("Native hang monitor trigger");
 				}

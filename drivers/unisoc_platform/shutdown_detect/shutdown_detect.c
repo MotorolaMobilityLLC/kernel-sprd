@@ -20,6 +20,7 @@
 #include <linux/types.h>	/* size_t */
 #include <linux/time.h>
 #include <../drivers/unisoc_platform/sysdump/unisoc_sysdump.h>
+#include "shutdown_detect.h"
 
 #define SHUTDOWN_STAGE_KERNEL 20
 #define SHUTDOWN_STAGE_INIT 30
@@ -320,6 +321,11 @@ static int __init init_shutdown_detect_ctrl(void)
 	}
 	return 0;
 }
+int get_shutdown_flag(void)
+{
+	return shutdown_detect_started;
+}
+EXPORT_SYMBOL(get_shutdown_flag);
 
 device_initcall(init_shutdown_detect_ctrl);
 MODULE_LICENSE("GPL");
