@@ -126,6 +126,7 @@ struct wcn_pcie_info {
 	atomic_t edma_ready;
 	atomic_t tx_complete;
 	atomic_t card_exist;
+	atomic_t is_suspending;
 	struct mutex pm_lock;
 };
 

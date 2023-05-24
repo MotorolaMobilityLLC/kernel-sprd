@@ -789,11 +789,16 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 		WARN_ON(1);
 		return -1;
 	}
-
-	__pm_stay_awake(edma->edma_push_ws);
-
 	if (inout == TX)
 		edma_print_mbuf_data(chn, head, tail, __func__);
+
+	if (!wcn_get_edma_status()) {
+		WCN_ERR("%s:don not push the data, card removed, chn=%d\n", __func__, chn);
+		return -1;
+	}
+
+	if (!atomic_read(&edma->pcie_info->is_suspending))
+		__pm_stay_awake(edma->edma_push_ws);
 
 	spin_lock_irqsave(edma->chn_sw[chn].dscr_ring.lock.irq_spinlock_p,
 			edma->chn_sw[chn].dscr_ring.lock.flag);
@@ -836,10 +841,12 @@ int edma_push_link(int chn, void *head, void *tail, int num)
 		dma_cfg.bit.rf_chn_en = 1;
 		edma->dma_chn_reg[chn].dma_cfg.reg = dma_cfg.reg;
 		edma_hw_tx_req(chn);
-	} else
+	} else {
 		edma_hw_rx_req(chn);
+	}
 
-	__pm_relax(edma->edma_push_ws);
+	if (!atomic_read(&edma->pcie_info->is_suspending))
+		__pm_relax(edma->edma_push_ws);
 
 	return 0;
 }
@@ -1258,7 +1265,7 @@ int msi_irq_handle(int irq)
 	dma_int.reg = edma->dma_chn_reg[chn].dma_int.reg;
 	msg.chn = chn;
 
-	__pm_wakeup_event(edma->edma_pop_ws, jiffies_to_msecs(HZ / 2));
+	//__pm_wakeup_event(edma->edma_pop_ws, jiffies_to_msecs(HZ / 2));
 
 	if (edma->chn_sw[chn].inout == TX) {
 		wcn_set_tx_complete_status(1);
