@@ -211,6 +211,7 @@ unisoc_platform:soc:
 unisoc_platform:audio:
 unisoc_platform:cpufreq:
 unisoc_platform:gnss:
+unisoc_platform:io:
 unisoc_platform:iommu:
 unisoc_platform:mailbox:
 unisoc_platform:misc:
