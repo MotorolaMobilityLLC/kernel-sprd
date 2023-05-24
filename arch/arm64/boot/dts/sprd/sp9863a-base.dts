@@ -33,6 +33,8 @@
 		i2c5 = &i2c5;
 		i2c6 = &i2c6;
 		i2c7 = &i2c7;
+		mmc0 = &sdio3;
+		mmc1 = &sdio0;
 };
 
 	memory@80000000 {
