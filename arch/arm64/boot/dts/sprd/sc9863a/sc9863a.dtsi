@@ -728,6 +728,8 @@
 #include "ddr-dfs.dtsi"
 #include "dma.dtsi"
 #include "glbreg.dtsi"
+#include "cam.dtsi"
+#include "csi.dtsi"
 #include "gpio.dtsi"
 #include "i2c.dtsi"
 #include "i2s.dtsi"

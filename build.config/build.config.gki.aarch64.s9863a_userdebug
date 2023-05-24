@@ -45,15 +45,21 @@ EXT_MODULES="
 ../modules/kernel5.15/video/sprd-vsp-power
 ../modules/kernel5.15/video/sprd-vpu
 ../modules/kernel5.15/video/sprd-jpg
+../modules/common/camera/power
+../modules/common/camera/cam_sys
+../modules/common/camera/cpp
+../modules/common/camera/flash/ocp8137
+../modules/common/camera/flash/flash_drv
+../modules/common/camera/sensor
 "
 fi
 #camera module version config
-#export BSP_BOARD_CAMERA_MODULE_ISP_VERSION="isp2.6"
-#export BSP_BOARD_CAMERA_MODULE_ISP_ADAPT_VERSION="sharkl5"
-#export BSP_BOARD_CAMERA_MODULE_CPP_VERSION="lite_r5p0"
-#export BSP_BOARD_CAMERA_MODULE_CSI_VERSION="receiver_r2p1"
+export BSP_BOARD_CAMERA_MODULE_ISP_VERSION="isp2.6"
+export BSP_BOARD_CAMERA_MODULE_ISP_ADAPT_VERSION="sharkl3"
+export BSP_BOARD_CAMERA_MODULE_CPP_VERSION="lite_r4p0"
+export BSP_BOARD_CAMERA_MODULE_CSI_VERSION="receiver_r2p0"
 #camera module dvfs config
-#export BSP_BOARD_CAMERA_MODULE_DVFS="sharkl5"
+export BSP_BOARD_CAMERA_MODULE_DVFS="sharkl3"
 
 DTC_FLAGS+="-@"
 
