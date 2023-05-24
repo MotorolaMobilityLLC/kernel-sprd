@@ -39,6 +39,12 @@ struct ufs_sprd_host {
 	/* gic enable register address */
 	void __iomem *gic_reg_enable;
 
+	/*
+	 * Records the IOCTL CMD being executed, used for ums9230 to change pwr mode
+	 * to LS during cali.
+	 */
+	u32 ioctl_status;
+
 	int (*check_stat_after_suspend)(struct ufs_hba *hba,
 					enum ufs_notify_change_status);
 };

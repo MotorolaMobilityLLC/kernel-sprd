@@ -19,140 +19,70 @@
 #include <linux/reset.h>
 
 #include "ufshcd.h"
-#include "ufs.h"
 #include "ufshcd-pltfrm.h"
-#include "ufshci.h"
 #include "ufs-sprd.h"
 #include "ufs-sprd-qogirl6.h"
-#include "ufs_quirks.h"
-#include "unipro.h"
 #include "ufs-sprd-ioctl.h"
 #include "ufs-sprd-bootdevice.h"
 #include "ufs-sprd-debug.h"
 
 int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 {
-	u32 args[2];
-	struct device_node *np = dev->of_node;
-	struct platform_device *pdev = to_platform_device(dev);
+	int ret = 0;
 	struct ufs_sprd_ums9230_data *priv =
 		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
 
-	priv->aon_apb_ufs_en.regmap =
-			syscon_regmap_lookup_by_phandle_args(np, "aon_apb_ufs_en", 2, args);
-	if (IS_ERR(priv->aon_apb_ufs_en.regmap)) {
-		pr_warn("failed to get apb ufs aon_apb_ufs_en\n");
-		return PTR_ERR(priv->aon_apb_ufs_en.regmap);
-	}
-	priv->aon_apb_ufs_en.reg = args[0];
-	priv->aon_apb_ufs_en.mask = args[1];
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->aon_apb_ufs_en,
+				      "aon_apb_ufs_en");
+	if (ret < 0)
+		return ret;
 
-	pr_info("fangkuiufs priv->aon_apb_ufs_en.regmap = %p",
-		priv->aon_apb_ufs_en.regmap);
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ap_ahb_ufs_clk,
+				      "ap_ahb_ufs_clk");
+	if (ret < 0)
+		return ret;
 
-	priv->ap_ahb_ufs_clk.regmap =
-			syscon_regmap_lookup_by_phandle_args(np, "ap_ahb_ufs_clk", 2, args);
-	if (IS_ERR(priv->ap_ahb_ufs_clk.regmap)) {
-		pr_err("failed to get apb ufs ap_ahb_ufs_clk\n");
-		return PTR_ERR(priv->ap_ahb_ufs_clk.regmap);
-	}
-	priv->ap_ahb_ufs_clk.reg = args[0];
-	priv->ap_ahb_ufs_clk.mask = args[1];
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ap_apb_ufs_en,
+				      "ap_apb_ufs_en");
+	if (ret < 0)
+		return ret;
 
-	priv->ap_apb_ufs_en.regmap =
-			syscon_regmap_lookup_by_phandle_args(np, "ap_apb_ufs_en", 2, args);
-	if (IS_ERR(priv->ap_apb_ufs_en.regmap)) {
-		pr_err("failed to get apb ufs ap_apb_ufs_en\n");
-		return PTR_ERR(priv->ap_apb_ufs_en.regmap);
-	}
-	priv->ap_apb_ufs_en.reg = args[0];
-	priv->ap_apb_ufs_en.mask = args[1];
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ufs_refclk_on,
+				      "ufs_refclk_on");
+	if (ret < 0)
+		return ret;
 
-	priv->ufs_refclk_on.regmap =
-			syscon_regmap_lookup_by_phandle_args(np, "ufs_refclk_on", 2, args);
-	if (IS_ERR(priv->ufs_refclk_on.regmap)) {
-		pr_warn("failed to get ufs_refclk_on\n");
-		return PTR_ERR(priv->ufs_refclk_on.regmap);
-	}
-	priv->ufs_refclk_on.reg = args[0];
-	priv->ufs_refclk_on.mask = args[1];
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ahb_ufs_lp,
+				      "ahb_ufs_lp");
+	if (ret < 0)
+		return ret;
 
-	priv->ahb_ufs_lp.regmap =
-			syscon_regmap_lookup_by_phandle_args(np, "ahb_ufs_lp", 2, args);
-	if (IS_ERR(priv->ahb_ufs_lp.regmap)) {
-		pr_warn("failed to get ahb_ufs_lp\n");
-		return PTR_ERR(priv->ahb_ufs_lp.regmap);
-	}
-	priv->ahb_ufs_lp.reg = args[0];
-	priv->ahb_ufs_lp.mask = args[1];
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ahb_ufs_force_isol,
+				      "ahb_ufs_force_isol");
+	if (ret < 0)
+		return ret;
 
-	priv->ahb_ufs_force_isol.regmap =
-			syscon_regmap_lookup_by_phandle_args(np, "ahb_ufs_force_isol", 2, args);
-	if (IS_ERR(priv->ahb_ufs_force_isol.regmap)) {
-		pr_err("failed to get ahb_ufs_force_isol 1\n");
-		return PTR_ERR(priv->ahb_ufs_force_isol.regmap);
-	}
-	priv->ahb_ufs_force_isol.reg = args[0];
-	priv->ahb_ufs_force_isol.mask = args[1];
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ahb_ufs_cb,
+				      "ahb_ufs_cb");
+	if (ret < 0)
+		return ret;
 
-	priv->ahb_ufs_cb.regmap =
-			syscon_regmap_lookup_by_phandle_args(np, "ahb_ufs_cb", 2, args);
-	if (IS_ERR(priv->ahb_ufs_cb.regmap)) {
-		pr_err("failed to get ahb_ufs_cb\n");
-		return PTR_ERR(priv->ahb_ufs_cb.regmap);
-	}
-	priv->ahb_ufs_cb.reg = args[0];
-	priv->ahb_ufs_cb.mask = args[1];
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ahb_ufs_cb,
+				      "ahb_ufs_cb");
+	if (ret < 0)
+		return ret;
 
-	priv->ahb_ufs_ies_en.regmap =
-			syscon_regmap_lookup_by_phandle_args(np, "ahb_ufs_ies_en", 2, args);
-	if (IS_ERR(priv->ahb_ufs_ies_en.regmap)) {
-		pr_err("failed to get ahb_ufs_ies_en\n");
-		return PTR_ERR(priv->ahb_ufs_ies_en.regmap);
-	}
-	priv->ahb_ufs_ies_en.reg = args[0];
-	priv->ahb_ufs_ies_en.mask = args[1];
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ahb_ufs_ies_en,
+				      "ahb_ufs_ies_en");
+	if (ret < 0)
+		return ret;
 
-	priv->ahb_ufs_cg_pclkreq.regmap =
-			syscon_regmap_lookup_by_phandle_args(np, "ahb_ufs_cg_pclkreq", 2, args);
-	if (IS_ERR(priv->ahb_ufs_cg_pclkreq.regmap)) {
-		pr_err("failed to get ahb_ufs_cg_pclkreq\n");
-		return PTR_ERR(priv->ahb_ufs_cg_pclkreq.regmap);
-	}
-	priv->ahb_ufs_cg_pclkreq.reg = args[0];
-	priv->ahb_ufs_cg_pclkreq.mask = args[1];
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ahb_ufs_cg_pclkreq,
+				      "ahb_ufs_cg_pclkreq");
+	if (ret < 0)
+		return ret;
 
-	priv->pclk = devm_clk_get(&pdev->dev, "ufs_pclk");
-	if (IS_ERR(priv->pclk)) {
-		dev_warn(&pdev->dev,
-			"can't get the clock dts config: ufs_pclk\n");
-			priv->pclk = NULL;
-	}
-
-	priv->pclk_source = devm_clk_get(&pdev->dev, "ufs_pclk_source");
-	if (IS_ERR(priv->pclk_source)) {
-		dev_warn(&pdev->dev,
-			"can't get the clock dts config: ufs_pclk_source\n");
-			priv->pclk_source = NULL;
-	}
-	clk_set_parent(priv->pclk, priv->pclk_source);
-
-	priv->hclk = devm_clk_get(&pdev->dev, "ufs_hclk");
-	if (IS_ERR(priv->hclk)) {
-		dev_warn(&pdev->dev,
-			"can't get the clock dts config: ufs_hclk\n");
-			priv->hclk = NULL;
-	}
-
-	priv->hclk_source = devm_clk_get(&pdev->dev, "ufs_hclk_source");
-	if (IS_ERR(priv->hclk_source)) {
-		dev_warn(&pdev->dev,
-			"can't get the clock dts config: ufs_hclk_source\n");
-			priv->hclk_source = NULL;
-	}
-	clk_set_parent(priv->hclk, priv->hclk_source);
-
-	return 0;
+	return ret;
 }
 
 static inline int ufs_sprd_mask(void __iomem *base, u32 mask, u32 reg)
@@ -182,6 +112,7 @@ static inline void ufs_sprd_rmwl(void __iomem *base, u32 mask, u32 val, u32 reg)
 	tmp |= (val & mask);
 	writel(tmp, (base) + (reg));
 }
+
 static void ufs_remap_or(struct syscon_ufs *sysconufs)
 {
 	unsigned int value = 0;
@@ -227,8 +158,7 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 		return -ENODEV;
 	}
 
-	priv->ufs_analog_reg = devm_ioremap(dev, res->start,
-	resource_size(res));
+	priv->ufs_analog_reg = devm_ioremap(dev, res->start, resource_size(res));
 	if (IS_ERR(priv->ufs_analog_reg)) {
 		dev_err(dev, "%s: could not map ufs_analog_reg, err %ld\n",
 			__func__, PTR_ERR(priv->ufs_analog_reg));
@@ -826,8 +756,6 @@ int hibern8_exit_check(struct ufs_hba *hba,
 	int ret;
 	u32 aon_ver_id = 0;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_ums9230_data *priv =
-		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
 
 	ret = is_ufs_sprd_host_in_pwm(hba);
 	if (ret == (SLOW_MODE|(SLOW_MODE<<4))) {
@@ -836,8 +764,7 @@ int hibern8_exit_check(struct ufs_hba *hba,
 			pr_err("fail to get soc id\n");
 			return ret;
 		}
-		if (priv->ioctl_cmd == UFS_IOCTL_AFC_EXIT ||
-				aon_ver_id == AON_VER_UFS) {
+		if (host->ioctl_status == UFS_IOCTL_AFC_EXIT || aon_ver_id == AON_VER_UFS) {
 			ret = sprd_ufs_pwrchange(hba);
 			if (ret) {
 				pr_err("ufs_pwm2hs err");
@@ -849,8 +776,7 @@ int hibern8_exit_check(struct ufs_hba *hba,
 					pr_err("ufs_pwm2hs fail");
 				else {
 					pr_err("ufs_pwm2hs succ\n");
-					if (priv->ioctl_cmd ==
-							UFS_IOCTL_AFC_EXIT)
+					if (host->ioctl_status == UFS_IOCTL_AFC_EXIT)
 						complete(&host->hs_async_done);
 				}
 			}
@@ -867,8 +793,6 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 	int ret;
 	unsigned long flags;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_ums9230_data *priv =
-		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
 
 	switch (status) {
 	case PRE_CHANGE:
@@ -881,7 +805,7 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 	case POST_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
 			hba->caps &= ~UFSHCD_CAP_CLK_GATING;
-			if (priv->ioctl_cmd == UFS_IOCTL_ENTER_MODE) {
+			if (host->ioctl_status == UFS_IOCTL_ENTER_MODE) {
 				ret = sprd_ufs_pwmmode_change(hba);
 				if (ret)
 					pr_err("change pwm mode failed!\n");
@@ -925,38 +849,12 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 	return 0;
 }
 
-static int ufs_sprd_resume(struct ufs_hba *hba, enum ufs_pm_op pm_op)
-{
-	udelay(100);
-	return 0;
-}
-
 static int ufs_sprd_device_reset(struct ufs_hba *hba)
 {
 	if (sprd_ufs_debug_is_supported(hba))
 		ufshcd_common_trace(hba, UFS_TRACE_RESET_AND_RESTORE, NULL);
 
 	return 0;
-}
-
-void ufs_sprd_setup_xfer_req(struct ufs_hba *hba, int task_tag, bool scsi_cmd)
-{
-	struct ufshcd_lrb *lrbp;
-	struct utp_transfer_req_desc *req_desc;
-	u32 data_direction;
-	u32 dword_0, crypto;
-
-	lrbp = &hba->lrb[task_tag];
-	req_desc = lrbp->utr_descriptor_ptr;
-	dword_0 = le32_to_cpu(req_desc->header.dword_0);
-	data_direction = dword_0 & (UTP_DEVICE_TO_HOST | UTP_HOST_TO_DEVICE);
-	crypto = dword_0 & UTP_REQ_DESC_CRYPTO_ENABLE_CMD;
-	if (!data_direction && crypto) {
-		pr_err("ufs before dword_0 = %x,%x\n", dword_0, req_desc->header.dword_0);
-		dword_0 &= ~(UTP_REQ_DESC_CRYPTO_ENABLE_CMD);
-		req_desc->header.dword_0 = cpu_to_le32(dword_0);
-		pr_err("ufs after dword_0 = %x,%x\n", dword_0, req_desc->header.dword_0);
-	}
 }
 
 static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
@@ -1013,11 +911,9 @@ const struct ufs_hba_variant_ops ufs_hba_sprd_ums9230_vops = {
 	.link_startup_notify = ufs_sprd_link_startup_notify,
 	.pwr_change_notify = ufs_sprd_pwr_change_notify,
 	.hibern8_notify = ufs_sprd_hibern8_notify,
-	.setup_xfer_req = ufs_sprd_setup_xfer_req,
 	.apply_dev_quirks = ufs_sprd_apply_dev_quirks,
 	.fixup_dev_quirks = ufs_sprd_fixup_dev_quirks,
 	.suspend = ufs_sprd_suspend,
-	.resume = ufs_sprd_resume,
 	.dbg_register_dump = ufs_sprd_dbg_register_dump,
 	.device_reset = ufs_sprd_device_reset,
 	.event_notify = ufs_sprd_update_evt_hist,

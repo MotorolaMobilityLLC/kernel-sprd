@@ -26,7 +26,6 @@ struct ufs_sprd_ums9230_data {
 	struct clk *pclk;
 	struct reset_control *ap_apb_ufs_rst;
 	struct reset_control *ap_apb_ufs_glb_rst;
-	u32 ioctl_cmd;
 	void __iomem *dbg_apb_reg;
 };
 

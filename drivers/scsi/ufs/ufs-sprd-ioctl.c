@@ -405,20 +405,26 @@ int ufshcd_sprd_ioctl(struct scsi_device *dev, unsigned int cmd, void __user *bu
 		err = sprd_ufs_ioctl_get_dev_info(dev, buffer);
 		break;
 	case UFS_IOCTL_ENTER_MODE:
+		host->ioctl_status = UFS_IOCTL_ENTER_MODE;
 		init_completion(&host->pwm_async_done);
 		if (!wait_for_completion_timeout(&host->pwm_async_done, 50000)) {
 			pr_err("pwm mode time out!\n");
+			host->ioctl_status = 0;
 			return -ETIMEDOUT;
 		}
 		err = sprd_ufs_ioctl_get_pwr_info(dev, buffer, cmd);
+		host->ioctl_status = 0;
 		break;
 	case UFS_IOCTL_AFC_EXIT:
+		host->ioctl_status = UFS_IOCTL_AFC_EXIT;
 		init_completion(&host->hs_async_done);
 		if (!wait_for_completion_timeout(&host->hs_async_done, 50000)) {
 			pr_err("hs mode time out!\n");
+			host->ioctl_status = 0;
 			return -ETIMEDOUT;
 		}
 		err = sprd_ufs_ioctl_get_pwr_info(dev, buffer, cmd);
+		host->ioctl_status = 0;
 		break;
 	default:
 		err = -ENOIOCTLCMD;
