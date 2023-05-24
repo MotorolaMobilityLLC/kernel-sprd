@@ -493,23 +493,22 @@
 				vcc-supply = <&vddemmccore>;
 				vcc-fixed-regulator;
 				clock-names = "ufs_reg_eb", "ufs_en",
-					      "ufs_pclk", "ufs_pclk_source",
-					      "ufs_hclk", "ufs_hclk_source";
+					      "ufs_pclk", "ufs_hclk";
 				clocks = <&apapb_gate CLK_UFS_REG_EB>,
 					 <&apapb_gate CLK_UFS_EB>,
 					 <&ap_clk CLK_UFS_PCK>,
-					 <&pll1 CLK_TWPLL_256M>,
-					 <&ap_clk CLK_UFS_HCK>,
-					 <&pll1 CLK_TWPLL_256M>;
-				reset-names = "ufs_rst", "ufs_glb_rst";
-				resets = <&apapb_gate RESET_AP_APB_UFS_REG_SOFT_RST>,
-					 <&apapb_gate RESET_AP_APB_UFS_GLB_RST>;
+					 <&ap_clk CLK_UFS_HCK>;
 				freq-table-hz = <0 0>,
 						<0 0>,
 						<0 0>,
-						<0 0>,
-						<0 0>,
 						<0 0>;
+				assigned-clocks = <&ap_clk CLK_UFS_PCK>,
+						  <&ap_clk CLK_UFS_HCK>;
+				assigned-clock-parents = <&pll1 CLK_TWPLL_256M>,
+							 <&pll1 CLK_TWPLL_256M>;
+				reset-names = "ufs_rst", "ufs_glb_rst";
+				resets = <&apapb_gate RESET_AP_APB_UFS_REG_SOFT_RST>,
+					 <&apapb_gate RESET_AP_APB_UFS_GLB_RST>;
 				/*#clock-cells = <1>;*/
 				reg = <0 0x20200000 0 0x10000>,
 				      <0 0x20400000 0 0x10000>,
