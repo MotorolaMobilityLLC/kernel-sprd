@@ -1350,3 +1350,4 @@
 #include "wdt.dtsi"
 #include "gpu-natt.dtsi"
 #include "usb.dtsi"
+#include "../aux/screen_onoff_check.dtsi"
