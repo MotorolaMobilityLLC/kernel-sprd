@@ -122,6 +122,20 @@ static void sprd_tcpm_set_typec_int_clear(void)
 		g_sprd_typec_device_ops->set_typec_int_clear();
 }
 
+static void sprd_tcpm_set_typec_rp_rd(enum sprd_typec_cc_status cc)
+{
+	if (g_sprd_typec_device_ops &&
+	    g_sprd_typec_device_ops->set_typec_rp_rd)
+		g_sprd_typec_device_ops->set_typec_rp_rd(cc);
+}
+
+static void sprd_tcpm_set_typec_rp_level(enum sprd_typec_cc_status cc)
+{
+	if (g_sprd_typec_device_ops &&
+	    g_sprd_typec_device_ops->set_typec_rp_level)
+		g_sprd_typec_device_ops->set_typec_rp_level(cc);
+}
+
 static enum sprd_tcpm_state sprd_tcpm_default_state(struct sprd_tcpm_port *port)
 {
 	if (port->port_type == TYPEC_PORT_DRP) {
@@ -365,6 +379,30 @@ unlock:
 	mutex_unlock(&port->logprintk_lock);
 re_schedule:
 	schedule_delayed_work(&port->log2printk, msecs_to_jiffies(work_time_ms));
+}
+
+static void sprd_tcpm_source_acquire_wake_lock(struct sprd_tcpm_port *port)
+{
+	mutex_lock(&port->keep_source_awake_mtx);
+	if (!port->keep_source_awake) {
+		__pm_stay_awake(port->pd_source_ws);
+		port->keep_source_awake = true;
+		sprd_tcpm_log(port, "acquire pd_source_wakelock when pd as source");
+		pr_info("acquire pd_source_wakelock when pd as source\n");
+	}
+	mutex_unlock(&port->keep_source_awake_mtx);
+}
+
+static void sprd_tcpm_source_release_wake_lock(struct sprd_tcpm_port *port)
+{
+	mutex_lock(&port->keep_source_awake_mtx);
+	if (port->keep_source_awake) {
+		__pm_relax(port->pd_source_ws);
+		port->keep_source_awake = false;
+		sprd_tcpm_log(port, "release pd_source_wakelock");
+		pr_info("release pd_source_wakelock\n");
+	}
+	mutex_unlock(&port->keep_source_awake_mtx);
 }
 
 static void sprd_tcpm_log_source_caps(struct sprd_tcpm_port *port)
@@ -1374,6 +1412,7 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 		case SPRD_CMD_ATTENTION:
 			/* Attention command does not have response */
 			if (adev) {
+				sprd_tcpm_source_release_wake_lock(port);
 				typec_altmode_attention(adev, p[1]);
 				if (port->tcpc->dp_altmode_notify) {
 					sprd_tcpm_log(port, "%s:line%d CMD_ATTENTION", __func__, __LINE__);
@@ -3066,6 +3105,7 @@ static void sprd_tcpm_reset_port(struct sprd_tcpm_port *port)
 	port->last_usb_type = POWER_SUPPLY_USB_TYPE_C;
 
 	power_supply_changed(port->psy);
+	sprd_tcpm_source_release_wake_lock(port);
 }
 
 static void sprd_tcpm_detach(struct sprd_tcpm_port *port)
@@ -3079,6 +3119,8 @@ static void sprd_tcpm_detach(struct sprd_tcpm_port *port)
 
 	if (sprd_tcpm_port_is_disconnected(port))
 		port->hard_reset_count = 0;
+
+	sprd_tcpm_source_release_wake_lock(port);
 
 	if (!port->attached)
 		return;
@@ -3453,6 +3495,8 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 				      __func__, __LINE__);
 		}
 		if (port->power_role_swap) {
+			sprd_tcpm_log(port, "SRC_READY set rp rd to hw");
+			sprd_tcpm_set_typec_rp_rd(SPRD_TYPEC_CC_OPEN);
 			port->power_role_swap = false;
 			port->power_role_swap_hard_reset = false;
 			sprd_tcpm_set_typec_roles(port, TYPEC_PORT_DRP, TYPEC_DEVICE);
@@ -3463,6 +3507,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		sprd_tcpm_swap_complete(port, 0);
 
 		sprd_tcpm_check_send_discover(port);
+		sprd_tcpm_source_acquire_wake_lock(port);
 		/*
 		 * 6.3.5
 		 * Sending ping messages is not necessary if
@@ -3729,6 +3774,8 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 				      __func__, __LINE__);
 		}
 		if (port->power_role_swap) {
+			sprd_tcpm_log(port, "SNK_READY set rp rd to hw");
+			sprd_tcpm_set_typec_rp_rd(SPRD_TYPEC_CC_OPEN);
 			port->power_role_swap_hard_reset = false;
 			sprd_tcpm_set_typec_roles(port, TYPEC_PORT_DRP, TYPEC_DEVICE);
 			sprd_tcpm_log(port, "SNK_READY clear power role swap flag");
@@ -3755,6 +3802,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 			port->power_role_swap = false;
 			power_supply_changed(port->psy);
 		}
+		sprd_tcpm_source_release_wake_lock(port);
 		break;
 
 	/* Accessory states */
@@ -3980,6 +4028,8 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		if (port->role_swap_flag)
 			sprd_tcpm_set_swap(port, true, true);
 		sprd_tcpm_set_cc(port, SPRD_TYPEC_CC_RD);
+		sprd_tcpm_set_typec_rp_level(SPRD_TYPEC_CC_RP_DEF);
+		sprd_tcpm_set_typec_rp_rd(SPRD_TYPEC_CC_RD);
 		/* allow CC debounce */
 		sprd_tcpm_set_state(port, PR_SWAP_SRC_SNK_SOURCE_OFF_CC_DEBOUNCED,
 				    SPRD_PD_T_CC_DEBOUNCE_SWAP);
@@ -4026,6 +4076,8 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		msleep(50);
 		sprd_tcpm_log(port, "[%s:line%d] msleep 50 end", __func__, __LINE__);
 		sprd_tcpm_set_cc(port, sprd_tcpm_rp_cc(port));
+		sprd_tcpm_set_typec_rp_level(SPRD_TYPEC_CC_RP_3_0);
+		sprd_tcpm_set_typec_rp_rd(SPRD_TYPEC_CC_RP_3_0);
 		if (port->role_swap_flag)
 			sprd_tcpm_set_swap(port, true, true);
 		sprd_tcpm_set_vbus(port, true);
@@ -5641,6 +5693,7 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 	mutex_init(&port->swap_lock);
 	sprd_tcpm_debug_log_init(port);
 	sprd_tcpm_debug_log_switch(port);
+	mutex_init(&port->keep_source_awake_mtx);
 
 	port->wq = create_singlethread_workqueue(dev_name(dev));
 	if (!port->wq)
@@ -5657,6 +5710,9 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 	init_completion(&port->fixed_pd_complete);
 	init_completion(&port->pps_complete);
 	sprd_tcpm_debugfs_init(port);
+
+	port->pd_source_ws = wakeup_source_create("pd_source_wakelock");
+	wakeup_source_add(port->pd_source_ws);
 
 	port->fixed_pd_voltage = 0;
 	err = sprd_tcpm_fw_get_caps(port, tcpc->fwnode);
@@ -5736,6 +5792,7 @@ out_role_sw_put:
 out_destroy_wq:
 	sprd_tcpm_debugfs_exit(port);
 	destroy_workqueue(port->wq);
+	wakeup_source_remove(port->pd_source_ws);
 	return ERR_PTR(err);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_register_port);
@@ -5751,6 +5808,7 @@ void sprd_tcpm_unregister_port(struct sprd_tcpm_port *port)
 	usb_role_switch_put(port->role_sw);
 	sprd_tcpm_debugfs_exit(port);
 	destroy_workqueue(port->wq);
+	wakeup_source_remove(port->pd_source_ws);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_unregister_port);
 

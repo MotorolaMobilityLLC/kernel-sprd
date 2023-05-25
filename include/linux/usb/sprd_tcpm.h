@@ -170,6 +170,8 @@ struct sprd_typec_device_ops {
 	int (*typec_set_pd_dr_swap_flag)(u8 flag);
 	int (*typec_set_pr_swap_flag)(u8 flag);
 	int (*typec_set_pd_swap_event)(u8 pd_swap_flag);
+	int (*set_typec_rp_rd)(enum sprd_typec_cc_status cc);
+	int (*set_typec_rp_level)(enum sprd_typec_cc_status cc);
 };
 
 struct sprd_charger_ops {
@@ -647,6 +649,10 @@ struct sprd_tcpm_port {
 	bool enable_tcpm_log;
 	bool enbale_log_level_ctl;
 	bool xts_limit_cur;
+
+	struct wakeup_source *pd_source_ws;
+	struct mutex keep_source_awake_mtx;
+	bool keep_source_awake;
 };
 
 
