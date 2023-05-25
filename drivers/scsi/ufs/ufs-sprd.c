@@ -243,7 +243,6 @@ static void ufs_sprd_vh_update_sysfs(void *data,
 					struct ufs_hba *hba)
 {
 	ufs_sprd_sysfs_add_nodes(hba);
-	ufs_sprd_sysfs_add_health_device_nodes(hba);
 }
 
 static void ufs_sprd_vh_send_cmd(void *data,
@@ -324,6 +323,7 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 	ufs_sprd_rpmb_add(hba);
 	sprd_ufs_proc_init(hba);
 	ufs_sprd_debug_init(hba);
+	ufs_sprd_sysfs_add_health_device_nodes(hba);
 out:
 	return err;
 }
