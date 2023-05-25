@@ -40,10 +40,11 @@ int virtual_typec_connect(struct virtual_typec *sc, bool flag)
 	enum typec_role power_role;
 	struct typec_partner_desc desc;
 
+	dev_info(sc->dev,
+		"%s enter in %s mode, line %d\n", __func__, flag ? "Host" : "Device", __LINE__);
 	if (sc->partner)
 		return 0;
 
-	dev_info(sc->dev, "%s enter line %d\n", __func__, __LINE__);
 	if (flag) {
 		data_role = TYPEC_HOST;
 		power_role = TYPEC_SOURCE;
@@ -188,9 +189,11 @@ static void virtual_typec_detect_cable(struct virtual_typec *sc)
 	if (sc->dr_mode == USB_DR_MODE_HOST) {
 		spin_unlock_irqrestore(&sc->lock, flags);
 		virtual_typec_connect(sc, true);
-	} else {
+	} else if (sc->dr_mode == USB_DR_MODE_PERIPHERAL) {
 		spin_unlock_irqrestore(&sc->lock, flags);
 		virtual_typec_connect(sc, false);
+	} else {
+		spin_unlock_irqrestore(&sc->lock, flags);
 	}
 
 }
