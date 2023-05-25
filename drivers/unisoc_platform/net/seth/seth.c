@@ -27,6 +27,7 @@
 #include <linux/ip.h>
 #include <linux/ipv6.h>
 #include <linux/kernel.h>
+#include <linux/kobject.h>
 #include <linux/kthread.h>
 #include <linux/module.h>
 #include <linux/netdevice.h>
@@ -37,6 +38,7 @@
 #include <linux/sipc.h>
 #include <linux/skbuff.h>
 #include <linux/string.h>
+#include <linux/sysfs.h>
 #include <linux/tcp.h>
 #include <linux/timer.h>
 #include <linux/workqueue.h>
@@ -61,6 +63,15 @@
 #define SETH_NAME_SIZE 16
 
 #define SMSG_EVENT_SBLOCK_SEND	0x1
+
+
+/* The number of uids from userspace about vip data */
+#define MAX_UID_NUM 10
+
+#define SIOC_SETH_SET_UID (SIOCDEVPRIVATE + 0)
+#define SIOC_SETH_DEL_UID (SIOCDEVPRIVATE + 1)
+
+int seth_vip_uids[MAX_UID_NUM];
 
 /* Struct of data transfer statistics */
 struct seth_dtrans_stats {
@@ -117,7 +128,15 @@ struct seth {
 	struct seth_dtrans_stats dt_stats;
 };
 
-/* we decide disable GRO, since it alawys conflit with others */
+/* For VIP data */
+struct pdcp {
+	bool priority;
+	u8 discard_timer;
+};
+
+static u32 seth_vip_enable;
+
+/* We decide disable GRO, since it alawys conflit with others */
 static u32 gro_enable;
 #ifdef CONFIG_DEBUG_FS
 static struct dentry *root_gl;
@@ -489,7 +508,9 @@ static int seth_tx_pkt(void *data, struct sk_buff *skb, int is_ack)
 	struct seth *seth = netdev_priv(data);
 	struct seth_init_data *pdata = seth->pdata;
 	struct ethhdr *ethh;
-	int ret;
+	int seth_uid = 0;
+	int ret, uid;
+	struct pdcp *p;
 
 	ethh = eth_hdr(skb);
 
@@ -515,6 +536,29 @@ static int seth_tx_pkt(void *data, struct sk_buff *skb, int is_ack)
 	}
 	blk.length = skb->len;
 	unalign_memcpy(blk.addr, skb->data, skb->len);
+
+	/* For LAN forwarding to seth, sk is null. */
+	if (skb->sk && seth_vip_enable) {
+		/* Struct pdcp must be initialized. */
+		p = (struct pdcp *)((char *)blk.addr - sizeof(struct pdcp));
+		p->priority = false;
+		p->discard_timer = 0;
+		seth_uid = skb->sk->sk_uid.val;
+
+		/* For vip data we need to transmit skb firstly in band0. */
+		for (uid = 0; uid < MAX_UID_NUM; uid++) {
+			if (seth_uid == seth_vip_uids[uid]) {
+				p->priority = true;
+				/* PDCP discard timer come from
+				 * cp value, cp doesn't care about
+				 * how big discard_timer is, so
+				 * set it to 0.
+				 */
+				p->discard_timer = 0;
+				break;
+			}
+		}
+	}
 
 	/* Copy the content into smem and trigger a smsg to the peer side */
 	if (seth->is_rawip)
@@ -766,12 +810,47 @@ static void seth_tx_timeout(struct net_device *dev, unsigned int txqueue)
 	}
 }
 
+static int seth_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
+{
+	int vip_uid;
+	int i;
+	int ret = 0;
+
+	switch (cmd) {
+	case SIOC_SETH_SET_UID:
+		ret = copy_from_user(&vip_uid, ifr->ifr_data, sizeof(vip_uid));
+
+		dev_info(&dev->dev, "copy from userspace vip_uid is %d\n", vip_uid);
+
+		if (ret)
+			return -EFAULT;
+
+		for (i = 0; i < MAX_UID_NUM; i++) {
+			if (!seth_vip_uids[i]) {
+				seth_vip_uids[i] = vip_uid;
+				break;
+			}
+		}
+
+		break;
+	case SIOC_SETH_DEL_UID:
+		memset(seth_vip_uids, 0, sizeof(seth_vip_uids));
+		break;
+	default:
+		dev_err(&dev->dev, "Ioctl cmd not support.\n");
+		return -EOPNOTSUPP;
+	}
+
+	return 0;
+}
+
 static const struct net_device_ops seth_ops = {
 	.ndo_open = seth_open,
 	.ndo_stop = seth_close,
 	.ndo_start_xmit = seth_start_xmit,
 	.ndo_get_stats = seth_get_stats,
 	.ndo_tx_timeout = seth_tx_timeout,
+	.ndo_do_ioctl = seth_ioctl,
 };
 
 static int seth_parse_dt(struct seth_init_data **init,
@@ -846,13 +925,42 @@ static void seth_recv_handler(const struct smsg *msg, void *data)
 		seth_handler(SBLOCK_NOTIFY_RECV, data);
 }
 
+static ssize_t seth_vip_enable_show(struct device *dev,
+				    struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n", seth_vip_enable);
+}
+
+static ssize_t seth_vip_enable_store(struct device *dev,
+				     struct device_attribute *attr,
+				     const char *buf,
+				     size_t count)
+{
+	int flag, ret;
+
+	ret = kstrtoint(buf, 10, &flag);
+	if (ret)
+		return ret;
+
+	seth_vip_enable = flag;
+
+	return count;
+}
+static DEVICE_ATTR_RW(seth_vip_enable);
+
+static struct attribute *seth_ctrl_attrs[] = {
+	&dev_attr_seth_vip_enable.attr,
+	NULL,
+};
+ATTRIBUTE_GROUPS(seth_ctrl);
+
 static int seth_probe(struct platform_device *pdev)
 {
 	struct seth_init_data *pdata = pdev->dev.platform_data;
 	struct net_device *netdev;
 	struct seth *seth;
 	char ifname[IFNAMSIZ];
-	int ret;
+	int ret, rc;
 	struct device_node *np = pdev->dev.of_node;
 	struct device *dev = &pdev->dev;
 
@@ -941,11 +1049,27 @@ static int seth_probe(struct platform_device *pdev)
 	netif_carrier_off(netdev);
 
 	platform_set_drvdata(pdev, seth);
+
+	rc = sysfs_create_groups(&dev->kobj, seth_ctrl_groups);
+	if (rc != 0) {
+		dev_err(dev, "failed to create sysfs group, rc %d\n", rc);
+		sysfs_remove_groups(&dev->kobj, seth_ctrl_groups);
+		netif_napi_del(&seth->napi);
+		free_netdev(netdev);
+		SBLOCK_DESTROY(pdata->dst, pdata->channel);
+		return rc;
+	}
+
 #ifdef CONFIG_DEBUG_FS
 	if (!root_gl) {
-		root_gl	= debugfs_create_dir("seth", NULL);
-		if (!root_gl)
-			return -ENODEV;
+		root_gl = debugfs_create_dir("seth", NULL);
+		if (!root_gl) {
+			debugfs_remove_recursive(root_gl);
+			netif_napi_del(&seth->napi);
+			free_netdev(netdev);
+			SBLOCK_DESTROY(pdata->dst, pdata->channel);
+			return -ENOMEM;
+		}
 	}
 	debugfs_create_file("gro_enable", 0600,
 			    root_gl, &gro_enable,
@@ -961,6 +1085,7 @@ static int seth_remove(struct platform_device *pdev)
 	struct seth *seth = platform_get_drvdata(pdev);
 	struct seth_init_data *pdata = seth->pdata;
 
+	sysfs_remove_groups(&pdev->dev.kobj, seth_ctrl_groups);
 	netif_napi_del(&seth->napi);
 	del_timer_sync(&seth->rx_timer);
 	del_timer_sync(&seth->tx_timer);
