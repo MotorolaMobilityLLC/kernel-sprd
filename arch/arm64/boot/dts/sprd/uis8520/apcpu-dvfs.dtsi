@@ -22,22 +22,6 @@
 	sprd,freq-domain = <&cpufreq_clus0 0>;
 };
 
-&CPU4 {
-	sprd,freq-domain = <&cpufreq_clus1 1>;
-};
-
-&CPU5 {
-	sprd,freq-domain = <&cpufreq_clus1 1>;
-};
-
-&CPU6 {
-	sprd,freq-domain = <&cpufreq_clus1 1>;
-};
-
-&CPU7 {
-	sprd,freq-domain = <&cpufreq_clus2 2>;
-};
-
 / {
 	apcpu_dvfs: apcpu-dvfs {
 		compatible = "sprd,cpufreq-v2";

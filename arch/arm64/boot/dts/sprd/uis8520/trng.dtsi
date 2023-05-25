@@ -7,9 +7,9 @@
  */
 
 &apapb {
-	crypto_engine_rng: rng@e0000 {
+	crypto_engine_rng: rng@1e0000 {
 		compatible = "sprd,sprd-trng";
-		reg = <0xe0000 0x10000>;
+		reg = <0x1e0000 0x10000>;
 		clock-names = "ce-pub-eb", "ap-ce-clk",
 					  "source";
 		clocks = <&apapb_gate CLK_CE_PUB_EB>,

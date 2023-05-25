@@ -91,22 +91,6 @@
 						remote-endpoint = <&etm1_out>;
 					};
 				};
-
-				port@3 {
-					reg = <2>;
-					funnel_core_in_port4: endpoint {
-						slave-mode;
-						remote-endpoint = <&etm4_out>;
-					};
-				};
-
-				port@4 {
-					reg = <3>;
-					funnel_core_in_port5: endpoint {
-						slave-mode;
-						remote-endpoint = <&etm5_out>;
-					};
-				};
 			};
 		};
 
@@ -220,22 +204,6 @@
 						remote-endpoint = <&etm3_out>;
 					};
 				};
-
-				port@3 {
-					reg = <2>;
-					funnel_core_in_port6: endpoint {
-						slave-mode;
-						remote-endpoint = <&etm6_out>;
-					};
-				};
-
-				port@4 {
-					reg = <3>;
-					funnel_core_in_port7: endpoint {
-						slave-mode;
-						remote-endpoint = <&etm7_out>;
-					};
-				};
 			};
 		};
 
@@ -295,65 +263,9 @@
 			};
 		};
 
-		etm4: etm@7b440000 {
-			compatible = "arm,coresight-etm4x", "arm,primecell";
-			reg = <0 0x7b440000 0 0x1000>;
-			cpu = <&CPU4>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
-			clock-names = "apb_pclk", "clk_cs", "cs_src";
-
-			port {
-				etm4_out: endpoint {
-					remote-endpoint = <&funnel_core_in_port4>;
-				};
-			};
-		};
-
-		etm5: etm@7b540000 {
-			compatible = "arm,coresight-etm4x", "arm,primecell";
-			reg = <0 0x7b540000 0 0x1000>;
-			cpu = <&CPU5>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
-			clock-names = "apb_pclk", "clk_cs", "cs_src";
-
-			port {
-				etm5_out: endpoint {
-					remote-endpoint = <&funnel_core_in_port5>;
-				};
-			};
-		};
-
-		etm6: etm@7b640000 {
-			compatible = "arm,coresight-etm4x", "arm,primecell";
-			reg = <0 0x7b640000 0 0x1000>;
-			cpu = <&CPU6>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
-			clock-names = "apb_pclk", "clk_cs", "cs_src";
-
-			port {
-				etm6_out: endpoint {
-					remote-endpoint = <&funnel_core_in_port6>;
-				};
-			};
-		};
-
-		etm7: etm@7b740000 {
-			compatible = "arm,coresight-etm4x", "arm,primecell";
-			reg = <0 0x7b740000 0 0x1000>;
-			cpu = <&CPU7>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
-			clock-names = "apb_pclk", "clk_cs", "cs_src";
-
-			port {
-				etm7_out: endpoint {
-					remote-endpoint = <&funnel_core_in_port7>;
-				};
-			};
-		};
-
 		ap_etb: apetb {
 			compatible = "sprd,sprd_apetb";
-			apetb-source = <&etm0 &etm1 &etm2 &etm3 &etm4 &etm5 &etm6 &etm7>;
+			apetb-source = <&etm0 &etm1 &etm2 &etm3>;
 			apetb-sink = <&soc_etb>;
 		};
 	};

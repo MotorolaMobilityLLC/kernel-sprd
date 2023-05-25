@@ -15,6 +15,7 @@
 			#dma-channels = <28>;
 			clock-names = "enable";
 			clocks = <&apahb_gate CLK_DMA_PUB_EB>;
+			status = "disabled";
 	};
 };
 
@@ -28,5 +29,6 @@
 			clock-names = "enable", "ashb_eb";
 			clocks = <&audcpglb_gate CLK_AUDCP_DMA_AP_EB>,
 				<&audcpglb_gate CLK_AUDCP_DMA_AP_ASHB_EB>;
+			status = "disabled";
 	};
 };
