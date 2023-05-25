@@ -236,7 +236,7 @@
 			compatible = "simple-bus";
 			#address-cells = <1>;
 			#size-cells = <1>;
-			ranges = <0 0 0x20200000 0x100000>;
+			ranges = <0 0 0x20100000 0x2108400>;
 		};
 
 		apahb: ap-ahb {
