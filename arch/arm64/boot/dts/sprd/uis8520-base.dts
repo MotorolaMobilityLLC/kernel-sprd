@@ -48,6 +48,7 @@
 		serdes1 = &serdes1;
 		pmic_efuse0 = &ump9620_efuse;
 		pmic_efuse1 = &ump9621_efuse;
+		nandc = &nandc;
 	};
 
 	memory@80000000 {

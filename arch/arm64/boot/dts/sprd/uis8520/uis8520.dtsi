@@ -598,3 +598,4 @@
 #include "sipa.dtsi"
 #include "sfp.dtsi"
 #include "usbpinmux.dtsi"
+#include "nandc.dtsi"
