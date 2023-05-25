@@ -89,4 +89,15 @@ config SPRD_UMS9621_CLK
 	help
 	  Support for the global clock controller on ums9621 devices.
 	  Say Y if you want to use peripheral devices on ums9621 SoC.
+
+config SPRD_UIS8520_CLK
+	tristate "Support for the Unisoc UIS8520 clocks"
+	depends on (ARM64 && ARCH_SPRD) || COMPILE_TEST
+	default ARM64 && ARCH_SPRD
+	help
+	  Support for the global clock controller on uis8520 devices.
+	  different config parameter define different way to load devices.
+	  Say Y if you want to use peripheral devices on uis8520 SoC.
+	  Say M if you want to use peripheral devices on uis8520 SoC as module.
+
 endif
