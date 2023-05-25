@@ -22,6 +22,16 @@ extern int minidump_save_extend_information(const char *name,
 extern int minidump_change_extend_information(const char *name,
 		unsigned long paddr_start,
 		unsigned long paddr_end);
+#if IS_ENABLED(CONFIG_SPRD_SHUTDOWN_DETECT)
+ /*
+  * save kernel log and android log to partition
+  *
+  * @time:	the time when the problem ocurred
+  * @reason:	the reason which the shutdown ocurred
+  *
+  */
+extern void shutdown_save_log_to_partition(char *time, char *reason);
+#endif //CONFIG_SPRD_SHUTDOWN_DETECT
 
 extern int last_kmsg_init(void);
 
@@ -67,6 +77,7 @@ static inline int minidump_change_extend_information(const char *name,
 {
 	return 0;
 }
+static inline void shutdown_save_log_to_partition(char *time, char *reason) {}
 static inline void sysdump_ipi(void *p, struct pt_regs *regs) {}
 static inline void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason) {}
 static inline int get_kernel_log_to_buffer(char *buf, size_t buf_size) { return -1; }

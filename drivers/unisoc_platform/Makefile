@@ -34,6 +34,7 @@ obj-$(CONFIG_SPRD_USBPINMUX)    += usbpinmux/
 obj-$(CONFIG_SPRD_CACHE_PRINT) += sprd_cache_print/
 obj-$(CONFIG_SPRD_MEMDISK)  += sprd_memdisk.o
 obj-y += mm/
+obj-y += shutdown_detect/
 obj-y += net/
 obj-y += sprd_time_sync/
 obj-y += power/
