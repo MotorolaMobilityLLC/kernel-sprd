@@ -349,6 +349,10 @@
 	regulator-always-on;
 };
 
+&vddai {
+	regulator-boot-on;
+};
+
 &dpu {
 	sprd,logo-memory = <&logo_reserved>;
 	sprd,backlight = <&pwm_backlight>;
