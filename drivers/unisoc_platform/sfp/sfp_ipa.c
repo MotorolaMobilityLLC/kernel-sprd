@@ -523,6 +523,11 @@ bool sfp_ipa_tbl_timeout(struct sfp_conn *sfp_ct)
 
 	ts = sfp_get_ipa_latest_ts(ts_orig_new, ts_repl_new);
 
+	FP_PRT_DBG(FP_PRT_INFO,
+		   "%s: sfp_ct %p, ts %d, sfp_ct->ts %d, ts orig %d, ts repl %d\n",
+		   __func__, sfp_ct,
+		   ntohl(ts), ntohl(sfp_ct->ts), ntohl(ts_orig_new), ntohl(ts_repl_new));
+
 	if (sfp_ct->ts != ts) {
 		sfp_ct->ts = ts;
 		FP_PRT_DBG(FP_PRT_INFO,

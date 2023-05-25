@@ -207,7 +207,7 @@ struct fwd_entry {
 	u32 pkt_total_cnt; /* ip stream totol pkt count */
 	u32 pkt_current_cnt; /* ip stream pkt count currently */
 	u32 pkt_drop_cnt; /* ip stream total pkt drop count */
-	u32 time_stamp;
+	__be32 time_stamp;
 	u32 reserve2;
 } __packed;
 #else

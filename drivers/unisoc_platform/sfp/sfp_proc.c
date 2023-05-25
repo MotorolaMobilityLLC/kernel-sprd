@@ -695,6 +695,13 @@ static int sfp_ipa_proc_show(struct seq_file *seq, void *v)
 	cur_tether_scheme = get_sfp_tether_scheme();
 
 	if (cur_tether_scheme == SFP_HARD_PATH || cur_tether_scheme == SFP_HALF_PATH) {
+#if IS_ENABLED(CONFIG_UNISOC_SIPA_V3)
+		/* Before cat ipa_fwd_entries,
+		 * update ipa timestamp from ddr.
+		 */
+		sipa_hal_set_hash_sync_req();
+#endif
+
 		seq_printf(seq, "T0: entry_cnt %d\n",
 			   atomic_read(&fwd_tbl.entry_cnt));
 
