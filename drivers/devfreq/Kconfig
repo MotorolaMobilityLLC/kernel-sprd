@@ -112,6 +112,16 @@ config DEVFREQ_SPRD_DDR_DVFS_SP
 
 endchoice
 
+config SPRD_DDR_DVFS_GLP
+	bool "GLP global config for ddr dvfs"
+	depends on DEVFREQ_SPRD_DDR_DVFS
+	default n
+	help
+          GLP global config for ddr dvfs.
+          This configuration is only used for
+          SPRD GLP branch.
+          It should be turned off when using other branches.
+
 config ARM_EXYNOS_BUS_DEVFREQ
 	tristate "ARM Exynos Generic Memory Bus DEVFREQ Driver"
 	depends on ARCH_EXYNOS || COMPILE_TEST
