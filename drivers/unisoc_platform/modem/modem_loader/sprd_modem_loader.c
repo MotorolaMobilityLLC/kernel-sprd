@@ -125,7 +125,8 @@ const char *modem_ctrl_args[MODEM_CTRL_NR] = {
 	"corereset",
 	"sysreset",
 	"dspreset",
-	"getstatus"
+	"getstatus",
+	"fshutdown"
 };
 
 static const struct modem_data modem_v4[SPRD_V4_MODEM_CNT] = {
@@ -759,6 +760,9 @@ static void soc_modem_start(struct modem_device *modem)
 	/* clear cp force shutdown */
 	modem_reg_ctrl(modem, MODEM_CTRL_SHUT_DOWN, 1);
 
+	if (!strcmp(modem->modem_name, "v3phy"))
+		modem_reg_ctrl(modem, MODEM_CTRL_FSHUT_DOWN, 1);
+
 	/* clear cp force deep sleep */
 	modem_reg_ctrl(modem, MODEM_CTRL_DEEP_SLEEP, 1);
 
@@ -790,6 +794,9 @@ static void soc_modem_stop(struct modem_device *modem)
 
 	/* set cp force deep sleep */
 	modem_reg_ctrl(modem, MODEM_CTRL_DEEP_SLEEP, 0);
+
+	if (!strcmp(modem->modem_name, "v3phy"))
+		modem_reg_ctrl(modem, MODEM_CTRL_FSHUT_DOWN, 0);
 
 	/* set cp force shutdown */
 	modem_reg_ctrl(modem, MODEM_CTRL_SHUT_DOWN, 0);
