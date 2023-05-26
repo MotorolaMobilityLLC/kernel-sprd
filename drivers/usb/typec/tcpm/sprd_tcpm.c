@@ -3465,6 +3465,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		port->explicit_contract = true;
 		typec_set_pwr_opmode(port->typec_port, TYPEC_PWR_MODE_PD);
 		port->pwr_opmode = TYPEC_PWR_MODE_PD;
+		sprd_tcpm_source_acquire_wake_lock(port);
 		sprd_tcpm_set_state_cond(port, SRC_READY, 0);
 		break;
 	case SRC_READY:
@@ -3507,7 +3508,6 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		sprd_tcpm_swap_complete(port, 0);
 
 		sprd_tcpm_check_send_discover(port);
-		sprd_tcpm_source_acquire_wake_lock(port);
 		/*
 		 * 6.3.5
 		 * Sending ping messages is not necessary if
