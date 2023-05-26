@@ -219,7 +219,8 @@
 	mm_ahb_regs: syscon@60800000 {
 		compatible = "sprd,sc9863a-glbregs", "syscon",
 				 "simple-mfd";
-		reg = <0 0x60800000 0 0x1000>;
+		#syscon-cells = <2>;
+		reg = <0 0x60800000 0 0x3000>;
 		#address-cells = <1>;
 		#size-cells = <1>;
 		ranges = <0 0 0x60800000 0x3000>;
@@ -238,9 +239,10 @@
 		compatible = "sprd,sc9863a-glbregs", "syscon",
 			 "simple-mfd";
 		#syscon-cells = <2>;
+		reg = <0 0x62000000 0 0x3000>;
 		#address-cells = <1>;
 		#size-cells = <1>;
-		reg = <0 0x62000000 0 0x3000>;
+		ranges = <0 0 0x62000000 0x3000>;
 
 		vspahb_gate: vspahb-gate {
 			compatible = "sprd,sc9863a-vspahb-gate";
