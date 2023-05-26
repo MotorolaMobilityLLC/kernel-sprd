@@ -63,6 +63,9 @@
 #define TUNEEQ_SHIFT			0
 #define TFREGRES_SHIFT			19
 
+#define DEFAULT_HOST_EYE_PATTERN					0x04f3d1c0
+#define DEFAULT_DEVICE_EYE_PATTERN					0x0613d1c0
+
 struct sprd_hsphy {
 	struct device		*dev;
 	struct usb_phy		phy;
@@ -589,13 +592,11 @@ static int sprd_eye_pattern_prepared(struct sprd_hsphy *phy, struct device *dev)
 	int ret = 0;
 
 	/* set default eyepatt */
-	regmap_read(phy->ana_g2, REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
-				&phy->device_eye_pattern);
+	phy->device_eye_pattern = DEFAULT_DEVICE_EYE_PATTERN;
 	dev_info(dev, "%s: default device eye_pattern: 0x%x\n", __func__,
 				phy->device_eye_pattern);
 
-	regmap_read(phy->ana_g2, REG_ANLG_PHY_G2_ANALOG_USB20_USB20_TRIMMING,
-				&phy->host_eye_pattern);
+	phy->host_eye_pattern = DEFAULT_HOST_EYE_PATTERN;
 	dev_info(dev, "%s: default host eye_pattern: 0x%x\n", __func__,
 				phy->host_eye_pattern);
 
