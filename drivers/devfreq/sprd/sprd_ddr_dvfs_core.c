@@ -622,6 +622,10 @@ void topfreq_unvote_work_handler(struct work_struct *work)
 
 	scene_exit("boot-opt");
 	dev_info(dev, "dfs_init boot-opt scene cancel\n");
+#ifdef CONFIG_SPRD_DDR_DVFS_GLP
+	gov_vote("lcdoff");
+	gov_unvote("lcdoff");
+#endif
 }
 
 static void set_profile(struct devfreq_dev_profile *profile)
