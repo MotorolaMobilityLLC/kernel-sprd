@@ -26,7 +26,7 @@
 
 	sprd,sc-id = "ums9621 1h10 1000";
 
-	sprd,board_id = <0x1100>;
+	sprd,board_id = <0x110000>;
 
 	fragment {
 		target-path = "/";

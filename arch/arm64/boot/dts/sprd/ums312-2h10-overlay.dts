@@ -29,7 +29,7 @@
 
 	sprd,sc-id = "ums312 2h10 1000";
 
-	sprd,board_id = <0x2100>; //XX00:base board,XX00~XXFF:customize board
+	sprd,board_id = <0x210000>; //XXYY00:base board,XXYY00~XXYYFF:customize board
 
 	fragment {
 		target-path = "/";

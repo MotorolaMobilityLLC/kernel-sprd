@@ -27,7 +27,7 @@
 
 	sprd,sc-id = "sp9832e 1h10 1000";
 
-	sprd,board_id = <0x2100>;
+	sprd,board_id = <0x190000>;
 
 	/*
 	 * When create a new node, we should use the key word __overlay__,
