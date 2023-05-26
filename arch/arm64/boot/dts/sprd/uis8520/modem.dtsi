@@ -11,9 +11,8 @@
 / {
 	aliases {
 		v4-modem0 = &nr_pm;
-		v4-modem1 = &nr_ch;
-		v4-modem2 = &nr_pscp;
-		v4-modem3 = &nr_phycp;
+		v4-modem1 = &nr_pscp;
+		v4-modem2 = &nr_phycp;
 	};
 
 	nr_pm: modem@0 {
@@ -29,22 +28,9 @@
 		sprd,version = <0x04>;
 	};
 
-	nr_ch: modem@1 {
+	nr_pscp: modem@1 {
 		compatible = "unisoc,modem";
-		syscon0 = <&aon_apb_regs 0xff 0x0>;
-		syscon1	= <&pmu_apb_regs 0xff 0x100000>;
-		syscon2	= <&aon_apb_regs 0x008C 0x1>;
-		syscon3 = <&aon_apb_regs 0xff 0x0>;
-		syscon4 = <&aon_apb_regs 0xff 0x0>;
-		syscon-names = "shutdown", "deepsleep", "corereset",
-					"sysreset", "getstatus";
-		sprd,sys-bus-ctrl = <&aon_apb_regs 0x0124 0x1>;
-		sprd,version = <0x04>;
-	};
-
-	nr_pscp: modem@2 {
-		compatible = "unisoc,modem";
-		syscon0 = <&pmu_apb_regs 0x0330 0x2000000>;
+		syscon0 = <&pmu_apb_regs 0x02a0 0x2000000>;
 		syscon1 = <&pmu_apb_regs 0x0818 0x2>;
 		syscon2	= <&aon_apb_regs 0x0174 0x3000>;
 		syscon3 = <&aon_apb_regs 0xff 0x0>;
@@ -54,11 +40,11 @@
 		sprd,version = <0x04>;
 	};
 
-	nr_phycp: modem@3 {
+	nr_phycp: modem@2 {
 		compatible = "unisoc,modem";
 		syscon0 = <&pmu_apb_regs 0xff 0x0>;
 		syscon1 = <&pmu_apb_regs 0xff 0x0>;
-		syscon2 = <&aon_apb_regs 0x0cb0 0x3000>;
+		syscon2 = <&aon_apb_regs 0x0cb0 0xe0000>;
 		syscon3 = <&aon_apb_regs 0xff 0x0>;
 		syscon4 = <&aon_apb_regs 0xff 0x0>;
 		syscon-names = "shutdown", "deepsleep", "corereset",
@@ -69,7 +55,6 @@
 	nr_cp_dump: cp_dump {
 		compatible = "sprd,cp_dump";
 		sprd,sys-bus-ctrl-sp = <&aon_apb_regs 0x0128 0x1>;
-		sprd,sys-bus-ctrl-ch = <&aon_apb_regs 0x0124 0x1>;
 	};
 };
 
@@ -83,7 +68,7 @@
 		label = "sipc-pmsys";
 		/* <&mailbox channel_id is_no_wakeup(default 0)> */
 		mboxes = <&mailbox 1 0>;
-		sprd,smem-info = <0x65007400 0x65007400 0x1000>;
+		sprd,smem-info = <0x65007400 0x65007400 0x2000>;
 
 		slog_pm: channel@5 {
 			compatible = "sprd,spipe";
@@ -102,62 +87,6 @@
 			sprd,ringnr = <1>;
 			sprd,size-rxbuf = <0x80>;
 			sprd,size-txbuf = <0x20>;
-		};
-	};
-
-	sipc_ch: core@9 {
-		compatible = "sprd,sipc";
-		#address-cells = <1>;
-		#size-cells = <0>;
-		reg = <9>;
-		label = "sipc-chsys";
-		mboxes = <&mailbox 2 0>,<&mailbox 6 1>;
-		sprd,smem-info = <0x6500d000 0x6500d000 0x2000>,
-				 <0xae600000 0x80000000 0x40000>;
-		spipe_ch: channel@4 {
-			compatible = "sprd,spipe";
-			reg = <4>;
-			label = "spipe_ch";
-			sprd,ringnr = <2>;
-			sprd,size-rxbuf = <0xb00>;
-			sprd,size-txbuf = <0x180>;
-		};
-
-		slog_ch: channel@5 {
-			compatible = "sprd,spipe";
-			reg = <5>;
-			label = "slog_ch";
-			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x4e0>;
-			sprd,size-txbuf = <0x0>;
-		};
-
-		sctl_ch: channel@6 {
-			compatible = "sprd,spipe";
-			reg = <6>;
-			label = "sctl_ch";
-			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x80>;
-			sprd,size-txbuf = <0x20>;
-		};
-
-		data0_gnss: channel@7 {
-			compatible = "sprd,spipe";
-			reg = <7>;
-			label = "data0_gnss";
-			sprd,smem = <1>;
-			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x20000>;
-			sprd,size-txbuf = <0x18000>;
-		};
-
-		stime_ch: channel@41 {
-			compatible = "sprd,spipe";
-			reg = <41>;
-			label = "stime_ch";
-			sprd,ringnr = <1>;
-			sprd,size-rxbuf = <0x40>;
-			sprd,size-txbuf = <0x80>;
 		};
 	};
 
