@@ -231,9 +231,9 @@
 				      <0x620000 0x20000>;
 				reg-names = "inbox", "outbox", "common";
 				sprd,mailbox_clk = <&aon_apb_regs 0x4 0x4>;
-				interrupts = <GIC_SPI 45 IRQ_TYPE_LEVEL_HIGH>,
-					     <GIC_SPI 44 IRQ_TYPE_LEVEL_HIGH>,
-					     <GIC_SPI 43 IRQ_TYPE_LEVEL_HIGH>;
+				interrupts = <GIC_SPI 42 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 41 IRQ_TYPE_LEVEL_HIGH>,
+					     <GIC_SPI 40 IRQ_TYPE_LEVEL_HIGH>;
 				interrupt-names = "inbox", "outbox", "oob-outbox";
 				#mbox-cells = <2>;
 			};
