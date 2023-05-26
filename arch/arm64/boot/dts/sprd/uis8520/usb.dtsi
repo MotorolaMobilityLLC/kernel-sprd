@@ -39,7 +39,7 @@
 		#size-cells = <2>;
 		ranges;
 
-		clocks = <&ipaapb_gate CLK_USB_EB>,
+/*		clocks = <&ipaapb_gate CLK_USB_EB>,
 			<&ipaapb_gate CLK_USB_REF_EB>,
 			<&ipaapb_gate CLK_USB_SUSPEND_EB>,
 			<&ipa_clk CLK_USB_REF>,
@@ -49,6 +49,7 @@
 			<&ipadispc_gate CLK_IPA_TCA_EB>,
 			<&ipadispc_gate CLK_IPA_USB31PLL_EB>,
 			<&ext_32k>;
+*/
 		clock-names = "core_clk",
 		"ref_clk",
 		"susp_clk",

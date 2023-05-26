@@ -11,8 +11,9 @@
 		reg = <0x2200000 0x1000>;
 		interrupts = <GIC_SPI 217 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "sdio", "enable";
-		clocks = <&ap_clk CLK_EMMC_2X>,
+/*		clocks = <&ap_clk CLK_EMMC_2X>,
 				<&apahb_gate CLK_EMMC_EB>;
+*/
 		assigned-clocks = <&ap_clk CLK_EMMC_2X>;
 		assigned-clock-parents = <&g1_pll CLK_RPLL_390M>;
 		status = "disabled";
@@ -23,8 +24,9 @@
 		reg = <0x2210000 0x1000>;
 		interrupts = <GIC_SPI 203 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "sdio", "enable";
-		clocks = <&aonapb_clk CLK_SDIO0_2X>,
+/*		clocks = <&aonapb_clk CLK_SDIO0_2X>,
 				<&apahb_gate CLK_SDIO0_EB>;
+*/
 		assigned-clocks = <&aonapb_clk CLK_SDIO0_2X>;
 		assigned-clock-parents = <&g1_pll CLK_RPLL_390M>;
 		status = "disabled";
@@ -50,8 +52,9 @@
 		reg = <0x2220000 0x1000>;
 		interrupts = <GIC_SPI 202 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "sdio", "enable";
-		clocks = <&aonapb_clk CLK_SDIO1_2X>,
+/*		clocks = <&aonapb_clk CLK_SDIO1_2X>,
 				<&apahb_gate CLK_SDIO1_EB>;
+*/
 		assigned-clocks = <&aonapb_clk CLK_SDIO1_2X>;
 		assigned-clock-parents = <&g1_pll CLK_RPLL_390M>;
 		status = "disabled";

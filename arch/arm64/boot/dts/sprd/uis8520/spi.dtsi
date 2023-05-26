@@ -16,7 +16,7 @@
 		#size-cells = <0>;
 		clock-names = "enable", "spi", "source";
 		clocks = <&apapb_gate CLK_SPI0_EB>,
-			<&aonapb_clk CLK_SPI0>, <&g5l_pll CLK_TGPLL_192M>;
+			<&aonapb_clk CLK_SPI0>, <&g2_pll CLK_TGPLL_192M>;
 		status = "disabled";
 	};
 	spi1: spi@70000{
@@ -28,7 +28,7 @@
 		#size-cells = <0>;
 		clock-names = "enable", "spi", "source";
 		clocks = <&apapb_gate CLK_SPI1_EB>,
-			<&aonapb_clk CLK_SPI1>, <&g5l_pll CLK_TGPLL_192M>;
+			<&aonapb_clk CLK_SPI1>, <&g2_pll CLK_TGPLL_192M>;
 		status = "disabled";
 	};
 	spi2: spi@80000{
@@ -40,7 +40,7 @@
 		#size-cells = <0>;
 		clock-names = "enable", "spi", "source";
 		clocks = <&apapb_gate CLK_SPI2_EB>,
-			<&aonapb_clk CLK_SPI2>, <&g5l_pll CLK_TGPLL_192M>;
+			<&aonapb_clk CLK_SPI2>, <&g2_pll CLK_TGPLL_192M>;
 		status = "disabled";
 	};
 };

@@ -21,12 +21,13 @@
 				"ana_eb",
 				"dsi_cfg_eb",
 				"cphy_cfg_en";
-			clocks =
+/*			clocks =
 				<&aonapb_gate CLK_SERDES_CTRL0_EB>,
 				<&aonapb_gate CLK_SERDES_CTRL1_EB>,
 				<&aonapb_gate CLK_ANA_EB>,
 				<&aonapb_gate CLK_DSI_CFG_EB>,
 				<&aonapb_gate CLK_CPHY_CFG_EN>;
+*/
 			status = "disabled";
 	};
 
@@ -44,12 +45,13 @@
 				"ana_eb",
 				"dsi_cfg_eb",
 				"cphy_cfg_en";
-			clocks =
+/*			clocks =
 				<&aonapb_gate CLK_SERDES_CTRL0_EB>,
 				<&aonapb_gate CLK_SERDES_CTRL1_EB>,
 				<&aonapb_gate CLK_ANA_EB>,
 				<&aonapb_gate CLK_DSI_CFG_EB>,
 				<&aonapb_gate CLK_CPHY_CFG_EN>;
+*/
 			status = "disabled";
 	};
 };

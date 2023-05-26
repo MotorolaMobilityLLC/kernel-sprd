@@ -243,7 +243,7 @@
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7b040000 0 0x1000>;
 			cpu = <&CPU0>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g5l_pll CLK_TGPLL_512M>;
+			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
 
 			port {
@@ -257,7 +257,7 @@
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7b140000 0 0x1000>;
 			cpu = <&CPU1>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g5l_pll CLK_TGPLL_512M>;
+			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
 
 			port {
@@ -271,7 +271,7 @@
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7b240000 0 0x1000>;
 			cpu = <&CPU2>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g5l_pll CLK_TGPLL_512M>;
+			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
 
 			port {
@@ -285,7 +285,7 @@
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7b340000 0 0x1000>;
 			cpu = <&CPU3>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g5l_pll CLK_TGPLL_512M>;
+			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
 
 			port {
@@ -299,7 +299,7 @@
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7b440000 0 0x1000>;
 			cpu = <&CPU4>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g5l_pll CLK_TGPLL_512M>;
+			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
 
 			port {
@@ -313,7 +313,7 @@
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7b540000 0 0x1000>;
 			cpu = <&CPU5>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g5l_pll CLK_TGPLL_512M>;
+			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
 
 			port {
@@ -327,7 +327,7 @@
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7b640000 0 0x1000>;
 			cpu = <&CPU6>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g5l_pll CLK_TGPLL_512M>;
+			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
 
 			port {
@@ -341,7 +341,7 @@
 			compatible = "arm,coresight-etm4x", "arm,primecell";
 			reg = <0 0x7b740000 0 0x1000>;
 			cpu = <&CPU7>;
-			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g5l_pll CLK_TGPLL_512M>;
+			clocks = <&ext_26m>, <&aonapb_clk CLK_CSSYS>, <&g2_pll CLK_TGPLL_512M>;
 			clock-names = "apb_pclk", "clk_cs", "cs_src";
 
 			port {

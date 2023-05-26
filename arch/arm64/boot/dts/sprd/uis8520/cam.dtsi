@@ -62,7 +62,7 @@
 			"clk_mm_mtx_parent",
 			"clk_mm_sys_cfg",
 			"clk_mm_sys_cfg_parent";
-		clocks = <&aonapb_gate CLK_MM_EB>,
+/*		clocks = <&aonapb_gate CLK_MM_EB>,
 			<&mm_gate CLK_CKG_EN>,
 			<&mm_gate CLK_MM_MTX_DATA_EN>,
 			<&mm_clk CLK_MM_MTX_DATA>,
@@ -73,6 +73,7 @@
 			<&g5l_pll CLK_TGPLL_512M>,
 			<&mm_clk CLK_MM_SYS_CFG>,
 			<&g5l_pll CLK_TGPLL_128M>;
+*/
 		#power-domain-cells = <0>;
 		status = "okay";
 	};
@@ -102,7 +103,7 @@
 				"isp_clk_409m6",
 				"isp_clk_512m",
 				"isp_clk_parent";
-		clocks = <&mm_gate CLK_ISP_EN>,
+/*		clocks = <&mm_gate CLK_ISP_EN>,
 				<&mm_gate CLK_ISP_MTX_EN>,
 				<&mm_gate CLK_ISP_TCK_EN>,
 				<&mm_clk CLK_ISP>,
@@ -112,6 +113,7 @@
 				<&g5l_pll CLK_V4NRPLL_409M6>,
 				<&g5l_pll CLK_TGPLL_512M>,
 				<&g5l_pll CLK_TGPLL_512M>;
+*/
 		sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 		sprd,isp-count = <1>;
 		iommus = <&iommu_isp>;
@@ -165,7 +167,7 @@
 			"dcam_mtx_clk_parent",
 			"dcam_blk_cfg_clk",
 			"dcam_blk_cfg_clk_parent";
-		clocks = <&mm_gate CLK_DCAM_IF_EN>,
+/*		clocks = <&mm_gate CLK_DCAM_IF_EN>,
 			<&mm_gate CLK_DCAM_BLK_CFG_EN>,
 			<&mm_gate CLK_DCAM_TCK_EN>,
 			<&mm_gate CLK_DCAM_MTX_EN>,
@@ -177,6 +179,7 @@
 			<&g5l_pll CLK_TGPLL_512M>,
 			<&mm_clk CLK_DCAM_BLK_CFG>,
 			<&g5l_pll CLK_TGPLL_128M>;
+*/
 
 		sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 		sprd,csi-switch = <&mm_csi_switch_regs>;
@@ -225,12 +228,13 @@
 			"dcam_lite_clk_parent",
 			"dcam_lite_axi_clk",
 			"dcam_lite_axi_clk_parent";
-		clocks = <&mm_gate CLK_DCAM_IF_LITE_EN>,
+/*		clocks = <&mm_gate CLK_DCAM_IF_LITE_EN>,
 			<&mm_gate CLK_DCAM_LITE_MTX_EN>,
 			<&mm_clk CLK_DCAM2_3>,
 			<&g5l_pll CLK_TGPLL_256M>,
 			<&mm_clk CLK_DCAM2_3_AXI>,
 			<&g5l_pll CLK_TGPLL_256M>;
+*/
 		sprd,dcam-lite-count = <2>;
 		iommus = <&iommu_dcam_lite>;
 		power-domains = <&mm_domain>;
@@ -258,12 +262,13 @@
 			"isp_blk_cfg_en",
 			"cpp_clk",
 			"cpp_clk_parent";
-		clocks = <&mm_gate CLK_CPP_EN>,
+/*		clocks = <&mm_gate CLK_CPP_EN>,
 			<&mm_gate CLK_ISP_EN>,
 			<&mm_gate CLK_ISP_MTX_EN>,
 			<&mm_gate CLK_ISP_BLK_CFG_EN>,
 			<&mm_clk CLK_CPP>,
 			<&g5l_pll CLK_TGPLL_384M>;
+*/
 		cpp_ahb_reset = <&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST
 				MASK_MM_AHB_CPP_SOFT_RST>;
 		cpp_path0_reset = <&mm_ahb_regs REG_MM_AHB_ISP_BLK_SOFT_RST

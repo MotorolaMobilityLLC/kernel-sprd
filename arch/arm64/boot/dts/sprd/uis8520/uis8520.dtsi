@@ -314,7 +314,7 @@
 						"pwm1", "enable1",
 						"pwm2", "enable2",
 						"pwm3", "enable3";
-				clocks = <&aonapb_clk CLK_PWM0>, <&aonapb_gate CLK_PWM0_EB>,
+/*				clocks = <&aonapb_clk CLK_PWM0>, <&aonapb_gate CLK_PWM0_EB>,
 					 <&aonapb_clk CLK_PWM1>, <&aonapb_gate CLK_PWM1_EB>,
 					 <&aonapb_clk CLK_PWM2>, <&aonapb_gate CLK_PWM2_EB>,
 					 <&aonapb_clk CLK_PWM3>, <&aonapb_gate CLK_PWM3_EB>;
@@ -322,6 +322,7 @@
 						  <&aonapb_clk CLK_PWM1>,
 						  <&aonapb_clk CLK_PWM2>,
 						  <&aonapb_clk CLK_PWM3>;
+*/
 				assigned-clock-parents = <&ext_26m>,
 							 <&ext_32k>,
 							 <&ext_26m>,
@@ -653,7 +654,6 @@
 #include "sdio.dtsi"
 #include "socid.dtsi"
 #include "usb.dtsi"
-#include "pcie.dtsi"
 #include "vdsp.dtsi"
 #include "wdt.dtsi"
 #include "sipa-sys.dtsi"

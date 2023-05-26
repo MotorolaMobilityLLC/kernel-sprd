@@ -73,7 +73,7 @@
 		compatible = "sprd,thermal_r5p0";
 		reg = <0x290000 0x10000>;
 		clock-names = "enable";
-		clocks = <&aonapb_gate CLK_THM2_EB>;
+//		clocks = <&aonapb_gate CLK_THM2_EB>;
 		#thermal-sensor-cells = <1>;
 		nvmem-cells = <&thm2_ratio>;
 		nvmem-cell-names = "thm_ratio_cal";
@@ -127,7 +127,7 @@
 		compatible = "sprd,thermal_r5p0";
 		reg = <0x2A0000 0x10000>;
 		clock-names = "enable";
-		clocks = <&aonapb_gate CLK_THM3_EB>;
+//		clocks = <&aonapb_gate CLK_THM3_EB>;
 		#thermal-sensor-cells = <1>;
 		nvmem-cells = <&thm3_ratio>;
 		nvmem-cell-names = "thm_ratio_cal";

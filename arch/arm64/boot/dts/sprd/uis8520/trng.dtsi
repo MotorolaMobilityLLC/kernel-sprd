@@ -14,6 +14,6 @@
 					  "source";
 		clocks = <&apapb_gate CLK_CE_PUB_EB>,
 			   <&ap_clk CLK_AP_CE>,
-			   <&g5l_pll CLK_TGPLL_256M>;
+			   <&g2_pll CLK_TGPLL_256M>;
 	};
 };

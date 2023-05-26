@@ -39,10 +39,11 @@
 		sprd,syscon-apb = <&ipa_apb_regs>;
 		sprd,syscon-anlg-phy = <&anlg_phy_g0_regs>;
 
-		clocks = <&ipadispc_gate CLK_IPA_CKG_EB>,
+/*		clocks = <&ipadispc_gate CLK_IPA_CKG_EB>,
 			<&ipa_clk CLK_IPA_AXI>,
 			<&g5l_pll CLK_V4NRPLL_409M6>,
 			<&ext_26m>;
+*/
 		clock-names = "clk_ipa_ckg_eb", "ipa_core",
 			"ipa_core_source", "ipa_core_default";
 	};

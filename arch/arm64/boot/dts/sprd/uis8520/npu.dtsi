@@ -29,7 +29,7 @@
 				"ocm_eb",
 				"pmon_eb",
 				"aon_to_ocm_eb";
-		clocks = <&g5r_pll CLK_AIPLL>,
+/*		clocks = <&g5r_pll CLK_AIPLL>,
 			<&aonapb_gate CLK_AI_EB>,
 			<&aiapb_gate CLK_POWERVR_EB>,
 			<&aiapb_gate CLK_MTX_APBREG_EB>,
@@ -37,6 +37,7 @@
 			<&aiapb_gate CLK_OCM_EB>,
 			<&aiapb_gate CLK_AXI_PMON_EB>,
 			<&aiapb_gate CLK_AON_TO_OCM_EB>;
+*/
 		sprd,npu_freq_default = <307200>;
 		npu-supply = <&vddai>;
 		#cooling-cells = <2>;

@@ -72,8 +72,9 @@
 			REG_PMU_APB_GPLL_REL_CFG
 			MASK_PMU_APB_GPLL_FRC_ON>;
 
-		resets = <&pmu_gate
+/*		resets = <&pmu_gate
 			RESET_PMU_APB_GPU_SOFT_RST>;
+*/
 		reset-names = "gpu_soft_rst";
 
 		interrupts = <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
@@ -102,7 +103,7 @@
 		#cooling-cells = <2>;
 		dynamic-power-coefficient = <2824>;
 
-		clocks = <&aonapb_gate CLK_GPU_EB>,
+/*		clocks = <&aonapb_gate CLK_GPU_EB>,
 			<&g1_pll CLK_RPLL_26M>,
 			<&g5l_pll CLK_TGPLL_76M8>,
 			<&g5l_pll CLK_TGPLL_153M6>,
@@ -110,5 +111,6 @@
 			<&g5l_pll CLK_TGPLL_512M>,
 			<&g5r_pll CLK_GPLL>,
 			<&g5r_pll CLK_GPLL_850M>;
+*/
 	};
 };
