@@ -36,26 +36,6 @@ static void sprd_pcie_buserr_enable(struct dw_pcie *pci)
 	dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + APB_CLKFREQ_TIMEOUT, val);
 }
 
-/*
- * 1. First configure your own configuration space register, and then establish
- * the link to avoid the register exception caused by PCI instability during
- * the link process.
- * 2. Clear the ltssm_en bit before power down the pci to avoid establishing
- * the link immediately after the next power up.
- */
-static void sprd_pcie_ltssm_enable(struct dw_pcie *pci, bool enable)
-{
-	u32 val;
-
-	val = dw_pcie_readl_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3);
-	if (enable)
-		dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
-				   val | LTSSM_EN);
-	else
-		dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
-				   val &  ~LTSSM_EN);
-}
-
 #ifdef CONFIG_SPRD_IPA_INTC
 static void sprd_pcie_fix_interrupt_line(struct pci_dev *dev)
 {
@@ -803,5 +783,5 @@ static struct platform_driver sprd_pcie_driver = {
 
 module_platform_driver(sprd_pcie_driver);
 
-MODULE_DESCRIPTION("Spreadtrum PCIe host controller driver");
-MODULE_LICENSE("GPL v2");
+MODULE_DESCRIPTION("Unisoc PCIe host controller driver");
+MODULE_LICENSE("GPL");

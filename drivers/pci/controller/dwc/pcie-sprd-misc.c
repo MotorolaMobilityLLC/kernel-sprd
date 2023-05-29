@@ -352,5 +352,26 @@ void sprd_pcie_check_atu_viewport(struct dw_pcie *pci)
 }
 EXPORT_SYMBOL(sprd_pcie_check_atu_viewport);
 
-MODULE_DESCRIPTION("Spreadtrum PCIe host controller driver");
-MODULE_LICENSE("GPL v2");
+/*
+ * 1. First configure your own configuration space register, and then establish
+ * the link to avoid the register exception caused by PCI instability during
+ * the link process.
+ * 2. Clear the ltssm_en bit before power down the pci to avoid establishing
+ * the link immediately after the next power up.
+ */
+void sprd_pcie_ltssm_enable(struct dw_pcie *pci, bool enable)
+{
+	u32 val;
+
+	val = dw_pcie_readl_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3);
+	if (enable)
+		dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
+				   val | LTSSM_EN);
+	else
+		dw_pcie_writel_dbi(pci, PCIE_SS_REG_BASE + PE0_GEN_CTRL_3,
+				   val &  ~LTSSM_EN);
+}
+EXPORT_SYMBOL(sprd_pcie_ltssm_enable);
+
+MODULE_DESCRIPTION("Unisoc PCIe host controller driver");
+MODULE_LICENSE("GPL");

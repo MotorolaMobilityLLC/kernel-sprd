@@ -20,6 +20,13 @@
 #define LTSSM_STATE_L2_IDLE		0x15
 
 /*
+ * WORKAROUND: set CX_FLT_MASK_UR_POIS bit to fix pam ipa pcie access error
+ * problem.
+ */
+#define PCIE_SYMBOL_TIMER_FILTER_1_OFF	0x71c
+#define CX_FLT_MASK_UR_POIS		(0x1 << 17)
+
+/*
  * TODO: The following register only for roc1 PCIe gen2 (pcie0),
  * but it's a common PCIe capability.
  * Different PCIe host controller has different offset address.
@@ -141,6 +148,7 @@ void sprd_pcie_restore_dwc_reg(struct dw_pcie *pci);
 int sprd_pcie_enter_pcipm_l2(struct dw_pcie *pci);
 int sprd_pcie_check_vendor_id(struct dw_pcie *pci);
 void sprd_pcie_check_atu_viewport(struct dw_pcie *pci);
+void sprd_pcie_ltssm_enable(struct dw_pcie *pci, bool enable);
 #ifdef CONFIG_PM_SLEEP
 void sprd_pcie_register_pm_notifier(struct sprd_pcie *ctrl);
 void sprd_pcie_unregister_pm_notifier(struct sprd_pcie *ctrl);
