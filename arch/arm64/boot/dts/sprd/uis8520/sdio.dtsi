@@ -9,7 +9,7 @@
 	sdio3: sdio@22200000 {
 		compatible = "sprd,sdhci-r11";
 		reg = <0x2200000 0x1000>;
-		interrupts = <GIC_SPI 217 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 163 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "sdio", "enable";
 /*		clocks = <&ap_clk CLK_EMMC_2X>,
 				<&apahb_gate CLK_EMMC_EB>;
@@ -22,7 +22,7 @@
 	sdio0: sdio@22210000 {
 		compatible = "sprd,sdhci-r11";
 		reg = <0x2210000 0x1000>;
-		interrupts = <GIC_SPI 203 IRQ_TYPE_LEVEL_HIGH>;
+		interrupts = <GIC_SPI 145 IRQ_TYPE_LEVEL_HIGH>;
 		clock-names = "sdio", "enable";
 /*		clocks = <&aonapb_clk CLK_SDIO0_2X>,
 				<&apahb_gate CLK_SDIO0_EB>;
@@ -46,19 +46,6 @@
 			REG_AON_APB_SDIO_EMMC_POWER_STATUS_1
 			MASK_AON_APB_SDIO0_CARD_RMLDO_EN>;
 	};
-
-	sdio1: sdio@22220000 {
-		compatible = "sprd,sdhci-r11";
-		reg = <0x2220000 0x1000>;
-		interrupts = <GIC_SPI 202 IRQ_TYPE_LEVEL_HIGH>;
-		clock-names = "sdio", "enable";
-/*		clocks = <&aonapb_clk CLK_SDIO1_2X>,
-				<&apahb_gate CLK_SDIO1_EB>;
-*/
-		assigned-clocks = <&aonapb_clk CLK_SDIO1_2X>;
-		assigned-clock-parents = <&g1_pll CLK_RPLL_390M>;
-		status = "disabled";
-	};
 };
 
 &sdio0 {
@@ -75,19 +62,6 @@
 	sprd,name = "sdio_sd";
 	sprd,sdio-adma;
 	no-sdio;
-	no-mmc;
-	status = "okay";
-};
-
-&sdio1 {
-	sprd,phy-delay-sd-uhs-sdr104 = <0x0 0x7f 0x7d 0x7d>;
-	sprd,phy-delay-sd-uhs-sdr50 = <0x0 0xbf 0xc1 0xc1>;
-	bus-width = <4>;
-	sd-uhs-sdr104;
-	sd-uhs-sdr50;
-	sprd,name = "sdio_wifi";
-	sprd,sdio-adma;
-	no-sd;
 	no-mmc;
 	status = "okay";
 };
