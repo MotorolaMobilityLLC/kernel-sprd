@@ -688,7 +688,7 @@ static ssize_t vser_statistics_show(struct device *dev,
 	vdev->ave_time_per_xfer = vdev->total_transfer_time;
 	do_div(vdev->ave_time_per_xfer, vdev->dl_sent_packet_count);
 
-	return sprintf(buf, "u32 dl_rx_packet_count= %u;\nu64 dl_rx_bytes= %llu;\n"
+	return snprintf(buf, PAGE_SIZE, "u32 dl_rx_packet_count= %u;\nu64 dl_rx_bytes= %llu;\n"
 	"u32 dl_sent_packet_count= %u;\nu64 dl_sent_bytes= %llu;\nu32 dl_sent_failed_packet_count= %u;\n"
 	"u64 min_time_per_xfer= %llu(ns);\nu64 max_time_per_xfer= %llu(ns);\nu64 ave_time_per_xfer= %llu(ns);\n"
 	"u64 max_cb_time_per_xfer= %llu(ns);\n",
