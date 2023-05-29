@@ -820,18 +820,24 @@ static void ump9620_ch_data_init(struct sprd_adc_data *data)
 
 static void sprd_adc_regs_dump(struct sprd_adc_data *data, int ch, int scale, const char *tag)
 {
-	u32 mod_en, clk_en, int_ctl, int_raw, adc_ctl, ch_cfg, pm_clk_reg, xtl_ctl;
+	u32 mod_en = 0, clk_en = 0, int_ctl = 0, int_raw = 0, adc_ctl = 0;
+	u32 ch_cfg = 0, pm_clk_reg = 0, xtl_ctl = 0;
 	int ret;
 
 	ret = regmap_read(data->regmap, GET_REG_ADDR(data, REG_MODULE_EN), &mod_en);
-	ret = regmap_read(data->regmap, GET_REG_ADDR(data, REG_CLK_EN), &clk_en);
-	ret = regmap_read(data->regmap, GET_REG_ADDR(data, REG_XTL_CTRL), &xtl_ctl);
-	ret = regmap_read(data->regmap, data->base + SPRD_ADC_INT_CLR, &int_ctl);
-	ret = regmap_read(data->regmap, data->base + SPRD_ADC_INT_RAW, &int_raw);
-	ret = regmap_read(data->regmap, data->base + SPRD_ADC_CTL, &adc_ctl);
-	ret = regmap_read(data->regmap, data->base + SPRD_ADC_CH_CFG, &ch_cfg);
+	ret |= regmap_read(data->regmap, GET_REG_ADDR(data, REG_CLK_EN), &clk_en);
+	ret |= regmap_read(data->regmap, GET_REG_ADDR(data, REG_XTL_CTRL), &xtl_ctl);
+	ret |= regmap_read(data->regmap, data->base + SPRD_ADC_INT_CLR, &int_ctl);
+	ret |= regmap_read(data->regmap, data->base + SPRD_ADC_INT_RAW, &int_raw);
+	ret |= regmap_read(data->regmap, data->base + SPRD_ADC_CTL, &adc_ctl);
+	ret |= regmap_read(data->regmap, data->base + SPRD_ADC_CH_CFG, &ch_cfg);
 	if (data->pm_data.clk_regmap)
-		ret = regmap_read(data->pm_data.clk_regmap,  data->pm_data.clk_reg, &pm_clk_reg);
+		ret |= regmap_read(data->pm_data.clk_regmap,  data->pm_data.clk_reg, &pm_clk_reg);
+
+	if (ret) {
+		SPRD_ADC_ERR("regs_dump err: ret %d\n", ret);
+		return;
+	}
 
 	SPRD_ADC_ERR("r0[%s]-ret %d, ch %d, sl %d, clk_en 0x%x, xtl_ctl 0x%x, pm_clk 0x%x\n",
 		     tag, ret, ch, scale, clk_en, xtl_ctl, pm_clk_reg);
@@ -852,7 +858,7 @@ static u32 get_isen(void *pri, int ch, bool enable)
 static int sprd_adc_reg_cfg(struct sprd_adc_data *data, int ch, int index, bool set)
 {
 	int ret;
-	u32 reg_addr, val, read_val;
+	u32 reg_addr, val, read_val = 0;
 	const struct reg_bit *const reg_inf = &data->var_data->reg_list[index];
 	bool set_act = ((set && !reg_inf->reverse) || (!set && reg_inf->reverse));
 
@@ -867,12 +873,13 @@ static int sprd_adc_reg_cfg(struct sprd_adc_data *data, int ch, int index, bool 
 	val = ((val << reg_inf->offset) & reg_inf->mask);
 	ret = regmap_update_bits(data->regmap, reg_addr, reg_inf->mask, val);
 	ret |= regmap_read(data->regmap, reg_addr, &read_val);
-	SPRD_ADC_DBG("reg_cfg[%d %d]: reg 0x%x, mask: 0x%x, val: 0x%x, read_val: 0x%x\n",
-		     set, reg_inf->reverse, reg_addr, reg_inf->mask, val, read_val);
 	if (ret) {
 		SPRD_ADC_ERR("reg_cfg err: reg[%d], ret %d\n", reg_addr, ret);
 		return ret;
 	}
+
+	SPRD_ADC_DBG("reg_cfg[%d %d]: reg 0x%x, mask: 0x%x, val: 0x%x, read_val: 0x%x\n",
+		     set, reg_inf->reverse, reg_addr, reg_inf->mask, val, read_val);
 
 	return 0;
 }
@@ -966,7 +973,7 @@ static int sprd_adc_get_val_with_sw_filter(struct sprd_adc_data *data, int ch)
 static int sprd_adc_enable(struct sprd_adc_data *data, int channel)
 {
 	int ret = 0, volreq = data->ch_data[channel].volreq;
-	u32 reg_read;
+	u32 reg_read = 0;
 	/*
 	 * According to the sc2721 chip data sheet, the reference voltage of
 	 * specific channel 30 and channel 31 in ADC module needs to be set from
@@ -988,11 +995,11 @@ static int sprd_adc_enable(struct sprd_adc_data *data, int channel)
 					 data->pm_data.clk_reg_mask,
 					 data->pm_data.clk_reg_mask);
 		ret |= regmap_read(data->pm_data.clk_regmap, data->pm_data.clk_reg, &reg_read);
-		SPRD_ADC_DBG("enable clk26m: channel %d, reg_read 0x%x\n", channel, reg_read);
 		if (ret) {
 			SPRD_ADC_ERR("failed to enable clk26m, channel %d\n", channel);
 			return ret;
 		}
+		SPRD_ADC_DBG("enable clk26m: channel %d, reg_read 0x%x\n", channel, reg_read);
 	}
 
 	ret = sprd_adc_isen_enable(data, channel);
@@ -1015,7 +1022,7 @@ static int sprd_adc_enable(struct sprd_adc_data *data, int channel)
 static int sprd_adc_disable(struct sprd_adc_data *data, int channel)
 {
 	int ret = 0, volreq = data->ch_data[channel].volreq;
-	u32 reg_read;
+	u32 reg_read = 0;
 
 	ret = regmap_update_bits(data->regmap, data->base + SPRD_ADC_CTL, SPRD_ADC_EN, 0);
 	if (ret) {
@@ -1033,11 +1040,11 @@ static int sprd_adc_disable(struct sprd_adc_data *data, int channel)
 		ret = regmap_update_bits(data->pm_data.clk_regmap, data->pm_data.clk_reg,
 					 data->pm_data.clk_reg_mask, 0);
 		ret |= regmap_read(data->pm_data.clk_regmap, data->pm_data.clk_reg, &reg_read);
-		SPRD_ADC_DBG("disable clk26m: channel %d, reg_read 0x%x\n", channel, reg_read);
 		if (ret) {
 			SPRD_ADC_ERR("failed to disable clk26m, channel %d\n", channel);
 			return ret;
 		}
+		SPRD_ADC_DBG("disable clk26m: channel %d, reg_read 0x%x\n", channel, reg_read);
 	}
 
 	/*
