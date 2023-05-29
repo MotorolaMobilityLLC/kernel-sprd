@@ -35,6 +35,10 @@
 #define DEV_ON 1
 #define DEV_OFF 0
 
+/* GRO status */
+#define GRO_ON	1
+#define GRO_OFF	0
+
 #define SIPA_ETH_NAPI_WEIGHT 64
 #define SIPA_ETH_IFACE_PREF "sipa_eth"
 
@@ -368,6 +372,7 @@ static int sipa_eth_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	sipa_eth->gro_enable = GRO_ON;
 	sipa_eth->state = DEV_OFF;
 	/* Set link as disconnected */
 	netif_carrier_off(netdev);
