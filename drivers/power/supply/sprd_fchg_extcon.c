@@ -1192,6 +1192,11 @@ static void sprd_fchg_remove(struct sprd_fchg_info *info)
 
 	if (!info->support_fchg)
 		return;
+
+	power_supply_unreg_notifier(&info->fchg_notify);
+	cancel_delayed_work_sync(&info->fixed_fchg_handshake_work);
+	cancel_work_sync(&info->pd_online_work);
+	cancel_work_sync(&info->fchg_work);
 }
 
 static void sprd_fchg_shutdown(struct sprd_fchg_info *info)
@@ -1203,6 +1208,11 @@ static void sprd_fchg_shutdown(struct sprd_fchg_info *info)
 
 	if (!info->support_fchg)
 		return;
+
+	power_supply_unreg_notifier(&info->fchg_notify);
+	cancel_delayed_work_sync(&info->fixed_fchg_handshake_work);
+	cancel_work_sync(&info->pd_online_work);
+	cancel_work_sync(&info->fchg_work);
 }
 
 struct sprd_fchg_info *sprd_fchg_info_register(struct device *dev)

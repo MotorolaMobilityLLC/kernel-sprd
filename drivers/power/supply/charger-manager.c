@@ -8104,6 +8104,9 @@ static int charger_manager_remove(struct platform_device *pdev)
 	list_del(&cm->entry);
 	mutex_unlock(&cm_list_mtx);
 
+	if (cm->fchg_info->ops && cm->fchg_info->ops->remove)
+		cm->fchg_info->ops->remove(cm->fchg_info);
+
 	cancel_work_sync(&setup_polling);
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->cap_update_work);
@@ -8124,6 +8127,9 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 
 	if (cm->desc->uvlo_trigger_cnt < CM_UVLO_CALIBRATION_CNT_THRESHOLD)
 		set_batt_cap(cm, cm->desc->cap);
+
+	if (cm->fchg_info->ops && cm->fchg_info->ops->shutdown)
+		cm->fchg_info->ops->shutdown(cm->fchg_info);
 
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);
