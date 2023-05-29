@@ -434,13 +434,12 @@ static int sc27xx_fgu_get_fgu_sts(struct sprd_fgu_info *info,
 
 static int sc27xx_fgu_suspend_calib_check_relax_counter_sts(struct sprd_fgu_info *info)
 {
-	int ret = -EINVAL;
+	int ret = 0;
 	u32 int_status = 0;
 
 	mutex_lock(&info->lock);
 	if (info->slp_cap_calib.relax_cnt_int_ocurred) {
 		info->slp_cap_calib.relax_cnt_int_ocurred = false;
-		ret = 0;
 		dev_info(info->dev, "relax_cnt_int ocurred 1!!\n");
 		goto no_relax_cnt_int;
 	}
