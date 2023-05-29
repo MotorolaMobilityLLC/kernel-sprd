@@ -138,8 +138,9 @@ static int sprd_temp_sen_parse_dt(struct device *dev, struct shell_sensor *psens
 		return count;
 	}
 
-	psensor->thm_zones = kmalloc_array(count, sizeof(struct thermal_zone_device *), GFP_KERNEL);
-	psensor->sensor_names = kmalloc_array(count, sizeof(char *), GFP_KERNEL);
+	psensor->thm_zones = devm_kmalloc_array(dev, count, sizeof(struct thermal_zone_device *),
+						GFP_KERNEL);
+	psensor->sensor_names = devm_kmalloc_array(dev, count, sizeof(char *), GFP_KERNEL);
 	psensor->nsensor = count;
 	for (i = 0; i < count; i++) {
 		ret = of_property_read_string_index(np, "sensor-names", i,
@@ -164,11 +165,11 @@ static int sprd_temp_sen_parse_dt(struct device *dev, struct shell_sensor *psens
 
 	psensor->ntemp = count/psensor->nsensor;
 
-	tmp_coeff = kmalloc_array(psensor->nsensor, sizeof(int *), GFP_KERNEL);
-	tmp_hty_temp = kmalloc_array(psensor->nsensor, sizeof(int *), GFP_KERNEL);
+	tmp_coeff = devm_kmalloc_array(dev, psensor->nsensor, sizeof(int *), GFP_KERNEL);
+	tmp_hty_temp = devm_kmalloc_array(dev, psensor->nsensor, sizeof(int *), GFP_KERNEL);
 	while (k < psensor->nsensor) {
-		tmp_coeff[k] = kmalloc_array(psensor->ntemp, sizeof(int), GFP_KERNEL);
-		tmp_hty_temp[k] = kmalloc_array(psensor->ntemp, sizeof(int), GFP_KERNEL);
+		tmp_coeff[k] = devm_kmalloc_array(dev, psensor->ntemp, sizeof(int), GFP_KERNEL);
+		tmp_hty_temp[k] = devm_kmalloc_array(dev, psensor->ntemp, sizeof(int), GFP_KERNEL);
 		k++;
 	}
 	psensor->coeff = tmp_coeff;
