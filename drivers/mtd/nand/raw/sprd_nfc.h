@@ -489,11 +489,11 @@ struct sprd_nfc {
 	u32 frequency;
 	struct device *dev;
 	void __iomem *ioaddr;
-	struct clk *nandc_ahb_enable;
-	struct clk *nandc_clk;
+	struct clk *nandc_2x_clk;
 	struct clk *nandc_ecc_clk;
 	struct clk *nandc_2xwork_clk;
 	struct clk *nandc_eccwork_clk;
+	struct clk *nandc_ahb_enable;
 	struct clk *nandc_ecc_clk_eb;
 	struct clk *nandc_26m_clk_eb;
 	struct clk *nandc_1x_clk_eb;

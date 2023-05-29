@@ -18,7 +18,6 @@
 #include <linux/mtd/partitions.h>
 #include <linux/mtd/flashchip.h>
 #include <linux/of_device.h>
-
 #ifdef CONFIG_MTD_NAND_SPRD_DEVICE_INFO_FROM_H
 #define SPRD_NAND_DEVICE_TBL
 #endif
@@ -34,9 +33,7 @@ static const struct nandc_variant_ops nandc_r8p0_vops = {
 	.version = SPRD_NANDC_VERSIONS_R8P0
 };
 
-#ifndef CONFIG_MTD_NAND_SPRD_DEVICE_INFO_FROM_H
 static struct sprd_nand_param g_nfc_vendor;
-#endif
 
 static int sprd_nand_get_device(struct mtd_info *mtd)
 {
@@ -475,8 +472,7 @@ static void sprd_nfc_print_info(struct sprd_nand_param *p)
 	pr_info("nand device eccbits is %d\n", p->s_oob.ecc_bits);
 }
 
-struct sprd_nand_param *sprd_get_nand_param(struct platform_device *pdev,
-					struct sprd_nfc *host)
+struct sprd_nand_param *sprd_get_nand_param(struct sprd_nfc *host)
 {
 #ifdef CONFIG_MTD_NAND_SPRD_DEVICE_INFO_FROM_H
 	struct sprd_nand_param *param = sprd_nand_param_table;
@@ -495,71 +491,26 @@ struct sprd_nand_param *sprd_get_nand_param(struct platform_device *pdev,
 
 	return NULL;
 #else
-	struct nand_memory_organization *memorg;
 	struct sprd_nand_param *param = &g_nfc_vendor;
-	int ret;
-	u32 ecc_param[3]; /* [0]:bits [1]:pos  [3]:risknum */
-	u32 time_param[3]; /* [0]:taclh [1]:twh [2]:twp */
-	struct ext_param ext_info;
 
-	memorg = nanddev_get_memorg(&host->nand);
-	memset(param, 0, sizeof(*param));
-	ret = of_property_read_u32_array(pdev->dev.of_node, "memorg", (u32 *)memorg,
-			sizeof(struct nand_memory_organization) / sizeof(memorg->bits_per_cell));
-	if (ret)
-		goto err_free_param;
-
-	ret = of_property_read_u32_array(pdev->dev.of_node, "ecc", (u32 *)&ecc_param,
-					ARRAY_SIZE(ecc_param));
-	if (ret)
-		goto err_free_param;
-
-	ret = of_property_read_u32_array(pdev->dev.of_node, "param", (u32 *)&ext_info,
-					sizeof(struct ext_param) / sizeof(ext_info.nsect_size));
-	if (ret)
-		goto err_free_param;
-
-	ret = of_property_read_u32_array(pdev->dev.of_node, "timing", (u32 *)&time_param,
-					ARRAY_SIZE(time_param));
-	if (ret) {
-		dev_warn(&pdev->dev, "set default, get timing failed: %d\n", ret);
-		time_param[0] = 10;
-		time_param[1] = 10;
-		time_param[2] = 15;
-	}
-
-	param->blk_num = memorg->eraseblocks_per_lun * memorg->luns_per_target * memorg->ntargets;
-	param->blk_size = memorg->pagesize * memorg->pages_per_eraseblock;
-	param->page_size = memorg->pagesize;
-	param->nsect_size = ext_info.nsect_size;
-	param->nspare_size = memorg->oobsize;
-	param->nbus_width = ext_info.nbus_width;
-	param->ncycles = ext_info.ncycle;
-	param->s_oob.ecc_bits = ecc_param[0];
-	param->s_oob.ecc_pos = ecc_param[1];
-	param->s_oob.ecc_size = (14 * (param->s_oob.ecc_bits) + 7) / 8;
-	param->s_oob.oob_size = memorg->oobsize;
-
-	param->s_oob.info_pos = ext_info.info_pos;
-	param->s_oob.info_size = ext_info.info_size;
-
-	param->s_timing.ace_ns = time_param[0];
-	param->s_timing.rwh_ns = time_param[1];
-	param->s_timing.rwl_ns = time_param[2];
 	sprd_nfc_print_info(param);
 
 	return param;
-
-err_free_param:
-	pr_err("Nand params unconfig, please check it. Halt on booting!!!\n");
-	WARN_ON(true);
-
-	return NULL;
 #endif
 }
 
 static int sprd_nand_parse_dt(struct platform_device *pdev, struct sprd_nfc *host)
 {
+	u32 cell_type;
+	int plane_sel_bit;
+	u32 supt_cache;
+	u32 ecc_param[3];
+	u32 time_param[3];
+	struct nand_memory_organization *memorg;
+	struct ext_param ext_info;
+	int nlun;
+	int ret;
+
 	struct device *dev = &pdev->dev;
 	struct resource *res;
 
@@ -570,9 +521,9 @@ static int sprd_nand_parse_dt(struct platform_device *pdev, struct sprd_nfc *hos
 
 	host->randomizer = of_property_read_bool(pdev->dev.of_node, "sprd,random-mode");
 
-	host->nandc_clk = devm_clk_get(dev, "nandc_clk");
-	if (IS_ERR(host->nandc_clk))
-		return PTR_ERR(host->nandc_clk);
+	host->nandc_2x_clk = devm_clk_get(dev, "nandc_2x_clk");
+	if (IS_ERR(host->nandc_2x_clk))
+		return PTR_ERR(host->nandc_2x_clk);
 
 	host->nandc_ecc_clk = devm_clk_get(dev, "nandc_ecc_clk");
 	if (IS_ERR(host->nandc_ecc_clk))
@@ -608,6 +559,75 @@ static int sprd_nand_parse_dt(struct platform_device *pdev, struct sprd_nfc *hos
 			return PTR_ERR(host->nandc_2x_clk_eb);
 	}
 
+	memorg = nanddev_get_memorg(&host->nand);
+	ret = of_property_read_u32_array(pdev->dev.of_node, "memorg", (u32 *)memorg,
+			sizeof(struct nand_memory_organization) / sizeof(memorg->bits_per_cell));
+	if (ret)
+		return ret;
+
+	ret = of_property_read_u32_array(pdev->dev.of_node, "ecc", (u32 *)&ecc_param,
+					ARRAY_SIZE(ecc_param));
+	if (ret)
+		return ret;
+
+	ret = of_property_read_u32_array(pdev->dev.of_node, "param", (u32 *)&ext_info,
+					sizeof(struct ext_param) / sizeof(ext_info.nsect_size));
+	if (ret)
+		return ret;
+
+	ret = of_property_read_u32_array(pdev->dev.of_node, "timing", (u32 *)&time_param,
+					ARRAY_SIZE(time_param));
+	if (ret) {
+		dev_warn(&pdev->dev, "set default, get timing failed: %d\n", ret);
+		time_param[0] = 10;
+		time_param[1] = 10;
+		time_param[2] = 15;
+	}
+
+	ret = of_property_read_u32(pdev->dev.of_node, "cell_type", &cell_type);
+	if (ret) {
+		dev_warn(&pdev->dev, "set default, get cell_type failed: %d\n", ret);
+		cell_type = 1;
+	}
+
+	ret = of_property_read_u32(pdev->dev.of_node, "supt_cache_func", &supt_cache);
+	if (ret) {
+		dev_warn(&pdev->dev, "set default, get supt_cache_func failed: %d\n", ret);
+		supt_cache = 0;
+	}
+
+	ret = of_property_read_u32(pdev->dev.of_node, "plane_sel_bit", &plane_sel_bit);
+	if (ret) {
+		dev_warn(&pdev->dev, "set default, get plane_sel_bit failed: %d\n", ret);
+		plane_sel_bit = -1;
+	}
+
+	host->param.supt_cache_func = supt_cache;
+	host->param.cell_type = cell_type;
+	host->param.plane_sel_bit = plane_sel_bit;
+
+	memset(&g_nfc_vendor, 0, sizeof(g_nfc_vendor));
+
+	nlun = memorg->luns_per_target * memorg->ntargets;
+	g_nfc_vendor.blk_num = memorg->eraseblocks_per_lun * nlun;
+	g_nfc_vendor.blk_size = memorg->pagesize * memorg->pages_per_eraseblock;
+	g_nfc_vendor.page_size = memorg->pagesize;
+	g_nfc_vendor.nsect_size = ext_info.nsect_size;
+	g_nfc_vendor.nspare_size = memorg->oobsize;
+	g_nfc_vendor.nbus_width = ext_info.nbus_width;
+	g_nfc_vendor.ncycles = ext_info.ncycle;
+
+	g_nfc_vendor.s_oob.oob_size = memorg->oobsize;
+	g_nfc_vendor.s_oob.ecc_bits = ecc_param[0];
+	g_nfc_vendor.s_oob.ecc_pos = ecc_param[1];
+	g_nfc_vendor.s_oob.ecc_size = (14 * (g_nfc_vendor.s_oob.ecc_bits) + 7) / 8;
+	g_nfc_vendor.s_oob.info_pos = ext_info.info_pos;
+	g_nfc_vendor.s_oob.info_size = ext_info.info_size;
+
+	g_nfc_vendor.s_timing.ace_ns = time_param[0];
+	g_nfc_vendor.s_timing.rwh_ns = time_param[1];
+	g_nfc_vendor.s_timing.rwl_ns = time_param[2];
+
 	return 0;
 }
 
@@ -621,18 +641,12 @@ static int sprd_nand_drv_probe(struct platform_device *pdev)
 {
 	const struct of_device_id *nand_of_id;
 	struct nandc_variant_ops *vops;
+	u32 intf_type;
 	struct sprd_nand_param *param;
 	struct mtd_info *mtd;
 	struct sprd_nfc *host;
 	u32 id0, id1;
 	int ret;
-
-#ifndef CONFIG_MTD_NAND_SPRD_DEVICE_INFO_FROM_H
-	u32 cell_type;
-	int plane_sel_bit;
-	u32 supt_cache;
-#endif
-	u32 intf_type = 0;
 
 	nand_of_id = of_match_node(sprd_nand_of_match, pdev->dev.of_node);
 	vops = (struct nandc_variant_ops *)nand_of_id->data;
@@ -668,34 +682,9 @@ static int sprd_nand_drv_probe(struct platform_device *pdev)
 	if (ret)
 		goto err_free_host;
 
-	param = sprd_get_nand_param(pdev, host);
+	param = sprd_get_nand_param(host);
 	if (!param)
 		goto err_free_host;
-#ifndef CONFIG_MTD_NAND_SPRD_DEVICE_INFO_FROM_H
-	ret = of_property_read_u32(pdev->dev.of_node, "plane_sel_bit", &plane_sel_bit);
-	if (ret) {
-		plane_sel_bit = -1;
-		dev_warn(&pdev->dev, "get plane_sel_bit failed : %d,set default: %d\n",
-				 ret, plane_sel_bit);
-
-	}
-
-	ret = of_property_read_u32(pdev->dev.of_node, "cell_type", &cell_type);
-	if (ret) {
-		dev_warn(&pdev->dev, "set default, get cell_type failed: %d\n", ret);
-		cell_type = 1;
-	}
-
-	ret = of_property_read_u32(pdev->dev.of_node, "supt_cache_func", &supt_cache);
-	if (ret) {
-		dev_warn(&pdev->dev, "set default, get supt_cache_func failed: %d\n", ret);
-		supt_cache = 0;
-	}
-
-	host->param.supt_cache_func = supt_cache;
-	host->param.plane_sel_bit = plane_sel_bit;
-	host->param.cell_type = cell_type;
-#endif
 
 	ret = sprd_nfc_setup_host(host, param, 1);
 	if (ret)

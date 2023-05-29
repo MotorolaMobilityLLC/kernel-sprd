@@ -320,6 +320,7 @@ static void sprd_nfc_delect_cs(struct sprd_nfc *host, int ret)
 		sprd_nfc_writel(host, CTRL_NFC_CMD_CLR, NFC_START_REG);
 		sprd_nfc_reset(host);
 	}
+
 	host->cur_cs = -1;
 }
 
@@ -386,13 +387,13 @@ static int sprd_nfc_param_init_nandhw(struct sprd_nfc *host,
 	host->param.page_size = param->page_size; /* no contain spare */
 	host->param.main_size = param->page_size;
 	host->param.spare_size = param->nspare_size;
-	host->param.badflag_pos = 0; /* --- default:need fixed */
-	host->param.badflag_len = 2; /* --- default:need fixed */
 	host->param.ecc_mode = param->s_oob.ecc_bits;
 	host->param.ecc_pos = param->s_oob.ecc_pos;
 	host->param.ecc_size = param->s_oob.ecc_size;
 	host->param.info_pos = param->s_oob.info_pos;
 	host->param.info_size = param->s_oob.info_size;
+	host->param.badflag_pos = 0; /* --- default:need fixed */
+	host->param.badflag_len = 2; /* --- default:need fixed */
 
 	host->param.nbus_width = param->nbus_width;
 	host->param.ncycle = param->ncycles;
@@ -497,7 +498,7 @@ static int sprd_nfc_param_init_nandhw(struct sprd_nfc *host,
 	host->blkshift = ffs(host->param.npage_per_blk << host->pageshift) - 1;
 	host->chipshift = ffs(host->param.nblkcnt << host->blkshift) - 1;
 	if (host->c_pages)
-		host->bufshift = ffs(param->page_size * host->c_pages) - 1;
+		host->bufshift = ffs(host->param.page_size * host->c_pages) - 1;
 	else
 		host->bufshift = ffs(NFC_MBUF_SIZE) - 1;
 	host->bufshift = min(host->bufshift, host->blkshift);
@@ -687,7 +688,6 @@ static int sprd_nfc_param_init_buf(struct sprd_nfc *host)
 	virt_ptr = dma_alloc_coherent(host->dev, buf_size, &phys_addr, GFP_KERNEL);
 	if (!virt_ptr)
 		return -ENOMEM;
-
 
 	host->buf_p = (u8 *)phys_addr;
 	host->buf_v = (u8 *)virt_ptr;
@@ -1229,49 +1229,50 @@ static int sprd_nfc_clk_enable(struct sprd_nfc *host)
 	if (ret)
 		return ret;
 
-	ret = clk_prepare_enable(host->nandc_ecc_clk_eb);
-	if (ret)
-		goto err_ahb_ecc_clk;
+	if (host->version == SPRD_NANDC_VERSIONS_R6P0) {
+		ret = clk_prepare_enable(host->nandc_ecc_clk_eb);
+		if (ret)
+			goto err_ecc_clk_eb;
 
-	clk_set_parent(host->nandc_clk, host->nandc_2xwork_clk);
+		ret = clk_prepare_enable(host->nandc_26m_clk_eb);
+		if (ret)
+			goto err_26m_clk_eb;
+
+		ret = clk_prepare_enable(host->nandc_1x_clk_eb);
+		if (ret)
+			goto err_1x_clk_eb;
+
+		ret = clk_prepare_enable(host->nandc_2x_clk_eb);
+		if (ret)
+			goto err_2x_clk_eb;
+	}
+
+	clk_set_parent(host->nandc_2x_clk, host->nandc_2xwork_clk);
 	host->frequency = clk_get_rate(host->nandc_2xwork_clk);
-	dev_dbg(host->dev, "nand:sprd nand freq = %d\n", host->frequency);
-	ret = clk_prepare_enable(host->nandc_clk);
+	ret = clk_prepare_enable(host->nandc_2x_clk);
 	if (ret)
-		goto err_nand_clk;
+		goto err_2x_clk;
 
 	clk_set_parent(host->nandc_ecc_clk, host->nandc_eccwork_clk);
 	ret = clk_prepare_enable(host->nandc_ecc_clk);
 	if (ret)
 		goto err_ecc_clk;
 
-	if (host->version == SPRD_NANDC_VERSIONS_R6P0) {
-		ret = clk_prepare_enable(host->nandc_26m_clk_eb);
-		if (ret)
-			goto err_ahb_26m_clk;
-
-		ret = clk_prepare_enable(host->nandc_1x_clk_eb);
-		if (ret)
-			goto err_nand_1x_clk;
-
-		ret = clk_prepare_enable(host->nandc_2x_clk_eb);
-		if (ret)
-			goto err_nand_2x_clk;
-	}
-
 	return 0;
 
-err_nand_2x_clk:
-	clk_disable_unprepare(host->nandc_1x_clk_eb);
-err_nand_1x_clk:
-	clk_disable_unprepare(host->nandc_26m_clk_eb);
-err_ahb_26m_clk:
-	clk_disable_unprepare(host->nandc_ecc_clk);
 err_ecc_clk:
-	clk_disable_unprepare(host->nandc_clk);
-err_nand_clk:
-	clk_disable_unprepare(host->nandc_ecc_clk_eb);
-err_ahb_ecc_clk:
+	clk_disable_unprepare(host->nandc_2x_clk);
+err_2x_clk:
+	if (host->version == SPRD_NANDC_VERSIONS_R6P0) {
+		clk_disable_unprepare(host->nandc_2x_clk_eb);
+err_2x_clk_eb:
+		clk_disable_unprepare(host->nandc_1x_clk_eb);
+err_1x_clk_eb:
+		clk_disable_unprepare(host->nandc_26m_clk_eb);
+err_26m_clk_eb:
+		clk_disable_unprepare(host->nandc_ecc_clk_eb);
+	}
+err_ecc_clk_eb:
 	clk_disable_unprepare(host->nandc_ahb_enable);
 
 	return ret;
@@ -1280,15 +1281,16 @@ err_ahb_ecc_clk:
 static void sprd_nfc_clk_disable(struct sprd_nfc *host)
 {
 	clk_disable_unprepare(host->nandc_ecc_clk);
-	clk_disable_unprepare(host->nandc_clk);
-	clk_disable_unprepare(host->nandc_ecc_clk_eb);
-	clk_disable_unprepare(host->nandc_ahb_enable);
+	clk_disable_unprepare(host->nandc_2x_clk);
 
 	if (host->version == SPRD_NANDC_VERSIONS_R6P0) {
 		clk_disable_unprepare(host->nandc_2x_clk_eb);
 		clk_disable_unprepare(host->nandc_1x_clk_eb);
 		clk_disable_unprepare(host->nandc_26m_clk_eb);
+		clk_disable_unprepare(host->nandc_ecc_clk_eb);
 	}
+
+	clk_disable_unprepare(host->nandc_ahb_enable);
 }
 
 static int sprd_nfc_ctrl_en(struct sprd_nfc *host, bool en)
