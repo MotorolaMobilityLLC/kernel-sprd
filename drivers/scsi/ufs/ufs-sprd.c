@@ -115,18 +115,17 @@ static void ufs_sprd_vh_prepare_command(void *data, struct ufs_hba *hba,
 	if (unlikely(host->ffu_is_process == TRUE))
 		prepare_command_send_in_ffu_state(hba, lrbp, err);
 
-	if ((lrbp->cmd->cmnd[0] == READ_BUFFER) || (lrbp->cmd->cmnd[0] == WRITE_BUFFER)) {
-		if (hba->dev_info.wmanufacturerid == UFS_VENDOR_YMTC) {
-			if ((lrbp->cmd->cmnd[1] & WB_MODE_MASK) == VENDOR_SPECIFIC_MODE)
-				lrbp->lun = 0;
-		}
-	}
-
 	return;
 }
 
 static void ufs_sprd_vh_update_sdev(void *data, struct scsi_device *sdev)
 {
+	struct ufs_hba *hba = shost_priv(sdev->host);
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	if (sdev->lun < UFS_MAX_GENERAL_LUN)
+		host->sdev_ufs_lu[sdev->lun] = sdev;
+
 	/* Disable UFS fua to prevent write performance degradation */
 	sdev->broken_fua = 1;
 

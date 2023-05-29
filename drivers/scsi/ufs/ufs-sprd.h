@@ -6,6 +6,8 @@
 #ifndef _UFS_SPRD_H_
 #define _UFS_SPRD_H_
 
+#define UFS_MAX_GENERAL_LUN	8
+
 enum ufs_sprd_caps {
 	/*
 	 * DWC Ufshc waits for the software to read the IS register and clear it,
@@ -21,6 +23,7 @@ enum ufs_sprd_caps {
 struct ufs_sprd_host {
 	struct ufs_hba *hba;
 	struct scsi_device *sdev_ufs_rpmb;
+	struct scsi_device *sdev_ufs_lu[UFS_MAX_GENERAL_LUN];
 	enum ufs_sprd_caps caps;
 	void *ufs_priv_data;
 

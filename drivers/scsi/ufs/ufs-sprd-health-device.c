@@ -85,6 +85,7 @@ UFS_HEALTH_DEVICE(health_data);
 
 int ufs_get_health_report(struct ufs_hba *hba)
 {
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 	struct scsi_device *sdp;
 	unsigned long flags;
 	int ret;
@@ -97,7 +98,7 @@ int ufs_get_health_report(struct ufs_hba *hba)
 	unsigned int read_buf_len = READ_BUFFER_LEN;
 
 	spin_lock_irqsave(hba->host->host_lock, flags);
-	sdp = hba->sdev_ufs_device;
+	sdp = host->sdev_ufs_lu[0];
 	if (sdp) {
 		ret = scsi_device_get(sdp);
 		if (!ret && !scsi_device_online(sdp)) {

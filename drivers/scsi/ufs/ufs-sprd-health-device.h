@@ -11,5 +11,5 @@
 
 void ufs_sprd_sysfs_add_health_device_nodes(struct ufs_hba *hba);
 #define UFS_VENDOR_YMTC	0xA9B
-#define VENDOR_SPECIFIC_MODE (0x1)
+
 #endif
