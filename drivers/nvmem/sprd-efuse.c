@@ -333,34 +333,14 @@ static int sprd_efuse_raw_read(struct sprd_efuse *efuse, int blk, u32 *val,
 	return 0;
 }
 
-static bool sprd_efuse_check_mode(struct sprd_efuse *efuse, u32 index)
-{
-	bool blk_double = efuse->data->blk_double;
-
-	if (of_device_is_compatible(efuse->dev->of_node, "sprd,sharkl3-efuse") ||
-		of_device_is_compatible(efuse->dev->of_node, "sprd,ums312-efuse") ||
-		of_device_is_compatible(efuse->dev->of_node, "sprd,orca-efuse")) {
-		if (index == 95 || index == 94)
-			blk_double = false;
-	}
-
-	if (of_device_is_compatible(efuse->dev->of_node, "sprd,ums312-efuse") ||
-		of_device_is_compatible(efuse->dev->of_node, "sprd,qogirl6-efuse")) {
-		if (index == 36 || index == 37 || index == 45 || index == 46)
-			blk_double = true;
-	}
-
-	return blk_double;
-}
-
 static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 {
 	struct sprd_efuse *efuse = context;
 	bool blk_double = efuse->data->blk_double;
-	u32 data, index = offset / SPRD_EFUSE_BLOCK_WIDTH + efuse->data->blk_offset;
-	u32 bytes_offset = offset % SPRD_EFUSE_BLOCK_WIDTH;
-	u32 bytes_max = SPRD_EFUSE_BLOCK_WIDTH * efuse->data->blk_nums;
-	int ret, i;
+	u32 index = offset / SPRD_EFUSE_BLOCK_WIDTH + efuse->data->blk_offset;
+	u32 blk_offset = (offset % SPRD_EFUSE_BLOCK_WIDTH) * BITS_PER_BYTE;
+	u32 data;
+	int ret;
 
 	ret = sprd_efuse_lock(efuse);
 	if (ret)
@@ -370,30 +350,24 @@ static int sprd_efuse_read(void *context, u32 offset, void *val, size_t bytes)
 	if (ret)
 		goto unlock;
 
-	if (offset + bytes > bytes_max || bytes == 0)
-		return -EINVAL;
-
-	for (i = 0; i < bytes; index++) {
-		blk_double = sprd_efuse_check_mode(efuse, index);
-		ret = sprd_efuse_raw_read(efuse, index, &data, blk_double);
-
-		if (ret)
-			break;
-
-		if (i == 0) {
-			data >>= (bytes_offset * BITS_PER_BYTE);
-			memcpy(val, &data, SPRD_EFUSE_BLOCK_WIDTH - bytes_offset);
-			i += (SPRD_EFUSE_BLOCK_WIDTH - bytes_offset);
-		} else {
-			if (bytes - i >= SPRD_EFUSE_BLOCK_WIDTH) {
-				memcpy(val + i, &data, SPRD_EFUSE_BLOCK_WIDTH);
-				i += SPRD_EFUSE_BLOCK_WIDTH;
-			} else {
-				memcpy(val + i, &data, bytes - i);
-				i = bytes;
-			}
-		}
+	if (of_device_is_compatible(efuse->dev->of_node, "sprd,sharkl3-efuse") ||
+	    of_device_is_compatible(efuse->dev->of_node, "sprd,ums312-efuse") ||
+	    of_device_is_compatible(efuse->dev->of_node, "sprd,orca-efuse")) {
+		if (index == 95 || index == 94)
+			blk_double = false;
 	}
+
+	if (of_device_is_compatible(efuse->dev->of_node, "sprd,ums312-efuse") ||
+	    of_device_is_compatible(efuse->dev->of_node, "sprd,qogirl6-efuse"))
+		if (index == 36 || index == 37 || index == 45 || index == 46)
+			blk_double = true;
+
+	ret = sprd_efuse_raw_read(efuse, index, &data, blk_double);
+	if (!ret) {
+		data >>= blk_offset;
+		memcpy(val, &data, bytes);
+	}
+
 	clk_disable_unprepare(efuse->clk);
 
 unlock:
