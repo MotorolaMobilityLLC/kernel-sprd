@@ -746,7 +746,7 @@
 };
 
 &nandc {
-	clock-names = "nandc_clk","nandc_ecc_clk","nandc_2xwork_clk",
+	clock-names = "nandc_2x_clk","nandc_ecc_clk","nandc_2xwork_clk",
 		"nandc_eccwork_clk","nandc_ahb_enable","nandc_ecc_enable",
 		"nandc_26m_enable","nandc_1x_enable","nandc_2x_enable";
 	clocks = <&aon_clk CLK_NANDC_2X>,
