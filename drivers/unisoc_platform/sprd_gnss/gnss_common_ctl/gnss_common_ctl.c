@@ -635,23 +635,31 @@ static unsigned int gnss_indirect_reg_offset;
 static ssize_t gnss_regr_show(struct device *dev, struct device_attribute *attr,
 			      char *buf)
 {
-	int i = 0;
 	unsigned int op_reg = gnss_op_reg;
 	unsigned int buffer;
+	int ret = 0;
 
 	dev_info(dev, "%s, register is 0x%x\n", __func__, gnss_op_reg);
 	if (op_reg == GNSS_INDIRECT_OP_REG) {
 		int set_value;
 
 		set_value = gnss_indirect_reg_offset + 0x80000000;
-		sprdwcn_bus_reg_write(op_reg, &set_value, 4);
+		ret = sprdwcn_bus_reg_write(op_reg, &set_value, 4);
+		if (ret < 0) {
+			dev_err(dev, "%s, bus reg 0x%x write error\n", __func__, op_reg);
+			return ret;
+		}
 	}
-	sprdwcn_bus_reg_read(op_reg, &buffer, 4);
+	ret = sprdwcn_bus_reg_read(op_reg, &buffer, 4);
+	if (ret < 0) {
+		dev_err(dev, "%s, bus reg 0x%x read error\n", __func__, op_reg);
+		return ret;
+	}
 	dev_info(dev, "%s,temp value is %d\n", __func__, buffer);
 
-	i += scnprintf((char *)buf + i, PAGE_SIZE - i, "show: 0x%x\n", buffer);
+	ret = scnprintf((char *)buf, PAGE_SIZE, "show: 0x%x\n", buffer);
 
-	return i;
+	return ret;
 }
 
 static DEVICE_ATTR_RO(gnss_regr);
@@ -696,6 +704,7 @@ static ssize_t gnss_regw_store(struct device *dev,
 {
 	unsigned long set_value;
 	unsigned int op_reg = gnss_op_reg;
+	int ret = 0;
 
 	if (kstrtoul(buf, GNSS_DATA_BASE_TYPE_H, &set_value)) {
 		dev_err(dev, "%s, input error\n", __func__);
@@ -704,8 +713,11 @@ static ssize_t gnss_regw_store(struct device *dev,
 	if (op_reg == GNSS_INDIRECT_OP_REG)
 		set_value = gnss_indirect_reg_offset + set_value;
 	dev_info(dev, "%s,0x%lx\n", __func__, set_value);
-	sprdwcn_bus_reg_write(op_reg, &set_value, 4);
-
+	ret = sprdwcn_bus_reg_write(op_reg, &set_value, 4);
+	if (ret < 0) {
+		dev_err(dev, "%s, bus reg 0x%x write error\n", __func__, op_reg);
+		return ret;
+	}
 	return count;
 }
 static DEVICE_ATTR_WO(gnss_regw);
