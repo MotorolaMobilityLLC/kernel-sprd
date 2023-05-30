@@ -457,7 +457,7 @@ static int tsen_disable(struct regmap *regmap, unsigned int base)
 
 int gnss_tsen_control(struct regmap *regmap, unsigned int base, bool en)
 {
-	int ret = -1;
+	int ret = 0;
 
 	mutex_lock(&modem_gnss_mtx);
 	if (en) {
@@ -478,7 +478,7 @@ EXPORT_SYMBOL_GPL(gnss_tsen_control);
 
 static int modem_tsen_control(struct regmap *regmap, unsigned int base, bool en)
 {
-	int ret = -1;
+	int ret = 0;
 
 	mutex_lock(&modem_gnss_mtx);
 	if (en) {
@@ -534,7 +534,7 @@ static int modem_tsen_read(struct regmap *regmap, unsigned int base, int *temp)
 
 static ssize_t modem_tsen_show(struct device_driver *dev, char *buf)
 {
-	int ret = -1, tsen_temp = ABNORMAL_TEMP;
+	int ret = 0, tsen_temp = ABNORMAL_TEMP;
 	int len = 0;
 
 	ret = modem_tsen_control(tsen_mager.regmap, tsen_mager.base, true);
