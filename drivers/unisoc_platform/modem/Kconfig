@@ -8,11 +8,11 @@ config UNISOC_MODEM
 	help
 	  UNISOC modem driver
 
-source "drivers/unisoc_platform/modem/modem_loader/Kconfig"
-source "drivers/unisoc_platform/modem/sipc_virt_bus/Kconfig"
-source "drivers/unisoc_platform/modem/mailbox/Kconfig"
 source "drivers/unisoc_platform/modem/cp_dump/Kconfig"
 source "drivers/unisoc_platform/modem/iq/Kconfig"
-source "drivers/unisoc_platform/modem/sipc/Kconfig"
+source "drivers/unisoc_platform/modem/mailbox/Kconfig"
+source "drivers/unisoc_platform/modem/modem_loader/Kconfig"
+source "drivers/unisoc_platform/modem/pcie/Kconfig"
 source "drivers/unisoc_platform/modem/power_manager/Kconfig"
-
+source "drivers/unisoc_platform/modem/sipc/Kconfig"
+source "drivers/unisoc_platform/modem/sipc_virt_bus/Kconfig"
