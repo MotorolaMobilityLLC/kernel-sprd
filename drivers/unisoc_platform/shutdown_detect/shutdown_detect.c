@@ -53,6 +53,11 @@ struct rtc_time tm;
 struct task_struct *shd_complete_monitor;
 struct task_struct *shutdown_task;
 
+#ifdef pr_fmt
+#undef pr_fmt
+#endif
+#define pr_fmt(fmt) "shutdown_detect_check: " fmt
+
 static int shutdown_kthread(void *data)
 {
 	kernel_power_off();
@@ -93,7 +98,7 @@ static int shutdown_detect_open(struct inode *inode, struct file *file)
 static int shutdown_detect_func(void *dummy)
 {
 	msleep(gtotaltimeout * 1000);
-	pr_err("shutdown_detect:%s call sysrq show block and cpu thread. BUG\n", __func__);
+	pr_err("call sysrq show block and cpu thread. BUG\n");
 	handle_sysrq('w');
 	handle_sysrq('l');
 	#ifndef CONFIG_SPRD_DEBUG
@@ -103,7 +108,7 @@ static int shutdown_detect_func(void *dummy)
 				snprintf(time, 32, "%04d-%02d-%02d_%02d:%02d:%02d",
 				tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 				tm.tm_hour, tm.tm_min, tm.tm_sec);
-				strcpy(reason, "usershutdownerror");
+				strncpy(reason, "usershutdownerror", sizeof(reason));
 				shutdown_save_log_to_partition(time, reason);
 			}
 			pr_err("shutdown_detect: shutdown or reboot? reboot\n");
@@ -117,10 +122,10 @@ static int shutdown_detect_func(void *dummy)
 		snprintf(time, 32, "%04d-%02d-%02d_%02d:%02d:%02d",
 		tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 		if (is_shutdows) {
-			strcpy(reason, "userdebugshutdowntimeout");
+			strncpy(reason, "userdebugpowerofftimeout", sizeof(reason));
 			shutdown_save_log_to_partition(time, reason);
 		} else {
-			strcpy(reason, "userdebugreboottimeout");
+			strncpy(reason, "userdebugreboottimeout", sizeof(reason));
 			shutdown_save_log_to_partition(time, reason);
 			panic("userdebug version reboottime_out panic now\n");
 		}
@@ -128,6 +133,18 @@ static int shutdown_detect_func(void *dummy)
 	return 0;
 }
 
+static int shutdown_thread_check(void)
+{
+	if (!shutdown_task && is_shutdows) {
+		shutdown_task = kthread_create(shutdown_kthread, NULL, "shutdown_kthread");
+		if (IS_ERR(shutdown_task)) {
+			pr_err("create shutdown thread fail, will panic()\n");
+			msleep(60*1000);
+			panic("create shutdown thread fail make panic\n");
+		}
+	}
+	return 0;
+}
 
 static ssize_t shutdown_detect_trigger(struct file *filp, const char *ubuf,
 									   size_t cnt, loff_t *data)
@@ -165,16 +182,15 @@ static ssize_t shutdown_detect_trigger(struct file *filp, const char *ubuf,
 		val = SHUTDOWN_STAGE_INIT;
 	}
 
-	#if IS_ENABLED(CONFIG_SPRD_DEBUG)
-		gnativetimeout += SHUTDOWN_INCREASE_TIME;
-		gjavatimeout += SHUTDOWN_INCREASE_TIME;
-	#endif
-
 	if (val > SHUTDOWN_RUS_MIN) {
 		gnativetimeout = val % 16;
 		gjavatimeout = ((val - gnativetimeout) % 256) / 16;
 		temp = val / 256;
 		gtotaltimeout = (temp < SHUTDOWN_TOTAL_TIME_MIN) ? SHUTDOWN_TOTAL_TIME_MIN : temp;
+		#if IS_ENABLED(CONFIG_SPRD_DEBUG)
+			gnativetimeout += SHUTDOWN_INCREASE_TIME;
+			gjavatimeout += SHUTDOWN_INCREASE_TIME;
+		#endif
 		pr_info("shutdown_detect_func_start rus val %ld %d %d %d\n",
 				 val, gnativetimeout, gjavatimeout, gtotaltimeout);
 
@@ -200,9 +216,9 @@ static ssize_t shutdown_detect_trigger(struct file *filp, const char *ubuf,
 			tm.tm_year + 1900, tm.tm_mon + 1,
 			tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 			if (is_shutdows)
-				strcpy(reason, "initshutdowntimeout");
+				strncpy(reason, "initpowerofftimeout", sizeof(reason));
 			else
-				strcpy(reason, "initreboottimeout");
+				strncpy(reason, "initreboottimeout", sizeof(reason));
 			shutdown_save_log_to_partition(time, reason);
 		} else {
 			if ((shutdown_init_start_time -
@@ -212,9 +228,9 @@ static ssize_t shutdown_detect_trigger(struct file *filp, const char *ubuf,
 				tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
 				tm.tm_hour, tm.tm_min, tm.tm_sec);
 			if (is_shutdows)
-				strcpy(reason, "systemservershutdowntimeout");
+				strncpy(reason, "sysframeworkpowerofftimeout", sizeof(reason));
 			else
-				strcpy(reason, "systemserverreboottimeout");
+				strncpy(reason, "sysframeworkreboottimeout", sizeof(reason));
 			shutdown_save_log_to_partition(time, reason);
 			}
 		}
@@ -244,9 +260,11 @@ static ssize_t shutdown_detect_trigger(struct file *filp, const char *ubuf,
 				tm.tm_year + 1900, tm.tm_mon + 1,
 				tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
 				if (is_shutdows)
-					strcpy(reason, "systemservershutdowntimeout");
+					strncpy(reason, "sysframeworkpowerofftimeout",
+							sizeof(reason));
 				else
-					strcpy(reason, "systemservershutdowntimeout");
+					strncpy(reason, "sysframeworkreboottimeout",
+							sizeof(reason));
 				shutdown_save_log_to_partition(time, reason);
 			}
 		}
@@ -288,14 +306,7 @@ static ssize_t shutdown_detect_trigger(struct file *filp, const char *ubuf,
 	default:
 		break;
 	}
-	if (!shutdown_task && is_shutdows) {
-		shutdown_task = kthread_create(shutdown_kthread, NULL, "shutdown_kthread");
-		if (IS_ERR(shutdown_task)) {
-			pr_err("create shutdown thread fail, will panic()\n");
-			msleep(60*1000);
-			panic("create shutdown thread fail make panic\n");
-		}
-	}
+	shutdown_thread_check();
 
 	return cnt;
 }
