@@ -807,6 +807,7 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 		}
 
 		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
+			usleep_range(100, 110);
 			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
 					   priv->ufsdev_refclk_en.reg,
 					   priv->ufsdev_refclk_en.mask,
