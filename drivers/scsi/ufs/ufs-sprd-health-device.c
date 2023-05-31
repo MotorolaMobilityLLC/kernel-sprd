@@ -92,10 +92,8 @@ int ufs_get_health_report(struct ufs_hba *hba)
 	unsigned char cmd0[10] = {0};
 	unsigned char cmd1[10] = {0};
 	struct scsi_sense_hdr sshdr;
-	u8 *read_buffer_data = NULL;
-	unsigned char write_buffer_data[44];
-	unsigned int write_buf_len = WRITE_BUFFER_LEN;
-	unsigned int read_buf_len = READ_BUFFER_LEN;
+	uint8_t *read_buffer_data;
+	unsigned char write_buffer_data[WRITE_BUFFER_LEN] = {0};
 
 	spin_lock_irqsave(hba->host->host_lock, flags);
 	sdp = host->sdev_ufs_lu[0];
@@ -113,13 +111,11 @@ int ufs_get_health_report(struct ufs_hba *hba)
 	if (ret)
 		return ret;
 
-	read_buffer_data = kzalloc(4096, GFP_KERNEL);
+	read_buffer_data = kzalloc(READ_BUFFER_LEN, GFP_KERNEL);
 	if (!read_buffer_data) {
 		scsi_device_put(sdp);
 		return -ENOMEM;
 	}
-
-	memset(write_buffer_data, 0, write_buf_len);
 
 	write_buffer_data[0] = 0xBB;
 	write_buffer_data[1] = 0x40;
@@ -137,7 +133,7 @@ int ufs_get_health_report(struct ufs_hba *hba)
 	cmd0[9] = 0x0;
 
 	ret = scsi_execute(sdp, cmd0, DMA_TO_DEVICE,
-				write_buffer_data, write_buf_len, NULL, &sshdr,
+				write_buffer_data, WRITE_BUFFER_LEN, NULL, &sshdr,
 				msecs_to_jiffies(1000), 3, 0, RQF_PM, NULL);
 	if (ret) {
 		sdev_printk(KERN_WARNING, sdp, "WRITE_BUFFER fail.\n");
@@ -156,7 +152,7 @@ int ufs_get_health_report(struct ufs_hba *hba)
 	cmd1[9] = 0x0;
 
 	ret = scsi_execute(sdp, cmd1, DMA_FROM_DEVICE,
-				read_buffer_data, read_buf_len, NULL, &sshdr,
+				read_buffer_data, READ_BUFFER_LEN, NULL, &sshdr,
 				msecs_to_jiffies(1000), 3, 0, RQF_PM, NULL);
 	if (ret) {
 		sdev_printk(KERN_WARNING, sdp, "READ_BUFFER fail.\n");
@@ -176,7 +172,7 @@ static ssize_t factory_bad_block_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -194,7 +190,7 @@ static ssize_t reserved_block_num_slc_tlc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -213,7 +209,7 @@ static ssize_t rtbb_esf_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -231,7 +227,7 @@ static ssize_t rtbb_psf_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -249,7 +245,7 @@ static ssize_t rtbb_uecc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -285,7 +281,7 @@ static ssize_t read_reclaim_slc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -303,7 +299,7 @@ static ssize_t read_reclaim_tlc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -321,7 +317,7 @@ static ssize_t vdt_vccq_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -339,7 +335,7 @@ static ssize_t vdt_vcc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -357,7 +353,7 @@ static ssize_t sudden_power_off_recovery_success_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -375,7 +371,7 @@ static ssize_t sudden_power_off_recovery_fail_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -393,7 +389,7 @@ static ssize_t min_ec_num_slc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -411,7 +407,7 @@ static ssize_t max_ec_num_slc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -429,7 +425,7 @@ static ssize_t ave_ec_num_slc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -447,7 +443,7 @@ static ssize_t min_ec_num_tlc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -465,7 +461,7 @@ static ssize_t max_ec_num_tlc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -483,7 +479,7 @@ static ssize_t ave_ec_num_tlc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -501,7 +497,7 @@ static ssize_t cumulative_host_read_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -519,7 +515,7 @@ static ssize_t cumulative_host_write_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -537,7 +533,7 @@ static ssize_t cumulative_initialization_count_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -555,7 +551,7 @@ static ssize_t waf_tatal_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -573,7 +569,7 @@ static ssize_t history_min_nand_temp_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -591,7 +587,7 @@ static ssize_t history_max_nand_temp_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -609,7 +605,7 @@ static ssize_t slc_used_life_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -627,7 +623,7 @@ static ssize_t tlc_used_life_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -645,7 +641,7 @@ static ssize_t ffu_success_cnt_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -663,7 +659,7 @@ static ssize_t ffu_fail_cnt_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -681,7 +677,7 @@ static ssize_t spare_slc_block_num_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -699,7 +695,7 @@ static ssize_t spare_tlc_block_num_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -717,7 +713,7 @@ static ssize_t max_temperature_counter_over_85c_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -735,7 +731,7 @@ static ssize_t max_temperature_counter_over_125c_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -753,7 +749,7 @@ static ssize_t rtbb_slc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -771,7 +767,7 @@ static ssize_t rtbb_tlc_show(struct device *dev,
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
 	u32 data = 0;
-	int err = -1;
+	int err;
 
 	err = ufs_get_health_report(hba);
 	if (err) {
@@ -788,7 +784,7 @@ static ssize_t health_data_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
 	struct ufs_hba *hba = dev_get_drvdata(dev);
-	int err = -1;
+	int err;
 	u32 data;
 	int i;
 	int count = 0;
