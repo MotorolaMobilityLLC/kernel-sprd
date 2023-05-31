@@ -78,7 +78,7 @@ static void dump_slabinfo(void)
 	struct slabinfo sinfo;
 	struct list_head *slab_caches;
 	struct mutex *slab_mutex;
-	unsigned long slab_total;
+	unsigned long slab_total = 0;
 
 	slab_caches = android_debug_symbol(ADS_SLAB_CACHES);
 	slab_mutex = android_debug_symbol(ADS_SLAB_MUTEX);
