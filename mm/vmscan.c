@@ -1420,7 +1420,12 @@ static unsigned int shrink_page_list(struct list_head *page_list,
 
 	memset(stat, 0, sizeof(*stat));
 	cond_resched();
+#ifdef CONFIG_PROCESS_RECLAIM
+	if (pgdat)
+		do_demote_pass = can_demote(pgdat->node_id, sc);
+#else
 	do_demote_pass = can_demote(pgdat->node_id, sc);
+#endif
 
 retry:
 	while (!list_empty(page_list)) {
@@ -1875,7 +1880,12 @@ keep:
 	/* 'page_list' is always empty here */
 
 	/* Migrate pages selected for demotion */
+#ifdef CONFIG_PROCESS_RECLAIM
+	if (pgdat)
+		nr_reclaimed += demote_page_list(&demote_pages, pgdat);
+#else
 	nr_reclaimed += demote_page_list(&demote_pages, pgdat);
+#endif
 	/* Pages that could not be demoted are still in @demote_pages */
 	if (!list_empty(&demote_pages)) {
 		/* Pages which failed to demoted go back on @page_list for retry: */
@@ -1964,18 +1974,19 @@ unsigned long reclaim_pages_from_list(struct list_head *page_list,
 
 	unsigned long nr_reclaimed;
 	struct page *page;
+	struct reclaim_stat dummy_stat;
 
 	list_for_each_entry(page, page_list, lru)
 		ClearPageActive(page);
 
 	nr_reclaimed = shrink_page_list(page_list, NULL, &sc,
-			TTU_IGNORE_ACCESS, NULL, true);
+			 &dummy_stat, true);
 
 	while (!list_empty(page_list)) {
 		page = lru_to_page(page_list);
 		list_del(&page->lru);
 		dec_node_page_state(page, NR_ISOLATED_ANON +
-				page_is_file_cache(page));
+				page_is_file_lru(page));
 		putback_lru_page(page);
 	}
 
