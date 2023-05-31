@@ -1824,7 +1824,7 @@ struct reclaim_param reclaim_task_anon(struct task_struct *task,
 		goto out;
 
 	reclaim_walk.mm = mm;
-	reclaim_walk.pmd_entry = reclaim_pte_range;
+	reclaim_walk.ops = &ppr_walk_ops;
 
 	rp.nr_to_reclaim = nr_to_reclaim;
 	rp.is_task_anon = true;
@@ -1842,8 +1842,8 @@ struct reclaim_param reclaim_task_anon(struct task_struct *task,
 			break;
 
 		rp.vma = vma;
-		walk_page_range(vma->vm_start, vma->vm_end,
-			&reclaim_walk);
+		walk_page_range(mm, vma->vm_start, vma->vm_end,
+			reclaim_walk.ops, &rp);
 	}
 
 	flush_tlb_mm(mm);
@@ -1944,10 +1944,10 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 			if (is_vm_hugetlb_page(vma))
 				continue;
 
-			reclaim_walk.private = vma;
+			rp.vma = vma;
 			walk_page_range(mm, max(vma->vm_start, start),
 					min(vma->vm_end, end),
-					&ppr_walk_ops, vma);
+					&ppr_walk_ops, &rp);
 			vma = vma->vm_next;
 		}
 	} else {
@@ -1961,9 +1961,9 @@ static ssize_t reclaim_write(struct file *file, const char __user *buf,
 			if (type == RECLAIM_FILE && !vma->vm_file)
 				continue;
 
-			reclaim_walk.private = vma;
+			rp.vma = vma;
 			walk_page_range(mm, vma->vm_start, vma->vm_end,
-				&ppr_walk_ops, vma);
+				&ppr_walk_ops, &rp);
 		}
 	}
 
