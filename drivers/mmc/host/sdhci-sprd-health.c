@@ -123,7 +123,7 @@ static int mmc_health_init(struct mmc_card *card)
 	return 0;
 }
 
-static int mmc_send_health_cmd(struct mmc_card *card, struct mmc_host *host,
+static int mmc_send_health_cmd(struct mmc_card *card,
 		u32 opcode, void *buf, unsigned int len, u32 arg)
 {
 	struct mmc_request mrq = {};
@@ -149,7 +149,7 @@ static int mmc_send_health_cmd(struct mmc_card *card, struct mmc_host *host,
 
 	mmc_set_data_timeout(&data, card);
 
-	mmc_wait_for_req(host, &mrq);
+	mmc_wait_for_req(card->host, &mrq);
 
 	if (cmd.error) {
 		pr_err("%s: health cmd%d, cmd error: %d\n",
@@ -176,7 +176,7 @@ static int mmc_get_health_data(struct mmc_card *card)
 		return -ENOMEM;
 
 	/* send health cmd to get the data */
-	err = mmc_send_health_cmd(card, card->host, MMC_GEN_CMD,
+	err = mmc_send_health_cmd(card, MMC_GEN_CMD,
 				health_data, TOTAL_HEALTH_BYTE, HEALTH_CMD_ARG1);
 	if (err)
 		goto out;
@@ -185,7 +185,7 @@ static int mmc_get_health_data(struct mmc_card *card)
 	if (err)
 		goto out;
 
-	err = mmc_send_health_cmd(card, card->host, MMC_GEN_CMD,
+	err = mmc_send_health_cmd(card, MMC_GEN_CMD,
 				health_data, TOTAL_HEALTH_BYTE, HEALTH_CMD_ARG2);
 	if (err)
 		goto out;
@@ -197,6 +197,7 @@ static int mmc_get_health_data(struct mmc_card *card)
 	mmc_health_update(mmc_health, health_data);
 out:
 	kfree(health_data);
+	health_data = NULL;
 	return err;
 }
 
