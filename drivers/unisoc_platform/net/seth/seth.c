@@ -537,12 +537,12 @@ static int seth_tx_pkt(void *data, struct sk_buff *skb, int is_ack)
 	blk.length = skb->len;
 	unalign_memcpy(blk.addr, skb->data, skb->len);
 
+	/* Struct pdcp must be initialized. */
+	p = (struct pdcp *)((char *)blk.addr - sizeof(struct pdcp));
+	memset(p, 0, sizeof(struct pdcp));
+
 	/* For LAN forwarding to seth, sk is null. */
 	if (skb->sk && seth_vip_enable) {
-		/* Struct pdcp must be initialized. */
-		p = (struct pdcp *)((char *)blk.addr - sizeof(struct pdcp));
-		p->priority = false;
-		p->discard_timer = 0;
 		seth_uid = skb->sk->sk_uid.val;
 
 		/* For vip data we need to transmit skb firstly in band0. */
@@ -960,7 +960,7 @@ static int seth_probe(struct platform_device *pdev)
 	struct net_device *netdev;
 	struct seth *seth;
 	char ifname[IFNAMSIZ];
-	int ret, rc;
+	int ret;
 	struct device_node *np = pdev->dev.of_node;
 	struct device *dev = &pdev->dev;
 
@@ -1019,19 +1019,14 @@ static int seth_probe(struct platform_device *pdev)
 	if (ret) {
 		if (ret != -EPROBE_DEFER)
 			dev_err(&pdev->dev, "create sblock failed (%d)\n", ret);
-		netif_napi_del(&seth->napi);
-		free_netdev(netdev);
-		return ret;
+		goto out;
 	}
 	ret = SBLOCK_REGISTER_NOTIFIER(pdata->dst, pdata->channel,
 				       seth_handler, seth);
 
 	if (ret) {
 		dev_err(dev, "regitster notifier failed (%d)\n", ret);
-		netif_napi_del(&seth->napi);
-		free_netdev(netdev);
-		SBLOCK_DESTROY(pdata->dst, pdata->channel);
-		return ret;
+		goto out1;
 	}
 	smsg_callback_register(pdata->dst, pdata->channel, seth_recv_handler, seth);
 
@@ -1039,10 +1034,7 @@ static int seth_probe(struct platform_device *pdev)
 	ret = register_netdev(netdev);
 	if (ret) {
 		dev_err(dev, "register_netdev() failed (%d)\n", ret);
-		netif_napi_del(&seth->napi);
-		free_netdev(netdev);
-		SBLOCK_DESTROY(pdata->dst, pdata->channel);
-		return ret;
+		goto out1;
 	}
 
 	/* Set link as disconnected */
@@ -1050,25 +1042,18 @@ static int seth_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, seth);
 
-	rc = sysfs_create_groups(&dev->kobj, seth_ctrl_groups);
-	if (rc != 0) {
-		dev_err(dev, "failed to create sysfs group, rc %d\n", rc);
-		sysfs_remove_groups(&dev->kobj, seth_ctrl_groups);
-		netif_napi_del(&seth->napi);
-		free_netdev(netdev);
-		SBLOCK_DESTROY(pdata->dst, pdata->channel);
-		return rc;
+	ret = sysfs_create_groups(&dev->kobj, seth_ctrl_groups);
+	if (ret) {
+		dev_err(dev, "failed to create sysfs group, ret %d\n", ret);
+		goto out2;
 	}
 
 #ifdef CONFIG_DEBUG_FS
 	if (!root_gl) {
 		root_gl = debugfs_create_dir("seth", NULL);
 		if (!root_gl) {
-			debugfs_remove_recursive(root_gl);
-			netif_napi_del(&seth->napi);
-			free_netdev(netdev);
-			SBLOCK_DESTROY(pdata->dst, pdata->channel);
-			return -ENOMEM;
+			ret = -ENOMEM;
+			goto out3;
 		}
 	}
 	debugfs_create_file("gro_enable", 0600,
@@ -1077,6 +1062,18 @@ static int seth_probe(struct platform_device *pdev)
 	seth_debugfs_mknod(root_gl, (void *)seth);
 #endif
 	return 0;
+
+out3:
+	debugfs_remove_recursive(root_gl);
+out2:
+	sysfs_remove_groups(&dev->kobj, seth_ctrl_groups);
+out1:
+	SBLOCK_DESTROY(pdata->dst, pdata->channel);
+out:
+	netif_napi_del(&seth->napi);
+	free_netdev(netdev);
+
+	return ret;
 }
 
 /* Cleanup Ethernet device driver. */
