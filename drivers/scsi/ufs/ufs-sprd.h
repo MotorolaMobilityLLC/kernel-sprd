@@ -33,10 +33,6 @@ struct ufs_sprd_host {
 	/* Panic when UFS encounters an error. */
 	bool err_panic;
 
-	u32 times_pre_pwr;
-	u32 times_pre_compare_fail;
-	u32 times_post_pwr;
-	u32 times_post_compare_fail;
 	struct completion pwm_async_done;
 	struct completion hs_async_done;
 	/* gic enable register address */

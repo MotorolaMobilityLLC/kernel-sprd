@@ -25,6 +25,7 @@
 #include "ufs-sprd-ioctl.h"
 #include "ufs-sprd-bootdevice.h"
 #include "ufs-sprd-debug.h"
+#include "ufs-sprd-pwr-debug.h"
 
 int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 {
@@ -679,20 +680,20 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 
 static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		enum ufs_notify_change_status status,
-		struct ufs_pa_layer_attr *dev_max_params,
-		struct ufs_pa_layer_attr *dev_req_params)
+		struct ufs_pa_layer_attr *desired_pwr_mode,
+		struct ufs_pa_layer_attr *final_params)
 {
 	int err = 0;
 
-	if (!dev_req_params) {
-		pr_err("%s: incoming dev_req_params is NULL\n", __func__);
+	if (!final_params) {
+		pr_err("%s: incoming final_params is NULL\n", __func__);
 		err = -EINVAL;
 		goto out;
 	}
 
 	switch (status) {
 	case PRE_CHANGE:
-		err = -EPERM;
+		memcpy(final_params, desired_pwr_mode, sizeof(struct ufs_pa_layer_attr));
 		break;
 	case POST_CHANGE:
 		/* Set auto h8 ilde time to 10ms */
@@ -702,7 +703,7 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		err = -EINVAL;
 		break;
 	}
-	ufs_sprd_pwr_change_compare(hba, status, dev_max_params, dev_req_params, err);
+	ufs_sprd_pwr_change_compare(hba, status, final_params, err);
 
 out:
 	return err;
@@ -804,17 +805,21 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 		break;
 	case POST_CHANGE:
 		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
-			hba->caps &= ~UFSHCD_CAP_CLK_GATING;
+			down_write(&hba->clk_scaling_lock);
+			hba->caps &= ~UFSHCD_CAP_HIBERN8_WITH_CLK_GATING;
 			if (host->ioctl_status == UFS_IOCTL_ENTER_MODE) {
 				ret = sprd_ufs_pwmmode_change(hba);
 				if (ret)
 					pr_err("change pwm mode failed!\n");
-				else
+				else {
+					pr_err("ufs_2pwm succ");
 					complete(&host->pwm_async_done);
+				}
 			} else {
 				hibern8_exit_check(hba, cmd, status);
 			}
-			hba->caps |= UFSHCD_CAP_CLK_GATING;
+			hba->caps |= UFSHCD_CAP_HIBERN8_WITH_CLK_GATING;
+			up_write(&hba->clk_scaling_lock);
 			/* Set auto h8 ilde time to 10ms */
 			//ufshcd_auto_hibern8_enable(hba);
 		}

@@ -413,7 +413,7 @@ int ufshcd_sprd_ioctl(struct scsi_device *dev, unsigned int cmd, void __user *bu
 			return -ETIMEDOUT;
 		}
 		err = sprd_ufs_ioctl_get_pwr_info(dev, buffer, cmd);
-		host->ioctl_status = 0;
+		//host->ioctl_status is UFS_IOCTL_ENTER_MODE ,ufs keep in pwm mode
 		break;
 	case UFS_IOCTL_AFC_EXIT:
 		host->ioctl_status = UFS_IOCTL_AFC_EXIT;

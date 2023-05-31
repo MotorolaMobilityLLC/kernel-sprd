@@ -24,6 +24,7 @@
 #include "ufs-sprd-rpmb.h"
 #include "ufs-sprd-bootdevice.h"
 #include "ufs-sprd-debug.h"
+#include "ufs-sprd-pwr-debug.h"
 
 static int ufs_efuse_calib_data(struct platform_device *pdev,
 				const char *cell_name)
@@ -734,13 +735,13 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 }
 
 static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
-				      enum ufs_notify_change_status status,
-				      struct ufs_pa_layer_attr *dev_max_params,
-				      struct ufs_pa_layer_attr *dev_req_params)
+		enum ufs_notify_change_status status,
+		struct ufs_pa_layer_attr *desired_pwr_mode,
+		struct ufs_pa_layer_attr *final_params)
 {
 	int err = 0;
 
-	if (!dev_req_params) {
+	if (!final_params) {
 		pr_err("%s: incoming dev_req_params is NULL\n", __func__);
 		err = -EINVAL;
 		goto out;
@@ -748,9 +749,9 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 
 	switch (status) {
 	case PRE_CHANGE:
-		memcpy(dev_req_params, dev_max_params,
+		memcpy(final_params, desired_pwr_mode,
 		       sizeof(struct ufs_pa_layer_attr));
-		if (dev_req_params->gear_rx == UFS_HS_G4)
+		if (final_params->gear_rx == UFS_HS_G4)
 			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), 0x0);
 		/* err==0 using dev_req_params,err!=0 using dev_max_params */
 		err = -EPERM;
@@ -763,7 +764,7 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		err = -EINVAL;
 		break;
 	}
-	ufs_sprd_pwr_change_compare(hba, status, dev_max_params, dev_req_params, err);
+	ufs_sprd_pwr_change_compare(hba, status, final_params, err);
 
 out:
 	return err;

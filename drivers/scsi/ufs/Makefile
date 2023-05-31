@@ -32,4 +32,5 @@ ufs_sprd-y += ufs-sprd-rpmb.o
 ufs_sprd-y += ufs-sprd-bootdevice.o
 ufs_sprd-y += ufs-sprd-debug.o
 ufs_sprd-y += ufs-sprd-health-device.o
+ufs_sprd-y += ufs-sprd-pwr-debug.o
 ufs_sprd-y += ufs-sprd-qogirn6pro.o ufs-sprd-qogirn6l.o ufs-sprd-qogirl6.o
