@@ -278,6 +278,8 @@
 
 &pmic_typec {
 	use_pdhub_c2c;
+	extcon = <&extcon_gpio>;
+	status = "okay";
 };
 
 &sdio0 {
