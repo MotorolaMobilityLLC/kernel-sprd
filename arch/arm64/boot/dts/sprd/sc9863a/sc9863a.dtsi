@@ -603,6 +603,15 @@
 				interrupt-names = "inbox", "outbox", "oob-outbox";
 				#mbox-cells = <2>;
 			};
+			watchdog@40310000 {
+				compatible = "sprd,wdt-r2p0-fiq";
+				reg = <0x40310000 0x1000>;
+				interrupts = <GIC_SPI 124 IRQ_TYPE_LEVEL_HIGH>;
+				timeout-sec = <30>;
+				clock-names = "enable", "rtc_enable";
+				clocks = <&aonapb_gate CLK_CA53_WDG_EB>,
+					<&aonapb_gate CLK_CA53_WDG_RTC_EB>;
+			};
 		};
 
 		mm: mm {
