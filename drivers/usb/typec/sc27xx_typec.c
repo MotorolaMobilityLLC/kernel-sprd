@@ -201,6 +201,11 @@ struct sc27xx_typec {
 	int irq;
 	int mode;
 	struct extcon_dev *edev;
+	struct extcon_dev *vbus_dev;
+	struct notifier_block vbus_nb;
+
+	bool vbus_connect;
+	bool vbus_only_connect;
 	bool usb20_only;
 	bool partner_connected;
 	bool soft_typec_out;
@@ -220,6 +225,8 @@ struct sc27xx_typec {
 	struct delayed_work typec_int_clr_work;
 	/* delayed work for handling dr swap */
 	struct delayed_work drswap_work;
+	/* delayed work for handling vbus_only */
+	struct delayed_work vbus_only_work;
 	bool use_pdhub_c2c;
 };
 #if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
@@ -1029,6 +1036,56 @@ static void sc27xx_typec_extcon_drswap_work(struct work_struct *work)
 	}
 }
 
+static int sc27xx_typec_get_vbus_notify(struct notifier_block *nb,
+				unsigned long event, void *data)
+{
+	struct sc27xx_typec *sc = container_of(nb,
+				  struct sc27xx_typec, vbus_nb);
+
+	spin_lock(&sc->lock);
+	if (event)
+		sc->vbus_connect = true;
+	else
+		sc->vbus_connect = false;
+	spin_unlock(&sc->lock);
+
+	dev_info(sc->dev, "vbus_connect:%d\n", sc->vbus_connect);
+	queue_delayed_work(system_unbound_wq, &sc->vbus_only_work,
+				msecs_to_jiffies(1000));
+
+	return 0;
+}
+
+static void sc27xx_typec_vbus_only_work(struct work_struct *work)
+{
+	struct sc27xx_typec *sc = typec_sc;
+	bool vbus_connect_val;
+
+	spin_lock(&sc->lock);
+	vbus_connect_val = sc->vbus_connect;
+	spin_unlock(&sc->lock);
+
+	if (vbus_connect_val) {
+		/* typec has attach,not vbusonly */
+		if (sc27xx_get_current_status_detach_or_attach())
+			return;
+		/* vbus attach and 1s no typec attch,
+		 * attach cable recognize vbusonly cable.
+		 */
+		sc->vbus_only_connect = true;
+		dev_info(sc->dev, "vbus_only_connect\n");
+		extcon_set_state_sync(sc->edev, EXTCON_USB, true);
+		extcon_set_state_sync(sc->edev, EXTCON_SINK, true);
+	} else {
+		if (sc->vbus_only_connect) {
+			dev_info(sc->dev, "vbus_only_disconnect\n");
+			extcon_set_state_sync(sc->edev, EXTCON_USB, false);
+			extcon_set_state_sync(sc->edev, EXTCON_SINK, false);
+		}
+		sc->vbus_only_connect = false;
+	}
+}
+
 static int sc27xx_typec_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -1134,9 +1191,28 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 		goto error;
 	}
 
+	/* typec get vbus extcon notify */
+	if (sc->use_pdhub_c2c &&
+		of_property_read_bool(pdev->dev.of_node, "extcon")) {
+		sc->vbus_dev = extcon_get_edev_by_phandle(&pdev->dev, 0);
+		if (IS_ERR(sc->vbus_dev)) {
+			ret = PTR_ERR(sc->vbus_dev);
+			dev_err(sc->dev, "typec failed to get vbus extcon.\n");
+			goto error;
+		}
+		sc->vbus_nb.notifier_call = sc27xx_typec_get_vbus_notify;
+		ret = extcon_register_notifier(sc->vbus_dev, EXTCON_USB,
+						&sc->vbus_nb);
+		if (ret) {
+			dev_err(sc->dev, "failed to register vbus extcon.\n");
+			goto error;
+		}
+	}
+
 	sc->pd_swap_evt = TYPEC_NO_SWAP;
 	INIT_DELAYED_WORK(&sc->typec_int_clr_work, sc27xx_typec_int_clr_work);
 	INIT_DELAYED_WORK(&sc->drswap_work, sc27xx_typec_extcon_drswap_work);
+	INIT_DELAYED_WORK(&sc->vbus_only_work, sc27xx_typec_vbus_only_work);
 	sc27xx_typec_register_ops();
 
 	ret = sc27xx_typec_enable(sc);
