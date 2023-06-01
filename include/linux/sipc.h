@@ -37,7 +37,7 @@ enum {
 };
 
 #define SIPC_ID_LTE		SIPC_ID_PSCP
-
+#define MAX_OBJ_NAME_LEN	32
 /* share-mem ring buffer short message */
 struct smsg {
 	u8		channel;	/* channel index */

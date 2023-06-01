@@ -18,6 +18,8 @@
   */
 #ifndef _SPRD_MPM_H
 #define _SPRD_MPM_H
+
+#include <linux/sipc.h>
 /*
  * MPM modem powermanger source state define,
  * if in idle state, we can release
@@ -48,7 +50,7 @@ enum {
  * @wake_timer: used for delay release wakelock.
  */
 struct sprd_pms {
-	const char	*name;
+	char		name[MAX_OBJ_NAME_LEN];
 	void		*data;
 	bool		multitask;
 	bool			awake;

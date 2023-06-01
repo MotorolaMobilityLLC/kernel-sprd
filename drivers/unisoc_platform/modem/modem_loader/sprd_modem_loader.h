@@ -119,8 +119,8 @@ struct modem_device {
 
 	struct sprd_pms	*rd_pms;
 	struct sprd_pms	*wt_pms;
-	char		rd_pms_name[20];
-	char		wt_pms_name[20];
+	char		rd_pms_name[MAX_OBJ_NAME_LEN];
+	char		wt_pms_name[MAX_OBJ_NAME_LEN];
 
 	struct device	*p_dev;
 	dev_t		devid;
