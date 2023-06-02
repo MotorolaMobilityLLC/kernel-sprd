@@ -283,6 +283,7 @@ struct sprd_fgu_data {
 	bool is_first_poweron;
 	bool is_ovp;
 	bool invalid_pocv;
+	bool sw_pocv_flag;
 	u32 chg_type;
 	int cap_remap_total_cnt;
 	int cap_remap_full_percent;
@@ -1087,6 +1088,7 @@ static int sprd_fgu_get_boot_voltage(struct sprd_fgu_data *data, int *pocv_uv)
 			return ret;
 		}
 		*pocv_uv = ocv_mv * 1000;
+		data->sw_pocv_flag = true;
 	}
 	dev_info(data->dev, "oci_ma = %d, vol_mv = %d, pocv = %d\n", oci_ma, vol_mv, *pocv_uv);
 
@@ -1101,6 +1103,11 @@ static void sprd_fgu_boot_cap_calibration(struct sprd_fgu_data *data,
 
 	if (!data->support_boot_calib) {
 		dev_warn(data->dev, "Boot calib: not support boot calibration !!!!\n");
+		return;
+	}
+
+	if (data->sw_pocv_flag) {
+		dev_warn(data->dev, "Boot calib: sw pocv not support boot calibration!\n");
 		return;
 	}
 

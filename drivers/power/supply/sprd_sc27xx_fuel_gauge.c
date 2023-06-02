@@ -523,7 +523,7 @@ static int sc27xx_fgu_calibration(struct sprd_fgu_info *info)
 		return -EINVAL;
 	}
 
-	/* block38 */
+	/* block3 */
 	ret = sc27xx_fgu_get_calib_efuse(info, "fgu_calib", &calib_data);
 	if (ret) {
 		dev_err(info->dev, "failed to get calib efuse\n");
