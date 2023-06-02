@@ -516,14 +516,15 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 			       dst, channel, rval);
 			ipc->states[ch_index] = CHAN_STATE_UNUSED;
 			ipc->channels[ch_index] = NULL;
-			atomic_dec(&ipc->busy[ch_index]);
+
 			/* guarantee that channel resource isn't used
 			 * in irq handler
 			 */
-			while (atomic_read(&ipc->busy[ch_index]))
+			while (atomic_read(&ipc->busy[ch_index]) != 1)
 				;
 
 			kfree(ch);
+			atomic_dec(&ipc->busy[ch_index]);
 			return rval;
 		}
 	} while (mrecv.type != SMSG_TYPE_OPEN || mrecv.flag != SMSG_OPEN_MAGIC);
