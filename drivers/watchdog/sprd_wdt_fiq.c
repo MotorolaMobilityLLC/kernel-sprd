@@ -164,18 +164,6 @@ static int sprd_wdt_fiq_load_value(struct sprd_wdt_fiq *wdt, u32 timeout,
 	pr_err("sprd_wdt_fiq: sprd wdt load value timeout =%d, pretimeout =%d\n",
 	       timeout, pretimeout);
 	wdt->wdt_load = jiffies;
-	sprd_wdt_fiq_unlock(wdt);
-	writel_relaxed((tmr_step >> SPRD_WDT_FIQ_CNT_HIGH_SHIFT) &
-		      SPRD_WDT_FIQ_LOW_VALUE_MASK,
-		      wdt->base + SPRD_WDT_FIQ_LOAD_HIGH);
-	writel_relaxed((tmr_step & SPRD_WDT_FIQ_LOW_VALUE_MASK),
-		       wdt->base + SPRD_WDT_FIQ_LOAD_LOW);
-	writel_relaxed((prtmr_step >> SPRD_WDT_FIQ_CNT_HIGH_SHIFT) &
-			SPRD_WDT_FIQ_LOW_VALUE_MASK,
-		       wdt->base + SPRD_WDT_FIQ_IRQ_LOAD_HIGH);
-	writel_relaxed(prtmr_step & SPRD_WDT_FIQ_LOW_VALUE_MASK,
-		       wdt->base + SPRD_WDT_FIQ_IRQ_LOAD_LOW);
-	sprd_wdt_fiq_lock(wdt);
 
 	/*
 	 * Waiting the load value operation done,
@@ -191,6 +179,20 @@ static int sprd_wdt_fiq_load_value(struct sprd_wdt_fiq *wdt, u32 timeout,
 
 	if (delay_cnt >= SPRD_WDT_FIQ_LOAD_TIMEOUT)
 		return -EBUSY;
+
+	sprd_wdt_fiq_unlock(wdt);
+	writel_relaxed((tmr_step >> SPRD_WDT_FIQ_CNT_HIGH_SHIFT) &
+		      SPRD_WDT_FIQ_LOW_VALUE_MASK,
+		      wdt->base + SPRD_WDT_FIQ_LOAD_HIGH);
+	writel_relaxed((tmr_step & SPRD_WDT_FIQ_LOW_VALUE_MASK),
+		       wdt->base + SPRD_WDT_FIQ_LOAD_LOW);
+	writel_relaxed((prtmr_step >> SPRD_WDT_FIQ_CNT_HIGH_SHIFT) &
+			SPRD_WDT_FIQ_LOW_VALUE_MASK,
+		       wdt->base + SPRD_WDT_FIQ_IRQ_LOAD_HIGH);
+	writel_relaxed(prtmr_step & SPRD_WDT_FIQ_LOW_VALUE_MASK,
+		       wdt->base + SPRD_WDT_FIQ_IRQ_LOAD_LOW);
+	sprd_wdt_fiq_lock(wdt);
+
 	return 0;
 }
 
