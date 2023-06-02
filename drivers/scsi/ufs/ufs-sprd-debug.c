@@ -31,6 +31,7 @@ int cmd_record_index = -1;
 static bool exceed_max_depth;
 static spinlock_t ufs_debug_dump;
 
+static atomic_t ufs_db_dump_cnt;
 /* ufs error code count */
 struct ufs_uic_err_code_cnt ufs_uic_err_code_cnt;
 /* CMD info buffer */
@@ -59,6 +60,19 @@ static const char *ufs_event_str[UFS_MAX_EVENT] = {
 	"Debug Trigger "
 };
 
+static void ufs_sprd_uevent_notify(struct ufs_hba *hba, char *str)
+{
+	char event[256] = { 0 };
+	char *envp[2] = { event, NULL };
+
+	if (str) {
+		snprintf(event, ARRAY_SIZE(event),
+			"kevent_begin:{\"event_id\":\"107000002\",\"event_time\":%lld,%s}:kevent_end",
+			ktime_get(), str);
+		kobject_uevent_env(&hba->dev->parent->kobj, KOBJ_CHANGE, envp);
+	}
+}
+
 bool sprd_ufs_debug_is_supported(struct ufs_hba *hba)
 {
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
@@ -71,12 +85,23 @@ bool sprd_ufs_debug_is_supported(struct ufs_hba *hba)
 
 void sprd_ufs_debug_err_dump(struct ufs_hba *hba)
 {
-#ifdef CONFIG_SPRD_DEBUG
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	char str[64] = { 0 };
 
 	if (!host)
 		return;
 
+	atomic_inc(&ufs_db_dump_cnt);
+
+	if (!preempt_count()) {
+		snprintf(str, ARRAY_SIZE(str),
+			 "\"ufs_debug_bus_dump_cnt\":\"%d\"", atomic_read(&ufs_db_dump_cnt));
+		ufs_sprd_uevent_notify(hba, str);
+	}
+
+	dev_err(hba->dev, "ufs encountered an error: total error cnt=%d\n",
+		atomic_read(&ufs_db_dump_cnt));
+#ifdef CONFIG_SPRD_DEBUG
 	if (host->err_panic)
 		panic("ufs encountered an error!!!\n");
 #endif
@@ -871,6 +896,7 @@ int ufs_sprd_debug_init(struct ufs_hba *hba)
 	host->debug_en = UFS_DEBUG_ON_DEF;
 
 	spin_lock_init(&ufs_debug_dump);
+	atomic_set(&ufs_db_dump_cnt, 0);
 
 	ret = ufs_sprd_debug_procfs_register(hba);
 	if (ret)
