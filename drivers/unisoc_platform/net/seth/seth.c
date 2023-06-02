@@ -1063,8 +1063,10 @@ static int seth_probe(struct platform_device *pdev)
 #endif
 	return 0;
 
+#ifdef CONFIG_DEBUG_FS
 out3:
 	debugfs_remove_recursive(root_gl);
+#endif
 out2:
 	sysfs_remove_groups(&dev->kobj, seth_ctrl_groups);
 out1:
