@@ -236,6 +236,10 @@
 					MASK_AON_APB_AP_2_AUD_ACCESS_EN>;
 		sprd,ddr-addr-offset = <0x0>;
 		sprd,auto_agcp_access = <0>;
+		sprd,syscon-agcp-glb = <&audcp_glb_regs>;
+		sprd,syscon-clk-rf = <&audcp_clk_rf_regs>;
+		sprd,syscon-dvfs-apb = <&audcp_dvfs_apb_rf_regs>;
+		sprd,syscon-agcp-apb = <&audcp_apb_regs>;
 		#power-domain-cells = <0>;
 		status = "disabled";
 	};
