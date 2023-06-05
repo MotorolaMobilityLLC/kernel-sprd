@@ -99,7 +99,6 @@ static struct dvfs_data *g_dvfs_data;
 static char *default_governor = "sprd-governor";
 
 struct ddr_dfs_step_list_t *ddr_cur_step_g;
-struct ddr_dfs_step_list_t *ddr_dfs_step_s;
 struct ddr_dfs_step_list_t ddr_step_arr[DDR_DB_NODE_NUM] = {0};
 
 struct ddr_dfs_step_list_t *ddr_step_list_init(struct ddr_dfs_step_list_t ddr_step_arr[],
@@ -117,7 +116,8 @@ struct ddr_dfs_step_list_t *ddr_step_list_init(struct ddr_dfs_step_list_t ddr_st
 	return p;
 }
 
-void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene, u32 buff, int pid)
+void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene,
+		      u32 buff, int pid, ktime_t time)
 {
 	mutex_lock(&g_dvfs_data->dfs_step_mutex);
 	ddr_cur_step_g = ddr_cur_step_g->next;
@@ -134,26 +134,27 @@ void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene,
 	}
 	ddr_cur_step_g->data.buff = buff;
 	ddr_cur_step_g->data.pid = pid;
+	ddr_cur_step_g->data.time = time;
 	mutex_unlock(&g_dvfs_data->dfs_step_mutex);
 }
 
 static int ddrinfo_dfs_step_show(char **arg, char **step_status, char **scene,
-				 u32 *buff, int *pid, u32 i)
+				 u32 *buff, int *pid, ktime_t *time, u32 i)
 {
 	if (i == 0)
-		ddr_dfs_step_s = ddr_cur_step_g;
+		mutex_lock(&g_dvfs_data->dfs_step_mutex);
 
-	ddr_dfs_step_s = ddr_dfs_step_s->next;
+	ddr_cur_step_g = ddr_cur_step_g->next;
 	*scene = NULL;
 
-	switch (ddr_dfs_step_s->data.step) {
+	switch (ddr_cur_step_g->data.step) {
 	case 1:
 		*arg = "scenario_dfs_enter";
-		*scene = ddr_dfs_step_s->data.scene;
+		*scene = ddr_cur_step_g->data.scene;
 		break;
 	case 2:
 		*arg = "exit_scene";
-		*scene = ddr_dfs_step_s->data.scene;
+		*scene = ddr_cur_step_g->data.scene;
 		break;
 	case 3:
 		*arg = "auto_dfs_on_off";
@@ -167,21 +168,61 @@ static int ddrinfo_dfs_step_show(char **arg, char **step_status, char **scene,
 	case 6:
 		*arg = "set_backdoor";
 		break;
+	case 7:
+		*arg = "dfs_on_off";
+		break;
+	case 8:
+		*arg = "change_point";
+		break;
+	case 9:
+		*arg = "scene_freq_set";
+		break;
+	case 10:
+		*arg = "get_overflow_t";
+		break;
+	case 11:
+		*arg = "set_overflow_t";
+		*scene = ddr_cur_step_g->data.scene;
+		break;
+	case 12:
+		*arg = "get_underflow_t";
+		break;
+	case 13:
+		*arg = "set_underflow_t";
+		*scene = ddr_cur_step_g->data.scene;
+		break;
+	case 14:
+		*arg = "get_dvfs_status_t";
+		break;
+	case 15:
+		*arg = "get_dvfs_auto_status_t";
+		break;
+	case 16:
+		*arg = "get_cur_freq_t";
+		break;
+	case 17:
+		*arg = "get_freq_table_t";
+		break;
+	case 18:
+		*arg = "send_freq_request_t";
+		break;
 	default:
 		*arg = "NONE_STEP";
 		break;
 	}
-	if (ddr_dfs_step_s->data.status == 0)
+	if (ddr_cur_step_g->data.status == 0)
 		*step_status = "pass";
 	else
 		*step_status = "fail";
-	*buff = ddr_dfs_step_s->data.buff;
-	*pid = ddr_dfs_step_s->data.pid;
-
-	if (i >= DDR_DB_NODE_NUM - 1)
+	*buff = ddr_cur_step_g->data.buff;
+	*pid = ddr_cur_step_g->data.pid;
+	*time = ddr_cur_step_g->data.time;
+	if (i >= (DDR_DB_NODE_NUM - 1)) {
+		mutex_unlock(&g_dvfs_data->dfs_step_mutex);
 		return 1;
-	else
+	} else {
 		return 0;
+	}
 }
 
 static int dvfs_msg_recv(struct smsg *msg, int timeout)

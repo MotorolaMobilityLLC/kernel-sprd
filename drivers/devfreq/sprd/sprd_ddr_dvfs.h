@@ -21,6 +21,18 @@ enum DDR_DFS_STATE_STEP {
 	scaling_force_ddr_freq,
 	scene_boost_enter,
 	set_backdoor,
+	dfs_on_off,
+	change_point,
+	scene_freq_set,
+	get_overflow_t,
+	set_overflow_t,
+	get_underflow_t,
+	set_underflow_t,
+	get_dvfs_status_t,
+	get_dvfs_auto_status_t,
+	get_cur_freq_t,
+	get_freq_table_t,
+	send_freq_request_t,
 };
 
 #define DDR_DB_NODE_NUM 50
@@ -31,6 +43,7 @@ struct DDR_DFS_STEP_T {
 	u32 buff;
 	char scene[SCENE_MAX];
 	int pid;
+	ktime_t time;
 };
 
 struct ddr_dfs_step_list_t {
@@ -57,9 +70,9 @@ struct governor_callback {
 	int (*get_cur_freq)(unsigned int *data);
 	int (*get_freq_table)(unsigned long *data, unsigned int sel);
 	int (*ddrinfo_dfs_step_show)(char **arg, char **step_status,
-				     char **scene, u32 *buff, int *pid, u32 i);
+				     char **scene, u32 *buff, int *pid, ktime_t *time, u32 i);
 	void (*ddr_dfs_step_add)(enum DDR_DFS_STATE_STEP cur_step, int status,
-				 char *scene, u32 buff, int pid);
+				 char *scene, u32 buff, int pid, ktime_t time);
 };
 
 /*functions supportd by dvfs core to specific drivers*/
