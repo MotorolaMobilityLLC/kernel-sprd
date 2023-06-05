@@ -30,7 +30,7 @@
 
 #include "sfp.h"
 
-int sysctl_net_sfp_enable  __read_mostly = 1;
+int sysctl_net_sfp_enable  __read_mostly;
 
 int sysctl_net_sfp_tether_scheme  __read_mostly;
 
@@ -54,6 +54,18 @@ void set_sfp_tether_scheme(int tether_scheme)
 	sysctl_net_sfp_tether_scheme = tether_scheme;
 }
 EXPORT_SYMBOL(set_sfp_tether_scheme);
+
+void set_sfp_enable(int enable)
+{
+	if (enable != 1 && enable != 0) {
+		FP_PRT_DBG(FP_PRT_ERR, "illegal enable %d\n", enable);
+		return;
+	}
+
+	FP_PRT_DBG(FP_PRT_INFO, "set enable to %d\n", enable);
+	sysctl_net_sfp_enable = enable;
+}
+EXPORT_SYMBOL(set_sfp_enable);
 
 static struct ctl_table net_sfp_table[] = {
 #if IS_ENABLED(CONFIG_NET)

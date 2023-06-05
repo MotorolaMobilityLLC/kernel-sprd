@@ -1254,6 +1254,14 @@ static int sfp_parse_dt(struct device *dev)
 
 	set_sfp_tether_scheme(data);
 
+	ret = of_property_read_u32(np, "enable", &data);
+	if (ret) {
+		dev_err(dev, "fail to read enable, %d\n", ret);
+		return ret;
+	}
+
+	set_sfp_enable(data);
+
 	pamwifi_enable = of_property_read_bool(np, "sfp,enable-pamwifi");
 
 	set_sfp_ipa_pamwifi_enable(pamwifi_enable);

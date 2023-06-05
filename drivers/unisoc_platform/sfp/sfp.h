@@ -592,5 +592,6 @@ int sfp_test_init(int count);
 
 int get_sfp_tether_scheme(void);
 void set_sfp_tether_scheme(int tether_scheme);
+void set_sfp_enable(int enable);
 
 #endif

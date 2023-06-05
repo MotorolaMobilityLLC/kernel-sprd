@@ -9,5 +9,6 @@
 		compatible = "sprd,sfp";
 		sprd,sfp = <0>;
 		tether_scheme = <2>;
+		enable = <0>;
 	};
 };
