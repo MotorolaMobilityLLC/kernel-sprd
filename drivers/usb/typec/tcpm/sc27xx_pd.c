@@ -375,6 +375,8 @@ struct sc27xx_pd {
 	struct timespec64 rx_err_start_time;
 	struct timespec64 hard_reset_start_time;
 	bool vbus_only;
+	bool suspend;
+	u64 resume_time;
 };
 
 /*
@@ -581,6 +583,28 @@ static int sc27xx_pd_get_cc(struct tcpc_dev *tcpc,
 	return 0;
 }
 
+static void sc27xx_pd_wait_for_i2c_set_vbus(struct sc27xx_pd *pd)
+{
+	u64 cur_time;
+	int ret, retry_cnt = 0;
+
+	cur_time = ktime_to_ms(ktime_get_boottime());
+	if (((cur_time - pd->resume_time) > 0 &&
+	    (cur_time - pd->resume_time) <= 80) || pd->suspend) {
+		sprd_pd_log(pd, "waitting for i2c resume to ready");
+		dev_info(pd->dev, "waitting for i2c resume to ready\n");
+		usleep_range(20000, 21000);
+		do {
+			ret = regulator_is_enabled(pd->vbus);
+			if (ret == -ESHUTDOWN) {
+				sprd_pd_log(pd, "waitting for i2c resume again");
+				dev_info(pd->dev, "waitting for i2c resume again\n");
+				usleep_range(20000, 21000);
+			}
+		} while ((ret == -ESHUTDOWN) && retry_cnt++ < 4);
+	}
+}
+
 static int sc27xx_pd_set_vbus(struct tcpc_dev *tcpc, bool on, bool charge)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
@@ -601,6 +625,8 @@ static int sc27xx_pd_set_vbus(struct tcpc_dev *tcpc, bool on, bool charge)
 		}
 
 		if (on) {
+			sc27xx_pd_wait_for_i2c_set_vbus(pd);
+
 			if (!regulator_is_enabled(pd->vbus)) {
 				sprd_pd_log(pd, "set vbus on");
 				ret = regulator_enable(pd->vbus);
@@ -2580,6 +2606,8 @@ static int sc27xx_pd_suspend(struct device *dev)
 		return ret;
 	}
 
+	pd->suspend = true;
+
 	return 0;
 }
 
@@ -2599,6 +2627,9 @@ static int sc27xx_pd_resume(struct device *dev)
 		dev_err(pd->dev, "failed to enable pd clock when resume, ret = %d\n", ret);
 		return ret;
 	}
+
+	pd->suspend = false;
+	pd->resume_time = ktime_to_ms(ktime_get_boottime());
 
 	return 0;
 }
