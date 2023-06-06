@@ -38,6 +38,8 @@
 					sprd,reset-on-sequence = <1 5>, <0 5>, <1 20>;
 					sprd,reset-off-sequence = <0 5>;
 
+					sprd,video-lp-en-mode = <15>;
+
 					sprd,use-dcs-write;
 					sprd,initial-command = [
 						//CMD2 ENABLE
