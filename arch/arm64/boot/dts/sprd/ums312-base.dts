@@ -46,7 +46,10 @@
 
 	chosen: chosen {
 		stdout-path = &uart1;
-		bootargs = "earlycon=sprd_serial,0x70100000,921600n8 console=ttyS1,921600n8 loop.max_part=7 loglevel=1 log_buf_len=1M init=/init root=/dev/ram0 ro rootwait swiotlb=1 printk.devkmsg=on firmware_class.path=/vendor/firmware,/odm/firmware dummy_hcd.num=0";
+		bootargs = "earlycon=sprd_serial,0x70100000,921600n8 console=ttyS1,921600n8
+			    loop.max_part=7 loglevel=1 log_buf_len=1M init=/init
+			    root=/dev/ram0 ro rootwait swiotlb=1 printk.devkmsg=on
+			    firmware_class.path=/odm/firmware,/vendor/firmware dummy_hcd.num=0";
 	};
 
 	firmware {
