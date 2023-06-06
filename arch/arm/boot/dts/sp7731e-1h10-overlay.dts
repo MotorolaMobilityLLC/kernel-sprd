@@ -550,8 +550,16 @@
 	};
 };
 
+&vddsim2 {
+	regulator-always-on;
+};
+
 &vddemmccore {
 	regulator-always-on;
+};
+
+&vddwpa {
+	status = "disabled";
 };
 
 &vddsim0 {
