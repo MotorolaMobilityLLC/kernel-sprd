@@ -32,8 +32,7 @@
 #define SC27XX_STATUS			0x1c
 #define SC27XX_TCCDE_CNT		0x20
 #define SC27XX_RTRIM			0x3c
-#define SC2730_DBG1			0x60
-#define SC2721_STATUS			0x1c
+#define SC27XX_SW_CFG			0x54
 
 /* SC2730_DBG1 */
 #define SC2730_CC_MASK			GENMASK(7, 0)
@@ -115,11 +114,62 @@
 #define SC2730				0x02
 #define UMP9620				0x03
 
-/* DFP/UFP DETECT */
-#define CC1_DFP_CHECK			BIT(7)
-#define CC2_DFP_CHECK			BIT(3)
-#define CC1_UFP_CON			BIT(0)
-#define CC_INSERT			GENMASK(7, 0)
+/* CC DETECT */
+#define SC2730_CC1_CHECK		BIT(5)
+#define SC2721_CC1_CHECK		BIT(4)
+
+/*CC RP RD*/
+#define SC27XX_CC1_SW_SWITCH(x)		(((x) << 12) & GENMASK(13, 12))
+#define SC27XX_CC1_SW_SWITCH_MASK	GENMASK(13, 12)
+#define SC27XX_CC2_SW_SWITCH(x)		(((x) << 14) & GENMASK(15, 14))
+#define SC27XX_CC2_SW_SWITCH_MASK	GENMASK(15, 14)
+
+/*CC RP LEVEL*/
+#define SC27XX_TYPEC_RP_LEVEL(x)	(((x) << 2) & GENMASK(3, 2))
+
+enum typec_rp_level {
+	RP_DISABLED = 0,
+	RP_80UA,
+	RP_180UA,
+	RP_330UA,
+};
+
+enum typec_rp_rd_state {
+	SC27XX_TYPEC_HW = 0,
+	SC27XX_TYPEC_NC,
+	SC27XX_TYPEC_RD,
+	SC27XX_TYPEC_RP,
+};
+
+static const char *const typec_rp_rd_value[] = {
+	[SC27XX_TYPEC_HW] = "hw",
+	[SC27XX_TYPEC_NC] = "not connect",
+	[SC27XX_TYPEC_RD] = "rd",
+	[SC27XX_TYPEC_RP] = "rp",
+};
+
+static const char *const typec_rp_level_value[] = {
+	[RP_DISABLED] = "disabled",
+	[RP_80UA] = "80UA",
+	[RP_180UA] = "180UA",
+	[RP_330UA] = "330UA",
+};
+
+static const char *typec_rp_rd_string(enum typec_rp_rd_state state)
+{
+	if (state >= ARRAY_SIZE(typec_rp_rd_value))
+		return "unknown";
+
+	return typec_rp_rd_value[state];
+}
+
+static const char *typec_rp_level_string(enum typec_rp_level state)
+{
+	if (state >= ARRAY_SIZE(typec_rp_level_value))
+		return "unknown";
+
+	return typec_rp_level_value[state];
+}
 
 enum sc27xx_typec_connection_state {
 	SC27XX_DETACHED_SNK,
@@ -238,6 +288,8 @@ static atomic_t pd_dr_swap_event;
 /* interrupt, attach --> 1  detach --> 0  */
 static atomic_t typec_attach;
 
+static int sc27xx_typec_set_rp_rd(enum sprd_typec_cc_status cc);
+static int sc27xx_typec_set_rp_level(enum sprd_typec_cc_status cc);
 /* set pd_dr_swap_event */
 void sc27xx_set_dr_swap_executing(int event)
 {
@@ -283,42 +335,25 @@ static void typec_set_cc_polarity_role(struct sc27xx_typec *sc,
 static int sc27xx_typec_set_cc_polarity_role(struct sc27xx_typec *sc)
 {
 	enum sprd_typec_cc_polarity cc_polarity;
-	u32 val, tmp1, tmp2;
+	u32 val;
 	int ret;
 
-	if (sc->var_data->pmic_name == SC2721) {
-		ret = regmap_read(sc->regmap, sc->base + SC2721_STATUS, &val);
-		if (ret < 0) {
-			dev_err(sc->dev, "failed to read STATUS register.\n");
-			return ret;
-		}
-		val &= SC2721_CC_MASK;
-		tmp1 = val & CC1_DFP_CHECK;
-		tmp2 = val & CC2_DFP_CHECK;
-	} else {
-		ret = regmap_read(sc->regmap, sc->base + SC2730_DBG1, &val);
-		if (ret < 0) {
-			dev_err(sc->dev, "failed to read DBG1 register.\n");
-			return ret;
-		}
-		val &= SC2730_CC_MASK;
-		tmp1 = val & CC1_DFP_CHECK;
-		tmp2 = val & CC2_DFP_CHECK;
+	ret = regmap_read(sc->regmap, sc->base + SC27XX_STATUS, &val);
+	if (ret < 0) {
+		dev_err(sc->dev, "failed to read STATUS register.\n");
+		return ret;
 	}
 
-	if (tmp1 || tmp2) {
-		/* DFP MODE */
-		if (tmp1)
-			cc_polarity = SPRD_TYPEC_POLARITY_CC1;
-		else
-			cc_polarity = SPRD_TYPEC_POLARITY_CC2;
-	} else {
-		/* UFP MODE */
-		if (val & CC1_UFP_CON)
-			cc_polarity = SPRD_TYPEC_POLARITY_CC1;
-		else
-			cc_polarity = SPRD_TYPEC_POLARITY_CC2;
-	}
+	if (sc->var_data->pmic_name == SC2721)
+		val &= SC2721_CC1_CHECK;
+	else
+		val &= SC2730_CC1_CHECK;
+
+	if (val)
+		cc_polarity = SPRD_TYPEC_POLARITY_CC1;
+	else
+		cc_polarity = SPRD_TYPEC_POLARITY_CC2;
+
 	typec_set_cc_polarity_role(sc, cc_polarity);
 
 	return ret;
@@ -470,6 +505,10 @@ static void sc27xx_disconnect_set_status_use_pdhubc2c(struct sc27xx_typec *sc)
 {
 	u8 pr_mode, dr_mode;
 
+	/*rp rd is controlled by HW*/
+	sc27xx_typec_set_rp_rd(SPRD_TYPEC_CC_OPEN);
+	/*default rp level*/
+	sc27xx_typec_set_rp_level(SPRD_TYPEC_CC_RP_DEF);
 	spin_lock(&sc->lock);
 	sc->partner_connected = false;
 	sc->pd_swap_evt = TYPEC_NO_SWAP;
@@ -912,6 +951,110 @@ int sc27xx_typec_set_pd_swap_event(u8 pd_swap_flag)
 	return 0;
 }
 
+static int sc27xx_typec_set_rp_level_value(enum typec_rp_level value)
+{
+	struct sc27xx_typec *sc = typec_sc;
+	int ret;
+
+	dev_info(sc->dev, "rp level: %s", typec_rp_level_string(value));
+	ret =  regmap_update_bits(sc->regmap, sc->base + SC27XX_MODE,
+				SC27XX_TYPEC_RP_LEVEL(3), SC27XX_TYPEC_RP_LEVEL(value));
+	if (ret < 0) {
+		dev_err(sc->dev, "failed to set typec rp level, ret = %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int sc27xx_typec_set_rp_rd_value(enum typec_rp_rd_state value)
+{
+	struct sc27xx_typec *sc = typec_sc;
+	int ret;
+
+	dev_info(sc->dev, "set %s %s",
+				sprd_typec_cc_polarity_roles[sc->cc_polarity],
+				typec_rp_rd_string(value));
+	if (sc->cc_polarity == SPRD_TYPEC_POLARITY_CC1) {
+		ret = regmap_update_bits(sc->regmap,
+					sc->base + SC27XX_SW_CFG,
+					SC27XX_CC1_SW_SWITCH_MASK,
+					SC27XX_CC1_SW_SWITCH(value));
+	} else {
+		ret = regmap_update_bits(sc->regmap,
+					sc->base + SC27XX_SW_CFG,
+					SC27XX_CC2_SW_SWITCH_MASK,
+					SC27XX_CC2_SW_SWITCH(value));
+	}
+
+	if (ret < 0) {
+		dev_err(sc->dev, "failed to set typec rp rd, ret = %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+static int sc27xx_typec_set_rp_level(enum sprd_typec_cc_status cc)
+{
+	struct sc27xx_typec *sc = typec_sc;
+	int ret;
+
+	dev_info(sc->dev, "%s cc:%d!\n", __func__, cc);
+
+	switch (cc) {
+	case SPRD_TYPEC_CC_RP_DEF:
+		ret = sc27xx_typec_set_rp_level_value(RP_80UA);
+		break;
+	case SPRD_TYPEC_CC_RP_1_5:
+		ret = sc27xx_typec_set_rp_level_value(RP_180UA);
+		break;
+	case SPRD_TYPEC_CC_RP_3_0:
+		ret = sc27xx_typec_set_rp_level_value(RP_330UA);
+		break;
+	default:
+		/*rp level default */
+		ret = sc27xx_typec_set_rp_level_value(RP_80UA);
+		break;
+	}
+
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
+static int sc27xx_typec_set_rp_rd(enum sprd_typec_cc_status cc)
+{
+	struct sc27xx_typec *sc = typec_sc;
+	int ret;
+
+	dev_info(sc->dev, "%s cc:%d!\n", __func__, cc);
+
+	switch (cc) {
+	case SPRD_TYPEC_CC_RD:
+		/* force cc connected by rd */
+		ret = sc27xx_typec_set_rp_rd_value(SC27XX_TYPEC_RD);
+		break;
+	case SPRD_TYPEC_CC_RP_DEF:
+	case SPRD_TYPEC_CC_RP_1_5:
+	case SPRD_TYPEC_CC_RP_3_0:
+		/* force cc connected by rp */
+		ret = sc27xx_typec_set_rp_rd_value(SC27XX_TYPEC_RP);
+		break;
+	case SPRD_TYPEC_CC_OPEN:
+	default:
+		/* cc_switch is controlled by HW */
+		ret = sc27xx_typec_set_rp_rd_value(SC27XX_TYPEC_HW);
+		break;
+	}
+
+	if (ret < 0)
+		return ret;
+
+	return 0;
+}
+
 #if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
 static int sc27xx_typec_register_ops(void)
 {
@@ -925,6 +1068,8 @@ static int sc27xx_typec_register_ops(void)
 	sc27xx_typec_ops.typec_set_pd_dr_swap_flag = sc27xx_typec_set_pd_dr_swap_flag;
 	sc27xx_typec_ops.typec_set_pr_swap_flag = sc27xx_typec_set_pr_swap_flag;
 	sc27xx_typec_ops.typec_set_pd_swap_event = sc27xx_typec_set_pd_swap_event;
+	sc27xx_typec_ops.set_typec_rp_rd = sc27xx_typec_set_rp_rd;
+	sc27xx_typec_ops.set_typec_rp_level = sc27xx_typec_set_rp_level;
 
 	sprd_tcpm_typec_device_ops_register(&sc27xx_typec_ops);
 
