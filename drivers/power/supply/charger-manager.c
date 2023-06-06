@@ -74,6 +74,7 @@
 #define CM_FIXED_FCHG_DISABLE_BATTERY_VOLTAGE	3400000
 #define CM_FIXED_FCHG_DISABLE_CURRENT		1000000
 #define CM_FIXED_FCHG_C2C_CURRENT		1000000
+#define CM_FIXED_FCHG_C2C_IBUS_THRESHOLD	1500000
 #define CM_FIXED_FCHG_TRANSITION_CURRENT_1P5A	1500000
 #define CM_FIXED_FCHG_VOLTAGE_5V_THRESHOLD	6500000
 #define CM_FIXED_FCHG_ENABLE_COUNT		3
@@ -6003,6 +6004,7 @@ static bool cm_pd_is_ac_online(struct charger_manager *cm)
 
 	for (i = 0; i < pd_source_cap.nr_source_caps; i++) {
 		if ((pd_source_cap.max_mv[i] <= 5000) &&
+		    (pd_source_cap.ma[i] < CM_FIXED_FCHG_C2C_IBUS_THRESHOLD / 1000) &&
 		    (pd_source_cap.type[i] == SPRD_PDO_TYPE_FIXED))
 			index++;
 	}
