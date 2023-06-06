@@ -115,6 +115,7 @@
 
 	audiocp_boot {
 		compatible = "unisoc,sharkl5-audcp-boot", "unisoc,sharkl5pro-audcp-boot";
+		dsp-reboot-mode = <1>;
 		sysshutdown = <&pmu_apb_regs REG_PMU_APB_RF_PD_AUDCP_SYS_CFG MASK_PMU_APB_RF_PD_AUDCP_SYS_FORCE_SHUTDOWN>;
 		coreshutdown = <&pmu_apb_regs REG_PMU_APB_RF_PD_AUDCP_AUDDSP_CFG MASK_PMU_APB_RF_PD_AUDCP_AUDDSP_AUTO_SHUTDOWN_EN>;
 		deepsleep = <&pmu_apb_regs REG_PMU_APB_RF_SLEEP_CTRL MASK_PMU_APB_RF_AUDCP_FORCE_DEEP_SLEEP>;

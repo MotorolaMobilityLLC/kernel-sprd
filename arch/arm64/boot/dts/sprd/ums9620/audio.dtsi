@@ -114,8 +114,9 @@
 
 	audiocp_boot {
 		compatible = "unisoc,audcp-boot";
-		sysshutdown = <&pmu_apb_regs REG_PMU_APB_PD_AUDIO_CFG_0  MASK_PMU_APB_PD_AUDIO_FORCE_SHUTDOWN>;
-		coreshutdown = <&pmu_apb_regs REG_PMU_APB_PD_AUD_CEVA_CFG_0  MASK_PMU_APB_PD_AUD_CEVA_FORCE_SHUTDOWN>;
+		dsp-reboot-mode = <1>;
+		sysshutdown = <&pmu_apb_regs REG_PMU_APB_PD_AUDIO_CFG_0  (MASK_PMU_APB_PD_AUDIO_FORCE_SHUTDOWN|MASK_PMU_APB_PD_AUDIO_AUTO_SHUTDOWN_EN)>;
+		coreshutdown = <&pmu_apb_regs REG_PMU_APB_PD_AUD_CEVA_CFG_0  (MASK_PMU_APB_PD_AUD_CEVA_FORCE_SHUTDOWN|MASK_PMU_APB_PD_AUD_CEVA_AUTO_SHUTDOWN_EN)>;
 		deepsleep = <&pmu_apb_regs REG_PMU_APB_FORCE_DEEP_SLEEP_CFG_0  MASK_PMU_APB_AUDIO_FORCE_DEEP_SLEEP_REG>;
 		corereset = <&pmu_apb_regs REG_PMU_APB_DM_SOFT_RST  MASK_PMU_APB_AUD_CEVA_SOFT_RST>;
 		sysreset = <&pmu_apb_regs REG_PMU_APB_SYS_SOFT_RST_0  MASK_PMU_APB_AUDIO_SOFT_RST>;
