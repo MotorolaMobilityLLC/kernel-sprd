@@ -358,3 +358,7 @@
 	extcon = <&extcon_gpio>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
 };
+
+&vddldo0 {
+	regulator-always-on;
+};
