@@ -22,6 +22,7 @@
 #include <linux/seq_file.h>
 #include <linux/panic_notifier.h>
 #include <linux/export.h>
+#include "aphang.h"
 
 #if IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
 #include <linux/sprd_wdt_fiq.h>
@@ -397,10 +398,19 @@ static int __init sprd_hang_debug_init(void)
 	atomic_notifier_chain_register(&panic_notifier_list,
 					&wdf_panic_event_nb);
 
+	sprd_wdh_atf_init();
+	send_ipi_init();
 	return 0;
 }
 
+static void __exit sprd_hang_debug_exit(void)
+{
+	pr_emerg("This modules should not be removed!\n");
+	send_ipi_exit();
+}
+
 late_initcall(sprd_hang_debug_init);
+module_exit(sprd_hang_debug_exit);
 
 MODULE_DESCRIPTION("sprd hang debug wdf driver");
 MODULE_LICENSE("GPL v2");

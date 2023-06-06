@@ -36,6 +36,7 @@
 #include <asm/traps.h>
 #include <linux/module.h>
 #include <linux/sprd_sip_svc.h>
+#include "aphang.h"
 #if IS_ENABLED(CONFIG_ARM)
 #include <asm/cacheflush.h>
 #else
@@ -72,7 +73,7 @@ static raw_spinlock_t sprd_wdh_prlock;
 static raw_spinlock_t sprd_wdh_wclock;
 static atomic_t sprd_enter_wdh;
 
-#if IS_ENABLED(CONFIG_SPRD_HANG_WDF)
+#if IS_ENABLED(CONFIG_SPRD_APHANG)
 extern unsigned int cpu_feed_mask;
 extern unsigned int cpu_feed_bitmap;
 #else
@@ -848,7 +849,7 @@ void entry_for_wdh_el2(void)
 	asm("b .");
 }
 
-static int sprd_wdh_atf_init(void)
+int sprd_wdh_atf_init(void)
 {
 	int i;
 	int ret = 0;
@@ -895,8 +896,7 @@ gic_fail:
 	kfree(gicc_regs);
 	return ret;
 }
-
-late_initcall(sprd_wdh_atf_init);
+EXPORT_SYMBOL_GPL(sprd_wdh_atf_init);
 
 MODULE_DESCRIPTION("sprd hang debug wdh driver");
 MODULE_LICENSE("GPL v2");

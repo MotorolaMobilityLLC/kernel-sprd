@@ -11,6 +11,7 @@
 #include <linux/hrtimer.h>
 #include <linux/delay.h>
 #include <linux/sched/types.h>
+#include "aphang.h"
 
 #define INV_CPUS 256
 static DEFINE_SPINLOCK(thread_lock);
@@ -162,7 +163,7 @@ static const struct proc_ops thread_trigger_fops = {
 	.proc_lseek	= default_llseek,
 };
 
-static int __init send_ipi_init(void)
+int send_ipi_init(void)
 {
 	int ret = 0;
 
@@ -185,15 +186,15 @@ err_trigger:
 err:
 	return -ENOMEM;
 }
+EXPORT_SYMBOL_GPL(send_ipi_init);
 
-static void __exit send_ipi_exit(void)
+void send_ipi_exit(void)
 {
 	remove_proc_entry("thread_cpu", NULL);
 	remove_proc_entry("thread_trigger", NULL);
 	if (pthread)
 		kthread_stop(pthread);
 }
+EXPORT_SYMBOL_GPL(send_ipi_exit);
 
-module_init(send_ipi_init);
-module_exit(send_ipi_exit);
 MODULE_LICENSE("GPL");
