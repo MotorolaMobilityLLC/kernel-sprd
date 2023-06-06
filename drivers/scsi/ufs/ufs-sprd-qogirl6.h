@@ -27,6 +27,8 @@ struct ufs_sprd_ums9230_data {
 	struct reset_control *ap_apb_ufs_rst;
 	struct reset_control *ap_apb_ufs_glb_rst;
 	void __iomem *dbg_apb_reg;
+
+	ktime_t last_linkup_time;
 };
 
 extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
@@ -118,6 +120,18 @@ extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
 #define	MPHY_APB_RX_CFGRXBIASLSENOVR_MASK BIT(21)
 #define	MPHY_APB_OVR_REG_LS_LDO_STABLE_MASK BIT(28)
 #define	MPHY_APB_REG_LS_LDO_STABLE_MASK BIT(17)
+
+#define MPHY_DIG_CFG62_LANE0	0xC0F8
+#define MPHY_DIG_CFG66_LANE0	0xC108
+#define MPHY_DIG_CFG15_LANE0	0xC03C
+
+#define MPHY_APB_REG_DCO_CTRLBIT	GENMASK(7, 0)
+#define MPHY_APB_REG_DCO_VALUE		0x2C
+#define MPHY_APB_OVR_REG_DCO_CTRLBIT	GENMASK(16, 16)
+#define MPHY_APB_OVR_REG_DCO_VALUE	BIT(16)
+
+#define WAIT_1MS_TIMEOUT	1000
+#define APB_DCO_CAL_RESULT_RANGE	0xA
 
 #define AON_VER_UFS 1
 

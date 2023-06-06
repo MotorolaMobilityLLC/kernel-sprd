@@ -46,6 +46,7 @@ struct ufs_sprd_host {
 
 	int (*check_stat_after_suspend)(struct ufs_hba *hba,
 					enum ufs_notify_change_status);
+	void (*priv_vh_send_uic)(struct ufs_hba *hba, struct uic_command *ucmd, int str);
 };
 
 struct syscon_ufs {
@@ -101,6 +102,7 @@ int ufs_sprd_get_syscon_reg(struct device_node *np,
 			    struct syscon_ufs *reg, const char *name);
 void ufs_sprd_get_gic_reg(struct ufs_hba *hba);
 void ufs_sprd_print_gic_reg(struct ufs_hba *hba);
+void ufs_sprd_uic_cmd_record(struct ufs_hba *hba, struct uic_command *ucmd, int str);
 
 extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops;
 extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops;

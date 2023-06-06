@@ -468,6 +468,24 @@ void read_ufs_debug_bus(struct ufs_hba *hba)
 	dev_err(hba->dev, "ap ufshcd debugbus_data end.\n");
 }
 
+static void sprd_ufs_vh_send_uic(struct ufs_hba *hba, struct uic_command *ucmd, int str)
+{
+	/*
+	 * Used for DCO cali.
+	 * We will directly carry out LINK ops in the linkup PRE stage. Therefore,
+	 * when the code reaches here, if DP already exists, there is no need to
+	 * send the LINK cmd, which is converted to the peer get cmd. If DP doesn't
+	 * exist, it indicates that the LINK transmisson fails int the PRE phase, and
+	 * the LINK cmd will be resent.
+	 */
+	if (ucmd->command == UIC_CMD_DME_LINK_STARTUP && str == UFS_CMD_SEND &&
+			(ufshcd_readl(hba, REG_CONTROLLER_STATUS) & DEVICE_PRESENT)) {
+		ucmd->command = UIC_CMD_DME_PEER_GET;
+		ucmd->argument1 = UIC_ARG_MIB(PA_AVAILRXDATALANES);
+		ufshcd_writel(hba, ucmd->argument1, REG_UIC_COMMAND_ARG_1);
+	}
+}
+
 /*
  * ufs_sprd_init - find other essential mmio bases
  * @hba: host controller instance
@@ -499,6 +517,8 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 #ifdef CONFIG_COMPAT
 	hba->host->hostt->compat_ioctl = ufshcd_sprd_ioctl;
 #endif
+
+	host->priv_vh_send_uic = sprd_ufs_vh_send_uic;
 
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		       UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
@@ -644,6 +664,164 @@ out:
 	return ret;
 }
 
+static void ufs_sprd_dco_calibration(struct ufs_hba *hba, struct uic_command *ucmd)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9230_data *priv = (struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
+	int value = 0;
+	int apb_dco_cal_result = 0;
+
+	if (ucmd->command == UIC_CMD_DME_LINK_STARTUP) {
+		while (1) {
+			if (ktime_to_us(ktime_sub(ktime_get(),
+					priv->last_linkup_time)) > WAIT_1MS_TIMEOUT) {
+				value = readl((priv->ufs_analog_reg) + MPHY_DIG_CFG62_LANE0);
+				apb_dco_cal_result = (value >> 24);
+				break;
+			}
+		}
+
+		if (apb_dco_cal_result < APB_DCO_CAL_RESULT_RANGE) {
+			ufs_sprd_rmwl(priv->ufs_analog_reg,
+				      MPHY_APB_REG_DCO_CTRLBIT,
+				      MPHY_APB_REG_DCO_VALUE,
+				      MPHY_DIG_CFG15_LANE0);
+			ufs_sprd_rmwl(priv->ufs_analog_reg,
+				      MPHY_APB_OVR_REG_DCO_CTRLBIT,
+				      MPHY_APB_OVR_REG_DCO_VALUE,
+				      MPHY_DIG_CFG1_LANE0);
+		}
+	}
+}
+
+static int ufs_sprd_wait_for_uic_cmd(struct ufs_hba *hba, struct uic_command *uic_cmd)
+{
+	int ret;
+	unsigned long flags;
+
+	ufs_sprd_dco_calibration(hba, uic_cmd);
+
+	lockdep_assert_held(&hba->uic_cmd_mutex);
+
+	if (wait_for_completion_timeout(&uic_cmd->done, msecs_to_jiffies(500 /* MS */))) {
+		ret = uic_cmd->argument2 & MASK_UIC_COMMAND_RESULT;
+	} else {
+		ret = -ETIMEDOUT;
+		dev_err(hba->dev,
+			"uic cmd 0x%x with arg3 0x%x completion timeout\n",
+			uic_cmd->command, uic_cmd->argument3);
+
+		if (!uic_cmd->cmd_active) {
+			dev_err(hba->dev, "%s: UIC cmd has been completed, return the result\n",
+				__func__);
+			ret = uic_cmd->argument2 & MASK_UIC_COMMAND_RESULT;
+		}
+	}
+
+	spin_lock_irqsave(hba->host->host_lock, flags);
+	hba->active_uic_cmd = NULL;
+	spin_unlock_irqrestore(hba->host->host_lock, flags);
+
+	return ret;
+}
+
+static inline void ufs_sprd_dispatch_uic_cmd(struct ufs_hba *hba, struct uic_command *uic_cmd)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9230_data *priv =
+		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
+
+	lockdep_assert_held(&hba->uic_cmd_mutex);
+
+	WARN_ON(hba->active_uic_cmd);
+
+	hba->active_uic_cmd = uic_cmd;
+
+	/* Write Args */
+	ufshcd_writel(hba, uic_cmd->argument1, REG_UIC_COMMAND_ARG_1);
+	ufshcd_writel(hba, uic_cmd->argument2, REG_UIC_COMMAND_ARG_2);
+	ufshcd_writel(hba, uic_cmd->argument3, REG_UIC_COMMAND_ARG_3);
+
+	ufs_sprd_uic_cmd_record(hba, uic_cmd, (int) UFS_CMD_SEND);
+
+	/* Write UIC Cmd */
+	ufshcd_writel(hba, uic_cmd->command & COMMAND_OPCODE_MASK, REG_UIC_COMMAND);
+
+	if (uic_cmd->command == UIC_CMD_DME_LINK_STARTUP)
+		priv->last_linkup_time = ktime_get();
+}
+
+static int ufs_sprd_send_uic_cmd(struct ufs_hba *hba, struct uic_command *uic_cmd,
+		      bool completion)
+{
+	lockdep_assert_held(&hba->uic_cmd_mutex);
+	lockdep_assert_held(hba->host->host_lock);
+
+	if (!(ufshcd_readl(hba, REG_CONTROLLER_STATUS) & UIC_COMMAND_READY)) {
+		dev_err(hba->dev,
+			"Controller not ready to accept UIC commands\n");
+		return -EIO;
+	}
+
+	if (completion)
+		init_completion(&uic_cmd->done);
+
+	uic_cmd->cmd_active = 1;
+	ufs_sprd_dispatch_uic_cmd(hba, uic_cmd);
+
+	return 0;
+}
+
+static int ufs_sprd_dme_link_startup(struct ufs_hba *hba)
+{
+	struct uic_command uic_cmd = {0};
+	unsigned long flags;
+	int retry = 5;
+	int ret;
+
+	uic_cmd.command = UIC_CMD_DME_LINK_STARTUP;
+
+link_retry:
+	ufshcd_hold(hba, false);
+	mutex_lock(&hba->uic_cmd_mutex);
+	usleep_range(1000, 1050);
+
+	spin_lock_irqsave(hba->host->host_lock, flags);
+	ret = ufs_sprd_send_uic_cmd(hba, &uic_cmd, true);
+	spin_unlock_irqrestore(hba->host->host_lock, flags);
+	if (!ret)
+		ret = ufs_sprd_wait_for_uic_cmd(hba, &uic_cmd);
+
+	mutex_unlock(&hba->uic_cmd_mutex);
+	ufshcd_release(hba);
+
+	if (ret)
+		dev_dbg(hba->dev, "dme-link-startup: error code %d\n", ret);
+
+	if (!ret && !(ufshcd_readl(hba, REG_CONTROLLER_STATUS) & DEVICE_PRESENT)) {
+		ufshcd_update_evt_hist(hba, UFS_EVT_LINK_STARTUP_FAIL, 0);
+		dev_err(hba->dev, "%s: Device not present\n", __func__);
+		ret = -ENXIO;
+		goto out;
+	}
+
+	/*
+	 * DME link lost indication is only received when link is up,
+	 * but we can't be sure if the link is up until link startup
+	 * succeeds. So reset the local Uni-Pro and try again.
+	 */
+	if (ret && ufshcd_hba_enable(hba)) {
+		ufshcd_update_evt_hist(hba, UFS_EVT_LINK_STARTUP_FAIL, (u32)ret);
+		goto out;
+	}
+
+	if (ret && retry--)
+		goto link_retry;
+
+out:
+	return ret;
+}
+
 static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 					enum ufs_notify_change_status status)
 {
@@ -665,6 +843,8 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 			err = ufshcd_dme_set(hba,
 					UIC_ARG_MIB(PA_LOCAL_TX_LCC_ENABLE),
 					0);
+
+		ufs_sprd_dme_link_startup(hba);
 
 		break;
 	case POST_CHANGE:

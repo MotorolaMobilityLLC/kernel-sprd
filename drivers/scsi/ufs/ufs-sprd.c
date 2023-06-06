@@ -140,8 +140,7 @@ static void ufs_sprd_vh_update_sdev(void *data, struct scsi_device *sdev)
 		blk_queue_flag_set(QUEUE_FLAG_SAME_FORCE, sdev->request_queue);
 }
 
-static void ufs_sprd_vh_send_uic_cmd(void *data, struct ufs_hba *hba,
-				     struct uic_command *ucmd, int str)
+void ufs_sprd_uic_cmd_record(struct ufs_hba *hba, struct uic_command *ucmd, int str)
 {
 	struct ufs_uic_cmd_info uic_tmp = {};
 
@@ -166,6 +165,17 @@ static void ufs_sprd_vh_send_uic_cmd(void *data, struct ufs_hba *hba,
 			ufshcd_common_trace(hba, UFS_TRACE_UIC_CMPL, &uic_tmp);
 		}
 	}
+}
+
+static void ufs_sprd_vh_send_uic_cmd(void *data, struct ufs_hba *hba,
+				     struct uic_command *ucmd, int str)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	if (host->priv_vh_send_uic)
+		host->priv_vh_send_uic(hba, ucmd, str);
+
+	ufs_sprd_uic_cmd_record(hba, ucmd, str);
 }
 
 static void ufs_sprd_vh_compl_cmd(void *data,
