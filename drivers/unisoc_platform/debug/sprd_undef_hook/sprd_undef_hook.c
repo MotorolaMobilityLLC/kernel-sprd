@@ -50,14 +50,14 @@ show_data(unsigned long addr, int nbytes, const char *name, unsigned int cpu)
 		 * just display low 16 bits of address to keep
 		 * each line of the dump < 80 characters
 		 */
-		sprintf(reg_line, "%04lx ", (unsigned long)p & 0xffff);
+		snprintf(reg_line, 6, "%04lx ", (unsigned long)p & 0xffff);
 		for (j = 0; j < 8; j++) {
 			u32	data;
 
 			if (copy_from_kernel_nofault(&data, p, sizeof(data)))
-				sprintf(reg_line + 5 + j * 9, " ********");
+				snprintf(reg_line + 5 + j * 9, 10, " ********");
 			else
-				sprintf(reg_line + 5 + j * 9, " %08x", data);
+				snprintf(reg_line + 5 + j * 9, 10, " %08x", data);
 			++p;
 		}
 		reg_line[77] = '\n';
