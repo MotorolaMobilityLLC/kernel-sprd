@@ -205,6 +205,13 @@ int vm_swappiness = 60;
 int direct_vm_swappiness = 60;
 #endif
 
+#ifdef CONFIG_WRITEBACK_SWAPCACHE
+  /*
+   * writeback swapcache, expect 0 or 1
+   */
+int writeback_swapcache;
+#endif
+
 static void set_task_reclaim_state(struct task_struct *task,
 				   struct reclaim_state *rs)
 {
@@ -6831,6 +6838,9 @@ static int balance_pgdat(pg_data_t *pgdat, int order, int highest_zoneidx)
 	struct zone *zone;
 	struct scan_control sc = {
 		.gfp_mask = GFP_KERNEL,
+#ifdef CONFIG_WRITEBACK_SWAPCACHE
+		.may_writepage = !!writeback_swapcache,
+#endif
 		.order = order,
 		.may_unmap = 1,
 	};

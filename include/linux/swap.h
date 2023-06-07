@@ -22,6 +22,10 @@ struct bio;
 
 struct pagevec;
 
+#ifdef CONFIG_WRITEBACK_SWAPCACHE
+extern int writeback_swapcache;
+#endif
+
 #define SWAP_FLAG_PREFER	0x8000	/* set if swap priority specified */
 #define SWAP_FLAG_PRIO_MASK	0x7fff
 #define SWAP_FLAG_PRIO_SHIFT	0
@@ -787,7 +791,11 @@ static inline long mem_cgroup_get_nr_swap_pages(struct mem_cgroup *memcg)
 
 static inline bool mem_cgroup_swap_full(struct page *page)
 {
+#ifdef CONFIG_WRITEBACK_SWAPCACHE
+	return writeback_swapcache ? true : vm_swap_full();
+#else
 	return vm_swap_full();
+#endif
 }
 #endif
 

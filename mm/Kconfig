@@ -998,4 +998,11 @@ config DIRECT_SWAPPINESS
 
 	  only 0 to 60 is valid. If unsure, say N to use it's original value(60).
 
+config WRITEBACK_SWAPCACHE
+	bool "writeback swapcache"
+	depends on SWAP
+	default n
+	help
+	  Write back swap cache to free up more.
+	  If unsure, say N to normal mode.
 endmenu

@@ -3207,6 +3207,17 @@ static struct ctl_table vm_table[] = {
 		.extra2		= SYSCTL_ONE,
 	},
 #endif
+#ifdef CONFIG_WRITEBACK_SWAPCACHE
+	{
+		.procname	= "writeback_swapcache",
+		.data		= &writeback_swapcache,
+		.maxlen		= sizeof(writeback_swapcache),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
+	},
+#endif
 	{ }
 };
 

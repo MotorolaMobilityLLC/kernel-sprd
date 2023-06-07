@@ -7425,6 +7425,11 @@ bool mem_cgroup_swap_full(struct page *page)
 
 	VM_BUG_ON_PAGE(!PageLocked(page), page);
 
+#ifdef CONFIG_WRITEBACK_SWAPCACHE
+	if (writeback_swapcache)
+		return true;
+#endif
+
 	if (vm_swap_full())
 		return true;
 	if (cgroup_memory_noswap || !cgroup_subsys_on_dfl(memory_cgrp_subsys))
