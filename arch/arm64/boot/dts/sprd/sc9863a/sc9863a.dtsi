@@ -771,6 +771,7 @@
 #include "pwm.dtsi"
 #include "pin-controller.dtsi"
 #include "audio.dtsi"
+#include "sensorhub.dtsi"
 #include "spi.dtsi"
 #include "uart.dtsi"
 #include "efuse.dtsi"
