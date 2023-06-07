@@ -833,6 +833,9 @@ static int sc27xx_pd_reset(struct sc27xx_pd *pd, bool clear_tx_id)
 static int sc27xx_pd_send_hardreset(struct sc27xx_pd *pd)
 {
 	int ret, state;
+	u64 curr_time;
+
+	curr_time = ktime_to_ms(ktime_get_boottime());
 
 	sprd_pd_log(pd, "%s:line%d: send hard reset", __func__, __LINE__);
 	if (pd->need_retry) {
@@ -859,7 +862,8 @@ static int sc27xx_pd_send_hardreset(struct sc27xx_pd *pd)
 	else if (state == false)
 		extcon_set_state_sync(pd->edev, EXTCON_CHG_USB_PD, true);
 
-	dev_warn(pd->dev, "IRQ: PD send hardreset\n");
+	sprd_pd_log(pd, "PD send hardreset, ktime = %lld ms", curr_time);
+	dev_warn(pd->dev, "IRQ: PD send hardreset, ktime = %lld ms\n", curr_time);
 
 	return 0;
 }
@@ -1565,6 +1569,9 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 	int ret, state;
 	struct timespec64 cur_time;
 	u32 rx_error_mask = SC27XX_PD_PKG_RV_ERROR_EN;
+	u64 curr_time;
+
+	curr_time = ktime_to_ms(ktime_get_boottime());
 
 	sprd_pd_log(pd, "pd irq: start handle irq, irq = %d", irq);
 	mutex_lock(&pd->lock);
@@ -1616,8 +1623,8 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 	}
 
 	if (int_sts & SC27XX_PD_HARD_RST_FLAG) {
-		dev_warn(pd->dev, "IRQ: PD received hardreset\n");
-		sprd_pd_log(pd, "pd irq: receive hard reset");
+		dev_warn(pd->dev, "IRQ: PD received hardreset, ktime = %lld ms\n", curr_time);
+		sprd_pd_log(pd, "pd irq: receive hard reset, ktime = %lld ms", curr_time);
 		if (pd->ignore_hard_reset) {
 			sprd_pd_log(pd, "pd irq: ignore hard reset, hard_reset_cnt = %d",
 				    pd->hard_reset_cnt);
@@ -1712,7 +1719,7 @@ irq_hard_reset:
 	}
 
 	if (int_sts & SC27XX_PD_PS_RDY_FLAG)
-		sprd_pd_log(pd, "pd irq: ps rdy flag");
+		sprd_pd_log(pd, "pd irq: ps rdy flag, ktime = %lld ms", curr_time);
 
 	if (int_sts & SC27XX_PD_TX_OK_FLAG) {
 		pd->can_communication = true;
@@ -1726,15 +1733,15 @@ irq_hard_reset:
 	}
 
 	if (int_sts & SC27XX_PD_TX_COLLSION_FLAG) {
-		sprd_pd_log(pd, "pd irq: PD collision");
-		dev_err(pd->dev, "IRQ: PD collision\n");
+		sprd_pd_log(pd, "pd irq: PD collision, ktime = %lld ms", curr_time);
+		dev_err(pd->dev, "IRQ: PD collision, ktime = %lld ms\n", curr_time);
 
 		sprd_tcpm_pd_transmit_complete(pd->sprd_tcpm_port, SPRD_TCPC_TX_FAILED);
 	}
 
 	if (int_sts & SC27XX_PD_PKG_RV_ERROR_FLAG) {
-		sprd_pd_log(pd, "pd irq: PD rx error flag");
-		dev_err(pd->dev, "IRQ: PD rx error flag\n");
+		sprd_pd_log(pd, "pd irq: PD rx error flag, ktime = %lld ms", curr_time);
+		dev_err(pd->dev, "IRQ: PD rx error flag, ktime = %lld ms\n", curr_time);
 	}
 
 	if (int_sts & SC27XX_PD_FRS_RV_FLAG)
@@ -2215,8 +2222,12 @@ static void sc27xx_pd_work(struct work_struct *work)
 {
 	struct sc27xx_pd *pd = container_of(work, struct sc27xx_pd, pd_work);
 	int ret;
+	u64 curr_time;
 
-	dev_info(pd->dev, "check vbus and cc\n");
+	curr_time = ktime_to_ms(ktime_get_boottime());
+
+	sprd_pd_log(pd, "check vbus and cc, ktime = %lld ms", curr_time);
+	dev_info(pd->dev, "check vbus and cc, ktime = %lld ms\n", curr_time);
 	ret = sc27xx_pd_check_vbus_cc_status(pd);
 	if (ret)
 		dev_err(pd->dev, "failed to check vbus and cc status\n");
