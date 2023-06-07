@@ -270,6 +270,7 @@
 
 				phys = <&hsphy>;
 				monitored-battery = <&bat>;
+				cm-keep-awake;
 			};
 
 			extcon_gpio: extcon-gpio {

@@ -282,6 +282,7 @@
 
 				phys = <&hsphy>;
 				monitored-battery = <&bat>;
+				cm-keep-awake;
 
 				regulator@0 {
 					cm-regulator-name = "vddgen";
