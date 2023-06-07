@@ -2847,6 +2847,17 @@ static struct ctl_table vm_table[] = {
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_TWO_HUNDRED,
 	},
+#ifdef CONFIG_DIRECT_SWAPPINESS
+	{
+		.procname       = "direct_swappiness",
+		.data           = &direct_vm_swappiness,
+		.maxlen         = sizeof(direct_vm_swappiness),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec_minmax,
+		.extra1         = SYSCTL_ZERO,
+		.extra2         = SYSCTL_TWO_HUNDRED,
+	},
+#endif
 #ifdef CONFIG_SPRD_CMA_DEBUG
 	{
 		.procname	= "sprd_cma_debug",
