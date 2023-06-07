@@ -197,6 +197,14 @@ struct scan_control {
  */
 int vm_swappiness = 60;
 
+#ifdef CONFIG_DIRECT_SWAPPINESS
+/*
+ * Direct reclaim swappiness, exptct 0 - 60. Higher means more
+ * swappy and slower.
+ */
+int direct_vm_swappiness = 60;
+#endif
+
 static void set_task_reclaim_state(struct task_struct *task,
 				   struct reclaim_state *rs)
 {
@@ -2775,6 +2783,11 @@ static void get_scan_count(struct lruvec *lruvec, struct scan_control *sc,
 	unsigned long ap, fp;
 	enum lru_list lru;
 	bool balance_anon_file_reclaim = false;
+
+	#ifdef CONFIG_DIRECT_SWAPPINESS
+	if (!current_is_kswapd())
+		swappiness = direct_vm_swappiness;
+	#endif
 
 	/* If we have no swap space, do not bother scanning anon pages. */
 	if (!sc->may_swap || !can_reclaim_anon_pages(memcg, pgdat->node_id, sc)) {
