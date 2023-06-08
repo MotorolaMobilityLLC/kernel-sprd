@@ -794,3 +794,4 @@
 #include "vsp.dtsi"
 #include "jpg.dtsi"
 #include "apcpu-dvfs.dtsi"
+#include "thermal.dtsi"

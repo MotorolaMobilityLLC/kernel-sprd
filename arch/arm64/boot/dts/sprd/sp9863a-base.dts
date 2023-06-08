@@ -7,12 +7,14 @@
 
 /dts-v1/;
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/thermal/thermal.h>
 #include "battery/battery-common.dtsi"
 #include "reserved-memory/sp9863a-common.dtsi"
 #include "sc9863a/sc9863a.dtsi"
 #include "trusty/sp9863a.dtsi"
 #include "sc2721/sc2721.dtsi"
 #include "sound/sound-sharkl.dtsi"
+#include "thermal/ntc-common.dtsi"
 
 / {
 	model = "Spreadtrum SP9863A-1H10 Board";

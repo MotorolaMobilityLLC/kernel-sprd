@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+/*
+ * Unisoc THERMAL dts file
+ *
+ * Copyright (C) 2020, Unisoc Inc.
+ *
+ */
+#include <dt-bindings/thermal/thermal.h>
+
+&aon {
+	gpu_thm: gpu-thm@402f0000 {
+		compatible = "sprd,sharkl3-thermal";
+		reg = <0 0x402f0000 0 0x10000>;
+		clock-names = "enable";
+		clocks = <&aonapb_gate CLK_THM_EB>;
+		#thermal-sensor-cells = <1>;
+		sprd,algor_ver = <2>;
+		nvmem-cells = <&gthm_delta>;
+		nvmem-cell-names = "thm_delta_cal";
+	};
+
+	cpu_thm: cpu-thm@40390000 {
+		compatible = "sprd,sharkl3-thermal";
+		reg = <0 0x40390000 0 0x10000>;
+		clock-names = "enable";
+		clocks = <&aonapb_gate CLK_THM_EB>;
+		#thermal-sensor-cells = <1>;
+		sprd,algor_ver = <1>;
+		nvmem-cells = <&cthm_sign>, <&cthm_ratio>, <&cthm_delta>;
+		nvmem-cell-names = "thm_sign_cal", "thm_ratio_cal", "thm_delta_cal";
+	};
+
+};
+
+/ {
+	thm_zone: thermal-zones {
+		cpu_thmzone: cpu-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&cpu_thm  0>;
+		};
+
+		gpu_thmzone: gpu-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+			thermal-sensors = <&gpu_thm  0>;
+		};
+	};
+};
+
