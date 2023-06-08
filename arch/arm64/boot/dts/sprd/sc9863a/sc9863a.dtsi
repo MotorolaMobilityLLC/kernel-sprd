@@ -780,3 +780,4 @@
 #include "dispc.dtsi"
 #include "vsp.dtsi"
 #include "jpg.dtsi"
+#include "apcpu-dvfs.dtsi"
