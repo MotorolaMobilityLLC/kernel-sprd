@@ -103,6 +103,11 @@
 					247 247
 				>;
 			};
+			sprd-uid {
+				compatible = "sprd,uid";
+				nvmem-cells = <&uid_start>, <&uid_end>;
+				nvmem-cell-names = "uid_start", "uid_end";
+			};
 		};
 	};
 };
