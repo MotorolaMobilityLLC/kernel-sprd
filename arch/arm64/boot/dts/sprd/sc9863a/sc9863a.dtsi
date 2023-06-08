@@ -578,18 +578,18 @@
 
 			aon_systimer: timer@40230000 {
 				compatible = "sprd,syst-timer";
-				reg = <0x40230000 0x10>;
+				reg = <0 0x40230000 0 0x10>;
 			};
 
 			aon_sysfrt: timer@40040000 {
 				compatible = "sprd,sysfrt-timer";
-				reg = <0x40040000 0x10>;
+				reg = <0 0x40040000 0 0x10>;
 			};
 
 			timer@40050000 {
 				compatible = "sprd,sharkl3-timer",
 						"sprd,sc9860-timer";
-				reg = <0x40050000 0x14>;
+				reg = <0 0x40050000 0 0x14>;
 				interrupts = <GIC_SPI 27 IRQ_TYPE_LEVEL_HIGH>;
 				clocks = <&ext_32k>;
 			};
@@ -597,7 +597,7 @@
 			timer@40050020 {
 				compatible = "sprd,sharkl3-suspend-timer",
 					"sprd,sc9860-suspend-timer";
-				reg = <0x40050020 0x14>;
+				reg = <0 0x40050020 0 0x14>;
 				clocks = <&ext_32k>;
 			};
 
