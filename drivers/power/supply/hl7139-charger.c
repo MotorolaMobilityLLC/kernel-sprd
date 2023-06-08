@@ -1316,95 +1316,103 @@ static int hl7139_init_protection(struct hl7139 *hl)
 	int ret = 0;
 
 	ret = hl7139_enable_vbat_reg(hl, !hl->cfg->vbat_reg_disable);
-	dev_info(hl->dev, "%s vbat reg %s\n",
-		 hl->cfg->vbat_reg_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to %s vbat reg, ret = %d\n",
+			__func__, hl->cfg->vbat_reg_disable ? "disable" : "enable", ret);
 
 	ret = hl7139_enable_batovp(hl, !hl->cfg->bat_ovp_disable);
-	dev_info(hl->dev, "%s bat ovp %s\n",
-		 hl->cfg->bat_ovp_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to %s bat ovp, ret = %d\n",
+			__func__, hl->cfg->bat_ovp_disable ? "disable" : "enable", ret);
 
 	ret = hl7139_enable_ibat_reg(hl, !hl->cfg->ibat_reg_disable);
-	dev_info(hl->dev, "%s ibat reg %s\n",
-		 hl->cfg->ibat_reg_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to %s ibat reg, ret = %d\n",
+			__func__, hl->cfg->ibat_reg_disable ? "disable" : "enable", ret);
 
 	ret = hl7139_enable_batocp(hl, !hl->cfg->bat_ocp_disable);
-	dev_info(hl->dev, "%s bat ocp %s\n",
-		 hl->cfg->bat_ocp_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to %s bat ocp, ret = %d\n",
+			__func__, hl->cfg->bat_ocp_disable ? "disable" : "enable", ret);
 
 	ret = hl7139_enable_busovp(hl, !hl->cfg->bus_ovp_disable);
-	dev_info(hl->dev, "%s bus ovp %s\n",
-		 hl->cfg->bus_ovp_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to %s bus ovp, ret = %d\n",
+			__func__, hl->cfg->bus_ovp_disable ? "disable" : "enable", ret);
 
 	ret = hl7139_enable_ibus_reg(hl, !hl->cfg->ibus_reg_disable);
-	dev_info(hl->dev, "%s ibus reg %s\n",
-		 hl->cfg->ibus_reg_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to %s ibus reg, ret = %d\n",
+			__func__, hl->cfg->ibus_reg_disable ? "disable" : "enable", ret);
 
 	ret = hl7139_enable_busocp(hl, !hl->cfg->bus_ocp_disable);
-	dev_info(hl->dev, "%s bus ocp %s\n",
-		 hl->cfg->bus_ocp_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to %s bus ocp, ret = %d\n",
+			__func__, hl->cfg->bus_ocp_disable ? "disable" : "enable", ret);
 
 	ret = hl7139_enable_track_ov(hl, !hl->cfg->track_ov_disable);
-	dev_info(hl->dev, "%s track ov %s\n",
-		 hl->cfg->track_ov_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to %s track ov, ret = %d\n",
+			__func__, hl->cfg->track_ov_disable ? "disable" : "enable", ret);
 
 	ret = hl7139_enable_track_uv(hl, !hl->cfg->track_uv_disable);
-	dev_info(hl->dev, "%s track uv %s\n",
-		 hl->cfg->track_uv_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to %s track uv, ret = %d\n",
+			__func__, hl->cfg->track_uv_disable ? "disable" : "enable", ret);
 
 	ret = hl7139_enable_out_ovp(hl, !hl->cfg->out_ovp_disable);
-	dev_info(hl->dev, "%s out ovp %s\n",
-		 hl->cfg->out_ovp_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to %s out ovp, ret = %d\n",
+			__func__, hl->cfg->out_ovp_disable ? "disable" : "enable", ret);
 
 	ret = hl7139_enable_die_temp_reg(hl, !hl->cfg->die_temp_reg_disable);
-	dev_info(hl->dev, "%s die temperature regulation %s\n",
-		 hl->cfg->die_temp_reg_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to %s die temperature regulation, ret = %d\n",
+			__func__, hl->cfg->die_temp_reg_disable ? "disable" : "enable", ret);
 
 	ret = hl7139_set_batovp_th(hl, hl->cfg->bat_ovp_th);
-	dev_info(hl->dev, "set bat ovp th %d %s\n", hl->cfg->bat_ovp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to set bat ovp th %d, ret = %d\n",
+			__func__, hl->cfg->bat_ovp_th, ret);
 
 	hl->cfg->bat_ovp_alm_th = hl->cfg->bat_ovp_default_alm_th;
 
 	ret = hl7139_set_batocp_th(hl, hl->cfg->bat_ocp_th);
-	dev_info(hl->dev, "set bat ocp threshold %d %s\n", hl->cfg->bat_ocp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to set bat ocp threshold %d, ret = %d\n",
+			__func__, hl->cfg->bat_ocp_th, ret);
 
 	ret = hl7139_set_acovp_th(hl, hl->cfg->ac_ovp_th);
-	dev_info(hl->dev, "set ac ovp threshold %d %s\n", hl->cfg->ac_ovp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to set ac ovp threshold %d, ret = %d\n",
+			__func__, hl->cfg->ac_ovp_th, ret);
 
 	ret = hl7139_set_busovp_th(hl, hl->cfg->bus_ovp_th);
-	dev_info(hl->dev, "set %s bus ovp threshold %d %s\n",
-		 hl->work_mode == CP_MODE ? "CP mode" : "BP mode", hl->cfg->bus_ovp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to set %s bus ovp threshold %d, ret = %d\n",
+			__func__, hl->work_mode == CP_MODE ? "CP mode" : "BP mode",
+			hl->cfg->bus_ovp_th, ret);
 
 	ret = hl7139_set_busocp_th(hl, hl->cfg->bus_ocp_th);
-	dev_info(hl->dev, "set %s bus ocp threshold %d %s\n",
-		 hl->work_mode == CP_MODE ? "CP mode" : "BP mode", hl->cfg->bus_ocp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to set %s bus ocp threshold %d, ret = %d\n",
+			__func__, hl->work_mode == CP_MODE ? "CP mode" : "BP mode",
+			hl->cfg->bus_ocp_th, ret);
 
 	ret = hl7139_set_track_ov_delta_th(hl, hl->cfg->track_ov_delta_th);
-	dev_info(hl->dev, "set track ov delta threshold %d %s\n", hl->cfg->track_ov_delta_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to set track ov delta threshold %d, ret = %d\n",
+			__func__, hl->cfg->track_ov_delta_th, ret);
 
 	ret = hl7139_set_track_uv_delta_th(hl, hl->cfg->track_uv_delta_th);
-	dev_info(hl->dev, "set track uv delta threshold %d %s\n", hl->cfg->track_uv_delta_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to set track uv delta threshold %d, ret = %d\n",
+			__func__, hl->cfg->track_uv_delta_th, ret);
 
 	ret = hl7139_set_die_temp_reg_th(hl, hl->cfg->die_temp_reg_th);
-	dev_info(hl->dev, "set die temperature threshold %d %s\n", hl->cfg->die_temp_reg_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(hl->dev, "%s, failed to set die temperature threshold %d, ret = %d\n",
+			__func__, hl->cfg->die_temp_reg_th, ret);
 
 	return ret;
 }
@@ -1953,23 +1961,19 @@ static int hl7139_charger_set_property(struct power_supply *psy,
 		if (hl7139_check_charge_enabled(hl, &hl->charge_enabled))
 			dev_err(hl->dev, "%s, failed to check charge enabled\n", __func__);
 
-		dev_info(hl->dev, "%s, %s charge %s\n", __func__,
-			 val->intval ? "enable" : "disable", !ret ? "successfully" : "failed");
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		if (val->intval == CM_USB_PRESENT_CMD)
 			hl7139_set_present(hl, true);
 		break;
-
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 		ret = hl7139_set_batovp_th(hl, val->intval / 1000);
+		if (ret)
+			dev_err(hl->dev, "%s, failed to set bat ovp th %d mv, ret = %d\n",
+				__func__, val->intval / 1000, ret);
 
 		hl->cfg->bat_ovp_alm_th = val->intval / 1000 - hl->cfg->bat_delta_volt;
-		dev_info(hl->dev, "set bat ovp th %d mv %s, soft set bat ovp alm th %d mv\n",
-			 val->intval / 1000, !ret ? "successfully" : "failed",
-			 hl->cfg->bat_ovp_alm_th);
 		break;
-
 	default:
 		return -EINVAL;
 	}
