@@ -570,6 +570,19 @@
 			};
 		};
 
+		pub: pub {
+			compatible = "simple-bus";
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			dmc_controller: dmc-controller@300001a8 {
+				compatible = "sprd,pub-dmc-original";
+				reg = <0x0 0x300001a8 0x0 0x100>,
+					<0x0 0x30000000 0x0 0x12c>;
+			};
+		};
+
 		aon: aon {
 			compatible = "simple-bus";
 			#address-cells = <2>;
