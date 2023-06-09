@@ -368,6 +368,7 @@ struct sc27xx_pd {
 	bool is_sink;
 	bool is_source;
 	bool use_pdhub_c2c;
+	bool is_first_negotiate;
 	int rx_error_cnt;
 	int hard_reset_cnt;
 	bool ignore_hard_reset;
@@ -1206,10 +1207,17 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 	if (!data_obj_num && sprd_pd_header_type_le(msg->header) == SPRD_PD_CTRL_ACCEPT)
 		return 0;
 
-	if ((!data_obj_num && sprd_pd_header_type_le(msg->header) == SPRD_PD_CTRL_PS_RDY) &&
-	    pd->role_swap) {
-		sprd_pd_log(pd, "power role swap, ps rdy msg, not rx flush");
-		return 0;
+	if (!data_obj_num && sprd_pd_header_type_le(msg->header) == SPRD_PD_CTRL_PS_RDY) {
+		if (pd->state == SC27XX_ATTACHED_SNK && pd->is_first_negotiate) {
+			pd->is_first_negotiate = false;
+			sprd_pd_log(pd, "first negotiate, ps rdy msg, not rx flush");
+			return 0;
+		}
+
+		if (pd->role_swap) {
+			sprd_pd_log(pd, "power role swap, ps rdy msg, not rx flush");
+			return 0;
+		}
 	}
 
 	if (pd->need_retry) {
@@ -2112,10 +2120,12 @@ static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 				  pd->state == SC27XX_AUDIO_CABLE)) {
 		sprd_pd_log(pd, "use pdhub c2c typec plug in");
 		pd->typec_online = true;
+		pd->is_first_negotiate = true;
 		sc27xx_pd_typec_connect(pd);
 	} else if (pd->use_pdhub_c2c && pd->is_sink) {
 		sprd_pd_log(pd, "use pdhub c2c typec plug in, vbus only");
 		pd->typec_online = true;
+		pd->is_first_negotiate = true;
 		pd->vbus_only = true;
 		sc27xx_pd_typec_connect_vbus_only(pd);
 		goto out;
@@ -2123,9 +2133,11 @@ static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 					  pd->state == SC27XX_ATTACHED_SRC)) {
 		sprd_pd_log(pd, "typec plug in");
 		pd->typec_online = true;
+		pd->is_first_negotiate = true;
 	} else {
 		sprd_pd_log(pd, "typec plug out");
 		pd->typec_online = false;
+		pd->is_first_negotiate = false;
 		if (pd->use_pdhub_c2c)
 			sc27xx_pd_set_typec_rp_level(pd, SPRD_TYPEC_CC_RP_DEF);
 		sc27xx_pd_typec_disconnect(pd);
