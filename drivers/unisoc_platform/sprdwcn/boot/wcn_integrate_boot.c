@@ -152,6 +152,57 @@ void wcn_device_poweroff(void)
 	WCN_INFO("all subsys power off finish!\n");
 }
 
+/**
+ * wcn_sipc_sbuf_chn_record_cali - calibrate the time for CP2 to create sbuf
+ * @set: true-The status of CP2 allowed for reusable SBUF channel communication.
+ *
+ * This function is mostly used between subsystems that share sbuf channels.
+ * For example: BT(SIPC_BT_TX)/FM(SIPC_FM_TX) and BSP(SIPC_ATCMD_TX) share 3-4
+ * channel and distinguish them using bufid.
+ *
+ * When firmware starts, the first bufid needs to create a 3-4 channel, and the
+ * firmware will directly send the SMSG_INIT event, the SIPC module on the AP
+ * side believes that all the bufid on the channel have been prepared and calls
+ * wcn_sipc_sbuf_notifer(SBUF_NOTIFY_READY) in sequence, but firmware is not yet
+ * ready to receive messages from other bufid. The AP mistakenly believes that
+ * all the bufid of CP2 are ready, so in this case, we need to wait for CP2 to be
+ * ready to receive data for all the bufid.
+ */
+static bool wcn_sipc_sbuf_chn_record_cali(bool set)
+{
+	static ktime_t real_ready_time;
+	static bool change;
+
+	if (set) {
+		real_ready_time = ktime_add_us(ktime_get_boottime(),
+					SIPC_SBUF_CHN_MULTIPLEX_WAIT_US);
+		change = true;
+		return true;
+	}
+
+	if (change) {
+		if (ktime_after(ktime_get(), real_ready_time)) {
+			change = false;
+			return true;
+		} else
+			return false;
+	} else
+		return true;
+}
+
+static void wcn_sipc_sbuf_chn_multiplex_delay(u32 subsys)
+{
+	if (subsys != WCN_MARLIN_BLUETOOTH && subsys != WCN_MARLIN_FM)
+		return;
+
+	if (!wcn_sipc_sbuf_chn_record_cali(false)) {
+		WCN_INFO("waiting for firmware to receive all 3-4 bufid MSG\n");
+		/* wait 25ms ~ 30ms */
+		usleep_range(SIPC_SBUF_CHN_MULTIPLEX_WAIT_US,
+				SIPC_SBUF_CHN_MULTIPLEX_WAIT_US + 5000);
+	}
+}
+
 static void wcn_assert_to_reset_mdbg(void)
 {
 	wcn_chip_power_off();
@@ -251,6 +302,7 @@ static void wcn_sbuf_status(u8 dst, u8 channel)
 	while (1) {
 		/*channel 3-4 index[1]:ATCMD*/
 		if (!sbuf_status(dst, channel) && wcn_sipc_chn_status(SIPC_ATCMD_RX) == true) {
+			wcn_sipc_sbuf_chn_record_cali(true);
 			break;
 		} else if (time_after(jiffies, timeout)) {
 			WCN_INFO("channel %d-%d is [%d], not ready!\n",
@@ -3457,6 +3509,7 @@ int start_integrate_wcn_truely(u32 subsys)
 	if (wcn_dev->wcn_open_status) {
 		WCN_INFO("%s opened already = %d, subsys=%d!\n",
 			 wcn_dev->name, wcn_dev->wcn_open_status, subsys);
+		wcn_sipc_sbuf_chn_multiplex_delay(subsys);
 		wcn_dev->wcn_open_status |= subsys_bit;
 		wcn_show_dev_status("after start1");
 		mutex_unlock(&wcn_dev->power_lock);
@@ -3531,6 +3584,14 @@ int start_integrate_wcn_truely(u32 subsys)
 			schedule_work(&wcn_dev->firmware_init_wq);
 		}
 	}
+
+	/*
+	 * The firmware ATC is initialized, so when the 3-4 channel status is ready,
+	 * it must indicate that ATC module of firmware is ready to receive commands,
+	 * Therefore, we choose to have the AT command send first.
+	 */
+	wcn_sipc_sbuf_chn_multiplex_delay(subsys);
+
 	mutex_unlock(&wcn_dev->power_lock);
 
 	wcn_show_dev_status("after start2");
