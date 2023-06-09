@@ -1,13 +1,5 @@
 // SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 &reserved_memory {
-	oemcrypto_reserved: oemcrypto@b6100000 {
-		reg = <0x0 0xb6100000 0x0 0x01100000>;
-	};
-
-	widevine_reserved: widevine@e4c00000 {
-		reg = <0x0 0xe4c00000 0x0 0x0b400000>;
-	};
-
 	fd_reserved: faceid-mem@ffa70000 {
 		reg = <0x0 0xffa70000 0x0 0x00500000>;
 	};

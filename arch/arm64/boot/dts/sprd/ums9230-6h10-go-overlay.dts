@@ -538,11 +538,6 @@
 		label = "carveout_fd";
 		memory-region = <&fd_reserved>;
 	};
-
-	oemcrypto-reserved {
-		label = "uncached_carveout_oem";
-		memory-region = <&oemcrypto_reserved>;
-	};
 };
 
 &adi_bus {
