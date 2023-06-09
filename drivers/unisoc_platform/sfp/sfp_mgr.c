@@ -85,11 +85,6 @@ static void set_sfp_ipa_pamwifi_enable(bool enable)
 {
 	ipa_pamwifi_enable = enable;
 
-	if (unlikely(ipa_pamwifi_enable)) {
-		FP_PRT_DBG(FP_PRT_ERR, "ipa_pamwifi is disabled\n");
-		return;
-	}
-
 	FP_PRT_DBG(FP_PRT_INFO, "set ipa_pamwifi_enable to %d\n", ipa_pamwifi_enable);
 
 	if (ipa_pamwifi_enable)
@@ -1262,9 +1257,10 @@ static int sfp_parse_dt(struct device *dev)
 
 	set_sfp_enable(data);
 
-	pamwifi_enable = of_property_read_bool(np, "sfp,enable-pamwifi");
-
-	set_sfp_ipa_pamwifi_enable(pamwifi_enable);
+	if (of_property_read_bool(np, "sfp,enable-pamwifi")) {
+		pamwifi_enable = true;
+		set_sfp_ipa_pamwifi_enable(pamwifi_enable);
+	}
 
 	return 0;
 }
