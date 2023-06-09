@@ -481,29 +481,37 @@
 
 &hsphy {
 	vdd-supply = <&vddusb33>;
-	extcon = <&extcon_gpio>;
+	extcon = <&pmic_typec>;
 	sprd,hsphy-device-eye-pattern = <0x067bd1c0>;
 	sprd,hsphy-host-eye-pattern = <0x067bd1c0>;
 	status = "okay";
 };
 
 &usb {
-	extcon = <&extcon_gpio>, <&pmic_typec>;
+	extcon = <&pmic_typec>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
+	use_pdhub_c2c;
 	status = "okay";
 };
 
 &ssphy {
 	vdd-supply = <&vddusb33>;
-	extcon = <&extcon_gpio>;
+	extcon = <&pmic_typec>;
 	sprd,hsphy-device-eye-pattern = <0x067bd1c0>;
 	sprd,hsphy-host-eye-pattern = <0x067bd1c0>;
 	status = "okay";
 };
 
 &usb3 {
-	extcon = <&extcon_gpio>, <&pmic_typec>;
+	extcon = <&pmic_typec>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
+	use_pdhub_c2c;
+	status = "okay";
+};
+
+&pmic_typec {
+	use_pdhub_c2c;
+	extcon = <&extcon_gpio>;
 	status = "okay";
 };
 
