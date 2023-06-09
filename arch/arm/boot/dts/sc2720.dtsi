@@ -146,6 +146,7 @@
 
 		power-controller@c00 {
 			compatible = "sprd,sc27xx-regulator", "sprd,sc2720-regulator";
+			/* regulator-debugfs-enable; */
 
 			vddcore: DCDC_CORE {
 				regulator-name = "vddcore";
