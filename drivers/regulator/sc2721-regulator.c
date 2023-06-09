@@ -361,6 +361,7 @@ static int sc2721_regulator_probe(struct platform_device *pdev)
 	struct regmap *regmap;
 	struct regulator_config config = { };
 	struct regulator_dev *rdev;
+	bool debugfs_en;
 
 	regmap = dev_get_regmap(pdev->dev.parent, NULL);
 	if (!regmap) {
@@ -377,6 +378,7 @@ static int sc2721_regulator_probe(struct platform_device *pdev)
 	config.dev = &pdev->dev;
 	config.regmap = regmap;
 
+	debugfs_en = device_property_read_bool(&pdev->dev, "regulator-debugfs-enable");
 	for (i = 0; i < ARRAY_SIZE(regulators); i++) {
 		rdev = devm_regulator_register(&pdev->dev, &regulators[i],
 					       &config);
@@ -385,7 +387,10 @@ static int sc2721_regulator_probe(struct platform_device *pdev)
 				regulators[i].name);
 			return PTR_ERR(rdev);
 		}
-		sc2721_regulator_debugfs_init(rdev);
+		if (debugfs_en)
+			sc2721_regulator_debugfs_init(rdev);
+		else
+			dev_err(&pdev->dev, "regulator debugfs is disabled\n");
 	}
 	return 0;
 }
