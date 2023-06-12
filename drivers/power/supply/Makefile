@@ -116,6 +116,7 @@ obj-$(CONFIG_CHARGER_SURFACE)	+= surface_charger.o
 obj-$(CONFIG_CHARGER_BQ2560X)	+= bq2560x-charger.o
 obj-$(CONFIG_CHARGER_BQ2597X)	+= bq2597x-charger.o
 obj-$(CONFIG_CHARGER_HL7139)	+= hl7139-charger.o
+obj-$(CONFIG_CHARGER_SC8549)	+= sc8549-charger.o
 obj-$(CONFIG_CHARGER_SC8551)	+= sc8551-charger.o
 obj-$(CONFIG_CHARGER_SGM41511)	+= sgm41511-charger.o
 obj-$(CONFIG_CHARGER_SGM41513)	+= sgm41513-charger.o

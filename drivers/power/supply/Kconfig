@@ -900,6 +900,16 @@ config CHARGER_HL7139
 
 	  Say Y to include support for HL7139 Battery Charger.
 
+config CHARGER_SC8549
+	tristate "SC8549 Charger"
+	depends on I2C || COMPILE_TEST
+	help
+	  SC8549 is a dual-phase 7A charging pump charger developed by south
+	  chip. SC8549 is a high efficiency battery charging solution using
+	  a switched cap architecture.
+
+	  Say Y to include support for SC8549 Battery Charger.
+
 config CHARGER_SC8551
 	tristate "SC8551 Charger"
 	depends on I2C || COMPILE_TEST
