@@ -33,6 +33,8 @@
 #include <dt-bindings/soc/sprd,qogirl6-mask.h>
 #include <dt-bindings/soc/sprd,qogirl6-regs.h>
 #include <uapi/linux/usb/charger.h>
+#include <dt-bindings/mfd/sprd,sc2730-mask.h>
+#include <dt-bindings/mfd/sprd,sc2730-regs.h>
 
 /*analog2 defined*/
 #define REG_ANLG_PHY_G2_ANALOG_USB20_USB20_BATTER_PLL			0x0008
@@ -322,6 +324,11 @@ static int sprd_hsphy_init(struct usb_phy *x)
 		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1,
 		msk, reg);
 
+#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
+	/* set avdd1v8 force on for usb lowpower */
+	regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+			MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+#endif
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
 		atomic_set(&phy->reset, 1);
@@ -341,6 +348,11 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		dev_dbg(x->dev, "%s is already shut down\n", __func__);
 		return;
 	}
+#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
+	/* clear avdd1v8 force on for usb lowpower */
+	regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+			MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+#endif
 
 	/* usb vbus */
 	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
