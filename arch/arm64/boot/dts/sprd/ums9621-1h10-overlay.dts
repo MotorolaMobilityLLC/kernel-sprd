@@ -405,6 +405,8 @@
 };
 
 &lcd_nt36672e_truly_mipi_fhd {
+	sprd,reset-off-sequence = <1 5>;
+
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
 
