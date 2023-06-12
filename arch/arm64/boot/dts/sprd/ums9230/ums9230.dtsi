@@ -1138,38 +1138,12 @@
 				clocks = <&ext_32k>;
 			};
 
-			usb: usb@64900000 {
-				compatible = "sprd,qogirl6-musb";
-				reg = <0 0x64900000 0 0x2000>;
-				interrupts = <GIC_SPI 69 IRQ_TYPE_LEVEL_HIGH>;
-				interrupt-names = "mc";
-				clocks = <&aonapb_gate CLK_OTG_UTMI_EB>;
-				clock-names = "core_clk";
-				usb-phy = <&hsphy>;
-				phy-names = "usb";
-				dr_mode = "otg";
-				multipoint = "true";
-				wakeup-source;
-			};
-
 			hwlock: hwspinlock@64910000 {
 				compatible = "sprd,hwspinlock-r3p0";
 				reg = <0 0x64910000 0 0x10000>;
 				#hwlock-cells = <1>;
 				clock-names = "enable";
 				clocks = <&aonapb_gate CLK_SPLK_EB>;
-			};
-
-			hsphy: hsphy@64570000 {
-				compatible = "sprd,qogirl6-phy";
-				reg = <0 0x64570000 0 0x3030>;
-				reg-names = "phy_glb_regs";
-				sprd,syscon-enable = <&aon_apb_regs>;
-				sprd,syscon-anag2 = <&anlg_phy_g2_regs>;
-				sprd,vdd-voltage = <3300000>;
-				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
-				io-channel-names = "dp", "dm";
-				#phy-cells = <0>;
 			};
 
 			usbpinmux: usbpinmux {
@@ -1375,3 +1349,4 @@
 #include "sdio.dtsi"
 #include "wdt.dtsi"
 #include "gpu-natt.dtsi"
+#include "usb.dtsi"
