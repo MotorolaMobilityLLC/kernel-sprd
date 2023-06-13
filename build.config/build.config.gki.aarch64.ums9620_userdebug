@@ -33,6 +33,7 @@ EXT_MODULES="
 ../modules/kernel5.15/npu/vdsp
 ../modules/kernel5.15/input/touchscreen/focaltech_ft8756_spi
 ../modules/kernel5.15/input/touchscreen/novatek_nt36xxx
+../modules/kernel5.15/input/touchscreen/synaptics_td4320_spi
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
 ../modules/kernel5.15/display/gsp
