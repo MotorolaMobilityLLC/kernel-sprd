@@ -2949,6 +2949,9 @@ static int musb_urb_enqueue(
 	else if (musb->is_adaptive_out && !musb->adaptive_out_configured)
 		dev_info(musb->controller, "config adaptive out.\n");
 #endif
+	if (!musb->is_multipoint && usb_endpoint_num(epd)
+		&& (hcd->self.root_hub != urb->dev->parent))
+		return -ENODEV;
 
 	trace_musb_urb_enq(musb, urb);
 
@@ -3252,11 +3255,17 @@ static int musb_cleanup_urb(struct urb *urb, struct musb_qh *qh)
 
 static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 {
-	struct musb		*musb = hcd_to_musb(hcd);
-	struct musb_qh		*qh;
-	unsigned long		flags;
-	int			is_in  = usb_pipein(urb->pipe);
-	int			ret;
+	struct musb			*musb = hcd_to_musb(hcd);
+	struct musb_qh			*qh;
+	unsigned long			flags;
+	int				is_in  = usb_pipein(urb->pipe);
+	struct usb_host_endpoint	*hep = urb->ep;
+	struct usb_endpoint_descriptor	*epd = &hep->desc;
+	int				ret;
+
+	if (!musb->is_multipoint && usb_endpoint_num(epd)
+		&& (hcd->self.root_hub != urb->dev->parent))
+		return 0;
 
 	trace_musb_urb_deq(musb, urb);
 
