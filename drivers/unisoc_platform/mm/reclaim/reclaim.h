@@ -1,0 +1,21 @@
+/* SPDX-License-Identifier: GPL-2.0 */
+
+#ifndef __RECLAIM_H__
+#define __RECLAIM_H__
+
+#if IS_ENABLED(CONFIG_UNISOC_MM_SHRINKLRU)
+int kshrink_lruvec_init(void);
+void kshrink_lruvec_exit(void);
+#else
+static inline int kshrink_lruvec_init(void)
+{
+	return 0;
+}
+static inline int kshrink_lruvec_exit(void)
+{
+	return 0;
+}
+#endif
+
+
+#endif
