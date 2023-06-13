@@ -57,6 +57,7 @@
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <100>;
 			sugov_slack_timer;
+			#cooling-cells = <2>;
 		};
 
 		CPU1: cpu@100 {
@@ -67,6 +68,7 @@
 			cpu-idle-states = <&CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <100>;
+			#cooling-cells = <2>;
 		};
 
 		CPU2: cpu@200 {
@@ -77,6 +79,7 @@
 			cpu-idle-states = <&CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <100>;
+			#cooling-cells = <2>;
 		};
 
 		CPU3: cpu@300 {
@@ -87,6 +90,7 @@
 			cpu-idle-states = <&CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <100>;
+			#cooling-cells = <2>;
 		};
 
 		CPU4: cpu@400 {
@@ -97,6 +101,7 @@
 			cpu-idle-states = <&CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <153>;
+			#cooling-cells = <2>;
 		};
 
 		CPU5: cpu@500 {
@@ -107,6 +112,7 @@
 			cpu-idle-states = <&CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <153>;
+			#cooling-cells = <2>;
 		};
 
 		CPU6: cpu@600 {
@@ -117,6 +123,7 @@
 			cpu-idle-states = <&CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <153>;
+			#cooling-cells = <2>;
 		};
 
 		CPU7: cpu@700 {
@@ -127,6 +134,7 @@
 			cpu-idle-states = <&CORE_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <153>;
+			#cooling-cells = <2>;
 		};
 	};
 
