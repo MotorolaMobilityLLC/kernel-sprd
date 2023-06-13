@@ -47,6 +47,15 @@ config SPRD_MEMDISK_PARTITION
 		used to load different android images
 		on the haps platform.
 
+config SPRD_SKYNET
+	bool "SPRD Skynet"
+	default n
+	help
+		This option is debug flag for skynet version
+		Say y here to enable Debug support.
+		When in doubt, say n
+		on the all platform.
+
 # NOTE: Keep order __alphabetically__ PLEASE!! #
 
 source "drivers/unisoc_platform/cpufreq/Kconfig"

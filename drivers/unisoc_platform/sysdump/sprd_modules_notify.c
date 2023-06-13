@@ -66,8 +66,13 @@ static int sprd_module_notify(struct notifier_block *self,
 
 static void sprd_module_time_out(struct timer_list *t)
 {
+#ifdef CONFIG_SPRD_SKYNET
+	pr_debug("%s.ko loads too long time, panic timeout = %d ms\n",
+			module_name, MODULES_TIME_OUT);
+#else
 	panic("%s.ko loads too long time, panic timeout = %d ms\n",
 			module_name, MODULES_TIME_OUT);
+#endif
 }
 
 static struct notifier_block sprd_module_nb = {
