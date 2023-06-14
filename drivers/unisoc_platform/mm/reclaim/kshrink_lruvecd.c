@@ -12,6 +12,18 @@
 #include <linux/highmem.h>
 #include <linux/mm_inline.h>
 #include <linux/delay.h>
+#include <linux/printk.h>
+#include <linux/dma-mapping.h>
+#include <linux/dma-direct.h>
+#include <linux/vmstat.h>
+#include <linux/rmap.h>
+#include <linux/kthread.h>
+#include <linux/freezer.h>
+#include <linux/memcontrol.h>
+#include <linux/psi.h>
+#include <linux/proc_fs.h>
+#include <linux/cpufreq.h>
+#include "../../../../mm/internal.h"
 
 #define SHRINK_LRUVECD_HIGH (0x1000)
 
@@ -99,6 +111,94 @@ static void handle_failed_page_trylock(void *data, struct list_head *page_list)
 	wake_up_interruptible(&shrink_lruvec_wait);
 }
 
+void set_shrink_lruvecd_cpus(void)
+{
+	struct cpumask mask;
+	struct cpumask *cpumask = &mask;
+	pg_data_t *pgdat = NODE_DATA(0);
+	unsigned int cpu = 0, cpufreq_max_tmp = 0;
+	struct cpufreq_policy *policy_max;
+	static bool set_slabd_cpus_success;
+
+	if (unlikely(!async_shrink_lruvec_setup))
+		return;
+
+	if (likely(set_slabd_cpus_success))
+		return;
+
+	for_each_possible_cpu(cpu) {
+		struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
+
+		if (policy == NULL)
+			continue;
+
+		if (policy->cpuinfo.max_freq >= cpufreq_max_tmp) {
+			cpufreq_max_tmp = policy->cpuinfo.max_freq;
+			policy_max = policy;
+		}
+	}
+
+	cpumask_copy(cpumask, cpumask_of_node(pgdat->node_id));
+	cpumask_andnot(cpumask, cpumask, policy_max->related_cpus);
+
+	if (!cpumask_empty(cpumask)) {
+		set_cpus_allowed_ptr(shrink_lruvec_tsk, cpumask);
+		set_slabd_cpus_success = true;
+	}
+}
+
+static int shrink_lruvecd(void *p)
+{
+	pg_data_t *pgdat;
+	LIST_HEAD(tmp_lru_inactive);
+	struct page *page, *next;
+	struct list_head;
+
+	/*
+	 * Tell the memory management that we're a "memory allocator",
+	 * and that if we need more memory we should get access to it
+	 * regardless (see "__alloc_pages()"). "kswapd" should
+	 * never get caught in the normal page freeing logic.
+	 *
+	 * (Kswapd normally doesn't need memory anyway, but sometimes
+	 * you need a small amount of memory in order to be able to
+	 * page out something else, and this flag essentially protects
+	 * us from recursively trying to free more memory as we're
+	 * trying to free the first piece of memory in the first place).
+	 */
+	pgdat = (pg_data_t *)p;
+
+	current->flags |= PF_MEMALLOC | PF_SWAPWRITE | PF_KSWAPD;
+	set_freezable();
+
+	while (!kthread_should_stop()) {
+		wait_event_freezable(shrink_lruvec_wait,
+			(atomic_read(&shrink_lruvec_runnable) == 1));
+
+		set_shrink_lruvecd_cpus();
+retry_reclaim:
+
+		spin_lock_irq(&l_inactive_lock);
+		if (list_empty(&lru_inactive)) {
+			spin_unlock_irq(&l_inactive_lock);
+			atomic_set(&shrink_lruvec_runnable, 0);
+			continue;
+		}
+		list_for_each_entry_safe(page, next, &lru_inactive, lru) {
+			list_move(&page->lru, &tmp_lru_inactive);
+			shrink_lruvec_pages -= thp_nr_pages(page);
+			shrink_lruvec_handle_pages += thp_nr_pages(page);
+		}
+		spin_unlock_irq(&l_inactive_lock);
+
+		reclaim_pages(&tmp_lru_inactive);
+		goto retry_reclaim;
+	}
+	current->flags &= ~(PF_MEMALLOC | PF_SWAPWRITE | PF_KSWAPD);
+
+	return 0;
+}
+
 static void page_trylock_set(void *data, struct page *page)
 {
 	if (unlikely(!async_shrink_lruvec_setup))
@@ -160,8 +260,27 @@ static void do_page_trylock(void *data, struct page *page, struct rw_semaphore *
 	}
 }
 
+static int kshrink_lruvecd_status_show(struct seq_file *m, void *arg)
+{
+	seq_printf(m,
+		   "kshrink_lruvecd_setup:     %s\n"
+		   "shrink_lruvec_pages:     %lu\n"
+		   "shrink_lruvec_handle_pages:     %lu\n"
+		   "shrink_lruvec_pages_max:     %lu\n",
+		   async_shrink_lruvec_setup ? "enable" : "disable",
+		   shrink_lruvec_pages,
+		   shrink_lruvec_handle_pages,
+		   shrink_lruvec_pages_max);
+	seq_putc(m, '\n');
+
+	return 0;
+}
+
 int kshrink_lruvec_init(void)
 {
+	pg_data_t *pgdat = NODE_DATA(0);
+	int ret;
+
 	register_trace_android_vh_handle_failed_page_trylock(handle_failed_page_trylock, NULL);
 	register_trace_android_vh_page_trylock_set(page_trylock_set, NULL);
 	register_trace_android_vh_page_trylock_clear(page_trylock_clear, NULL);
@@ -169,7 +288,16 @@ int kshrink_lruvec_init(void)
 	register_trace_android_vh_do_page_trylock(do_page_trylock, NULL);
 	init_waitqueue_head(&shrink_lruvec_wait);
 	spin_lock_init(&l_inactive_lock);
+	shrink_lruvec_tsk = kthread_run(shrink_lruvecd, pgdat, "kshrink_lruvecd");
+	if (IS_ERR_OR_NULL(shrink_lruvec_tsk)) {
+		pr_err("Failed to start shrink_lruvec on node 0\n");
+		ret = PTR_ERR(shrink_lruvec_tsk);
+		shrink_lruvec_tsk = NULL;
+		return ret;
+	}
+	proc_create_single("kshrink_lruvecd_status", 0, NULL, kshrink_lruvecd_status_show);
 	async_shrink_lruvec_setup = true;
+	pr_info("kshrink_lruvecd: async_shrink_lruvec_init !!!!\n");
 
 	return 0;
 }
