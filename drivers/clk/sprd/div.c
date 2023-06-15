@@ -83,26 +83,6 @@ static int sprd_div_set_rate(struct clk_hw *hw, unsigned long rate,
 					rate, parent_rate);
 }
 
-//Used only for registers that support set/clear,Fixed bug1960127
-int sprd_sc_div_helper_set_rate(const struct sprd_clk_common *common,
-				const struct sprd_div_internal *div,
-				unsigned long rate,
-				unsigned long parent_rate)
-{
-	unsigned long val;
-	unsigned int mask;
-
-	val = divider_get_val(rate, parent_rate, NULL,
-			      div->width, 0);
-
-	mask = GENMASK(div->width + div->shift - 1, div->shift);
-	regmap_update_bits(common->regmap, common->reg - div->offset,
-			  mask, val << div->shift);
-
-	return 0;
-}
-EXPORT_SYMBOL_GPL(sprd_sc_div_helper_set_rate);
-
 const struct clk_ops sprd_div_ops = {
 	.recalc_rate = sprd_div_recalc_rate,
 	.round_rate = sprd_div_round_rate,
