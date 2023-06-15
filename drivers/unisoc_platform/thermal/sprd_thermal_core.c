@@ -25,9 +25,9 @@
 
 static int trip_switch_on, trip_control;
 static unsigned int last_target_freq[MAX_CLUSTER_NUM];
+static bool need_update;
 static unsigned int thm_enable = 1;
-static unsigned int user_power_range;
-static unsigned int last_user_power_range;
+static unsigned int user_power_range, last_user_power_range;
 static struct thermal_zone_device *soc_tz;
 
 struct sprd_thermal_ctl {
@@ -113,12 +113,26 @@ static void get_ipa_trips(struct thermal_zone_device *tz)
 /* thermal power throttle control */
 static void unisoc_enable_thermal_power_throttle(void *data, bool *enable, bool *override)
 {
+	need_update = false;
+
 	if (!thm_enable)
 		*enable = false;
 
-	if (user_power_range || (!user_power_range && last_user_power_range))
+	if (user_power_range)
 		*override = true;
+
+	need_update = (!user_power_range && last_user_power_range);
 	last_user_power_range = user_power_range;
+}
+
+/*
+ * ensure the qos max_freq update when thm_enable turns 1 to 0
+ * or user_power_range turns non-zero to 0.
+ */
+static void unisoc_thermal_power_throttle_update(void *data, struct thermal_zone_device *tz,
+						 bool *update)
+{
+	*update |= need_update;
 }
 
 /* modify IPA power_range by user_power_range */
@@ -356,7 +370,10 @@ static int sprd_thermal_ctl_init(void)
 	get_ipa_trips(soc_tz);
 
 	register_trace_android_vh_thermal_register(unisoc_thermal_register, NULL);
-	register_trace_android_vh_enable_thermal_power_throttle(unisoc_enable_thermal_power_throttle, NULL);
+	register_trace_android_vh_enable_thermal_power_throttle(
+					unisoc_enable_thermal_power_throttle, NULL);
+	register_trace_android_vh_modify_thermal_throttle_update(
+					unisoc_thermal_power_throttle_update, NULL);
 	register_trace_android_vh_thermal_power_cap(unisoc_thermal_power_cap, NULL);
 	register_trace_android_vh_modify_thermal_target_freq(unisoc_modify_thermal_target_freq, NULL);
 	register_trace_android_vh_modify_thermal_request_freq(unisoc_modify_thermal_request_freq, NULL);
@@ -387,7 +404,10 @@ static void sprd_thermal_ctl_exit(void)
 		kfree(thm_ctl);
 	}
 
-	unregister_trace_android_vh_enable_thermal_power_throttle(unisoc_enable_thermal_power_throttle, NULL);
+	unregister_trace_android_vh_enable_thermal_power_throttle(
+						unisoc_enable_thermal_power_throttle, NULL);
+	unregister_trace_android_vh_modify_thermal_throttle_update(
+						unisoc_thermal_power_throttle_update, NULL);
 	unregister_trace_android_vh_thermal_power_cap(unisoc_thermal_power_cap, NULL);
 	unregister_trace_android_vh_modify_thermal_target_freq(unisoc_modify_thermal_target_freq, NULL);
 	unregister_trace_android_vh_modify_thermal_request_freq(unisoc_modify_thermal_request_freq, NULL);
