@@ -498,4 +498,6 @@ int sipa_dummy_register_wifi_recv_handler(struct notifier_block *nb);
 
 int sipa_dummy_unregister_wifi_recv_handler(struct notifier_block *nb);
 
+bool sipa_get_ep_status(enum sipa_ep_id id);
+
 #endif /* _SIPA_H_ */

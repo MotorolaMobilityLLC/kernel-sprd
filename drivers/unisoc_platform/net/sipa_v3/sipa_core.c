@@ -722,6 +722,27 @@ int sipa_get_ep_info(enum sipa_ep_id id,
 EXPORT_SYMBOL(sipa_get_ep_info);
 
 /**
+ * sipa_get_ep_status() - get the connect status of the endpoint.
+ * @id: endpoint id.
+ * @return: true or false
+ * true for connected
+ * false for disconnected
+ */
+bool sipa_get_ep_status(enum sipa_ep_id id)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	struct sipa_endpoint *ep = ipa->eps[id];
+
+	if (!ep) {
+		dev_err(ipa->dev, "ep id:%d not create!", id);
+		return false;
+	} else {
+		return ep->connected;
+	}
+}
+EXPORT_SYMBOL(sipa_get_ep_status);
+
+/**
  * sipa_check_endpoint_complete() - check whether the endpoint data transfer
  *                                  is complete.
  * @id: endpoint id.
