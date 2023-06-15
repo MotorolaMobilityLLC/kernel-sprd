@@ -17,5 +17,18 @@ static inline int kshrink_lruvec_exit(void)
 }
 #endif
 
+#if IS_ENABLED(CONFIG_UNISOC_MM_SHRINKSLAB)
+int kshrink_slabd_async_init(void);
+void kshrink_slabd_async_exit(void);
+#else
+static inline int kshrink_slabd_async_init(void)
+{
+        return 0;
+}
+static inline int kshrink_slabd_async_exit(void)
+{
+        return 0;
+}
+#endif
 
 #endif

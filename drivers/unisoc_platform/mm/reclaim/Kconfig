@@ -15,3 +15,10 @@ config UNISOC_MM_SHRINKLRU
 	default n
 	help
 	  This option enables unisoc asynchronous shrinklru reclaim function
+
+config UNISOC_MM_SHRINKSLAB
+	bool "mm kshrink slab for unisoc"
+	depends on UNISOC_MM_RECLAIM
+	default n
+	help
+	  This option enables unisoc asynchronous shrinkslab reclaim function

@@ -6,3 +6,8 @@ unisoc_mm_reclaim-objs := reclaim.o
 ifeq ($(CONFIG_UNISOC_MM_SHRINKLRU),y)
 unisoc_mm_reclaim-objs += kshrink_lruvecd.o
 endif
+
+ifeq ($(CONFIG_UNISOC_MM_SHRINKSLAB),y)
+unisoc_mm_reclaim-objs += kshrink_slabd.o
+endif
+
