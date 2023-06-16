@@ -63,7 +63,6 @@ int open_power_ctl(void);
 bool marlin_get_download_status(void);
 void marlin_set_download_status(int f);
 void marlin_chip_en(bool enable, bool reset);
-void wcn_reset_pcie(void);
 int marlin_get_module_status(void);
 int marlin_get_module_status_changed(void);
 int wcn_get_module_status_changed(void);
