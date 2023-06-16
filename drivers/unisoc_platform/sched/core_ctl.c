@@ -139,6 +139,15 @@ static ssize_t show_active_cpus(const struct cluster_data *state, char *buf)
 	return scnprintf(buf, PAGE_SIZE, "%u\n", active_cpus);
 }
 
+static ssize_t show_active_cpu(const struct cluster_data *state, char *buf)
+{
+	cpumask_t cpus;
+
+	cpumask_andnot(&cpus, &state->cpu_mask, cpu_halt_mask);
+
+	return scnprintf(buf, PAGE_SIZE, "%*pbl\n", cpumask_pr_args(&cpus));
+}
+
 static unsigned int cluster_paused_cpus(const struct cluster_data *cluster)
 {
 	cpumask_t cluster_paused_cpus;
@@ -200,12 +209,14 @@ __ATTR(_name, 0444, show_##_name, NULL)
 static struct core_ctl_attr _name =		\
 __ATTR(_name, 0644, show_##_name, store_##_name)
 
+core_ctl_attr_ro(active_cpu);
 core_ctl_attr_ro(active_cpus);
 core_ctl_attr_ro(global_state);
 core_ctl_attr_rw(pause_cpu);
 core_ctl_attr_rw(resume_cpu);
 
 static struct attribute *default_attrs[] = {
+	&active_cpu.attr,
 	&active_cpus.attr,
 	&global_state.attr,
 	&pause_cpu.attr,
