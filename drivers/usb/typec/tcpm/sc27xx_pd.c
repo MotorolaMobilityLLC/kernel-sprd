@@ -594,7 +594,7 @@ static void sc27xx_pd_wait_for_i2c_set_vbus(struct sc27xx_pd *pd)
 	    (cur_time - pd->resume_time) <= 80) || pd->suspend) {
 		sprd_pd_log(pd, "waitting for i2c resume to ready");
 		dev_info(pd->dev, "waitting for i2c resume to ready\n");
-		usleep_range(20000, 21000);
+		usleep_range(30000, 31000);
 		do {
 			ret = regulator_is_enabled(pd->vbus);
 			if (ret == -ESHUTDOWN) {
@@ -625,9 +625,9 @@ static int sc27xx_pd_set_vbus(struct tcpc_dev *tcpc, bool on, bool charge)
 			}
 		}
 
-		if (on) {
-			sc27xx_pd_wait_for_i2c_set_vbus(pd);
+		sc27xx_pd_wait_for_i2c_set_vbus(pd);
 
+		if (on) {
 			if (!regulator_is_enabled(pd->vbus)) {
 				sprd_pd_log(pd, "set vbus on");
 				ret = regulator_enable(pd->vbus);
@@ -2613,6 +2613,8 @@ static int sc27xx_pd_suspend(struct device *dev)
 	struct sc27xx_pd *pd = dev_get_drvdata(dev);
 	int ret;
 
+	pd->suspend = true;
+
 	if (pd->typec_online)
 		return 0;
 
@@ -2628,8 +2630,6 @@ static int sc27xx_pd_suspend(struct device *dev)
 		dev_err(pd->dev, "failed to disable aon pd clock when suspend, ret = %d\n", ret);
 		return ret;
 	}
-
-	pd->suspend = true;
 
 	return 0;
 }
