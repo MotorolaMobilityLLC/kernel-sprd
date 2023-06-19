@@ -138,7 +138,7 @@
 };
 
 &chosen {
-	bootargs_ext = "";
+	bootargs_ext = "kvm-arm.mode=none";
 };
 
 &i2c0 {
