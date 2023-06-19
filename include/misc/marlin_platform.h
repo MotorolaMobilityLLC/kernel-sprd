@@ -70,6 +70,7 @@ void wcn_set_module_status_changed(bool status);
 int marlin_reset_register_notify(void *callback_func, void *para);
 int marlin_reset_unregister_notify(void);
 int is_first_power_on(enum wcn_sub_sys subsys);
+void wcn_reset_pcie(void);
 int cali_ini_need_download(enum wcn_sub_sys subsys);
 const char *strno(enum wcn_sub_sys subsys);
 void wcn_chip_power_on(void);
