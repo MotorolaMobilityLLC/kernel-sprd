@@ -539,10 +539,6 @@ static void sc27xx_disconnect_set_status_use_pdhubc2c(struct sc27xx_typec *sc)
 		else if (pr_mode == EXTCON_SINK)
 			extcon_set_state_sync(sc->edev, EXTCON_SINK, false);
 
-		/* typec out , dp/dm change to others before extcon_usb */
-		call_sprd_usbphy_event_notifiers(SPRD_USBPHY_EVENT_TYPEC,
-			false, NULL);
-
 		if (dr_mode == EXTCON_USB_HOST)
 			extcon_set_state_sync(sc->edev, EXTCON_USB_HOST, false);
 		else if (dr_mode == EXTCON_USB)

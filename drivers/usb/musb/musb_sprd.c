@@ -880,20 +880,22 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 	glue->id_state = id;
 	if (glue->id_state == MUSB_ID_GROUND) {
 		glue->xceiv->last_event = USB_EVENT_ID;
-		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
-		__pm_stay_awake(glue->wake_lock);
-		glue->wake_lock_relaxed = false;
 	} else {
 		glue->chg_state = USB_CHG_STATE_UNDETECT;
 		glue->charging_mode = false;
 		glue->retry_chg_detect_count = 0;
 		glue->xceiv->last_event = USB_EVENT_NONE;
-		if (!glue->wake_lock_relaxed) {
-			del_timer_sync(&glue->relax_wakelock_timer);
-			__pm_relax(glue->wake_lock);
-			glue->wake_lock_relaxed = true;
-		}
 	}
+
+	if (glue->wake_lock_relaxed) {
+		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
+		__pm_stay_awake(glue->wake_lock);
+		glue->wake_lock_relaxed = false;
+	} else {
+		del_timer_sync(&glue->relax_wakelock_timer);
+		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
+	}
+
 	spin_unlock_irqrestore(&glue->lock, flags);
 
 	queue_work(glue->musb_wq, &glue->resume_work);
@@ -920,21 +922,23 @@ static int musb_sprd_audio_notifier(struct notifier_block *nb,
 	if (glue->is_audio_dev) {
 		glue->xceiv->last_event = USB_EVENT_ID;
 		glue->id_state = MUSB_ID_GROUND;
-		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
-		__pm_stay_awake(glue->wake_lock);
-		glue->wake_lock_relaxed = false;
 	} else {
 		glue->xceiv->last_event = USB_EVENT_NONE;
 		glue->id_state = MUSB_ID_FLOAT;
 		glue->chg_state = USB_CHG_STATE_UNDETECT;
 		glue->charging_mode = false;
 		glue->retry_chg_detect_count = 0;
-		if (!glue->wake_lock_relaxed) {
-			del_timer_sync(&glue->relax_wakelock_timer);
-			__pm_relax(glue->wake_lock);
-			glue->wake_lock_relaxed = true;
-		}
 	}
+
+	if (glue->wake_lock_relaxed) {
+		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
+		__pm_stay_awake(glue->wake_lock);
+		glue->wake_lock_relaxed = false;
+	} else {
+		del_timer_sync(&glue->relax_wakelock_timer);
+		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
+	}
+
 	spin_unlock_irqrestore(&glue->lock, flags);
 
 	queue_work(glue->musb_wq, &glue->resume_work);
@@ -1436,7 +1440,10 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 
 		musb_sprd_release_all_request(musb);
 		usb_gadget_set_state(&musb->g, USB_STATE_NOTATTACHED);
-
+		/*dp/dm change to others*/
+		if (glue->use_pdhub_c2c)
+			call_sprd_usbphy_event_notifiers(SPRD_USBPHY_EVENT_TYPEC,
+				false, NULL);
 		musb->offload_used = 0;
 		pm_runtime_put_sync(musb->controller);
 
@@ -1586,6 +1593,13 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 			musb_sprd_adaptive_shutdown(musb);
 		}
 #endif
+
+		glue->musb->is_active = 0;
+		glue->dr_mode = USB_DR_MODE_UNKNOWN;
+		/*dp/dm change to others*/
+		if (glue->use_pdhub_c2c)
+			call_sprd_usbphy_event_notifiers(SPRD_USBPHY_EVENT_TYPEC,
+				false, NULL);
 
 		/* Decrement pm usage count when leave host state.*/
 		pm_runtime_put_sync(musb->controller);

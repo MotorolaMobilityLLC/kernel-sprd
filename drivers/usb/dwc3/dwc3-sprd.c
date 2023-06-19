@@ -585,6 +585,10 @@ static int dwc3_sprd_otg_start_peripheral(struct dwc3_sprd *sdwc, int on)
 		dwc3_flush_all_events(sdwc);
 		usb_udc_vbus_handler(dwc->gadget, false);
 		usb_role_switch_set_role(dwc->role_sw, USB_ROLE_DEVICE);
+		/*dp/dm change to others*/
+		if (sdwc->use_pdhub_c2c)
+			call_sprd_usbphy_event_notifiers(SPRD_USBPHY_EVENT_TYPEC,
+					false, NULL);
 		usb_gadget_set_state(dwc->gadget, USB_STATE_NOTATTACHED);
 		pm_runtime_put_sync(dwc->dev);
 		sdwc->glue_dr_mode = USB_DR_MODE_UNKNOWN;
@@ -653,8 +657,14 @@ static int dwc3_sprd_otg_start_host(struct dwc3_sprd *sdwc, int on)
 		}
 
 		usb_role_switch_set_role(dwc->role_sw, USB_ROLE_DEVICE);
-		pm_runtime_put_sync(dwc->dev);
+		flush_work(&dwc->drd_work);
 		usb_phy_vbus_off(sdwc->ss_phy);
+		/*dp/dm change to others*/
+		if (sdwc->use_pdhub_c2c)
+			call_sprd_usbphy_event_notifiers(SPRD_USBPHY_EVENT_TYPEC,
+					false, NULL);
+		pm_runtime_put_sync(dwc->dev);
+
 		sdwc->glue_dr_mode = USB_DR_MODE_UNKNOWN;
 	}
 
