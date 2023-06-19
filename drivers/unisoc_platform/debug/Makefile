@@ -5,3 +5,4 @@ obj-y	+= busmonitor/
 obj-y	+= djtag/
 obj-y	+= dmc_mpu/
 obj-y	+= apb_prot/
+obj-y	+= userspace_debug/
