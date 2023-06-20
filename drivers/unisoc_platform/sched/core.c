@@ -6,6 +6,7 @@
 #define pr_fmt(fmt)	"unisoc-sched: " fmt
 
 #include <trace/hooks/sched.h>
+#include <trace/hooks/dtask.h>
 #include <trace/hooks/topology.h>
 #include <linux/kmemleak.h>
 
@@ -280,11 +281,29 @@ static void android_rvh_sched_fork_init(void *data, struct task_struct *p)
 	__sched_fork_init(p);
 }
 
+static void android_vh_sched_show_task(void *unused, struct task_struct *task)
+{
+	unsigned int state;
+
+	state = READ_ONCE(task->__state);
+	if (state & TASK_UNINTERRUPTIBLE) {
+		u64 now = sched_ktime_clock();
+		struct uni_task_struct *uni_tsk =
+			(struct uni_task_struct *)task->android_vendor_data1;
+		u64 last = uni_tsk->last_sleep_ts;
+		ktime_t delta = ktime_sub(ns_to_ktime(now), ns_to_ktime(last));
+
+		pr_info("duration_ns:%llu last_sleep_ns:%llu now_ns:%llu\n",
+			ktime_to_ns(delta), last, now);
+	}
+}
+
 static void register_sched_vendor_hooks(void)
 {
 	register_trace_android_rvh_sched_fork_init(android_rvh_sched_fork_init, NULL);
 	register_trace_android_rvh_after_enqueue_task(android_rvh_after_enqueue_task, NULL);
 	register_trace_android_rvh_after_dequeue_task(android_rvh_after_dequeue_task, NULL);
+	register_trace_android_vh_sched_show_task(android_vh_sched_show_task, NULL);
 }
 
 static DEFINE_RAW_SPINLOCK(init_lock);
