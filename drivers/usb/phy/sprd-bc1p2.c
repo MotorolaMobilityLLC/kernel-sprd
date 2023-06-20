@@ -257,8 +257,6 @@ void sprd_usb_changed(struct sprd_bc1p2_priv *bc1p2_info, enum usb_charger_state
 	bc1p2_info->vbus_events = true;
 
 	usb_phy->chg_state = state;
-	if (usb_phy->chg_state == USB_CHARGER_ABSENT)
-		usb_phy->flags &= ~CHARGER_DETECT_DONE;
 	spin_unlock(&bc1p2_info->vbus_event_lock);
 
 	if (bc1p2_info->bc1p2_thread)
@@ -392,6 +390,7 @@ void sprd_bc1p2_notify_charger(struct usb_phy *x)
 		x->chg_type = x->charger_detect(x);
 		if (x->chg_state == USB_CHARGER_ABSENT) {
 			x->chg_type = UNKNOWN_TYPE;
+			x->flags &= ~CHARGER_DETECT_DONE;
 			dev_info(x->dev, "detected bc1p2 type:0x%x, absent\n", x->chg_type);
 		} else {
 			if (bc1p2->redetect_enable && (x->chg_type == UNKNOWN_TYPE) &&
@@ -404,6 +403,7 @@ void sprd_bc1p2_notify_charger(struct usb_phy *x)
 	case USB_CHARGER_ABSENT:
 		dev_info(x->dev, "usb_charger_absent\n");
 		x->chg_type = UNKNOWN_TYPE;
+		x->flags &= ~CHARGER_DETECT_DONE;
 		break;
 	default:
 		dev_warn(x->dev, "Unknown USB charger state: %d\n", x->chg_state);
