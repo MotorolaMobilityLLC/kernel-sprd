@@ -31,4 +31,15 @@ static inline int kshrink_slabd_async_exit(void)
 }
 #endif
 
+#if IS_ENABLED(CONFIG_UNISOC_MM_DIRECT_SWAPPINESS)
+int unisoc_enhance_reclaim_init(void);
+void unisoc_enhance_reclaim_exit(void);
+#else
+static inline int unisoc_enhance_reclaim_init(void)
+{
+	return 0;
+}
+static inline void unisoc_enhance_reclaim_exit(void) { }
+#endif
+
 #endif

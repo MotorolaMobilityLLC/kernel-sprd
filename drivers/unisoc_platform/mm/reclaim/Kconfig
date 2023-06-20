@@ -22,3 +22,12 @@ config UNISOC_MM_SHRINKSLAB
 	default n
 	help
 	  This option enables unisoc asynchronous shrinkslab reclaim function
+
+config UNISOC_MM_DIRECT_SWAPPINESS
+	bool "config swappiness on direct reclaim"
+	depends on UNISOC_MM_RECLAIM && ARM64
+	default n
+	help
+	  The swappiness value influnce file pages and anon pages when page
+	  reclaim. The value may not be the same in kswapd reclaim path and
+	  direct reclaim path and range is 0 ~ 100.

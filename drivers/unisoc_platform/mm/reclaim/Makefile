@@ -11,3 +11,6 @@ ifeq ($(CONFIG_UNISOC_MM_SHRINKSLAB),y)
 unisoc_mm_reclaim-objs += kshrink_slabd.o
 endif
 
+ifeq ($(CONFIG_UNISOC_MM_DIRECT_SWAPPINESS),y)
+unisoc_mm_reclaim-objs += direct_swappiness.o
+endif
