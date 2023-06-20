@@ -181,6 +181,7 @@ struct sdhci_sprd_host {
 	u32 cpst_cmd_dly;
 	u32 int_status;
 	bool cmd_dly_all_pass;
+	bool wait_read_idle;
 };
 
 enum sdhci_sprd_tuning_type {
@@ -282,7 +283,30 @@ static inline void sdhci_sprd_writew(struct sdhci_host *host, u16 val, int reg)
 
 static inline void sdhci_sprd_writeb(struct sdhci_host *host, u8 val, int reg)
 {
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	u64 i = 0;
+
 	if (unlikely(reg == SDHCI_SOFTWARE_RESET)) {
+		/*
+		 * In the tuning process, we need to wait for the controller to be
+		 * idle before doing reset operation, otherwise it will affect the
+		 * data transfer. So we can wait for BIT(9) of SDHCI_PRESENT_STATE
+		 * register to check it on Spreadtrum's platform.
+		 */
+		if (sprd_host->tuning_flag &&
+		   (sprd_host->int_status & SDHCI_INT_ERROR_MASK)) {
+			while (i++ < 20000) {
+				if (!(sdhci_readl(host, SDHCI_PRESENT_STATE) & SDHCI_DOING_READ))
+					break;
+			}
+			if (i >= 20000) {
+				sprd_host->wait_read_idle = true;
+				pr_err("%s: wait Read_Active idle fail, exit reset.\n",
+					mmc_hostname(host->mmc));
+				return;
+			}
+		}
+
 		/*
 		 * Since BIT(3) of SDHCI_SOFTWARE_RESET is reserved according to the
 		 * standard specification, sdhci_reset() write this register directly
@@ -712,6 +736,8 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	int final_phase;
 	u32 dll_cfg, mid_dll_cnt, dll_cnt, dll_dly;
 	bool cfg_use_adma = false;
+	bool cfg_use_sdma = false;
+	unsigned int udelay = 32, udelay_max = 2097152;
 	int cmd_error = 0;
 
 	sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
@@ -750,10 +776,37 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	if (!cfg_use_adma && (host->flags & SDHCI_USE_ADMA) && strcmp(mmc_hostname(mmc), "mmc0")) {
 		cfg_use_adma = true;
 		host->flags &= ~SDHCI_USE_ADMA;
+		if (host->flags & SDHCI_USE_SDMA)
+			cfg_use_sdma = true;
 		host->flags |= SDHCI_USE_SDMA;
 	}
 
+	sprd_host->wait_read_idle = false;
+
 	do {
+		/*
+		 * When the wait_read_idle flag is set, we need to waiting fo the HC state
+		 * become idle before the next tuning commond is sent, where the latency
+		 * of the polling is multiplied by 2 each time. So the maximum polling time
+		 * can be about 4s, which is recommended in Spreadtrum's platform.
+		 */
+		if (sprd_host->wait_read_idle) {
+			while (udelay <= udelay_max) {
+				if (!(sdhci_readl(host, SDHCI_PRESENT_STATE) & SDHCI_DOING_READ))
+					break;
+				usleep_range(udelay, udelay * 2);
+				udelay *= 2;
+				if (udelay > udelay_max) {
+					pr_err("%s: wait Read_Active idle fail, exit tuning!\n",
+						mmc_hostname(mmc));
+					err = -EIO;
+					goto out;
+				}
+			}
+			sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
+			sprd_host->wait_read_idle = false;
+		}
+
 		sdhci_sprd_set_dll_value(host, &dll_dly, opcode, i, type);
 
 		sprd_host->tuning_flag = 1;
@@ -902,10 +955,10 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 out:
 	host->flags &= ~SDHCI_HS400_TUNING;
 
-	if (cfg_use_adma) {
-		host->flags &= ~SDHCI_USE_SDMA;
+	if (cfg_use_adma)
 		host->flags |= SDHCI_USE_ADMA;
-	}
+	if (!cfg_use_sdma)
+		host->flags &= ~SDHCI_USE_SDMA;
 
 	kfree(ranges);
 	kfree(value_t);
