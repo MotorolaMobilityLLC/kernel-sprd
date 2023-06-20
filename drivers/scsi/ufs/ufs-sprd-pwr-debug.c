@@ -54,7 +54,8 @@ static void ufshcd_print_pwr_info(struct ufs_hba *hba,
 
 static int ufs_compare_max_pwr_mode(struct ufs_hba *hba, struct ufs_pa_layer_attr *final_params)
 {
-	struct ufs_pa_layer_attr  *max_pwr_info = &(max_pwr_info_raw);
+	struct ufs_pa_layer_attr  tmp_max_pwr_info_raw;
+	struct ufs_pa_layer_attr  *max_pwr_info = &(tmp_max_pwr_info_raw);
 
 	/* Only pwr for FAST_MODE or SLOW_MODE*/
 	if (final_params->pwr_rx > SLOW_MODE  || final_params->pwr_tx > SLOW_MODE) {
