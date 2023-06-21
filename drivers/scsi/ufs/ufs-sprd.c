@@ -246,9 +246,6 @@ static void ufs_sprd_vh_check_int_errors(void *data,
 {
 	if (queue_eh_work && sprd_ufs_debug_is_supported(hba) == TRUE)
 		ufshcd_common_trace(hba, UFS_TRACE_INT_ERROR, NULL);
-
-	if (queue_eh_work)
-		ufshcd_vops_dbg_register_dump(hba);
 }
 
 static void ufs_sprd_vh_update_sysfs(void *data,

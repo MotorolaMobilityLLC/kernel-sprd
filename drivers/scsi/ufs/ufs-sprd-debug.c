@@ -461,16 +461,48 @@ static void ufs_sprd_base_info_dump(struct seq_file *m, char **dump_pos)
 {
 	struct scsi_device *sdev_ufs;
 	struct ufs_hba *hba = hba_tmp;
+	static const char * const names[] = {
+		"INVALID MODE",
+		"FAST MODE",
+		"SLOW_MODE",
+		"INVALID MODE",
+		"FASTAUTO_MODE",
+		"SLOWAUTO_MODE",
+		"INVALID MODE",
+	};
 
 	PRINT_SWITCH(m, dump_pos, "ufs_hba=0x%lx\n", (unsigned long)hba_tmp);
 
+	PRINT_SWITCH(m, dump_pos, "UFS Host state=%d\n", hba->ufshcd_state);
+	PRINT_SWITCH(m, dump_pos, "outstanding reqs=0x%lx tasks=0x%lx\n",
+			hba->outstanding_reqs, hba->outstanding_tasks);
+	PRINT_SWITCH(m, dump_pos, "saved_err=0x%x, saved_uic_err=0x%x\n",
+			hba->saved_err, hba->saved_uic_err);
+	PRINT_SWITCH(m, dump_pos, "Device power mode=%d, UIC link state=%d\n",
+			hba->curr_dev_pwr_mode, hba->uic_link_state);
 	PRINT_SWITCH(m, dump_pos, "PM in progress=%d, sys. suspended=%d\n",
 			hba->pm_op_in_progress, hba->is_sys_suspended);
+	PRINT_SWITCH(m, dump_pos, "Auto BKOPS=%d, Host self-block=%d\n",
+			hba->auto_bkops_enabled, hba->host->host_self_blocked);
+	PRINT_SWITCH(m, dump_pos, "Clk gate=%d\n", hba->clk_gating.state);
+	PRINT_SWITCH(m, dump_pos,
+			"last_hibern8_exit_tstamp at %lld us, hibern8_exit_cnt=%d\n",
+			ktime_to_us(hba->ufs_stats.last_hibern8_exit_tstamp),
+			hba->ufs_stats.hibern8_exit_cnt);
+	PRINT_SWITCH(m, dump_pos, "last intr at %lld us, last intr status=0x%x\n",
+			ktime_to_us(hba->ufs_stats.last_intr_ts),
+			hba->ufs_stats.last_intr_status);
+	PRINT_SWITCH(m, dump_pos, "error handling flags=0x%x, req. abort count=%d\n",
+			hba->eh_flags, hba->req_abort_count);
+	PRINT_SWITCH(m, dump_pos, "hba->ufs_version=0x%x, Host capabilities=0x%x, caps=0x%x\n",
+			hba->ufs_version, hba->capabilities, hba->caps);
+	PRINT_SWITCH(m, dump_pos, "quirks=0x%x, dev. quirks=0x%x\n", hba->quirks,
+			hba->dev_quirks);
 
-	PRINT_SWITCH(m, dump_pos, "[RX, TX]: gear=[%d, %d], lane[%d, %d], pwr[%d, %d], rate = %d\n",
+	PRINT_SWITCH(m, dump_pos, "[RX, TX]: gear=[%d, %d], lane[%d, %d], pwr[%s, %s], rate = %d\n",
 			hba->pwr_info.gear_rx, hba->pwr_info.gear_tx,
 			hba->pwr_info.lane_rx, hba->pwr_info.lane_tx,
-			hba->pwr_info.pwr_rx, hba->pwr_info.pwr_tx,
+			names[hba->pwr_info.pwr_rx], names[hba->pwr_info.pwr_tx],
 			hba->pwr_info.hs_rate);
 
 	sdev_ufs = hba->sdev_ufs_device;
@@ -629,117 +661,161 @@ void ufs_sprd_update_uic_err_cnt(struct ufs_hba *hba, u32 reg, enum ufs_event_ty
 }
 EXPORT_SYMBOL_GPL(ufs_sprd_update_uic_err_cnt);
 
+static void ufs_sprd_err_bit_cnt(struct ufs_hba *hba, u32 id,
+				struct seq_file *m, char **dump_pos)
+{
+	switch (id) {
+	case UFS_EVT_PA_ERR:
+		PRINT_SWITCH(m, dump_pos, "pa_err:PHY error on lane 0 cnt=%llu\n",
+			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_PHY_LINE0_ERR]);
+		PRINT_SWITCH(m, dump_pos, "pa_err:PHY error on lane 1 cnt=%llu\n",
+			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_PHY_LINE1_ERR]);
+		PRINT_SWITCH(m, dump_pos, "pa_err:generic PHY adapter error cnt=%llu\n",
+			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_GRNERIC_PA_ERR]);
+		break;
+	case UFS_EVT_DL_ERR:
+		PRINT_SWITCH(m, dump_pos, "dl_err:NAC_RECEIVED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_NAC_RECEIVED]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:TCx_REPLAY_TIMER_EXPIRED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_TCx_REPLAY_TIMER_EXPIRED]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:AFCx_REQUEST_TIMER_EXPIRED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_AFCx_REQUEST_TIMER_EXPIRED]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:FCx_PROTECTION_TIMER_EXPIRED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_FCx_PROTECTION_TIMER_EXPIRED]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:CRC_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_CRC_ERROR]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:RX_BUFFER_OVERFLOW cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_RX_BUFFER_OVERFLOW]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:MAX_FRAME_LENGTH_EXCEEDED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_MAX_FRAME_LENGTH_EXCEEDED]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:WRONG_SEQUENCE_NUMBER cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_WRONG_SEQUENCE_NUMBER]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:AFC_FRAME_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_AFC_FRAME_SYNTAX_ERROR]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:NAC_FRAME_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_NAC_FRAME_SYNTAX_ERROR]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:EOF_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_EOF_SYNTAX_ERROR]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:FRAME_SYNTAX_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_FRAME_SYNTAX_ERROR]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:BAD_CTRL_SYMBOL_TYPE cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_BAD_CTRL_SYMBOL_TYPE]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:PA_INIT_ERROR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_INIT_ERROR]);
+		PRINT_SWITCH(m, dump_pos, "dl_err:PA_ERROR_IND_RECEIVED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_ERROR_IND_RECEIVED]);
+		if ((hba->ufs_version & 0xF00) >= 0x300) {
+			PRINT_SWITCH(m, dump_pos, "dl_err:PA_INIT cnt=%llu\n",
+				ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_INIT]);
+		}
+		break;
+	case UFS_EVT_NL_ERR:
+		PRINT_SWITCH(m, dump_pos, "nl_err:UNSUPPORTED_HEADER_TYPE cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_UNSUPPORTED_HEADER_TYPE]);
+		PRINT_SWITCH(m, dump_pos, "nl_err:BAD_DEVICEID_ENC cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_BAD_DEVICEID_ENC]);
+		PRINT_SWITCH(m, dump_pos, "nl_err:LHDR_TRAP_PACKET_DROPPING cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_LHDR_TRAP_PACKET_DROPPING]);
+		PRINT_SWITCH(m, dump_pos, "nl_err:MAX_N_PDU_LENGTH_EXCEEDED cnt=%llu\n",
+			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_MAX_N_PDU_LENGTH_EXCEEDED]);
+		break;
+	case UFS_EVT_TL_ERR:
+		PRINT_SWITCH(m, dump_pos, "tl_err:UNSUPPORTED_HEADER_TYPE cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_UNSUPPORTED_HEADER_TYPE]);
+		PRINT_SWITCH(m, dump_pos, "tl_err:UNKNOWN_CPORTID cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_UNKNOWN_CPORTID]);
+		PRINT_SWITCH(m, dump_pos, "tl_err:NO_CONNECTION_RX cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_NO_CONNECTION_RX]);
+		PRINT_SWITCH(m, dump_pos, "tl_err:CONTROLLED_SEGMENT_DROPPING cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_CONTROLLED_SEGMENT_DROPPING]);
+		PRINT_SWITCH(m, dump_pos, "tl_err:BAD_TC cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_BAD_TC]);
+		PRINT_SWITCH(m, dump_pos, "tl_err:E2E_CREDIT_OVERFLOW cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_E2E_CREDIT_OVERFLOW]);
+		PRINT_SWITCH(m, dump_pos, "tl_err:SAFETY_VALVE_DROPPING cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_SAFETY_VALVE_DROPPING]);
+		PRINT_SWITCH(m, dump_pos, "tl_err:MAX_T_PDU_LENGTH_EXCEEDED cnt=%llu\n",
+			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_MAX_T_PDU_LENGTH_EXCEEDED]);
+		break;
+	case UFS_EVT_DME_ERR:
+		PRINT_SWITCH(m, dump_pos, "dme_err:GENERIC_ERR cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_GENERIC_ERR]);
+		PRINT_SWITCH(m, dump_pos, "dme_err:QOS_FROM_TX_DETECTED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_TX_DETECTED]);
+		PRINT_SWITCH(m, dump_pos, "dme_err:QOS_FROM_RX_DETECTED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_RX_DETECTED]);
+		PRINT_SWITCH(m, dump_pos, "dme_err:QOS_FROM_PA_INIT_DETECTED cnt=%llu\n",
+			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_PA_INIT_DETECTED]);
+		break;
+	default:
+		break;
+	}
+}
+
+static void ufs_sprd_print_evt(struct ufs_hba *hba, u32 id, char *err_name,
+			struct seq_file *m, char **dump_pos, unsigned long long extra_data)
+{
+	int i;
+	bool found = false;
+	unsigned long long cnt = 0;
+	struct ufs_event_hist *e;
+
+	if (id > UFS_EVT_CNT) {
+		return;
+	} else if (id == UFS_EVT_CNT) {
+		if (extra_data != 0)
+			found = true;
+		cnt = extra_data;
+		goto skip_hist_dump;
+	}
+
+	e = &hba->ufs_stats.event[id];
+	cnt = e->cnt;
+
+	for (i = 0; i < UFS_EVENT_HIST_LENGTH; i++) {
+		int p = (i + e->pos) % UFS_EVENT_HIST_LENGTH;
+
+		if (e->tstamp[p] == 0)
+			continue;
+		PRINT_SWITCH(m, dump_pos, "%s[%d] = 0x%x at %lld us\n", err_name, p,
+			e->val[p], ktime_to_us(e->tstamp[p]));
+		found = true;
+	}
+
+skip_hist_dump:
+	if (!found) {
+		PRINT_SWITCH(m, dump_pos, "No record of %s\n", err_name);
+	} else {
+		PRINT_SWITCH(m, dump_pos, "%s: total cnt=%llu\n", err_name, cnt);
+		ufs_sprd_err_bit_cnt(hba, id, m, dump_pos);
+	}
+}
+
 static void ufs_uic_err_cnt_dump(struct ufs_hba *hba, struct seq_file *m, char **dump_pos)
 {
 	if (dump_pos)
 		PRINT_SWITCH(m, dump_pos, "\n[UFS] ERR CNT :\n");
 
-	PRINT_SWITCH(m, dump_pos, "pa_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_PA_ERR].cnt);
-	PRINT_SWITCH(m, dump_pos, "pa_err:PHY error on lane 0 cnt=%llu\n",
-			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_PHY_LINE0_ERR]);
-	PRINT_SWITCH(m, dump_pos, "pa_err:PHY error on lane 1 cnt=%llu\n",
-			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_PHY_LINE1_ERR]);
-	PRINT_SWITCH(m, dump_pos, "pa_err:generic PHY adapter error cnt=%llu\n",
-			ufs_uic_err_code_cnt.pa_err_cnt[UFS_EVT_PA_GRNERIC_PA_ERR]);
+	ufs_sprd_print_evt(hba, UFS_EVT_PA_ERR, "pa_err", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_DL_ERR, "dl_err", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_NL_ERR, "nl_err", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_TL_ERR, "tl_err", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_DME_ERR, "dme_err", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_AUTO_HIBERN8_ERR, "auto_hibern8_err", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_FATAL_ERR, "fatal_err", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_LINK_STARTUP_FAIL, "link_startup_fail", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_RESUME_ERR, "resume_fail", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_SUSPEND_ERR, "suspend_fail", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_DEV_RESET, "dev_reset", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_HOST_RESET, "host_reset", m, dump_pos, 0);
+	ufs_sprd_print_evt(hba, UFS_EVT_ABORT, "task_abort", m, dump_pos, 0);
 
-	PRINT_SWITCH(m, dump_pos, "dl_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_DL_ERR].cnt);
-	PRINT_SWITCH(m, dump_pos, "dl_err:NAC_RECEIVED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_NAC_RECEIVED]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:TCx_REPLAY_TIMER_EXPIRED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_TCx_REPLAY_TIMER_EXPIRED]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:AFCx_REQUEST_TIMER_EXPIRED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_AFCx_REQUEST_TIMER_EXPIRED]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:FCx_PROTECTION_TIMER_EXPIRED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_FCx_PROTECTION_TIMER_EXPIRED]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:CRC_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_CRC_ERROR]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:RX_BUFFER_OVERFLOW cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_RX_BUFFER_OVERFLOW]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:MAX_FRAME_LENGTH_EXCEEDED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_MAX_FRAME_LENGTH_EXCEEDED]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:WRONG_SEQUENCE_NUMBER cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_WRONG_SEQUENCE_NUMBER]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:AFC_FRAME_SYNTAX_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_AFC_FRAME_SYNTAX_ERROR]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:NAC_FRAME_SYNTAX_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_NAC_FRAME_SYNTAX_ERROR]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:EOF_SYNTAX_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_EOF_SYNTAX_ERROR]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:FRAME_SYNTAX_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_FRAME_SYNTAX_ERROR]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:BAD_CTRL_SYMBOL_TYPE cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_BAD_CTRL_SYMBOL_TYPE]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:PA_INIT_ERROR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_INIT_ERROR]);
-	PRINT_SWITCH(m, dump_pos, "dl_err:PA_ERROR_IND_RECEIVED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_ERROR_IND_RECEIVED]);
-	if ((hba->ufs_version & 0xF00) >= 0x300) {
-		PRINT_SWITCH(m, dump_pos, "dl_err:PA_INIT cnt=%llu\n",
-			ufs_uic_err_code_cnt.dl_err_cnt[UFS_EVT_DL_PA_INIT]);
-	}
-
-	PRINT_SWITCH(m, dump_pos, "nl_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_NL_ERR].cnt);
-	PRINT_SWITCH(m, dump_pos, "nl_err:UNSUPPORTED_HEADER_TYPE cnt=%llu\n",
-			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_UNSUPPORTED_HEADER_TYPE]);
-	PRINT_SWITCH(m, dump_pos, "nl_err:BAD_DEVICEID_ENC cnt=%llu\n",
-			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_BAD_DEVICEID_ENC]);
-	PRINT_SWITCH(m, dump_pos, "nl_err:LHDR_TRAP_PACKET_DROPPING cnt=%llu\n",
-			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_LHDR_TRAP_PACKET_DROPPING]);
-	PRINT_SWITCH(m, dump_pos, "nl_err:MAX_N_PDU_LENGTH_EXCEEDED cnt=%llu\n",
-			ufs_uic_err_code_cnt.nl_err_cnt[UFS_EVT_NL_MAX_N_PDU_LENGTH_EXCEEDED]);
-
-	PRINT_SWITCH(m, dump_pos, "tl_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_TL_ERR].cnt);
-	PRINT_SWITCH(m, dump_pos, "tl_err:UNSUPPORTED_HEADER_TYPE cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_UNSUPPORTED_HEADER_TYPE]);
-	PRINT_SWITCH(m, dump_pos, "tl_err:UNKNOWN_CPORTID cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_UNKNOWN_CPORTID]);
-	PRINT_SWITCH(m, dump_pos, "tl_err:NO_CONNECTION_RX cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_NO_CONNECTION_RX]);
-	PRINT_SWITCH(m, dump_pos, "tl_err:CONTROLLED_SEGMENT_DROPPING cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_CONTROLLED_SEGMENT_DROPPING]);
-	PRINT_SWITCH(m, dump_pos, "tl_err:BAD_TC cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_BAD_TC]);
-	PRINT_SWITCH(m, dump_pos, "tl_err:E2E_CREDIT_OVERFLOW cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_E2E_CREDIT_OVERFLOW]);
-	PRINT_SWITCH(m, dump_pos, "tl_err:SAFETY_VALVE_DROPPING cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_SAFETY_VALVE_DROPPING]);
-	PRINT_SWITCH(m, dump_pos, "tl_err:MAX_T_PDU_LENGTH_EXCEEDED cnt=%llu\n",
-			ufs_uic_err_code_cnt.tl_err_cnt[UFS_EVT_TL_MAX_T_PDU_LENGTH_EXCEEDED]);
-
-	PRINT_SWITCH(m, dump_pos, "dme_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_DME_ERR].cnt);
-	PRINT_SWITCH(m, dump_pos, "dme_err:GENERIC_ERR cnt=%llu\n",
-			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_GENERIC_ERR]);
-	PRINT_SWITCH(m, dump_pos, "dme_err:QOS_FROM_TX_DETECTED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_TX_DETECTED]);
-	PRINT_SWITCH(m, dump_pos, "dme_err:QOS_FROM_RX_DETECTED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_RX_DETECTED]);
-	PRINT_SWITCH(m, dump_pos, "dme_err:QOS_FROM_PA_INIT_DETECTED cnt=%llu\n",
-			ufs_uic_err_code_cnt.dme_err_cnt[UFS_EVT_DME_QOS_FROM_PA_INIT_DETECTED]);
-
-	PRINT_SWITCH(m, dump_pos, "auto_h8_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_AUTO_HIBERN8_ERR].cnt);
-	PRINT_SWITCH(m, dump_pos, "fatal_err:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_FATAL_ERR].cnt);
-	PRINT_SWITCH(m, dump_pos, "link_startup_fail:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_LINK_STARTUP_FAIL].cnt);
-	PRINT_SWITCH(m, dump_pos, "resume_fail:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_RESUME_ERR].cnt);
-	PRINT_SWITCH(m, dump_pos, "suspend_fail:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_SUSPEND_ERR].cnt);
-	PRINT_SWITCH(m, dump_pos, "dev_reset:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_DEV_RESET].cnt);
-	PRINT_SWITCH(m, dump_pos, "host_reset:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_HOST_RESET].cnt);
-	PRINT_SWITCH(m, dump_pos, "task_abort:total cnt=%llu\n",
-			hba->ufs_stats.event[UFS_EVT_ABORT].cnt);
-	PRINT_SWITCH(m, dump_pos, "sprd_reset:total cnt=%llu\n", ufs_err_cnt.sprd_reset_cnt);
-	PRINT_SWITCH(m, dump_pos, "line_reset:total cnt=%llu\n", ufs_err_cnt.line_reset_cnt);
-	PRINT_SWITCH(m, dump_pos, "scsi_timeout:total cnt=%llu\n", ufs_err_cnt.scsi_timeout_cnt);
+	ufs_sprd_print_evt(hba, UFS_EVT_CNT, "sprd_reset", m, dump_pos,
+				ufs_err_cnt.sprd_reset_cnt);
+	ufs_sprd_print_evt(hba, UFS_EVT_CNT, "line_reset", m, dump_pos,
+				ufs_err_cnt.line_reset_cnt);
+	ufs_sprd_print_evt(hba, UFS_EVT_CNT, "scsi_timeout", m, dump_pos,
+				ufs_err_cnt.scsi_timeout_cnt);
 }
 
 static int uic_err_cnt_show(struct seq_file *m, void *v)
