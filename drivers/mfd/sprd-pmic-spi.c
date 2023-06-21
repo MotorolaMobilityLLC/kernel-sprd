@@ -4,6 +4,7 @@
  */
 
 #include <linux/interrupt.h>
+#include <linux/irqdomain.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/mfd/core.h>
@@ -15,6 +16,7 @@
 #include <uapi/linux/usb/charger.h>
 #include <linux/seq_buf.h>
 #include <../drivers/unisoc_platform/sysdump/unisoc_sysdump.h>
+#include <linux/wakeup_reason.h>
 
 #define SPRD_PMIC_INT_MASK_STATUS	0x0
 #define SPRD_PMIC_INT_RAW_STATUS	0x4
@@ -179,6 +181,19 @@ static char *sprd_pmicint_buf;
 static struct seq_buf *sprd_pmicint_seq_buf;
 static char pmicint_temp_buf[256];
 
+static void sprd_pmic_irq_log_reason(struct sprd_pmic *ddata, u32 mask_status)
+{
+	u32 i = 0;
+	int nested_irq = 0;
+
+	for (i = 0; i < ddata->irq_chip.num_irqs; i++) {
+		if (mask_status & BIT(i)) {
+			nested_irq = irq_find_mapping(regmap_irq_get_domain(ddata->irq_data), i);
+			log_threaded_irq_wakeup_reason(nested_irq, ddata->irq);
+		}
+	}
+}
+
 static int sprd_pmic_handle_pre_irq(void *irq_drv_data)
 {
 	struct sprd_pmic *ddata = irq_drv_data;
@@ -190,6 +205,7 @@ static int sprd_pmic_handle_pre_irq(void *irq_drv_data)
 			&mask_status) < 0) {
 		pr_err("failed to get pmicint mask\n");
 	}
+	sprd_pmic_irq_log_reason(ddata, mask_status);
 
 	if (regmap_read(ddata->regmap, ddata->pdata->irq_base + SPRD_PMIC_INT_RAW_STATUS,
 			&raw_status) < 0) {
