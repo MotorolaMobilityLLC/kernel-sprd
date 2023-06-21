@@ -78,6 +78,24 @@ enum sub_sys {
 	AUTO,
 };
 
+enum wifi_pm_qos_mode {
+	WIFI_STATION,
+	WIFI_AP,
+	WIFI_P2P_DEVICE,
+	WIFI_P2P_CLIENT,
+	WIFI_P2P_GO,
+	WIFI_TX_HIGH_THROUGHPUT,
+	WIFI_RX_HIGH_THROUGHPUT,
+	WIFI_MAX,
+};
+
+enum bluetooth_pm_qos_profile {
+	BT_OPP = WIFI_MAX + 1,
+	BT_A2DP,
+	BT_HFP,
+	BT_MAX,
+};
+
 struct mbuf_t {
 	struct mbuf_t *next;
 	unsigned char *buf;
@@ -305,7 +323,7 @@ struct sprdwcn_bus_ops {
 	int (*start_wcn)(enum wcn_sub_sys subsys);
 	int (*stop_wcn)(enum wcn_sub_sys subsys);
 	void (*debug_point_show)(void);
-
+	int (*pm_qos)(unsigned int mode, bool set);
 	bool (*is_suspended)(bool important);
 };
 
@@ -315,11 +333,16 @@ extern void module_bus_init(void);
 extern void module_bus_deinit(void);
 extern struct sprdwcn_bus_ops *get_wcn_bus_ops(void);
 extern void wcn_assert_interface(enum wcn_source_type, char *str);
+extern void wcn_assert_interface_async(enum wcn_source_type type, char *str);
 extern bool wcn_is_assert(void);
 bool wcn_push_list_condition_check(struct mbuf_t *head, struct mbuf_t *tail, int num);
+extern bool wcn_is_power_busy(void);
 int sprd_wlan_power_status_sync(int option, int value);
 void mdbg_device_lock_notify(void);
 void mdbg_device_unlock_notify(void);
+extern void wcn_pm_qos_enable(void);
+extern void wcn_pm_qos_disable(void);
+extern void wcn_pm_qos_reset(void);
 
 static inline
 int sprdwcn_bus_preinit(void)
@@ -558,7 +581,7 @@ enum wcn_bus_pm_state sprdwcn_bus_get_pm_policy(void)
 {
 	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
 
-	if (!bus_ops || !bus_ops->writebyte)
+	if (!bus_ops || !bus_ops->get_pm_policy)
 		return 0;
 
 	return bus_ops->get_pm_policy();
@@ -569,7 +592,7 @@ int sprdwcn_bus_set_pm_policy(enum sub_sys subsys, enum wcn_bus_pm_state state)
 {
 	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
 
-	if (!bus_ops || !bus_ops->writebyte)
+	if (!bus_ops || !bus_ops->set_pm_policy)
 		return 0;
 
 	return bus_ops->set_pm_policy(subsys, state);
@@ -728,6 +751,17 @@ void sprdwcn_bus_debug_point_show(void)
 		return;
 
 	bus_ops->debug_point_show();
+}
+
+static inline
+int sprdwcn_bus_pm_qos_set(unsigned int mode, bool set)
+{
+	struct sprdwcn_bus_ops *bus_ops = get_wcn_bus_ops();
+
+	if (!bus_ops || !bus_ops->pm_qos)
+		return 0;
+
+	return bus_ops->pm_qos(mode, set);
 }
 
 static inline
