@@ -11,6 +11,7 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
+#include <linux/wakeup_reason.h>
 
 /* EIC registers definition */
 #define SPRD_PMIC_EIC_DATA		0x0
@@ -283,6 +284,7 @@ static irqreturn_t sprd_pmic_eic_irq_handler(int irq, void *data)
 		sprd_pmic_eic_update(chip, n, SPRD_PMIC_EIC_IC, 1);
 
 		girq = irq_find_mapping(chip->irq.domain, n);
+		log_threaded_irq_wakeup_reason(girq, irq);
 		handle_nested_irq(girq);
 
 		/*
