@@ -810,7 +810,7 @@ static void seth_tx_timeout(struct net_device *dev, unsigned int txqueue)
 	}
 }
 
-static int seth_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
+static int seth_ioctl(struct net_device *dev, struct ifreq *ifr, void __user *data, int cmd)
 {
 	int vip_uid;
 	int i;
@@ -818,7 +818,7 @@ static int seth_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 
 	switch (cmd) {
 	case SIOC_SETH_SET_UID:
-		ret = copy_from_user(&vip_uid, ifr->ifr_data, sizeof(vip_uid));
+		ret = copy_from_user(&vip_uid, data, sizeof(vip_uid));
 
 		dev_info(&dev->dev, "copy from userspace vip_uid is %d\n", vip_uid);
 
@@ -850,7 +850,7 @@ static const struct net_device_ops seth_ops = {
 	.ndo_start_xmit = seth_start_xmit,
 	.ndo_get_stats = seth_get_stats,
 	.ndo_tx_timeout = seth_tx_timeout,
-	.ndo_do_ioctl = seth_ioctl,
+	.ndo_siocdevprivate = seth_ioctl,
 };
 
 static int seth_parse_dt(struct seth_init_data **init,
