@@ -620,11 +620,6 @@
 		memory-region = <&widevine_reserved>;
 	};
 
-	fd-reserved {
-		label = "carveout_fd";
-		memory-region = <&fd_reserved>;
-	};
-
 	oemcrypto-reserved {
 		label = "uncached_carveout_oem";
 		memory-region = <&oemcrypto_reserved>;
