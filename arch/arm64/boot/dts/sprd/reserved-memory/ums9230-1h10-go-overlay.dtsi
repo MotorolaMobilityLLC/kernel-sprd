@@ -7,8 +7,4 @@
 	widevine_reserved: widevine@e4c00000 {
 		reg = <0x0 0xe4c00000 0x0 0x0b400000>;
 	};
-
-	fd_reserved: faceid-mem@ffa70000 {
-		reg = <0x0 0xffa70000 0x0 0x00500000>;
-	};
 };
