@@ -405,6 +405,11 @@
 	status = "okay";
 };
 
+&power_debug {
+	status = "okay";
+	memory-region = <&pdbg_reserved>;
+};
+
 &modem_dbg_log{
 	status = "okay";
 };

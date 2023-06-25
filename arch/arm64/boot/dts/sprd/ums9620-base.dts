@@ -637,6 +637,11 @@
 	status = "okay";
 };
 
+&power_debug {
+	status = "okay";
+	memory-region = <&pdbg_reserved>;
+};
+
 &jpg {
 	status = "okay";
 };

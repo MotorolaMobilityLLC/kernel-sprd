@@ -34,6 +34,10 @@
 			reg = <0x80001000 0x00001000>;
 		};
 
+		pdbg_reserved: pdbg-mem@0x80002000 {
+			reg = <0x80002000 0x00001000>;
+		};
+
 		wcn_reserved: wcn-mem@84000000 {
 			reg = <0x84000000 0x00300000>;
 		};

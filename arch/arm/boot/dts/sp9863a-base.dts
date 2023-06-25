@@ -252,6 +252,11 @@
 	status = "okay";
 };
 
+&power_debug {
+	status = "okay";
+	memory-region = <&pdbg_reserved>;
+};
+
 &sound_sprd_ap_alliis {
 	status = "okay";
 };

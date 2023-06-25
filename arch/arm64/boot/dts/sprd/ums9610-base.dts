@@ -446,6 +446,11 @@
 	status = "okay";
 };
 
+&power_debug {
+	status = "okay";
+	memory-region = <&pdbg_reserved>;
+};
+
 &iommu_jpg {
 	status = "okay";
 };
