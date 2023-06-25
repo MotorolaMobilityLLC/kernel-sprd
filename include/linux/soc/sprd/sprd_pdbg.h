@@ -8,35 +8,50 @@
 #ifndef __SPRD_PDBG_DRV_H__
 #define __SPRD_PDBG_DRV_H__
 
+#define TOP_IRQ_MAX   (10)
+struct notifier_block;
+
+#pragma pack(push, 1)
+struct subsys_slp_info {
+	u64 total_time;
+	u64 total_slp_time;
+	u64 last_enter_time;
+	u64 last_exit_time;
+	u64 total_slp_cnt;
+	u32 cur_slp_state;
+	u32 boot_cnt;
+	u32 last_ws; /* last wakeup source*/
+	u32 ws_cnt[TOP_IRQ_MAX];/* wakeup source count*/
+	u32 reserve[40];
+};
+#pragma pack(pop)
+
 enum {
-	SPRD_PDBG_WS_DOMAIN_ID_GIC,
-	SPRD_PDBG_WS_DOMAIN_ID_GPIO,
-	SPRD_PDBG_WS_DOMAIN_ID_ANA,
-	SPRD_PDBG_WS_DOMAIN_ID_ANA_EIC,
-	SPRD_PDBG_WS_DOMAIN_ID_AP_EIC_DBNC,
-	SPRD_PDBG_WS_DOMAIN_ID_AP_EIC_LATCH,
-	SPRD_PDBG_WS_DOMAIN_ID_AP_EIC_ASYNC,
-	SPRD_PDBG_WS_DOMAIN_ID_AP_EIC_SYNC,
-	SPRD_PDBG_WS_DOMAIN_ID_MAX,
+	SYS_SOC,
+	SYS_AP,
+	SYS_PHYCP,
+	SYS_PSCP,
+	SYS_PUBCP,
+	SYS_WTLCP,
+	SYS_WCN_BTWF,
+	SYS_WCN_GNSS,
+	SYS_MAX
 };
 
 enum {
-	PDBG_R_SLP,
-	PDBG_R_EB,
-	PDBG_R_PD,
-	PDBG_R_DCNT,
-	PDBG_R_LCNT,
-	PDBG_R_LPC,
-	PDBG_WS,
-	PDBG_INFO_MAX
+	PDBG_NB_SYS_WCN_BTWF_SLP_GET = SYS_WCN_BTWF,
+	PDBG_NB_SYS_WCN_GNSS_SLP_GET = SYS_WCN_GNSS,
+	PDBG_NB_WS_UPDATE = SYS_MAX,
 };
-
-extern void pm_get_active_wakeup_sources(char *pending_wakeup_source, size_t max);
 
 #if IS_ENABLED(CONFIG_SPRD_POWER_DEBUG)
 void sprd_pdbg_msg_print(const char *format, ...);
+int sprd_pdbg_notify_register(struct notifier_block *nb);
+int sprd_pdbg_notify_unregister(struct notifier_block *nb);
 #else
-void sprd_pdbg_msg_print(const char *format, ...) { }
+static inline void sprd_pdbg_msg_print(const char *format, ...) { }
+static inline int sprd_pdbg_notify_register(struct notifier_block *nb) { return 0; }
+static inline int sprd_pdbg_notify_unregister(struct notifier_block *nb) { return 0; }
 #endif//CONFIG_SPRD_POWER_DEBUG
 
 #endif /* __SPRD_PDBG_DRV_H__ */
