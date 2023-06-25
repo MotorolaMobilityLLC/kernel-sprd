@@ -23,7 +23,7 @@ else
 EXT_MODULES="
 ../modules/kernel5.15/sample
 ../modules/kernel5.15/gpu/natt
-../modules/kernel5.15/input/fingerprint/microarray
+../modules/kernel5.15/microarray
 ../modules/kernel5.15/input/touchscreen/focaltech_ft8756_spi
 ../modules/kernel5.15/input/touchscreen/novatek_nt36xxx
 ../modules/kernel5.15/npu/vdsp

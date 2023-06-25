@@ -16,7 +16,7 @@ elif [[ $BSP_DTSONLY_CONFIG == "true" ]]; then
 	SKIP_EXT_MODULES=1
 else
 EXT_MODULES="
-../modules/kernel5.15/input/fingerprint/microarray
+../modules/kernel5.15/microarray
 ../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
 ../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_common_ctl
 ../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_dbg

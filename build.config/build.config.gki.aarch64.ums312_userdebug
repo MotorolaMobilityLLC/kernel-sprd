@@ -29,7 +29,7 @@ EXT_MODULES="
 ../modules/kernel5.15/display/dispc
 ../modules/kernel5.15/gpu/rogue/driver/build/linux/sharkl5_android
 ../modules/kernel5.15/input/touchscreen/adaptive-ts
-../modules/kernel5.15/input/fingerprint/microarray
+../modules/kernel5.15/microarray
 ../modules/kernel5.15/dmabufheap
 ../modules/kernel5.15/audio/sprd_audio/agdsp_pd
 ../modules/kernel5.15/audio/sprd_audio/audiomem
