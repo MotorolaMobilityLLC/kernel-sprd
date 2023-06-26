@@ -34,6 +34,7 @@ struct sprd_hsphy {
 	struct device		*dev;
 	struct usb_phy		phy;
 	struct regulator	*vdd;
+	struct sprd_bc1p2_priv bc1p2_info;
 	struct regmap           *hsphy_glb;
 	struct regmap           *ana_g2;
 	struct regmap           *pmic;
@@ -71,13 +72,12 @@ struct sprd_hsphy {
 static void sprd_hsphy_charger_detect_work(struct work_struct *work)
 {
 	struct sprd_hsphy *phy = container_of(work, struct sprd_hsphy, work);
-	struct usb_phy *usb_phy = &phy->phy;
 
 	__pm_stay_awake(phy->wake_lock);
 	if (phy->event)
-		usb_phy_set_charger_state(usb_phy, USB_CHARGER_PRESENT);
+		sprd_usb_changed(&phy->bc1p2_info, USB_CHARGER_PRESENT);
 	else
-		usb_phy_set_charger_state(usb_phy, USB_CHARGER_ABSENT);
+		sprd_usb_changed(&phy->bc1p2_info, USB_CHARGER_ABSENT);
 	__pm_relax(phy->wake_lock);
 }
 
@@ -326,7 +326,6 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 		msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_VBUSVLDEXT;
 		regmap_update_bits(phy->ana_g2,
 			REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1, msk, 0);
-		usb_phy->flags &= ~CHARGER_DETECT_DONE;
 	}
 
 	phy->event = event;
@@ -500,7 +499,7 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	dev_info(x->dev, "correct type is %x\n", type);
 	if (type != UNKNOWN_TYPE) {
 		x->chg_type = type;
-		schedule_work(&x->chg_work);
+		usb_phy_notify_charger(x);
 	}
 	return type;
 }
@@ -660,6 +659,11 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	INIT_WORK(&phy->work, sprd_hsphy_charger_detect_work);
 
 	platform_set_drvdata(pdev, phy);
+	ret = usb_add_bc1p2_init(&phy->bc1p2_info, &phy->phy);
+	if (ret) {
+		dev_err(dev, "fail to add bc1p2\n");
+		return ret;
+	}
 
 	ret = usb_add_phy_dev(&phy->phy);
 	if (ret) {
@@ -672,7 +676,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		dev_warn(dev, "failed to create usb hsphy attributes\n");
 
 	if (extcon_get_state(phy->phy.edev, EXTCON_USB) > 0)
-		usb_phy_set_charger_state(&phy->phy, USB_CHARGER_PRESENT);
+		sprd_usb_changed(&phy->bc1p2_info, USB_CHARGER_PRESENT);
 
 	dev_info(dev, "sprd usb phy probe ok !\n");
 
@@ -687,6 +691,7 @@ static int sprd_hsphy_remove(struct platform_device *pdev)
 {
 	struct sprd_hsphy *phy = platform_get_drvdata(pdev);
 
+	usb_remove_bc1p2(&phy->bc1p2_info);
 	sysfs_remove_groups(&pdev->dev.kobj, usb_hsphy_groups);
 	usb_remove_phy(&phy->phy);
 	wakeup_source_unregister(phy->wake_lock);
