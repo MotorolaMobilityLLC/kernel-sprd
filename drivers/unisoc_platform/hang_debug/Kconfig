@@ -24,3 +24,24 @@ config SPRD_HANG_TRIGGER
 	depends on SPRD_HANG_DEBUG
 	help
 	  This option triggers SPRD cpu hang.
+
+config SPRD_WDF_FEED_TIME_MS
+	int "modify feed watchdog time ms"
+	depends on SPRD_HANG_DEBUG
+	default 8000
+	help
+	  This option enables modify feed watchdog interval config.
+
+config SPRD_WDT_TIMEOUT_MS
+	int "modify watchdog timeout ms"
+	depends on SPRD_HANG_DEBUG
+	default 40000
+	help
+	  This option enables modify watchdog timeout.
+
+config SPRD_WDT_PRETIMEOUT_MS
+	int "modify pertimeout ms"
+	depends on SPRD_HANG_DEBUG
+	default 20000
+	help
+	  This option enables modify watchdog pretimeout.
