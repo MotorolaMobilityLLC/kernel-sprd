@@ -137,6 +137,9 @@
 #define SDHCI_INT_CMD_ERR_MASK (SDHCI_INT_TIMEOUT | SDHCI_INT_CRC | \
 		SDHCI_INT_END_BIT | SDHCI_INT_INDEX)
 
+#define SDHCI_IP_VER_R10 10
+#define SDHCI_IP_VER_R11 11
+
 struct ranges_t {
 	int start;
 	int end;
@@ -151,6 +154,7 @@ struct register_hotplug {
 struct sdhci_sprd_host {
 	struct platform_device *pdev;
 	u32 version;
+	u32 ip_ver;
 	struct clk *clk_sdio;
 	struct clk *clk_enable;
 	struct clk *clk_2x_enable;
@@ -750,7 +754,11 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 		dll_cnt = 128;
 	else
 		dll_cnt = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS0) & 0xff;
-	dll_cnt = dll_cnt << 1;
+
+	/* dll lock is half mode by default after r11*/
+	if (sprd_host->ip_ver >= SDHCI_IP_VER_R11)
+		dll_cnt = dll_cnt << 1;
+
 	length = (dll_cnt * 150) / 100;
 	pr_info("%s: dll config 0x%08x, dll count %d, tuning length: %d\n",
 		mmc_hostname(mmc), dll_cfg, dll_cnt, length);
@@ -932,15 +940,12 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	if (type == SDHCI_SPRD_TUNING_SD_HS) {
 		dll_cfg &= ~(0xf << 24);
 		sdhci_writel(host, dll_cfg, SDHCI_SPRD_REG_32_DLL_CFG);
+		final_phase = mid_step;
 	} else {
 		dll_cfg |= 0xf << 24;
 		sdhci_writel(host, dll_cfg, SDHCI_SPRD_REG_32_DLL_CFG);
-	}
-
-	if (mid_step <= dll_cnt)
 		final_phase = (mid_step * 256) / dll_cnt;
-	else
-		final_phase = 0xff;
+	}
 
 	if (host->flags & SDHCI_HS400_TUNING) {
 		p[MMC_TIMING_MMC_HS400] &= ~SDHCI_SPRD_CMD_DLY_MASK;
@@ -1828,6 +1833,11 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	sprd_host->version = ((host->version & SDHCI_VENDOR_VER_MASK) >>
 			       SDHCI_VENDOR_VER_SHIFT);
 
+	if (of_device_is_compatible(np, "sprd,sdhci-r10"))
+		sprd_host->ip_ver = SDHCI_IP_VER_R10;
+	else
+		sprd_host->ip_ver = SDHCI_IP_VER_R11;
+
 	sprd_host->power_mode = MMC_POWER_OFF;
 
 	pm_runtime_get_noresume(&pdev->dev);
@@ -1975,6 +1985,7 @@ static int sdhci_sprd_remove(struct platform_device *pdev)
 }
 
 static const struct of_device_id sdhci_sprd_of_match[] = {
+	{ .compatible = "sprd,sdhci-r10", },
 	{ .compatible = "sprd,sdhci-r11", },
 	{ }
 };
