@@ -16,7 +16,7 @@
 
 /*unit: ms*/
 #ifdef CONFIG_SPRD_DEBUG
-#define MODULES_TIME_OUT ((1*1000) >> 1)
+#define MODULES_TIME_OUT ((1*1200) >> 1)
 #else
 #define MODULES_TIME_OUT (1*1000)
 #endif
@@ -70,8 +70,8 @@ static void sprd_module_time_out(struct timer_list *t)
 	pr_debug("%s.ko loads too long time, panic timeout = %d ms\n",
 			module_name, MODULES_TIME_OUT);
 #else
-	panic("%s.ko loads too long time, panic timeout = %d ms\n",
-			module_name, MODULES_TIME_OUT);
+	panic("%s.ko loads too long time, panic timeout = %d ms, loglevel = %d\n",
+			module_name, MODULES_TIME_OUT, console_printk[0]);
 #endif
 }
 
