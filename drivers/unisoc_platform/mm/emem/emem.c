@@ -9,6 +9,7 @@
 #include <linux/cache.h>
 #include <linux/delay.h>
 #include <linux/fs.h>
+#include <trace/hooks/mm.h>
 #include <linux/init.h>
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
@@ -31,6 +32,8 @@
 #define DEFAULT_PROC_ADJ		900
 #define EMEM_SHOW_INTERVAL		5
 #define EMEM_SHOW_KILL_ADJ900_INTERVAL  600
+
+static void dump_tasks_info(void);
 
 /*
  * The written value is the killed process adj, then trigger to show enhance
@@ -56,6 +59,7 @@ static void unisoc_enhance_meminfo(unsigned long interval)
 		pr_info("++++++++++++++++++++++UNISOC_SHOW_MEM_BEGIN++++++++++++++++++++\n");
 		pr_info("The killed process adj = %d\n", sysctl_emem_trigger);
 		unisoc_enhanced_show_mem();
+		dump_tasks_info();
 		last_jiffies = jiffies;
 		pr_info("+++++++++++++++++++++++UNISOC_SHOW_MEM_END+++++++++++++++++++++\n");
 	}
@@ -189,7 +193,6 @@ static void dump_tasks_info(void)
 static int e_show_mem_handler(struct notifier_block *nb,
 			unsigned long val, void *data)
 {
-	dump_tasks_info();
 	dump_slabinfo();
 	dump_vmalloc_info();
 	return 0;
@@ -230,10 +233,25 @@ const struct proc_ops proc_emem_trigger_operations = {
 	.proc_write		= emem_trigger_write,
 };
 
+static void register_emem_vendor_hooks(void)
+{
+	int ret = 0;
+
+	ret = register_trace_android_vh_show_mem(show_mem_call_chain, NULL);
+	if (ret != 0)
+		pr_err("register trace_android_vh_show_mem failed! ret=%d\n", ret);
+}
+
+static void unregister_emem_vendor_hooks(void)
+{
+	 unregister_trace_android_vh_show_mem(show_mem_call_chain, NULL);
+}
+
 static int emem_init(void)
 {
 	INIT_WORK(&unisoc_emem_work, unisoc_emem_workfn);
 	register_unisoc_show_mem_notifier(&e_show_mem_notifier);
+	register_emem_vendor_hooks();
 	proc_create("emem_trigger", 0200, NULL, &proc_emem_trigger_operations);
 	return 0;
 }
@@ -241,6 +259,7 @@ static int emem_init(void)
 static void emem_exit(void)
 {
 	unregister_unisoc_show_mem_notifier(&e_show_mem_notifier);
+	unregister_emem_vendor_hooks();
 	remove_proc_entry("emem_trigger", NULL);
 }
 

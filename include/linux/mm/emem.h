@@ -3,6 +3,7 @@
 #ifndef __ENHANCE_MEMINFO
 #define __ENHANCE_MEMINFO
 
+void show_mem_call_chain(void *data, unsigned int filter, nodemask_t *nodemask);
 void unisoc_enhanced_show_mem(void);
 #if IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)
 int register_unisoc_show_mem_notifier(struct notifier_block *nb);

@@ -28,8 +28,6 @@ EXPORT_SYMBOL_GPL(unregister_unisoc_show_mem_notifier);
 
 void unisoc_enhanced_show_mem(void)
 {
-	/* Module used pages */
-	unsigned long used = 0;
 	struct sysinfo si;
 	void (*fun)(unsigned int filter, nodemask_t *nodemask);
 
@@ -44,7 +42,11 @@ void unisoc_enhanced_show_mem(void)
 		(si.totalram) << (PAGE_SHIFT - 10),
 		(si.bufferram) << (PAGE_SHIFT - 10),
 		total_swapcache_pages() << (PAGE_SHIFT - 10));
+}
+
+void show_mem_call_chain(void *data, unsigned int filter, nodemask_t *nodemask)
+{
+	unsigned long used = 0;
 
 	blocking_notifier_call_chain(&unisoc_show_mem_notify_list, 0, &used);
 }
-
