@@ -25,7 +25,7 @@ EXT_MODULES="
 ../modules/kernel5.15/dmabufheap
 ../modules/common/camera/power
 ../modules/kernel5.15/microarray/
-../modules/kernel5.15/input/touchscreen/adaptive-ts
+../modules/kernel5.15/touchscreen/adaptive-ts
 ../modules/kernel5.15/video/sprd-vpu
 ../modules/kernel5.15/video/sprd-jpg
 ../modules/common/camera/flash/flash_drv

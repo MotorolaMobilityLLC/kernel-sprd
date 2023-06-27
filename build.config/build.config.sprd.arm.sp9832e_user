@@ -29,7 +29,7 @@ EXT_MODULES="
 ../modules/kernel5.15/video/sprd-vpu
 ../modules/kernel5.15/video/sprd-jpg
 ../modules/kernel5.15/microarray
-../modules/kernel5.15/input/touchscreen/adaptive-ts
+../modules/kernel5.15/touchscreen/adaptive-ts
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/flash/ocp8137
 ../modules/common/camera/sensor
