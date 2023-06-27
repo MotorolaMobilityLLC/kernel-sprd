@@ -121,6 +121,55 @@ unlock_mutex:
 }
 #endif
 
+static DEFINE_MUTEX(sysctl_pid_mutex);
+
+static int sched_uclamp_fork_reset_handler(struct ctl_table *table, int write,
+		void __user *buffer, size_t *lenp, loff_t *ppos)
+{
+	int ret;
+	struct task_struct *task;
+	struct uni_task_struct *uni_task;
+	int pid  = -1;
+
+	struct ctl_table tmp = {
+		.data   = &pid,
+		.maxlen = sizeof(pid),
+		.mode   = table->mode,
+	};
+
+	mutex_lock(&sysctl_pid_mutex);
+
+	if (!write) {
+		ret = -ENOENT;
+		goto unlock_mutex;
+	}
+
+	ret = proc_dointvec(&tmp, write, buffer, lenp, ppos);
+	if (ret)
+		goto unlock_mutex;
+
+	if (pid <= 0) {
+		ret = -ENOENT;
+		goto unlock_mutex;
+	}
+
+	/* parsed the values successfully in pid_and_val[] array */
+	task = get_pid_task(find_vpid(pid), PIDTYPE_PID);
+	if (!task) {
+		ret = -ENOENT;
+		goto unlock_mutex;
+	}
+
+	uni_task = (struct uni_task_struct *) task->android_vendor_data1;
+
+	uni_task->uclamp_fork_reset = !!((unsigned long)table->data);
+
+	put_task_struct(task);
+unlock_mutex:
+	mutex_unlock(&sysctl_pid_mutex);
+	return ret;
+}
+
 #ifdef CONFIG_UNISOC_SCHED_VIP_TASK
 enum {
 	TASK_BEGIN = 0,
@@ -131,7 +180,6 @@ enum {
 };
 
 static int sysctl_task_read_pid = 1;
-static DEFINE_MUTEX(sysctl_pid_mutex);
 
 static int sched_task_read_pid_handler(struct ctl_table *table, int write,
 					void __user *buffer, size_t *lenp,
@@ -359,6 +407,20 @@ struct ctl_table sched_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= &one_thousand,
+	},
+	{
+		.procname	= "sched_uclamp_fork_reset_set",
+		.data		=  (int *)1,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sched_uclamp_fork_reset_handler,
+	},
+	{
+		.procname	= "sched_uclamp_fork_reset_clear",
+		.data		= (int *)0,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= sched_uclamp_fork_reset_handler,
 	},
 	{
 		.procname	= "sched_task_util_prefer_little",

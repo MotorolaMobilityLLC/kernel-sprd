@@ -32,6 +32,32 @@ static struct sched_cluster init_cluster = {
 	.capacity		= 1024,
 };
 
+/* Integer rounded range for each bucket */
+#define UCLAMP_BUCKET_DELTA DIV_ROUND_CLOSEST(SCHED_CAPACITY_SCALE, UCLAMP_BUCKETS)
+
+#define for_each_clamp_id(clamp_id) \
+	for ((clamp_id) = 0; (clamp_id) < UCLAMP_CNT; (clamp_id)++)
+
+static inline unsigned int uclamp_none(enum uclamp_id clamp_id)
+{
+	if (clamp_id == UCLAMP_MIN)
+		return 0;
+	return SCHED_CAPACITY_SCALE;
+}
+
+static inline unsigned int uclamp_bucket_id(unsigned int clamp_value)
+{
+	return min_t(unsigned int, clamp_value / UCLAMP_BUCKET_DELTA, UCLAMP_BUCKETS - 1);
+}
+
+static inline void uclamp_se_set(struct uclamp_se *uc_se,
+				 unsigned int value, bool user_defined)
+{
+	uc_se->value = value;
+	uc_se->bucket_id = uclamp_bucket_id(value);
+	uc_se->user_defined = user_defined;
+}
+
 static void init_clusters(void)
 {
 	init_cluster.cpus = *cpu_possible_mask;
@@ -258,6 +284,22 @@ static void android_rvh_after_dequeue_task(void *data, struct rq *rq,
 	walt_cpufreq_update_util(rq, 0);
 }
 
+static void uclamp_fork_init(struct task_struct *p)
+{
+	enum uclamp_id clamp_id;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+
+	if (likely(!uni_tsk->uclamp_fork_reset))
+		return;
+
+	uni_tsk->uclamp_fork_reset = 0;
+
+	for_each_clamp_id(clamp_id) {
+		uclamp_se_set(&p->uclamp_req[clamp_id],
+			      uclamp_none(clamp_id), false);
+	}
+}
+
 static void __sched_fork_init(struct task_struct *p)
 {
 	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
@@ -271,6 +313,16 @@ static void __sched_fork_init(struct task_struct *p)
 #endif
 	uni_tsk->last_sleep_ts = 0;
 	uni_tsk->last_enqueue_ts = 0;
+
+	uclamp_fork_init(p);
+}
+
+static void android_vh_dup_task_struct(void *data, struct task_struct *tsk, struct task_struct *orig)
+{
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)tsk->android_vendor_data1;
+	struct uni_task_struct *uni_orig = (struct uni_task_struct *)orig->android_vendor_data1;
+
+	uni_tsk->uclamp_fork_reset = uni_orig->uclamp_fork_reset;
 }
 
 static void android_rvh_sched_fork_init(void *data, struct task_struct *p)
@@ -300,6 +352,7 @@ static void android_vh_sched_show_task(void *unused, struct task_struct *task)
 
 static void register_sched_vendor_hooks(void)
 {
+	register_trace_android_vh_dup_task_struct(android_vh_dup_task_struct, NULL);
 	register_trace_android_rvh_sched_fork_init(android_rvh_sched_fork_init, NULL);
 	register_trace_android_rvh_after_enqueue_task(android_rvh_after_enqueue_task, NULL);
 	register_trace_android_rvh_after_dequeue_task(android_rvh_after_dequeue_task, NULL);

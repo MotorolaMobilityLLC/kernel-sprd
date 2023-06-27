@@ -65,6 +65,7 @@ struct uni_task_struct {
 	u64 last_sleep_ts;
 	u64 last_enqueue_ts;
 	u64 last_wakeup_ts;
+	int uclamp_fork_reset;
 #ifdef CONFIG_UNISOC_SCHED_VIP_TASK
 	struct list_head	vip_list;
 	u64			sum_exec_snapshot_for_slice;
