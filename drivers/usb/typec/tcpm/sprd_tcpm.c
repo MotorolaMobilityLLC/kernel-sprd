@@ -5253,6 +5253,7 @@ int sprd_tcpm_update_sink_capabilities(struct sprd_tcpm_port *port, const u32 *p
 			sprd_tcpm_set_state(port, SNK_NEGOTIATE_PPS_CAPABILITIES, 0);
 		else
 			sprd_tcpm_set_state(port, SNK_NEGOTIATE_CAPABILITIES, 0);
+		break;
 	default:
 		break;
 	}
