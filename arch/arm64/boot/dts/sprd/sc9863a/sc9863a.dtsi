@@ -823,3 +823,4 @@
 #include "jpg.dtsi"
 #include "apcpu-dvfs.dtsi"
 #include "thermal.dtsi"
+#include "mipi-serdes.dtsi"
