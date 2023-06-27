@@ -139,7 +139,7 @@ static void swap_fn(struct work_struct *work)
 	int i;
 	int tasksize;
 	int total_sz = 0;
-	short min_score_adj = 360;
+	short min_score_adj = 600;
 	int total_scan = 0;
 	int total_reclaimed = 0;
 	int nr_to_reclaim;
