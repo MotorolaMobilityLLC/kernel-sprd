@@ -1,4 +1,12 @@
 #include "modem-5g-common.dtsi"
-/ {
+&reserved_memory {
+	cp_reserved: cp-mem@88000000 {
+		no-map;
+		reg = <0x0 0x88000000 0x0 0x1A400000>;
+	};
+	nrphyiqmem_reserved: nrphy-iqmem@0xA2400000 {
+		reg = <0x0 0xA2400000 0x0 0x02C00000>;
+		status = "disabled";
+	};
 };
 
