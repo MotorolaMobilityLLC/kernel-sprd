@@ -272,54 +272,90 @@
 	pinctrl-7 = <&gpio_145>;
 	pinctrl-8 = <&gpio_146>;
 	pinctrl-9 = <&gpio_147>;
+	pinctrl-10 = <&shutdown0
+			&shutdown1
+			&shutdown2
+			&shutdown3
+			&shutdown4
+			&shutdown5>;
 
 	gpio_121: keyout0 {
-		pins = "SHARKLE_KEYOUT0";
+		pins = "SHARKL3_KEYOUT0";
 		function = "func4";
 	};
 
 	gpio_122: keyout1 {
-		pins = "SHARKLE_KEYOUT1";
+		pins = "SHARKL3_KEYOUT1";
 		function = "func4";
 	};
 
 	gpio_123: keyout2 {
-		pins = "SHARKLE_KEYOUT2";
+		pins = "SHARKL3_KEYOUT2";
 		function = "func4";
 	};
 
 	gpio_124: keyin0 {
-		pins = "SHARKLE_KEYIN0";
+		pins = "SHARKL3_KEYIN0";
 		function = "func4";
 	};
 
 	gpio_125: keyin1 {
-		pins = "SHARKLE_KEYIN1";
+		pins = "SHARKL3_KEYIN1";
 		function = "func4";
 	};
 
 	gpio_126: keyin2 {
-		pins = "SHARKLE_KEYIN2";
+		pins = "SHARKL3_KEYIN2";
 		function = "func4";
 	};
 
 	gpio_144: extint0 {
-		pins = "SHARKLE_EXTINT0";
+		pins = "SHARKL3_EXTINT0";
 		function = "func4";
 	};
 
 	gpio_145: extint1 {
-		pins = "SHARKLE_EXTINT1";
+		pins = "SHARKL3_EXTINT1";
 		function = "func4";
 	};
 
 	gpio_146: scl3 {
-		pins = "SHARKLE_SCL3";
+		pins = "SHARKL3_SCL3";
 		function = "func4";
 	};
 
 	gpio_147: sda3 {
-		pins = "SHARKLE_SDA3";
+		pins = "SHARKL3_SDA3";
+		function = "func4";
+	};
+
+	shutdown0: rfsen0 {
+		pins = "SHARKL3_RFSEN0";
+		function = "func4";
+	};
+
+	shutdown1: rfsck0 {
+		pins = "SHARKL3_RFSCK0";
+		function = "func4";
+	};
+
+	shutdown2: rfsda0 {
+		pins = "SHARKL3_RFSDA0";
+		function = "func4";
+	};
+
+	shutdown3: rfsen1 {
+		pins = "SHARKL3_RFSEN1";
+		function = "func4";
+	};
+
+	shutdown4: rfsck1 {
+		pins = "SHARKL3_RFSCK1";
+		function = "func4";
+	};
+
+	shutdown5: rfsda1 {
+		pins = "SHARKL3_RFSDA1";
 		function = "func4";
 	};
 };

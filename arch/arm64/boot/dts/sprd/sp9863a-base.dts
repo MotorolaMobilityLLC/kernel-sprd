@@ -67,6 +67,11 @@
 		};
 	};
 
+	autotest: autotest {
+		compatible = "sprd,autotest";
+		sprd,pinctrl = <&pin_controller>;
+	};
+
 	dmabuf: dmabuf {
 		compatible = "sprd,dmabuf";
 	};
