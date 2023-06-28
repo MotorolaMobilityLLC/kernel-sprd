@@ -23,12 +23,12 @@
 #include <linux/kthread.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/rtc.h>
 #include <linux/sipc.h>
 #include <uapi/linux/sched/types.h>
-
 
 #define SPRD_PMIC_WDT_LOAD_LOW		0x0
 #define SPRD_PMIC_WDT_LOAD_HIGH		0x4
@@ -57,6 +57,28 @@
 #define SPRD_PMIC_WDT_RST_RAW_BIT		BIT(3)
 #define SPRD_PMIC_WDT_LD_BUSY_BIT		BIT(4)
 
+/* pmic wdt eb register */
+#define SC2731_WDT_EB		0x0008
+#define SC2731_WDT_RTC_EB	0x0010
+#define SC2731_WDT_EN		BIT(2)
+#define SC2731_WDT_RTC_EN	BIT(2)
+#define SC2730_WDT_EB		0x0008
+#define SC2730_WDT_RTC_EB	0x0010
+#define SC2730_WDT_EN		BIT(2)
+#define SC2730_WDT_RTC_EN	BIT(2)
+#define SC2721_WDT_EB		0x0008
+#define SC2721_WDT_RTC_EB	0x0010
+#define SC2721_WDT_EN		BIT(2)
+#define SC2721_WDT_RTC_EN	BIT(2)
+#define SC2720_WDT_EB		0x0008
+#define SC2720_WDT_RTC_EB	0x0010
+#define SC2720_WDT_EN		BIT(2)
+#define SC2720_WDT_RTC_EN	BIT(2)
+#define ump9620_WDT_EB		0x0008
+#define ump9620_WDT_RTC_EB	0x0010
+#define ump9620_WDT_EN		BIT(2)
+#define ump9620_WDT_RTC_EN	BIT(2)
+
 /* 1s equal to 32768 counter steps */
 #define SPRD_PMIC_WDT_CNT_STEP		32768
 
@@ -71,11 +93,11 @@
 #define SPRD_PMIC_WDT_TIMEOUT		60
 #define SPRD_PMIC_WDT_PRETIMEOUT	0
 #define SPRD_PMIC_WDT_FEEDTIME		45
-
 #define SPRD_PMIC_WDTEN_MAGIC "e551"
 #define SPRD_PMIC_WDTEN_MAGIC_LEN_MAX  10
-
 #define PMIC_WDT_WAKE_UP_MS 2000
+#define RETRY_CNT_MAX		3
+#define SPRD_PMIC_WDT_LOAD_VAULE_HIGH	0x96
 
 struct sprd_pmic_wdt {
 	struct regmap		*regmap;
@@ -86,16 +108,67 @@ struct sprd_pmic_wdt {
 	struct kthread_worker wdt_kworker;
 	struct kthread_work wdt_kwork;
 	struct task_struct *wdt_thread;
+	struct task_struct *feed_task;
+	int wdt_enabled;
 	u32 wdt_flag;
-
+	u32 wdt_ctrl;
+	u64 wdt_load;
+	const struct sprd_pmic_wdt_data *data;
 };
 
-static int sprd_pmic_wdt_enable(struct sprd_pmic_wdt *wdt, bool en)
+#ifndef CONFIG_SPRD_DEBUG
+static int pmic_timeout = 300;
+static int feed_period = 250;
+#endif
+
+struct sprd_pmic_wdt_data {
+	u32 wdt_eb_reg;
+	u32 wdt_rtc_eb_reg;
+	u32 wdt_en;
+	u32 wdt_rtc_en;
+};
+
+static struct sprd_pmic_wdt_data sc2731_data = {
+	.wdt_eb_reg = SC2731_WDT_EB,
+	.wdt_rtc_eb_reg = SC2731_WDT_RTC_EB,
+	.wdt_en = SC2731_WDT_EN,
+	.wdt_rtc_en = SC2731_WDT_RTC_EN,
+};
+
+static struct sprd_pmic_wdt_data sc2730_data = {
+	.wdt_eb_reg = SC2730_WDT_EB,
+	.wdt_rtc_eb_reg = SC2730_WDT_RTC_EB,
+	.wdt_en = SC2730_WDT_EN,
+	.wdt_rtc_en = SC2730_WDT_RTC_EN,
+};
+
+static struct sprd_pmic_wdt_data sc2721_data = {
+	.wdt_eb_reg = SC2721_WDT_EB,
+	.wdt_rtc_eb_reg = SC2721_WDT_RTC_EB,
+	.wdt_en = SC2721_WDT_EN,
+	.wdt_rtc_en = SC2721_WDT_RTC_EN,
+};
+
+static struct sprd_pmic_wdt_data sc2720_data = {
+	.wdt_eb_reg = SC2720_WDT_EB,
+	.wdt_rtc_eb_reg = SC2720_WDT_RTC_EB,
+	.wdt_en = SC2720_WDT_EN,
+	.wdt_rtc_en = SC2720_WDT_RTC_EN,
+};
+
+static struct sprd_pmic_wdt_data ump9620_data = {
+	.wdt_eb_reg = ump9620_WDT_EB,
+	.wdt_rtc_eb_reg = ump9620_WDT_RTC_EB,
+	.wdt_en = ump9620_WDT_EN,
+	.wdt_rtc_en = ump9620_WDT_RTC_EN,
+};
+
+static int sprd_pmic_wdt_on(struct sprd_pmic_wdt *pmic_wdt, bool en)
 {
-	int nwrite;
+	int nwrite, len, retry_cnt = 0;
 	int timeout = 100;
 	char *p_cmd;
-	int len;
+	u32 val = 0;
 
 	if (en)
 		p_cmd = "watchdog on";
@@ -103,19 +176,32 @@ static int sprd_pmic_wdt_enable(struct sprd_pmic_wdt *wdt, bool en)
 		p_cmd = "watchdog rstoff";
 
 	len = strlen(p_cmd) + 1;
-	nwrite =
-		sbuf_write(SIPC_ID_PM_SYS, SMSG_CH_TTY, 0,
-			   p_cmd, len,
-			   msecs_to_jiffies(timeout));
+	while (retry_cnt < RETRY_CNT_MAX) {
+		nwrite = sbuf_write(SIPC_ID_PM_SYS, SMSG_CH_TTY, 0, p_cmd, len,
+				    msecs_to_jiffies(timeout));
+		pr_err("cm4 watchdog on/off: len = %d, nwrite = %d\n", len, nwrite);
+		msleep(1000);
+		cpu_relax();
+		regmap_read(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_LOAD_HIGH, &val);
+		if (val != SPRD_PMIC_WDT_LOAD_VAULE_HIGH && nwrite == len) {
+#ifndef CONFIG_SPRD_DEBUG
+			if (!IS_ERR_OR_NULL(pmic_wdt->feed_task)) {
+				kthread_stop(pmic_wdt->feed_task);
+				pmic_wdt->feed_task = NULL;
+			}
+#endif
+			break;
+		}
+		retry_cnt++;
+	}
 
-	pr_err("cm4 watchdog on/off: len = %d, nwrite = %d\n", len, nwrite);
-	if (nwrite != len)
+	if (nwrite != len || val == SPRD_PMIC_WDT_LOAD_VAULE_HIGH || retry_cnt == RETRY_CNT_MAX)
 		return -ENODEV;
 
 	return 0;
 }
 
-static void sprd_pimc_wdt_init(int event, void *data)
+static void sprd_pmic_wdt_init(int event, void *data)
 {
 	struct sprd_pmic_wdt *pmic_wdt = data;
 
@@ -139,7 +225,7 @@ static void sprd_pimc_wdt_init(int event, void *data)
 	}
 }
 
-static void sprd_pimc_wdt_work(struct kthread_work *work)
+static void sprd_pmic_wdt_work(struct kthread_work *work)
 {
 	struct sprd_pmic_wdt *pmic_wdt = container_of(work,
 						 struct sprd_pmic_wdt,
@@ -147,11 +233,11 @@ static void sprd_pimc_wdt_work(struct kthread_work *work)
 
 	dev_info(pmic_wdt->dev, "sprd pmic wdt work enter!\n");
 
-	if (sprd_pmic_wdt_enable(pmic_wdt, pmic_wdt->wdten))
+	if (sprd_pmic_wdt_on(pmic_wdt, pmic_wdt->wdten))
 		dev_err(pmic_wdt->dev, "failed to set pmic wdt %d!\n", pmic_wdt->wdten);
 }
 
-static bool sprd_pimc_wdt_en(void)
+static bool sprd_pmic_wdt_en(void)
 {
 	struct device_node *cmdline_node;
 	const char *cmd_line, *wdten_name_p;
@@ -179,16 +265,139 @@ static bool sprd_pimc_wdt_en(void)
 	return true;
 }
 
+#ifndef CONFIG_SPRD_DEBUG
+static inline void sprd_pmic_wdt_lock(struct sprd_pmic_wdt *pmic_wdt)
+{
+	regmap_write(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_LOCK, 0);
+}
 
-static const struct of_device_id sprd_pmic_wdt_of_match[] = {
-	{.compatible = "sprd,sc2723t-wdt",},
-	{.compatible = "sprd,sc2731-wdt",},
-	{.compatible = "sprd,sc2730-wdt",},
-	{.compatible = "sprd,sc2721-wdt",},
-	{.compatible = "sprd,sc2720-wdt",},
-	{.compatible = "sprd,ump9620-wdt",},
-	{}
-};
+static inline void sprd_pmic_wdt_unlock(struct sprd_pmic_wdt *pmic_wdt)
+{
+	regmap_write(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_LOCK,
+		     SPRD_PMIC_WDT_UNLOCK_KEY);
+}
+
+static int sprd_pmic_wdt_load_value(struct sprd_pmic_wdt *pmic_wdt, u32 timeout)
+{
+	u32 val, delay_cnt = 0;
+	u32 tmr_step = timeout * SPRD_PMIC_WDT_CNT_STEP;
+
+	pr_err("sprd pmic wdt:pmic_timeout %d,feed %d\n", timeout, feed_period);
+	pmic_wdt->wdt_load = jiffies;
+
+	/*
+	 * Waiting the load value operation done,
+	 * it needs two or three RTC clock cycles.
+	 */
+	do {
+		regmap_read(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_INT_RAW,
+			    &val);
+		if (!(val & SPRD_PMIC_WDT_LD_BUSY_BIT))
+			break;
+
+		cpu_relax();
+	} while (delay_cnt++ < SPRD_PMIC_WDT_LOAD_TIMEOUT);
+
+	if (delay_cnt >= SPRD_PMIC_WDT_LOAD_TIMEOUT)
+		return -EBUSY;
+
+	sprd_pmic_wdt_unlock(pmic_wdt);
+	regmap_write(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_LOAD_HIGH,
+		     (tmr_step >> SPRD_PMIC_WDT_CNT_HIGH_SHIFT) & SPRD_PMIC_WDT_LOW_VALUE_MASK);
+	regmap_write(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_LOAD_LOW,
+		     tmr_step & SPRD_PMIC_WDT_LOW_VALUE_MASK);
+	sprd_pmic_wdt_lock(pmic_wdt);
+
+	return 0;
+}
+
+static int sprd_pmic_wdt_start(struct sprd_pmic_wdt *pmic_wdt)
+{
+	u32 val;
+	int ret;
+
+	sprd_pmic_wdt_load_value(pmic_wdt, pmic_timeout);
+	sprd_pmic_wdt_unlock(pmic_wdt);
+	ret = regmap_read(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_CTRL, &val);
+	val |= SPRD_PMIC_WDT_CNT_EN_BIT | SPRD_PMIC_WDT_RST_EN_BIT;
+	ret = regmap_write(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_CTRL, val);
+	regmap_read(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_CTRL, &pmic_wdt->wdt_ctrl);
+	sprd_pmic_wdt_lock(pmic_wdt);
+
+	return 0;
+}
+
+static int sprd_pmic_wdt_enable(struct sprd_pmic_wdt *pmic_wdt)
+{
+	u32 val;
+	int ret;
+
+	ret = regmap_update_bits(pmic_wdt->regmap, pmic_wdt->data->wdt_eb_reg,
+				 pmic_wdt->data->wdt_en, pmic_wdt->data->wdt_en);
+	if (ret)
+		return ret;
+	ret = regmap_update_bits(pmic_wdt->regmap, pmic_wdt->data->wdt_rtc_eb_reg,
+				 pmic_wdt->data->wdt_rtc_en, pmic_wdt->data->wdt_rtc_en);
+	if (ret)
+		return ret;
+
+	sprd_pmic_wdt_unlock(pmic_wdt);
+	ret = regmap_read(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_CTRL, &val);
+	val |= SPRD_PMIC_WDT_NEW_VER_EN;
+	ret = regmap_write(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_CTRL, val);
+	sprd_pmic_wdt_lock(pmic_wdt);
+	pmic_wdt->wdt_enabled = 1;
+
+	return 0;
+}
+
+static void pmic_wdt_kick(struct sprd_pmic_wdt *pmic_wdt)
+{
+	sprd_pmic_wdt_load_value(pmic_wdt, pmic_timeout);
+}
+
+static int sprd_wdt_feeder(void *data)
+{
+	struct sprd_pmic_wdt *pmic_wdt = data;
+
+	do {
+		if (kthread_should_stop())
+			break;
+
+		if (pmic_wdt->wdt_enabled && !pmic_wdt->wdt_flag)
+			pmic_wdt_kick(pmic_wdt);
+
+		set_current_state(TASK_INTERRUPTIBLE);
+		schedule_timeout(feed_period * HZ);
+	} while (1);
+
+	return 0;
+}
+
+static void sprd_wdt_feeder_init(struct sprd_pmic_wdt *pmic_wdt)
+{
+	int cpu = 0;
+
+	do {
+		pmic_wdt->feed_task = kthread_create_on_node(sprd_wdt_feeder,
+							    pmic_wdt,
+							    cpu_to_node(cpu),
+							    "watchdog_feeder/%d",
+							    cpu);
+
+		kthread_bind(pmic_wdt->feed_task, cpu);
+	} while (0);
+
+	if (IS_ERR(pmic_wdt->feed_task)) {
+		pr_err("Can't crate watchdog_feeder thread!\n");
+	} else {
+		sprd_pmic_wdt_start(pmic_wdt);
+		wake_up_process(pmic_wdt->feed_task);
+	}
+
+	pr_err("sprd pmic wdt:pmic_timeout %d,feed %d\n", pmic_timeout, feed_period);
+}
+#endif
 
 static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 {
@@ -200,6 +409,12 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 	pmic_wdt = devm_kzalloc(&pdev->dev, sizeof(*pmic_wdt), GFP_KERNEL);
 	if (!pmic_wdt)
 		return -ENOMEM;
+
+	pmic_wdt->data = of_device_get_match_data(&pdev->dev);
+	if (!pmic_wdt->data) {
+		dev_err(&pdev->dev, "can not get private data!\n");
+		return -ENODEV;
+	}
 
 	pmic_wdt->regmap = dev_get_regmap(pdev->dev.parent, NULL);
 	if (!pmic_wdt->regmap) {
@@ -214,9 +429,8 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 	}
 
 	device_init_wakeup(pmic_wdt->dev, true);
-
 	kthread_init_worker(&pmic_wdt->wdt_kworker);
-	kthread_init_work(&pmic_wdt->wdt_kwork, sprd_pimc_wdt_work);
+	kthread_init_work(&pmic_wdt->wdt_kwork, sprd_pmic_wdt_work);
 	pmic_wdt->wdt_thread = kthread_run(kthread_worker_fn, &pmic_wdt->wdt_kworker,
 					   "pmic_wdt_worker");
 	if (IS_ERR(pmic_wdt->wdt_thread)) {
@@ -227,15 +441,24 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 		sched_setscheduler(pmic_wdt->wdt_thread, SCHED_FIFO, &param);
 	}
 
-	pmic_wdt->wdten = sprd_pimc_wdt_en();
+	pmic_wdt->wdten = sprd_pmic_wdt_en();
 	pmic_wdt->dev = &pdev->dev;
+
+#ifndef CONFIG_SPRD_DEBUG
+	ret = sprd_pmic_wdt_enable(pmic_wdt);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to enable wdt\n");
+		return ret;
+	}
+	sprd_wdt_feeder_init(pmic_wdt);
+#endif
 	rval = sbuf_register_notifier(SIPC_ID_PM_SYS, SMSG_CH_TTY, 0,
-				      sprd_pimc_wdt_init, pmic_wdt);
+				      sprd_pmic_wdt_init, pmic_wdt);
 	if (rval) {
 		dev_err(&pdev->dev, "sbuf notifier failed rval = %d\n", rval);
-		return EPROBE_DEFER; //depends on UNISOC_SIPC_SPIPE for SP9863-GO
-		//return rval;
+		return -EPROBE_DEFER; //depends on UNISOC_SIPC_SPIPE for SP9863-GO
 	}
+
 	platform_set_drvdata(pdev, pmic_wdt);
 
 	return ret;
@@ -256,8 +479,24 @@ static int sprd_pmic_wdt_remove(struct platform_device *pdev)
 	kthread_flush_worker(&pmic_wdt->wdt_kworker);
 	kthread_stop(pmic_wdt->wdt_thread);
 
+#ifndef CONFIG_SPRD_DEBUG
+	if (!IS_ERR_OR_NULL(pmic_wdt->feed_task)) {
+		kthread_stop(pmic_wdt->feed_task);
+		pmic_wdt->feed_task = NULL;
+	}
+#endif
+
 	return 0;
 }
+
+static const struct of_device_id sprd_pmic_wdt_of_match[] = {
+	{.compatible = "sprd,sc2731-wdt", .data = &sc2731_data},
+	{.compatible = "sprd,sc2730-wdt", .data = &sc2730_data},
+	{.compatible = "sprd,sc2721-wdt", .data = &sc2721_data},
+	{.compatible = "sprd,sc2720-wdt", .data = &sc2720_data},
+	{.compatible = "sprd,ump9620-wdt", .data = &ump9620_data},
+	{}
+};
 
 static struct platform_driver sprd_pmic_wdt_driver = {
 	.probe = sprd_pmic_wdt_probe,
