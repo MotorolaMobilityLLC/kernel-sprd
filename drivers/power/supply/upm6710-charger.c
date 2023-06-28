@@ -223,6 +223,7 @@ struct upm6710_charger_info {
 
 	struct delayed_work monitor_work;
 	struct delayed_work wdt_work;
+	struct delayed_work det_init_stat_work;
 
 	struct dentry *debug_root;
 
@@ -1138,66 +1139,77 @@ static int upm6710_parse_dt(struct upm6710_charger_info *upm, struct device *dev
 		dev_err(upm->dev, "failed to read bat-ovp-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "uni,upm6710,bat-ovp-alarm-threshold",
 				   &upm->cfg->bat_ovp_alm_th);
 	if (ret) {
 		dev_err(upm->dev, "failed to read bat-ovp-alarm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "uni,upm6710,bat-ocp-threshold",
 				   &upm->cfg->bat_ocp_th);
 	if (ret) {
 		dev_err(upm->dev, "failed to read bat-ocp-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "uni,upm6710,bat-ocp-alarm-threshold",
 				   &upm->cfg->bat_ocp_alm_th);
 	if (ret) {
 		dev_err(upm->dev, "failed to read bat-ocp-alarm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "uni,upm6710,bus-ovp-threshold",
 				   &upm->cfg->bus_ovp_th);
 	if (ret) {
 		dev_err(upm->dev, "failed to read bus-ovp-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "uni,upm6710,bus-ovp-alarm-threshold",
 				   &upm->cfg->bus_ovp_alm_th);
 	if (ret) {
 		dev_err(upm->dev, "failed to read bus-ovp-alarm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "uni,upm6710,bus-ocp-threshold",
 				   &upm->cfg->bus_ocp_th);
 	if (ret) {
 		dev_err(upm->dev, "failed to read bus-ocp-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "uni,upm6710,bus-ocp-alarm-threshold",
 				   &upm->cfg->bus_ocp_alm_th);
 	if (ret) {
 		dev_err(upm->dev, "failed to read bus-ocp-alarm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "uni,upm6710,bat-ucp-alarm-threshold",
 				   &upm->cfg->bat_ucp_alm_th);
 	if (ret) {
 		dev_err(upm->dev, "failed to read bat-ucp-alarm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "uni,upm6710,bat-therm-threshold",
 				   &upm->cfg->bat_therm_th);
 	if (ret) {
 		dev_err(upm->dev, "failed to read bat-therm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "uni,upm6710,bus-therm-threshold",
 				   &upm->cfg->bus_therm_th);
 	if (ret) {
 		dev_err(upm->dev, "failed to read bus-therm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "uni,upm6710,die-therm-threshold",
 				   &upm->cfg->die_therm_th);
 	if (ret) {
@@ -1282,113 +1294,126 @@ static int upm6710_init_protection(struct upm6710_charger_info *upm)
 	int ret;
 
 	ret = upm6710_enable_batovp(upm, !upm->cfg->bat_ovp_disable);
-	dev_info(upm->dev, "%s bat ovp %s\n",
-		 upm->cfg->bat_ovp_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to %s bat ovp, ret = %d\n",
+			__func__, upm->cfg->bat_ovp_disable ? "disable" : "enable", ret);
 
 	ret = upm6710_enable_batocp(upm, !upm->cfg->bat_ocp_disable);
-	dev_info(upm->dev, "%s bat ocp %s\n",
-		 upm->cfg->bat_ocp_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to %s bat ocp, ret = %d\n",
+			__func__, upm->cfg->bat_ocp_disable ? "disable" : "enable", ret);
 
 	ret = upm6710_enable_batovp_alarm(upm, !upm->cfg->bat_ovp_alm_disable);
-	dev_info(upm->dev, "%s bat ovp alarm %s\n",
-		 upm->cfg->bat_ovp_alm_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to %s bat ovp alarm, ret = %d\n",
+			__func__, upm->cfg->bat_ovp_alm_disable ? "disable" : "enable", ret);
 
 	ret = upm6710_enable_batocp_alarm(upm, !upm->cfg->bat_ocp_alm_disable);
-	dev_info(upm->dev, "%s bat ocp alarm %s\n",
-		 upm->cfg->bat_ocp_alm_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to %s bat ocp alarm, ret = %d\n",
+			__func__, upm->cfg->bat_ocp_alm_disable ? "disable" : "enable", ret);
 
 	ret = upm6710_enable_batucp_alarm(upm, !upm->cfg->bat_ucp_alm_disable);
-	dev_info(upm->dev, "%s bat ocp alarm %s\n",
-		 upm->cfg->bat_ucp_alm_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to %s bat ocp alarm, ret = %d\n",
+			__func__, upm->cfg->bat_ucp_alm_disable ? "disable" : "enable", ret);
 
 	ret = upm6710_enable_busovp_alarm(upm, !upm->cfg->bus_ovp_alm_disable);
-	dev_info(upm->dev, "%s bus ovp alarm %s\n",
-		 upm->cfg->bus_ovp_alm_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to %s bus ovp alarm, ret = %d\n",
+			__func__, upm->cfg->bus_ovp_alm_disable ? "disable" : "enable", ret);
 
 	ret = upm6710_enable_busocp(upm, !upm->cfg->bus_ocp_disable);
-	dev_info(upm->dev, "%s bus ocp %s\n",
-		 upm->cfg->bus_ocp_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to %s bus ocp, ret = %d\n",
+			__func__, upm->cfg->bus_ocp_disable ? "disable" : "enable", ret);
 
 	ret = upm6710_enable_busocp_alarm(upm, !upm->cfg->bus_ocp_alm_disable);
-	dev_info(upm->dev, "%s bus ocp alarm %s\n",
-		 upm->cfg->bus_ocp_alm_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to %s bus ocp alarm, ret = %d\n",
+			__func__, upm->cfg->bus_ocp_alm_disable ? "disable" : "enable", ret);
 
 	ret = upm6710_set_batovp_th(upm, upm->cfg->bat_ovp_th);
-	dev_info(upm->dev, "set bat ovp th %d %s\n", upm->cfg->bat_ovp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set bat ovp th %d, ret = %d\n",
+			__func__, upm->cfg->bat_ovp_th, ret);
 
 	ret = upm6710_set_batovp_alarm_th(upm, upm->cfg->bat_ovp_alm_th);
-	dev_info(upm->dev, "set bat ovp alarm threshold %d %s\n", upm->cfg->bat_ovp_alm_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set bat ovp alarm th %d, ret = %d\n",
+			__func__, upm->cfg->bat_ovp_alm_th, ret);
 
 	ret = upm6710_set_batocp_th(upm, upm->cfg->bat_ocp_th);
-	dev_info(upm->dev, "set bat ocp threshold %d %s\n", upm->cfg->bat_ocp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set bat ocp th %d, ret = %d\n",
+			__func__, upm->cfg->bat_ocp_th, ret);
 
 	ret = upm6710_set_batocp_alarm_th(upm, upm->cfg->bat_ocp_alm_th);
-	dev_info(upm->dev, "set bat ocp alarm threshold %d %s\n", upm->cfg->bat_ocp_alm_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set bat ocp alarm th %d, ret = %d\n",
+			__func__, upm->cfg->bat_ocp_alm_th, ret);
 
 	ret = upm6710_set_busovp_th(upm, upm->cfg->bus_ovp_th);
-	dev_info(upm->dev, "set bus ovp threshold %d %s\n", upm->cfg->bus_ovp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set bus ovp th %d, ret = %d\n",
+			__func__, upm->cfg->bus_ovp_th, ret);
 
 	ret = upm6710_set_busovp_alarm_th(upm, upm->cfg->bus_ovp_alm_th);
-	dev_info(upm->dev, "set bus ovp alarm threshold %d %s\n", upm->cfg->bus_ovp_alm_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set bus ovp alarm th %d, ret = %d\n",
+			__func__, upm->cfg->bus_ovp_alm_th, ret);
 
 	ret = upm6710_set_busocp_th(upm, upm->cfg->bus_ocp_th);
-	dev_info(upm->dev, "set bus ocp threshold %d %s\n", upm->cfg->bus_ocp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set bus ocp th %d, ret = %d\n",
+			__func__, upm->cfg->bus_ocp_th, ret);
 
 	ret = upm6710_set_busocp_alarm_th(upm, upm->cfg->bus_ocp_alm_th);
-	dev_info(upm->dev, "set bus ocp alarm th %d %s\n", upm->cfg->bus_ocp_alm_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set bus ocp alarm th %d, ret = %d\n",
+			__func__, upm->cfg->bus_ocp_alm_th, ret);
 
 	ret = upm6710_set_batucp_alarm_th(upm, upm->cfg->bat_ucp_alm_th);
-	dev_info(upm->dev, "set bat ucp threshold %d %s\n", upm->cfg->bat_ucp_alm_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set bat ucp th %d, ret = %d\n",
+			__func__, upm->cfg->bat_ucp_alm_th, ret);
 
 	ret = upm6710_set_bat_therm_th(upm, upm->cfg->bat_therm_th);
-	dev_info(upm->dev, "set die therm threshold %d %s\n", upm->cfg->bat_therm_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set die therm th %d, ret = %d\n",
+			__func__, upm->cfg->bat_therm_th, ret);
 
 	ret = upm6710_set_bus_therm_th(upm, upm->cfg->bus_therm_th);
-	dev_info(upm->dev, "set bus therm threshold %d %s\n", upm->cfg->bus_therm_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set bus therm th %d, ret = %d\n",
+			__func__, upm->cfg->bus_therm_th, ret);
 
 	ret = upm6710_set_die_therm_th(upm, upm->cfg->die_therm_th);
-	dev_info(upm->dev, "set die therm threshold %d %s\n", upm->cfg->die_therm_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set die therm th %d, ret = %d\n",
+			__func__, upm->cfg->die_therm_th, ret);
 
 	ret = upm6710_set_acovp_th(upm, upm->cfg->ac_ovp_th);
-	dev_info(upm->dev, "set ac ovp threshold %d %s\n", upm->cfg->ac_ovp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to set ac ovp th %d, ret = %d\n",
+			__func__, upm->cfg->ac_ovp_th, ret);
 
 	/* The delay of 50ms is to ensure that the register can respond normally. */
 	msleep(50);
 	ret = upm6710_enable_bat_therm(upm, !upm->cfg->bat_therm_disable);
-	dev_info(upm->dev, "%s bat therm %s\n",
-		 upm->cfg->bat_therm_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to %s bat therm, ret = %d\n",
+			__func__, upm->cfg->bat_therm_disable ? "disable" : "enable", ret);
 
 	ret = upm6710_enable_bus_therm(upm, !upm->cfg->bus_therm_disable);
-	dev_info(upm->dev, "%s bus therm %s\n",
-		 upm->cfg->bus_therm_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to %s bus therm, ret = %d\n",
+			__func__, upm->cfg->bus_therm_disable ? "disable" : "enable", ret);
 
 	ret = upm6710_enable_die_therm(upm, !upm->cfg->die_therm_disable);
-	dev_info(upm->dev, "%s die therm %s\n",
-		 upm->cfg->die_therm_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(upm->dev, "%s, failed to %s die therm, ret = %d\n",
+			__func__, upm->cfg->die_therm_disable ? "disable" : "enable", ret);
 
 	return 0;
 }
@@ -1465,7 +1490,6 @@ static int upm6710_init_device(struct upm6710_charger_info *upm)
 
 static int upm6710_set_present(struct upm6710_charger_info *upm, bool present)
 {
-	dev_info(upm->dev, "%s, present = %d\n", __func__, present);
 	upm->usb_present = present;
 
 	if (present) {
@@ -1763,8 +1787,6 @@ static int upm6710_charger_set_property(struct power_supply *psy,
 		if (upm6710_check_charge_enabled(upm, &upm->charge_enabled))
 			dev_err(upm->dev, "%s, failed to check charge enabled\n", __func__);
 
-		dev_info(upm->dev, "%s, %s charge %s\n", __func__,
-			 val->intval ? "enable" : "disable", !ret ? "successfully" : "failed");
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		if (val->intval == CM_USB_PRESENT_CMD)
@@ -1772,13 +1794,15 @@ static int upm6710_charger_set_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 		ret = upm6710_set_batovp_th(upm, val->intval / 1000);
-		dev_info(upm->dev, "set bat ovp th %d mv %s\n",
-			 val->intval / 1000, !ret ? "successfully" : "failed");
+		if (ret)
+			dev_err(upm->dev, "%s, failed to set bat ovp th %d mv, ret = %d\n",
+				__func__, val->intval / 1000, ret);
 
 		value = val->intval / 1000 - upm->cfg->bat_delta_volt;
 		ret = upm6710_set_batovp_alarm_th(upm, value);
-		dev_info(upm->dev, "set bat ovp alm th %d mv %s\n", value,
-			 !ret ? "successfully" : "failed");
+		if (ret)
+			dev_err(upm->dev, "%s, failed to set bat ovp alm th %d mv, ret = %d\n",
+				__func__, value, ret);
 		break;
 
 	default:
@@ -1858,7 +1882,6 @@ static void upm6710_check_alarm_status(struct upm6710_charger_info *upm)
 	u8 flag = 0;
 	u8 stat = 0;
 
-	dev_info(upm->dev, "%s\n", __func__);
 	mutex_lock(&upm->data_lock);
 
 	ret = upm6710_read_byte(upm, UPM6710_REG_08, &flag);
@@ -1908,7 +1931,6 @@ static void upm6710_check_fault_status(struct upm6710_charger_info *upm)
 	u8 stat = 0;
 	bool changed = false;
 
-	dev_info(upm->dev, "%s\n", __func__);
 	mutex_lock(&upm->data_lock);
 
 	ret = upm6710_read_byte(upm, UPM6710_REG_10, &stat);
@@ -1951,10 +1973,14 @@ static irqreturn_t upm6710_charger_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static void determine_initial_status(struct upm6710_charger_info *upm)
+static void upm6710_determine_initial_status_work(struct work_struct *work)
 {
-	if (upm->client->irq)
-		upm6710_charger_interrupt(upm->client->irq, upm);
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct upm6710_charger_info *upm = container_of(dwork,
+							struct upm6710_charger_info,
+							det_init_stat_work);
+
+	upm6710_dump_reg(upm);
 }
 
 static int show_registers(struct seq_file *m, void *data)
@@ -2084,6 +2110,7 @@ static int upm6710_charger_probe(struct i2c_client *client,
 	}
 
 	INIT_DELAYED_WORK(&upm->wdt_work, upm6710_charger_watchdog_work);
+	INIT_DELAYED_WORK(&upm->det_init_stat_work, upm6710_determine_initial_status_work);
 	ret = upm6710_psy_register(upm);
 	if (ret)
 		return ret;
@@ -2097,7 +2124,7 @@ static int upm6710_charger_probe(struct i2c_client *client,
 		}
 	}
 
-	client->irq =  gpio_to_irq(upm->int_pin);
+	client->irq = gpio_to_irq(upm->int_pin);
 	if (client->irq) {
 		ret = devm_request_threaded_irq(&client->dev, client->irq,
 						NULL, upm6710_charger_interrupt,
@@ -2120,8 +2147,7 @@ static int upm6710_charger_probe(struct i2c_client *client,
 		return ret;
 	}
 
-	determine_initial_status(upm);
-
+	schedule_delayed_work(&upm->det_init_stat_work, msecs_to_jiffies(100));
 	dev_info(upm->dev, "upm6710 probe successfully, Part Num:%d\n!", upm->part_no);
 
 	return 0;

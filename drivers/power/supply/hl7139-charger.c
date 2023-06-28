@@ -218,6 +218,7 @@ struct hl7139 {
 
 	struct delayed_work monitor_work;
 	struct delayed_work wdt_work;
+	struct delayed_work det_init_stat_work;
 
 	struct dentry *debug_root;
 
@@ -1379,39 +1380,39 @@ static int hl7139_init_protection(struct hl7139 *hl)
 
 	ret = hl7139_set_batocp_th(hl, hl->cfg->bat_ocp_th);
 	if (ret)
-		dev_err(hl->dev, "%s, failed to set bat ocp threshold %d, ret = %d\n",
+		dev_err(hl->dev, "%s, failed to set bat ocp th %d, ret = %d\n",
 			__func__, hl->cfg->bat_ocp_th, ret);
 
 	ret = hl7139_set_acovp_th(hl, hl->cfg->ac_ovp_th);
 	if (ret)
-		dev_err(hl->dev, "%s, failed to set ac ovp threshold %d, ret = %d\n",
+		dev_err(hl->dev, "%s, failed to set ac ovp th %d, ret = %d\n",
 			__func__, hl->cfg->ac_ovp_th, ret);
 
 	ret = hl7139_set_busovp_th(hl, hl->cfg->bus_ovp_th);
 	if (ret)
-		dev_err(hl->dev, "%s, failed to set %s bus ovp threshold %d, ret = %d\n",
+		dev_err(hl->dev, "%s, failed to set %s bus ovp th %d, ret = %d\n",
 			__func__, hl->work_mode == CP_MODE ? "CP mode" : "BP mode",
 			hl->cfg->bus_ovp_th, ret);
 
 	ret = hl7139_set_busocp_th(hl, hl->cfg->bus_ocp_th);
 	if (ret)
-		dev_err(hl->dev, "%s, failed to set %s bus ocp threshold %d, ret = %d\n",
+		dev_err(hl->dev, "%s, failed to set %s bus ocp th %d, ret = %d\n",
 			__func__, hl->work_mode == CP_MODE ? "CP mode" : "BP mode",
 			hl->cfg->bus_ocp_th, ret);
 
 	ret = hl7139_set_track_ov_delta_th(hl, hl->cfg->track_ov_delta_th);
 	if (ret)
-		dev_err(hl->dev, "%s, failed to set track ov delta threshold %d, ret = %d\n",
+		dev_err(hl->dev, "%s, failed to set track ov delta th %d, ret = %d\n",
 			__func__, hl->cfg->track_ov_delta_th, ret);
 
 	ret = hl7139_set_track_uv_delta_th(hl, hl->cfg->track_uv_delta_th);
 	if (ret)
-		dev_err(hl->dev, "%s, failed to set track uv delta threshold %d, ret = %d\n",
+		dev_err(hl->dev, "%s, failed to set track uv delta th %d, ret = %d\n",
 			__func__, hl->cfg->track_uv_delta_th, ret);
 
 	ret = hl7139_set_die_temp_reg_th(hl, hl->cfg->die_temp_reg_th);
 	if (ret)
-		dev_err(hl->dev, "%s, failed to set die temperature threshold %d, ret = %d\n",
+		dev_err(hl->dev, "%s, failed to set die temperature th %d, ret = %d\n",
 			__func__, hl->cfg->die_temp_reg_th, ret);
 
 	return ret;
@@ -2165,13 +2166,14 @@ static irqreturn_t hl7139_charger_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static void hl7139_determine_initial_status(struct hl7139 *hl)
+static void hl7139_determine_initial_status_work(struct work_struct *work)
 {
-	if (hl->irq) {
-		hl7139_charger_interrupt(hl->irq, hl);
-		hl7139_dump_reg(hl);
-	}
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct hl7139 *hl = container_of(dwork, struct hl7139, det_init_stat_work);
+
+	hl7139_dump_reg(hl);
 }
+
 
 static const struct of_device_id hl7139_charger_match_table[] = {
 	{
@@ -2267,6 +2269,7 @@ static int hl7139_charger_probe(struct i2c_client *client,
 	}
 
 	INIT_DELAYED_WORK(&hl->wdt_work, hl7139_charger_watchdog_work);
+	INIT_DELAYED_WORK(&hl->det_init_stat_work, hl7139_determine_initial_status_work);
 	ret = hl7139_psy_register(hl);
 	if (ret)
 		return ret;
@@ -2275,8 +2278,7 @@ static int hl7139_charger_probe(struct i2c_client *client,
 	if (ret)
 		return ret;
 
-	hl7139_determine_initial_status(hl);
-
+	schedule_delayed_work(&hl->det_init_stat_work, msecs_to_jiffies(100));
 	dev_info(hl->dev, "hl7139 probe successfully, Part Num:%d\n!",
 		 hl->part_no);
 

@@ -256,6 +256,7 @@ struct sc8551 {
 
 	struct delayed_work monitor_work;
 	struct delayed_work wdt_work;
+	struct delayed_work det_init_stat_work;
 
 	struct dentry *debug_root;
 
@@ -1046,12 +1047,14 @@ static int sc8551_parse_dt(struct sc8551 *sc, struct device *dev)
 		dev_err(sc->dev, "failed to read bat-ovp-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "sc,sc8551,bat-ovp-alarm-threshold",
 				   &sc->cfg->bat_ovp_alm_th);
 	if (ret) {
 		dev_err(sc->dev, "failed to read bat-ovp-alarm-threshold\n");
 		return ret;
 	}
+
 	sc->cfg->bat_ovp_default_alm_th = sc->cfg->bat_ovp_alm_th;
 
 	ret = of_property_read_u32(np, "sc,sc8551,bat-ocp-threshold",
@@ -1060,54 +1063,63 @@ static int sc8551_parse_dt(struct sc8551 *sc, struct device *dev)
 		dev_err(sc->dev, "failed to read bat-ocp-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "sc,sc8551,bat-ocp-alarm-threshold",
 				   &sc->cfg->bat_ocp_alm_th);
 	if (ret) {
 		dev_err(sc->dev, "failed to read bat-ocp-alarm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "sc,sc8551,bus-ovp-threshold",
 				   &sc->cfg->bus_ovp_th);
 	if (ret) {
 		dev_err(sc->dev, "failed to read bus-ovp-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "sc,sc8551,bus-ovp-alarm-threshold",
 				   &sc->cfg->bus_ovp_alm_th);
 	if (ret) {
 		dev_err(sc->dev, "failed to read bus-ovp-alarm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "sc,sc8551,bus-ocp-threshold",
 				   &sc->cfg->bus_ocp_th);
 	if (ret) {
 		dev_err(sc->dev, "failed to read bus-ocp-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "sc,sc8551,bus-ocp-alarm-threshold",
 				   &sc->cfg->bus_ocp_alm_th);
 	if (ret) {
 		dev_err(sc->dev, "failed to read bus-ocp-alarm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "sc,sc8551,bat-ucp-alarm-threshold",
 				   &sc->cfg->bat_ucp_alm_th);
 	if (ret) {
 		dev_err(sc->dev, "failed to read bat-ucp-alarm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "sc,sc8551,bat-therm-threshold",
 				   &sc->cfg->bat_therm_th);
 	if (ret) {
 		dev_err(sc->dev, "failed to read bat-therm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "sc,sc8551,bus-therm-threshold",
 				   &sc->cfg->bus_therm_th);
 	if (ret) {
 		dev_err(sc->dev, "failed to read bus-therm-threshold\n");
 		return ret;
 	}
+
 	ret = of_property_read_u32(np, "sc,sc8551,die-therm-threshold",
 				   &sc->cfg->die_therm_th);
 	if (ret) {
@@ -1200,51 +1212,56 @@ static int sc8551_init_protection(struct sc8551 *sc)
 	int ret;
 
 	ret = sc8551_enable_batovp(sc, !sc->cfg->bat_ovp_disable);
-	dev_info(sc->dev, "%s bat ovp %s\n",
-		 sc->cfg->bat_ovp_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(sc->dev, "%s, failed to %s bat ovp, ret = %d\n",
+			__func__, sc->cfg->bat_ovp_disable ? "disable" : "enable", ret);
 
 	ret = sc8551_enable_batocp(sc, !sc->cfg->bat_ocp_disable);
-	dev_info(sc->dev, "%s bat ocp %s\n",
-		 sc->cfg->bat_ocp_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(sc->dev, "%s, failed to %s bat ocp, ret = %d\n",
+			__func__, sc->cfg->bat_ocp_disable ? "disable" : "enable", ret);
 
 	ret = sc8551_enable_busocp(sc, !sc->cfg->bus_ocp_disable);
-	dev_info(sc->dev, "%s bus ocp %s\n",
-		 sc->cfg->bus_ocp_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(sc->dev, "%s, failed to %s bus ocp, ret = %d\n",
+			__func__, sc->cfg->bus_ocp_disable ? "disable" : "enable", ret);
 
 	ret = sc8551_enable_bat_therm(sc, !sc->cfg->bat_therm_disable);
-	dev_info(sc->dev, "%s bat therm %s\n",
-		 sc->cfg->bat_therm_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(sc->dev, "%s, failed to %s bat therm, ret = %d\n",
+			__func__, sc->cfg->bat_therm_disable ? "disable" : "enable", ret);
 
 	ret = sc8551_enable_bus_therm(sc, !sc->cfg->bus_therm_disable);
-	dev_info(sc->dev, "%s bus therm %s\n",
-		 sc->cfg->bus_therm_disable ? "disable" : "enable",
-		 !ret ? "successfullly" : "failed");
+	if (ret)
+		dev_err(sc->dev, "%s, failed to %s bus therm, ret = %d\n",
+			__func__, sc->cfg->bus_therm_disable ? "disable" : "enable", ret);
 
 	ret = sc8551_set_batovp_th(sc, sc->cfg->bat_ovp_th);
-	dev_info(sc->dev, "set bat ovp th %d %s\n", sc->cfg->bat_ovp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(sc->dev, "%s, failed to set bat ovp th %d, ret = %d\n",
+			__func__, sc->cfg->bat_ovp_th, ret);
 
 	sc->cfg->bat_ovp_alm_th = sc->cfg->bat_ovp_default_alm_th;
 
 	ret = sc8551_set_batocp_th(sc, sc->cfg->bat_ocp_th);
-	dev_info(sc->dev, "set bat ocp threshold %d %s\n", sc->cfg->bat_ocp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(sc->dev, "%s, failed to set bat ocp th %d, ret = %d\n",
+			__func__, sc->cfg->bat_ocp_th, ret);
 
 	ret = sc8551_set_busovp_th(sc, sc->cfg->bus_ovp_th);
-	dev_info(sc->dev, "set bus ovp threshold %d %s\n", sc->cfg->bus_ovp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(sc->dev, "%s, failed to set bus ovp th %d, ret = %d\n",
+			__func__, sc->cfg->bus_ovp_th, ret);
 
 	ret = sc8551_set_busocp_th(sc, sc->cfg->bus_ocp_th);
-	dev_info(sc->dev, "set bus ocp threshold %d %s\n", sc->cfg->bus_ocp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(sc->dev, "%s, failed to set bus ocp th %d, ret = %d\n",
+			__func__, sc->cfg->bus_ocp_th, ret);
 
 	ret = sc8551_set_acovp_th(sc, sc->cfg->ac_ovp_th);
-	dev_info(sc->dev, "set ac ovp threshold %d %s\n", sc->cfg->ac_ovp_th,
-		 !ret ? "successfully" : "failed");
+	if (ret)
+		dev_err(sc->dev, "%s, failed to set ac ovp th %d, ret = %d\n",
+			__func__, sc->cfg->ac_ovp_th, ret);
 
 	return 0;
 }
@@ -1686,8 +1703,6 @@ static int sc8551_charger_set_property(struct power_supply *psy,
 		return -EINVAL;
 	}
 
-	dev_dbg(sc->dev, "<<<<<prop = %d\n", prop);
-
 	switch (prop) {
 	case POWER_SUPPLY_PROP_CALIBRATE:
 		if (!val->intval) {
@@ -1703,8 +1718,6 @@ static int sc8551_charger_set_property(struct power_supply *psy,
 		if (sc8551_check_charge_enabled(sc, &sc->charge_enabled))
 			dev_err(sc->dev, "%s, failed to check charge enabled\n", __func__);
 
-		dev_info(sc->dev, "%s, %s charge %s\n", __func__,
-			 val->intval ? "enable" : "disable", !ret ? "successfully" : "failed");
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		if (val->intval == CM_USB_PRESENT_CMD)
@@ -1713,11 +1726,11 @@ static int sc8551_charger_set_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 		ret = sc8551_set_batovp_th(sc, val->intval / 1000);
+		if (ret)
+			dev_err(sc->dev, "%s, failed to set bat ovp th %d mv, ret = %d\n",
+				__func__, val->intval / 1000, ret);
 
 		sc->cfg->bat_ovp_alm_th = val->intval / 1000 - sc->cfg->bat_delta_volt;
-		dev_info(sc->dev, "set bat ovp th %d mv %s, soft set bat ovp alm th %d mv\n",
-			 val->intval / 1000, !ret ? "successfully" : "failed",
-			 sc->cfg->bat_ovp_alm_th);
 		break;
 
 	default:
@@ -1925,10 +1938,12 @@ static irqreturn_t sc8551_charger_interrupt(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
-static void determine_initial_status(struct sc8551 *sc)
+static void sc8551_determine_initial_status_work(struct work_struct *work)
 {
-	if (sc->client->irq)
-		sc8551_charger_interrupt(sc->client->irq, sc);
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct sc8551 *sc = container_of(dwork, struct sc8551, det_init_stat_work);
+
+	sc8551_dump_reg(sc);
 }
 
 static const struct of_device_id sc8551_charger_match_table[] = {
@@ -2023,6 +2038,7 @@ static int sc8551_charger_probe(struct i2c_client *client,
 	}
 
 	INIT_DELAYED_WORK(&sc->wdt_work, sc8551_charger_watchdog_work);
+	INIT_DELAYED_WORK(&sc->det_init_stat_work, sc8551_determine_initial_status_work);
 	ret = sc8551_psy_register(sc);
 	if (ret)
 		return ret;
@@ -2031,8 +2047,7 @@ static int sc8551_charger_probe(struct i2c_client *client,
 	if (ret)
 		return ret;
 
-	determine_initial_status(sc);
-
+	schedule_delayed_work(&sc->det_init_stat_work, msecs_to_jiffies(100));
 	dev_info(sc->dev, "sc8551 probe successfully, Part Num:%d\n!",
 		 sc->part_no);
 
