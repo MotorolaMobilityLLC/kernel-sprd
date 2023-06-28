@@ -77,12 +77,7 @@ static int sprd_pcie_host_init(struct pcie_port *pp)
 
 	sprd_pcie_ltssm_enable(pci, true);
 
-	if (device_property_read_bool(pci->dev, "ep-poweron-late")) {
-		dev_info(pci->dev,
-			 "The ep doesn't power on, no need to wait link\n");
-		sprd_pcie_check_atu_viewport(pci);
-		return 0;
-	}
+	sprd_pcie_check_atu_viewport(pci);
 
 	if (dw_pcie_wait_for_link(pci))
 		dev_warn(pci->dev,
@@ -408,6 +403,7 @@ static int sprd_pcie_host_reinit(struct platform_device *pdev)
 	struct sprd_pcie *ctrl = platform_get_drvdata(pdev);
 	struct dw_pcie *pci = ctrl->pci;
 	struct pcie_port *pp = &pci->pp;
+	struct pci_bus *root_bus;
 
 	if (!ctrl->is_suspended) {
 		ret = pm_runtime_get_sync(&pdev->dev);
@@ -438,8 +434,15 @@ static int sprd_pcie_host_reinit(struct platform_device *pdev)
 
 	if (ctrl->defer_init) {
 		ret = dw_pcie_host_init(pp);
-		if (ret)
+		if (ret || (!dw_pcie_link_up(pci))) {
+			root_bus = to_root_bus_from_pdev(pdev);
+			sprd_pcie_remove_bus(root_bus);
+			sprd_pcie_save_dwc_reg(pci);
+			sprd_pcie_ltssm_enable(pci, false);
+			ctrl->defer_init = 0;
+
 			goto power_off;
+		}
 		return 0;
 	}
 
