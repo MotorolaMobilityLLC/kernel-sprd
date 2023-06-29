@@ -15,10 +15,12 @@
 		sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 		nvmem-cells = <&aud_pabst_vcal>,
 			<&neg_cp_efuse>,
-			<&fgu_calib>;
+			<&fgu_calib>,
+			<&codec_product_info>;
 		nvmem-cell-names = "aud_pabst_vcal_efuse",
 				"neg_cp_efuse",
-				"fgu_4p2_efuse";
+				"fgu_4p2_efuse",
+				"codec_product_info";
 		status = "disabled";
 	};
 };

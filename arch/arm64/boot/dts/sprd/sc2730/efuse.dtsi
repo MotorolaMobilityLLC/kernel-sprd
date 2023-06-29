@@ -61,6 +61,10 @@
 		headset_adc_sec: calib@16 {
 			reg = <0x2c 0x2>;
 		};
+
+		codec_product_info: calib@2e {
+			reg = <0x2e 0x2>;
+		};
 	};
 
 };
