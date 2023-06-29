@@ -2092,7 +2092,7 @@ static int bq2597x_charger_probe(struct i2c_client *client,
 		ret = devm_gpio_request_one(bq->dev, bq->int_pin, GPIOF_DIR_IN, "bq2597x_int");
 		if (ret) {
 			dev_err(bq->dev, "int request failed\n");
-			goto err_1;
+			return ret;
 		}
 
 		client->irq =  gpio_to_irq(bq->int_pin);
@@ -2106,7 +2106,7 @@ static int bq2597x_charger_probe(struct i2c_client *client,
 		if (ret < 0) {
 			dev_err(bq->dev, "request irq for irq=%d failed, ret =%d\n",
 				client->irq, ret);
-			goto err_1;
+			return ret;
 		}
 		enable_irq_wake(client->irq);
 	}
@@ -2117,7 +2117,7 @@ static int bq2597x_charger_probe(struct i2c_client *client,
 	ret = sysfs_create_group(&bq->dev->kobj, &bq2597x_attr_group);
 	if (ret) {
 		dev_err(bq->dev, "failed to register sysfs. err: %d\n", ret);
-		goto err_1;
+		return ret;
 	}
 
 	determine_initial_status(bq);
@@ -2125,10 +2125,6 @@ static int bq2597x_charger_probe(struct i2c_client *client,
 	dev_info(bq->dev, "bq2597x probe successfully, Part Num:%d\n!", bq->part_no);
 
 	return 0;
-
-err_1:
-	power_supply_unregister(bq->bq2597x_psy);
-	return ret;
 }
 
 static int bq2597x_charger_remove(struct i2c_client *client)
@@ -2138,8 +2134,6 @@ static int bq2597x_charger_remove(struct i2c_client *client)
 
 	bq2597x_enable_adc(bq, false);
 	cancel_delayed_work_sync(&bq->wdt_work);
-
-	power_supply_unregister(bq->bq2597x_psy);
 
 	mutex_destroy(&bq->data_lock);
 	mutex_destroy(&bq->i2c_rw_lock);

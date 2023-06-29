@@ -2273,7 +2273,7 @@ static int hl7139_charger_probe(struct i2c_client *client,
 
 	ret = hl7139_init_irq(hl);
 	if (ret)
-		goto err_1;
+		return ret;
 
 	hl7139_determine_initial_status(hl);
 
@@ -2281,10 +2281,6 @@ static int hl7139_charger_probe(struct i2c_client *client,
 		 hl->part_no);
 
 	return 0;
-
-err_1:
-	power_supply_unregister(hl->fc2_psy);
-	return ret;
 }
 
 static inline bool is_device_suspended(struct hl7139 *hl)
@@ -2344,8 +2340,6 @@ static int hl7139_charger_remove(struct i2c_client *client)
 
 	hl7139_enable_adc(hl, false);
 	cancel_delayed_work_sync(&hl->wdt_work);
-
-	power_supply_unregister(hl->fc2_psy);
 
 	mutex_destroy(&hl->charging_disable_lock);
 	mutex_destroy(&hl->data_lock);

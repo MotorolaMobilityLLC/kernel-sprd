@@ -2093,7 +2093,7 @@ static int upm6710_charger_probe(struct i2c_client *client,
 					    GPIOF_DIR_IN, "upm6710_int");
 		if (ret) {
 			dev_err(upm->dev, "int request failed\n");
-			goto err_1;
+			return ret;
 		}
 	}
 
@@ -2106,7 +2106,7 @@ static int upm6710_charger_probe(struct i2c_client *client,
 		if (ret < 0) {
 			dev_err(upm->dev, "request irq for irq=%d failed, ret =%d\n",
 				client->irq, ret);
-			goto err_1;
+			return ret;
 		}
 		enable_irq_wake(client->irq);
 	}
@@ -2117,7 +2117,7 @@ static int upm6710_charger_probe(struct i2c_client *client,
 	ret = sysfs_create_group(&upm->dev->kobj, &upm6710_attr_group);
 	if (ret) {
 		dev_err(upm->dev, "failed to register sysfs. err: %d\n", ret);
-		goto err_1;
+		return ret;
 	}
 
 	determine_initial_status(upm);
@@ -2125,10 +2125,6 @@ static int upm6710_charger_probe(struct i2c_client *client,
 	dev_info(upm->dev, "upm6710 probe successfully, Part Num:%d\n!", upm->part_no);
 
 	return 0;
-
-err_1:
-	power_supply_unregister(upm->upm6710_psy);
-	return ret;
 }
 
 static int upm6710_charger_remove(struct i2c_client *client)
@@ -2138,8 +2134,6 @@ static int upm6710_charger_remove(struct i2c_client *client)
 
 	upm6710_enable_adc(upm, false);
 	cancel_delayed_work_sync(&upm->wdt_work);
-
-	power_supply_unregister(upm->upm6710_psy);
 
 	mutex_destroy(&upm->data_lock);
 	mutex_destroy(&upm->i2c_rw_lock);

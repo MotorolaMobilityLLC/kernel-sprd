@@ -2097,8 +2097,6 @@ static int sc8551_charger_remove(struct i2c_client *client)
 	sc8551_enable_adc(sc, false);
 	cancel_delayed_work_sync(&sc->wdt_work);
 
-	power_supply_unregister(sc->fc2_psy);
-
 	mutex_destroy(&sc->charging_disable_lock);
 	mutex_destroy(&sc->data_lock);
 	mutex_destroy(&sc->i2c_rw_lock);
