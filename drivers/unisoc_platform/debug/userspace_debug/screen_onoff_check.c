@@ -131,7 +131,7 @@ static int screen_onoff_checker_thread(void *data)
 void wakeup_screen_onoff_checker(void)
 {
 	struct task_struct *task;
-	struct device_node *bl_np;
+	struct device_node *bl_np = NULL;
 
 	if (!timeout_checker.bl_dev && timeout_checker.np) {
 		bl_np = of_parse_phandle(timeout_checker.np, "sprd,backlight", 0);
@@ -253,7 +253,7 @@ static int screen_checker_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct device_node *np = dev->of_node;
 	struct device_node *bl_np;
-	int ret;
+	int ret, rc;
 	u32 timeout_ms = 5000;
 	u32 loop_interval_ms = 50;
 
@@ -265,7 +265,11 @@ static int screen_checker_probe(struct platform_device *pdev)
 		dev_err(dev, "checker: bl_dev=%p\n", timeout_checker.bl_dev);
 	}
 
-	of_property_read_u32(np, "timeout-ms", &timeout_ms);
+	rc = of_property_read_u32(np, "timeout-ms", &timeout_ms);
+
+	if (!rc)
+		return -ENOMEM;
+
 	if (timeout_ms < 2000)
 		timeout_ms = 2000;
 
