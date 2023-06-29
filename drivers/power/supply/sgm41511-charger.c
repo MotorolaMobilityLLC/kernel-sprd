@@ -298,9 +298,9 @@ static int sgm41511_set_acovp_threshold(struct sgm41511_charger_info *info, int 
 
 	if (volt <= 5500)
 		reg_val = 0x0;
-	else if (volt > 5500 && volt <= 6500)
+	else if (volt <= 6500)
 		reg_val = 0x01;
-	else if (volt > 6500 && volt <= 10500)
+	else if (volt <= 10500)
 		reg_val = 0x02;
 	else
 		reg_val = 0x03;

@@ -185,17 +185,17 @@ static int fan54015_charger_set_safety_cur(struct fan54015_charger_info *info, u
 
 	if (cur < 650000)
 		reg_val = 0x0;
-	else if (cur >= 650000 && cur < 750000)
+	else if (cur < 750000)
 		reg_val = 0x1;
-	else if (cur >= 750000 && cur < 850000)
+	else if (cur < 850000)
 		reg_val = 0x2;
-	else if (cur >= 850000 && cur < 1050000)
+	else if (cur < 1050000)
 		reg_val = 0x3;
-	else if (cur >= 1050000 && cur < 1150000)
+	else if (cur < 1150000)
 		reg_val = 0x4;
-	else if (cur >= 1150000 && cur < 1350000)
+	else if (cur < 1350000)
 		reg_val = 0x5;
-	else if (cur >= 1350000 && cur < 1450000)
+	else if (cur < 1450000)
 		reg_val = 0x6;
 	else
 		reg_val = 0x7;
@@ -383,17 +383,17 @@ static int fan54015_charger_set_current(struct fan54015_charger_info *info, u32 
 
 	if (cur < 650000)
 		reg_val = 0x0;
-	else if (cur >= 650000 && cur < 750000)
+	else if (cur < 750000)
 		reg_val = 0x1;
-	else if (cur >= 750000 && cur < 850000)
+	else if (cur < 850000)
 		reg_val = 0x2;
-	else if (cur >= 850000 && cur < 1050000)
+	else if (cur < 1050000)
 		reg_val = 0x3;
-	else if (cur >= 1050000 && cur < 1150000)
+	else if (cur < 1150000)
 		reg_val = 0x4;
-	else if (cur >= 1150000 && cur < 1350000)
+	else if (cur < 1350000)
 		reg_val = 0x5;
-	else if (cur >= 1350000 && cur < 1450000)
+	else if (cur < 1450000)
 		reg_val = 0x6;
 	else
 		reg_val = 0x7;
@@ -454,9 +454,9 @@ fan54015_charger_set_limit_current(struct fan54015_charger_info *info, u32 limit
 
 	if (limit_cur <= 100000)
 		reg_val = 0x0;
-	else if (limit_cur > 100000 && limit_cur <= 500000)
+	else if (limit_cur <= 500000)
 		reg_val = 0x1;
-	else if (limit_cur > 500000 && limit_cur <= 800000)
+	else if (limit_cur <= 800000)
 		reg_val = 0x2;
 	else
 		reg_val = 0x3;

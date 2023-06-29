@@ -576,12 +576,6 @@ static int sprd_fgu_capacity_remap(struct sprd_fgu_data *data, int fuel_cap)
 {
 	int i, temp, cap = 0;
 
-	if (data->cap_remap_full_percent) {
-		fuel_cap = fuel_cap * 100 / data->cap_remap_full_percent;
-		if (fuel_cap > SPRD_FGU_FCC_PERCENT)
-			fuel_cap  = SPRD_FGU_FCC_PERCENT;
-	}
-
 	if (!data->cap_remap_table)
 		return fuel_cap;
 
@@ -4564,7 +4558,7 @@ static void sprd_fgu_sr_calib_resume_check(struct sprd_fgu_data *data)
 		return;
 	}
 
-	dev_info(data->dev, "%s suspend calib: current time_stamp = %lld, stop charge time_stamp = %lld, sleep_time = %lld, current cc_mah = %d\n",
+	dev_info(data->dev, "%s suspend calib: current time_stamp = %lld, stop charge time_stamp = %lld, sleep_time = %lld, current cc_uah = %d\n",
 		 __func__, cur_times, data->stop_charge_times, sleep_time, data->awake_cc_uah);
 
 	if ((cur_times - data->stop_charge_times) > SPRD_FGU_SR_STOP_CHARGE_TIMES &&
