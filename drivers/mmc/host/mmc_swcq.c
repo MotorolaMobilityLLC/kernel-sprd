@@ -244,9 +244,12 @@ static int mmc_reset_for_cmdq(struct mmc_swcq *swcq)
 	struct mmc_host *mmc = swcq->mmc;
 	int err, ret;
 	unsigned long flags;
+	bool temp;
 
 	spin_lock_irqsave(&swcq->lock, flags);
 	emmc_resetting_when_cmdq = 1;
+	temp = swcq->need_polling;
+	swcq->need_polling = false;
 	spin_unlock_irqrestore(&swcq->lock, flags);
 	err = mmc_hw_reset(mmc);
 	/* Ensure we switch back to the correct partition */
@@ -273,6 +276,7 @@ static int mmc_reset_for_cmdq(struct mmc_swcq *swcq)
 	}
 	spin_lock_irqsave(&swcq->lock, flags);
 	emmc_resetting_when_cmdq = 0;
+	swcq->need_polling = temp;
 	spin_unlock_irqrestore(&swcq->lock, flags);
 	return err;
 }
