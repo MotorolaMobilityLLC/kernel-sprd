@@ -396,7 +396,7 @@ static ssize_t thread_read(struct file *file, char __user *user_buf,
 	char buf[5];
 	size_t len;
 
-	len = sprintf(buf, "%u\n", thread_cpu);
+	len = snprintf(buf, sizeof(buf), "%u\n", thread_cpu);
 	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
 }
 
@@ -455,7 +455,7 @@ static ssize_t thread_trigger_read(struct file *file, char __user *user_buf,
 	char buf[5];
 	size_t len;
 
-	len = sprintf(buf, "%u\n", thread_state);
+	len = snprintf(buf, sizeof(buf), "%u\n", thread_state);
 	return simple_read_from_buffer(user_buf, count, ppos, buf, len);
 }
 
@@ -528,7 +528,7 @@ static int __init send_ipi_init(void)
 err_trigger:
 	remove_proc_entry("thread_cpu", NULL);
 err:
-	return -ENOMEM;
+	return ret;
 }
 
 static void __exit send_ipi_exit(void)
