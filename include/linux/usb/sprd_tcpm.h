@@ -159,6 +159,7 @@ struct tcpc_dev {
 	int (*pd_transmit)(struct tcpc_dev *dev, enum sprd_tcpm_transmit_type type,
 			   const struct sprd_pd_message *msg);
 	int (*dp_altmode_notify)(struct tcpc_dev *dev, u32 vdo);
+	int (*reset_pd_rx_id)(struct tcpc_dev *dev);
 };
 
 struct sprd_typec_device_ops {

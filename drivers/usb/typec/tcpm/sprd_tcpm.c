@@ -4064,6 +4064,10 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 			sprd_tcpm_log(port, "enable typec interrupt");
 			cancel_delayed_work(&port->role_swap_work);
 		}
+		ret = port->tcpc->reset_pd_rx_id(port->tcpc);
+		if (ret)
+			sprd_tcpm_log(port, "failed to clear rx id");
+
 		sprd_tcpm_set_swap(port, false, false);
 		sprd_tcpm_set_state(port, SNK_STARTUP, 0);
 		break;

@@ -869,6 +869,20 @@ static int sc27xx_pd_send_hardreset(struct sc27xx_pd *pd)
 	return 0;
 }
 
+static int sc27xx_pd_reset_rx_id(struct tcpc_dev *tcpc)
+{
+	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
+	int ret = 0;
+
+	mutex_lock(&pd->lock);
+	ret = sc27xx_pd_clear_rx_id(pd);
+	sprd_pd_log(pd, "reset rx id");
+	dev_info(pd->dev, "reset rx id\n");
+	mutex_unlock(&pd->lock);
+
+	return ret;
+}
+
 static int sc27xx_pd_set_rx(struct tcpc_dev *tcpc, bool on)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
@@ -2290,6 +2304,7 @@ static void sc27xx_init_tcpc_dev(struct sc27xx_pd *pd)
 	pd->tcpc.start_toggling = sc27xx_pd_start_drp_toggling;
 	pd->tcpc.pd_transmit = sc27xx_pd_transmit;
 	pd->tcpc.dp_altmode_notify = sc27xx_pd_dp_altmode_notify;
+	pd->tcpc.reset_pd_rx_id = sc27xx_pd_reset_rx_id;
 }
 
 static int sc27xx_pd_efuse_read(struct sc27xx_pd *pd,
