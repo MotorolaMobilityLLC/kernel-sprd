@@ -1680,7 +1680,7 @@ static void sdhci_sprd_register_vendor_hook(struct sdhci_host *host)
 		register_trace_android_rvh_mmc_sd_cmdline_timing(
 			sdhci_sprd_sd_cmdline_tuning,
 			NULL);
-		register_trace_android_rvh_mmc_sd_cmdline_timing(
+		register_trace_android_rvh_mmc_sd_dataline_timing(
 			sdhci_sprd_sd_dataline_tuning,
 			NULL);
 	}
