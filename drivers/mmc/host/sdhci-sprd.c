@@ -80,9 +80,19 @@
 #define  SDHCI_SPRD_BIT_POSRD_DLY_INV		BIT(21)
 #define  SDHCI_SPRD_BIT_NEGRD_DLY_INV		BIT(29)
 
+#define SDHCI_SPRD_ADMA_BUF_PROCESS_L	0x220
+#define SDHCI_SPRD_ADMA_BUF_PROCESS_H	0x224
+
+#define SDHCI_SPRD_ADMA_PROCESS_L	0x240
+#define SDHCI_SPRD_ADMA_PROCESS_H	0x244
+
 #define SDHCI_SPRD_REG_32_BUSY_POSI		0x250
 #define  SDHCI_SPRD_BIT_OUTR_CLK_AUTO_EN	BIT(25)
 #define  SDHCI_SPRD_BIT_INNR_CLK_AUTO_EN	BIT(24)
+
+#define SPRD_SDHC_REG_EMMC_DEBUG0	0x260
+#define SPRD_SDHC_REG_EMMC_DEBUG1	0x264
+#define SPRD_SDHC_REG_EMMC_DEBUG2	0x268
 
 #define SDHCI_SPRD_REG_DEBOUNCE		0x28C
 #define  SDHCI_SPRD_BIT_DLL_BAK		BIT(0)
@@ -1175,20 +1185,90 @@ static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 	sprd_host->power_mode = mmc->ios.power_mode;
 }
 
+static void sdhci_sprd_dump_adma_info(struct sdhci_host *host)
+{
+	u64 desc_ptr;
+	unsigned long start = jiffies;
+	void *desc = host->adma_table;
+	dma_addr_t dma = host->adma_addr;
+
+	if (host->flags & SDHCI_USE_64_BIT_DMA) {
+		desc_ptr = (u64)sdhci_sprd_readl(host, SDHCI_ADMA_ADDRESS_HI) << 32;
+		desc_ptr |= sdhci_sprd_readl(host, SDHCI_ADMA_ADDRESS);
+	} else {
+		desc_ptr = sdhci_sprd_readl(host, SDHCI_ADMA_ADDRESS);
+	}
+
+	SDHCI_SPRD_DUMP("ADMA ADDRESS: %#08llx, ERROR: 0x%08x\n",
+			desc_ptr, sdhci_sprd_readl(host, SDHCI_ADMA_ERROR));
+
+	SDHCI_SPRD_DUMP("ADMA DEBUG0: 0x%08x, DEBUG1: 0x%08x, DEBUG2: 0x%08x\n",
+			sdhci_sprd_readl(host, SPRD_SDHC_REG_EMMC_DEBUG0),
+			sdhci_sprd_readl(host, SPRD_SDHC_REG_EMMC_DEBUG1),
+			sdhci_sprd_readl(host, SPRD_SDHC_REG_EMMC_DEBUG2));
+
+	while (desc_ptr) {
+		struct sdhci_adma2_64_desc *dma_desc = desc;
+
+		if (host->flags & SDHCI_USE_64_BIT_DMA)
+			SDHCI_SPRD_DUMP("ADMA: %08llx: DMA 0x%08x%08x, LEN 0x%04x, Attr=0x%02x\n",
+					 (unsigned long long)dma,
+					 le32_to_cpu(dma_desc->addr_hi),
+					 le32_to_cpu(dma_desc->addr_lo),
+					 le16_to_cpu(dma_desc->len),
+					 le16_to_cpu(dma_desc->cmd));
+		else
+			SDHCI_SPRD_DUMP("ADMA: %08llx: DMA 0x%08x, LEN 0x%04x, Attr=0x%02x\n",
+					 (unsigned long long)dma,
+					 le32_to_cpu(dma_desc->addr_lo),
+					 le16_to_cpu(dma_desc->len),
+					 le16_to_cpu(dma_desc->cmd));
+
+		desc += host->desc_sz;
+		dma += host->desc_sz;
+
+		if (dma_desc->cmd & cpu_to_le16(ADMA2_END))
+			break;
+
+		if (time_after(jiffies, start + HZ)) {
+			SDHCI_SPRD_DUMP("ADMA error have no end desc\n");
+			break;
+		}
+	}
+
+	desc_ptr = (u64)sdhci_sprd_readl(host, SDHCI_SPRD_ADMA_PROCESS_H) << 32;
+	desc_ptr |= sdhci_sprd_readl(host, SDHCI_SPRD_ADMA_PROCESS_L);
+	SDHCI_SPRD_DUMP("ADMA Current Process desc: %#08llx\n", desc_ptr);
+
+	desc_ptr = (u64)sdhci_sprd_readl(host, SDHCI_SPRD_ADMA_BUF_PROCESS_H) << 32;
+	desc_ptr |= sdhci_sprd_readl(host, SDHCI_SPRD_ADMA_BUF_PROCESS_L);
+	SDHCI_SPRD_DUMP("ADMA Current Buf Process desc: %#08llx\n", desc_ptr);
+}
+
 static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
 {
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	u32 command, clk_ctrl, host_ctrl2, delay_value, int_sts;
 	char sdhci_hostname[64];
 
-	if (!host->mmc->card || sprd_host->tuning_flag)
+	if (sprd_host->tuning_flag)
 		return;
 
-	SDHCI_SPRD_DUMP("CMD%d Error\n", SDHCI_GET_CMD(sdhci_readw(host, SDHCI_COMMAND)));
+	command = SDHCI_GET_CMD(sdhci_readw(host, SDHCI_COMMAND));
+	int_sts = sdhci_readl(host, SDHCI_INT_STATUS);
+	clk_ctrl = sdhci_readl(host, SDHCI_CLOCK_CONTROL);
+	host_ctrl2 = sdhci_readl(host, SDHCI_AUTO_CMD_STATUS);
+	delay_value = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_DLY);
+	SDHCI_SPRD_DUMP("CMD%d Error 0x%08x 0x%08x 0x%08x 0x%08x\n",
+		command, int_sts, clk_ctrl, host_ctrl2, delay_value);
+
+	if (!host->mmc->card)
+		return;
 
 	sprintf(sdhci_hostname, "%s%s", mmc_hostname(host->mmc),
 			": sprd-sdhci + 0x000: ");
 	print_hex_dump(KERN_ERR, sdhci_hostname, DUMP_PREFIX_OFFSET,
-			16, 4, host->ioaddr, 64, 0);
+			16, 4, host->ioaddr, 96, 0);
 
 	sprintf(sdhci_hostname, "%s%s", mmc_hostname(host->mmc),
 			": sprd-sdhci + 0x200: ");
@@ -1206,6 +1286,9 @@ static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
 		print_hex_dump(KERN_ERR, sdhci_hostname, DUMP_PREFIX_OFFSET,
 				16, 4, host->ioaddr + 0x300, 128, 0);
 	}
+
+	if (int_sts & SDHCI_INT_ADMA_ERROR)
+		sdhci_sprd_dump_adma_info(host);
 }
 
 static u32 sdhci_sprd_cqe_irq(struct sdhci_host *host, u32 intmask)
@@ -1257,7 +1340,7 @@ static struct sdhci_ops sdhci_sprd_ops = {
 	.get_max_timeout_count = sdhci_sprd_get_max_timeout_count,
 	.get_ro = sdhci_sprd_get_ro,
 	.request_done = sdhci_sprd_request_done,
-	.dump_vendor_regs = sdhci_sprd_dumpregs,
+	.dump_vendor_regs = sdhci_sprd_dump_vendor_regs,
 	.irq = sdhci_sprd_cqe_irq,
 };
 
