@@ -19,6 +19,8 @@
 #define LTSSM_STATE_L1_IDLE		0x14
 #define LTSSM_STATE_L2_IDLE		0x15
 
+#define SPRD_PCI_EXP_CAP		0x70
+
 /*
  * WORKAROUND: set CX_FLT_MASK_UR_POIS bit to fix pam ipa pcie access error
  * problem.

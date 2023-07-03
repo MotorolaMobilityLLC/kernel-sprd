@@ -394,7 +394,25 @@ power_off:
 	return ret;
 }
 
+static int sprd_pcie_link_up(struct dw_pcie *pci)
+{
+	u16 val;
+	int ret;
+
+	val = readw(pci->dbi_base + PCIE_PORT_DEBUG1);
+	ret = (val & PCIE_PORT_DEBUG1_LINK_UP);
+
+	val = readw(pci->dbi_base + SPRD_PCI_EXP_CAP  + PCI_EXP_LNKSTA);
+	ret = (ret && (val & PCI_EXP_LNKSTA_DLLLA));
+
+	if (!ret)
+		dev_err(pci->dev, "link status don't ready!\n");
+
+	return ret;
+}
+
 static const struct dw_pcie_ops dw_pcie_ops = {
+	.link_up = sprd_pcie_link_up,
 };
 
 static int sprd_pcie_host_reinit(struct platform_device *pdev)
