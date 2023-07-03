@@ -182,8 +182,9 @@ static int sprd_get_pd_adapter_current(struct sprd_fchg_info *info,
 	struct power_supply *psy_tcpm;
 	struct sprd_tcpm_port *port;
 	enum sprd_pd_pdo_type pd_pdo_type = SPRD_PDO_TYPE_FIXED;
-	int i, ret = 0, adapter_ibus = 0;
+	int i, ret = 0, adapter_ibus = 0, max_mw = 0, src_mw = 0;
 
+	vbus_max_vol = vbus_max_vol / 1000;
 	psy_tcpm = power_supply_get_by_name(SPRD_FCHG_TCPM_PD_NAME);
 	if (!psy_tcpm) {
 		dev_err(info->dev, "%s, psy_tcpm is NULL\n", __func__);
@@ -209,9 +210,17 @@ static int sprd_get_pd_adapter_current(struct sprd_fchg_info *info,
 		pd_pdo_type = SPRD_PDO_TYPE_APDO;
 
 	for (i = 0; i < info->pd_source_cap.nr_source_caps; i++) {
-		if (info->pd_source_cap.type[i] == pd_pdo_type &&
-		    vbus_max_vol >= info->pd_source_cap.max_mv[i])
-			adapter_ibus = info->pd_source_cap.ma[i];
+		if (info->pd_source_cap.type[i] == pd_pdo_type) {
+			if (vbus_max_vol >= info->pd_source_cap.min_mv[i] &&
+			    vbus_max_vol <= info->pd_source_cap.max_mv[i]) {
+				src_mw = info->pd_source_cap.max_mv[i] / 1000 *
+					 info->pd_source_cap.ma[i];
+				if (src_mw >= max_mw) {
+					max_mw = src_mw;
+					adapter_ibus = info->pd_source_cap.ma[i];
+				}
+			}
+		}
 	}
 
 done:
@@ -1067,7 +1076,7 @@ static int sprd_get_fchg_current_max(struct sprd_fchg_info *info, int input_vol,
 		return -ENOMEM;
 
 	mutex_lock(&info->lock);
-	if (info->pps_enable && !input_vol) {
+	if (info->pps_enable && (!input_vol || info->pps_active)) {
 		ret = sprd_get_pps_current_max(info, current_max);
 		if (ret)
 			dev_err(info->dev, "%s, failed to get pps current max, ret=%d\n",
