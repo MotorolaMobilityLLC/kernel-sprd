@@ -72,7 +72,7 @@
 		dmas = <&ap_dma 27 &ap_dma 28>;
 		status = "disabled";
 		reset-names = "i2c_rst";
-		resets = <&apapb_gate RESET_AP_AHB_I2C3_SOFT_RST>;
+		resets = <&apahb_gate RESET_AP_AHB_I2C3_SOFT_RST>;
 	};
 
 	i2c4: i2c@2280000 {
