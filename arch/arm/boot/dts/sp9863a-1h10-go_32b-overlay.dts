@@ -498,6 +498,12 @@
 	cd-gpios = <&eic_async 9 1>;
 };
 
+&dmabuf {
+	fd-reserved {
+		label = "carveout_fd";
+		memory-region = <&fd_reserved>;
+	};
+};
 
 &pin_controller {
 	pinctrl-names =
