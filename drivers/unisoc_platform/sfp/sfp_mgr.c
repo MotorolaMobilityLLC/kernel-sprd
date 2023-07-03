@@ -164,7 +164,8 @@ static void sfp_mgr_fwd_entry_free(struct rcu_head *head)
 		FP_PRT_DBG(FP_PRT_WARN, "sfp_ct free %p\n", sfp_ct);
 		kfree(sfp_ct);
 	} else if (sfp_ct) {
-		del_timer(&sfp_ct->timeout);
+		FP_PRT_DBG(FP_PRT_WARN, "del sfp_ct timer\n");
+		del_timer_sync(&sfp_ct->timeout);
 	}
 }
 

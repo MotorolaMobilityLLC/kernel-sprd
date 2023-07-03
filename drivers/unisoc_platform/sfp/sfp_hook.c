@@ -77,7 +77,7 @@ static void sfp_conntrack_in(struct net *net, u_int8_t pf,
 			} else if (sfp_tcp_rst_chk(ct) &&
 				sfp_ct->fin_rst_flag < SFP_RST_FLAG) {
 				FP_PRT_DBG(FP_PRT_DEBUG,
-					   "rst, will delet 10s later %p\n",
+					   "rst, will delete 10s later %p\n",
 					   sfp_ct);
 
 				mod_timer(&sfp_ct->timeout,
