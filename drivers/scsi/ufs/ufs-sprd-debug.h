@@ -145,6 +145,8 @@ enum ufs_uic_err_code_event {
 	/* uic error code PHY Adapter Layer */
 	UFS_EVT_PA_PHY_LINE0_ERR = 0,
 	UFS_EVT_PA_PHY_LINE1_ERR,
+	UFS_EVT_PA_PHY_LINE2_ERR,
+	UFS_EVT_PA_PHY_LINE3_ERR,
 	UFS_EVT_PA_GRNERIC_PA_ERR,
 	UIC_ERR_PA_MAX,
 
