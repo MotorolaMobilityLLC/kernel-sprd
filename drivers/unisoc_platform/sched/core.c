@@ -357,6 +357,22 @@ static void android_vh_sched_show_task(void *unused, struct task_struct *task)
 	}
 }
 
+#define UNI_CALLER_ADDR(n) ((unsigned long)ftrace_return_address(n))
+static void sched_show_untask_stack(void *data, bool preempr,
+			struct task_struct *prev, struct task_struct *next)
+{
+	if (trace_sched_show_untask_stack_enabled()) {
+		unsigned long prev_state = READ_ONCE(prev->__state);
+
+		if ((prev_state & TASK_UNINTERRUPTIBLE) &&
+		   !(prev_state & TASK_NOLOAD) && !(prev->flags & PF_FROZEN))
+			trace_sched_show_untask_stack(prev, UNI_CALLER_ADDR(4),
+					UNI_CALLER_ADDR(5), UNI_CALLER_ADDR(6),
+					UNI_CALLER_ADDR(7), UNI_CALLER_ADDR(8),
+					UNI_CALLER_ADDR(9));
+	}
+}
+
 static void register_sched_vendor_hooks(void)
 {
 	register_trace_android_vh_dup_task_struct(android_vh_dup_task_struct, NULL);
@@ -364,6 +380,7 @@ static void register_sched_vendor_hooks(void)
 	register_trace_android_rvh_after_enqueue_task(android_rvh_after_enqueue_task, NULL);
 	register_trace_android_rvh_after_dequeue_task(android_rvh_after_dequeue_task, NULL);
 	register_trace_android_vh_sched_show_task(android_vh_sched_show_task, NULL);
+	register_trace_sched_switch(sched_show_untask_stack, NULL);
 }
 
 static DEFINE_RAW_SPINLOCK(init_lock);

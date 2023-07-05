@@ -584,6 +584,39 @@ DEFINE_EVENT(cfs_vip_task_template, cfs_vip_wakeup_preempt,
 	     TP_PROTO(struct task_struct *p, struct uni_task_struct *unitsk, unsigned int limit),
 	     TP_ARGS(p, unitsk, limit));
 #endif
+TRACE_EVENT(sched_show_untask_stack,
+	TP_PROTO(struct task_struct *p, unsigned long c0,
+		unsigned long c1, unsigned long c2, unsigned long c3,
+		unsigned long c4, unsigned long c5),
+
+	TP_ARGS(p, c0, c1, c2, c3, c4, c5),
+
+	TP_STRUCT__entry(
+		__array(char,		comm,	TASK_COMM_LEN)
+		__field(pid_t,		pid)
+		__field(unsigned long,	c0)
+		__field(unsigned long,	c1)
+		__field(unsigned long,	c2)
+		__field(unsigned long,	c3)
+		__field(unsigned long,	c4)
+		__field(unsigned long,	c5)
+	),
+
+	TP_fast_assign(
+		memcpy(__entry->comm, p->comm, TASK_COMM_LEN);
+		__entry->pid	= p->pid;
+		__entry->c0	= c0;
+		__entry->c1	= c1;
+		__entry->c2	= c2;
+		__entry->c3	= c3;
+		__entry->c4	= c4;
+		__entry->c5	= c5;
+	),
+	TP_printk("comm=%s pid=%d callers=%ps <- %ps <- %ps <- %ps <- %ps <- %ps",
+		__entry->comm, __entry->pid, (void *)__entry->c0, (void *)__entry->c1,
+		(void *)__entry->c2, (void *)__entry->c3, (void *)__entry->c4,
+		(void *)__entry->c5)
+);
 #endif /* _TRACE_H */
 
 #undef TRACE_INCLUDE_PATH
