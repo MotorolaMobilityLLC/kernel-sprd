@@ -361,12 +361,19 @@ static void android_rvh_rto_next_cpu(void *data, int rto_cpu,
 {
 	struct cpumask tmp_cpumask;
 	int curr_cpu = smp_processor_id();
+	cpumask_t allowed_cpus;
 
 	cpumask_and(&tmp_cpumask, rto_mask, cpu_active_mask);
 
 	if (rto_cpu == -1 && cpumask_weight(&tmp_cpumask) == 1 &&
 			     cpumask_test_cpu(curr_cpu, &tmp_cpumask))
 		*cpu = -1;
+
+	if (cpu_halted(*cpu)) {
+		/* remove halted cpus from the valid mask, and store locally */
+		cpumask_andnot(&allowed_cpus, rto_mask, cpu_halt_mask);
+		*cpu = cpumask_next(rto_cpu, &allowed_cpus);
+	}
 
 }
 

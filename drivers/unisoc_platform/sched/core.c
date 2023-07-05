@@ -232,14 +232,9 @@ static void update_cluster_topology(void)
 	parse_capacity_from_clusters();
 }
 
-static void android_rvh_after_enqueue_task(void *data, struct rq *rq,
-					   struct task_struct *p, int flags)
-{
-	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
-	u64 wallclock = sched_ktime_clock();
-	int freq_flags = 0;
-
 #ifdef CONFIG_UNISOC_SCHED_PAUSE_CPU
+static inline void cpu_pause_enqueue(struct rq *rq, struct task_struct *p)
+{
 	struct uni_rq *wrq = (struct uni_rq *) rq->android_vendor_data1;
 
 	if (!is_per_cpu_kthread(p))
@@ -248,10 +243,22 @@ static void android_rvh_after_enqueue_task(void *data, struct rq *rq,
 		pr_err("Non Kthread Started on halted cpu_of(rq)=%d comm=%s(%d) affinity=0x%x\n",
 			 cpu_of(rq), p->comm, p->pid,
 			 ((unsigned int)*(cpumask_bits(p->cpus_ptr))));
+}
+#else
+static inline void cpu_pause_enqueue(struct rq *rq, struct task_struct *p) {}
 #endif
+
+static void android_rvh_after_enqueue_task(void *data, struct rq *rq,
+					   struct task_struct *p, int flags)
+{
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
+	u64 wallclock = sched_ktime_clock();
+	int freq_flags = 0;
 
 	if (unlikely(uni_sched_disabled))
 		return;
+
+	cpu_pause_enqueue(rq, p);
 
 	uni_tsk->last_enqueue_ts = wallclock;
 
@@ -534,8 +541,6 @@ static __init int sched_module_init(void)
 	hung_task_enh_init();
 
 	proc_cpuload_init();
-
-	init_multithread_opt();
 
 	return 0;
 }

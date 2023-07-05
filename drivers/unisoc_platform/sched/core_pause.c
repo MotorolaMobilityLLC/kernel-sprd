@@ -584,29 +584,6 @@ static void walt_newidle_balance(void *unused, struct rq *this_rq,
 	}
 }
 
-static void walt_can_migrate_task(void *unused, struct task_struct *p,
-				  int dst_cpu, int *can_migrate)
-
-{
-	if (unlikely(uni_sched_disabled))
-		return;
-
-	if (cpu_halted(dst_cpu))
-		*can_migrate = 0;
-}
-
-static void android_rvh_rto_next_cpu(void *data, int rto_cpu,
-					struct cpumask *rto_mask, int *cpu)
-{
-	cpumask_t allowed_cpus;
-
-	if (cpu_halted(*cpu)) {
-		/* remove halted cpus from the valid mask, and store locally */
-		cpumask_andnot(&allowed_cpus, rto_mask, cpu_halt_mask);
-		*cpu = cpumask_next(rto_cpu, &allowed_cpus);
-	}
-}
-
 static void android_rvh_update_cpus_allowed(void *unused, struct task_struct *p,
 						cpumask_var_t cpus_requested,
 						const struct cpumask *new_mask, int *ret)
@@ -666,9 +643,7 @@ void core_pause_init(void)
 	register_trace_android_rvh_set_cpus_allowed_by_task(
 						android_rvh_set_cpus_allowed_by_task, NULL);
 	register_trace_android_rvh_is_cpu_allowed(android_rvh_is_cpu_allowed, NULL);
-	register_trace_android_rvh_can_migrate_task(walt_can_migrate_task, NULL);
 	register_trace_android_rvh_sched_newidle_balance(walt_newidle_balance, NULL);
-	register_trace_android_rvh_rto_next_cpu(android_rvh_rto_next_cpu, NULL);
 	register_trace_android_rvh_update_cpus_allowed(android_rvh_update_cpus_allowed, NULL);
 	register_trace_android_rvh_sched_setaffinity(android_rvh_sched_setaffinity, NULL);
 	register_trace_android_rvh_sched_getaffinity(android_rvh_sched_getaffinity, NULL);

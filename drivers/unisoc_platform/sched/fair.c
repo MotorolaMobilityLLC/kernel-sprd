@@ -3,8 +3,8 @@
  * Copyright (c) 2022, The Linux Foundation. All rights reserved.
  */
 
+#include <linux/reciprocal_div.h>
 #include <trace/hooks/sched.h>
-
 #include "uni_sched.h"
 
 #if IS_ENABLED(CONFIG_SCHED_WALT)
@@ -800,6 +800,9 @@ static void walt_can_migrate_task(void *data, struct task_struct *p,
 	/* Don't detach task if it is under active migration */
 	if (unlikely(uni_rq->push_task == p))
 		*can_migrate = 0;
+
+	if (cpu_halted(dst_cpu))
+		*can_migrate = 0;
 }
 
 static void walt_find_busiest_group(void *data, struct sched_group *busiest,
@@ -1435,13 +1438,80 @@ static void cfs_replace_next_task_fair(void *data, struct rq *rq, struct task_st
 		break;
 	}
 }
+#else
+static inline void cfs_check_preempt_wakeup(void *data, struct rq *rq, struct task_struct *p,
+					  bool *preempt, bool *ignore, int wake_flags,
+					  struct sched_entity *se, struct sched_entity *pse,
+					  int next_buddy_marked, unsigned int granularity)
+{ }
 #endif
+
+#define HEAVY_LOAD_SCALE       (80)
+#define NS_TO_MS               1000000
+
+static bool multi_thread_enable(void)
+{
+	return (sysctl_cpu_multi_thread_opt == 1) ? true : false;
+}
+
+static bool is_heavy_load_task(struct task_struct *p)
+{
+	int cpu;
+	unsigned long thresh_load;
+	struct reciprocal_value spc_rdiv = reciprocal_value(100);
+
+	if (!sysctl_cpu_multi_thread_opt || !p)
+		return false;
+
+	for_each_cpu(cpu, cpu_active_mask) {
+		struct rq *rq = cpu_rq(cpu);
+		struct task_struct *p_curr = rq->curr;
+
+		thresh_load = capacity_orig_of(cpu) * HEAVY_LOAD_SCALE;
+		if (uclamp_task_util(p_curr) >= reciprocal_divide(thresh_load, spc_rdiv))
+			continue;
+		else
+			return false;
+	}
+	return true;
+}
+
+static void check_preempt_tick_handler(void *data, struct task_struct *p,
+				unsigned long *ideal_runtime, bool *skip_preempt,
+				unsigned long delta_exec, struct cfs_rq *cfs_rq,
+				struct sched_entity *curr, unsigned int granularity)
+{
+	if (unlikely(multi_thread_enable() && is_heavy_load_task(p)))
+		*ideal_runtime = sysctl_multi_thread_heavy_load_runtime * NS_TO_MS;
+}
+
+static void sched_rebalance_domains_handler(void *data, struct rq *rq, int *continue_balancing)
+{
+	if (unlikely(multi_thread_enable() && is_heavy_load_task(rq->curr)))
+		*continue_balancing = 0;
+}
+
+static void check_preempt_wakeup_handler(void *data, struct rq *rq, struct task_struct *p,
+				bool *preempt, bool *ignore, int wake_flags,
+				struct sched_entity *se, struct sched_entity *pse,
+				int next_buddy_marked, unsigned int granularity)
+{
+	if (unlikely(multi_thread_enable() && is_heavy_load_task(rq->curr))) {
+		*ignore = true;
+		return;
+	}
+
+	cfs_check_preempt_wakeup(data, rq, p, preempt, ignore, wake_flags, se, pse,
+				 next_buddy_marked, granularity);
+}
 
 void fair_init(void)
 {
+	register_trace_android_rvh_sched_rebalance_domains(sched_rebalance_domains_handler, NULL);
+	register_trace_android_rvh_check_preempt_tick(check_preempt_tick_handler, NULL);
+	register_trace_android_rvh_check_preempt_wakeup(check_preempt_wakeup_handler, NULL);
 #ifdef CONFIG_UNISOC_SCHED_VIP_TASK
 	register_trace_android_vh_scheduler_tick(cfs_vip_scheduler_tick, NULL);
-	register_trace_android_rvh_check_preempt_wakeup(cfs_check_preempt_wakeup, NULL);
 	register_trace_android_rvh_replace_next_task_fair(cfs_replace_next_task_fair, NULL);
 #endif
 #if IS_ENABLED(CONFIG_SCHED_WALT)
@@ -1452,7 +1522,6 @@ void fair_init(void)
 	register_trace_android_rvh_can_migrate_task(walt_can_migrate_task, NULL);
 	register_trace_android_rvh_find_new_ilb(walt_find_new_ilb, NULL);
 	register_trace_android_rvh_sched_nohz_balancer_kick(walt_nohz_balancer_kick, NULL);
-//	register_trace_android_rvh_find_busiest_queue(walt_find_busiest_queue, NULL);
 	register_trace_android_rvh_find_busiest_group(walt_find_busiest_group, NULL);
 	register_trace_android_rvh_select_task_rq_fair(walt_select_task_rq_fair, NULL);
 	register_trace_android_rvh_place_entity(android_rvh_place_entity, NULL);
