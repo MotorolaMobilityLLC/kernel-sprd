@@ -234,7 +234,7 @@ static ssize_t hang_debug_proc_write(struct file *file, const char *buf,
 	u32 pretimeout;
 	u32 interval;
 	int cpu;
-	char input[40];
+	char input[40] = {0};
 
 	if (copy_from_user(input, buf, min(count, sizeof(input))))
 		return -EINVAL;
