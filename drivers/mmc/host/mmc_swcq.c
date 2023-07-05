@@ -2162,9 +2162,11 @@ static void mmc_swcq_status(void *data, const struct blk_mq_queue_data *bd, int 
 	else
 		*ret = 0;
 
-	if (!queue_flag) {
+	if (!queue_flag && (!strcmp(mmc_hostname(mmc), "mmc0"))) {
 		blk_queue_flag_set(QUEUE_FLAG_SAME_FORCE, q);
 		q->limits.discard_granularity = card->pref_erase << 9;
+		q->limits.max_hw_discard_sectors = UINT_MAX;
+		q->limits.max_discard_sectors = UINT_MAX;
 		queue_flag = true;
 	}
 
