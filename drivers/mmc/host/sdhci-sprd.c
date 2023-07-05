@@ -1710,6 +1710,28 @@ static void sdhci_sprd_register_vendor_hook(struct sdhci_host *host)
 	}
 }
 
+static bool queue_flag;
+static void mmc_hsq_status(void *data, const struct blk_mq_queue_data *bd, int *ret)
+{
+	struct request *req = bd->rq;
+	struct request_queue *q = req->q;
+	struct mmc_queue *mq = q->queuedata;
+	struct mmc_card *card = mq->card;
+	struct mmc_host *mmc = card->host;
+
+	*ret = 0;
+
+	if (!queue_flag && (!strcmp(mmc_hostname(mmc), "mmc0"))) {
+		blk_queue_flag_set(QUEUE_FLAG_SAME_FORCE, q);
+		q->limits.discard_granularity = card->pref_erase << 9;
+		q->limits.max_hw_discard_sectors = UINT_MAX;
+		q->limits.max_discard_sectors = UINT_MAX;
+		queue_flag = true;
+	}
+
+	req->cmd_flags &= ~REQ_FUA;
+}
+
 static int sdhci_sprd_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -1904,6 +1926,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 		if (ret)
 			goto err_cleanup_host;
 	} else {
+		if (!strcmp(mmc_hostname(host->mmc), "mmc0")) {
+			register_trace_android_vh_mmc_check_status(mmc_hsq_status, NULL);
+			queue_flag = false;
+		}
 		hsq = devm_kzalloc(&pdev->dev, sizeof(*hsq), GFP_KERNEL);
 		if (!hsq) {
 			ret = -ENOMEM;
