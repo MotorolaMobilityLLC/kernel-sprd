@@ -373,3 +373,9 @@
 	avee-gpio = <&ap_gpio 5 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 };
+
+&thm_zone {
+	pa_thmzone: pa-thmzone {
+		status = "disabled";
+	};
+};
