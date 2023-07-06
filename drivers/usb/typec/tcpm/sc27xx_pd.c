@@ -358,7 +358,6 @@ struct sc27xx_pd {
 	u32 rc_cal;
 	u32 delta_cal;
 	u32 ref_cal;
-	int msg_flag;
 	int need_retry;
 	bool typec_online;
 	bool pd_attached;
@@ -1078,21 +1077,115 @@ done:
 	return sc27xx_pd_rx_flush(pd);
 }
 
-static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *msg)
+static bool sc27xx_pd_is_need_rx_flush(struct sc27xx_pd *pd, struct sprd_pd_message *msg)
 {
-	int ret, i, rx_fifo_data_num;
-	u32 data[SPRD_PD_MAX_PAYLOAD * 2] = {0};
-	u32 data_obj_num, spec, reg_val = 0, header = 0, type;
-	bool vendor_define = false, source_capabilities = false;
-	bool data_request = false, data_alert = false, ext_status = false;
-	bool is_ext_msg;
+	u32 data_obj_num;
 
-	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
-			  &header);
-	if (ret < 0) {
-		sprd_pd_log(pd, "read header failed, ret = %d", ret);
-		return ret;
+	data_obj_num = sprd_pd_header_cnt_le(msg->header);
+	if (!data_obj_num && sprd_pd_header_type_le(msg->header) == SPRD_PD_CTRL_ACCEPT)
+		return false;
+
+	if (!data_obj_num && sprd_pd_header_type_le(msg->header) == SPRD_PD_CTRL_PS_RDY) {
+		if (pd->state == SC27XX_ATTACHED_SNK && pd->is_first_negotiate) {
+			pd->is_first_negotiate = false;
+			sprd_pd_log(pd, "first negotiate, ps rdy msg, not rx flush");
+			return false;
+		}
+
+		if (pd->role_swap) {
+			sprd_pd_log(pd, "power role swap, ps rdy msg, not rx flush");
+			return false;
+		}
 	}
+
+	if (pd->need_retry) {
+		sprd_pd_log(pd, "need retry, not rx flush");
+		return false;
+	}
+
+	return true;
+}
+
+static int sc27xx_pd_read_msg_pdo(struct sc27xx_pd *pd, struct sprd_pd_message *msg)
+{
+	u32 data_obj_num, data[SPRD_PD_MAX_PAYLOAD * 2] = {0};
+	int i, ret = 0;
+
+	if (sprd_pd_header_ext_le(msg->header))
+		return 0;
+
+	data_obj_num = sprd_pd_header_cnt_le(msg->header);
+	if (data_obj_num > SPRD_PD_MAX_PAYLOAD) {
+		sprd_pd_log(pd, "pd msg too long, num=%d", data_obj_num);
+		dev_err(pd->dev, "%s, pd msg too long, num=%d\n", __func__, data_obj_num);
+		return -EINVAL;
+	}
+
+	for (i = 0; i < data_obj_num * 2; i++) {
+		ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF, (u32 *)&data[i]);
+		if (ret < 0) {
+			sprd_pd_log(pd, "%s, failed to read msg data, ret = %d", ret);
+			dev_err(pd->dev, "%s, failed to read msg data, ret = %d\n",
+				__func__, ret);
+			return ret;
+		}
+		sprd_pd_log(pd, "rx msg: data[%d] = 0x%x", i, data[i]);
+	}
+
+	/*
+	 * According to the datasheet, sc27xx_pd_rx_buf is 16bit,
+	 * but PD protocol source code msg->payload is 32bit,
+	 * so need two 16bit assignment one 32bit.
+	 */
+	for (i = 0; i < data_obj_num; i++)
+		msg->payload[i] = cpu_to_le32(data[2 * i + 1] << 16 | data[2 * i]);
+
+	return 0;
+}
+
+static int sc27xx_pd_retry_cnt_cfg(struct sc27xx_pd *pd, struct sprd_pd_message *msg)
+{
+	u32 spec = 0;
+	int ret = 0;
+
+	spec = sprd_pd_header_rev_le(msg->header);
+	if (spec == 1)
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG1,
+					 SC27XX_PD_RETRY_MASK,
+					 SC27XX_PD_RETRY(3));
+	else if (spec == 2)
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG1,
+					 SC27XX_PD_RETRY_MASK,
+					 SC27XX_PD_RETRY(1));
+
+	if (ret < 0)
+		sprd_pd_log(pd, "%s, failed to set retry th, ret=%d", __func__, ret);
+
+	return ret;
+}
+
+static bool sc27xx_pd_is_matched_retry_type(struct sc27xx_pd *pd, struct sprd_pd_message *msg)
+{
+	u32 data_obj_num, type;
+	bool is_ext_msg = false;
+
+	data_obj_num = sprd_pd_header_cnt_le(msg->header);
+	is_ext_msg = sprd_pd_header_ext_le(msg->header);
+	type = sprd_pd_header_type_le(msg->header);
+	if (is_ext_msg && (type == SPRD_PD_EXT_STATUS))
+		return false;
+	else if (!is_ext_msg && data_obj_num &&
+		 (type == SPRD_PD_DATA_VENDOR_DEF || type == SPRD_PD_DATA_SOURCE_CAP ||
+		  type == SPRD_PD_DATA_REQUEST || type == SPRD_PD_DATA_ALERT))
+		return false;
+
+	return true;
+}
+
+static int sc27xx_pd_check_message_packages(struct sc27xx_pd *pd, struct sprd_pd_message *msg)
+{
+	int ret = 0;
+	u32 rx_fifo_data_num, data_obj_num,  reg_val = 0;
 
 	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_STS1, &reg_val);
 	if (ret < 0) {
@@ -1100,43 +1193,21 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 		return ret;
 	}
 
-	sprd_pd_log(pd, "sts1 = 0x%x, header = 0x%x", reg_val, header);
+	rx_fifo_data_num = reg_val & SC27XX_PD_RX_DATA_NUM_MASK;
+	data_obj_num = sprd_pd_header_cnt_le(msg->header);
+	sprd_pd_log(pd, "%s, reg_val = 0x%x, rx fifo data num = %d",
+		    __func__, reg_val, rx_fifo_data_num);
 	if (pd->need_retry) {
 		pd->need_retry = false;
 		cancel_delayed_work(&pd->read_msg_work);
 		sprd_pd_log(pd, "cancel retry read msg done");
 	}
-	rx_fifo_data_num = reg_val & SC27XX_PD_RX_DATA_NUM_MASK;
 
-	header &= SC27XX_TX_RX_BUF_MASK;
-	msg->header = cpu_to_le16(header);
-	data_obj_num = sprd_pd_header_cnt_le(msg->header);
-	spec = sprd_pd_header_rev_le(msg->header);
-	type = sprd_pd_header_type_le(msg->header);
-	is_ext_msg = le16_to_cpu(msg->header) & SPRD_PD_HEADER_EXT_HDR;
-
-	if (is_ext_msg && (type == SPRD_PD_EXT_STATUS))
-		ext_status = true;
-	else if (is_ext_msg)
-		vendor_define = false;
-	else if (data_obj_num && (type == SPRD_PD_DATA_VENDOR_DEF))
-		vendor_define = true;
-	else if (data_obj_num && (type == SPRD_PD_DATA_SOURCE_CAP))
-		source_capabilities = true;
-	else if (data_obj_num && (type == SPRD_PD_DATA_REQUEST))
-		data_request = true;
-	else if (data_obj_num && (type == SPRD_PD_DATA_ALERT))
-		data_alert = true;
-
-	sprd_pd_log(pd, "rx fifo data num = %d, msg header = 0x%x, type = %d, spec = %d",
-		    rx_fifo_data_num, msg->header, type, spec);
-	if ((data_obj_num * 4 + 1) < rx_fifo_data_num && !vendor_define &&
-	    !source_capabilities && !data_request && !data_alert && !ext_status) {
+	if ((data_obj_num * 4 + 1) < rx_fifo_data_num &&
+	     sc27xx_pd_is_matched_retry_type(pd, msg)) {
 		sprd_pd_log(pd, "retry read msg");
 		pd->need_retry = true;
-		queue_delayed_work(pd->pd_wq,
-				   &pd->read_msg_work,
-				   msecs_to_jiffies(5));
+		queue_delayed_work(pd->pd_wq, &pd->read_msg_work, msecs_to_jiffies(5));
 	} else if (pd->sprd_tcpm_port->data_role_swap &&
 		   (data_obj_num * 4 + 1) < rx_fifo_data_num) {
 		sprd_pd_log(pd, "data role swap, retry read msg");
@@ -1144,54 +1215,37 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 		queue_delayed_work(pd->pd_wq, &pd->read_msg_work, msecs_to_jiffies(2));
 	}
 
-	if (spec == 1) {
-		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG1,
-					 SC27XX_PD_RETRY_MASK,
-					 SC27XX_PD_RETRY(3));
-		if (ret < 0)
-			return ret;
-	} else if (spec == 2) {
-		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG1,
-					 SC27XX_PD_RETRY_MASK,
-					 SC27XX_PD_RETRY(1));
-		if (ret < 0)
-			return ret;
+	return ret;
+}
+
+static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *msg)
+{
+	int ret;
+	u32 header = 0;
+
+	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF, &header);
+	if (ret < 0) {
+		sprd_pd_log(pd, "read header failed, ret = %d", ret);
+		return ret;
 	}
 
-	if (data_obj_num &&
-	    sprd_pd_header_type_le(msg->header) == SPRD_PD_DATA_VENDOR_DEF)
-		pd->msg_flag = 1;
-	else
-		pd->msg_flag = 0;
+	header &= SC27XX_TX_RX_BUF_MASK;
+	msg->header = cpu_to_le16(header);
+	sprd_pd_log(pd, "header = 0x%x, msg header = 0x%x", header, msg->header);
 
-	if (data_obj_num > SPRD_PD_MAX_PAYLOAD) {
-		sprd_pd_log(pd, "pd msg too long, num=%d", data_obj_num);
-		dev_err(pd->dev, "%s, pd msg too long, num=%d\n", __func__, data_obj_num);
-		return -EINVAL;
+	ret = sc27xx_pd_check_message_packages(pd, msg);
+	if (ret) {
+		sprd_pd_log(pd, "failed to handle message, ret = %d", ret);
+		return ret;
 	}
 
-	if (!is_ext_msg) {
-		for (i = 0; i < data_obj_num * 2; i++) {
-			ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_RX_BUF,
-					  (u32 *)&data[i]);
-			if (ret < 0) {
-				sprd_pd_log(pd, "%s, failed to read msg data, ret = %d", ret);
-				dev_err(pd->dev, "%s, failed to read msg data, ret = %d\n",
-					__func__, ret);
-				return ret;
-			}
-			sprd_pd_log(pd, "rx msg: data[%d] = 0x%x", i, data[i]);
-		}
+	ret = sc27xx_pd_retry_cnt_cfg(pd, msg);
+	if (ret) {
+		sprd_pd_log(pd, "%s, failed to configure retry", __func__);
+		return ret;
+	}
 
-		/*
-		 * According to the datasheet, sc27xx_pd_rx_buf is 16bit,
-		 * but PD protocol source code msg->payload is 32bit,
-		 * so need two 16bit assignment one 32bit.
-		 */
-		for (i = 0; i < data_obj_num; i++)
-			msg->payload[i] = cpu_to_le32(data[2 * i + 1] << 16 |
-					data[2 * i]);
-	} else {
+	if (sprd_pd_header_ext_le(msg->header)) {
 		ret = sc27xx_pd_read_ext_message(pd, msg);
 		if (ret < 0) {
 			dev_err(pd->dev, "%s, not read pd ext_msg, ret=%d\n", __func__, ret);
@@ -1202,7 +1256,13 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 		return 0;
 	}
 
-	if (!data_obj_num &&
+	ret = sc27xx_pd_read_msg_pdo(pd, msg);
+	if (ret) {
+		sprd_pd_log(pd, "%s, failed to read message pdo", __func__);
+		return ret;
+	}
+
+	if (!sprd_pd_header_cnt_le(msg->header) &&
 	    sprd_pd_header_type_le(msg->header) == SPRD_PD_CTRL_GOOD_CRC) {
 		if (!pd->constructed) {
 			ret = regmap_update_bits(pd->regmap, pd->typec_base +
@@ -1218,26 +1278,8 @@ static int sc27xx_pd_read_message(struct sc27xx_pd *pd, struct sprd_pd_message *
 		sprd_tcpm_pd_receive(pd->sprd_tcpm_port, msg);
 	}
 
-	if (!data_obj_num && sprd_pd_header_type_le(msg->header) == SPRD_PD_CTRL_ACCEPT)
+	if (!sc27xx_pd_is_need_rx_flush(pd, msg))
 		return 0;
-
-	if (!data_obj_num && sprd_pd_header_type_le(msg->header) == SPRD_PD_CTRL_PS_RDY) {
-		if (pd->state == SC27XX_ATTACHED_SNK && pd->is_first_negotiate) {
-			pd->is_first_negotiate = false;
-			sprd_pd_log(pd, "first negotiate, ps rdy msg, not rx flush");
-			return 0;
-		}
-
-		if (pd->role_swap) {
-			sprd_pd_log(pd, "power role swap, ps rdy msg, not rx flush");
-			return 0;
-		}
-	}
-
-	if (pd->need_retry) {
-		sprd_pd_log(pd, "need retry, not rx flush");
-		return 0;
-	}
 
 	return sc27xx_pd_rx_flush(pd);
 }

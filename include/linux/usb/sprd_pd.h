@@ -76,6 +76,8 @@ enum sprd_pd_ext_msg_type {
 #define SPRD_PD_MAX_REV				SPRD_PD_REV30
 
 #define SPRD_PD_HEADER_EXT_HDR			BIT(15)
+#define SPRD_PD_HEADER_EXT_SHIFT		15
+#define SPRD_PD_HEADER_EXT_MASK			0x1
 #define SPRD_PD_HEADER_CNT_SHIFT		12
 #define SPRD_PD_HEADER_CNT_MASK			0x7
 #define SPRD_PD_HEADER_ID_SHIFT			9
@@ -98,6 +100,16 @@ enum sprd_pd_ext_msg_type {
 
 #define SPRD_PD_HEADER_LE(type, pwr, data, rev, id, cnt) \
 	cpu_to_le16(SPRD_PD_HEADER((type), (pwr), (data), (rev), (id), (cnt), (0)))
+
+static inline unsigned int sprd_pd_header_ext(u16 header)
+{
+	return (header >> SPRD_PD_HEADER_EXT_SHIFT) & SPRD_PD_HEADER_EXT_MASK;
+}
+
+static inline unsigned int sprd_pd_header_ext_le(__le16 header)
+{
+	return sprd_pd_header_ext(le16_to_cpu(header));
+}
 
 static inline unsigned int sprd_pd_header_cnt(u16 header)
 {
