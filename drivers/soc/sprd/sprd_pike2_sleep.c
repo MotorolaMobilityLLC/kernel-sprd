@@ -189,7 +189,7 @@ void sprd_pike2_light_en(void)
 	cpu = smp_processor_id();
 	spin_lock_irqsave(&light_sleep_lock, flags);
 	cpumask_set_cpu(cpu, &cpus_lightsleep);
-	if (cpumask_weight(&cpus_lightsleep) == num_online_uniso_cpus())
+	if (cpumask_weight(&cpus_lightsleep) == cpumask_weight(cpu_online_mask))
 		is_allcpusleep = 1;
 
 	spin_unlock_irqrestore(&light_sleep_lock, flags);
@@ -428,7 +428,7 @@ static void sprd_doze_sleep_exit(void)
 void sprd_pike2_doze_en(void)
 {
 
-	if (apsys_master_slave_check() == 0 && num_online_uniso_cpus() == 1)
+	if (apsys_master_slave_check() == 0 && cpumask_weight(cpu_online_mask) == 1)
 		sprd_doze_sleep_enter();
 	else
 		sprd_pike2_light_en();
