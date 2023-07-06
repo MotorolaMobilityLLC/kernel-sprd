@@ -133,6 +133,10 @@
 #define CM_CAP_CYCLE_TRACK_TIME_8S		8
 #define CM_INIT_BOARD_TEMP			250
 
+/* Google limit power transfer support */
+
+#define CM_LIMIT_POWER_TRANSFER_MA		110
+
 static const char * const cm_cp_state_names[] = {
 	[CM_CP_STATE_UNKNOWN] = "Charge pump state: UNKNOWN",
 	[CM_CP_STATE_RECOVERY] = "Charge pump state: RECOVERY",
@@ -4968,13 +4972,14 @@ static int cm_charger_pd_limit_current(struct charger_manager *cm)
 		dev_err(cm->dev, "%s, failed to get fchg max current, ret=%d\n", __func__, ret);
 
 	dev_dbg(cm->dev, "%s:max_cur = %d\n", __func__, max_cur);
-	if (max_cur <= 100000 && max_cur > 0) {
+	if (max_cur == CM_LIMIT_POWER_TRANSFER_MA * 1000 && max_cur > 0) {
 		cm->desc->xts_limit_cur = true;
 		try_charger_enable(cm, false);
 		cm_power_path_enable(cm, CM_POWER_PATH_DISABLE_CMD);
 		dev_info(cm->dev, "%s:line%d limit cur\n", __func__, __LINE__);
 		return 1;
-	} else if (cm->desc->xts_limit_cur && max_cur <= 1000000 && max_cur > 100000) {
+	} else if (cm->desc->xts_limit_cur && max_cur <= 1000000 &&
+		   max_cur != CM_LIMIT_POWER_TRANSFER_MA * 1000) {
 		cm->desc->xts_limit_cur = false;
 		try_charger_enable(cm, true);
 		cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
@@ -5549,7 +5554,8 @@ static void cm_get_current_max(struct charger_manager *cm, int *current_max)
 
 static int cm_source_try_sink_limit_current(struct charger_manager *cm, int limit)
 {
-	const u32 pdo_limit[1] = {SPRD_PDO_FIXED(5000, 100, SPRD_PDO_FIXED_USB_COMM)};
+	const u32 pdo_limit[1] = {SPRD_PDO_FIXED(5000, CM_LIMIT_POWER_TRANSFER_MA,
+						 SPRD_PDO_FIXED_USB_COMM)};
 	const u32 pdo_no_limit[1] = {SPRD_PDO_FIXED(5000, 400, SPRD_PDO_FIXED_USB_COMM)};
 	int ret;
 
