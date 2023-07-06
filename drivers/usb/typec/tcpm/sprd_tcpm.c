@@ -3263,10 +3263,11 @@ static void sprd_tcpm_update_limit_current(struct sprd_tcpm_port *port)
 		if (type == SPRD_PDO_TYPE_FIXED) {
 			max_mv = sprd_pdo_fixed_voltage(pdo);
 			ma = sprd_pdo_max_current(pdo);
-			if (max_mv == 5000 && ma <= 100 && ma > 0) {
+			if (max_mv == 5000 && ma == SPRD_LIMIT_POWER_TRANSFER_MA && ma > 0) {
 				port->xts_limit_cur = true;
 				power_supply_changed(port->psy);
-			} else if (port->xts_limit_cur && max_mv == 5000 && ma > 100) {
+			} else if (port->xts_limit_cur && max_mv == 5000 &&
+				   ma != SPRD_LIMIT_POWER_TRANSFER_MA) {
 				port->xts_limit_cur = false;
 				power_supply_changed(port->psy);
 			}

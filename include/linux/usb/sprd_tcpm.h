@@ -425,6 +425,10 @@ enum sprd_pd_msg_request {
 #define SPRD_LOG_BUFFER_ENTRIES		2048
 #define SPRD_LOG_BUFFER_ENTRY_SIZE	128
 
+/* Google limit power transfer support */
+
+#define SPRD_LIMIT_POWER_TRANSFER_MA	110
+
 /* Alternate mode support */
 
 #define SPRD_SVID_DISCOVERY_MAX		16
