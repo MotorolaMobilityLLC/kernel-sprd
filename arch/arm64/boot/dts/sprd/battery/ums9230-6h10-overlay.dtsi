@@ -157,6 +157,7 @@
 		reg = <0x6b>;
 		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
+		disable-otg-wdg-in-sleep;
 		use-typec-extcon;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";

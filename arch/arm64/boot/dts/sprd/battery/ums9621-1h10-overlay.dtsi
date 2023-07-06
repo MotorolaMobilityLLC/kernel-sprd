@@ -144,6 +144,7 @@
 		compatible = "Sgm,sgm41511_chg";
 		reg = <0x6b>;
 		monitored-battery = <&bat>;
+		disable-otg-wdg-in-sleep;
 		use-typec-extcon;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
