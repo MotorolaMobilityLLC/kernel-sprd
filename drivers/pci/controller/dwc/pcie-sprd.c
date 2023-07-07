@@ -458,6 +458,7 @@ static int sprd_pcie_host_reinit(struct platform_device *pdev)
 			sprd_pcie_save_dwc_reg(pci);
 			sprd_pcie_ltssm_enable(pci, false);
 			ctrl->defer_init = 0;
+			ret = -EAGAIN;
 
 			goto power_off;
 		}
