@@ -72,13 +72,14 @@ void set_async_slabd_cpus(void)
 	pg_data_t *pgdat = NODE_DATA(0);
 	unsigned int cpu = 0, cpufreq_max_tmp = 0;
 	struct cpufreq_policy *policy_max = NULL;
-	bool set_slabd_cpus_success = false;
+	static bool set_slabd_cpus_success;
 
 	if (unlikely(!async_shrink_slabd_setup))
 		return;
 
 	if (likely(set_slabd_cpus_success))
 		return;
+
 	for_each_possible_cpu(cpu) {
 		struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
 
@@ -188,9 +189,6 @@ static void unregister_shrink_slab_async_vendor_hooks(void)
 int kshrink_slabd_async_init(void)
 {
 	int ret = 0;
-
-	shrink_slabd_tsk = NULL;
-	async_shrink_slabd_setup = false;
 
 	ret = register_shrink_slab_async_vendor_hooks();
 	if (ret != 0)
