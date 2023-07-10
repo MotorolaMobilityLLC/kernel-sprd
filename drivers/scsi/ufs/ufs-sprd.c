@@ -223,15 +223,14 @@ static void ufs_sprd_vh_send_tm_cmd(void *data, struct ufs_hba *hba,
 	struct ufs_tm_cmd_info tm_tmp = {};
 
 	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
-		tm_tmp.tm_func = (u8) (__be32_to_cpu(descp->header.dword_1) >> 16);
+		tm_tmp.lun = be32_to_cpu(descp->upiu_req.input_param1);
+		tm_tmp.tag = be32_to_cpu(descp->upiu_req.input_param2);
+		tm_tmp.tm_func = (be32_to_cpu(descp->upiu_req.req_header.dword_1) >> 16) & 0xff;
 		if (str == UFS_TM_SEND) {
-			tm_tmp.param1 = descp->upiu_req.input_param1;
-			tm_tmp.param2 = descp->upiu_req.input_param2;
 			ufshcd_common_trace(hba, UFS_TRACE_TM_SEND, &tm_tmp);
 		} else {
 			tm_tmp.ocs = le32_to_cpu(descp->header.dword_2) & MASK_OCS;
 			tm_tmp.param1 = descp->upiu_rsp.output_param1;
-			tm_tmp.param2 = 0;
 			if (str == UFS_TM_ERR)
 				ufshcd_common_trace(hba, UFS_TRACE_TM_ERR, &tm_tmp);
 			else

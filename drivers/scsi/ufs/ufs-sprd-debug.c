@@ -398,18 +398,19 @@ void ufs_sprd_cmd_history_dump(u32 dump_req, struct seq_file *m, char **dump_pos
 			break;
 		case UFS_TRACE_TM_SEND:
 			PRINT_SWITCH(m, dump_pos,
-			"tm_func:0x%2x,param1:0x%8x,param2:0x%8x\n",
+			"tm_func:0x%2x,lun:0x%8x,tag:0x%8x\n",
 			uei[ptr].pkg.tmi.tm_func,
-			uei[ptr].pkg.tmi.param1,
-			uei[ptr].pkg.tmi.param2);
+			uei[ptr].pkg.tmi.lun,
+			uei[ptr].pkg.tmi.tag);
 			break;
 		case UFS_TRACE_TM_COMPLETED:
 		case UFS_TRACE_TM_ERR:
 			PRINT_SWITCH(m, dump_pos,
-			"tm_func:0x%2x,param1:0x%8x,param2:0x%8x,OCS:0x%2x\n",
+			"tm_func:0x%2x,lun:0x%8x,tag:0x%8x，param1:0x%8x,OCS:0x%2x\n",
 			uei[ptr].pkg.tmi.tm_func,
+			uei[ptr].pkg.tmi.lun,
+			uei[ptr].pkg.tmi.tag,
 			uei[ptr].pkg.tmi.param1,
-			uei[ptr].pkg.tmi.param2,
 			uei[ptr].pkg.tmi.ocs);
 			break;
 		case UFS_TRACE_UIC_CMPL:

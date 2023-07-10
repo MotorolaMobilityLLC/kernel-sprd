@@ -90,8 +90,9 @@ struct ufs_uic_cmd_info {
 
 struct ufs_tm_cmd_info {
 	u8 tm_func;
+	u32 lun;
+	u32 tag;
 	u32 param1;
-	u32 param2;
 	int ocs;
 };
 
