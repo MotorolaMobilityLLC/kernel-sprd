@@ -4029,7 +4029,6 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		if (port->role_swap_flag)
 			sprd_tcpm_set_swap(port, true, true);
 		sprd_tcpm_set_cc(port, SPRD_TYPEC_CC_RD);
-		sprd_tcpm_set_typec_rp_level(SPRD_TYPEC_CC_RP_DEF);
 		sprd_tcpm_set_typec_rp_rd(SPRD_TYPEC_CC_RD);
 		/* allow CC debounce */
 		sprd_tcpm_set_state(port, PR_SWAP_SRC_SNK_SOURCE_OFF_CC_DEBOUNCED,
@@ -4078,10 +4077,10 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		break;
 	case PR_SWAP_SNK_SRC_SOURCE_ON:
 		sprd_tcpm_log(port, "[%s:line%d] mslssp start", __func__, __LINE__);
+		sprd_tcpm_set_typec_rp_level(SPRD_TYPEC_CC_RP_3_0);
 		msleep(50);
 		sprd_tcpm_log(port, "[%s:line%d] msleep 50 end", __func__, __LINE__);
 		sprd_tcpm_set_cc(port, sprd_tcpm_rp_cc(port));
-		sprd_tcpm_set_typec_rp_level(SPRD_TYPEC_CC_RP_3_0);
 		sprd_tcpm_set_typec_rp_rd(SPRD_TYPEC_CC_RP_3_0);
 		if (port->role_swap_flag)
 			sprd_tcpm_set_swap(port, true, true);
