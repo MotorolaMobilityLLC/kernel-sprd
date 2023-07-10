@@ -126,7 +126,6 @@ struct sprd_glue {
 	struct regulator		*vbus;
 	struct wakeup_source		*pd_wake_lock;
 	struct regmap			*pmu;
-	struct musb_reg_info		usb31pllv_frc_on;
 	struct musb_reg_info		pubsys_bypass;
 	struct musb_reg_info		suspend_clk_src_frc_on;
 	struct usb_role_switch		*role_sw;
@@ -1050,26 +1049,6 @@ static void sprd_musb_reset_context(struct musb *musb)
 	for (i = 0; i < musb->config->num_eps; ++i) {
 		musb->context.index_regs[i].txcsr = 0;
 		musb->context.index_regs[i].rxcsr = 0;
-	}
-}
-
-static void musb_sprd_control_usb31pllv_frc_onoff(struct sprd_glue *glue)
-{
-	struct musb *musb = glue->musb;
-
-	if (!glue->usb31pllv_frc_on.regmap_ptr)
-		return;
-
-	if (musb->is_offload && !musb->offload_used) {
-		regmap_update_bits(glue->usb31pllv_frc_on.regmap_ptr,
-				glue->usb31pllv_frc_on.args[0],
-				glue->usb31pllv_frc_on.args[1],
-				~glue->usb31pllv_frc_on.args[1]);
-	} else if (musb->is_offload && musb->offload_used) {
-		regmap_update_bits(glue->usb31pllv_frc_on.regmap_ptr,
-				glue->usb31pllv_frc_on.args[0],
-				glue->usb31pllv_frc_on.args[1],
-				glue->usb31pllv_frc_on.args[1]);
 	}
 }
 
@@ -2214,12 +2193,6 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		goto err_core_clk;
 	}
 
-	glue->usb31pllv_frc_on.regmap_ptr = syscon_regmap_lookup_by_phandle_args(dev->of_node,
-						"usb31pllv_frc_on", 2, glue->usb31pllv_frc_on.args);
-	if (IS_ERR(glue->usb31pllv_frc_on.regmap_ptr)) {
-		dev_warn(&pdev->dev, "failed to get usb31pllv_frc_on regmap!\n");
-		glue->usb31pllv_frc_on.regmap_ptr = NULL;
-	}
 #if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
 	glue->suspend_clk_src_frc_on.regmap_ptr = syscon_regmap_lookup_by_phandle_args(dev->of_node,
 						"suspend_clk_source_frc_on", 2,
@@ -2475,8 +2448,6 @@ static int musb_sprd_pm_suspend(struct device *dev)
 					   msk, val);
 		}
 	}
-
-	musb_sprd_control_usb31pllv_frc_onoff(glue);
 
 	/* in host mode, don't do suspend */
 	if (glue->dr_mode == USB_DR_MODE_HOST) {
