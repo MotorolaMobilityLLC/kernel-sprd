@@ -32,6 +32,11 @@
 #include <dt-bindings/mfd/sprd,ump9620-mask.h>
 #include <dt-bindings/mfd/sprd,ump9620-regs.h>
 
+struct phy_reg_info {
+	struct regmap		*regmap_ptr;
+	u32			args[3];
+};
+
 struct sprd_hsphy {
 	struct device		*dev;
 	struct usb_phy		phy;
@@ -42,6 +47,7 @@ struct sprd_hsphy {
 	struct regmap           *hsphy_glb;
 	struct regmap           *ana_g0;
 	struct regmap           *pmic;
+	struct phy_reg_info	refclk_cfg;
 	u32			host_eye_pattern;
 	u32			device_eye_pattern;
 	u32			vdd_vol;
@@ -391,6 +397,13 @@ static int sprd_hsphy_init(struct usb_phy *x)
 		regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
 				MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
 
+	if (phy->refclk_cfg.regmap_ptr) {
+		reg = msk = phy->refclk_cfg.args[1] | phy->refclk_cfg.args[2];
+		ret |= regmap_update_bits(phy->refclk_cfg.regmap_ptr,
+				phy->refclk_cfg.args[0],
+				msk, reg);
+	}
+
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
 		atomic_set(&phy->reset, 1);
@@ -454,6 +467,13 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		/*disable analog:0x64900004*/
 		msk = MASK_AON_APB_AON_USB2_TOP_EB | MASK_AON_APB_OTG_PHY_EB;;
 		regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, 0);
+
+		if (phy->refclk_cfg.regmap_ptr) {
+			reg = msk = phy->refclk_cfg.args[1] | phy->refclk_cfg.args[2];
+			regmap_update_bits(phy->refclk_cfg.regmap_ptr,
+					phy->refclk_cfg.args[0],
+					msk, ~reg);
+		}
 	}
 
 	if (regulator_is_enabled(phy->vdd))
@@ -809,6 +829,13 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	if (IS_ERR(phy->hsphy_glb)) {
 		dev_err(&pdev->dev, "ap USB aon apb syscon failed!\n");
 		return PTR_ERR(phy->hsphy_glb);
+	}
+
+	phy->refclk_cfg.regmap_ptr = syscon_regmap_lookup_by_phandle_args(dev->of_node,
+			"refclk_cfg", 3, phy->refclk_cfg.args);
+	if (IS_ERR(phy->refclk_cfg.regmap_ptr)) {
+		dev_warn(&pdev->dev, "failed to get refclk_cfg regmap!\n");
+		phy->refclk_cfg.regmap_ptr = NULL;
 	}
 
 	ret = sprd_eye_pattern_prepared(phy, dev);
