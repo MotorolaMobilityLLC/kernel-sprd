@@ -714,6 +714,7 @@ struct charger_desc {
 	bool wait_vbus_stable;
 	bool check_fixed_fchg_threshold;
 	bool force_pps_diasbled;
+	u32 fchg_voltage_check_count;
 	u32 fast_charge_enable_count;
 	u32 fast_charge_disable_count;
 	u32 cp_nums;

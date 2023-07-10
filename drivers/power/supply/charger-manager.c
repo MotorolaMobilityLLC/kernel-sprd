@@ -69,6 +69,7 @@
 #define CM_FAST_CHARGE_VOLTAGE_5V		5000000
 #define CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD	3520000
 #define CM_FAST_CHARGE_START_VOLTAGE_HTHRESHOLD	4200000
+#define CM_FAST_CHARGE_VOLTAGE_CHECK_COUNT	3
 
 /* Fixed fast charge parameters */
 #define CM_FIXED_FCHG_DISABLE_BATTERY_VOLTAGE	3400000
@@ -2069,7 +2070,8 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 	 * Eg: Failure to obtain the voltage of the charging device for
 	 *     the first time when the charging type changes.
 	 */
-	if (cm->desc->adapter_max_vbus == 0) {
+	if (cm->desc->adapter_max_vbus == 0 ||
+	    cm->desc->fchg_voltage_check_count < CM_FAST_CHARGE_VOLTAGE_CHECK_COUNT) {
 		ret = cm_get_fchg_adapter_max_voltage(cm, &adapter_max_vbus);
 		if (ret) {
 			dev_err(cm->dev, "%s, failed to obtain the adapter max voltage, ret=%d\n",
@@ -2082,9 +2084,13 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 
 	if (cm->desc->adapter_max_vbus <= CM_PPS_5V_PROG_MAX) {
 		dev_dbg(cm->dev, "no need to require voltage, %d\n", cm->desc->adapter_max_vbus);
+		if (++cm->desc->fchg_voltage_check_count > CM_FAST_CHARGE_VOLTAGE_CHECK_COUNT)
+			cm->desc->fchg_voltage_check_count = CM_FAST_CHARGE_VOLTAGE_CHECK_COUNT;
+
 		return false;
 	}
 
+	cm->desc->fchg_voltage_check_count = 0;
 	if (get_batt_ocv(cm, &batt_ocv)) {
 		dev_err(cm->dev, "get_batt_ocv error.\n");
 		return false;
@@ -5075,6 +5081,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 				cm->desc->force_pps_diasbled = false;
 				cm->desc->is_fast_charge = false;
 				cm->desc->enable_fast_charge = false;
+				cm->desc->fchg_voltage_check_count = 0;
 				cm->desc->fast_charge_enable_count = 0;
 				cm->desc->fast_charge_disable_count = 0;
 				cm->desc->fixed_fchg_running = false;
@@ -5133,6 +5140,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->is_fast_charge = false;
 		cm->desc->ir_comp.ir_compensation_en = false;
 		cm->desc->enable_fast_charge = false;
+		cm->desc->fchg_voltage_check_count = 0;
 		cm->desc->fast_charge_enable_count = 0;
 		cm->desc->fast_charge_disable_count = 0;
 		cm->desc->fixed_fchg_running = false;
@@ -6016,7 +6024,7 @@ static bool cm_pd_is_ac_online(struct charger_manager *cm)
 	}
 
 	if (pd_source_cap.nr_source_caps == index) {
-		dev_info(cm->dev, "pd type ac online is false\n");
+		dev_info(cm->dev, "pd type ac online is false, index = %d\n", index);
 		return false;
 	}
 
