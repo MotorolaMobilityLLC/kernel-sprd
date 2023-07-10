@@ -355,6 +355,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 #ifdef CONFIG_COMPAT
 	hba->host->hostt->compat_ioctl = ufshcd_sprd_ioctl;
 #endif
+	ufs_sprd_debug_init(hba);
 
 	return 0;
 }

@@ -330,7 +330,6 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 	hba = platform_get_drvdata(pdev);
 	ufs_sprd_rpmb_add(hba);
 	sprd_ufs_proc_init(hba);
-	ufs_sprd_debug_init(hba);
 	ufs_sprd_sysfs_add_health_device_nodes(hba);
 out:
 	return err;

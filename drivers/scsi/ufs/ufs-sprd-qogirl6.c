@@ -526,6 +526,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		     UFSHCD_CAP_WB_EN | UFSHCD_CAP_HIBERN8_WITH_CLK_GATING;
 
 	ufs_sprd_reset_pre(host);
+	ufs_sprd_debug_init(hba);
 	return 0;
 }
 
