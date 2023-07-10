@@ -58,24 +58,24 @@
 #define SPRD_PMIC_WDT_LD_BUSY_BIT		BIT(4)
 
 /* pmic wdt eb register */
-#define SC2731_WDT_EB		0x0008
-#define SC2731_WDT_RTC_EB	0x0010
+#define SC2731_WDT_EB		0x0c08
+#define SC2731_WDT_RTC_EB	0x0c10
 #define SC2731_WDT_EN		BIT(2)
 #define SC2731_WDT_RTC_EN	BIT(2)
-#define SC2730_WDT_EB		0x0008
-#define SC2730_WDT_RTC_EB	0x0010
+#define SC2730_WDT_EB		0x1808
+#define SC2730_WDT_RTC_EB	0x1810
 #define SC2730_WDT_EN		BIT(2)
 #define SC2730_WDT_RTC_EN	BIT(2)
-#define SC2721_WDT_EB		0x0008
-#define SC2721_WDT_RTC_EB	0x0010
+#define SC2721_WDT_EB		0x0c08
+#define SC2721_WDT_RTC_EB	0x0c10
 #define SC2721_WDT_EN		BIT(2)
 #define SC2721_WDT_RTC_EN	BIT(2)
-#define SC2720_WDT_EB		0x0008
-#define SC2720_WDT_RTC_EB	0x0010
+#define SC2720_WDT_EB		0x0c08
+#define SC2720_WDT_RTC_EB	0x0c10
 #define SC2720_WDT_EN		BIT(2)
 #define SC2720_WDT_RTC_EN	BIT(2)
-#define ump9620_WDT_EB		0x0008
-#define ump9620_WDT_RTC_EB	0x0010
+#define ump9620_WDT_EB		0x2008
+#define ump9620_WDT_RTC_EB	0x2010
 #define ump9620_WDT_EN		BIT(2)
 #define ump9620_WDT_RTC_EN	BIT(2)
 
