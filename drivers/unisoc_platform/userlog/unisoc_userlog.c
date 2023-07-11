@@ -96,11 +96,8 @@ static ssize_t do_read_log_to_user(struct userlog_log *log,
 	msg_start = userlog_offset(log,
 					reader->r_off + sizeof(struct userlog_entry));
 
-	pr_info("do_read_log_to_user msg_start:%lu\n", msg_start);
-
 	/* copy sysmsg to userspace */
 	len = min(count, log->size - msg_start);
-	pr_info("do_read_log_to_user len:%lu\n", len);
 	if (copy_to_user(buf, log->buffer + msg_start, len))
 		return -EFAULT;
 
@@ -112,7 +109,6 @@ static ssize_t do_read_log_to_user(struct userlog_log *log,
 	/* calculate next reader offset */
 	reader->r_off = userlog_offset(log, reader->r_off +
 		sizeof(struct userlog_entry) + count);
-	pr_info("do_read_log_to_user reader->r_off:%lu\n", reader->r_off);
 
 	return count;
 }
@@ -160,10 +156,7 @@ static ssize_t userlog_read(struct file *file, char __user *buf,
 	mutex_lock(&log->mutex);
 
 	/* get the size of the next entry*/
-	pr_info("userlog_read struct_size:%lu\n", sizeof(struct userlog_entry));
-	pr_info("userlog_read msg_len:%u\n", get_entry_msg_len(log, reader->r_off));
 	entry_size = sizeof(struct userlog_entry) + get_entry_msg_len(log, reader->r_off);
-	pr_info("userlog_read entry_size:%lu\n", entry_size);
 
 	/* get exactly one entry from the log */
 	ret = do_read_log_to_user(log, reader, buf, entry_size);
@@ -183,7 +176,6 @@ static ssize_t userlog_write_iter(struct kiocb *iocb, struct iov_iter *from)
 
 	count = min_t(size_t, iov_iter_count(from), USERLOG_ENTRY_MAX_PAYLOAD);
 
-	pr_info("userlog_write_iter count:%ld\n", count);
 	/* set header info */
 	header.len = count;
 
@@ -196,18 +188,15 @@ static ssize_t userlog_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	/* write userlog header message */
 
 	len = min(sizeof(header), log->size - log->w_off);
-	pr_info("userlog_write_iter len:%ld\n", len);
 	memcpy(log->buffer + log->w_off, &header, len);
 	memcpy(log->buffer, (char *)&header + len, sizeof(header) - len);
 
 	/* get write offset for system message */
 	w_off =  userlog_offset(log, log->w_off + sizeof(struct userlog_entry));
-	pr_info("userlog_write_iter w_off:%lu\n", w_off);
 
 	/* write userlog system message */
 	len = min(count, log->size - w_off);
 
-	pr_info("userlog_write_iter len:%ld\n", len);
 	if (copy_from_iter(log->buffer + w_off, len, from) != len) {
 		mutex_unlock(&log->mutex);
 		return -EFAULT;
@@ -221,7 +210,6 @@ static ssize_t userlog_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	/* get write offset */
 	log->w_off = userlog_offset(log, w_off + count);
 
-	pr_info("userlog_write_iter log->w_off:%lu\n", log->w_off);
 	mutex_unlock(&log->mutex);
 
 	/* wake up any readers */
