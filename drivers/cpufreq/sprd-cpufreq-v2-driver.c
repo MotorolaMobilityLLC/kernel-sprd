@@ -112,6 +112,8 @@ static int sprd_nvmem_info_read(struct device_node *node, const char *name, u32 
 	memcpy(value, buf, len);
 
 	kfree(buf);
+	buf = NULL;
+
 	nvmem_cell_put(cell);
 
 	return 0;
