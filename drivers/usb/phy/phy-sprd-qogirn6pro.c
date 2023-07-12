@@ -48,6 +48,7 @@ struct sprd_hsphy {
 	atomic_t		reset;
 	atomic_t		inited;
 	bool			is_host;
+	bool			avdd1v8_chipsleep_off;
 };
 
 /* Pls keep the same definition as musb_sprd */
@@ -389,11 +390,11 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	ret |= regmap_update_bits(phy->ana_g0,
 		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,	msk, reg);
 
-#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
-	/* set avdd1v8 force on for usb lowpower */
-	regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
-			MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
-#endif
+	/*if avdd1v8 is off on chipsleep, set avdd1v8 force on for usb lowpower */
+	if (phy->avdd1v8_chipsleep_off)
+		regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
 		atomic_set(&phy->reset, 1);
@@ -417,11 +418,12 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 	sprd_usbm_mutex_lock();
 	dev_info(x->dev, "[%s]enter usbm_event_is_active(%d), usbm_ssphy_get_onoff(%d)\n",
 		__func__, sprd_usbm_event_is_active(), sprd_usbm_ssphy_get_onoff());
-#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
-	/* clear avdd1v8 force on for usb lowpower */
-	regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
-			MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
-#endif
+
+	/*if avdd1v8 is off on chipsleep, clear avdd1v8 force on for usb lowpower */
+	if (phy->avdd1v8_chipsleep_off)
+		regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+
 	sprd_usbm_hsphy_set_onoff(0);
 	if (!sprd_usbm_ssphy_get_onoff()) {
 		/* usb vbus */
@@ -771,6 +773,9 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		dev_err(dev, "unable to read hsphy vdd voltage\n");
 		return ret;
 	}
+
+	phy->avdd1v8_chipsleep_off = device_property_read_bool(dev,
+					"avdd1v8-chipsleep-off");
 
 	boot_cali = sprd_hsphy_cali_mode();
 
