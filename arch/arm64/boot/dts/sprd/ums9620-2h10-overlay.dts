@@ -485,6 +485,8 @@
 	sprd,hsphy-tunehsamp = /bits/ 8 <0x03 0x03>;
 	sprd,hsphy-tuneeq = /bits/ 8 <0x00 0x00>;
 	sprd,hsphy-tfregres = /bits/ 8 <0x0f 0x0f>;
+	/* avdd1v8 always off */
+	avdd1v8-always-off;
 	status = "okay";
 };
 
