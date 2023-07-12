@@ -636,7 +636,7 @@ static ssize_t gnss_regr_show(struct device *dev, struct device_attribute *attr,
 			      char *buf)
 {
 	unsigned int op_reg = gnss_op_reg;
-	unsigned int buffer;
+	unsigned int buffer = 0;
 	int ret = 0;
 
 	dev_info(dev, "%s, register is 0x%x\n", __func__, gnss_op_reg);
