@@ -24,6 +24,7 @@
 
 /* Pls keep the same definition as musb_sprd */
 #define CHARGER_DETECT_DONE		BIT(0)
+#define CHARGER_HW_REDETECT_EN		BIT(29)
 #define CHARGER_2NDDETECT_ENABLE	BIT(30)
 #define CHARGER_2NDDETECT_SELECT	BIT(31)
 

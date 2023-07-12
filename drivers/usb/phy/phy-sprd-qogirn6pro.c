@@ -51,10 +51,6 @@ struct sprd_hsphy {
 	bool			avdd1v8_chipsleep_off;
 };
 
-/* Pls keep the same definition as musb_sprd */
-#define CHARGER_2NDDETECT_ENABLE	BIT(30)
-#define CHARGER_2NDDETECT_SELECT	BIT(31)
-
 #define BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_VBUSVALID       0x02000000
 #define BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_TESTCLK         0x01000000
 #define BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_TESTDATAIN      0xff0000
@@ -833,7 +829,6 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	phy->phy.type = USB_PHY_TYPE_USB2;
 	phy->phy.vbus_nb.notifier_call = sprd_hsphy_vbus_notify;
 	phy->phy.charger_detect = sprd_hsphy_charger_detect;
-	phy->phy.flags |= CHARGER_2NDDETECT_ENABLE;
 	otg->usb_phy = &phy->phy;
 	phy->ops.dpdm_switch_to_phy = sprd_hsphy_dpdm_switch_to_phy;
 	phy->ops.get_dpdm_from_phy = sprd_hsphy_get_dpdm_from_phy;
