@@ -123,7 +123,7 @@
 	cm-capacity-track;
 	cm-keep-awake;
 
-	phys = <&hsphy>;
+	phys = <&ssphy>;
 	pd-extcon-enable;
 	extcon = <&pmic_typec>, <&pmic_pd>;
 };
@@ -182,7 +182,7 @@
 	sprd,comp-resistance-mohm = <11>;
 
 	fgu-capacity-track;
-	phys = <&hsphy>;
+	phys = <&ssphy>;
 
 	sprd,relax-counter-threshold = <580>;
 	sprd,relax-current-threshold = <30>;
