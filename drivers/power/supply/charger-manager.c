@@ -4599,21 +4599,15 @@ out:
 }
 
 /**
- * cm_use_typec_charger_type_polling - Polling charger type if use typec extcon.
+ * cm_charger_type_polling - Polling charger type.
  * @cm: the Charger Manager representing the battery.
  */
-static int cm_use_typec_charger_type_polling(struct charger_manager *cm)
+static int cm_charger_type_polling(struct charger_manager *cm)
 {
 	int ret;
 	u32 type;
 
-	if (cm->vchg_info && !cm->vchg_info->use_typec_extcon)
-		return 0;
-
 	if (!is_ext_usb_pwr_online(cm))
-		return 0;
-
-	if (cm->desc->is_fast_charge)
 		return 0;
 
 	if (cm->desc->charger_type != POWER_SUPPLY_USB_TYPE_UNKNOWN)
@@ -4638,8 +4632,7 @@ static int cm_use_typec_charger_type_polling(struct charger_manager *cm)
 
 static void cm_charger_type_update_check_start(struct charger_manager *cm)
 {
-	if (cm->vchg_info->use_typec_extcon &&
-	    cm->desc->charger_type == POWER_SUPPLY_USB_TYPE_UNKNOWN &&
+	if (cm->desc->charger_type == POWER_SUPPLY_USB_TYPE_UNKNOWN &&
 	    cm->desc->charge_type_poll_count < CM_CHARGER_TYPE_TIME_OUT_CNT) {
 		cm->desc->charge_type_poll_count++;
 		schedule_delayed_work(&cm->charger_type_update_work,
@@ -4654,7 +4647,7 @@ static void cm_charger_type_update_work(struct work_struct *work)
 						  struct charger_manager,
 						  charger_type_update_work);
 
-	cm_use_typec_charger_type_polling(cm);
+	cm_charger_type_polling(cm);
 	cm_charger_type_update_check_start(cm);
 }
 
