@@ -3077,6 +3077,7 @@ static void sprd_tcpm_reset_port(struct sprd_tcpm_port *port)
 	sprd_tcpm_log_force(port, "%s:line%d", __func__, __LINE__);
 	sprd_tcpm_unregister_altmodes(port);
 	sprd_tcpm_typec_disconnect(port);
+	port->data_role_swap = false;
 	port->drs_not_vdm = false;
 	port->attached = false;
 	port->pd_capable = false;
