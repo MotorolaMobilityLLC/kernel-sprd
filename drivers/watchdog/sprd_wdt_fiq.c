@@ -26,7 +26,9 @@
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/watchdog.h>
+#include <linux/seq_buf.h>
 #include <linux/syscore_ops.h>
+#include <../drivers/unisoc_platform/sysdump/unisoc_sysdump.h>
 
 #define SPRD_WDT_FIQ_LOAD_LOW		0x0
 #define SPRD_WDT_FIQ_LOAD_HIGH		0x4
@@ -78,6 +80,16 @@
 #define SPRD_WDT_RESET_TIMEOUT          0xe551
 
 #define SPRD_WDT_SYSCORE_SUSPEND_RESUME
+#define SPRD_PRINT_BUF_LEN              10240
+#define WDT_printf(m, x...)			\
+	do {                                              \
+		if (!m)                                   \
+			pr_debug(x);                      \
+		else if (seq_buf_printf(m, x)) {         \
+			seq_buf_clear(m);                 \
+			seq_buf_printf(m, x);             \
+		}                                         \
+} while (0)
 
 struct sprd_wdt_fiq {
 	void __iomem *base;
@@ -95,6 +107,9 @@ struct sprd_wdt_fiq {
 struct sprd_wdt_fiq_data {
 	bool eb_always_on;
 };
+
+static char *sprd_wdt_buf;
+static struct seq_buf *sprd_wdt_seq_buf;
 
 static DEFINE_MUTEX(sprd_wdt_mutex);
 struct sprd_wdt_fiq *wdt_fiq;
@@ -177,8 +192,8 @@ static int sprd_wdt_fiq_load_value(struct sprd_wdt_fiq *wdt, u32 timeout,
 
 	/*if the set timeout value is greater than 4s printk this log*/
 	if (tmr_step > SPRD_WDT_FIQ_PRINT_LOG) {
-		pr_err("sprd_wdt_fiq: sprd wdt load value timeout =%d, pretimeout =%d\n",
-			timeout, pretimeout);
+		WDT_printf(sprd_wdt_seq_buf, "wdt timeout =%d,pretimeout =%d,time =%lu\n",
+			   timeout, pretimeout, jiffies);
 	}
 	wdt->wdt_load = jiffies;
 
@@ -462,6 +477,28 @@ static int sprd_wdt_fiq_probe(struct platform_device *pdev)
 	wdt->wdd.max_timeout = SPRD_WDT_FIQ_MAX_TIMEOUT;
 	wdt->wdd.timeout = SPRD_WDT_FIQ_MAX_TIMEOUT;
 
+	sprd_wdt_buf = kzalloc(SPRD_PRINT_BUF_LEN, GFP_KERNEL);
+	if (!sprd_wdt_buf)
+		return -ENOMEM;
+
+	sprd_wdt_seq_buf = kzalloc(sizeof(*sprd_wdt_seq_buf), GFP_KERNEL);
+	if (!sprd_wdt_seq_buf) {
+		ret = -ENOMEM;
+		goto free_wdt_buf;
+	}
+
+	ret = minidump_save_extend_information("sprd_wdt_fiq",
+					__pa((unsigned long)(sprd_wdt_buf)),
+					 __pa((unsigned long)(sprd_wdt_buf) +
+					      SPRD_PRINT_BUF_LEN));
+
+	if (ret) {
+		dev_err(&pdev->dev, "alloc sprd wdt fiq fail\n");
+		goto free_seq_buf;
+	}
+
+	seq_buf_init(sprd_wdt_seq_buf, sprd_wdt_buf, SPRD_PRINT_BUF_LEN);
+
 	wdt->sleep_en = sprd_dswdt_fiq_en();
 	ret = sprd_wdt_fiq_enable(wdt);
 	if (ret) {
@@ -481,6 +518,12 @@ static int sprd_wdt_fiq_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, wdt);
 
 	return 0;
+
+free_seq_buf:
+	kfree(sprd_wdt_seq_buf);
+free_wdt_buf:
+	kfree(sprd_wdt_buf);
+	return ret;
 }
 
 static int __maybe_unused sprd_wdt_fiq_pm_suspend(struct device *dev)
