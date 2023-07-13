@@ -6,7 +6,7 @@
  * Copyright (C) 2019 Linaro, Inc.
  * Author: Baolin Wang <baolin.wang@linaro.org>
  */
-
+//This file has been modified by Unisoc (Shanghai) Technologies Co., Ltd in 2023.
 #include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
 #include <linux/module.h>
@@ -44,14 +44,25 @@ static void mmc_hsq_pump_requests(struct mmc_hsq *hsq)
 
 	slot = &hsq->slot[hsq->next_tag];
 	hsq->mrq = slot->mrq;
+#ifdef CONFIG_SPRD_DEBUG
+	hsq->stamp2 = ktime_get_ns();
+	if (!slot->mrq)
+		panic("slot->mrq = null\n");
+#endif
 	hsq->qcnt--;
 
 	spin_unlock_irqrestore(&hsq->lock, flags);
 
 	if (mmc->ops->request_atomic)
 		ret = mmc->ops->request_atomic(mmc, hsq->mrq);
-	else
+	else {
+#ifdef CONFIG_SPRD_DEBUG
+		if (!hsq->mrq)
+			panic("hsq->mrq = null, s1: %lld, s1_temp: %lld, s2: %lld\n",
+			      hsq->stamp1, hsq->stamp1_temp, hsq->stamp2);
+#endif
 		mmc->ops->request(mmc, hsq->mrq);
+	}
 
 	/*
 	 * If returning BUSY from request_atomic(), which means the card
@@ -95,6 +106,10 @@ static void mmc_hsq_post_request(struct mmc_hsq *hsq)
 	spin_lock_irqsave(&hsq->lock, flags);
 
 	remains = hsq->qcnt;
+#ifdef CONFIG_SPRD_DEBUG
+	hsq->stamp1_temp = hsq->stamp1;
+	hsq->stamp1 = ktime_get_ns();
+#endif
 	hsq->mrq = NULL;
 
 	/* Update the next available tag to be queued. */

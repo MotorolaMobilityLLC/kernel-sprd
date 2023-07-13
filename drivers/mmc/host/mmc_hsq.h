@@ -1,4 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0 */
+//This file has been modified by Unisoc (Shanghai) Technologies Co., Ltd in 2023.
 #ifndef LINUX_MMC_HSQ_H
 #define LINUX_MMC_HSQ_H
 
@@ -26,6 +27,11 @@ struct mmc_hsq {
 	bool enabled;
 	bool waiting_for_idle;
 	bool recovery_halt;
+#ifdef CONFIG_SPRD_DEBUG
+	unsigned long long stamp1;
+	unsigned long long stamp1_temp;
+	unsigned long long stamp2;
+#endif
 };
 
 int mmc_hsq_init(struct mmc_hsq *hsq, struct mmc_host *mmc);
