@@ -326,6 +326,26 @@ static int dpu_dvfs_parse_dt(struct dpu_dvfs *dpu,
 	return ret;
 }
 
+static bool is_lowv_chip(void)
+{
+	struct device_node *hwf;
+	const char *lowv;
+
+	hwf = of_find_node_by_path("/hwfeature/auto");
+	if (!hwf) {
+		pr_info("Can't find node /hwfeature/auto/lowv\n");
+		return false;
+	}
+
+	lowv = of_get_property(hwf, "lowv", NULL);
+	pr_debug("get lowv peoperty: %s\n", lowv);
+
+	if (!strcmp(lowv, "false"))
+		return false;
+
+	return true;
+}
+
 static int dpu_dvfs_init(struct dpu_dvfs *dpu)
 {
 	void __iomem *base = (void __iomem *)dpu->apsys->top_base;
@@ -349,11 +369,17 @@ static int dpu_dvfs_init(struct dpu_dvfs *dpu)
 
 	sprd_kproperty_get("auto/chipid", chip_type, "-1");
 
-	writel_relaxed(0x00d000d0, base + 0x3d0);
+	if (is_lowv_chip()) {
+		writel_relaxed(0x7, base + 0x3ac); //lowv chip
+		pr_info("N6Pro lowv chip, bypass top voltage\n");
+	} else {
+		writel_relaxed(0x00d000d0, base + 0x3d0);
+		writel_relaxed(0x0, base + 0x39c);
+	}
+
 	temp = readl_relaxed(base + 0xd84);
 	temp &= 0xfffffffe;
 	writel_relaxed(temp, base + 0xd84);
-	writel_relaxed(0x0, base + 0x39c);
 
 	dpu->dvfs_coffe.hw_dfs_en = 1;
 
