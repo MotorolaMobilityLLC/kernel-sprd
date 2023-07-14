@@ -699,6 +699,7 @@ temp_node_init:
 
 	cluster->temp_level_node = node;
 	cluster->temp_currt_node = node;
+	cluster->best_temp = node->temp;
 	cluster->temp_tick = 0U;
 
 	return 0;
@@ -989,8 +990,9 @@ unsigned int sprd_cpufreq_update_opp(unsigned int cpu, int now_temp)
 		goto ret_error;
 	}
 
-	/* immediate response to temp rise */
-	if (node->temp > cluster->temp_currt_node->temp) {
+	/* immediate response to away from the best_temp */
+	if (abs(node->temp - cluster->best_temp)
+	    - abs(cluster->temp_currt_node->temp - cluster->best_temp) > 0) {
 		cluster->temp_level_node = node;
 		cluster->temp_tick = DVFS_TEMP_MAX_TICKS;
 	} else if (node != cluster->temp_level_node) {
