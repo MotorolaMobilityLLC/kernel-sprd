@@ -1208,7 +1208,10 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 		}
 		break;
 	case POWER_SUPPLY_PROP_TYPE:
-		if (val->intval == POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP) {
+		if (val->intval == POWER_SUPPLY_WIRELESS_CHARGER_TYPE_UNKNOWN) {
+			info->is_wireless_charge = true;
+			ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_6V);
+		} else if (val->intval == POWER_SUPPLY_WIRELESS_CHARGER_TYPE_BPP) {
 			info->is_wireless_charge = true;
 			ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_6V);
 		} else if (val->intval == POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP) {
@@ -1218,6 +1221,7 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 			info->is_wireless_charge = false;
 			ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_6V);
 		}
+
 		if (ret)
 			dev_err(info->dev, "failed to set fast charge ovp\n");
 

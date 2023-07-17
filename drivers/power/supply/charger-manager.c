@@ -890,6 +890,7 @@ static void cm_get_charger_type(struct charger_manager *cm,
 				u32 *type)
 {
 	struct charger_type *chg_type;
+	enum cm_charger_type match_type = CM_CHARGER_TYPE_UNKNOWN;
 
 	switch (chg_type_flag) {
 	case CM_FCHG_TYPE:
@@ -912,12 +913,14 @@ static void cm_get_charger_type(struct charger_manager *cm,
 
 	while ((chg_type)->adap_type != CM_CHARGER_TYPE_UNKNOWN) {
 		if (*type == chg_type->psy_type) {
-			*type = chg_type->adap_type;
-			return;
+			match_type = chg_type->adap_type;
+			break;
 		}
 
 		chg_type++;
 	}
+
+	*type = match_type;
 }
 
 /**
@@ -3970,7 +3973,7 @@ static int cm_set_primary_charge_wirless_type(struct charger_manager *cm, bool e
 			val.intval = POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP;
 			break;
 		default:
-			val.intval = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+			val.intval = POWER_SUPPLY_WIRELESS_CHARGER_TYPE_UNKNOWN;
 		}
 	} else {
 		val.intval = 0;
