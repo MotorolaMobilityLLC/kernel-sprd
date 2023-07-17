@@ -30,6 +30,7 @@
 int cmd_record_index = -1;
 static bool exceed_max_depth;
 static spinlock_t ufs_debug_dump;
+spinlock_t ufs_dbg_regs_lock;
 
 static atomic_t ufs_db_dump_cnt;
 /* ufs error code count */
@@ -38,7 +39,9 @@ struct ufs_uic_err_code_cnt ufs_uic_err_code_cnt;
 struct ufs_event_info uei[UFS_CMD_RECORD_DEPTH];
 /* Minidump buffer */
 char *ufs_dump_buffer;
+char *ufs_dbg_hist_dump_buffer;
 struct ufs_hba *hba_tmp;
+struct ufs_dbg_hist dbg_hist;
 struct ufs_err_cnt ufs_err_cnt;
 
 static const char *ufs_event_str[UFS_MAX_EVENT] = {
@@ -840,6 +843,86 @@ static const struct proc_ops uic_err_cnt_fops = {
 	.proc_release = single_release,
 };
 
+void *ufs_sprd_get_dbg_hist(void)
+{
+	return &dbg_hist;
+}
+EXPORT_SYMBOL_GPL(ufs_sprd_get_dbg_hist);
+
+void ufs_sprd_dbg_regs_hist_register(struct ufs_hba *hba, u32 regs_num, void *name_ptr)
+{
+	u8 i = 0;
+
+	dbg_hist.name_array = name_ptr;
+
+	for (; i < MAX_UFS_DBG_HIST; i++) {
+		dbg_hist.pkg[i].val_array =
+			devm_kzalloc(hba->dev, regs_num * sizeof(u32), GFP_KERNEL);
+		if (!dbg_hist.pkg[i].val_array)
+			goto err;
+	}
+
+	dbg_hist.each_pkg_num = regs_num;
+
+	return;
+err:
+	for (i = 0; i < MAX_UFS_DBG_HIST; i++) {
+		devm_kfree(hba->dev, dbg_hist.pkg[i].val_array);
+		dbg_hist.pkg[i].val_array = NULL;
+	}
+}
+EXPORT_SYMBOL_GPL(ufs_sprd_dbg_regs_hist_register);
+
+void ufs_sprd_dbg_regs_hist_dump(void)
+{
+	char *dump_ptr = ufs_dbg_hist_dump_buffer;
+	char **dump_pos = &dump_ptr;
+	struct seq_file *m = NULL;
+	u32 i = 0, j = 0;
+	u32 val_num = dbg_hist.each_pkg_num;
+	u32 ptr;
+	unsigned long flags;
+
+	if (!dbg_hist.pkg[0].val_array || !ufs_dbg_hist_dump_buffer)
+		return;
+
+	spin_lock_irqsave(&ufs_dbg_regs_lock, flags);
+
+	if (dbg_hist.pkg[dbg_hist.pos].time == 0)
+		ptr = 0;
+	else
+		ptr = dbg_hist.pos;
+
+	for (; i < MAX_UFS_DBG_HIST; i++) {
+		if (!dbg_hist.pkg[ptr].time)
+			break;
+
+		PRINT_SWITCH(m, dump_pos, "[%lld.%09lld]%s%sid:%2d, data:0x%08x\n",
+			dbg_hist.pkg[ptr].time / NSEC_PER_SEC,
+			dbg_hist.pkg[ptr].time % NSEC_PER_SEC,
+			dbg_hist.pkg[ptr].preempt ? "[in_atomic]" : "",
+			dbg_hist.pkg[ptr].active_uic_cmd ? "[uic_cmd_active]" : "",
+			dbg_hist.pkg[ptr].id,
+			dbg_hist.pkg[ptr].data);
+
+		for (j = 0; j < val_num; j++) {
+			PRINT_SWITCH(m, dump_pos, "\t%s = 0x%08x\n",
+				((char **)dbg_hist.name_array)[j],
+				((u32 *)dbg_hist.pkg[ptr].val_array)[j]);
+		}
+
+		PRINT_SWITCH(m, dump_pos, "\n");
+		ptr = (ptr + 1) % MAX_UFS_DBG_HIST;
+	}
+
+	spin_unlock_irqrestore(&ufs_dbg_regs_lock, flags);
+
+	/* dump ufs dump buffer usage */
+	if (dump_pos && *dump_pos)
+		PRINT_SWITCH(m, dump_pos, "Dump buffer used:0x%x/(0x%x)\n",
+				(u32)(*dump_pos - ufs_dbg_hist_dump_buffer), DUMP_BUFFER_S);
+}
+
 static void ufs_sprd_debug_dump(u32 dump_req, struct seq_file *m, char **dump_pos)
 {
 	u64 time;
@@ -867,6 +950,9 @@ static void ufs_sprd_debug_dump(u32 dump_req, struct seq_file *m, char **dump_po
 	if (dump_pos && *dump_pos)
 		PRINT_SWITCH(m, dump_pos, "Dump buffer used:0x%x/(0x%x)\n",
 				(u32)(*dump_pos - ufs_dump_buffer), DUMP_BUFFER_S);
+
+	/* dump ufs debug regs history */
+	ufs_sprd_dbg_regs_hist_dump();
 }
 
 static int sprd_ufs_panic_handler(struct notifier_block *self,
@@ -950,6 +1036,20 @@ static int ufs_sprd_minidump_register(struct ufs_hba *hba)
 		dev_info(hba->dev, "%s: failed to link ufs_debug to minidump\n",
 			__func__);
 
+	if (!dbg_hist.pkg[0].val_array)
+		return 0;
+
+	ufs_dbg_hist_dump_buffer = devm_kzalloc(hba->dev, DUMP_BUFFER_S, GFP_KERNEL);
+	if (!ufs_dbg_hist_dump_buffer)
+		return -ENOMEM;
+
+	/* UFS minidump register */
+	if (minidump_save_extend_information("ufs_dbg_regs_history",
+					     __pa(ufs_dbg_hist_dump_buffer),
+					     __pa(ufs_dbg_hist_dump_buffer + DUMP_BUFFER_S)))
+		dev_info(hba->dev, "%s: failed to link ufs_dbg_regs_history to minidump\n",
+			__func__);
+
 	return 0;
 }
 
@@ -972,6 +1072,7 @@ int ufs_sprd_debug_init(struct ufs_hba *hba)
 	host->debug_en = UFS_DEBUG_ON_DEF;
 
 	spin_lock_init(&ufs_debug_dump);
+	spin_lock_init(&ufs_dbg_regs_lock);
 	atomic_set(&ufs_db_dump_cnt, 0);
 
 	ret = ufs_sprd_debug_procfs_register(hba);

@@ -8,6 +8,7 @@
 
 struct ufs_sprd_ums9621_data {
 	struct regulator *vdd_mphy;
+	struct regulator *vddsram;
 	struct syscon_ufs phy_sram_ext_ld_done;
 	struct syscon_ufs phy_sram_bypass;
 	struct syscon_ufs phy_sram_init_done;
@@ -23,6 +24,7 @@ struct ufs_sprd_ums9621_data {
 	uint32_t ufs_lane_calib_data0;
 	uint32_t ufs_lane_calib_data1;
 	void __iomem *syssel_reg;
+	void __iomem *anlg_phy_g12;
 };
 
 
@@ -50,5 +52,7 @@ struct ufs_sprd_ums9621_data {
 
 /* Define debug bus register */
 #define REG_DEBUG_BUS_SYSSEL	0x7800A100
+
+#define REG_ANLG_PHY_G12	0x64380000
 
 #endif/* _UFS_SPRD_QOGIRN6L_H_ */
