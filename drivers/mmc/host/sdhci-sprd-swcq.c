@@ -1959,7 +1959,7 @@ static bool sdhci_sprd_send_command(struct sdhci_host *host, struct mmc_command 
 
 	WARN_ON(host->cmd);
 
-	dbg_add_host_log(host->mmc, 0, cmd->opcode, cmd->arg, cmd->mrq);
+	dbg_add_host_log(host->mmc, MMC_SEND_CMD, cmd->opcode, cmd->arg, cmd->mrq);
 
 	/* Initially, a command has no error */
 	cmd->error = 0;
@@ -2129,7 +2129,8 @@ static void sdhci_sprd_finish_command(struct sdhci_host *host)
 			sdhci_sprd_read_rsp_136(host, cmd);
 		} else {
 			cmd->resp[0] = sdhci_readl(host, SDHCI_RESPONSE);
-			dbg_add_host_log(host->mmc, 1, cmd->opcode, cmd->resp[0], cmd->mrq);
+			dbg_add_host_log(host->mmc, MMC_CMD_RSP, cmd->opcode,
+				cmd->resp[0], cmd->mrq);
 		}
 	}
 

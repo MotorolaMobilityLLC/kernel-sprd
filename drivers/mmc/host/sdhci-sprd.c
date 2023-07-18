@@ -1251,9 +1251,13 @@ static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	u32 command, clk_ctrl, host_ctrl2, delay_value, int_sts;
 	char sdhci_hostname[64];
+	bool flag = true;
 
 	if (sprd_host->tuning_flag)
 		return;
+
+	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sprd_host->support_swcq)
+		host->mmc->cqe_ops->cqe_timeout(host->mmc, host->mmc->ongoing_mrq, &flag);
 
 	command = SDHCI_GET_CMD(sdhci_readw(host, SDHCI_COMMAND));
 	int_sts = sdhci_readl(host, SDHCI_INT_STATUS);
@@ -1383,7 +1387,8 @@ static void sdhci_sprd_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		if (!swcq->need_polling) {
 			sdhci_writel(host, host->ier, SDHCI_SIGNAL_ENABLE);
 			if (mrq->cmd)
-				dbg_add_host_log(mmc, 0, mrq->cmd->opcode, mrq->cmd->arg, mrq);
+				dbg_add_host_log(mmc, MMC_SEND_CMD, mrq->cmd->opcode,
+					mrq->cmd->arg, mrq);
 		} else {
 			sdhci_sprd_request_sync(mmc, mrq);
 			return;

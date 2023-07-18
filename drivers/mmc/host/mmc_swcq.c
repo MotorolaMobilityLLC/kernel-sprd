@@ -31,6 +31,19 @@
 
 struct mmc_swcq *g_swcq;
 
+static const char *const dbg_type_name[DBG_TYPE_NUM][2] = {
+	{"MMC_SEND_CMD", "arg"},
+	{"MMC_CMD_RSP", "resp"},
+	{"MMC_SWCQ_RQ", "issue next"},
+	{"HSQ_POST_RQ", "hsq_rq finish"},
+	{"CMDQ_POST_RQ", "cmdq_rq finish"},
+	{"HSQ_PUMP_RQ", "hsq_rq start"},
+	{"CMDQ_PUMP_RQ", "cmdq_rq start"},
+	{"PUMP_RQ_BUSY", "pump_busy"},
+	{"PUMP_RQ_EXCEPTION", "pump_exception"},
+	{"CMDQ_WORK_FINISH", "cmdq_sleep"},
+};
+
 /**************debug log*******************/
 
 static inline void swcq_dump_host_regs(struct mmc_host *mmc)
@@ -64,7 +77,7 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 	t = sched_clock();
 
 	switch (type) {
-	case 0: /* normal - cmd */
+	case MMC_SEND_CMD: /* normal - cmd */
 		tn = t;
 		nanosec_rem = do_div(t, 1000000000)/1000;
 		dbg_run_host_log_dat[swcq->dbg_host_cnt].time_sec = t;
@@ -94,7 +107,7 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 		if (swcq->dbg_host_cnt >= dbg_max_cnt)
 			swcq->dbg_host_cnt = 0;
 		break;
-	case 1: /* normal -rsp */
+	case MMC_CMD_RSP: /* normal -rsp */
 		nanosec_rem = do_div(t, 1000000000)/1000;
 		/* skip log if last cmd rsp are the same */
 		if (last_cmd == cmd &&
@@ -137,19 +150,18 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 		if (swcq->dbg_host_cnt >= dbg_max_cnt)
 			swcq->dbg_host_cnt = 0;
 		break;
-	case 2:
-	case 3:
-	case 4:
-	case 33:
-	case 44:
-	case 58:
-	case 59:
-	case 60:
+	case MMC_SWCQ_RQ:
+	case HSQ_POST_RQ:
+	case CMDQ_POST_RQ:
+	case HSQ_PUMP_RQ:
+	case CMDQ_PUMP_RQ:
+	case PUMP_RQ_BUSY:
+	case PUMP_RQ_EXCEPTION:
+	case CMDQ_WORK_FINISH:
 		tn = t;
 		nanosec_rem = do_div(t, 1000000000)/1000;
 		/*skip log if last cmd rsp are the same*/
-		if (last_type == type &&
-			type == 58) {
+		if (last_type == type && type == PUMP_RQ_BUSY) {
 			skip++;
 			if (swcq->dbg_host_cnt == 0)
 				swcq->dbg_host_cnt = dbg_max_cnt;
@@ -201,29 +213,53 @@ void dbg_add_host_log(struct mmc_host *mmc, int type,
 }
 EXPORT_SYMBOL(dbg_add_host_log);
 
-void dump_cmd_history(struct mmc_swcq *swcq)
+void dump_cmd_history(struct mmc_swcq *swcq, int print_num)
 {
 	int i, j;
+	struct dbg_run_host_log *dbg_info;
 
 	if (!swcq)
 		return;
 
-	pr_err("==========dump cmd history[max:%d entries]==========\n", dbg_max_cnt);
-	for (i = 0, j = swcq->dbg_host_cnt; i < dbg_max_cnt; i++, j++) {
+	pr_err("==========dump cmd history[print_num:%d entries]==========\n", print_num);
+	j = swcq->dbg_host_cnt >= print_num ?
+		swcq->dbg_host_cnt - print_num : swcq->dbg_host_cnt - print_num + dbg_max_cnt;
+	for (i = 0; i < print_num; i++, j++) {
 		if (j >= dbg_max_cnt)
 			j = 0;
-		if (swcq->cmd_history[j].time_sec == 0)
+		dbg_info = &swcq->cmd_history[j];
+		if (dbg_info->time_sec == 0)
 			continue;
 
-		pr_info("[%d] time_sec:%lld time_usec:%lld type:%d CMD%d arg:0x%x blk:%d "
-			"skip:%d pid:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x tsk_idx:0x%x",
-			i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
-			swcq->cmd_history[j].type, swcq->cmd_history[j].cmd,
-			swcq->cmd_history[j].arg, swcq->cmd_history[j].blocks,
-			swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
-			swcq->cmd_history[j].mrq, swcq->cmd_history[j].qcnt,
-			swcq->cmd_history[j].cmdq_cnt, swcq->cmd_history[j].flags,
-			swcq->cmd_history[j].task_id_index);
+		if (dbg_info->type == MMC_SEND_CMD || dbg_info->type == MMC_CMD_RSP) {
+			pr_err("[%d] time_s:%lld us:%lld type:[%s] CMD%d %s:0x%x blk:%d ",
+				i, dbg_info->time_sec, dbg_info->time_usec,
+				dbg_type_name[dbg_info->type][0], dbg_info->cmd,
+				dbg_type_name[dbg_info->type][1], dbg_info->arg,
+				dbg_info->blocks);
+			pr_err("skip:%d pid:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x idx:0x%x",
+				dbg_info->skip, dbg_info->pid, dbg_info->mrq,
+				dbg_info->qcnt, dbg_info->cmdq_cnt,
+				dbg_info->flags, dbg_info->task_id_index);
+		} else if (dbg_info->type == PUMP_RQ_EXCEPTION || dbg_info->type == PUMP_RQ_BUSY) {
+			pr_err("[%d] time_s:%lld us:%lld type:[%s] %s:0x%x blk:%d ",
+				i, dbg_info->time_sec, dbg_info->time_usec,
+				dbg_type_name[dbg_info->type][0], dbg_type_name[dbg_info->type][1],
+				dbg_info->arg, dbg_info->blocks);
+			pr_err("skip:%d pid:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x idx:0x%x",
+				dbg_info->skip, dbg_info->pid, dbg_info->mrq,
+				dbg_info->qcnt, dbg_info->cmdq_cnt,
+				dbg_info->flags, dbg_info->task_id_index);
+		} else {
+			pr_err("[%d] time_s:%lld us:%lld type:[%s] %s: blk:%d ",
+				i, dbg_info->time_sec, dbg_info->time_usec,
+				dbg_type_name[dbg_info->type][0], dbg_type_name[dbg_info->type][1],
+				dbg_info->blocks);
+			pr_err("skip:%d pid:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x idx:0x%x",
+				dbg_info->skip, dbg_info->pid, dbg_info->mrq,
+				dbg_info->qcnt, dbg_info->cmdq_cnt,
+				dbg_info->flags, dbg_info->task_id_index);
+		}
 	}
 	pr_err("==========dump cmd history end==========:\n");
 }
@@ -849,7 +885,7 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 		|| swcq->recovery_halt
 		|| (emmc_resetting_when_cmdq == 1)) {
 		if (swcq->pump_busy)
-			dbg_add_host_log(swcq->mmc, 58, 0, swcq->pump_busy, 0);
+			dbg_add_host_log(swcq->mmc, PUMP_RQ_BUSY, 0, swcq->pump_busy, 0);
 		spin_unlock_irqrestore(&swcq->lock, flags);
 		return;
 	}
@@ -857,7 +893,8 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 	swcq->pump_busy = true;
 	/* Make sure there are remain requests need to pump */
 	if (!atomic_read(&swcq->qcnt) || !swcq->enabled) {
-		dbg_add_host_log(swcq->mmc, 59, 0, atomic_read(&swcq->qcnt)<<16 | swcq->enabled, 0);
+		dbg_add_host_log(swcq->mmc, PUMP_RQ_EXCEPTION, 0,
+			atomic_read(&swcq->qcnt)<<16 | swcq->enabled, 0);
 		swcq->pump_busy = false;
 		spin_unlock_irqrestore(&swcq->lock, flags);
 		return;
@@ -906,7 +943,7 @@ again:
 		slot = &swcq->slot[swcq->next_tag];
 		mrq = slot->mrq;
 
-		dbg_add_host_log(swcq->mmc, 44, 0, 0, mrq);
+		dbg_add_host_log(swcq->mmc, CMDQ_PUMP_RQ, 0, 0, mrq);
 
 		if (!mrq) {
 			WARN_ON(1);
@@ -956,7 +993,7 @@ again:
 	slot = &swcq->slot[swcq->next_tag];
 	swcq->mrq = slot->mrq;
 
-	dbg_add_host_log(swcq->mmc, 33, 0, 0, swcq->mrq);
+	dbg_add_host_log(swcq->mmc, HSQ_PUMP_RQ, 0, 0, swcq->mrq);
 
 	if (!swcq->hsq_running)
 		swcq->hsq_running = true;
@@ -1021,7 +1058,7 @@ static inline void mmc_cmdq_post_request(struct mmc_swcq *swcq, int task_id)
 
 	spin_lock_irqsave(&swcq->lock, flags);
 	atomic_dec(&swcq->cmdq_cnt);
-	dbg_add_host_log(swcq->mmc, 4, 0, 0, swcq->cmdq_slot[task_id].mrq);
+	dbg_add_host_log(swcq->mmc, CMDQ_POST_RQ, 0, 0, swcq->cmdq_slot[task_id].mrq);
 	swcq->cmdq_slot[task_id].mrq = NULL;
 	swcq->cmdq_slot[task_id].ext_mrq = NULL;
 	atomic_set(&swcq->cmdq_slot[task_id].used, false);
@@ -1037,7 +1074,7 @@ static void mmc_swcq_post_request(struct mmc_swcq *swcq)
 	spin_lock_irqsave(&swcq->lock, flags);
 	remains = atomic_read(&swcq->qcnt);
 
-	dbg_add_host_log(swcq->mmc, 3, 0, 0, swcq->mrq);
+	dbg_add_host_log(swcq->mmc, HSQ_POST_RQ, 0, 0, swcq->mrq);
 	swcq->mrq = NULL;
 
 	if (swcq->waiting_for_hsq_idle) {
@@ -1485,7 +1522,7 @@ reset_card:
 			if (atomic_read(&swcq->qcnt) > 0)
 				SCHED_PUMP_WORK(&swcq->delayed_pump_work, 0);
 
-			dbg_add_host_log(swcq->mmc, 60, 0, atomic_read(&swcq->qcnt), 0);
+			dbg_add_host_log(swcq->mmc, CMDQ_WORK_FINISH, 0, 0, 0);
 			spin_unlock_irqrestore(&swcq->lock, flags);
 			break;
 
@@ -1757,7 +1794,7 @@ static int mmc_swcq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 
 	atomic_inc(&swcq->qcnt);
 
-	dbg_add_host_log(mmc, 2, 0, 0, mrq);
+	dbg_add_host_log(mmc, MMC_SWCQ_RQ, 0, 0, mrq);
 
 	spin_unlock_irqrestore(&swcq->lock, flags);
 	mmc_swcq_pump_requests(swcq);
@@ -1857,7 +1894,6 @@ static bool mmc_swcq_timeout(struct mmc_host *mmc, struct mmc_request *mrq,
 								bool *recovery_needed)
 {
 	struct mmc_swcq *swcq = mmc->cqe_private;
-	int tag = mrq->tag;
 	unsigned long flags;
 	bool timed_out = true;
 
@@ -1869,9 +1905,7 @@ static bool mmc_swcq_timeout(struct mmc_host *mmc, struct mmc_request *mrq,
 	spin_unlock_irqrestore(&swcq->lock, flags);
 
 	if (timed_out) {
-		pr_err("%s: swcq: timeout for tag %d, mrq:0x%p\n",
-		       mmc_hostname(mmc), tag, mrq);
-		dump_cmd_history(swcq);
+		dump_cmd_history(swcq, TIMEOUT_PRINT_CNT);
 	}
 
 	return timed_out;
@@ -2020,63 +2054,43 @@ static int sprd_swcq_cmd_show(struct seq_file *m, void *v)
 {
 	int i, j;
 	struct mmc_swcq *swcq = g_swcq;
+	struct dbg_run_host_log *dbg_info;
 
 	for (i = 0, j = swcq->dbg_host_cnt; i < dbg_max_cnt; i++, j++) {
 		if (j >= dbg_max_cnt)
 			j = 0;
-		if (swcq->cmd_history[j].time_sec == 0)
+		dbg_info = &swcq->cmd_history[j];
+		if (dbg_info->time_sec == 0)
 			continue;
-		if (swcq->cmd_history[j].type == 0) {
-			seq_printf(m, "[%d] time_sec:%lld, time_usec:%lld CMD%d=> arg:0x%x, "
-				   "skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x, "
-				   "task_id_index:0x%x\n",
-				   i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
-				   swcq->cmd_history[j].cmd, swcq->cmd_history[j].arg,
-				   swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
-				   swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
-				   swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
-				   swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
-		} else if (swcq->cmd_history[j].type == 1) {
-			seq_printf(m, "[%d] time_sec:%lld time_usec:%lld CMD%d resp:0x%x, "
-				   "skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x, "
-				   "task_id_index:0x%x\n",
-				   i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
-				   swcq->cmd_history[j].cmd, swcq->cmd_history[j].arg,
-				   swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
-				   swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
-				   swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
-				   swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
-		} else if (swcq->cmd_history[j].type == 2) {
-			seq_printf(m, "[%d] time_sec:%lld, time_usec:%lld issue next:%d, "
-				   "skip:%d pid:%d mrq:0x%p blocks:%d addr=%d qcnt:%d cmdq_cnt:%d flags:0x%x"
-				   "task_id_index:0x%x\n",
-				   i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
-				   swcq->cmd_history[j].arg, swcq->cmd_history[j].skip,
-				   swcq->cmd_history[j].pid, swcq->cmd_history[j].mrq,
-				   swcq->cmd_history[j].blocks, swcq->cmd_history[j].blocks ?
-				   swcq->cmd_history[j].mrq->data->blk_addr : 0,
-				   swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
-				   swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
-		} else if (swcq->cmd_history[j].type == 3) {
-			seq_printf(m, "[%d] time_sec:%lld time_usec:%lld finish next:%d, "
-				   "skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x, "
-				   "task_id_index:0x%x\n",
-				   i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
-				   swcq->cmd_history[j].arg,
-				   swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
-				   swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
-				   swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
-				   swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
+
+		if (dbg_info->type == MMC_SEND_CMD || dbg_info->type == MMC_CMD_RSP) {
+			seq_printf(m, "[%d] time_s:%lld us:%lld [%s] CMD%d %s:0x%x blk:%d skip:%d ",
+				i, dbg_info->time_sec, dbg_info->time_usec,
+				dbg_type_name[dbg_info->type][0], dbg_info->cmd,
+				dbg_type_name[dbg_info->type][1], dbg_info->arg,
+				dbg_info->blocks, dbg_info->skip);
+			seq_printf(m, "pid:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x idx:0x%x\n",
+				dbg_info->pid, dbg_info->mrq,
+				dbg_info->qcnt, dbg_info->cmdq_cnt,
+				dbg_info->flags, dbg_info->task_id_index);
+		} else if (dbg_info->type == PUMP_RQ_EXCEPTION || dbg_info->type == PUMP_RQ_BUSY) {
+			seq_printf(m, "[%d] time_s:%lld us:%lld [%s] %s:0x%x blk:%d skip:%d ",
+				i, dbg_info->time_sec, dbg_info->time_usec,
+				dbg_type_name[dbg_info->type][0], dbg_type_name[dbg_info->type][1],
+				dbg_info->arg, dbg_info->blocks, dbg_info->skip);
+			seq_printf(m, "pid:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x idx:0x%x\n",
+				dbg_info->pid, dbg_info->mrq,
+				dbg_info->qcnt, dbg_info->cmdq_cnt,
+				dbg_info->flags, dbg_info->task_id_index);
 		} else {
-			seq_printf(m, "[%d] time_sec:%lld time_usec:%lld type:%d args:0x%x, "
-				   "skip:%d pid:%d blocks:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x, "
-				   " task_id_index:0x%x\n",
-				   i, swcq->cmd_history[j].time_sec, swcq->cmd_history[j].time_usec,
-				   swcq->cmd_history[j].type, swcq->cmd_history[j].arg,
-				   swcq->cmd_history[j].skip, swcq->cmd_history[j].pid,
-				   swcq->cmd_history[j].blocks, swcq->cmd_history[j].mrq,
-				   swcq->cmd_history[j].qcnt, swcq->cmd_history[j].cmdq_cnt,
-				   swcq->cmd_history[j].flags, swcq->cmd_history[j].task_id_index);
+			seq_printf(m, "[%d] time_s:%lld us:%lld [%s] %s: blk:%d skip:%d ",
+				i, dbg_info->time_sec, dbg_info->time_usec,
+				dbg_type_name[dbg_info->type][0], dbg_type_name[dbg_info->type][1],
+				dbg_info->blocks, dbg_info->skip);
+			seq_printf(m, "pid:%d mrq:0x%p qcnt:%d cmdq_cnt:%d flags:0x%x idx:0x%x\n",
+				dbg_info->pid, dbg_info->mrq,
+				dbg_info->qcnt, dbg_info->cmdq_cnt,
+				dbg_info->flags, dbg_info->task_id_index);
 		}
 	}
 

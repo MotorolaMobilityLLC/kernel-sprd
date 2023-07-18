@@ -17,6 +17,21 @@
 #endif
 
 #define dbg_max_cnt (400)
+#define TIMEOUT_PRINT_CNT 40
+
+enum mmc_dbg_type {
+	MMC_SEND_CMD,
+	MMC_CMD_RSP,
+	MMC_SWCQ_RQ,
+	HSQ_POST_RQ,
+	CMDQ_POST_RQ,
+	HSQ_PUMP_RQ,
+	CMDQ_PUMP_RQ,
+	PUMP_RQ_BUSY,
+	PUMP_RQ_EXCEPTION,
+	CMDQ_WORK_FINISH,
+	DBG_TYPE_NUM,
+};
 
 struct dbg_run_host_log {
 	unsigned long long time_sec;
