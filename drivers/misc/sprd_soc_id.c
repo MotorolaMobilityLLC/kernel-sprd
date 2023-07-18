@@ -119,7 +119,7 @@ static int sprd_create_socid_node(void)
 
 static int sprd_soc_id_probe(struct platform_device *pdev)
 {
-	int ret = 0, i;
+	int i;
 	struct device_node *np = pdev->dev.of_node;
 	const char *pname;
 	struct regmap *tregmap = NULL;
@@ -141,12 +141,7 @@ static int sprd_soc_id_probe(struct platform_device *pdev)
 			syscon_regs[i].mask);
 	}
 
-	ret = sprd_create_socid_node();
-
-	if (ret)
-		return ret;
-
-	return 0;
+	return sprd_create_socid_node();
 }
 
 static const struct of_device_id sprd_soc_id_of_match[] = {
