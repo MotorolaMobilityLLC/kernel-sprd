@@ -521,7 +521,6 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 		msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_VBUSVLDEXT;
 		regmap_update_bits(phy->ana_g2,
 			REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1, msk, 0);
-		usb_phy->flags &= ~CHARGER_DETECT_DONE;
 	}
 
 	phy->event = event;
