@@ -32,7 +32,15 @@
 #endif
 #include <trace/events/thermal.h>
 
+#if IS_ENABLED(CONFIG_UNISOC_SCHED)
 #include "../sched/uni_sched.h"
+#else
+enum pause_reason {
+	PAUSE_CORE_CTL	= 0x01,
+	PAUSE_THERMAL	= 0x02,
+	PAUSE_HYP	= 0x04,
+};
+#endif
 
 #define MAX_SENSOR_NUMBER	8
 #define GOV_NAME "power_allocator"
