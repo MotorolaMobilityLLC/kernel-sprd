@@ -919,7 +919,7 @@ static void walt_fixup_busy_time(struct task_struct *p, int new_cpu)
 		double_rq_unlock(src_rq, dest_rq);
 }
 
-static void walt_init_new_task_load(struct task_struct *p)
+void walt_init_new_task_load(struct task_struct *p)
 {
 	int i;
 	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)p->android_vendor_data1;
@@ -993,14 +993,6 @@ static void android_rvh_sched_cpu_dying(void *data, int cpu)
 	rq_lock_irqsave(rq, &rf);
 	walt_migrate_sync_cpu(cpu);
 	rq_unlock_irqrestore(rq, &rf);
-}
-
-static void android_rvh_wake_up_new_task(void *data, struct task_struct *p)
-{
-	if (unlikely(uni_sched_disabled))
-		return;
-
-	walt_init_new_task_load(p);
 }
 
 static void android_rvh_new_task_stats(void *data, struct task_struct *p)
@@ -1114,7 +1106,6 @@ static void register_walt_vendor_hooks(void)
 	register_trace_android_rvh_build_perf_domains(android_rvh_build_perf_domains, NULL);
 	register_trace_android_rvh_sched_cpu_starting(android_rvh_sched_cpu_starting, NULL);
 	register_trace_android_rvh_sched_cpu_dying(android_rvh_sched_cpu_dying, NULL);
-	register_trace_android_rvh_wake_up_new_task(android_rvh_wake_up_new_task, NULL);
 	register_trace_android_rvh_new_task_stats(android_rvh_new_task_stats, NULL);
 	register_trace_android_rvh_set_task_cpu(android_rvh_set_task_cpu, NULL);
 	register_trace_android_rvh_try_to_wake_up(android_rvh_try_to_wake_up, NULL);

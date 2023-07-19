@@ -10,3 +10,4 @@ unisoc-sched-$(CONFIG_UNISOC_GROUP_CTL) += group_ctl.o
 unisoc-sched-$(CONFIG_UNISOC_HUNG_TASK_ENH) += hung_task_enh.o
 unisoc-sched-$(CONFIG_UNISOC_SCHEDUTIL_GOV) += unisoc_schedutil.o
 unisoc-sched-$(CONFIG_UNISOC_SCHED_PAUSE_CPU) += core_pause.o core_ctl.o
+unisoc-sched-$(CONFIG_UNISOC_CPU_NETLINK) += cpu_netlink.o

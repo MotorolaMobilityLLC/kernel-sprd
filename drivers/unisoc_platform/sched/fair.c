@@ -6,6 +6,7 @@
 #include <linux/reciprocal_div.h>
 #include <trace/hooks/sched.h>
 #include "uni_sched.h"
+#include "cpu_netlink.h"
 
 #if IS_ENABLED(CONFIG_SCHED_WALT)
 
@@ -1106,7 +1107,7 @@ static int get_task_vip_level(struct task_struct *p)
 {
 	struct uni_task_struct *uni_tsk = (struct uni_task_struct *) p->android_vendor_data1;
 
-	if (!test_vip_task(uni_tsk))
+	if (!test_vip_task(p))
 		return SCHED_NOT_VIP;
 
 	if (uni_tsk->vip_params & SCHED_AUDIO_TYPE)
@@ -1333,9 +1334,9 @@ static void cfs_check_preempt_wakeup(void *data, struct rq *rq, struct task_stru
 	if (unlikely(uni_sched_disabled))
 		return;
 
-	p_is_vip = test_vip_task(uni_p) && (!list_empty(&uni_p->vip_list)) &&
+	p_is_vip = test_vip_task(p) && (!list_empty(&uni_p->vip_list)) &&
 					      uni_p->vip_list.next;
-	curr_is_vip = test_vip_task(uni_curr) && (!list_empty(&uni_curr->vip_list)) &&
+	curr_is_vip = test_vip_task(curr) && (!list_empty(&uni_curr->vip_list)) &&
 						uni_curr->vip_list.next;
 
 	/* current is not VIP. */
@@ -1403,10 +1404,11 @@ static void cfs_replace_next_task_fair(void *data, struct rq *rq, struct task_st
 		return;
 
 	list_for_each_entry_safe(uni_tsk, uni_tsk_tmp, &uni_rq->vip_tasks, vip_list) {
-		if (unlikely(!test_vip_task(uni_tsk)))
-			continue;
 		/* Return the first task from vip queue */
 		vip = unitsk_to_tsk(uni_tsk);
+
+		if (unlikely(!test_vip_task(vip)))
+			continue;
 
 #ifdef CONFIG_UNISOC_GROUP_CTL
 		/*task's group must be vip-group */
@@ -1442,6 +1444,32 @@ static void cfs_replace_next_task_fair(void *data, struct rq *rq, struct task_st
 		break;
 	}
 }
+
+void check_parent_vip_status(struct task_struct *tsk)
+{
+	pid_t pid = tsk->pid, tgid = tsk->tgid;
+	struct task_struct *tg_tsk;
+
+	if (uni_task_group_idx(tsk) != VIP_GROUP)
+		return;
+
+	rcu_read_lock();
+	if (pid != tgid) {
+		tg_tsk = get_pid_task(find_vpid(tgid), PIDTYPE_PID);
+		if (!tg_tsk)
+			goto unlock;
+
+		if (test_vip_task(tg_tsk) && uni_task_group_idx(tg_tsk) == VIP_GROUP) {
+			if (cpu_notify_vip_fork_task(tgid, pid, tg_tsk->comm))
+				pr_debug("cpu-netlink fail:vip-task:%s(%d) fork task(%d) to vip-group\n",
+					  tg_tsk->comm, tgid, pid);
+		}
+		put_task_struct(tg_tsk);
+	}
+unlock:
+	rcu_read_unlock();
+}
+
 #else
 static inline void cfs_check_preempt_wakeup(void *data, struct rq *rq, struct task_struct *p,
 					  bool *preempt, bool *ignore, int wake_flags,
