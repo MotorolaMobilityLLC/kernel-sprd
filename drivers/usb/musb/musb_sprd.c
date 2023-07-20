@@ -1680,9 +1680,7 @@ static int musb_sprd_suspend(struct sprd_glue *glue)
 		return 0;
 	}
 
-	if (glue->dr_mode == USB_DR_MODE_HOST)
-		usb_phy_vbus_off(glue->xceiv);
-
+	usb_phy_vbus_off(glue->xceiv);
 	atomic_set(&glue->musb_runtime_suspended, 1);
 	musb_sprd_disable_all_interrupts(musb);
 	clk_disable_unprepare(glue->clk);
