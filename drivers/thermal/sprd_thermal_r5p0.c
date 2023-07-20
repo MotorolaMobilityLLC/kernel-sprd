@@ -98,7 +98,6 @@
 #define SPRD_TEMP_HIGH			120000
 #define SPRD_OTPTEMP			120000
 #define SPRD_HOTTEMP			75000
-#define SPRD_RAW_DATA_LOW		0
 #define SPRD_RAW_DATA_HIGH		1023
 #define SPRD_THM_SEN_NUM		8
 #define SPRD_THM_DT_OFFSET		24
@@ -173,7 +172,7 @@ static int sprd_thm_cal_read(struct device_node *np, const char *cell_id, u32 *v
 {
 	struct nvmem_cell *cell;
 	void *buf;
-	size_t len;
+	size_t len = 0;
 
 	cell = of_nvmem_cell_get(np, cell_id);
 	if (IS_ERR(cell))
@@ -221,9 +220,7 @@ static int sprd_thm_sen_efuse_cal(struct device_node *np,
 
 static int sprd_rawdata_to_temp_v1(struct sprd_thermal_sensor *sen)
 {
-	if (sen->rawdata < SPRD_RAW_DATA_LOW)
-		sen->rawdata = SPRD_RAW_DATA_LOW;
-	else if (sen->rawdata > SPRD_RAW_DATA_HIGH)
+	if (sen->rawdata > SPRD_RAW_DATA_HIGH)
 		sen->rawdata = SPRD_RAW_DATA_HIGH;
 
 	/*
@@ -273,7 +270,7 @@ static int sprd_thm_poll_ready_status(struct sprd_thermal_data *thm)
 	u32 thm_ctl_val;
 	int ret;
 
-	/* Wait for thm ready status before config thm parameter */
+	/* Judge the state of SET_RDY_ST, When SET_RDY_ST is 0, SET_RDY can set to 1 */
 	ret = readl_poll_timeout(thm->regbase + SPRD_THM_CTL,
 				 thm_ctl_val,
 				 !(thm_ctl_val & SPRD_THM_SET_RDY_ST),
@@ -282,10 +279,8 @@ static int sprd_thm_poll_ready_status(struct sprd_thermal_data *thm)
 	if (ret)
 		return ret;
 
-	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, SPRD_THM_MON_EN,
-			     SPRD_THM_MON_EN);
-	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, SPRD_THM_SET_RDY,
-			     SPRD_THM_SET_RDY);
+	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, SPRD_THM_MON_EN, SPRD_THM_MON_EN);
+	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, SPRD_THM_SET_RDY, SPRD_THM_SET_RDY);
 	return ret;
 }
 
@@ -296,7 +291,7 @@ static int sprd_thm_wait_temp_ready(struct sprd_thermal_data *thm)
 	/* Wait for first temperature data ready before get temperature */
 	return readl_poll_timeout(thm->regbase + SPRD_THM_INTERNAL_STS1,
 				  thm_intern_val,
-				  !(thm_intern_val & SPRD_THM_TEMPER_RDY),
+				  (thm_intern_val & SPRD_THM_TEMPER_RDY),
 				  SPRD_THM_TEMP_READY_POLL_TIME,
 				  SPRD_THM_TEMP_READY_TIMEOUT);
 }
@@ -376,8 +371,7 @@ static void sprd_thm_para_config(struct sprd_thermal_data *thm)
 {
 	sprd_thm_update_bits(thm->regbase + SPRD_THM_DET_PERIOD,
 			     SPRD_DET_PERIOD_MASK, SPRD_DET_PERIOD);
-	sprd_thm_update_bits(thm->regbase + SPRD_THM_MON_CTL,
-			     SPRD_MON_MODE_MASK, SPRD_MON_MODE);
+	sprd_thm_update_bits(thm->regbase + SPRD_THM_MON_CTL, SPRD_MON_MODE_MASK, SPRD_MON_MODE);
 	sprd_thm_update_bits(thm->regbase + SPRD_THM_MON_PERIOD,
 			     SPRD_MON_PERIOD_MASK, SPRD_MON_PERIOD);
 }
@@ -385,15 +379,11 @@ static void sprd_thm_para_config(struct sprd_thermal_data *thm)
 static void sprd_thm_sen_init(struct sprd_thermal_data *thm,
 				struct sprd_thermal_sensor *sen)
 {
-	sprd_thm_update_bits(thm->regbase + SPRD_THM_INT_EN,
-			     sen->overheat_alarm_en,
+	sprd_thm_update_bits(thm->regbase + SPRD_THM_INT_EN, sen->overheat_alarm_en,
 			     sen->overheat_alarm_en);
-	sprd_thm_update_bits(thm->regbase + sen->overheat_hot_thres,
-			     SPRD_OVERHEAT_HOT_THRES_MASK,
-			     ((sen->otp_rawdata << SPRD_THM_OTP_TRIP_SHIFT) |
-			      sen->hot_rawdata));
-	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, sen->enable,
-			     sen->enable);
+	sprd_thm_update_bits(thm->regbase + sen->overheat_hot_thres, SPRD_OVERHEAT_HOT_THRES_MASK,
+			     ((sen->otp_rawdata << SPRD_THM_OTP_TRIP_SHIFT) | sen->hot_rawdata));
+	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, sen->enable, sen->enable);
 }
 
 static int sprd_thm_set_ready(struct sprd_thermal_data *thm)
@@ -407,8 +397,7 @@ static int sprd_thm_set_ready(struct sprd_thermal_data *thm)
 	sprd_thm_update_bits(thm->regbase + SPRD_THM_INT_EN1,
 			     SPRD_THM_BIT_INT_EN, SPRD_THM_BIT_INT_EN);
 	writel(SPRD_INT_CLR, thm->regbase + SPRD_THM_INT_CLR);
-	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL,
-			     SPRD_THM_EN, SPRD_THM_EN);
+	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, SPRD_THM_EN, SPRD_THM_EN);
 	return 0;
 }
 
@@ -494,11 +483,9 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		sprd_thm_sen_init(thm, sen);
 
 		sen->thmzone_dev =
-		    devm_thermal_zone_of_sensor_register(sen->dev, sen->id,
-							 sen, &sprd_thm_ops);
+		    devm_thermal_zone_of_sensor_register(sen->dev, sen->id, sen, &sprd_thm_ops);
 		if (IS_ERR_OR_NULL(sen->thmzone_dev)) {
-			dev_err(&pdev->dev, "register thermal zone failed %d\n",
-				sen->id);
+			dev_err(&pdev->dev, "register thermal zone failed %d\n", sen->id);
 			ret = PTR_ERR(sen->thmzone_dev);
 			goto disable_clk;
 		}
@@ -527,12 +514,10 @@ static void sprd_thm_hw_suspend(struct sprd_thermal_data *thm)
 	struct sprd_thermal_sensor *sen, *temp;
 
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node) {
-		sprd_thm_update_bits(sen->base + SPRD_THM_CTL,
-				     sen->enable, 0x0);
+		sprd_thm_update_bits(sen->base + SPRD_THM_CTL, sen->enable, 0x0);
 	}
 
-	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL,
-			     SPRD_THM_EN, 0x0);
+	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, SPRD_THM_EN, 0x0);
 }
 
 static int sprd_thm_hw_resume(struct sprd_thermal_data *thm)
@@ -541,8 +526,7 @@ static int sprd_thm_hw_resume(struct sprd_thermal_data *thm)
 	int ret;
 
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node) {
-		sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL,
-				     sen->enable, sen->enable);
+		sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, sen->enable, sen->enable);
 	}
 
 	ret = sprd_thm_poll_ready_status(thm);
@@ -550,8 +534,7 @@ static int sprd_thm_hw_resume(struct sprd_thermal_data *thm)
 		return ret;
 
 	writel(SPRD_INT_CLR, thm->regbase + SPRD_THM_INT_CLR);
-	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL,
-			     SPRD_THM_EN, SPRD_THM_EN);
+	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, SPRD_THM_EN, SPRD_THM_EN);
 	return sprd_thm_wait_temp_ready(thm);
 }
 
@@ -602,8 +585,7 @@ static int sprd_thm_remove(struct platform_device *pdev)
 	struct sprd_thermal_sensor *sen, *temp;
 
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node) {
-		devm_thermal_zone_of_sensor_unregister(&pdev->dev,
-						       sen->thmzone_dev);
+		devm_thermal_zone_of_sensor_unregister(&pdev->dev, sen->thmzone_dev);
 	}
 
 	clk_disable_unprepare(thm->clk);

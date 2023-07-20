@@ -59,7 +59,6 @@
 #define SPRD_THM_TEMP_HIGH		120000
 #define SPRD_THM_OTP_TEMP		120000
 #define SPRD_THM_HOT_TEMP		75000
-#define SPRD_THM_RAW_DATA_LOW		0
 #define SPRD_THM_RAW_DATA_HIGH		1023
 #define SPRD_THM_SEN_NUM		8
 #define SPRD_THM_DT_OFFSET		24
@@ -123,7 +122,7 @@ static int sprd_thm_cal_read(struct device_node *np, const char *cell_id,
 {
 	struct nvmem_cell *cell;
 	void *buf;
-	size_t len;
+	size_t len = 0;
 
 	cell = of_nvmem_cell_get(np, cell_id);
 	if (IS_ERR(cell))
@@ -178,7 +177,8 @@ static int sprd_thm_sensor_calibration(struct device_node *np,
 static int sprd_thm_rawdata_to_temp(struct sprd_thermal_sensor *sen,
 				    u32 rawdata)
 {
-	clamp(rawdata, (u32)SPRD_THM_RAW_DATA_LOW, (u32)SPRD_THM_RAW_DATA_HIGH);
+	if (rawdata > SPRD_THM_RAW_DATA_HIGH)
+		rawdata = SPRD_THM_RAW_DATA_HIGH;
 
 	/*
 	 * According to the thermal datasheet, the formula of converting
@@ -214,8 +214,7 @@ static int sprd_thm_read_temp(void *devdata, int *temp)
 		return 0;
 
 	if (tz->mode) {
-		data = readl(sen->data->base + SPRD_THM_TEMP(sen->id)) &
-			SPRD_THM_RAW_READ_MSK;
+		data = readl(sen->data->base + SPRD_THM_TEMP(sen->id)) & SPRD_THM_RAW_READ_MSK;
 		*temp = sprd_thm_rawdata_to_temp(sen, data);
 	}
 
@@ -232,7 +231,7 @@ static int sprd_thm_poll_ready_status(struct sprd_thermal_data *thm)
 	int ret;
 
 	/*
-	 * Wait for thermal ready status before configuring thermal parameters.
+	 * Judge the state of SET_RDY_ST, When SET_RDY_ST is 0, SET_RDY can set to 1
 	 */
 	ret = readl_poll_timeout(thm->base + SPRD_THM_CTL, val,
 				 !(val & SPRD_THM_SET_RDY_ST),
@@ -241,10 +240,8 @@ static int sprd_thm_poll_ready_status(struct sprd_thermal_data *thm)
 	if (ret)
 		return ret;
 
-	sprd_thm_update_bits(thm->base + SPRD_THM_CTL, SPRD_THM_MON_EN,
-			     SPRD_THM_MON_EN);
-	sprd_thm_update_bits(thm->base + SPRD_THM_CTL, SPRD_THM_SET_RDY,
-			     SPRD_THM_SET_RDY);
+	sprd_thm_update_bits(thm->base + SPRD_THM_CTL, SPRD_THM_MON_EN, SPRD_THM_MON_EN);
+	sprd_thm_update_bits(thm->base + SPRD_THM_CTL, SPRD_THM_SET_RDY, SPRD_THM_SET_RDY);
 	return 0;
 }
 
@@ -254,7 +251,7 @@ static int sprd_thm_wait_temp_ready(struct sprd_thermal_data *thm)
 
 	/* Wait for first temperature data ready before reading temperature */
 	return readl_poll_timeout(thm->base + SPRD_THM_INTERNAL_STS1, val,
-				  !(val & SPRD_THM_TEMPER_RDY),
+				  (val & SPRD_THM_TEMPER_RDY),
 				  SPRD_THM_TEMP_READY_POLL_TIME,
 				  SPRD_THM_TEMP_READY_TIMEOUT);
 }
@@ -279,8 +276,7 @@ static int sprd_thm_set_ready(struct sprd_thermal_data *thm)
 	writel(SPRD_THM_INT_CLR_MASK, thm->base + SPRD_THM_INT_CLR);
 	sprd_thm_update_bits(thm->base + SPRD_THM_INT_EN,
 			     SPRD_THM_BIT_INT_EN, SPRD_THM_BIT_INT_EN);
-	sprd_thm_update_bits(thm->base + SPRD_THM_CTL,
-			     SPRD_THM_EN, SPRD_THM_EN);
+	sprd_thm_update_bits(thm->base + SPRD_THM_CTL, SPRD_THM_EN, SPRD_THM_EN);
 	return 0;
 }
 
@@ -293,15 +289,12 @@ static void sprd_thm_sensor_init(struct sprd_thermal_data *thm,
 	hot_rawdata = sprd_thm_temp_to_rawdata(SPRD_THM_HOT_TEMP, sen);
 
 	/* Enable the sensor' overheat temperature protection interrupt */
-	sprd_thm_update_bits(thm->base + SPRD_THM_INT_EN,
-			     SPRD_THM_SEN_OVERHEAT_ALARM_EN(sen->id),
+	sprd_thm_update_bits(thm->base + SPRD_THM_INT_EN, SPRD_THM_SEN_OVERHEAT_ALARM_EN(sen->id),
 			     SPRD_THM_SEN_OVERHEAT_ALARM_EN(sen->id));
 
 	/* Set the sensor' overheat and hot threshold temperature */
-	sprd_thm_update_bits(thm->base + SPRD_THM_THRES(sen->id),
-			     SPRD_THM_THRES_MASK,
-			     (otp_rawdata << SPRD_THM_OTP_TRIP_SHIFT) |
-			     hot_rawdata);
+	sprd_thm_update_bits(thm->base + SPRD_THM_THRES(sen->id), SPRD_THM_THRES_MASK,
+			     (otp_rawdata << SPRD_THM_OTP_TRIP_SHIFT) | hot_rawdata);
 
 	/* Enable the corresponding sensor */
 	sprd_thm_update_bits(thm->base + SPRD_THM_CTL, SPRD_THM_SEN(sen->id),
@@ -413,13 +406,10 @@ static int sprd_thm_probe(struct platform_device *pdev)
 
 		sprd_thm_sensor_init(thm, sen);
 
-		sen->tzd = devm_thermal_zone_of_sensor_register(sen->dev,
-								sen->id,
-								sen,
-								&sprd_thm_ops);
+		sen->tzd = devm_thermal_zone_of_sensor_register(sen->dev, sen->id,
+								sen, &sprd_thm_ops);
 		if (IS_ERR(sen->tzd)) {
-			dev_err(&pdev->dev, "register thermal zone failed %d\n",
-				sen->id);
+			dev_err(&pdev->dev, "register thermal zone failed %d\n", sen->id);
 			ret = PTR_ERR(sen->tzd);
 			goto of_put;
 		}
@@ -454,13 +444,10 @@ static void sprd_thm_hw_suspend(struct sprd_thermal_data *thm)
 {
 	int i;
 
-	for (i = 0; i < thm->nr_sensors; i++) {
-		sprd_thm_update_bits(thm->base + SPRD_THM_CTL,
-				     SPRD_THM_SEN(thm->sensor[i]->id), 0);
-	}
+	for (i = 0; i < thm->nr_sensors; i++)
+		sprd_thm_update_bits(thm->base + SPRD_THM_CTL, SPRD_THM_SEN(thm->sensor[i]->id), 0);
 
-	sprd_thm_update_bits(thm->base + SPRD_THM_CTL,
-			     SPRD_THM_EN, 0x0);
+	sprd_thm_update_bits(thm->base + SPRD_THM_CTL, SPRD_THM_EN, 0x0);
 }
 
 static int sprd_thm_suspend(struct device *dev)
@@ -492,8 +479,7 @@ static int sprd_thm_hw_resume(struct sprd_thermal_data *thm)
 		return ret;
 
 	writel(SPRD_THM_INT_CLR_MASK, thm->base + SPRD_THM_INT_CLR);
-	sprd_thm_update_bits(thm->base + SPRD_THM_CTL,
-			     SPRD_THM_EN, SPRD_THM_EN);
+	sprd_thm_update_bits(thm->base + SPRD_THM_CTL, SPRD_THM_EN, SPRD_THM_EN);
 	return sprd_thm_wait_temp_ready(thm);
 }
 
@@ -528,8 +514,7 @@ static int sprd_thm_remove(struct platform_device *pdev)
 
 	for (i = 0; i < thm->nr_sensors; i++) {
 		sprd_thm_toggle_sensor(thm->sensor[i], false);
-		devm_thermal_zone_of_sensor_unregister(&pdev->dev,
-						       thm->sensor[i]->tzd);
+		devm_thermal_zone_of_sensor_unregister(&pdev->dev, thm->sensor[i]->tzd);
 	}
 
 	clk_disable_unprepare(thm->clk);
