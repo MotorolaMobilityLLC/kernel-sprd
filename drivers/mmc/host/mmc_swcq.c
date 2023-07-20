@@ -234,6 +234,18 @@ static void mmc_swcq_retry_handler(struct work_struct *work)
 {
 	struct mmc_swcq *swcq = container_of(work, struct mmc_swcq, retry_work);
 	struct mmc_host *mmc = swcq->mmc;
+	struct mmc_request *mrq = swcq->mrq;
+	int err;
+
+	if (mrq->data && mrq->data->error == -ETIMEDOUT) {
+		mrq->data->error = 0;
+		pr_err("%s: reset emmc and retry request\n", mmc_hostname(mmc));
+		err = mmc_hw_reset(mmc);
+		if (err) {
+			pr_err("%s: mmc_hw_reset failed, err= %d\n", mmc_hostname(mmc), err);
+			WARN_ON(1);
+		}
+	}
 
 	mmc->ops->request(mmc, swcq->mrq);
 }
@@ -1626,6 +1638,13 @@ bool mmc_swcq_finalize_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	if (!swcq->enabled || !swcq->mrq || swcq->mrq != mrq) {
 		spin_unlock_irqrestore(&swcq->lock, flags);
 		return false;
+	}
+
+	/* reset emmc and retry request when data timeout */
+	if (mrq->data && mrq->data->error == -ETIMEDOUT) {
+		spin_unlock_irqrestore(&swcq->lock, flags);
+		schedule_work(&swcq->retry_work);
+		return true;
 	}
 
 	/*
