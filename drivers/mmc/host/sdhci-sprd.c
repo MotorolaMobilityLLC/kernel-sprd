@@ -753,7 +753,7 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	u32 dll_cfg, mid_dll_cnt, dll_cnt, dll_dly;
 	bool cfg_use_adma = false;
 	bool cfg_use_sdma = false;
-	unsigned int udelay = 32, udelay_max = 2097152;
+	unsigned int udelay, udelay_max = 2097152;
 	int cmd_error = 0;
 
 	sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
@@ -811,6 +811,7 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 		 * can be about 4s, which is recommended in Spreadtrum's platform.
 		 */
 		if (sprd_host->wait_read_idle) {
+			udelay = 32;
 			while (udelay <= udelay_max) {
 				if (!(sdhci_readl(host, SDHCI_PRESENT_STATE) & SDHCI_DOING_READ))
 					break;
