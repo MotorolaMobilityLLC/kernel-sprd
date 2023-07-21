@@ -253,7 +253,7 @@ static int screen_checker_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct device_node *np = dev->of_node;
 	struct device_node *bl_np;
-	int ret, rc;
+	int ret;
 	u32 timeout_ms = 5000;
 	u32 loop_interval_ms = 50;
 
@@ -265,15 +265,15 @@ static int screen_checker_probe(struct platform_device *pdev)
 		dev_err(dev, "checker: bl_dev=%p\n", timeout_checker.bl_dev);
 	}
 
-	rc = of_property_read_u32(np, "timeout-ms", &timeout_ms);
-
-	if (!rc)
+	if (of_property_read_u32(np, "timeout-ms", &timeout_ms))
 		return -ENOMEM;
 
 	if (timeout_ms < 2000)
 		timeout_ms = 2000;
 
-	of_property_read_u32(np, "loop-interval-ms", &loop_interval_ms);
+	if (of_property_read_u32(np, "loop-interval-ms", &loop_interval_ms))
+		return -ENOMEM;
+
 	if (loop_interval_ms < 10)
 		loop_interval_ms = 10;
 
