@@ -629,7 +629,9 @@ static void sgm41511_charger_stop_charge(struct sgm41511_charger_info *info)
 			dev_err(info->dev, "Failed to disable power path\n");
 	}
 
-	sgm41511_charger_enable_wdg(info, false);
+	ret = sgm41511_charger_enable_wdg(info, false);
+	if (ret)
+		dev_err(info->dev, "Failed to update wdg\n");
 }
 
 static int sgm41511_charger_set_current(struct sgm41511_charger_info *info, u32 cur)
@@ -1520,8 +1522,9 @@ static int sgm41511_charger_remove(struct i2c_client *client)
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 static int sgm41511_charger_suspend(struct device *dev)
 {
-	struct sgm41511_charger_info *info = dev_get_drvdata(dev);
+	int ret;
 	ktime_t now, add;
+	struct sgm41511_charger_info *info = dev_get_drvdata(dev);
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -1537,7 +1540,9 @@ static int sgm41511_charger_suspend(struct device *dev)
 	cancel_delayed_work_sync(&info->wdt_work);
 
 	if (info->disable_wdg) {
-		sgm41511_charger_enable_wdg(info, false);
+		ret = sgm41511_charger_enable_wdg(info, false);
+		if (ret)
+			return -EBUSY;
 	} else {
 		dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
 		now = ktime_get_boottime();
@@ -1550,6 +1555,7 @@ static int sgm41511_charger_suspend(struct device *dev)
 
 static int sgm41511_charger_resume(struct device *dev)
 {
+	int ret;
 	struct sgm41511_charger_info *info = dev_get_drvdata(dev);
 
 	if (!info) {
@@ -1563,10 +1569,13 @@ static int sgm41511_charger_resume(struct device *dev)
 	if (!info->otg_enable)
 		return 0;
 
-	if (info->disable_wdg)
-		sgm41511_charger_enable_wdg(info, true);
-	else
+	if (info->disable_wdg) {
+		ret = sgm41511_charger_enable_wdg(info, true);
+		if (ret)
+			return -EBUSY;
+	} else {
 		alarm_cancel(&info->otg_timer);
+	}
 
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
 

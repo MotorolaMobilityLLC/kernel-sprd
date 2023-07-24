@@ -632,7 +632,9 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info, bool 
 			dev_err(info->dev, "Failed to disable power path\n");
 	}
 
-	bq2560x_charger_enable_wdg(info, false);
+	ret = bq2560x_charger_enable_wdg(info, false);
+	if (ret)
+		dev_err(info->dev, "Failed to update wdg\n");
 }
 
 static int bq2560x_charger_set_current(struct bq2560x_charger_info *info, u32 cur)
@@ -2011,8 +2013,9 @@ static int bq2560x_charger_remove(struct i2c_client *client)
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 static int bq2560x_charger_suspend(struct device *dev)
 {
-	struct bq2560x_charger_info *info = dev_get_drvdata(dev);
+	int ret;
 	ktime_t now, add;
+	struct bq2560x_charger_info *info = dev_get_drvdata(dev);
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -2028,7 +2031,9 @@ static int bq2560x_charger_suspend(struct device *dev)
 	cancel_delayed_work_sync(&info->cur_work);
 
 	if (info->disable_wdg) {
-		bq2560x_charger_enable_wdg(info, false);
+		ret = bq2560x_charger_enable_wdg(info, false);
+		if (ret)
+			return -EBUSY;
 	} else {
 		now = ktime_get_boottime();
 		add = ktime_set(BQ2560X_OTG_ALARM_TIMER_S, 0);
@@ -2040,6 +2045,7 @@ static int bq2560x_charger_suspend(struct device *dev)
 
 static int bq2560x_charger_resume(struct device *dev)
 {
+	int ret;
 	struct bq2560x_charger_info *info = dev_get_drvdata(dev);
 
 	if (!info) {
@@ -2053,10 +2059,13 @@ static int bq2560x_charger_resume(struct device *dev)
 	if (!info->otg_enable)
 		return 0;
 
-	if (info->disable_wdg)
-		bq2560x_charger_enable_wdg(info, true);
-	else
+	if (info->disable_wdg) {
+		ret = bq2560x_charger_enable_wdg(info, true);
+		if (ret)
+			return -EBUSY;
+	} else {
 		alarm_cancel(&info->otg_timer);
+	}
 
 	schedule_delayed_work(&info->wdt_work, HZ * 15);
 	schedule_delayed_work(&info->cur_work, 0);
