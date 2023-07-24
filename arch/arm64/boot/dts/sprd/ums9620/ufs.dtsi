@@ -12,6 +12,7 @@
 		interrupts = <GIC_SPI 159 IRQ_TYPE_LEVEL_HIGH>;
 		vcc-supply = <&vddemmccore>;
 		vdd-mphy-supply = <&vddufs1v2>;
+		vdd-hba-supply = <&vddsram>;
 		clock-names = "ufs_eb",
 			"ufs_cfg_eb",
 			"ufs_hclk",
