@@ -204,7 +204,7 @@ static int wakeup_info_add(struct wakeup_info_data *ws_data, struct wakeup_info 
 	u8 dst = ws_add->dst, channel = ws_add->channel;
 	int virq = ws_add->virq;
 
-	if (dst > SIPC_ID_NR || !ws_data)
+	if (dst >= SIPC_ID_NR || !ws_data)
 		return 0;
 
 	mutex_lock(&ws_data->wakeup_info_mutex);
@@ -427,7 +427,7 @@ static void sprd_ws_info_update(int virq, u8 dst, u8 channel)
 
 static void ws_mailbox_get(void)
 {
-	u32 smsg_info;
+	u32 smsg_info = 0xffff;
 	u8 dst, channel;
 
 	pdbg_notifier_call_chain(PDBG_NB_WS_UPDATE, &smsg_info);

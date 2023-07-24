@@ -290,6 +290,7 @@ void sprd_pdbg_time_get(struct rtc_time *time)
 {
 	struct timespec64 ts;
 
+	ts.tv_sec = 0;
 	ktime_get_real_ts64(&ts);
 	rtc_time64_to_tm(ts.tv_sec, time);
 }

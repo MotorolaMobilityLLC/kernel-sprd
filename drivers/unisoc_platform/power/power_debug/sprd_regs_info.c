@@ -29,8 +29,8 @@ static inline void sprd_pdbg_regs_msg_print(char *regs_msg, int *buf_cnt, bool p
 static int sprd_pdbg_regs_get(struct regs_info_data *regs_info, char *regs_msg, bool print_out)
 {
 	u64 slp_deep, slp_light, eb_ap1, eb_ap2, eb_aon1, eb_aon2, pd, lpc;
-	u64 r_value[PDBG_INFO_NUM+1];
-	u64 r_value_h[PDBG_INFO_NUM+1];
+	u64 r_value[PDBG_INFO_NUM+1] = {0};
+	u64 r_value_h[PDBG_INFO_NUM+1] = {0};
 	int buf_cnt = 0, cnt_num, cnt_low, cnt_high, cnt, i;
 	char *pval;
 

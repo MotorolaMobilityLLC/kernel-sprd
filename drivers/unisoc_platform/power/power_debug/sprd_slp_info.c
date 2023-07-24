@@ -80,7 +80,7 @@ static struct subsys_data_var subsys_data_vars[] = {
 
 static u32 slp_info_reg_read(struct subsys_slp_info_data *subsys_data, u32 info_type)
 {
-	u32 out_val;
+	u32 out_val = 0;
 	int ret;
 	struct slp_info_reg *info_reg;
 
