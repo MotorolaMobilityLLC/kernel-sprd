@@ -24,6 +24,10 @@
 
 #include "internal.h"
 
+#ifdef CONFIG_UNISOC_EMEM_DMA_BUF
+/* record the info of task mapped to specific dma-heap buffer. */
+#include <linux/dma-heap.h>
+#endif
 unsigned int sysctl_nr_open __read_mostly = 1024*1024;
 unsigned int sysctl_nr_open_min = BITS_PER_LONG;
 /* our min() is unusable in constant expressions ;-/ */
@@ -613,6 +617,9 @@ void fd_install(unsigned int fd, struct file *file)
 		BUG_ON(fdt->fd[fd] != NULL);
 		rcu_assign_pointer(fdt->fd[fd], file);
 		spin_unlock(&files->file_lock);
+#ifdef CONFIG_UNISOC_EMEM_DMA_BUF
+		get_sysbuffer_user_info(fd, true);
+#endif
 		return;
 	}
 	/* coupled with smp_wmb() in expand_fdtable() */
@@ -621,6 +628,9 @@ void fd_install(unsigned int fd, struct file *file)
 	BUG_ON(fdt->fd[fd] != NULL);
 	rcu_assign_pointer(fdt->fd[fd], file);
 	rcu_read_unlock_sched();
+#ifdef CONFIG_UNISOC_EMEM_DMA_BUF
+	get_sysbuffer_user_info(fd, true);
+#endif
 }
 
 EXPORT_SYMBOL(fd_install);
@@ -664,6 +674,9 @@ int close_fd(unsigned fd)
 	struct files_struct *files = current->files;
 	struct file *file;
 
+#ifdef CONFIG_UNISOC_EMEM_DMA_BUF
+	get_sysbuffer_user_info(fd, false);
+#endif
 	file = pick_file(files, fd);
 	if (IS_ERR(file))
 		return -EBADF;
