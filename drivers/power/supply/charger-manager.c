@@ -5158,7 +5158,6 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->wl_charge_en = 0;
 		cm->desc->usb_charge_en = 0;
 		cm->vchg_info->charger_type_cnt = 0;
-		cm->desc->pd_port_partner = 0;
 		cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
 					 SPRD_VOTE_TYPE_ALL, 0, 0, 0, cm);
 		cm->desc->xts_limit_cur = false;
@@ -5167,6 +5166,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 	}
 
 	cm_update_charger_type_status(cm);
+	cm->desc->pd_port_partner = 0;
 
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
@@ -6055,7 +6055,6 @@ static void cm_update_charger_type_status(struct charger_manager *cm)
 				wireless_main.ONLINE = 0;
 				usb_main.ONLINE = 0;
 				ac_main.ONLINE = 1;
-				cm->desc->pd_port_partner = 0;
 				dev_info(cm->dev, "ac online\n");
 			}
 			break;
@@ -6110,7 +6109,8 @@ void cm_check_pd_update_ac_usb_online(bool is_pd_hub)
 
 	cm->desc->pd_port_partner = is_pd_hub;
 
-	cm_update_charger_type_status(cm);
+	if (usb_main.ONLINE)
+		cm_update_charger_type_status(cm);
 
 	if (ac_main.ONLINE) {
 		power_supply_changed(cm->charger_psy);
