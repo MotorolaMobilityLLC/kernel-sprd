@@ -220,19 +220,6 @@ static ssize_t shutdown_detect_trigger(struct file *filp, const char *ubuf,
 			else
 				strncpy(reason, "initreboottimeout", sizeof(reason));
 			shutdown_save_log_to_partition(time, reason);
-		} else {
-			if ((shutdown_init_start_time -
-				 shutdown_systemserver_start_time) > gjavatimeout) {
-				rtc_time64_to_tm(ts.tv_sec, &tm);
-				snprintf(time, 32, "%04d-%02d-%02d_%02d:%02d:%02d",
-				tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
-				tm.tm_hour, tm.tm_min, tm.tm_sec);
-			if (is_shutdows)
-				strncpy(reason, "sysframeworkpowerofftimeout", sizeof(reason));
-			else
-				strncpy(reason, "sysframeworkreboottimeout", sizeof(reason));
-			shutdown_save_log_to_partition(time, reason);
-			}
 		}
 		shutdown_phase = val;
 		pr_err("shutdown_detect_phase: shutdown  current phase systemcall\n");
