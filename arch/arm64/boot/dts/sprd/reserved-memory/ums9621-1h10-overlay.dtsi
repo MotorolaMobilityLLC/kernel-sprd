@@ -4,9 +4,10 @@
 		reg = <0x0 0xb4100000 0x0 0x01100000>;
 	};
 
-	widevine_reserved: widevine@dd400000 {
+	/* reserved CMA 360MB for widevine*/
+	widevine_reserved: widevine@d9800000 {
 		compatible = "shared-dma-pool";
-		reg = <0x0 0xdd400000 0x0 0x12c00000>;
+		reg = <0x0 0xd9800000 0x0 0x16800000>;
 		reusable;
 	};
 
