@@ -35,6 +35,11 @@
 				bits = <4 4>;
 			};
 
+			gpu_bin: gpu-bin@b {
+				reg = <0xb 0x4>;
+				bits = <0 4>;
+			};
+
 			wcn_alpha: wcn-alpha@14 {
 				reg = <0x14 0x4>;
 			};
