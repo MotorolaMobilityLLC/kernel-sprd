@@ -11,6 +11,7 @@
 #include <linux/regulator/driver.h>
 #include <linux/regulator/of_regulator.h>
 #include <linux/sched.h>
+#include <linux/delay.h>
 
 #define UMP9620_REGULATOR_BASE		0x2000
 
@@ -267,9 +268,24 @@ static int regulator_set_voltage_sel_sprd(struct regulator_dev *rdev, unsigned i
 	return regulator_set_voltage_sel_regmap(rdev, sel);
 };
 
+/* only for ump962x Project */
+static int sprd_regulator_disable_regmap(struct regulator_dev *rdev)
+{
+	int id = 0, ret = 0;
+
+	id = rdev_get_id(rdev);
+	if (id == UMP9620_LDO_VDDSDIO || id == UMP9620_LDO_VDDSDCORE) {
+		ret = regulator_disable_regmap(rdev);
+		usleep_range(10 * 1000, 10 * 1250);
+		return ret;
+	} else {
+		return regulator_disable_regmap(rdev);
+	}
+};
+
 static const struct regulator_ops ump9620_regu_linear_ops = {
 	.enable = regulator_enable_regmap,
-	.disable = regulator_disable_regmap,
+	.disable = sprd_regulator_disable_regmap,
 	.is_enabled = regulator_is_enabled_regmap,
 	.list_voltage = regulator_list_voltage_linear,
 	.get_voltage_sel = regulator_get_voltage_sel_regmap,
