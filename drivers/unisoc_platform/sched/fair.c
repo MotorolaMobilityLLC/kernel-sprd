@@ -299,12 +299,12 @@ static void rotation_task_init(void)
 		thread = kthread_create(try_rotation_task, (void *)rd,
 					"rotation/%d", i);
 		if (IS_ERR(thread))
-			return;
+			goto init_fail;
 
 		ret = sched_setscheduler_nocheck(thread, SCHED_FIFO, &param);
 		if (ret) {
 			kthread_stop(thread);
-			return;
+			goto init_fail;
 		}
 
 		rd->rotation_thread = thread;
@@ -313,8 +313,12 @@ static void rotation_task_init(void)
 	timer_setup(&rotation_timer, set_rotation_enable, 0);
 	rotation_timer.expires = jiffies + ENABLE_DELAY_SEC * HZ;
 	add_timer(&rotation_timer);
+	return;
 
-	pr_info("%s OK\n", __func__);
+init_fail:
+	for_each_possible_cpu(i)
+		if ((&per_cpu(rotation_datas, i))->rotation_thread)
+			kthread_stop((&per_cpu(rotation_datas, i))->rotation_thread);
 }
 #endif
 /*
