@@ -175,7 +175,7 @@ static struct sprd_clk_desc ums9620_pmu_gate_desc = {
 };
 
 /* pll clock at g1 */
-static struct freq_table rpll_ftable[4] = {
+static struct freq_table rpll_ftable[] = {
 	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
 	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
 	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
@@ -225,7 +225,7 @@ static struct sprd_clk_desc ums9620_g1_pll_desc = {
 };
 
 /* pll at g1l */
-static struct freq_table dpll_ftable[4] = {
+static struct freq_table dpll_ftable[] = {
 	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
 	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
 	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
@@ -283,7 +283,7 @@ static struct sprd_clk_desc ums9620_g1l_pll_desc = {
 };
 
 /* pll at g5l */
-static struct freq_table tgpll_ftable[4] = {
+static struct freq_table tgpll_ftable[] = {
 	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
 	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
 	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
@@ -419,7 +419,7 @@ static struct sprd_clk_desc ums9620_g5l_pll_desc = {
 };
 
 /* pll at g5r */
-static struct freq_table gpll_ftable[4] = {
+static struct freq_table gpll_ftable[] = {
 	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
 	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
 	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
@@ -559,7 +559,7 @@ static struct sprd_clk_desc ums9620_g5r_pll_desc = {
 };
 
 /* pll at g8 */
-static struct freq_table mpllb_ftable[12] = {
+static struct freq_table mpllb_ftable[] = {
 	{ .ibias = 7,  .max_freq = 1200000000ULL,  .vco_sel = 1 },
 	{ .ibias = 8,  .max_freq = 1400000000ULL,  .vco_sel = 1 },
 	{ .ibias = 9,  .max_freq = 1600000000ULL,  .vco_sel = 1 },
@@ -1815,7 +1815,6 @@ static const struct clk_parent_data apcpu_dap_parents[] = {
 static SPRD_MUX_CLK_DATA(apcpu_dap, "apcpu-dap", apcpu_dap_parents, 0x130,
 		    0, 3, UMS9620_MUX_FLAG);
 
-
 static const struct clk_parent_data apcpu_ts_parents[] = {
 	{ .fw_name = "ext-32k" },
 	{ .fw_name = "ext-26m" },
@@ -2006,7 +2005,6 @@ static SPRD_COMP_CLK_DATA_OFFSET(spi1, "spi1", spi_parents, 0x2c8,
 			    0, 2, 0, 3, 0);
 static SPRD_COMP_CLK_DATA_OFFSET(spi2, "spi2", spi_parents, 0x2d4,
 			    0, 2, 0, 3, 0);
-
 
 static const struct clk_parent_data analog_io_apb_parents[] = {
 	{ .fw_name = "ext-26m" },
@@ -3850,7 +3848,7 @@ static int ums9620_clk_probe(struct platform_device *pdev)
 
 		ret = devm_reset_controller_register(&pdev->dev, &reset->rcdev);
 		if (ret)
-			dev_err(&pdev->dev, "Failed to register reset controller\n");
+			dev_warn(&pdev->dev, "Failed to register reset controller\n");
 	}
 
 	return sprd_clk_probe(&pdev->dev, desc->hw_clks);
