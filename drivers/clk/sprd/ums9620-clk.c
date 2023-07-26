@@ -169,8 +169,8 @@ static struct sprd_reset_map ums9620_pmu_apb_resets[] = {
 static struct sprd_clk_desc ums9620_pmu_gate_desc = {
 	.clk_clks	= ums9620_pmu_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_pmu_gate_clks),
-	.hw_clks        = &ums9620_pmu_gate_hws,
-	.resets	= ums9620_pmu_apb_resets,
+	.hw_clks	= &ums9620_pmu_gate_hws,
+	.resets		= ums9620_pmu_apb_resets,
 	.num_resets	= ARRAY_SIZE(ums9620_pmu_apb_resets),
 };
 
@@ -797,8 +797,8 @@ static struct sprd_clk_desc ums9620_apapb_gate_desc = {
 	.clk_clks	= ums9620_apapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_apapb_gate),
 	.hw_clks	= &ums9620_apapb_gate_hws,
-	.resets = ums9620_ap_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9620_ap_apb_resets),
+	.resets		= ums9620_ap_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_ap_apb_resets),
 };
 
 /* ap ahb gates */
@@ -933,8 +933,8 @@ static struct sprd_clk_desc ums9620_apahb_gate_desc = {
 	.clk_clks	= ums9620_apahb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_apahb_gate),
 	.hw_clks	= &ums9620_apahb_gate_hws,
-	.resets = ums9620_ap_ahb_resets,
-	.num_resets = ARRAY_SIZE(ums9620_ap_ahb_resets),
+	.resets		= ums9620_ap_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_ap_ahb_resets),
 };
 
 /* ap clks */
@@ -1707,7 +1707,7 @@ static struct sprd_clk_desc ums9620_aon_gate_desc = {
 	.clk_clks	= ums9620_aon_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_aon_gate),
 	.hw_clks	= &ums9620_aon_gate_hws,
-	.resets	= ums9620_aon_apb_resets,
+	.resets		= ums9620_aon_apb_resets,
 	.num_resets	= ARRAY_SIZE(ums9620_aon_apb_resets),
 };
 
@@ -2368,8 +2368,8 @@ static struct sprd_clk_desc ums9620_ipaapb_gate_desc = {
 	.clk_clks	= ums9620_ipaapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_ipaapb_gate),
 	.hw_clks	= &ums9620_ipaapb_gate_hws,
-	.resets = ums9620_ipa_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9620_ipa_apb_resets),
+	.resets		= ums9620_ipa_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_ipa_apb_resets),
 };
 
 /* ipa clocks*/
@@ -2492,8 +2492,8 @@ static struct sprd_clk_desc ums9620_ipaglb_gate_desc = {
 	.clk_clks	= ums9620_ipaglb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_ipaglb_gate),
 	.hw_clks	= &ums9620_ipaglb_gate_hws,
-	.resets = ums9620_ipa_glb_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9620_ipa_glb_apb_resets),
+	.resets		= ums9620_ipa_glb_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_ipa_glb_apb_resets),
 };
 
 /* ipa dispc1 glb gate clocks */
@@ -2549,8 +2549,8 @@ static struct sprd_clk_desc ums9620_ipadispcglb_gate_desc = {
 	.clk_clks	= ums9620_ipadispcglb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_ipadispcglb_gate),
 	.hw_clks	= &ums9620_ipadispcglb_gate_hws,
-	.resets = ums9620_ipa_dispac1_glb_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9620_ipa_dispac1_glb_apb_resets),
+	.resets		= ums9620_ipa_dispac1_glb_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_ipa_dispac1_glb_apb_resets),
 };
 
 /* pcie apb gate clocks */
@@ -2696,8 +2696,8 @@ static struct sprd_clk_desc ums9620_aiapb_gate_desc = {
 	.clk_clks	= ums9620_aiapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_aiapb_gate),
 	.hw_clks	= &ums9620_aiapb_gate_hws,
-	.resets = ums9620_ai_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9620_ai_apb_resets),
+	.resets		= ums9620_ai_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_ai_apb_resets),
 };
 
 /* ai clocks */
@@ -3049,7 +3049,7 @@ static struct sprd_clk_desc ums9620_mm_gate_desc = {
 	.clk_clks	= ums9620_mm_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_mm_gate),
 	.hw_clks	= &ums9620_mm_gate_hws,
-	.resets	= ums9620_mm_ahb_resets,
+	.resets		= ums9620_mm_ahb_resets,
 	.num_resets	= ARRAY_SIZE(ums9620_mm_ahb_resets),
 };
 
@@ -3460,8 +3460,8 @@ static struct sprd_clk_desc ums9620_dpu_vsp_gate_desc = {
 	.clk_clks	= ums9620_dpu_vsp_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_dpu_vsp_gate),
 	.hw_clks	= &ums9620_dpu_vsp_gate_hws,
-	.resets     = ums9620_dpu_vsp_resets,
-	.num_resets = ARRAY_SIZE(ums9620_dpu_vsp_resets),
+	.resets		= ums9620_dpu_vsp_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_dpu_vsp_resets),
 };
 
 /* dpu vsp clocks */
@@ -3701,8 +3701,8 @@ static const struct sprd_clk_desc ums9620_audcpglb_gate_desc = {
 	.clk_clks	= ums9620_audcpglb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9620_audcpglb_gate),
 	.hw_clks	= &ums9620_audcpglb_gate_hws,
-	.resets     = ums9620_audcp_glb_resets,
-	.num_resets = ARRAY_SIZE(ums9620_audcp_glb_resets),
+	.resets		= ums9620_audcp_glb_resets,
+	.num_resets	= ARRAY_SIZE(ums9620_audcp_glb_resets),
 };
 
 /* audcp aon apb gates */

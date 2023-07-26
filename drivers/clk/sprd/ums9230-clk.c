@@ -119,9 +119,9 @@ static struct sprd_reset_map ums9230_pmu_apb_resets[] = {
 static struct sprd_clk_desc ums9230_pmu_gate_desc = {
 	.clk_clks	= ums9230_pmu_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_pmu_gate_clks),
-	.hw_clks        = &ums9230_pmu_gate_hws,
-	.resets = ums9230_pmu_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_pmu_apb_resets),
+	.hw_clks	= &ums9230_pmu_gate_hws,
+	.resets		= ums9230_pmu_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_pmu_apb_resets),
 };
 
 /* pll clock at g0 */
@@ -604,8 +604,8 @@ static struct sprd_clk_desc ums9230_apapb_gate_desc = {
 	.clk_clks	= ums9230_apapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_apapb_gate),
 	.hw_clks	= &ums9230_apapb_gate_hws,
-	.resets = ums9230_ap_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_ap_apb_resets),
+	.resets		= ums9230_ap_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_ap_apb_resets),
 };
 
 /* ap ahb gates */
@@ -655,8 +655,8 @@ static struct sprd_clk_desc ums9230_apahb_gate_desc = {
 	.clk_clks	= ums9230_apahb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_apahb_gate),
 	.hw_clks	= &ums9230_apahb_gate_hws,
-	.resets = ums9230_ap_ahb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_ap_ahb_resets),
+	.resets		= ums9230_ap_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_ap_ahb_resets),
 };
 
 /* ap clks */
@@ -1416,8 +1416,8 @@ static struct sprd_clk_desc ums9230_aon_gate_desc = {
 	.clk_clks	= ums9230_aon_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_aon_gate),
 	.hw_clks	= &ums9230_aon_gate_hws,
-	.resets = ums9230_aon_ahb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_aon_ahb_resets),
+	.resets		= ums9230_aon_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_aon_ahb_resets),
 };
 
 /* aon apb clks */
@@ -1896,8 +1896,8 @@ static struct sprd_clk_desc ums9230_gpu_clk_desc = {
 	.clk_clks	= ums9230_gpu_clk,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_gpu_clk),
 	.hw_clks	= &ums9230_gpu_clk_hws,
-	.resets = ums9230_gpu_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_gpu_apb_resets),
+	.resets		= ums9230_gpu_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_gpu_apb_resets),
 };
 
 /* mm clocks */
@@ -2164,8 +2164,8 @@ static struct sprd_clk_desc ums9230_mm_gate_clk_desc = {
 	.clk_clks	= ums9230_mm_gate_clk,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_mm_gate_clk),
 	.hw_clks	= &ums9230_mm_gate_clk_hws,
-	.resets = ums9230_mm_ahb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_mm_ahb_resets),
+	.resets		= ums9230_mm_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_mm_ahb_resets),
 };
 
 /* audcp ahb gates */
@@ -2301,8 +2301,8 @@ static const struct sprd_clk_desc ums9230_audcpahb_gate_desc = {
 	.clk_clks	= ums9230_audcpahb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_audcpahb_gate),
 	.hw_clks	= &ums9230_audcpahb_gate_hws,
-	.resets = ums9230_audcp_ahb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_audcp_ahb_resets),
+	.resets		= ums9230_audcp_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_audcp_ahb_resets),
 };
 
 /* audcp apb gates */
@@ -2351,8 +2351,8 @@ static const struct sprd_clk_desc ums9230_audcpapb_gate_desc = {
 	.clk_clks	= ums9230_audcpapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_audcpapb_gate),
 	.hw_clks	= &ums9230_audcpapb_gate_hws,
-	.resets = ums9230_audcp_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_audcp_apb_resets),
+	.resets		= ums9230_audcp_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_audcp_apb_resets),
 };
 
 static const struct of_device_id sprd_ums9230_clk_ids[] = {
