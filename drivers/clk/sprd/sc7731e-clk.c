@@ -15,6 +15,7 @@
 #include <linux/slab.h>
 
 #include <dt-bindings/clock/sprd,sc7731e-clk.h>
+#include <dt-bindings/reset/sprd,sc7731e-reset.h>
 
 #include "common.h"
 #include "composite.h"
@@ -22,6 +23,7 @@
 #include "gate.h"
 #include "mux.h"
 #include "pll.h"
+#include "reset.h"
 
 #define SC7731E_MUX_FLAG	\
 	(CLK_GET_RATE_NOCACHE | CLK_SET_RATE_NO_REPARENT)
@@ -1467,10 +1469,28 @@ static struct clk_hw_onecell_data sc7731e_apapb_gate_hws = {
 	.num	= CLK_AP_APB_GATE_NUM,
 };
 
+static struct sprd_reset_map sc7731e_ap_apb_resets[] = {
+	[RESET_AP_APB_SIM0_SOFT_RST]		= { 0x0004, BIT(0), 0x1000 },
+	[RESET_AP_APB_IIS0_SOFT_RST]		= { 0x0004, BIT(1), 0x1000 },
+	[RESET_AP_APB_SPI0_SOFT_RST]		= { 0x0004, BIT(5), 0x1000 },
+	[RESET_AP_APB_SPI1_SOFT_RST]		= { 0x0004, BIT(6), 0x1000 },
+	[RESET_AP_APB_I2C0_SOFT_RST]		= { 0x0004, BIT(8), 0x1000 },
+	[RESET_AP_APB_I2C1_SOFT_RST]		= { 0x0004, BIT(9), 0x1000 },
+	[RESET_AP_APB_I2C2_SOFT_RST]		= { 0x0004, BIT(10), 0x1000 },
+	[RESET_AP_APB_UART0_SOFT_RST]		= { 0x0004, BIT(13), 0x1000 },
+	[RESET_AP_APB_UART1_SOFT_RST]		= { 0x0004, BIT(14), 0x1000 },
+	[RESET_AP_APB_INTC0_SOFT_RST]		= { 0x0004, BIT(19), 0x1000 },
+	[RESET_AP_APB_INTC1_SOFT_RST]		= { 0x0004, BIT(20), 0x1000 },
+	[RESET_AP_APB_INTC2_SOFT_RST]		= { 0x0004, BIT(21), 0x1000 },
+	[RESET_AP_APB_INTC3_SOFT_RST]		= { 0x0004, BIT(22), 0x1000 },
+};
+
 static const struct sprd_clk_desc sc7731e_apapb_gate_desc = {
 	.clk_clks	= sc7731e_apapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(sc7731e_apapb_gate),
 	.hw_clks	= &sc7731e_apapb_gate_hws,
+	.resets		= sc7731e_ap_apb_resets,
+	.num_resets	= ARRAY_SIZE(sc7731e_ap_apb_resets),
 };
 
 static const struct of_device_id sprd_sc7731e_clk_ids[] = {
@@ -1501,12 +1521,30 @@ MODULE_DEVICE_TABLE(of, sprd_sc7731e_clk_ids);
 static int sc7731e_clk_probe(struct platform_device *pdev)
 {
 	const struct sprd_clk_desc *desc;
+	struct sprd_reset *reset;
+	int ret;
 
 	desc = device_get_match_data(&pdev->dev);
 	if (!desc)
 		return -ENODEV;
 
 	sprd_clk_regmap_init(pdev, desc);
+
+	if (desc->num_resets > 0) {
+		reset = devm_kzalloc(&pdev->dev, sizeof(*reset), GFP_KERNEL);
+		if (!reset)
+			return -ENOMEM;
+
+		reset->rcdev.of_node = pdev->dev.of_node;
+		reset->rcdev.ops = &sprd_sc_reset_ops;
+		reset->rcdev.nr_resets = desc->num_resets;
+		reset->reset_map = desc->resets;
+		reset->regmap = platform_get_drvdata(pdev);
+
+		ret = devm_reset_controller_register(&pdev->dev, &reset->rcdev);
+		if (ret)
+			dev_err(&pdev->dev, "Failed to register reset controller\n");
+	}
 
 	return sprd_clk_probe(&pdev->dev, desc->hw_clks);
 }
