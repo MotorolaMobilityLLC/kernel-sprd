@@ -11,6 +11,7 @@
 #include <dt-bindings/soc/sprd,pike2-regs.h>
 #include <dt-bindings/soc/sprd,pike2-mask.h>
 #include <dt-bindings/clock/sprd,sc7731e-clk.h>
+#include <dt-bindings/reset/sprd,sc7731e-reset.h>
 #include <dt-bindings/debug/busmonitor/busmonitor.h>
 
 / {
@@ -175,9 +176,8 @@
 				dma-names = "rx", "tx";
 				dmas = <&ap_dma 43 &ap_dma 44>;
 				status = "disabled";
-				syscon-names = "i2c_rst";
-				syscons =
-					<&ap_apb_regs REG_AP_APB_APB_RST MASK_AP_APB_I2C0_SOFT_RST>;
+				reset-names = "i2c_rst";
+				resets = <&apapb_gate RESET_AP_APB_I2C0_SOFT_RST>;
 			};
 
 			i2c1: i2c@70600000 {
@@ -191,9 +191,8 @@
 				dma-names = "rx", "tx";
 				dmas = <&ap_dma 41 &ap_dma 42>;
 				status = "disabled";
-				syscon-names = "i2c_rst";
-				syscons =
-					<&ap_apb_regs REG_AP_APB_APB_RST MASK_AP_APB_I2C1_SOFT_RST>;
+				reset-names = "i2c_rst";
+				resets = <&apapb_gate RESET_AP_APB_I2C1_SOFT_RST>;
 			};
 
 			i2c2: i2c@70700000 {
@@ -207,9 +206,8 @@
 				dma-names = "rx", "tx";
 				dmas = <&ap_dma 39 &ap_dma 40>;
 				status = "disabled";
-				syscon-names = "i2c_rst";
-				syscons =
-					<&ap_apb_regs REG_AP_APB_APB_RST MASK_AP_APB_I2C2_SOFT_RST>;
+				reset-names = "i2c_rst";
+				resets = <&apapb_gate RESET_AP_APB_I2C2_SOFT_RST>;
 			};
 
 			spi0: spi@70a00000{
