@@ -560,6 +560,7 @@ static int dwc3_sprd_otg_start_peripheral(struct dwc3_sprd *sdwc, int on)
 					__func__, dwc->gadget->name);
 
 		usb_phy_vbus_off(sdwc->ss_phy);
+		msleep(100);
 		pm_runtime_get_sync(dwc->dev);
 		/* phy set vbus connected after phy_init*/
 		usb_phy_notify_connect(sdwc->ss_phy, 0);
