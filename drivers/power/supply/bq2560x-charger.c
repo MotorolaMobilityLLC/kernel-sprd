@@ -2021,13 +2021,14 @@ static int bq2560x_charger_suspend(struct device *dev)
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
 	}
-	if (info->otg_enable || info->is_charger_online)
+	if (info->otg_enable || info->is_charger_online) {
 		bq2560x_charger_feed_watchdog(info);
+		cancel_delayed_work_sync(&info->wdt_work);
+	}
 
 	if (!info->otg_enable)
 		return 0;
 
-	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->cur_work);
 
 	if (info->disable_wdg) {
@@ -2053,8 +2054,10 @@ static int bq2560x_charger_resume(struct device *dev)
 		return -EINVAL;
 	}
 
-	if (info->otg_enable || info->is_charger_online)
+	if (info->otg_enable || info->is_charger_online) {
 		bq2560x_charger_feed_watchdog(info);
+		schedule_delayed_work(&info->wdt_work, HZ * 15);
+	}
 
 	if (!info->otg_enable)
 		return 0;
@@ -2067,7 +2070,6 @@ static int bq2560x_charger_resume(struct device *dev)
 		alarm_cancel(&info->otg_timer);
 	}
 
-	schedule_delayed_work(&info->wdt_work, HZ * 15);
 	schedule_delayed_work(&info->cur_work, 0);
 
 	return 0;
