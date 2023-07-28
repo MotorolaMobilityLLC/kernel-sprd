@@ -567,6 +567,10 @@ struct sdhci_host {
 
 	struct timer_list timer;	/* Timer for timeouts */
 	struct timer_list data_timer;	/* Timer for data timeouts */
+#ifdef CONFIG_SPRD_DEBUG
+	struct timer_list debug_timer;	/* Timer for debug data */
+	u64 cnt_time;
+#endif
 
 #if IS_ENABLED(CONFIG_MMC_SDHCI_EXTERNAL_DMA)
 	struct dma_chan *rx_chan;
