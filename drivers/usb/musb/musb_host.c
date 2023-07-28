@@ -729,18 +729,6 @@ void musb_rx_dma_sprd(struct dma_channel *dma_channel,
 
 	/* protocol/endpoint, interval/NAKlimit, i/o size */
 	musb_writeb(hw_ep->regs, MUSB_RXTYPE, qh->type_reg);
-	musb_writeb(hw_ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
-
-	/* WORKAROUND:
-	 * In musb, High-speed isochronous rx interval configuration
-	 * can't match the real interval. So we set the interval=1 to
-	 * avoid the situation.
-	 */
-	if ((qh->type == USB_ENDPOINT_XFER_ISOC) &&
-	    (urb->dev->speed == USB_SPEED_HIGH))
-		musb_writeb(hw_ep->regs, MUSB_RXINTERVAL, 1);
-	else
-		musb_writeb(hw_ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
 
 	/* NOTE: bulk combining rewrites high bits of maxpacket */
 	/* Set RXMAXP with the FIFO size of the endpoint
@@ -2425,8 +2413,11 @@ success:
 	}
 	qh->hw_ep = hw_ep;
 	qh->hep->hcpriv = qh;
-	if (idle)
+	if (idle) {
+		if (is_in)
+			musb_writeb(hw_ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
 		musb_start_urb(musb, is_in, qh);
+	}
 	return 0;
 }
 
