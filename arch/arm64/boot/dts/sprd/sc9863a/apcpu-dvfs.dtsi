@@ -48,7 +48,7 @@
 				sprd,cpufreq-boost;
 				sprd,multi-version;
 				sprd,pmic-type = <2>;
-				sprd,temp-threshold = <65>;
+				sprd,temp-threshold = <10 65>;
 				sprd,transition-delay = <500>;
 				sprd,thmzone-names = "cpu-thmzone";
 
@@ -61,7 +61,7 @@
 				sprd,cpufreq-boost;
 				sprd,multi-version;
 				sprd,pmic-type = <0>;
-				sprd,temp-threshold = <65>;
+				sprd,temp-threshold = <10 65>;
 				sprd,transition-delay = <500>;
 				sprd,thmzone-names = "cpu-thmzone";
 
