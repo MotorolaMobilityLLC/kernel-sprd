@@ -305,6 +305,7 @@ static int sprd_shell_thm_remove(struct platform_device *pdev)
 	struct shell_sensor *psensor = platform_get_drvdata(pdev);
 	struct sprd_thermal_zone *pzone = psensor->pzone;
 
+	cancel_delayed_work_sync(&psensor->read_temp_work);
 	thermal_zone_device_unregister(pzone->therm_dev);
 	kfree(psensor->sensor_names);
 	kfree(psensor->thm_zones);
