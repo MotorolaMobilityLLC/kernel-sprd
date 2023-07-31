@@ -59,9 +59,12 @@
 #define MUSB_RUNTIME_CHECK_DELAY		(msecs_to_jiffies(200))
 #define MUSB_UDC_START_CHECK_DELAY		(msecs_to_jiffies(50))
 #define MUSB_DATA_ENABLE_CHECK_DELAY		(msecs_to_jiffies(200))
+#define MUSB_CHG_WAIT_DETECT_DELAY		(msecs_to_jiffies(500))
+#define MUSB_CHG_MAX_WAIT_BC1P2_COUNT		5
 #define MUSB_SPRD_CHG_MAX_REDETECT_COUNT	3
 
 /* Pls keep the same definition as PHY */
+#define CHARGER_DETECT_DONE		BIT(0)
 #define CHARGER_2NDDETECT_ENABLE	BIT(30)
 #define CHARGER_2NDDETECT_SELECT	BIT(31)
 
@@ -163,6 +166,7 @@ struct sprd_glue {
 	enum musb_drd_state		drd_state;
 	enum usb_chg_detect_state	chg_state;
 	enum usb_charger_type		chg_type;
+	int				wait_chg_detect_count;
 	int				retry_chg_detect_count;
 	int				start_host_retry_count;
 	int				usb_data_enabled;
@@ -835,6 +839,7 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		glue->chg_state = USB_CHG_STATE_UNDETECT;
 		glue->charging_mode = false;
 		glue->retry_chg_detect_count = 0;
+		glue->wait_chg_detect_count = 0;
 	}
 
 	queue_work(glue->musb_wq, &glue->resume_work);
@@ -1597,8 +1602,10 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 	unsigned long delay = 0;
 	bool rework = false;
 
-	if (!glue->vbus_active)
+	if (!glue->vbus_active) {
+		dev_info(glue->dev, "musb:line%d: vbus_active 0\n", __LINE__);
 		return;
+	}
 
 	switch (glue->chg_state) {
 	case USB_CHG_STATE_UNDETECT:
@@ -1613,6 +1620,20 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 	case USB_CHG_STATE_DETECT:
 		if (usb_phy->charger_detect)
 			glue->chg_type = usb_phy->charger_detect(usb_phy);
+
+		if (!glue->vbus_active) {
+			dev_info(glue->dev, "musb:line%d: vbus_active 0\n", __LINE__);
+			break;
+		}
+
+		if (!(usb_phy->flags & CHARGER_DETECT_DONE)
+		    && glue->wait_chg_detect_count < MUSB_CHG_MAX_WAIT_BC1P2_COUNT) {
+			dev_info(glue->dev, "musb:wait bc1.2 done");
+			glue->wait_chg_detect_count++;
+			rework = true;
+			delay = MUSB_CHG_WAIT_DETECT_DELAY;
+			break;
+		}
 		glue->chg_state = USB_CHG_STATE_DETECTED;
 		fallthrough;
 	case USB_CHG_STATE_DETECTED:
@@ -1640,6 +1661,7 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 	case USB_CHG_STATE_RETRY_DETECT:
 		if (extcon_get_state(glue->edev, EXTCON_USB))
 			glue->chg_type = musb_sprd_retry_charger_detect(glue);
+
 		glue->chg_state = USB_CHG_STATE_RETRY_DETECTED;
 		fallthrough;
 	case USB_CHG_STATE_RETRY_DETECTED:
