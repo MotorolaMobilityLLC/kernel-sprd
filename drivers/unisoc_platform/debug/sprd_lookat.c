@@ -10,26 +10,26 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#include <linux/kernel.h>
-#include <linux/module.h>
-#include <linux/init.h>
-#include <linux/irqflags.h>
-#include <linux/irq.h>
-#include <linux/io.h>
-#include <linux/of.h>
-#include <linux/of_device.h>
-#include <linux/mm.h>
-#include <linux/clk.h>
-#include <linux/debugfs.h>
-#include <linux/regmap.h>
-#include <linux/delay.h>
-#include <linux/of_address.h>
-#include <linux/memory.h>
-#include <asm/tlbflush.h>
 #include <asm/fixmap.h>
 #include <asm/pgalloc.h>
-#include <linux/slab.h>
+#include <asm/tlbflush.h>
+#include <linux/clk.h>
+#include <linux/debugfs.h>
+#include <linux/delay.h>
+#include <linux/init.h>
+#include <linux/io.h>
+#include <linux/irqflags.h>
+#include <linux/irq.h>
+#include <linux/kernel.h>
+#include <linux/memory.h>
+#include <linux/mm.h>
+#include <linux/module.h>
 #include <linux/mod_devicetable.h>
+#include <linux/of.h>
+#include <linux/of_address.h>
+#include <linux/of_device.h>
+#include <linux/regmap.h>
+#include <linux/slab.h>
 
 #define ADI_15BIT_OFFSET		0x20000
 #define ADI_OFFSET			0x8000
@@ -71,14 +71,12 @@ struct lookat {
 
 static struct lookat lookat_desc;
 
-static int sprd_is_adi_vaddr(unsigned long vaddr)
-{
-	return 0;
-}
-
 static int sprd_adi_p2v(unsigned long paddr, unsigned long *vaddr)
 {
 	u32 offset = lookat_desc.slave_offset;
+
+	if (adi_phy_base == 0)
+		return -EINVAL;
 
 	if ((paddr < (adi_phy_base + offset))
 			|| paddr > (adi_phy_base + offset + ADI_ADDR_SIZE))
@@ -89,13 +87,13 @@ static int sprd_adi_p2v(unsigned long paddr, unsigned long *vaddr)
 	return 0;
 }
 
-static inline void chip_raw_ddie_write(unsigned long vreg,
+static inline void chip_raw_ddie_write(void __iomem *vreg,
 				       unsigned long or_val,
 				       unsigned int clear_msk)
 {
-	unsigned long val = readl_relaxed((void *)vreg);
+	unsigned long val = readl_relaxed(vreg);
 
-	writel_relaxed((val & ~clear_msk) | or_val, (void *)vreg);
+	writel_relaxed((val & ~clear_msk) | or_val, vreg);
 }
 
 static int sprd_read_va(unsigned long vreg, unsigned long *val)
@@ -103,11 +101,7 @@ static int sprd_read_va(unsigned long vreg, unsigned long *val)
 	if (!val)
 		return -EINVAL;
 
-	if (unlikely(sprd_is_adi_vaddr(vreg)))
-		regmap_read(lookat_desc.regmap, (unsigned int)vreg,
-			    (unsigned int *)val);
-	else
-		*val = readl_relaxed((void __iomem *)vreg);
+	*val = readl_relaxed((void __iomem *)vreg);
 
 	return 0;
 }
@@ -115,11 +109,7 @@ static int sprd_read_va(unsigned long vreg, unsigned long *val)
 static int sprd_write_va(unsigned long vreg, const unsigned long or_val,
 			 const unsigned int clear_msk)
 {
-	if (unlikely(sprd_is_adi_vaddr(vreg)))
-		regmap_write(lookat_desc.regmap, (unsigned int)vreg,
-			     (unsigned int)or_val);
-	else
-		chip_raw_ddie_write(vreg, or_val, clear_msk);
+	chip_raw_ddie_write((void __iomem *)vreg, or_val, clear_msk);
 
 	return 0;
 }
@@ -138,16 +128,16 @@ static int sprd_read_pa(unsigned long preg, unsigned long *val)
 		void __iomem *io_addr;
 		unsigned long vaddr = 0;
 
-		if (!sprd_adi_p2v(preg, &vaddr))
+		if (!sprd_adi_p2v(preg, &vaddr)) {
 			regmap_read(lookat_desc.regmap, (unsigned int)vaddr,
 				    (unsigned int *)val);
-		else {
+		} else {
 			io_addr = ioremap(preg, PAGE_SIZE);
 			if (!io_addr) {
 				pr_warn("unable to map i/o region\n");
 				return -ENOMEM;
 			}
-			*val = readl_relaxed((void __iomem *)io_addr);
+			*val = readl_relaxed(io_addr);
 			iounmap(io_addr);
 		}
 	} else {
@@ -169,23 +159,22 @@ static int sprd_write_pa(unsigned long paddr, const unsigned long or_val,
 		void __iomem *io_addr;
 		unsigned long vaddr = 0;
 
-		if (!sprd_adi_p2v(paddr, &vaddr))
+		if (!sprd_adi_p2v(paddr, &vaddr)) {
 			regmap_write(lookat_desc.regmap, (unsigned int)vaddr,
 				     (unsigned int)or_val);
-		else {
+		} else {
 			io_addr = ioremap(paddr, PAGE_SIZE);
 			if (!io_addr) {
 				pr_warn("unable to map i/o region\n");
 				return -ENOMEM;
 			}
-			chip_raw_ddie_write((unsigned long)io_addr, or_val,
+			chip_raw_ddie_write(io_addr, or_val,
 					    clear_msk);
 			iounmap(io_addr);
 		}
 	} else {
 		val = *(unsigned long *) addr;
 		*(unsigned long *) addr = ((val & ~clear_msk) | or_val);
-
 	}
 
 	return 0;
@@ -209,7 +198,7 @@ static int queue_add_element(unsigned long raw_cmd)
 	return 0;
 }
 
-static struct lookat_request *return_last_eliment(void)
+static struct lookat_request *return_last_element(void)
 {
 	struct lookat_request *entry;
 
@@ -242,21 +231,17 @@ static int do_request(void)
 
 	if ((lookat_desc.request.cmd & __WRITE__) == __WRITE__) {
 		if ((lookat_desc.request.cmd & __V__) == __V__)
-			ret =
-			    sprd_write_va(lookat_desc.request.addr,
+			ret = sprd_write_va(lookat_desc.request.addr,
 					  lookat_desc.request.value, ~0);
 		else
-			ret =
-			    sprd_write_pa(lookat_desc.request.addr,
+			ret = sprd_write_pa(lookat_desc.request.addr,
 					  lookat_desc.request.value, ~0);
 	} else {
 		if ((lookat_desc.request.cmd & __V__) == __V__)
-			ret =
-			    sprd_read_va(lookat_desc.request.addr,
+			ret = sprd_read_va(lookat_desc.request.addr,
 					 &lookat_desc.request.value);
 		else
-			ret =
-			    sprd_read_pa(lookat_desc.request.addr,
+			ret = sprd_read_pa(lookat_desc.request.addr,
 					 &lookat_desc.request.value);
 	}
 
@@ -279,9 +264,9 @@ static int debug_set(void *data, u64 val)
 			return -1;
 		}
 
-		r = return_last_eliment();
+		r = return_last_element();
 		if (!r) {
-			pr_err("%s,return last eliment error\n", __func__);
+			pr_err("%s,return last element error\n", __func__);
 			return -1;
 		}
 
@@ -308,9 +293,9 @@ static int debug_get(void *data, u64 *val)
 		    ("echo addr | b10 to write Paddr's value,Pls echo value to data file\n");
 		pr_info
 		    ("echo addr | b11 to write Vaddr's value,Pls echo value to data file\n");
-	} else
+	} else {
 		return -EINVAL;
-
+	}
 	return 0;
 }
 
@@ -318,8 +303,8 @@ DEFINE_SIMPLE_ATTRIBUTE(lookat_fops, debug_get, debug_set, "0x%08llx");
 
 static int __init debug_add(struct sprd_lookat *lookat, struct dentry *parent)
 {
-	if (!debugfs_create_file(lookat->name, 0644, parent,
-				 lookat, &lookat_fops))
+	if (IS_ERR_OR_NULL(debugfs_create_file(lookat->name, 0644, parent,
+				 lookat, &lookat_fops)))
 		return -ENOENT;
 
 	return 0;
@@ -349,26 +334,13 @@ static const struct of_device_id sprd_lookat_of_match[] = {
 	{},
 };
 
-static int __init lookat_debug_init(void)
+static void sprd_find_pmic(void)
 {
-	int i;
 	struct platform_device *pdev_regmap;
 	struct device_node *regmap_np;
 	struct device_node *adi_np;
 	const __be32 *reg;
-	struct dentry *lookat_base;
 	const struct of_device_id *lookat_id;
-
-	lookat_base = debugfs_create_dir("lookat", NULL);
-	if (!lookat_base)
-		return -ENOMEM;
-
-	for (i = 0; i < ARRAY_SIZE(__lookat_array); ++i) {
-		if (debug_add(&__lookat_array[i], lookat_base)) {
-			debugfs_remove(lookat_base);
-			return -ENOENT;
-		}
-	}
 
 	mutex_init(&lookat_desc.list_lock);
 	INIT_LIST_HEAD(&lookat_desc.request_list);
@@ -389,6 +361,8 @@ static int __init lookat_debug_init(void)
 		goto error_find_device;
 
 	lookat_desc.regmap = dev_get_regmap(pdev_regmap->dev.parent, NULL);
+	if (!lookat_desc.regmap)
+		goto error_find_device;
 
 	adi_np = regmap_np->parent->parent;
 	reg = of_get_property(adi_np, "reg", NULL);
@@ -401,14 +375,38 @@ static int __init lookat_debug_init(void)
 
 	of_node_put(regmap_np);
 
-	pr_info("%s init ok\n", __func__);
+	pr_info("%s find pmic device success\n", __func__);
 
-	return 0;
+	return;
 
 error_find_device:
 	of_node_put(regmap_np);
 error_pmic_node:
-	return -ENODEV;
+	adi_phy_base = 0;
+	pr_info("%s find pmic fail\n", __func__);
+}
+
+static int __init lookat_debug_init(void)
+{
+	int i;
+	struct dentry *lookat_base;
+
+	lookat_base = debugfs_create_dir("lookat", NULL);
+	if (IS_ERR_OR_NULL(lookat_base))
+		return -ENOMEM;
+
+	for (i = 0; i < ARRAY_SIZE(__lookat_array); ++i) {
+		if (debug_add(&__lookat_array[i], lookat_base)) {
+			debugfs_remove_recursive(lookat_base);
+			return -ENOENT;
+		}
+	}
+
+	sprd_find_pmic();
+
+	pr_info("%s init ok\n", __func__);
+
+	return 0;
 }
 
 late_initcall_sync(lookat_debug_init);
