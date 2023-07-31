@@ -112,6 +112,7 @@ struct sprd_pmic_wdt {
 	u32			base;
 	bool wdten;
 	bool sleep_en;
+	bool normal_mode;
 	struct alarm wdt_timer;
 	struct kthread_worker wdt_kworker;
 	struct kthread_work wdt_kwork;
@@ -121,6 +122,7 @@ struct sprd_pmic_wdt {
 	u32 wdt_flag;
 	u32 wdt_ctrl;
 	u64 wdt_load;
+	struct mutex *lock;
 	const struct sprd_pmic_wdt_data *data;
 };
 
@@ -128,6 +130,8 @@ struct sprd_pmic_wdt {
 static int pmic_timeout = 300;
 static int feed_period = 250;
 #endif
+
+static DEFINE_MUTEX(sprd_wdt_mutex);
 
 struct sprd_pmic_wdt_data {
 	u32 wdt_eb_reg;
@@ -179,6 +183,8 @@ static int sprd_pmic_wdt_on(struct sprd_pmic_wdt *pmic_wdt)
 	char *p_cmd = "NULL";
 	u32 val = 0, i;
 
+	mutex_lock(pmic_wdt->lock);
+
 	for (i = 0; i < ARRAY_SIZE(pmic_wdt_info); i++) {
 		if (!strncmp("wdten", pmic_wdt_info[i], strlen(pmic_wdt_info[i]))) {
 			if (pmic_wdt->wdten)
@@ -213,6 +219,8 @@ static int sprd_pmic_wdt_on(struct sprd_pmic_wdt *pmic_wdt)
 		}
 	}
 
+	pmic_wdt->wdt_flag = SPRD_PMIC_WDT_UNLOCK_KEY;
+	mutex_unlock(pmic_wdt->lock);
 	if (nwrite != len || val == SPRD_PMIC_WDT_LOAD_VAULE_HIGH || retry_cnt == RETRY_CNT_MAX)
 		return -ENODEV;
 
@@ -306,6 +314,27 @@ static bool sprd_pmic_wdt_en(const char *wdten_name)
 }
 
 #ifndef CONFIG_SPRD_DEBUG
+static bool sprd_pmic_wdt_get_normal_mode(void)
+{
+	struct device_node *cmdline_node;
+	const char *cmdline;
+	int ret;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
+	if (ret) {
+		pr_err("Can't parse bootargs\n");
+		return false;
+	}
+
+	if (strstr(cmdline, "sprdboot.mode=normal"))
+		return true;
+	else if (strstr(cmdline, "sprdboot.mode=alarm"))
+		return true;
+	else
+		return false;
+}
+
 static inline void sprd_pmic_wdt_lock(struct sprd_pmic_wdt *pmic_wdt)
 {
 	regmap_write(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_LOCK, 0);
@@ -338,8 +367,10 @@ static int sprd_pmic_wdt_load_value(struct sprd_pmic_wdt *pmic_wdt, u32 timeout)
 		cpu_relax();
 	} while (delay_cnt++ < SPRD_PMIC_WDT_LOAD_TIMEOUT);
 
-	if (delay_cnt >= SPRD_PMIC_WDT_LOAD_TIMEOUT)
+	if (delay_cnt >= SPRD_PMIC_WDT_LOAD_TIMEOUT) {
+		pr_err("sprd pmic wdt check busy bit timeout!\n");
 		return -EBUSY;
+	}
 
 	sprd_pmic_wdt_unlock(pmic_wdt);
 	regmap_write(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_LOAD_HIGH,
@@ -418,6 +449,12 @@ static void sprd_wdt_feeder_init(struct sprd_pmic_wdt *pmic_wdt)
 {
 	int cpu = 0;
 
+	mutex_lock(pmic_wdt->lock);
+	if (pmic_wdt->wdt_flag == SPRD_PMIC_WDT_UNLOCK_KEY) {
+		mutex_unlock(pmic_wdt->lock);
+		return;
+	}
+
 	do {
 		pmic_wdt->feed_task = kthread_create_on_node(sprd_wdt_feeder,
 							    pmic_wdt,
@@ -434,6 +471,8 @@ static void sprd_wdt_feeder_init(struct sprd_pmic_wdt *pmic_wdt)
 		sprd_pmic_wdt_start(pmic_wdt);
 		wake_up_process(pmic_wdt->feed_task);
 	}
+
+	mutex_unlock(pmic_wdt->lock);
 
 	pr_err("sprd pmic wdt:pmic_timeout %d,feed %d\n", pmic_timeout, feed_period);
 }
@@ -455,6 +494,9 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "can not get private data!\n");
 		return -ENODEV;
 	}
+
+	pmic_wdt->lock = &sprd_wdt_mutex;
+	mutex_init(pmic_wdt->lock);
 
 	pmic_wdt->regmap = dev_get_regmap(pdev->dev.parent, NULL);
 	if (!pmic_wdt->regmap) {
@@ -485,20 +527,24 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 	pmic_wdt->sleep_en = sprd_pmic_wdt_en("dswdten");
 	pmic_wdt->dev = &pdev->dev;
 
-#ifndef CONFIG_SPRD_DEBUG
-	ret = sprd_pmic_wdt_enable(pmic_wdt);
-	if (ret) {
-		dev_err(&pdev->dev, "failed to enable wdt\n");
-		return ret;
-	}
-	sprd_wdt_feeder_init(pmic_wdt);
-#endif
 	rval = sbuf_register_notifier(SIPC_ID_PM_SYS, SMSG_CH_TTY, 0,
 				      sprd_pmic_wdt_init, pmic_wdt);
 	if (rval) {
 		dev_err(&pdev->dev, "sbuf notifier failed rval = %d\n", rval);
 		return -EPROBE_DEFER; //depends on UNISOC_SIPC_SPIPE for SP9863-GO
 	}
+
+#ifndef CONFIG_SPRD_DEBUG
+	pmic_wdt->normal_mode = sprd_pmic_wdt_get_normal_mode();
+	if (pmic_wdt->normal_mode && !pmic_wdt->wdt_flag) {
+		ret = sprd_pmic_wdt_enable(pmic_wdt);
+		if (ret) {
+			dev_err(&pdev->dev, "failed to enable wdt\n");
+			return ret;
+		}
+		sprd_wdt_feeder_init(pmic_wdt);
+	}
+#endif
 
 	platform_set_drvdata(pdev, pmic_wdt);
 
