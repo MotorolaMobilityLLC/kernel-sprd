@@ -456,10 +456,12 @@ static int prealloc_sg(struct list_head *list,
 		if (!req)
 			return list_empty(list) ? -ENOMEM : 0;
 
+		vser_req_put(dev, &dev->tx_pass_idle, req);
+
 		if (!sg_enabled) {
 			req->buf = NULL;
 			req->complete = vser_pass_complete_in;
-			goto add_list;
+			continue;
 		}
 
 		req->complete = tx_complete;
@@ -476,8 +478,6 @@ static int prealloc_sg(struct list_head *list,
 		req->buf = kzalloc(VSER_BULK_BUFFER_SIZE, GFP_ATOMIC);
 		if (!req->buf)
 			goto extra;
-add_list:
-		vser_req_put(dev, &dev->tx_pass_idle, req);
 	}
 	return 0;
 
@@ -488,6 +488,7 @@ extra:
 
 		next = req->list.next;
 		list_del(&req->list);
+		tx_req_count--;
 
 		kfree(req->buf);
 		kfree(req->sg);
