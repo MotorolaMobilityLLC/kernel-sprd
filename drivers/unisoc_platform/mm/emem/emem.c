@@ -32,6 +32,7 @@
 #define DEFAULT_PROC_ADJ		900
 #define EMEM_SHOW_INTERVAL		5
 #define EMEM_SHOW_KILL_ADJ900_INTERVAL  600
+#define DELAY_TIME_MS			300
 
 static void dump_tasks_info(void);
 
@@ -41,6 +42,8 @@ static void dump_tasks_info(void);
  */
 int sysctl_emem_trigger;
 
+static struct work_struct unisoc_emem_notify_work;
+static struct delayed_work unisoc_emem_notify_dwork;
 static struct work_struct unisoc_emem_work;
 static DEFINE_SPINLOCK(unisoc_emem_lock);
 /* User knob to enable/disable enhance meminfo feature */
@@ -61,7 +64,6 @@ static void unisoc_enhance_meminfo(unsigned long interval)
 		unisoc_enhanced_show_mem();
 		dump_tasks_info();
 		last_jiffies = jiffies;
-		pr_info("+++++++++++++++++++++++UNISOC_SHOW_MEM_END+++++++++++++++++++++\n");
 	}
 }
 
@@ -233,6 +235,15 @@ const struct proc_ops proc_emem_trigger_operations = {
 	.proc_write		= emem_trigger_write,
 };
 
+static void show_mem_call_chain(void *data, unsigned int filter, nodemask_t *nodemask)
+{
+	if (!filter)
+		queue_work(system_power_efficient_wq, &unisoc_emem_notify_work);
+	else
+		queue_delayed_work(system_power_efficient_wq, &unisoc_emem_notify_dwork,
+					msecs_to_jiffies(DELAY_TIME_MS));
+}
+
 static void register_emem_vendor_hooks(void)
 {
 	int ret = 0;
@@ -250,6 +261,8 @@ static void unregister_emem_vendor_hooks(void)
 static int emem_init(void)
 {
 	INIT_WORK(&unisoc_emem_work, unisoc_emem_workfn);
+	INIT_WORK(&unisoc_emem_notify_work, unisoc_emem_notify_workfn);
+	INIT_DELAYED_WORK(&unisoc_emem_notify_dwork, unisoc_emem_notify_workfn);
 	register_unisoc_show_mem_notifier(&e_show_mem_notifier);
 	register_emem_vendor_hooks();
 	proc_create("emem_trigger", 0200, NULL, &proc_emem_trigger_operations);
@@ -258,6 +271,9 @@ static int emem_init(void)
 
 static void emem_exit(void)
 {
+	cancel_work_sync(&unisoc_emem_work);
+	cancel_work_sync(&unisoc_emem_notify_work);
+	cancel_delayed_work_sync(&unisoc_emem_notify_dwork);
 	unregister_unisoc_show_mem_notifier(&e_show_mem_notifier);
 	unregister_emem_vendor_hooks();
 	remove_proc_entry("emem_trigger", NULL);

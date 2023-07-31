@@ -11,6 +11,7 @@
 #include <linux/module.h>
 #include <linux/notifier.h>
 #include <linux/swap.h>
+#include <linux/workqueue.h>
 
 static BLOCKING_NOTIFIER_HEAD(unisoc_show_mem_notify_list);
 
@@ -44,9 +45,10 @@ void unisoc_enhanced_show_mem(void)
 		total_swapcache_pages() << (PAGE_SHIFT - 10));
 }
 
-void show_mem_call_chain(void *data, unsigned int filter, nodemask_t *nodemask)
+void unisoc_emem_notify_workfn(struct work_struct *work)
 {
 	unsigned long used = 0;
 
 	blocking_notifier_call_chain(&unisoc_show_mem_notify_list, 0, &used);
+	pr_info("+++++++++++++++++++++++UNISOC_SHOW_MEM_END+++++++++++++++++++++\n");
 }
