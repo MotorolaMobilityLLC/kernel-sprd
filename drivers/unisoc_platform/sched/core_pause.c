@@ -558,32 +558,6 @@ static void android_rvh_is_cpu_allowed(void *unused, struct task_struct *p, int 
 	}
 }
 
-static void walt_newidle_balance(void *unused, struct rq *this_rq,
-				 struct rq_flags *rf, int *pulled_task,
-				 int *done)
-{
-	int this_cpu = this_rq->cpu;
-
-	if (unlikely(uni_sched_disabled))
-		return;
-
-	if (cpu_halted(this_cpu)) {
-		/*
-		 * newly idle load balance is completely handled here, so
-		 * set done to skip the load balance by the caller.
-		 */
-		*done = 1;
-		*pulled_task = 0;
-
-		/*
-		 * This CPU is about to enter idle, so clear the
-		 * misfit_task_load and mark the idle stamp.
-		 */
-		this_rq->misfit_task_load = 0;
-		this_rq->idle_stamp = rq_clock(this_rq);
-	}
-}
-
 static void android_rvh_update_cpus_allowed(void *unused, struct task_struct *p,
 						cpumask_var_t cpus_requested,
 						const struct cpumask *new_mask, int *ret)
@@ -643,7 +617,6 @@ void core_pause_init(void)
 	register_trace_android_rvh_set_cpus_allowed_by_task(
 						android_rvh_set_cpus_allowed_by_task, NULL);
 	register_trace_android_rvh_is_cpu_allowed(android_rvh_is_cpu_allowed, NULL);
-	register_trace_android_rvh_sched_newidle_balance(walt_newidle_balance, NULL);
 	register_trace_android_rvh_update_cpus_allowed(android_rvh_update_cpus_allowed, NULL);
 	register_trace_android_rvh_sched_setaffinity(android_rvh_sched_setaffinity, NULL);
 	register_trace_android_rvh_sched_getaffinity(android_rvh_sched_getaffinity, NULL);

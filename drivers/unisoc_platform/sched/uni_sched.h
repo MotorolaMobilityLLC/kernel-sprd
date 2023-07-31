@@ -159,6 +159,11 @@ static inline unsigned long walt_cpu_util(int cpu)
 	return min_t(unsigned long, cpu_util, capacity_orig_of(cpu));
 }
 
+static inline unsigned long task_util_est(struct task_struct *p)
+{
+	return walt_task_util(p);
+}
+
 static inline unsigned int tg_init_load_pct(struct task_struct *p)
 {
 #ifdef CONFIG_UNISOC_GROUP_CTL
