@@ -193,7 +193,6 @@ int sprd_debug_cluster_exit(struct cpufreq_policy *policy)
 
 	devm_kfree(chip.dev, cluster_den->nodes);
 	cluster_den->nodes = NULL;
-	chip.dev = NULL;
 
 	return 0;
 }
