@@ -71,8 +71,8 @@ static ssize_t store_scaling_fixed_freq(struct cpufreq_policy *policy,
 	unsigned int ret;
 	struct sprd_multi_control *sprd_mc;
 
-	ret = sscanf(buf, "%u", &fix_freq);
-	if (ret != 1)
+	ret = kstrtouint(buf, 10, &fix_freq);
+	if (ret != 0)
 		return -EINVAL;
 
 	if (fix_freq != 0) {
@@ -116,9 +116,9 @@ store_high_level_freq_control_enable(struct cpufreq_policy *policy,
 	struct sprd_multi_control *sprd_mc;
 	int ret;
 
-	ret = sscanf(buf, "%u", &val);
+	ret = kstrtouint(buf, 10, &val);
 
-	if (ret != 1)
+	if (ret != 0)
 		return -EINVAL;
 
 	list_for_each_entry(sprd_mc, &sprd_mc_list, node) {
@@ -148,8 +148,8 @@ static ssize_t store_high_level_freq_max(struct cpufreq_policy *policy,
 	struct sprd_multi_control *sprd_mc;
 	int ret;
 
-	ret = sscanf(buf, "%u", &val);
-	if (ret != 1)
+	ret = kstrtouint(buf, 10, &val);
+	if (ret != 0)
 		return -EINVAL;
 
 	if (val) {
@@ -199,8 +199,8 @@ static ssize_t store_high_level_freq_min(struct cpufreq_policy *policy,
 	struct sprd_multi_control *sprd_mc;
 	int ret;
 
-	ret = sscanf(buf, "%u", &val);
-	if (ret != 1)
+	ret = kstrtouint(buf, 10, &val);
+	if (ret != 0)
 		return -EINVAL;
 
 	if (val) {
