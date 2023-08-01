@@ -592,31 +592,36 @@ int dmabuf_debug_sysheap_show_printk(struct dma_heap *heap, void *data)
 	pr_info("Detail:\n");
 	pr_info("%-10s %-6s %-16s %-10s\n", "size", "pid", "name", "alloc_ts");
 
+	mutex_lock(&dev->buffer_lock);
 	for (n = rb_first(&dev->buffers); n; n = rb_next(n)) {
 		struct system_heap_buffer *buffer = rb_entry(n, struct system_heap_buffer,
 			node);
-
-		time64_to_tm(buffer->alloc_ts.tv_sec, 0, &t);
-		pr_info("%-10zu %-5d %-16s %ld.%d.%d-%d:%d:%d.%ld\n",
-			buffer->len, buffer->pid, buffer->task_name,
-			t.tm_year + 1900, t.tm_mon + 1,
-			t.tm_mday, t.tm_hour, t.tm_min,
-			t.tm_sec, buffer->alloc_ts.tv_nsec);
+		if (!IS_ERR_OR_NULL(buffer)) {
+			time64_to_tm(buffer->alloc_ts.tv_sec, 0, &t);
+			pr_info("%-10zu %-5d %-16s %ld.%d.%d-%d:%d:%d.%ld\n",
+				buffer->len, buffer->pid, buffer->task_name,
+				t.tm_year + 1900, t.tm_mon + 1,
+				t.tm_mday, t.tm_hour, t.tm_min,
+				t.tm_sec, buffer->alloc_ts.tv_nsec);
+		}
 		for (i = 0; i < MAX_MAP_USER; i++) {
-			if (buffer->mappers[i].valid) {
-				time64_to_tm(buffer->mappers[i].map_ts.tv_sec, 0, &t);
-				pr_info("       |---%-5d  %-5d  %-16s  %ld.%d.%d-%d:%d:%d.%ld\n",
+			if (!IS_ERR_OR_NULL(buffer)) {
+				if (buffer->mappers[i].valid) {
+					time64_to_tm(buffer->mappers[i].map_ts.tv_sec, 0, &t);
+					pr_info("       |---%-5d  %-5d  %-16s  %ld.%d.%d-%d:%d:%d.%ld\n",
 						buffer->mappers[i].pid,
 						buffer->mappers[i].fd,
 						buffer->mappers[i].task_name,
 						t.tm_year + 1900, t.tm_mon + 1,
 						t.tm_mday, t.tm_hour, t.tm_min,
 						t.tm_sec, buffer->mappers[i].map_ts.tv_nsec);
+				}
 			}
 		}
-
-		total_size += buffer->len;
+		if (!IS_ERR_OR_NULL(buffer))
+			total_size += buffer->len;
 	}
+	mutex_unlock(&dev->buffer_lock);
 	pr_info("----------------------------------------------------\n");
 	pr_info("%16s %16zu\n", "total ", total_size);
 
