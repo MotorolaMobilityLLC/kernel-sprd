@@ -21,8 +21,16 @@ static int sprd_reset_assert(struct reset_controller_dev *rcdev,
 {
 	struct sprd_reset *reset = to_sprd_reset(rcdev);
 	const struct sprd_reset_map *map = &reset->reset_map[id];
+	unsigned long flags;
+	unsigned int val = 0;
 
-	return regmap_update_bits(reset->regmap, map->reg, map->mask, map->mask);
+	spin_lock_irqsave(&reset->lock, flags);
+	regmap_read(reset->regmap, map->reg, &val);
+	val |= map->mask;
+	regmap_write(reset->regmap, map->reg, val);
+	spin_unlock_irqrestore(&reset->lock, flags);
+
+	return 0;
 }
 
 static int sprd_reset_deassert(struct reset_controller_dev *rcdev,
@@ -30,8 +38,16 @@ static int sprd_reset_deassert(struct reset_controller_dev *rcdev,
 {
 	struct sprd_reset *reset = to_sprd_reset(rcdev);
 	const struct sprd_reset_map *map = &reset->reset_map[id];
+	unsigned long flags;
+	unsigned int val = 0;
 
-	return regmap_update_bits(reset->regmap, map->reg, map->mask, 0);
+	spin_lock_irqsave(&reset->lock, flags);
+	regmap_read(reset->regmap, map->reg, &val);
+	val &= ~map->mask;
+	regmap_write(reset->regmap, map->reg, val);
+	spin_unlock_irqrestore(&reset->lock, flags);
+
+	return 0;
 }
 
 static int sprd_reset_reset(struct reset_controller_dev *rcdev,

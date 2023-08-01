@@ -5,11 +5,11 @@
 // Copyright (C) 2022 Spreadtrum, Inc.
 // Author: Zhifeng Tang <zhifeng.tang@unisoc.com>
 
-
 #ifndef _SPRD_RESET_H_
 #define _SPRD_RESET_H_
 
 #include <linux/reset-controller.h>
+#include <linux/spinlock.h>
 
 struct sprd_reset_map {
 	u32	reg;
@@ -21,6 +21,7 @@ struct sprd_reset {
 	struct reset_controller_dev	rcdev;
 	const struct sprd_reset_map	*reset_map;
 	struct regmap			*regmap;
+	spinlock_t			lock;
 };
 
 extern const struct reset_control_ops sprd_reset_ops;

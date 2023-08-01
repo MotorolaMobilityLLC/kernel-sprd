@@ -2437,6 +2437,7 @@ static int ums512_clk_probe(struct platform_device *pdev)
 		if (!reset)
 			return -ENOMEM;
 
+		spin_lock_init(&reset->lock);
 		reset->rcdev.of_node = pdev->dev.of_node;
 		reset->rcdev.ops = &sprd_sc_reset_ops;
 		reset->rcdev.nr_resets = desc->num_resets;
