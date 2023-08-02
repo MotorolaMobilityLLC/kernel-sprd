@@ -98,6 +98,8 @@ arch/arm64/boot/dts/sprd/ums9230-4h10-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-4h10-go-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-6h10-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-6h10-go-overlay.dtbo
+arch/arm64/boot/dts/sprd/lion-go-overlay.dtbo
+arch/arm64/boot/dts/sprd/sabah_lite-go-overlay.dtbo
 vmlinux
 "
 #KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc

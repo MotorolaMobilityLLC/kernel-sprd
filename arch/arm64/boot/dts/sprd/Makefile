@@ -38,7 +38,9 @@ dtb-$(CONFIG_ARCH_SPRD) += \
 	ums9230-4h10-overlay.dtbo \
 	ums9230-4h10-go-overlay.dtbo \
 	ums9230-6h10-overlay.dtbo \
-	ums9230-6h10-go-overlay.dtbo
+	ums9230-6h10-go-overlay.dtbo \
+	lion-go-overlay.dtbo \
+	sabah_lite-go-overlay.dtbo
 
 ums9230-1h10-overlay.dtbo-base := ums9230-base.dtb
 ums9230-1h10_go-overlay.dtbo-base := ums9230-base.dtb
@@ -46,6 +48,8 @@ ums9230-4h10-overlay.dtbo-base := ums9230-base.dtb
 ums9230-4h10-go-overlay.dtbo-base := ums9230-base.dtb
 ums9230-6h10-overlay.dtbo-base := ums9230-base.dtb
 ums9230-6h10-go-overlay.dtbo-base := ums9230-base.dtb
+lion-go-overlay.dtbo-base := ums9230-base.dtb
+sabah_lite-go-overlay.dtbo-base := ums9230-base.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),qogirn6pro)
