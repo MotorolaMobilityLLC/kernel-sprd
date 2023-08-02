@@ -1760,7 +1760,7 @@ irq_hard_reset:
 		*/
 		if (pd->var_data->id == PMIC_SC2730) {
 			sprd_pd_log(pd, "pd irq: delay 500 us");
-			udelay(500);
+			usleep_range(500, 510);
 		}
 		ret = regmap_read_poll_timeout(pd->regmap,
 					       pd->base + SC27XX_PD_STS1,
