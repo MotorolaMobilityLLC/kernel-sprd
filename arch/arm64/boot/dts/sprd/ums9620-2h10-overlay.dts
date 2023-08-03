@@ -296,6 +296,10 @@
 	status = "disabled";
 };
 
+&vddgpu {
+	status = "disabled";
+};
+
 &avdd12 {
 	regulator-always-on;
 };
