@@ -452,7 +452,7 @@ static int prealloc_sg(struct list_head *list,
 			goto extra;
 	}
 	while (i--) {
-		req = usb_ep_alloc_request(ep, GFP_ATOMIC);
+		req = usb_ep_alloc_request(ep, GFP_KERNEL);
 		if (!req)
 			return list_empty(list) ? -ENOMEM : 0;
 
@@ -466,18 +466,15 @@ static int prealloc_sg(struct list_head *list,
 
 		req->complete = tx_complete;
 		req->sg = kcalloc(MAX_PKTS_PER_XFER,
-				sizeof(struct scatterlist), GFP_ATOMIC);
+				sizeof(struct scatterlist), GFP_KERNEL);
 		if (!req->sg)
 			goto extra;
 
-		sg_ctx = kmalloc(sizeof(*sg_ctx), GFP_ATOMIC);
+		sg_ctx = kmalloc(sizeof(*sg_ctx), GFP_KERNEL);
 		if (!sg_ctx)
 			goto extra;
 		req->context = sg_ctx;
-
-		req->buf = kzalloc(VSER_BULK_BUFFER_SIZE, GFP_ATOMIC);
-		if (!req->buf)
-			goto extra;
+		req->buf = NULL;
 	}
 	return 0;
 

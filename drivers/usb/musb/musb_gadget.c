@@ -1233,7 +1233,7 @@ static int musb_gadget_queue(struct usb_ep *ep, struct usb_request *req,
 
 	if (!ep || !req)
 		return -EINVAL;
-	if (!req->buf)
+	if (!req->buf && !req->num_sgs)
 		return -ENODATA;
 
 	musb_ep = to_musb_ep(ep);
