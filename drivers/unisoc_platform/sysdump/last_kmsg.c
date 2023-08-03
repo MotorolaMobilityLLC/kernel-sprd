@@ -106,7 +106,7 @@ static int save_log_to_partition_handler(struct notifier_block *nb, unsigned lon
 	mutex_unlock(&kmsg_buf_lock);
 
 	ret = write_data_to_partition(plog_file, kmsg_buf, KMSG_BUF_SIZE, LAST_KMSG_OFFSET);
-	if (ret)
+	if (ret < 0)
 		pr_err("write kmsg to partition error! '%s':%d!\n", devicename, ret);
 
 	/* handle last android log */
@@ -116,7 +116,7 @@ static int save_log_to_partition_handler(struct notifier_block *nb, unsigned lon
 	}
 	ret = write_data_to_partition(plog_file, ylog_buffer, YLOG_BUF_SIZE,
 			LAST_ANDROID_LOG_OFFSET);
-	if (ret)
+	if (ret < 0)
 		pr_err("write ylog to partition error! '%s':%d!\n", devicename, ret);
 
 	fput(plog_file);
@@ -199,10 +199,12 @@ int last_kmsg_init(void)
 	SetPageReserved(virt_to_page(kmsg_buf));
 
 	pr_info("register sysdump log notifier\n");
-	ret = register_reboot_notifier(&sysdump_log_notifier);
+	register_reboot_notifier(&sysdump_log_notifier);
 
-	minidump_save_extend_information("last_kmsg", __pa(kmsg_buf),
+	ret = minidump_save_extend_information("last_kmsg", __pa(kmsg_buf),
 			__pa(kmsg_buf + KMSG_BUF_SIZE));
+	if (ret)
+		pr_err("last_kmsg added to minidump failed\n");
 	/* map buffer as noncached */
 	lkmsg_paddr = __pa(kmsg_buf);
 	if (!pfn_valid(lkmsg_paddr >> PAGE_SHIFT)) {
