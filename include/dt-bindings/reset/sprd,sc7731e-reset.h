@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Unisoc sc9863 platform reset
+ * Unisoc sc7731e platform reset
  *
  * Copyright (C) 2022, Unisoc Inc.
  */
