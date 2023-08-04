@@ -1129,7 +1129,6 @@ static int sc27xx_pd_read_msg_pdo(struct sc27xx_pd *pd, struct sprd_pd_message *
 				__func__, ret);
 			return ret;
 		}
-		sprd_pd_log(pd, "rx msg: data[%d] = 0x%x", i, data[i]);
 	}
 
 	/*
