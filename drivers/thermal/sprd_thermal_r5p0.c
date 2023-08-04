@@ -482,6 +482,7 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		sen->ready = false;
 		sen->base = thm->regbase;
 		sen->dev = &pdev->dev;
+		sen->lasttemp = 25000;
 
 		ret = sprd_thm_sen_efuse_cal(sen_child, thm, sen);
 		if (ret) {
