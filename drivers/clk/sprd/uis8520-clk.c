@@ -156,7 +156,7 @@ static struct sprd_reset_map uis8520_pmu_apb_resets[] = {
 static struct sprd_clk_desc uis8520_pmu_gate_desc = {
 	.clk_clks	= uis8520_pmu_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(uis8520_pmu_gate_clks),
-	.hw_clks        = &uis8520_pmu_gate_hws,
+	.hw_clks	= &uis8520_pmu_gate_hws,
 	.resets		= uis8520_pmu_apb_resets,
 	.num_resets	= ARRAY_SIZE(uis8520_pmu_apb_resets),
 };
@@ -907,8 +907,8 @@ static struct sprd_clk_desc uis8520_apahb_gate_desc = {
 	.clk_clks	= uis8520_apahb_gate,
 	.num_clk_clks	= ARRAY_SIZE(uis8520_apahb_gate),
 	.hw_clks	= &uis8520_apahb_gate_hws,
-	.resets = uis8520_ap_ahb_resets,
-	.num_resets = ARRAY_SIZE(uis8520_ap_ahb_resets),
+	.resets		= uis8520_ap_ahb_resets,
+	.num_resets	= ARRAY_SIZE(uis8520_ap_ahb_resets),
 };
 
 /* ap clks */

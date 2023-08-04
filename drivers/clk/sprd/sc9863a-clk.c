@@ -97,9 +97,9 @@ static struct sprd_reset_map sc9863a_pmu_apb_resets[] = {
 static const struct sprd_clk_desc sc9863a_pmu_gate_desc = {
 	.clk_clks	= sc9863a_pmu_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_pmu_gate_clks),
-	.hw_clks        = &sc9863a_pmu_gate_hws,
-	.resets = sc9863a_pmu_apb_resets,
-	.num_resets = ARRAY_SIZE(sc9863a_pmu_apb_resets),
+	.hw_clks	= &sc9863a_pmu_gate_hws,
+	.resets		= sc9863a_pmu_apb_resets,
+	.num_resets	= ARRAY_SIZE(sc9863a_pmu_apb_resets),
 };
 
 static const struct freq_table ftable[5] = {
@@ -1209,8 +1209,8 @@ static const struct sprd_clk_desc sc9863a_apahb_gate_desc = {
 	.clk_clks	= sc9863a_apahb_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_apahb_gate_clks),
 	.hw_clks	= &sc9863a_apahb_gate_hws,
-	.resets = sc9863a_ap_ahb_resets,
-	.num_resets = ARRAY_SIZE(sc9863a_ap_ahb_resets),
+	.resets		= sc9863a_ap_ahb_resets,
+	.num_resets	= ARRAY_SIZE(sc9863a_ap_ahb_resets),
 };
 
 /* aon gate clocks */
@@ -1693,8 +1693,8 @@ static const struct sprd_clk_desc sc9863a_aonapb_gate_desc = {
 	.clk_clks	= sc9863a_aonapb_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_aonapb_gate_clks),
 	.hw_clks	= &sc9863a_aonapb_gate_hws,
-	.resets = sc9863a_aon_apb_resets,
-	.num_resets = ARRAY_SIZE(sc9863a_aon_apb_resets),
+	.resets		= sc9863a_aon_apb_resets,
+	.num_resets	= ARRAY_SIZE(sc9863a_aon_apb_resets),
 };
 
 /* mm gate clocks */
@@ -1787,8 +1787,8 @@ static const struct sprd_clk_desc sc9863a_mm_gate_desc = {
 	.clk_clks	= sc9863a_mm_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_mm_gate_clks),
 	.hw_clks	= &sc9863a_mm_gate_hws,
-	.resets = sc9863a_mm_ahb_resets,
-	.num_resets = ARRAY_SIZE(sc9863a_mm_ahb_resets),
+	.resets		= sc9863a_mm_ahb_resets,
+	.num_resets	= ARRAY_SIZE(sc9863a_mm_ahb_resets),
 };
 
 /* camera sensor clocks */
@@ -1864,8 +1864,8 @@ static const struct sprd_clk_desc sc9863a_vspahb_gate_desc = {
 	.clk_clks	= sc9863a_vspahb_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_vspahb_gate_clks),
 	.hw_clks	= &sc9863a_vspahb_gate_hws,
-	.resets = sc9863a_vsp_ahb_resets,
-	.num_resets = ARRAY_SIZE(sc9863a_vsp_ahb_resets),
+	.resets		= sc9863a_vsp_ahb_resets,
+	.num_resets	= ARRAY_SIZE(sc9863a_vsp_ahb_resets),
 };
 
 static SPRD_SC_GATE_CLK_FW_NAME(sim0_eb,	"sim0-eb",	"ext-26m", 0x0,
@@ -1991,8 +1991,8 @@ static const struct sprd_clk_desc sc9863a_apapb_gate_desc = {
 	.clk_clks	= sc9863a_apapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(sc9863a_apapb_gate),
 	.hw_clks	= &sc9863a_apapb_gate_hws,
-	.resets = sc9863a_ap_apb_resets,
-	.num_resets = ARRAY_SIZE(sc9863a_ap_apb_resets),
+	.resets		= sc9863a_ap_apb_resets,
+	.num_resets	= ARRAY_SIZE(sc9863a_ap_apb_resets),
 };
 
 static const struct of_device_id sprd_sc9863a_clk_ids[] = {
