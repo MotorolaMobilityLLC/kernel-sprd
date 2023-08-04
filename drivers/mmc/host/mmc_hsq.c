@@ -95,6 +95,13 @@ static void mmc_hsq_update_next_tag(struct mmc_hsq *hsq, int remains)
 
 	tag = hsq->tag_slot[hsq->next_tag];
 	hsq->tag_slot[hsq->next_tag] = HSQ_INVALID_TAG;
+#ifdef CONFIG_SPRD_DEBUG
+	if (tag == HSQ_INVALID_TAG) {
+		panic("mmc qcnt:%d, tail:%d, remains:%d, next:%d\n",
+				hsq->qcnt, hsq->tail_tag, remains, hsq->next_tag);
+	}
+	hsq->old_next_tag = tag;
+#endif
 	hsq->next_tag = tag;
 }
 
@@ -203,6 +210,22 @@ static void mmc_hsq_recovery_finish(struct mmc_host *mmc)
 		mmc_hsq_pump_requests(hsq);
 }
 
+#ifdef CONFIG_SPRD_DEBUG
+static void mmc_hsq_record_tag(struct mmc_host *mmc, int tag)
+{
+	struct mmc_hsq *hsq = mmc->cqe_private;
+
+	hsq->record[hsq->record_end] = tag;
+
+	hsq->record_end++;
+
+	if (hsq->record_end == HSQ_NUM_SLOTS)
+		hsq->record_end = 0;
+
+	hsq->record[hsq->record_end] = 0xFF;
+}
+#endif
+
 static int mmc_hsq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
 	struct mmc_hsq *hsq = mmc->cqe_private;
@@ -222,6 +245,12 @@ static int mmc_hsq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	}
 
 	hsq->slot[tag].mrq = mrq;
+#ifdef CONFIG_SPRD_DEBUG
+	mmc_hsq_record_tag(mmc, tag);
+	hsq->slot[tag].time = sched_clock();
+	hsq->slot[tag].pre_next_tag = hsq->next_tag;
+	hsq->slot[tag].pre_tail_tag = hsq->tail_tag;
+#endif
 
 	/*
 	 * Set the next tag as current request tag if no available
@@ -235,6 +264,14 @@ static int mmc_hsq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		hsq->tag_slot[hsq->tail_tag] = tag;
 		hsq->tail_tag = tag;
 	}
+
+#ifdef CONFIG_SPRD_DEBUG
+	hsq->slot[tag].post_next_tag = hsq->next_tag;
+	hsq->slot[tag].post_tail_tag = hsq->tail_tag;
+
+	if (!hsq->slot[tag].mrq)
+		panic("hsq->slot[tag].mrq = null\n");
+#endif
 
 	hsq->qcnt++;
 
@@ -343,6 +380,9 @@ int mmc_hsq_init(struct mmc_hsq *hsq, struct mmc_host *mmc)
 	hsq->num_slots = HSQ_NUM_SLOTS;
 	hsq->next_tag = HSQ_INVALID_TAG;
 	hsq->tail_tag = HSQ_INVALID_TAG;
+#ifdef CONFIG_SPRD_DEBUG
+	hsq->record_end = 0;
+#endif
 
 	hsq->slot = devm_kcalloc(mmc_dev(mmc), hsq->num_slots,
 				 sizeof(struct hsq_slot), GFP_KERNEL);

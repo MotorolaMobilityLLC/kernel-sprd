@@ -8,6 +8,13 @@
 
 struct hsq_slot {
 	struct mmc_request *mrq;
+#ifdef CONFIG_SPRD_DEBUG
+	unsigned long long time;
+	int pre_next_tag;
+	int pre_tail_tag;
+	int post_next_tag;
+	int post_tail_tag;
+#endif
 };
 
 struct mmc_hsq {
@@ -31,6 +38,9 @@ struct mmc_hsq {
 	unsigned long long stamp1;
 	unsigned long long stamp1_temp;
 	unsigned long long stamp2;
+	int record[HSQ_NUM_SLOTS];
+	int record_end;
+	int old_next_tag;
 #endif
 };
 
