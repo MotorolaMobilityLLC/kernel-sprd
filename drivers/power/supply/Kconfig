@@ -958,6 +958,23 @@ config CHARGER_SGM41513
 
 	  Say Y to include support for SGM Sgm41513 Battery Charger.
 
+
+config CHARGER_UPM6920
+        tristate "UPM Upm6920 Charger"
+        depends on I2C || COMPILE_TEST
+        help
+          The upm6920 are battery chargers and system power path management
+          devices with integrated converter and power switches for use with
+          single-cell Li-Ion or Li-polymer batteries.
+
+          Say Y to include support for UPM Upm6920 Battery Charger.
+
+config CHARGER_SGM41543
+        tristate "SGM sgm41543 Charger"
+        depends on I2C || COMPILE_TEST
+        help
+          Say Y to include support for SGM Sgm41543 Battery Charger.
+
 config FAST_CHARGER_SC27XX
 	tristate "Spreadtrum SC27XX fast charger driver"
 	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
