@@ -6,9 +6,18 @@ BUILD_SYSTEM_DLKM=0
 DEFCONFIG=sharkle_defconfig
 
 FRAGMENT_CONFIG=${KERNEL_DIR}/arch/arm/configs/sprd_sharkle_debug.fragment
+SP9832E_BASE_CONFIG="
+${ROOT_DIR}/${KERNEL_DIR}/arch/arm/configs/sprd_defconfig
+${KERNEL_DIR}/arch/arm/configs/sprd_sharkle.fragment
+${ROOT_DIR}/${FRAGMENT_CONFIG}
+"
+
+if [[ ${BSP_PRODUCT_NAME} == *Skynet* ]]; then
+  SP9832E_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm/configs/unisoc_Skynet.fragment"
+fi
+
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm/configs/${DEFCONFIG} \
-${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${ROOT_DIR}/${KERNEL_DIR}/arch/arm/configs/sprd_defconfig \
-${KERNEL_DIR}/arch/arm/configs/sprd_sharkle.fragment ${ROOT_DIR}/${FRAGMENT_CONFIG}"
+${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${SP9832E_BASE_CONFIG}"
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm/configs/${DEFCONFIG}"
 
 if [[ $BSP_SPECIFIED_KO_CONFIG == "true" && $BSP_UD_PREBUILTS_FLAG == "true" ]]; then

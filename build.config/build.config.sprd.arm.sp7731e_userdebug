@@ -10,14 +10,14 @@ SP7731E_BASE_CONFIG="
 ${ROOT_DIR}/${KERNEL_DIR}/arch/arm/configs/sprd_defconfig
 ${KERNEL_DIR}/arch/arm/configs/sprd_pike2.fragment
 ${ROOT_DIR}/${FRAGMENT_CONFIG}
-
 "
-if [[ ${BSP_PRODUCT_NAME} == "sp7731e_1h10_go2g_Skynet_k515" ]]; then
+
+if [[ ${BSP_PRODUCT_NAME} == *Skynet* ]]; then
   SP7731E_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm/configs/unisoc_Skynet.fragment"
 fi
 
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm/configs/${DEFCONFIG} \
-${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${SP7731E_BASE_CONFIG} "
+${ROOT_DIR}/${KERNEL_DIR}/scripts/kconfig/merge_config.sh -m -r ${SP7731E_BASE_CONFIG}"
 POST_DEFCONFIG_CMDS="rm ${ROOT_DIR}/${KERNEL_DIR}/arch/arm/configs/${DEFCONFIG}"
 
 if [[ $BSP_SPECIFIED_KO_CONFIG == "true" && $BSP_UD_PREBUILTS_FLAG == "true" ]]; then
