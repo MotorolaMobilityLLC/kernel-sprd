@@ -185,12 +185,10 @@ static bool sprd_tcpm_port_is_disconnected(struct sprd_tcpm_port *port)
 
 static const char *sprd_tcpm_log_tag = "[sprd_tcpm_log]";
 
-#define SPRD_LOG_PRINT_WORK_PERIOD_8_S	8000
-#define SPRD_LOG_PRINT_WORK_PERIOD_10_S	10000
-#define SPRD_LOG_PRINT_WORK_PERIOD_20_S	20000
-#define SPRD_LOG_BUFFER_IDLE_COUNT		90
-#define SPRD_LOG_BUFFER_NEED_PRINT_NUM_FULL	300
-#define SPRD_LOG_BUFFER_NEED_PRINT_NUM	200
+#define SPRD_LOG_PRINT_WORK_PERIOD_30_S	30000
+#define SPRD_LOG_PRINT_WORK_PERIOD_60_S	60000
+#define SPRD_LOG_POLLING_MS		20
+#define SPRD_LOG_BUFFER_IDLE_COUNT	30
 
 static bool sprd_tcpm_log_full(struct sprd_tcpm_port *port)
 {
@@ -241,10 +239,12 @@ static void _sprd_tcpm_log(struct sprd_tcpm_port *port, const char *fmt, va_list
 	if (sprd_tcpm_log_full(port)) {
 		port->logbuffer_full = true;
 		port->logbuffer_show_full = true;
-		cancel_delayed_work(&port->log2printk);
-		schedule_delayed_work(&port->log2printk, 0);
 	}
 	port->logbuffer_head = (port->logbuffer_head + 1) % SPRD_LOG_BUFFER_ENTRIES;
+	if (!port->log_output_running) {
+		port->log_output_running = true;
+		kthread_mod_delayed_work(&port->log_kworker, &port->log_kwork, 0);
+	}
 
 abort:
 	mutex_unlock(&port->logbuffer_lock);
@@ -293,7 +293,7 @@ void sprd_tcpm_log_do_outside(struct sprd_tcpm_port *port, const char *dev_tag,
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_log_do_outside);
 
-static void sprd_tcpm_log_buffer_free(struct sprd_tcpm_port *port)
+static void sprd_tcpm_log_buffer_release(struct sprd_tcpm_port *port)
 {
 	int i;
 
@@ -311,94 +311,88 @@ static void sprd_tcpm_log_buffer_free(struct sprd_tcpm_port *port)
 	mutex_unlock(&port->logbuffer_lock);
 }
 
-static void sprd_tcpm_log_print_work(struct work_struct *work)
+static void sprd_tcpm_log_print_kwork(struct kthread_work *work)
 {
-	struct sprd_tcpm_port *port = container_of(work, struct sprd_tcpm_port, log2printk.work);
+	struct sprd_tcpm_port *port = container_of(work, struct sprd_tcpm_port,
+						   log_kwork.work);
 	int tail, head;
-	u32 work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_10_S;
-	static bool need_log = true;
+	u32 work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_30_S;
+	bool re_check;
 
 	if (!port) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return;
 	}
 
-	if (port->enbale_log_level_ctl && console_loglevel >= LOGLEVEL_INFO) {
-		if (need_log) {
-			pr_info("%s:console_loglevel=%d, don't log\n", __func__, console_loglevel);
-			need_log = false;
-		}
-		goto re_schedule;
+	mutex_lock(&port->logbuffer_lock);
+	port->log_output_running = true;
+	mutex_unlock(&port->logbuffer_lock);
+
+recheck:
+	mutex_lock(&port->logprintk_lock);
+	re_check = false;
+	tail = port->logbuffer_last;
+	if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
+		pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
+		goto unlock;
 	}
 
-	if (!need_log)
-		need_log = true;
-
-	mutex_lock(&port->logprintk_lock);
-	if (port->logbuffer_full) {
-		tail = port->logbuffer_last;
-		head = SPRD_LOG_BUFFER_ENTRIES;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			goto unlock;
-		}
-
-		if (port->logbuffer_idle_count && (head != tail))
-			port->logbuffer_idle_count = 0;
-
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[full][%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-		port->logbuffer_last = 0;
-		port->logbuffer_full = false;
-
-		if (port->logbuffer_head >= SPRD_LOG_BUFFER_NEED_PRINT_NUM_FULL)
-			work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_8_S;
-	} else {
-		tail = port->logbuffer_last;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			goto unlock;
-		}
+	if (likely(!port->logbuffer_full))
 		head = port->logbuffer_head;
-		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
+	else
+		head = SPRD_LOG_BUFFER_ENTRIES;
+
+	if (!port->logbuffer_full && (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES)) {
+		pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
+		goto unlock;
+	}
+
+	if (port->logbuffer_idle_count && (head != tail))
+		port->logbuffer_idle_count = 0;
+
+	if (head == tail) {
+		work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_60_S;
+
+		if (port->logbuffer_idle_count > SPRD_LOG_BUFFER_IDLE_COUNT)
 			goto unlock;
-		}
 
-		if (port->logbuffer_idle_count && (head != tail))
-			port->logbuffer_idle_count = 0;
+		port->logbuffer_idle_count++;
+		if (port->logbuffer_idle_count > SPRD_LOG_BUFFER_IDLE_COUNT)
+			sprd_tcpm_log_buffer_release(port);
+	}
 
-		if (head == tail) {
-			work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_20_S;
+	while (tail < head) {
+		if (port->logbuffer[tail])
+			pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
+		tail++;
+	}
 
-			if (port->logbuffer_idle_count > SPRD_LOG_BUFFER_IDLE_COUNT)
-				goto unlock;
-
-			port->logbuffer_idle_count++;
-			if (port->logbuffer_idle_count > SPRD_LOG_BUFFER_IDLE_COUNT)
-				sprd_tcpm_log_buffer_free(port);
-		}
-
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		if ((port->logbuffer_head - head) >= SPRD_LOG_BUFFER_NEED_PRINT_NUM)
-			work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_8_S;
-
+	if (likely(!port->logbuffer_full)) {
 		if (port->logbuffer_last != head)
 			port->logbuffer_last = head;
+
+		if (port->logbuffer_head != head)
+			re_check = true;
+	} else {
+		port->logbuffer_last = 0;
+		port->logbuffer_full = false;
+		re_check = true;
 	}
 
 unlock:
 	mutex_unlock(&port->logprintk_lock);
-re_schedule:
-	schedule_delayed_work(&port->log2printk, msecs_to_jiffies(work_time_ms));
+
+	if (re_check) {
+		msleep(SPRD_LOG_POLLING_MS);
+		goto recheck;
+	}
+
+	mutex_lock(&port->logbuffer_lock);
+	port->log_output_running = false;
+	mutex_unlock(&port->logbuffer_lock);
+
+	kthread_queue_delayed_work(&port->log_kworker, &port->log_kwork,
+				   msecs_to_jiffies(work_time_ms));
 }
 
 static void sprd_tcpm_source_acquire_wake_lock(struct sprd_tcpm_port *port)
@@ -490,64 +484,6 @@ static void sprd_tcpm_log_source_caps(struct sprd_tcpm_port *port)
 }
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
-static int sprd_tcpm_debug_console_log_check(struct sprd_tcpm_port *port)
-{
-	int tail, head;
-
-	if (!port->logbuffer_full) {
-		tail = port->logbuffer_last;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			return -EINVAL;
-		}
-		head = port->logbuffer_head;
-		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
-			return -EINVAL;
-		}
-		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		if (port->logbuffer_last != head)
-			port->logbuffer_last = head;
-	} else {
-		tail = port->logbuffer_last;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			return -EINVAL;
-		}
-		head = SPRD_LOG_BUFFER_ENTRIES;
-		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		tail = 0;
-		head = port->logbuffer_head;
-		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
-			return -EINVAL;
-		}
-		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		port->logbuffer_full = false;
-		port->logbuffer_last = tail;
-	}
-
-	return 0;
-}
-
 static int sprd_tcpm_debug_seq_log_check(struct sprd_tcpm_port *port, struct seq_file *s)
 {
 	int tail, head;
@@ -620,30 +556,18 @@ static int _sprd_tcpm_debug_show(struct sprd_tcpm_port *port, struct seq_file *s
 	}
 
 	pr_info("[%s]line%d\n", __func__, __LINE__);
-	cancel_delayed_work_sync(&port->log2printk);
-
-	mutex_lock(&port->logprintk_lock);
 
 	if (port->logbuffer_idle_count > SPRD_LOG_BUFFER_IDLE_COUNT) {
 		pr_info("[%s:%d]log buffer free\n", __func__, __LINE__);
-		goto unlock;
+		goto out;
 	}
 
-	if (console_loglevel >= LOGLEVEL_INFO) {
-		pr_info("[%s:%d]console_loglevel = %d\n", __func__, __LINE__, console_loglevel);
-		goto skip_console_log;
-	}
+	kthread_mod_delayed_work(&port->log_kworker, &port->log_kwork, 0);
+	kthread_flush_work(&port->log_kwork.work);
 
-	sprd_tcpm_debug_console_log_check(port);
-
-skip_console_log:
 	sprd_tcpm_debug_seq_log_check(port, s);
 
-unlock:
-	mutex_unlock(&port->logprintk_lock);
-
-	schedule_delayed_work(&port->log2printk, msecs_to_jiffies(10000));
-
+out:
 	return 0;
 }
 
@@ -695,48 +619,6 @@ static void sprd_tcpm_debugfs_exit(const struct sprd_tcpm_port *port) { }
 
 #endif
 
-static ssize_t sprd_tcpm_log_level_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	struct sprd_tcpm_sysfs *tcpm_sysfs =
-		container_of(attr, struct sprd_tcpm_sysfs, attr_log_level_ctl);
-	struct sprd_tcpm_port *port = tcpm_sysfs->port;
-
-	if (!port)
-		return snprintf(buf, PAGE_SIZE, "%s tcpm_sysfs->port is null\n", __func__);
-
-	return snprintf(buf, PAGE_SIZE, "1(enable), 0(disable), current state = %d\n",
-			port->enbale_log_level_ctl);
-}
-
-static ssize_t sprd_tcpm_log_level_store(struct device *dev,
-					 struct device_attribute *attr,
-					 const char *buf, size_t count)
-{
-	struct sprd_tcpm_sysfs *tcpm_sysfs =
-		container_of(attr, struct sprd_tcpm_sysfs, attr_log_level_ctl);
-	struct sprd_tcpm_port *port = tcpm_sysfs->port;
-	int ret;
-	bool enbale_log_level_ctl;
-
-	if (!port) {
-		pr_err("%s tcpm_sysfs->port is null\n", __func__);
-		return count;
-	}
-
-	ret =  kstrtobool(buf, &enbale_log_level_ctl);
-	if (ret) {
-		pr_err("%s: store log level ctl fail\n", __func__);
-		return count;
-	}
-
-	port->enbale_log_level_ctl = enbale_log_level_ctl;
-
-	pr_info("%s store enbale_log_level_ctl = %d success\n", __func__, enbale_log_level_ctl);
-	return count;
-}
-
 static ssize_t sprd_tcpm_log_ctl_show(struct device *dev,
 				      struct device_attribute *attr,
 				      char *buf)
@@ -775,7 +657,8 @@ static ssize_t sprd_tcpm_log_ctl_store(struct device *dev,
 
 	if (enbale_log_ctl && !port->enable_tcpm_log) {
 		port->enable_tcpm_log = true;
-		schedule_delayed_work(&port->log2printk, msecs_to_jiffies(15000));
+		kthread_queue_delayed_work(&port->log_kworker, &port->log_kwork,
+					   msecs_to_jiffies(15000));
 	} else if (!enbale_log_ctl && port->enable_tcpm_log) {
 		port->enable_tcpm_log = false;
 	}
@@ -796,17 +679,10 @@ static int sprd_tcpm_debug_log_register_sysfs(struct sprd_tcpm_port *port)
 	port->sysfs = tcpm_sysfs;
 	tcpm_sysfs->name = "sprd_tcpm_sysfs";
 	tcpm_sysfs->port = port;
-	tcpm_sysfs->attrs[0] = &tcpm_sysfs->attr_log_level_ctl.attr;
-	tcpm_sysfs->attrs[1] = &tcpm_sysfs->attr_log_ctl.attr;
-	tcpm_sysfs->attrs[2] = NULL;
+	tcpm_sysfs->attrs[0] = &tcpm_sysfs->attr_log_ctl.attr;
+	tcpm_sysfs->attrs[1] = NULL;
 	tcpm_sysfs->attr_g.name = "debug";
 	tcpm_sysfs->attr_g.attrs = tcpm_sysfs->attrs;
-
-	sysfs_attr_init(&tcpm_sysfs->attr_log_level_ctl.attr);
-	tcpm_sysfs->attr_log_level_ctl.attr.name = "log_level_ctl";
-	tcpm_sysfs->attr_log_level_ctl.attr.mode = 0644;
-	tcpm_sysfs->attr_log_level_ctl.show = sprd_tcpm_log_level_show;
-	tcpm_sysfs->attr_log_level_ctl.store = sprd_tcpm_log_level_store;
 
 	sysfs_attr_init(&tcpm_sysfs->attr_log_ctl.attr);
 	tcpm_sysfs->attr_log_ctl.attr.name = "log_ctl";
@@ -824,18 +700,10 @@ static int sprd_tcpm_debug_log_register_sysfs(struct sprd_tcpm_port *port)
 
 static void sprd_tcpm_debug_log_init(struct sprd_tcpm_port *port)
 {
-	port->enbale_log_level_ctl = true;
 	mutex_init(&port->logbuffer_lock);
 	mutex_init(&port->logprintk_lock);
-	INIT_DELAYED_WORK(&port->log2printk, sprd_tcpm_log_print_work);
-}
-
-static void sprd_tcpm_debug_init_schedule_work(struct sprd_tcpm_port *port)
-{
-	if (!port->enable_tcpm_log)
-		return;
-
-	schedule_delayed_work(&port->log2printk, msecs_to_jiffies(15000));
+	kthread_init_worker(&port->log_kworker);
+	kthread_init_delayed_work(&port->log_kwork, sprd_tcpm_log_print_kwork);
 }
 
 static int sprd_tcpm_debug_log_switch(struct sprd_tcpm_port *port)
@@ -3131,13 +2999,6 @@ static void sprd_tcpm_reset_port(struct sprd_tcpm_port *port)
 
 static void sprd_tcpm_detach(struct sprd_tcpm_port *port)
 {
-	if (port->enable_tcpm_log) {
-		sprd_tcpm_log_force(port, "tcpm detach start call log printk");
-		cancel_delayed_work(&port->log2printk);
-		schedule_delayed_work(&port->log2printk, 0);
-		sprd_tcpm_log_force(port, "tcpm detach call log printk end");
-	}
-
 	if (sprd_tcpm_port_is_disconnected(port))
 		port->hard_reset_count = 0;
 
@@ -4314,16 +4175,6 @@ static void sprd_tcpm_role_swap_work(struct work_struct *work)
 	mutex_unlock(&port->lock);
 }
 
-static void sprd_tcpm_cc_change_log_check(struct sprd_tcpm_port *port)
-{
-	if (port->enable_tcpm_log && !sprd_tcpm_port_is_disconnected(port)) {
-		sprd_tcpm_log_force(port, "tcpm cc connected call log printk start");
-		cancel_delayed_work(&port->log2printk);
-		schedule_delayed_work(&port->log2printk, msecs_to_jiffies(10000));
-		sprd_tcpm_log_force(port, "tcpm cc connected call log printk end");
-	}
-}
-
 static void _sprd_tcpm_cc_change(struct sprd_tcpm_port *port,
 				 enum sprd_typec_cc_status cc1,
 				 enum sprd_typec_cc_status cc2)
@@ -4341,8 +4192,6 @@ static void _sprd_tcpm_cc_change(struct sprd_tcpm_port *port,
 			    old_cc1, cc1, old_cc2, cc2, sprd_tcpm_states[port->state],
 			    port->polarity,
 			    sprd_tcpm_port_is_disconnected(port) ? "disconnected" : "connected");
-
-	sprd_tcpm_cc_change_log_check(port);
 
 	switch (port->state) {
 	case TOGGLING:
@@ -5694,6 +5543,7 @@ void sprd_tcpm_shutdown(struct sprd_tcpm_port *port)
 	cancel_delayed_work_sync(&port->state_machine);
 	cancel_delayed_work_sync(&port->vdm_state_machine);
 	cancel_work_sync(&port->event_work);
+	kthread_cancel_delayed_work_sync(&port->log_kwork);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_shutdown);
 
@@ -5720,6 +5570,13 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 	sprd_tcpm_debug_log_init(port);
 	sprd_tcpm_debug_log_switch(port);
 	mutex_init(&port->keep_source_awake_mtx);
+
+	port->log_task = kthread_run(kthread_worker_fn, &port->log_kworker,
+			  "sprd_tcpm_log_worker");
+	if (IS_ERR(port->log_task)) {
+		pr_err("failed to run sprd tcpm log worker\n");
+		return ERR_CAST(port->log_task);
+	}
 
 	port->wq = create_singlethread_workqueue(dev_name(dev));
 	if (!port->wq)
@@ -5809,7 +5666,6 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 	sprd_tcpm_init(port);
 	mutex_unlock(&port->lock);
 
-	sprd_tcpm_debug_init_schedule_work(port);
 	sprd_tcpm_log(port, "%s: registered", dev_name(dev));
 	return port;
 
@@ -5818,6 +5674,8 @@ out_role_sw_put:
 out_destroy_wq:
 	sprd_tcpm_debugfs_exit(port);
 	destroy_workqueue(port->wq);
+	kthread_flush_worker(&port->log_kworker);
+	kthread_stop(port->log_task);
 	wakeup_source_remove(port->pd_source_ws);
 	return ERR_PTR(err);
 }
@@ -5834,6 +5692,8 @@ void sprd_tcpm_unregister_port(struct sprd_tcpm_port *port)
 	usb_role_switch_put(port->role_sw);
 	sprd_tcpm_debugfs_exit(port);
 	destroy_workqueue(port->wq);
+	kthread_flush_worker(&port->log_kworker);
+	kthread_stop(port->log_task);
 	wakeup_source_remove(port->pd_source_ws);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_unregister_port);

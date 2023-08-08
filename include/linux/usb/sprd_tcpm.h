@@ -3,6 +3,7 @@
 #ifndef __LINUX_USB_SPRD_TCPM_H
 #define __LINUX_USB_SPRD_TCPM_H
 
+#include <linux/kthread.h>
 #include <linux/power_supply.h>
 #include <linux/usb.h>
 #include <linux/usb/sprd_pd.h>
@@ -470,9 +471,8 @@ struct sprd_pd_pps_data {
 struct sprd_tcpm_sysfs {
 	char *name;
 	struct attribute_group attr_g;
-	struct device_attribute attr_log_level_ctl;
 	struct device_attribute attr_log_ctl;
-	struct attribute *attrs[3];
+	struct attribute *attrs[2];
 
 	struct sprd_tcpm_port *port;
 };
@@ -640,7 +640,9 @@ struct sprd_tcpm_port {
 	/* tcpm debug log*/
 	struct dentry *dentry;
 	struct mutex logbuffer_lock;	/* log buffer access lock */
-	struct delayed_work log2printk;
+	struct kthread_worker log_kworker;
+	struct kthread_delayed_work log_kwork;
+	struct task_struct *log_task;
 	struct mutex logprintk_lock;	/* log buffer printk lock */
 	struct sprd_tcpm_sysfs *sysfs;
 	int logbuffer_head;
@@ -652,7 +654,7 @@ struct sprd_tcpm_port {
 	bool logbuffer_show_full;
 	u8 *logbuffer[SPRD_LOG_BUFFER_ENTRIES];
 	bool enable_tcpm_log;
-	bool enbale_log_level_ctl;
+	bool log_output_running;
 	bool xts_limit_cur;
 
 	struct wakeup_source *pd_source_ws;
