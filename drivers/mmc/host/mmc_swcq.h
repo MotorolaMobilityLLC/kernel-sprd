@@ -18,6 +18,7 @@
 
 #define dbg_max_cnt (400)
 #define TIMEOUT_PRINT_CNT 40
+#define CMDQ_TIMEOUT_PRINT_CNT 80
 
 enum mmc_dbg_type {
 	MMC_SEND_CMD,
@@ -214,6 +215,7 @@ void mmc_swcq_suspend(struct mmc_host *mmc);
 int mmc_swcq_resume(struct mmc_host *mmc);
 bool mmc_swcq_finalize_request(struct mmc_host *mmc, struct mmc_request *mrq);
 void mmc_wait_cmdq_done(struct mmc_request *mrq);
+void dump_cmd_history(struct mmc_swcq *swcq, int print_num);
 extern enum mmc_issue_type mmc_issue_type(struct mmc_queue *mq, struct request *req);
 extern void mmc_cqe_check_busy(struct mmc_queue *mq);
 extern void dbg_add_host_log(struct mmc_host *mmc, int type,

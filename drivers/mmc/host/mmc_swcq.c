@@ -45,6 +45,87 @@ static const char *const dbg_type_name[DBG_TYPE_NUM][2] = {
 };
 
 /**************debug log*******************/
+#ifdef CONFIG_SPRD_DEBUG
+#define SWCQ_ARRAY_SIZE 14	/* 2^(14-2) = 4096ms */
+#define swcq_log(array, fmt, ...) \
+	pr_err(fmt ":%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n", \
+		##__VA_ARGS__, array[0], array[1], array[2], array[3], \
+		array[4], array[5], array[6], array[7], array[8], \
+		array[9], array[10], array[11], array[12], array[13])
+
+struct swcq_debug_info {
+	u64 cnt_time;
+	ktime_t issue_time[SWCQ_NUM_SLOTS];
+	ktime_t start_time[SWCQ_NUM_SLOTS];
+	ktime_t end_time[SWCQ_NUM_SLOTS];
+	unsigned long issue_2_start[SWCQ_ARRAY_SIZE];
+	unsigned long issue_2_end[SWCQ_ARRAY_SIZE];
+};
+
+static struct swcq_debug_info swcq_debug = {0};
+
+void swcq_debug_update(int type, struct mmc_request *mrq, struct mmc_swcq *swcq)
+{
+	struct swcq_debug_info *info = &swcq_debug;
+	u32 msecs;
+	u8 index;
+
+	if (!mrq)
+		return;
+
+	if (type == MMC_SWCQ_RQ)
+		info->issue_time[mrq->tag] = ktime_get();
+	else if (type == HSQ_PUMP_RQ || type == CMDQ_PUMP_RQ) {
+		info->start_time[mrq->tag] = ktime_get();
+		if (!info->issue_time[mrq->tag]) {
+			pr_err("mmc0: swcq_debug info->issue_time[%d] is null\n", mrq->tag);
+			dump_cmd_history(swcq, TIMEOUT_PRINT_CNT);
+			return;
+		}
+		msecs = ktime_to_ms(info->start_time[mrq->tag] - info->issue_time[mrq->tag]);
+		index = msecs > 0 ? min((SWCQ_ARRAY_SIZE - 1), ilog2(msecs) + 1) : 0;
+		info->issue_2_start[index]++;
+		if (index >= 11) {
+			pr_err("mmc0: issue to start over 1s! mrq= %p, recovery_cnt= %d\n",
+				mrq, swcq->recovery_cnt);
+			if (swcq->cmdq_mode)
+				dump_cmd_history(swcq, CMDQ_TIMEOUT_PRINT_CNT);
+			else
+				dump_cmd_history(swcq, TIMEOUT_PRINT_CNT);
+		}
+	} else if (type == HSQ_POST_RQ || type == CMDQ_POST_RQ) {
+		info->end_time[mrq->tag] = ktime_get();
+		if (!info->issue_time[mrq->tag] || !info->start_time[mrq->tag]) {
+			pr_err("mmc0: swcq_debug issue_time/start_time[%d] is null\n", mrq->tag);
+			dump_cmd_history(swcq, TIMEOUT_PRINT_CNT);
+			return;
+		}
+		msecs = ktime_to_ms(info->end_time[mrq->tag] - info->issue_time[mrq->tag]);
+		index = msecs > 0 ? min((SWCQ_ARRAY_SIZE - 1), ilog2(msecs) + 1) : 0;
+		info->issue_2_end[index]++;
+		if (index >= 11) {
+			pr_err("mmc0: issue to end over 1s! mrq= %p, recovery_cnt= %d\n",
+				mrq, swcq->recovery_cnt);
+			if (swcq->cmdq_mode)
+				dump_cmd_history(swcq, CMDQ_TIMEOUT_PRINT_CNT);
+			else
+				dump_cmd_history(swcq, TIMEOUT_PRINT_CNT);
+		}
+		info->issue_time[mrq->tag] = 0;
+		info->start_time[mrq->tag] = 0;
+	}
+
+	if ((ktime_to_ms(ktime_get()) - info->cnt_time) > (10000ULL)) {
+		swcq_log(info->issue_2_start, "|__i2s%9s", "mmc0");
+		swcq_log(info->issue_2_end, "|__i2e%9s", "mmc0");
+		pr_err("|__swcq    mmc0: cmdq_mode= %d, recovery_cnt= %d, qcnt= %d, cmdq_cnt= %d\n",
+			swcq->cmdq_mode, swcq->recovery_cnt,
+			atomic_read(&swcq->qcnt), atomic_read(&swcq->cmdq_cnt));
+		memset(&info->issue_2_start, 0, sizeof(unsigned long) * SWCQ_ARRAY_SIZE * 2);
+		info->cnt_time = ktime_to_ms(ktime_get());
+	}
+}
+#endif
 
 static inline void swcq_dump_host_regs(struct mmc_host *mmc)
 {
@@ -202,6 +283,9 @@ inline void __dbg_add_host_log(struct mmc_host *mmc, int type,
 	default:
 		break;
 	}
+#ifdef CONFIG_SPRD_DEBUG
+	swcq_debug_update(type, mrq, swcq);
+#endif
 	spin_unlock_irqrestore(&swcq->log_lock, flags);
 }
 
