@@ -59,8 +59,8 @@ static void long_running_rt_task_notifier(void *unused, struct rq *rq)
 		per_cpu(rt_task_arrival_time, cpu)
 			> sysctl_sched_long_running_rt_task_ms * MSEC_TO_NSEC) {
 		sprintf(buf,
-			"RT task %s (%d) runtime > %u now=%llu task arrival time=%llu runtime=%llu\n",
-			curr->comm, curr->pid,
+			"cpu%d RT task %s (%d) runtime > %u now=%llu task arrival time=%llu runtime=%llu\n",
+			cpu, curr->comm, curr->pid,
 			sysctl_sched_long_running_rt_task_ms * MSEC_TO_NSEC,
 			rq->clock_task,
 			per_cpu(rt_task_arrival_time, cpu),
