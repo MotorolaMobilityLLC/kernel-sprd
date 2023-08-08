@@ -1864,7 +1864,6 @@ static void bq2597x_dump_reg(struct bq2597x_charger_info *bq)
 		if (!ret)
 			dev_err(bq->dev, "Reg[%02X] = 0x%02X\n", addr, val);
 	}
-
 }
 
 static void bq2597x_check_alarm_status(struct bq2597x_charger_info *bq)
@@ -1874,25 +1873,19 @@ static void bq2597x_check_alarm_status(struct bq2597x_charger_info *bq)
 	u8 stat = 0;
 
 	mutex_lock(&bq->data_lock);
-
-	ret = bq2597x_read_byte(bq, BQ2597X_REG_08, &flag);
-	if (!ret && (flag & BQ2597X_IBUS_UCP_FALL_FLAG_MASK))
-		dev_dbg(bq->dev, "UCP_FLAG =0x%02X\n",
-			!!(flag & BQ2597X_IBUS_UCP_FALL_FLAG_MASK));
-
 	ret = bq2597x_read_byte(bq, BQ2597X_REG_2D, &flag);
 	if (!ret && (flag & BQ2597X_VDROP_OVP_FLAG_MASK))
-		dev_dbg(bq->dev, "VDROP_OVP_FLAG =0x%02X\n",
-			!!(flag & BQ2597X_VDROP_OVP_FLAG_MASK));
+		dev_err(bq->dev, "VDROP OVP event, REG_FLAG_MASK[%02x] =0x%02X\n",
+			BQ2597X_REG_2D, flag);
 
 	/* read to clear alarm flag */
 	ret = bq2597x_read_byte(bq, BQ2597X_REG_0E, &flag);
 	if (!ret && flag)
-		dev_dbg(bq->dev, "INT_FLAG =0x%02X\n", flag);
+		dev_dbg(bq->dev, "INT_FLAG[%02X] =0x%02X\n", BQ2597X_REG_0E, flag);
 
 	ret = bq2597x_read_byte(bq, BQ2597X_REG_0D, &stat);
 	if (!ret && stat != bq->prev_alarm) {
-		dev_dbg(bq->dev, "INT_STAT = 0X%02x\n", stat);
+		dev_dbg(bq->dev, "INT_STAT[%02X] = 0X%02x\n", BQ2597X_REG_0D, stat);
 		bq->prev_alarm = stat;
 		bq->bat_ovp_alarm = !!(stat & BAT_OVP_ALARM);
 		bq->bat_ocp_alarm = !!(stat & BAT_OCP_ALARM);
@@ -1904,12 +1897,14 @@ static void bq2597x_check_alarm_status(struct bq2597x_charger_info *bq)
 	}
 
 	ret = bq2597x_read_byte(bq, BQ2597X_REG_08, &stat);
-	if (!ret && (stat & 0x50))
-		dev_err(bq->dev, "Reg[05]BUS_UCPOVP = 0x%02X\n", stat);
+	if (!ret && (stat & (BQ2597X_IBUS_UCP_FALL_FLAG_MASK | BQ2597X_IBUS_UCP_RISE_FLAG_MASK)))
+		dev_err(bq->dev, "Ibus ucp rise or fall event, IBUS_OCP_UCP[%02x] = 0x%02X\n",
+			BQ2597X_REG_08, stat);
 
 	ret = bq2597x_read_byte(bq, BQ2597X_REG_0A, &stat);
-	if (!ret && (stat & 0x02))
-		dev_err(bq->dev, "Reg[0A]CONV_OCP = 0x%02X\n", stat);
+	if (!ret && (stat & BQ2597X_CONV_OCP_FLAG_MASK))
+		dev_err(bq->dev, "Internal MOSFET OCP event, CONVERTER_STATE[%02x] = 0x%02X\n",
+			BQ2597X_REG_0A, stat);
 
 	bq2597x_dump_reg(bq);
 	mutex_unlock(&bq->data_lock);
@@ -1920,20 +1915,17 @@ static void bq2597x_check_fault_status(struct bq2597x_charger_info *bq)
 	int ret;
 	u8 flag = 0;
 	u8 stat = 0;
-	bool changed = false;
 
 	mutex_lock(&bq->data_lock);
-
 	ret = bq2597x_read_byte(bq, BQ2597X_REG_10, &stat);
 	if (!ret && stat)
-		dev_err(bq->dev, "FAULT_STAT = 0x%02X\n", stat);
+		dev_err(bq->dev, "FAULT_STAT[%02X] = 0x%02X\n", BQ2597X_REG_10, stat);
 
 	ret = bq2597x_read_byte(bq, BQ2597X_REG_11, &flag);
 	if (!ret && flag)
-		dev_err(bq->dev, "FAULT_FLAG = 0x%02X\n", flag);
+		dev_err(bq->dev, "FAULT_FLAG[%02X] = 0x%02X\n", BQ2597X_REG_11, flag);
 
 	if (!ret && flag != bq->prev_fault) {
-		changed = true;
 		bq->prev_fault = flag;
 		bq->bat_ovp_fault = !!(flag & BAT_OVP_FAULT);
 		bq->bat_ocp_fault = !!(flag & BAT_OCP_FAULT);
@@ -1948,7 +1940,6 @@ static void bq2597x_check_fault_status(struct bq2597x_charger_info *bq)
 
 	mutex_unlock(&bq->data_lock);
 }
-
 
 /*
  * interrupt does nothing, just info event chagne, other module could get info

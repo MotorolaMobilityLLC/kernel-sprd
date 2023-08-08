@@ -1692,13 +1692,14 @@ static int sc8549_init_irq(struct sc8549 *sc)
 	dev_err(sc->dev, ">>>>>>>>>>>>%d\n", sc->irq_gpio);
 	ret = gpio_request(sc->irq_gpio, "sc8549");
 	if (ret < 0) {
-		dev_err(sc->dev, "fail to request GPIO(%d)   %d\n", sc->irq_gpio, ret);
+		dev_err(sc->dev, "fail to request GPIO(%d), ret = %d\n", sc->irq_gpio, ret);
 		return ret;
 	}
 
 	ret = gpio_direction_input(sc->irq_gpio);
 	if (ret < 0) {
-		dev_err(sc->dev, "fail to set GPIO%d as input pin(%d)\n", sc->irq_gpio, ret);
+		dev_err(sc->dev, "fail to set GPIO(%d) as input pin, ret = %d\n",
+			sc->irq_gpio, ret);
 		return ret;
 	}
 
@@ -1752,15 +1753,14 @@ static void sc8549_check_alarm_status(struct sc8549 *sc)
 	u8 stat = 0;
 
 	mutex_lock(&sc->data_lock);
-
 	ret = sc8549_read_byte(sc, SC8549_REG_03, &flag);
 	if (!ret && (flag & SC8549_VDROP_OVP_FLAG_MASK))
-		dev_dbg(sc->dev, "VDROP_OVP_FLAG =0x%02X\n",
-			!!(flag & SC8549_VDROP_OVP_FLAG_MASK));
+		dev_err(sc->dev, "Vdrop ovp event, VDROP_OVP[%02X] =0x%02X\n",
+			SC8549_REG_03, flag);
 
 	ret = sc8549_read_byte(sc, SC8549_REG_0E, &stat);
 	if (!ret && stat != sc->prev_alarm) {
-		dev_dbg(sc->dev, "INT_STAT = 0X%02x\n", stat);
+		dev_dbg(sc->dev, "INT_STAT[%02X] = 0X%02x\n", SC8549_REG_0E, stat);
 		sc->prev_alarm = stat;
 		sc->batt_present  = !!(stat & SC8549_VBAT_INSERT_STAT_MASK);
 		sc->vbus_present  = !!(stat & SC8549_ADAPTER_INSERT_STAT_MASK);
@@ -1768,11 +1768,11 @@ static void sc8549_check_alarm_status(struct sc8549 *sc)
 
 	ret = sc8549_read_byte(sc, SC8549_REG_09, &stat);
 	if (!ret && (stat & SC8549_IBUS_UCP_RISE_FLAG_MASK))
-		dev_err(sc->dev, "Reg[09]CTRL3 = 0x%02X\n", stat);
+		dev_err(sc->dev, "Ibus ucp rise event, CTRL3[%02X] = 0x%02X\n",
+			SC8549_REG_09, stat);
 
 	mutex_unlock(&sc->data_lock);
 }
-
 
 static void sc8549_check_fault_status(struct sc8549 *sc)
 {
@@ -1781,18 +1781,17 @@ static void sc8549_check_fault_status(struct sc8549 *sc)
 	u8 stat = 0;
 
 	mutex_lock(&sc->data_lock);
-
 	ret = sc8549_read_byte(sc, SC8549_REG_0E, &stat);
 	if (!ret && stat)
-		dev_err(sc->dev, "FAULT_STAT = 0x%02X\n", stat);
+		dev_err(sc->dev, "INT_STAT[%02X] = 0x%02X\n", SC8549_REG_0E, stat);
 
 	ret = sc8549_read_byte(sc, SC8549_REG_0F, &flag);
 	if (!ret && flag)
-		dev_err(sc->dev, "FAULT_FLAG = 0x%02X\n", flag);
+		dev_err(sc->dev, "INT_FLAG[%02X] = 0x%02X\n", SC8549_REG_0F, flag);
 
 	if (!ret && (flag & SC8549_IBUS_UCP_FALL_FLAG_MASK))
-		dev_dbg(sc->dev, "UCP_FLAG =0x%02X\n",
-			!!(flag & SC8549_IBUS_UCP_FALL_FLAG_MASK));
+		dev_dbg(sc->dev, "Ibus ucp fall event, FAULT_FLAG[%02X] = 0x%02X\n",
+			SC8549_REG_0F, flag);
 
 	if (!ret && flag != sc->prev_fault) {
 		sc->prev_fault = flag;

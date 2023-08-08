@@ -2850,43 +2850,49 @@ static void cm_check_cp_soft_monitor_alarm_status(struct charger_manager *cm)
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 	struct power_supply *psy;
 	union power_supply_propval val;
-	int ret;
+	u32 cp_soft_monitor_alarm = 0;
+	int ret, i;
 
 	if (!cm->desc->psy_cp_stat)
 		return;
 
-	psy = power_supply_get_by_name(cm->desc->psy_cp_stat[0]);
-	if (!psy) {
-		dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-			cm->desc->psy_cp_stat[0]);
-		return;
+	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "%s, Cannot find power supply \"%s\"\n",
+				__func__, cm->desc->psy_cp_stat[i]);
+			continue;
+		}
+
+		/*
+		 *  If CP has an alarm register, return 0 without software monitoring.
+		 *  Such as bq25970.
+		 */
+		val.intval = CM_SOFT_ALARM_HEALTH_CMD;
+		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_HEALTH, &val);
+		power_supply_put(psy);
+		if (ret) {
+			dev_err(cm->dev, "%s, failed to get soft monitor alarm staus.\n", __func__);
+			continue;
+		}
+
+		if (!val.intval)
+			continue;
+
+		cp_soft_monitor_alarm |= val.intval;
+		dev_info(cm->dev, "%s, cp_name: %s, soft monitor alarm status = 0x%x\n",
+			 __func__, cm->desc->psy_cp_stat[i], val.intval);
 	}
 
-	/*
-	 *  If CP has an alarm register, return 0 without software monitoring.
-	 *  Such as bq25970.
-	 */
-	val.intval = CM_SOFT_ALARM_HEALTH_CMD;
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_HEALTH, &val);
-	if (ret) {
-		dev_err(cm->dev, "failed to get soft monitor alarm staus.\n");
-		return;
-	}
-
-	if (!val.intval)
+	if (!cp_soft_monitor_alarm)
 		return;
 
 	cp->cp_soft_alarm_event = true;
-	cp->alm.bat_ovp_alarm = !!(val.intval & CM_CHARGER_BAT_OVP_ALARM_MASK);
-	cp->alm.bat_ocp_alarm = !!(val.intval & CM_CHARGER_BAT_OCP_ALARM_MASK);
-	cp->alm.bus_ovp_alarm = !!(val.intval & CM_CHARGER_BUS_OVP_ALARM_MASK);
-	cp->alm.bus_ocp_alarm = !!(val.intval & CM_CHARGER_BUS_OCP_ALARM_MASK);
-	cp->alm.bat_ucp_alarm = !!(val.intval & CM_CHARGER_BAT_UCP_ALARM_MASK);
-
-	dev_dbg(cm->dev, "%s, bat_ucp_alarm = %d, bat_ocp_alarm = %d, bat_ovp_alarm = %d,"
-		" bus_ovp_alarm = %d, bus_ocp_alarm = %d\n",
-		__func__, cp->alm.bat_ucp_alarm, cp->alm.bat_ocp_alarm, cp->alm.bat_ovp_alarm,
-		cp->alm.bus_ovp_alarm, cp->alm.bus_ocp_alarm);
+	cp->alm.bat_ovp_alarm = !!(cp_soft_monitor_alarm & CM_CHARGER_BAT_OVP_ALARM_MASK);
+	cp->alm.bat_ocp_alarm = !!(cp_soft_monitor_alarm & CM_CHARGER_BAT_OCP_ALARM_MASK);
+	cp->alm.bus_ovp_alarm = !!(cp_soft_monitor_alarm & CM_CHARGER_BUS_OVP_ALARM_MASK);
+	cp->alm.bus_ocp_alarm = !!(cp_soft_monitor_alarm & CM_CHARGER_BUS_OCP_ALARM_MASK);
+	cp->alm.bat_ucp_alarm = !!(cp_soft_monitor_alarm & CM_CHARGER_BAT_UCP_ALARM_MASK);
 }
 
 static void cm_check_cp_fault_status(struct charger_manager *cm)
@@ -2894,6 +2900,7 @@ static void cm_check_cp_fault_status(struct charger_manager *cm)
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
 	struct power_supply *psy;
 	union power_supply_propval val;
+	u32 cp_hw_monitor_fault = 0;
 	int ret, i;
 
 	if (!cm->desc->psy_cp_stat || !cm->desc->cm_check_int)
@@ -2907,35 +2914,46 @@ static void cm_check_cp_fault_status(struct charger_manager *cm)
 	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
 		psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
 		if (!psy) {
-			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
-				cm->desc->psy_cp_stat[i]);
+			dev_err(cm->dev, "%s, Cannot find power supply \"%s\"\n",
+				__func__, cm->desc->psy_cp_stat[i]);
 			continue;
 		}
 
 		val.intval = CM_FAULT_HEALTH_CMD;
 		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_HEALTH, &val);
 		power_supply_put(psy);
-		if (!ret) {
-			cp->flt.bat_ovp_fault = !!(val.intval & CM_CHARGER_BAT_OVP_FAULT_MASK);
-			cp->flt.bat_ocp_fault = !!(val.intval & CM_CHARGER_BAT_OCP_FAULT_MASK);
-			cp->flt.bus_ovp_fault = !!(val.intval & CM_CHARGER_BUS_OVP_FAULT_MASK);
-			cp->flt.bus_ocp_fault = !!(val.intval & CM_CHARGER_BUS_OCP_FAULT_MASK);
-			cp->flt.bat_therm_fault = !!(val.intval & CM_CHARGER_BAT_THERM_FAULT_MASK);
-			cp->flt.bus_therm_fault = !!(val.intval & CM_CHARGER_BUS_THERM_FAULT_MASK);
-			cp->flt.die_therm_fault = !!(val.intval & CM_CHARGER_DIE_THERM_FAULT_MASK);
-			cp->alm.bat_ovp_alarm = !!(val.intval & CM_CHARGER_BAT_OVP_ALARM_MASK);
-			cp->alm.bat_ocp_alarm = !!(val.intval & CM_CHARGER_BAT_OCP_ALARM_MASK);
-			cp->alm.bus_ovp_alarm = !!(val.intval & CM_CHARGER_BUS_OVP_ALARM_MASK);
-			cp->alm.bus_ocp_alarm = !!(val.intval & CM_CHARGER_BUS_OCP_ALARM_MASK);
-			cp->alm.bat_therm_alarm = !!(val.intval & CM_CHARGER_BAT_THERM_ALARM_MASK);
-			cp->alm.bus_therm_alarm = !!(val.intval & CM_CHARGER_BUS_THERM_ALARM_MASK);
-			cp->alm.die_therm_alarm = !!(val.intval & CM_CHARGER_DIE_THERM_ALARM_MASK);
-			cp->alm.bat_ucp_alarm = !!(val.intval & CM_CHARGER_BAT_UCP_ALARM_MASK);
-		} else {
-			dev_err(cm->dev, "failed to get fault status of  %s, ret = %d\n",
-				cm->desc->psy_cp_stat[i], ret);
+		if (ret) {
+			dev_err(cm->dev, "%s, failed to get fault status of %s, ret = %d\n",
+				__func__, cm->desc->psy_cp_stat[i], ret);
+			continue;
 		}
+
+		if (!val.intval)
+			continue;
+
+		cp_hw_monitor_fault |= val.intval;
+		dev_info(cm->dev, "%s, cp_name: %s, hw monitor fault status = 0x%x\n",
+			 __func__, cm->desc->psy_cp_stat[i], val.intval);
 	}
+
+	if (!cp_hw_monitor_fault)
+		return;
+
+	cp->flt.bat_ovp_fault = !!(cp_hw_monitor_fault & CM_CHARGER_BAT_OVP_FAULT_MASK);
+	cp->flt.bat_ocp_fault = !!(cp_hw_monitor_fault & CM_CHARGER_BAT_OCP_FAULT_MASK);
+	cp->flt.bus_ovp_fault = !!(cp_hw_monitor_fault & CM_CHARGER_BUS_OVP_FAULT_MASK);
+	cp->flt.bus_ocp_fault = !!(cp_hw_monitor_fault & CM_CHARGER_BUS_OCP_FAULT_MASK);
+	cp->flt.bat_therm_fault = !!(cp_hw_monitor_fault & CM_CHARGER_BAT_THERM_FAULT_MASK);
+	cp->flt.bus_therm_fault = !!(cp_hw_monitor_fault & CM_CHARGER_BUS_THERM_FAULT_MASK);
+	cp->flt.die_therm_fault = !!(cp_hw_monitor_fault & CM_CHARGER_DIE_THERM_FAULT_MASK);
+	cp->alm.bat_ovp_alarm = !!(cp_hw_monitor_fault & CM_CHARGER_BAT_OVP_ALARM_MASK);
+	cp->alm.bat_ocp_alarm = !!(cp_hw_monitor_fault & CM_CHARGER_BAT_OCP_ALARM_MASK);
+	cp->alm.bus_ovp_alarm = !!(cp_hw_monitor_fault & CM_CHARGER_BUS_OVP_ALARM_MASK);
+	cp->alm.bus_ocp_alarm = !!(cp_hw_monitor_fault & CM_CHARGER_BUS_OCP_ALARM_MASK);
+	cp->alm.bat_therm_alarm = !!(cp_hw_monitor_fault & CM_CHARGER_BAT_THERM_ALARM_MASK);
+	cp->alm.bus_therm_alarm = !!(cp_hw_monitor_fault & CM_CHARGER_BUS_THERM_ALARM_MASK);
+	cp->alm.die_therm_alarm = !!(cp_hw_monitor_fault & CM_CHARGER_DIE_THERM_ALARM_MASK);
+	cp->alm.bat_ucp_alarm = !!(cp_hw_monitor_fault & CM_CHARGER_BAT_UCP_ALARM_MASK);
 }
 
 static void cm_update_cp_charger_status(struct charger_manager *cm)
@@ -3160,9 +3178,10 @@ static void cm_update_step_chg_status(struct charger_manager *cm)
 		cp->step_chg_ibat = cp->cur_step_chg_ibat;
 		cp->step_chg_vbat = cp->cur_step_chg_vbat;
 	} else {
-		cm_step_chg_update_interval_status(cm, ir_drop,
+		cm_step_chg_update_interval_status(cm,
 						   last_step_chg_vbat,
-						   last_step_chg_ibat);
+						   last_step_chg_ibat,
+						   ir_drop);
 	}
 
 	dev_dbg(cm->dev, "%s, stpe_chg_cv = [%duV %duA], step_chg_real_cv = [%duV %duA %duV %duA]\n"
