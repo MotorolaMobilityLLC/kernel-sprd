@@ -338,6 +338,14 @@
 
 #define KEY_MICMUTE		248	/* Mute / unmute the microphone */
 
+//add key value for sar
+#define KEY_F25                 249
+#define KEY_F26                 250
+#define KEY_F27                 251
+#define KEY_F28                 252
+#define KEY_F29                 253
+#define KEY_F30                 254
+
 /* Code 255 is reserved for special needs of AT keyboard driver */
 
 #define BTN_MISC		0x100
