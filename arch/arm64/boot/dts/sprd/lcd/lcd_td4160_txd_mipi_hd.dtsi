@@ -36,7 +36,7 @@
 					//sprd,reset-off-sequence = <0 5>;
 
 					sprd,initial-command = [
-						39 00 00 04 B0 00
+						39 00 00 02 B0 00
 						39 00 00 03 51 00 00
 						15 00 00 02 53 24
 						15 00 00 02 35 00
