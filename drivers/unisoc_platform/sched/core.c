@@ -550,6 +550,8 @@ static void uni_sched_init(struct work_struct *work)
 
 	hdr = register_sysctl_table(sched_base_table);
 
+	kmemleak_not_leak(hdr);
+
 	uscfreq_gov_register();
 
 	cpu_netlink_init();
