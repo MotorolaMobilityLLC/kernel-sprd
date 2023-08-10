@@ -37,7 +37,7 @@
 
 #define DVFS_TEMP_UPPER_LIMIT		(274) /* Degrees Celsius */
 #define DVFS_TEMP_LOW_LIMIT		(-274) /* Degrees Celsius */
-#define DVFS_TEMP_DEFAULT		(0) /* Degrees Celsius */
+#define DVFS_TEMP_DEFAULT		(10) /* Degrees Celsius */
 #define DVFS_TEMP_MAX_TICKS		(3)
 #define DVFS_TEMP_UPDATE_MS		(1500)
 
