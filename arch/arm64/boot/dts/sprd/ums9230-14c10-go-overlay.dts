@@ -19,7 +19,7 @@
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
 //#include "lcd/lcd_nt36672e_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
-#include "touchscreen/ums9230-spi3-gpio144-145-tp.dtsi"
+#include "touchscreen/ums9230-14c10-spi3-eic16-gpio145-tp.dtsi"
 #include "battery/ums9230-14c10-go-overlay.dtsi"
 #include "reserved-memory/ums9230-14c10-go-overlay.dtsi"
 #include "ums9230/wcn.dtsi"
