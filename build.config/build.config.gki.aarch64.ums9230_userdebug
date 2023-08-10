@@ -26,6 +26,7 @@ EXT_MODULES="
 ../modules/kernel5.15/microarray
 ../modules/kernel5.15/touchscreen/focaltech_ft8756_spi
 ../modules/kernel5.15/touchscreen/novatek_nt36xxx
+../modules/kernel5.15/input/touchscreen/novatek_nt36528_spi
 ../modules/kernel5.15/npu/vdsp
 ../modules/common/camera/power
 ../modules/common/camera/cam_sys
