@@ -54,6 +54,7 @@ struct sprd_hsphy {
 	atomic_t		reset;
 	atomic_t		inited;
 	bool			is_host;
+	bool			shutdown;
 	bool			avdd1v8_chipsleep_off;
 };
 
@@ -193,6 +194,9 @@ static int sprd_hsphy_typec_notifier(struct notifier_block *nb,
 				unsigned long event, void *data)
 {
 	struct sprd_hsphy *phy  = container_of(nb, struct sprd_hsphy, typec_nb);
+
+	if (phy->shutdown)
+		return 0;
 
 	pr_info("__func__:%s, event %s\n", __func__, event ? "true" : "false");
 	if (event)
@@ -626,6 +630,9 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 	struct sprd_hsphy *phy = container_of(usb_phy, struct sprd_hsphy, phy);
 	u32 reg, msk;
 
+	if (phy->shutdown)
+		return 0;
+
 	if (phy->is_host || usb_phy->last_event == USB_EVENT_ID) {
 		dev_info(phy->dev, "USB PHY is host mode\n");
 		return 0;
@@ -884,6 +891,8 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	if (ret)
 		dev_warn(dev, "failed to create usb hsphy attributes\n");
 
+	phy->shutdown = false;
+
 	if (extcon_get_state(phy->phy.edev, EXTCON_USB) > 0)
 		sprd_usb_changed(&phy->bc1p2_info, USB_CHARGER_PRESENT);
 
@@ -910,6 +919,8 @@ static void sprd_hsphy_drshutdown(struct platform_device *pdev)
 {
 	struct sprd_hsphy *phy = platform_get_drvdata(pdev);
 
+	phy->shutdown = true;
+	usb_shutdown_bc1p2(&phy->bc1p2_info);
 	sc27xx_dpdm_switch_to_phy(phy->pmic, false);
 }
 

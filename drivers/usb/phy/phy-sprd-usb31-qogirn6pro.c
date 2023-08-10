@@ -60,6 +60,7 @@ struct sprd_ssphy {
 	atomic_t		inited;
 	atomic_t		susped;
 	bool			is_host;
+	bool			shutdown;
 };
 
 #define PHY_INIT_TIMEOUT 500
@@ -754,6 +755,9 @@ static int sprd_ssphy_vbus_notify(struct notifier_block *nb,
 	struct usb_phy *usb_phy = container_of(nb, struct usb_phy, vbus_nb);
 	struct sprd_ssphy *phy = container_of(usb_phy, struct sprd_ssphy, phy);
 
+	if (phy->shutdown)
+		return 0;
+
 	if (sprd_usbm_event_is_active()) {
 		dev_dbg(usb_phy->dev, "%s is_active\n", __func__);
 		return 0;
@@ -872,6 +876,9 @@ static int sprd_ssphy_typec_notifier(struct notifier_block *nb,
 				unsigned long event, void *data)
 {
 	struct sprd_ssphy *phy  = container_of(nb, struct sprd_ssphy, typec_nb);
+
+	if (phy->shutdown)
+		return 0;
 
 	pr_info("__func__:%s, event %s\n", __func__, event ? "true" : "false");
 	if (event)
@@ -1129,6 +1136,7 @@ static int sprd_ssphy_probe(struct platform_device *pdev)
 		dev_warn(dev, "failed to create usb ssphy attributes\n");
 
 	pm_runtime_enable(dev);
+	phy->shutdown = false;
 
 	if (extcon_get_state(phy->phy.edev, EXTCON_USB) > 0)
 		sprd_usb_changed(&phy->bc1p2_info, USB_CHARGER_PRESENT);
@@ -1153,6 +1161,8 @@ static void sprd_ssphy_drshutdown(struct platform_device *pdev)
 {
 	struct sprd_ssphy *phy = platform_get_drvdata(pdev);
 
+	phy->shutdown = true;
+	usb_shutdown_bc1p2(&phy->bc1p2_info);
 	sc27xx_dpdm_switch_to_phy(phy->pmic, false);
 }
 static const struct of_device_id sprd_ssphy_match[] = {

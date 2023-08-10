@@ -87,6 +87,7 @@ struct sprd_hsphy {
 	atomic_t		reset;
 	atomic_t		inited;
 	bool			is_host;
+	bool			shutdown;
 	bool			avdd1v8_chipsleep_off;
 	struct iio_channel	*dp;
 	struct iio_channel	*dm;
@@ -165,6 +166,9 @@ static int sprd_hsphy_typec_notifier(struct notifier_block *nb,
 {
 	struct sprd_hsphy *phy  = container_of(nb, struct sprd_hsphy, typec_nb);
 
+	if (phy->shutdown)
+		return 0;
+
 	pr_info("__func__:%s, event %s\n", __func__, event ? "true" : "false");
 	if (event)
 		sc27xx_dpdm_switch_to_phy(phy->pmic, true);
@@ -177,6 +181,9 @@ static int sprd_hsphy_typec_notifier(struct notifier_block *nb,
 static void sprd_hsphy_charger_detect_work(struct work_struct *work)
 {
 	struct sprd_hsphy *phy = container_of(work, struct sprd_hsphy, work);
+
+	if (phy->shutdown)
+		return;
 
 	__pm_stay_awake(phy->wake_lock);
 	if (phy->event)
@@ -492,6 +499,9 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 	struct sprd_hsphy *phy = container_of(usb_phy, struct sprd_hsphy, phy);
 	u32 reg, msk;
 
+	if (phy->shutdown)
+		return 0;
+
 	if (phy->is_host) {
 		dev_info(phy->dev, "USB PHY is host mode\n");
 		return 0;
@@ -661,9 +671,9 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	u64 curr;
 	static bool reboot;
 
-	if (!phy->dm || !phy->dp) {
-		dev_err(x->dev, " phy->dp:%p, phy->dm:%p\n",
-			phy->dp, phy->dm);
+	if (!phy->dm || !phy->dp || phy->shutdown) {
+		dev_err(x->dev, " phy->dp:%p, phy->dm:%p, shutdown:%d\n",
+			phy->dp, phy->dm, phy->shutdown);
 		return UNKNOWN_TYPE;
 	}
 
@@ -700,6 +710,9 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	dp_voltage = sc2730_voltage_cali(dp_voltage);
 	if (dp_voltage > VOLT_LO_LIMIT) {
 		do {
+			if (phy->shutdown)
+				return UNKNOWN_TYPE;
+
 			iio_read_channel_processed(phy->dm, &dm_voltage);
 			dm_voltage = sc2730_voltage_cali(dm_voltage);
 			if (dm_voltage > VOLT_LO_LIMIT) {
@@ -914,6 +927,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	if (ret)
 		dev_warn(dev, "failed to create usb hsphy attributes\n");
 
+	phy->shutdown = false;
 	if (extcon_get_state(phy->phy.edev, EXTCON_USB) > 0)
 		sprd_usb_changed(&phy->bc1p2_info, USB_CHARGER_PRESENT);
 
@@ -943,6 +957,9 @@ static void sprd_hsphy_drshutdown(struct platform_device *pdev)
 {
 	struct sprd_hsphy *phy = platform_get_drvdata(pdev);
 
+	phy->shutdown = true;
+	cancel_work_sync(&phy->work);
+	usb_shutdown_bc1p2(&phy->bc1p2_info);
 	sc27xx_dpdm_switch_to_phy(phy->pmic, false);
 }
 

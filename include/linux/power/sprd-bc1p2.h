@@ -120,6 +120,7 @@ struct sprd_bc1p2_priv {
 extern void sprd_usb_changed(struct sprd_bc1p2_priv *bc1p2_info, enum usb_charger_state state);
 extern int usb_add_bc1p2_init(struct sprd_bc1p2_priv *bc1p2_info, struct usb_phy *x);
 extern void usb_remove_bc1p2(struct sprd_bc1p2_priv *bc1p2_info);
+extern void usb_shutdown_bc1p2(struct sprd_bc1p2_priv *bc1p2_info);
 extern void usb_phy_notify_charger(struct usb_phy *x);
 
 extern enum usb_charger_type sprd_bc1p2_charger_detect(struct usb_phy *x);
@@ -133,6 +134,7 @@ static inline int usb_add_bc1p2_init(struct sprd_bc1p2_priv *bc1p2_info, struct 
 	return 0;
 }
 static inline void usb_remove_bc1p2(struct sprd_bc1p2_priv *bc1p2_info) {}
+static inline void usb_shutdown_bc1p2(struct sprd_bc1p2_priv *bc1p2_info) {}
 static inline void usb_phy_notify_charger(struct usb_phy *x) {}
 
 static inline enum usb_charger_type sprd_bc1p2_charger_detect(struct usb_phy *x)

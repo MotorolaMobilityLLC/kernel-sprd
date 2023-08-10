@@ -197,6 +197,9 @@ enum usb_charger_type sprd_bc1p2_charger_detect(struct usb_phy *x)
 	int cnt = bc1p2->chg_detect_poll_count;
 
 	do {
+		if (bc1p2->shutdown)
+			return UNKNOWN_TYPE;
+
 		if (x->flags & CHARGER_DETECT_DONE)
 			break;
 		msleep(SPRD_CHG_DET_POLL_DELAY);
@@ -406,9 +409,6 @@ void sprd_usb_changed(struct sprd_bc1p2_priv *bc1p2_info, enum usb_charger_state
 	if (bc1p2->shutdown)
 		return;
 
-	if (bc1p2_info->bc1p2_thread)
-		kthread_cancel_delayed_work_sync(&bc1p2_info->usb_change_kwork);
-
 	spin_lock(&bc1p2_info->vbus_event_lock);
 	bc1p2_info->vbus_events = true;
 
@@ -425,6 +425,7 @@ EXPORT_SYMBOL_GPL(sprd_usb_changed);
 int usb_add_bc1p2_init(struct sprd_bc1p2_priv *bc1p2_info, struct usb_phy *x)
 {
 	struct sched_param param = { .sched_priority = 1 };
+	int ret = 0;
 
 	if (!x->dev) {
 		dev_err(x->dev, "no device provided for PHY\n");
@@ -442,9 +443,10 @@ int usb_add_bc1p2_init(struct sprd_bc1p2_priv *bc1p2_info, struct usb_phy *x)
 	bc1p2_info->bc1p2_thread = kthread_run(kthread_worker_fn, &bc1p2_info->bc1p2_kworker,
 					       "sprd_bc1p2_worker");
 	if (IS_ERR(bc1p2_info->bc1p2_thread)) {
+		ret = PTR_ERR(bc1p2_info->bc1p2_thread);
 		bc1p2_info->bc1p2_thread = NULL;
 		dev_err(x->dev, "failed to run bc1p2_thread\n");
-		return PTR_ERR(bc1p2_info->bc1p2_thread);
+		return ret;
 	}
 
 	sched_setscheduler(bc1p2_info->bc1p2_thread, SCHED_FIFO, &param);
@@ -462,6 +464,19 @@ void usb_remove_bc1p2(struct sprd_bc1p2_priv *bc1p2_info)
 	}
 }
 EXPORT_SYMBOL_GPL(usb_remove_bc1p2);
+
+void usb_shutdown_bc1p2(struct sprd_bc1p2_priv *bc1p2_info)
+{
+	bc1p2->shutdown = true;
+
+	if (bc1p2_info->bc1p2_thread) {
+		kthread_cancel_delayed_work_sync(&bc1p2_info->usb_change_kwork);
+		kthread_cancel_delayed_work_sync(&bc1p2_info->bc1p2_kwork);
+		kthread_stop(bc1p2_info->bc1p2_thread);
+		bc1p2_info->bc1p2_thread = NULL;
+	}
+}
+EXPORT_SYMBOL_GPL(usb_shutdown_bc1p2);
 
 void usb_phy_notify_charger(struct usb_phy *x)
 {
@@ -530,14 +545,6 @@ static int sprd_bc1p2_probe(struct platform_device *pdev)
 	return err;
 }
 
-static void sprd_bc1p2_shutdown(struct platform_device *pdev)
-{
-	struct device *dev = &pdev->dev;
-
-	dev_info(dev, "bc1p2: shutdown\n");
-	bc1p2->shutdown = true;
-}
-
 static const struct of_device_id sprd_bc1p2_of_match[] = {
 	{ .compatible = "sprd,sc2720-bc1p2", .data = &sc2720_data},
 	{ .compatible = "sprd,sc2721-bc1p2", .data = &sc2721_data},
@@ -556,7 +563,6 @@ static struct platform_driver sprd_bc1p2_driver = {
 		.of_match_table = sprd_bc1p2_of_match,
 	 },
 	.probe = sprd_bc1p2_probe,
-	.shutdown = sprd_bc1p2_shutdown,
 };
 
 module_platform_driver(sprd_bc1p2_driver);
