@@ -14,3 +14,12 @@ config SPRD_SCREEN_ONOFF_CHECK
 	  This option enables screen onoff timeout checking while
 	  powerkey pressed.
 
+config SPRD_SIGNAL_DEBUG
+	tristate "SPRD userspace debug: add signal debug"
+	depends on ARM64 && SPRD_DEBUG
+	help
+	  Say y here to enable Debug support.
+	  when in doubt, say n.
+	  this is a debug feature for tracing signal origins
+	  when process is receiving a signal.
+
