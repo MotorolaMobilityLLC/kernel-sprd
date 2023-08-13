@@ -22,7 +22,7 @@ config SPRD_IPA_SUPPORT
 config SPRD_SFP_TEST
 	bool "Do snfp test"
 	depends on SPRD_SFP_SUPPORT
-	default m
+	default n
 	help
 		This will include ipa test module.
 		Do snfp self test.

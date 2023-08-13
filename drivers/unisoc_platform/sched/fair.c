@@ -6,6 +6,7 @@
 #include <linux/reciprocal_div.h>
 #include <trace/hooks/sched.h>
 #include "uni_sched.h"
+#include "cpu_netlink.h"
 
 #if IS_ENABLED(CONFIG_SCHED_WALT)
 
@@ -299,12 +300,12 @@ static void rotation_task_init(void)
 		thread = kthread_create(try_rotation_task, (void *)rd,
 					"rotation/%d", i);
 		if (IS_ERR(thread))
-			return;
+			goto init_fail;
 
 		ret = sched_setscheduler_nocheck(thread, SCHED_FIFO, &param);
 		if (ret) {
 			kthread_stop(thread);
-			return;
+			goto init_fail;
 		}
 
 		rd->rotation_thread = thread;
@@ -313,8 +314,12 @@ static void rotation_task_init(void)
 	timer_setup(&rotation_timer, set_rotation_enable, 0);
 	rotation_timer.expires = jiffies + ENABLE_DELAY_SEC * HZ;
 	add_timer(&rotation_timer);
+	return;
 
-	pr_info("%s OK\n", __func__);
+init_fail:
+	for_each_possible_cpu(i)
+		if ((&per_cpu(rotation_datas, i))->rotation_thread)
+			kthread_stop((&per_cpu(rotation_datas, i))->rotation_thread);
 }
 #endif
 /*
@@ -789,22 +794,6 @@ static void walt_migrate_queued_task(void *data, struct rq *rq,
 	*detached = 1;
 }
 
-static void walt_can_migrate_task(void *data, struct task_struct *p,
-				  int dst_cpu, int *can_migrate)
-{
-	struct uni_rq *uni_rq = (struct uni_rq *) task_rq(p)->android_vendor_data1;
-
-	if (unlikely(uni_sched_disabled))
-		return;
-
-	/* Don't detach task if it is under active migration */
-	if (unlikely(uni_rq->push_task == p))
-		*can_migrate = 0;
-
-	if (cpu_halted(dst_cpu))
-		*can_migrate = 0;
-}
-
 static void walt_find_busiest_group(void *data, struct sched_group *busiest,
 				    struct rq *dst_rq, int *out_balance)
 {
@@ -1102,7 +1091,7 @@ static int get_task_vip_level(struct task_struct *p)
 {
 	struct uni_task_struct *uni_tsk = (struct uni_task_struct *) p->android_vendor_data1;
 
-	if (!test_vip_task(uni_tsk))
+	if (!test_vip_task(p))
 		return SCHED_NOT_VIP;
 
 	if (uni_tsk->vip_params & SCHED_AUDIO_TYPE)
@@ -1329,9 +1318,9 @@ static void cfs_check_preempt_wakeup(void *data, struct rq *rq, struct task_stru
 	if (unlikely(uni_sched_disabled))
 		return;
 
-	p_is_vip = test_vip_task(uni_p) && (!list_empty(&uni_p->vip_list)) &&
+	p_is_vip = test_vip_task(p) && (!list_empty(&uni_p->vip_list)) &&
 					      uni_p->vip_list.next;
-	curr_is_vip = test_vip_task(uni_curr) && (!list_empty(&uni_curr->vip_list)) &&
+	curr_is_vip = test_vip_task(curr) && (!list_empty(&uni_curr->vip_list)) &&
 						uni_curr->vip_list.next;
 
 	/* current is not VIP. */
@@ -1399,10 +1388,11 @@ static void cfs_replace_next_task_fair(void *data, struct rq *rq, struct task_st
 		return;
 
 	list_for_each_entry_safe(uni_tsk, uni_tsk_tmp, &uni_rq->vip_tasks, vip_list) {
-		if (unlikely(!test_vip_task(uni_tsk)))
-			continue;
 		/* Return the first task from vip queue */
 		vip = unitsk_to_tsk(uni_tsk);
+
+		if (unlikely(!test_vip_task(vip)))
+			continue;
 
 #ifdef CONFIG_UNISOC_GROUP_CTL
 		/*task's group must be vip-group */
@@ -1438,6 +1428,32 @@ static void cfs_replace_next_task_fair(void *data, struct rq *rq, struct task_st
 		break;
 	}
 }
+
+void check_parent_vip_status(struct task_struct *tsk)
+{
+	pid_t pid = tsk->pid, tgid = tsk->tgid;
+	struct task_struct *tg_tsk;
+
+	if (uni_task_group_idx(tsk) != VIP_GROUP)
+		return;
+
+	rcu_read_lock();
+	if (pid != tgid) {
+		tg_tsk = get_pid_task(find_vpid(tgid), PIDTYPE_PID);
+		if (!tg_tsk)
+			goto unlock;
+
+		if (test_vip_task(tg_tsk) && uni_task_group_idx(tg_tsk) == VIP_GROUP) {
+			if (cpu_notify_vip_fork_task(tgid, pid, tg_tsk->comm))
+				pr_debug("cpu-netlink fail:vip-task:%s(%d) fork task(%d) to vip-group\n",
+					  tg_tsk->comm, tgid, pid);
+		}
+		put_task_struct(tg_tsk);
+	}
+unlock:
+	rcu_read_unlock();
+}
+
 #else
 static inline void cfs_check_preempt_wakeup(void *data, struct rq *rq, struct task_struct *p,
 					  bool *preempt, bool *ignore, int wake_flags,
@@ -1505,11 +1521,306 @@ static void check_preempt_wakeup_handler(void *data, struct rq *rq, struct task_
 				 next_buddy_marked, granularity);
 }
 
+#if IS_ENABLED(CONFIG_SCHED_WALT)
+static inline unsigned long lb_cpu_util(int cpu)
+{
+	return walt_cpu_util(cpu);
+}
+
+static void uni_detach_task(struct task_struct *p, struct rq *src_rq, struct rq *dst_rq)
+{
+	walt_detach_task(p, src_rq, dst_rq);
+}
+
+static void uni_attach_task(struct rq *rq, struct task_struct *p)
+{
+	walt_attach_task(rq, p);
+}
+#else
+static inline unsigned long lb_cpu_util(int cpu)
+{
+	struct cfs_rq *cfs_rq;
+	unsigned int util;
+
+	cfs_rq = &cpu_rq(cpu)->cfs;
+	util = READ_ONCE(cfs_rq->avg.util_avg);
+
+	if (sched_feat(UTIL_EST))
+		util = max(util, READ_ONCE(cfs_rq->avg.util_est.enqueued));
+
+	return min_t(unsigned long, util, capacity_orig_of(cpu));
+}
+
+static void uni_detach_task(struct task_struct *p, struct rq *src_rq, struct rq *dst_rq)
+{
+	lockdep_assert_rq_held(src_rq);
+
+	deactivate_task(src_rq, p, 0);
+	set_task_cpu(p, dst_rq->cpu);
+}
+
+static void uni_attach_task(struct rq *rq, struct task_struct *p)
+{
+	lockdep_assert_rq_held(rq);
+
+	BUG_ON(task_rq(p) != rq);
+	activate_task(rq, p, ENQUEUE_NOCLOCK);
+	check_preempt_curr(rq, p, 0);
+}
+
+#endif
+
+static bool _can_migrate_task(struct task_struct *p, int dst_cpu)
+{
+	struct uni_rq *uni_rq = (struct uni_rq *) task_rq(p)->android_vendor_data1;
+
+	if (cpu_halted(dst_cpu))
+		return false;
+
+	/* Don't detach task if it is under active migration */
+	if (unlikely(uni_rq->push_task == p))
+		return false;
+
+	return true;
+}
+
+static int lb_pull_tasks(int dst_cpu, int src_cpu)
+{
+	struct rq *dst_rq = cpu_rq(dst_cpu);
+	struct rq *src_rq = cpu_rq(src_cpu);
+	unsigned long flags;
+	struct task_struct *pulled_task = NULL, *p;
+	bool to_lower;
+	struct uni_rq *src_urq = (struct uni_rq *) src_rq->android_vendor_data1;
+	struct uni_rq *dst_urq = (struct uni_rq *) cpu_rq(dst_cpu)->android_vendor_data1;
+	struct task_struct *pull_me;
+	int task_visited;
+
+	if (unlikely(src_cpu == dst_cpu))
+		return 0;
+
+	to_lower = dst_urq->cluster->id < src_urq->cluster->id;
+
+	raw_spin_lock_irqsave(&src_rq->__lock, flags);
+
+	pull_me = NULL;
+	task_visited = 0;
+	list_for_each_entry_reverse(p, &src_rq->cfs_tasks, se.group_node) {
+		if (!cpumask_test_cpu(dst_cpu, p->cpus_ptr))
+			continue;
+
+		if (task_running(src_rq, p))
+			continue;
+
+		if (!_can_migrate_task(p, dst_cpu))
+			continue;
+
+		if (pull_me == NULL) {
+			pull_me = p;
+		} else {
+			if (to_lower) {
+				if (task_util_est(p) < task_util_est(pull_me))
+					pull_me = p;
+			} else if (task_util_est(p) > task_util_est(pull_me)) {
+				pull_me = p;
+			}
+		}
+
+		task_visited++;
+		if (task_visited > 5)
+			break;
+	}
+	if (pull_me) {
+		uni_detach_task(pull_me, src_rq, dst_rq);
+		pulled_task = pull_me;
+		goto unlock;
+	}
+unlock:
+	/* lock must be dropped before waking the stopper */
+	raw_spin_unlock_irqrestore(&src_rq->__lock, flags);
+
+	if (!pulled_task)
+		return 0;
+
+	raw_spin_lock_irqsave(&dst_rq->__lock, flags);
+	uni_attach_task(dst_rq, pulled_task);
+	raw_spin_unlock_irqrestore(&dst_rq->__lock, flags);
+
+	return 1; /* we pulled 1 task */
+}
+static int lb_find_busiest_from_similar_cap_cpu(int dst_cpu, const cpumask_t *src_mask,
+						int *has_misfit, bool is_newidle)
+{
+	int i;
+	int busiest_cpu = -1;
+	unsigned long util, busiest_util = 0;
+	struct uni_rq *uni_rq;
+
+	for_each_cpu(i, src_mask) {
+		uni_rq = (struct uni_rq *) cpu_rq(i)->android_vendor_data1;
+
+		if (cpu_rq(i)->nr_running < 2 || !cpu_rq(i)->cfs.h_nr_running)
+			continue;
+
+		util = lb_cpu_util(i);
+		if (util < busiest_util)
+			continue;
+
+		busiest_util = util;
+		busiest_cpu = i;
+	}
+
+	return busiest_cpu;
+}
+
+static int lb_find_busiest_from_lower_cap_cpu(int dst_cpu, const cpumask_t *src_mask,
+						int *has_misfit, bool is_newidle)
+{
+	return -1;
+}
+
+static int lb_find_busiest_from_higher_cap_cpu(int dst_cpu, const cpumask_t *src_mask,
+						int *has_misfit, bool is_newidle)
+{
+	return -1;
+}
+
+static int lb_find_busiest_cpu(int dst_cpu, const cpumask_t *src_mask,
+				int *has_misfit, bool is_newidle)
+{
+	int fsrc_cpu = cpumask_first(src_mask);
+	int busiest_cpu = -1;
+	struct uni_rq *fsrc_wrq = (struct uni_rq *) cpu_rq(fsrc_cpu)->android_vendor_data1;
+	struct uni_rq *dst_wrq = (struct uni_rq *) cpu_rq(dst_cpu)->android_vendor_data1;
+
+	if (dst_wrq->cluster->id == fsrc_wrq->cluster->id)
+		busiest_cpu = lb_find_busiest_from_similar_cap_cpu(dst_cpu, src_mask,
+								   has_misfit, is_newidle);
+	else if (dst_wrq->cluster->id > fsrc_wrq->cluster->id)
+		busiest_cpu = lb_find_busiest_from_lower_cap_cpu(dst_cpu, src_mask,
+								 has_misfit, is_newidle);
+	else
+		busiest_cpu = lb_find_busiest_from_higher_cap_cpu(dst_cpu, src_mask,
+								  has_misfit, is_newidle);
+
+	return busiest_cpu;
+}
+
+/* similar to sysctl_sched_migration_cost */
+#define NEWIDLE_BALANCE_THRESHOLD	500000
+static void android_rvh_sched_newidle_balance(void *unused, struct rq *this_rq,
+					      struct rq_flags *rf, int *pulled_task, int *done)
+{
+	int this_cpu = this_rq->cpu;
+	bool enough_idle = (this_rq->avg_idle >= NEWIDLE_BALANCE_THRESHOLD);
+	int has_misfit = 0;
+	struct uni_rq *uni_this_rq = (struct uni_rq *) this_rq->android_vendor_data1;
+	struct sched_cluster *this_cluster = uni_this_rq->cluster;
+	int busy_cpu = -1;
+
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	if ((!cpu_active(this_cpu)) || cpu_halted(this_cpu) || is_reserved(this_cpu)) {
+		/*
+		 * newly idle load balance is completely handled here, so
+		 * set done to skip the load balance by the caller.
+		 */
+		*done = 1;
+		*pulled_task = 0;
+
+		/*
+		 * This CPU is about to enter idle, so clear the
+		 * misfit_task_load and mark the idle stamp.
+		 */
+		this_rq->misfit_task_load = 0;
+		this_rq->idle_stamp = rq_clock(this_rq);
+
+		return;
+	}
+
+	if (num_sched_clusters != 1)
+		return;
+
+	if (atomic_read(&this_rq->nr_iowait) && !enough_idle)
+		return;
+
+	if (!READ_ONCE(this_rq->rd->overload))
+		return;
+
+	/*
+	 * There is a task waiting to run. No need to search for one.
+	 * Return 0; the task will be enqueued when switching to idle.
+	 */
+	if (this_rq->ttwu_pending)
+		return;
+
+	/*
+	 * newly idle load balance is completely handled here, so
+	 * set done to skip the load balance by the caller.
+	 */
+	*done = 1;
+	*pulled_task = 0;
+
+	/*
+	 * This CPU is about to enter idle, so clear the
+	 * misfit_task_load and mark the idle stamp.
+	 */
+	this_rq->misfit_task_load = 0;
+	this_rq->idle_stamp = rq_clock(this_rq);
+
+	rq_unpin_lock(this_rq, rf);
+
+	raw_spin_unlock(&this_rq->__lock);
+
+	if (num_sched_clusters == 1) {
+		busy_cpu = lb_find_busiest_cpu(this_cpu, &this_cluster->cpus, &has_misfit, true);
+		if (busy_cpu != -1)
+			goto found_busy_cpu;
+
+		goto unlock;
+	}
+
+found_busy_cpu:
+	/* sanity checks before attempting the pull */
+	if (this_rq->nr_running > 0 || (busy_cpu == this_cpu) || busy_cpu == -1)
+		goto unlock;
+
+	*pulled_task = lb_pull_tasks(this_cpu, busy_cpu);
+
+unlock:
+	raw_spin_lock(&this_rq->__lock);
+
+	if (this_rq->cfs.h_nr_running && !*pulled_task)
+		*pulled_task = 1;
+
+	/* Is there a task of a high priority class? */
+	if (this_rq->nr_running != this_rq->cfs.h_nr_running)
+		*pulled_task = -1;
+
+	/* reset the idle time stamp if we pulled any task */
+	if (*pulled_task)
+		this_rq->idle_stamp = 0;
+
+	rq_repin_lock(this_rq, rf);
+}
+
+static void android_rvh_can_migrate_task(void *data, struct task_struct *p,
+				  int dst_cpu, int *can_migrate)
+{
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	*can_migrate = _can_migrate_task(p, dst_cpu);
+}
+
 void fair_init(void)
 {
 	register_trace_android_rvh_sched_rebalance_domains(sched_rebalance_domains_handler, NULL);
 	register_trace_android_rvh_check_preempt_tick(check_preempt_tick_handler, NULL);
 	register_trace_android_rvh_check_preempt_wakeup(check_preempt_wakeup_handler, NULL);
+	register_trace_android_rvh_sched_newidle_balance(android_rvh_sched_newidle_balance, NULL);
+	register_trace_android_rvh_can_migrate_task(android_rvh_can_migrate_task, NULL);
 #ifdef CONFIG_UNISOC_SCHED_VIP_TASK
 	register_trace_android_vh_scheduler_tick(cfs_vip_scheduler_tick, NULL);
 	register_trace_android_rvh_replace_next_task_fair(cfs_replace_next_task_fair, NULL);
@@ -1519,7 +1830,6 @@ void fair_init(void)
 	register_trace_android_rvh_cpu_overutilized(walt_cpu_overutilzed, NULL);
 	register_trace_android_vh_scheduler_tick(android_vh_scheduler_tick, NULL);
 	register_trace_android_rvh_migrate_queued_task(walt_migrate_queued_task, NULL);
-	register_trace_android_rvh_can_migrate_task(walt_can_migrate_task, NULL);
 	register_trace_android_rvh_find_new_ilb(walt_find_new_ilb, NULL);
 	register_trace_android_rvh_sched_nohz_balancer_kick(walt_nohz_balancer_kick, NULL);
 	register_trace_android_rvh_find_busiest_group(walt_find_busiest_group, NULL);

@@ -32,9 +32,7 @@
 				core2 {
 					cpu = <&CPU2>;
 				};
-			};
-			cluster1 {
-				core0 {
+				core3 {
 					cpu = <&CPU3>;
 				};
 			};
@@ -49,6 +47,7 @@
 			capacity-dmips-mhz = <544>;
 			dynamic-power-coefficient = <102>;
 			#cooling-cells = <2>;
+			sugov_slack_timer;
 		};
 		CPU1: cpu@100 {
 			device_type = "cpu";

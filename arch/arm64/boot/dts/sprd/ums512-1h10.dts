@@ -233,6 +233,8 @@
 &hsphy {
 	vdd-supply = <&vddusb33>;
 	extcon = <&extcon_gpio>;
+	/* avdd1v8 off on chipsleep */
+	avdd1v8-chipsleep-off;
 	status = "okay";
 };
 

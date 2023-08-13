@@ -312,6 +312,13 @@ static void sprd_configure_channel(struct dma_channel *channel,
 			musb_linknode_pushlist(musb,
 					       (u64)musb_channel->list_dma_addr[queue],
 					       transmit, bchannel - 15);
+
+			/* enable channel and trigger rx dma transfer */
+			csr = musb_readl(mbase,
+					 MUSB_DMA_CHN_PAUSE(bchannel));
+			if (csr & CHN_CLR)
+				musb_writel(mbase,
+					    MUSB_DMA_CHN_PAUSE(bchannel), 0);
 		}
 	} else {
 		haddr4 = (u32)((u64)musb_channel->list_dma_addr[queue] >> 32);
@@ -356,6 +363,9 @@ static void sprd_configure_channel(struct dma_channel *channel,
 
 			musb_writel(mbase, MUSB_DMA_CHN_ADDR_H(bchannel), haddr4);
 			/* enable channel and trigger rx dma transfer */
+			csr = musb_readl(mbase, MUSB_DMA_CHN_PAUSE(bchannel));
+			if (csr & CHN_CLR)
+				musb_writel(mbase, MUSB_DMA_CHN_PAUSE(bchannel), 0);
 			csr = musb_readl(mbase, MUSB_DMA_CHN_CFG(bchannel));
 			csr |= CHN_EN;
 			musb_writel(mbase, MUSB_DMA_CHN_CFG(bchannel), csr);
@@ -493,6 +503,9 @@ static void sprd_configure_channel(struct dma_channel *channel,
 
 		musb_writel(mbase, MUSB_DMA_CHN_ADDR_H(bchannel), haddr4);
 		/* enable channel and trigger rx dma transfer */
+		csr = musb_readl(mbase, MUSB_DMA_CHN_PAUSE(bchannel));
+		if (csr & CHN_CLR)
+			musb_writel(mbase, MUSB_DMA_CHN_PAUSE(bchannel), 0);
 		csr = musb_readl(mbase, MUSB_DMA_CHN_CFG(bchannel));
 		csr |= CHN_EN;
 		musb_writel(mbase, MUSB_DMA_CHN_CFG(bchannel), csr);

@@ -198,3 +198,9 @@ config SPRD_MEM_OVERLAY_CHECK
 	help
 	  It's will panic when detect overlay in reserved-memory region.
 
+config SPRD_SHOW_RESERVED_MEM
+	bool "Show reserved-memory region"
+	depends on OF_RESERVED_MEM && ARM64
+	default n
+	help
+	  Enable to output reserved memory information.

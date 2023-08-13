@@ -834,6 +834,8 @@ static int seth_ioctl(struct net_device *dev, struct ifreq *ifr, void __user *da
 
 		break;
 	case SIOC_SETH_DEL_UID:
+		dev_info(&dev->dev, "delete all the vip uids");
+
 		memset(seth_vip_uids, 0, sizeof(seth_vip_uids));
 		break;
 	default:

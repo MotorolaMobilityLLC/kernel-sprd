@@ -87,6 +87,7 @@ struct cluster_info {
 	bool boost_enable;
 
 	u32 temp_tick;
+	int best_temp;
 	struct temp_node *temp_currt_node;
 	struct temp_node *temp_level_node;
 	struct list_head temp_list_head;

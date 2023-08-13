@@ -47,7 +47,9 @@
 			"sys_cfg_mtx_busmon_en",
 			"sys_mst_busmon_en",
 			"clk_mm_mtx_defalut",
-			"clk_mm_mtx_parent";
+			"clk_mm_mtx_parent",
+			"clk_mm_sys_cfg",
+			"clk_mm_sys_cfg_parent";
 		clocks = <&aonapb_gate CLK_MM_EB>,
 			<&mm_gate CLK_CKG_EN>,
 			<&mm_gate CLK_MM_MTX_DATA_EN>,
@@ -56,7 +58,9 @@
 			<&mm_gate CLK_SYS_CFG_MTX_BUSMON_EN>,
 			<&mm_gate CLK_SYS_MST_BUSMON_EN>,
 			<&g5l_pll CLK_TGPLL_153M6>,
-			<&g5l_pll CLK_TGPLL_512M>;
+			<&g5l_pll CLK_TGPLL_512M>,
+			<&mm_clk CLK_MM_SYS_CFG>,
+			<&g5l_pll CLK_TGPLL_128M>;
 		sprd,cam-ahb-syscon = <&mm_ahb_regs>;
 		sprd,csi-switch = <&mm_csi_switch_regs>;
 		#power-domain-cells = <0>;

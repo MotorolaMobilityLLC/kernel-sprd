@@ -255,8 +255,11 @@ static void sdhci_sprd_del_timer(struct sdhci_host *host, struct mmc_request *mr
 		del_timer(&host->data_timer);
 	else
 		del_timer(&host->timer);
+#ifdef CONFIG_SPRD_DEBUG
+	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sdhci_sprd_data_line_cmd(mrq->cmd))
+		del_timer(&host->debug_timer);
+#endif
 }
-
 
 static inline bool sdhci_sprd_auto_cmd12(struct sdhci_host *host,
 				    struct mmc_request *mrq)
@@ -1959,7 +1962,7 @@ static bool sdhci_sprd_send_command(struct sdhci_host *host, struct mmc_command 
 
 	WARN_ON(host->cmd);
 
-	dbg_add_host_log(host->mmc, 0, cmd->opcode, cmd->arg, cmd->mrq);
+	dbg_add_host_log(host->mmc, MMC_SEND_CMD, cmd->opcode, cmd->arg, cmd->mrq);
 
 	/* Initially, a command has no error */
 	cmd->error = 0;
@@ -2045,11 +2048,16 @@ static bool sdhci_sprd_send_command(struct sdhci_host *host, struct mmc_command 
 		timeout += 4 * HZ;
 	sdhci_sprd_mod_timer(host, cmd->mrq, timeout);
 
-	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->opcode, flags), SDHCI_COMMAND);
-
 #ifdef CONFIG_SPRD_DEBUG
 	mmc_debug_update(host, cmd, 0);
+	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sdhci_sprd_data_line_cmd(cmd)) {
+		mod_timer(&host->debug_timer, jiffies + 256);
+		host->cnt_time = ktime_to_ms(ktime_get());
+	}
 #endif
+
+	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->opcode, flags), SDHCI_COMMAND);
+
 	/*polling mode*/
 	if (swcq->need_polling) {
 		second_time = sched_clock();
@@ -2129,7 +2137,8 @@ static void sdhci_sprd_finish_command(struct sdhci_host *host)
 			sdhci_sprd_read_rsp_136(host, cmd);
 		} else {
 			cmd->resp[0] = sdhci_readl(host, SDHCI_RESPONSE);
-			dbg_add_host_log(host->mmc, 1, cmd->opcode, cmd->resp[0], cmd->mrq);
+			dbg_add_host_log(host->mmc, MMC_CMD_RSP, cmd->opcode,
+				cmd->resp[0], cmd->mrq);
 		}
 	}
 

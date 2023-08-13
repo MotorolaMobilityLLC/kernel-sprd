@@ -71,8 +71,8 @@ static ssize_t store_scaling_fixed_freq(struct cpufreq_policy *policy,
 	unsigned int ret;
 	struct sprd_multi_control *sprd_mc;
 
-	ret = sscanf(buf, "%u", &fix_freq);
-	if (ret != 1)
+	ret = kstrtouint(buf, 10, &fix_freq);
+	if (ret != 0)
 		return -EINVAL;
 
 	if (fix_freq != 0) {
@@ -94,8 +94,11 @@ static ssize_t store_scaling_fixed_freq(struct cpufreq_policy *policy,
 	list_for_each_entry(sprd_mc, &sprd_mc_list, node) {
 		if (sprd_mc->policy == policy) {
 			sprd_mc->scaling_fixed_freq = fix_freq;
-			smp_wmb();
-			__cpufreq_driver_target(policy, fix_freq, CPUFREQ_RELATION_L);
+			if (fix_freq) {
+				smp_wmb(); // Ensure that the fix_freq update is visible
+				__cpufreq_driver_target(policy, fix_freq, CPUFREQ_RELATION_L);
+			}
+			refresh_frequency_limits(policy);
 
 			return count;
 		}
@@ -113,9 +116,9 @@ store_high_level_freq_control_enable(struct cpufreq_policy *policy,
 	struct sprd_multi_control *sprd_mc;
 	int ret;
 
-	ret = sscanf(buf, "%u", &val);
+	ret = kstrtouint(buf, 10, &val);
 
-	if (ret != 1)
+	if (ret != 0)
 		return -EINVAL;
 
 	list_for_each_entry(sprd_mc, &sprd_mc_list, node) {
@@ -128,6 +131,7 @@ store_high_level_freq_control_enable(struct cpufreq_policy *policy,
 				return count;
 
 			__cpufreq_driver_target(policy, policy->cur, CPUFREQ_RELATION_L);
+			refresh_frequency_limits(policy);
 
 			return count;
 		}
@@ -144,8 +148,8 @@ static ssize_t store_high_level_freq_max(struct cpufreq_policy *policy,
 	struct sprd_multi_control *sprd_mc;
 	int ret;
 
-	ret = sscanf(buf, "%u", &val);
-	if (ret != 1)
+	ret = kstrtouint(buf, 10, &val);
+	if (ret != 0)
 		return -EINVAL;
 
 	if (val) {
@@ -176,8 +180,10 @@ static ssize_t store_high_level_freq_max(struct cpufreq_policy *policy,
 			clamp_freq = clamp_val(policy->cur, sprd_mc->high_level_limit_min,
 					sprd_mc->high_level_limit_max);
 
-			if (clamp_freq != policy->cur)
+			if (clamp_freq != policy->cur) {
 				__cpufreq_driver_target(policy, clamp_freq, CPUFREQ_RELATION_L);
+				refresh_frequency_limits(policy);
+			}
 
 			return count;
 		}
@@ -193,8 +199,8 @@ static ssize_t store_high_level_freq_min(struct cpufreq_policy *policy,
 	struct sprd_multi_control *sprd_mc;
 	int ret;
 
-	ret = sscanf(buf, "%u", &val);
-	if (ret != 1)
+	ret = kstrtouint(buf, 10, &val);
+	if (ret != 0)
 		return -EINVAL;
 
 	if (val) {
@@ -225,8 +231,10 @@ static ssize_t store_high_level_freq_min(struct cpufreq_policy *policy,
 			clamp_freq = clamp_val(policy->cur, sprd_mc->high_level_limit_min,
 					sprd_mc->high_level_limit_max);
 
-			if (clamp_freq != policy->cur)
+			if (clamp_freq != policy->cur) {
 				__cpufreq_driver_target(policy, clamp_freq, CPUFREQ_RELATION_H);
+				refresh_frequency_limits(policy);
+			}
 
 			return count;
 		}

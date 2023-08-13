@@ -504,12 +504,14 @@ static int modem_tsen_read(struct regmap *regmap, unsigned int base, int *temp)
 		ret = regmap_read(regmap, (base + UMP96XX_TSEN_CTRL4), &tl);
 		if (ret) {
 			pr_err("read TSEN_CTRL4 error\n");
+			mutex_unlock(&tsen_mutex);
 			return ret;
 		}
 
 		ret = regmap_read(regmap, (base +  UMP96XX_TSEN_CTRL6), &th);
 		if (ret) {
 			pr_err("read TSEN_CTRL6 error\n");
+			mutex_unlock(&tsen_mutex);
 			return ret;
 		}
 

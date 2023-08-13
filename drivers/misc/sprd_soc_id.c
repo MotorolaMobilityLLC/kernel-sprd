@@ -13,11 +13,11 @@
 #include <linux/sprd_soc_id.h>
 
 static const char * const syscon_name[] = {
-		"chip-id",
-		"plat-id",
-		"implement-id",
-		"manufacture-id",
-		"version-id"
+	"chip-id",
+	"plat-id",
+	"implement-id",
+	"manufacture-id",
+	"version-id"
 };
 
 struct register_gpr {
@@ -35,17 +35,23 @@ int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len)
 	switch (soc_id_type) {
 	case AON_CHIP_ID:
 	case AON_PLAT_ID:
+		if (syscon_regs[soc_id_type].gpr == NULL) {
+			pr_err("fail to get soc_id_type(%d)\n", soc_id_type);
+			return -EINVAL;
+		}
 		if (id_len < 2) {
 			pr_err("id_len < 2\n");
 			return -EINVAL;
 		}
 
-		ret = regmap_read(syscon_regs[soc_id_type].gpr, syscon_regs[soc_id_type].reg, &chip_id[0]);
+		ret = regmap_read(syscon_regs[soc_id_type].gpr,
+				  syscon_regs[soc_id_type].reg, &chip_id[0]);
 		if (ret) {
 			pr_err("Failed to read chip_id[0]\n");
 			return -EINVAL;
 		}
-		ret = regmap_read(syscon_regs[soc_id_type].gpr, syscon_regs[soc_id_type].reg + 0x4, &chip_id[1]);
+		ret = regmap_read(syscon_regs[soc_id_type].gpr,
+				  syscon_regs[soc_id_type].reg + 0x4, &chip_id[1]);
 		if (ret) {
 			pr_err("Failed to read chip_id[1]\n");
 			return -EINVAL;
@@ -56,7 +62,12 @@ int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len)
 	case AON_IMPL_ID:
 	case AON_MFT_ID:
 	case AON_VER_ID:
-		ret = regmap_read(syscon_regs[soc_id_type].gpr, syscon_regs[soc_id_type].reg, id);
+		if (syscon_regs[soc_id_type].gpr == NULL) {
+			pr_err("fail to get soc_id_type(%d)\n", soc_id_type);
+			return -EINVAL;
+		}
+		ret = regmap_read(syscon_regs[soc_id_type].gpr,
+				  syscon_regs[soc_id_type].reg, id);
 		if (ret) {
 			pr_err("Failed to read soc id\n");
 			return -EINVAL;
@@ -68,7 +79,6 @@ int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len)
 
 	return 0;
 }
-
 EXPORT_SYMBOL(sprd_get_soc_id);
 
 static ssize_t read_socid(struct file *file, char  *buf,
@@ -79,12 +89,12 @@ static ssize_t read_socid(struct file *file, char  *buf,
 	char c[140] = {0};
 
 	for (i = 0; i < ARRAY_SIZE(syscon_name); i++) {
-		n += sprintf(c + n, "%s ", syscon_name[i]);
+		n += snprintf(c + n, sizeof(c)-n, "%s ", syscon_name[i]);
 		sprd_get_soc_id(i, &value[0], 2);
-		n += sprintf(c + n, "0x%x", value[0]);
+		n += snprintf(c + n, sizeof(c)-n, "0x%x", value[0]);
 		if (i <= AON_PLAT_ID)
-			n += sprintf(c + n, "  0x%x", value[1]);
-		n += sprintf(c + n, "%s", "\n");
+			n += snprintf(c + n, sizeof(c)-n, "  0x%x", value[1]);
+		n += snprintf(c + n, sizeof(c)-n, "%s", "\n");
 	}
 
 	return simple_read_from_buffer(buf, count, data, c, n);
@@ -108,7 +118,6 @@ static int sprd_create_socid_node(void)
 	if (!socid_base)
 		return -ENOMEM;
 
-
 	if (!proc_create("socid_inf", 0444, socid_base, &socid_fops)) {
 		pr_err("%s: create soc_id_inf fail\n", __func__);
 		return -ENOENT;
@@ -119,7 +128,7 @@ static int sprd_create_socid_node(void)
 
 static int sprd_soc_id_probe(struct platform_device *pdev)
 {
-	int ret = 0, i;
+	int i;
 	struct device_node *np = pdev->dev.of_node;
 	const char *pname;
 	struct regmap *tregmap = NULL;
@@ -141,12 +150,7 @@ static int sprd_soc_id_probe(struct platform_device *pdev)
 			syscon_regs[i].mask);
 	}
 
-	ret = sprd_create_socid_node();
-
-	if (ret)
-		return ret;
-
-	return 0;
+	return sprd_create_socid_node();
 }
 
 static const struct of_device_id sprd_soc_id_of_match[] = {
@@ -167,4 +171,3 @@ module_platform_driver(sprd_soc_id_driver);
 MODULE_AUTHOR("Luting Guo <luting.guo@spreadtrum.com>");
 MODULE_DESCRIPTION("Spreadtrum soc id driver");
 MODULE_LICENSE("GPL v2");
-

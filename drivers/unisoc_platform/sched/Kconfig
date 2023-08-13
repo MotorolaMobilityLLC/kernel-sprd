@@ -137,4 +137,15 @@ config UNISOC_SCHED_PAUSE_CPU
 	  If y thermal policy would use this feature to let cpu enter into an idle
 	  state to lower the temperature of SoC.
 
+config UNISOC_CPU_NETLINK
+	bool "Support cpu netlink feature"
+	depends on UNISOC_SCHED
+	default n
+	help
+	  Enable cpu netlink feature.
+	  When open this feature, scheduler would send some scheduler event to user
+	  Using genl ntlink with multicast. User can do some thing when received
+	  the message.
+	  If you do not use unisoc android framework, or you do not want to receive
+	  the messege, turn off it.
 endmenu

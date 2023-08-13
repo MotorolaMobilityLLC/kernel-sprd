@@ -8,10 +8,8 @@ UMS512_BASE_CONFIG="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig
                     ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_gki_sharkl5Pro.fragment
                    "
 
-if [[ ${TARGET_PRODUCT} == *Skynet* ]]; then
-    UMS512_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_slub_Skynet.fragment
-                         ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_kasan_Skynet.fragment
-                        "
+if [[ ${BSP_PRODUCT_NAME} == *Skynet* ]]; then
+    UMS512_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_Skynet.fragment"
 fi
 
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \

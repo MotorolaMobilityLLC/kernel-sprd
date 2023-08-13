@@ -429,6 +429,7 @@
 			clock-names = "ext-26m";
 			clocks = <&ext_26m>;
 			#clock-cells = <1>;
+			#reset-cells = <1>;
 		};
 
 		spahb_gate: clock-controller@50820000 {

@@ -49,10 +49,13 @@
 #define A_RECOVER		4
 #define A_AUDIO			5
 
+#define CHARGER_DETECT_DONE			BIT(0)
+#define DWC3_CHG_MAX_WAIT_BC1P2_COUNT		5
 #define VBUS_REG_CHECK_DELAY			(msecs_to_jiffies(1000))
 #define DWC3_RUNTIME_CHECK_DELAY		(msecs_to_jiffies(100))
 #define DWC3_UDC_START_CHECK_DELAY		(msecs_to_jiffies(50))
 #define DWC3_USB_ENABLE_CHECK_DELAY		(msecs_to_jiffies(50))
+#define DWC3_CHG_DETECT_DELAY			(msecs_to_jiffies(500))
 #define DWC3_SPRD_CHG_MAX_REDETECT_COUNT	3
 
 #define DWC3_AUTOSUSPEND_DELAY 1000
@@ -144,8 +147,9 @@ struct dwc3_sprd {
 
 	atomic_t		runtime_suspended;
 	atomic_t		pm_suspended;
-	int                     retry_chg_detect_count;
-	int                     start_host_retry_count;
+	int			wait_chg_detect_count;
+	int			retry_chg_detect_count;
+	int			start_host_retry_count;
 	int			usb_data_enabled;
 	unsigned long		inputs;
 	struct workqueue_struct *dwc3_wq;
@@ -478,13 +482,17 @@ static void dwc3_sprd_chg_detect_work(struct work_struct *work)
 	struct usb_phy *usb_phy = sdwc->ss_phy;
 	unsigned long flags;
 	enum usb_charger_type	chg_type = UNKNOWN_TYPE;
+	unsigned long delay = 0;
+	bool rework = false;
 
 	spin_lock_irqsave(&sdwc->lock, flags);
 
 	switch (sdwc->chg_state) {
 	case USB_CHG_STATE_UNDETECT:
-		if (!sdwc->vbus_active)
+		if (!sdwc->vbus_active) {
+			dev_info(sdwc->dev, "dwc3:line%d: vbus_active 0\n", __LINE__);
 			break;
+		}
 
 		if (boot_charging) {
 			dev_info(sdwc->dev, "boot charging mode enter!\n");
@@ -498,6 +506,21 @@ static void dwc3_sprd_chg_detect_work(struct work_struct *work)
 		if (usb_phy->charger_detect)
 			chg_type = usb_phy->charger_detect(usb_phy);
 		spin_lock_irqsave(&sdwc->lock, flags);
+
+		if (!sdwc->vbus_active) {
+			dev_info(sdwc->dev, "dwc3:line%d: vbus_active 0\n", __LINE__);
+			break;
+		}
+
+		if (!(usb_phy->flags & CHARGER_DETECT_DONE)
+		    && sdwc->wait_chg_detect_count < DWC3_CHG_MAX_WAIT_BC1P2_COUNT) {
+			dev_info(sdwc->dev, "dwc3:wait bc1.2 done");
+			sdwc->wait_chg_detect_count++;
+			rework = true;
+			delay = DWC3_CHG_DETECT_DELAY;
+			break;
+		}
+
 		sdwc->chg_type = chg_type;
 		sdwc->chg_state = USB_CHG_STATE_DETECTED;
 		fallthrough;
@@ -527,6 +550,9 @@ static void dwc3_sprd_chg_detect_work(struct work_struct *work)
 	}
 
 	spin_unlock_irqrestore(&sdwc->lock, flags);
+
+	if (rework)
+		queue_delayed_work(sdwc->sm_usb_wq, &sdwc->chg_detect_work, delay);
 }
 
 static int dwc3_host_prepare(struct device *dev);
@@ -560,6 +586,7 @@ static int dwc3_sprd_otg_start_peripheral(struct dwc3_sprd *sdwc, int on)
 					__func__, dwc->gadget->name);
 
 		usb_phy_vbus_off(sdwc->ss_phy);
+		msleep(100);
 		pm_runtime_get_sync(dwc->dev);
 		/* phy set vbus connected after phy_init*/
 		usb_phy_notify_connect(sdwc->ss_phy, 0);
@@ -815,6 +842,7 @@ static int dwc3_sprd_vbus_notifier(struct notifier_block *nb,
 		spin_lock_irqsave(&sdwc->lock, flags);
 		sdwc->chg_state = USB_CHG_STATE_UNDETECT;
 		sdwc->charging_mode = false;
+		sdwc->wait_chg_detect_count = 0;
 		sdwc->retry_chg_detect_count = 0;
 	}
 

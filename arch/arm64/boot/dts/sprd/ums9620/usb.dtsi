@@ -14,6 +14,10 @@
 		sprd,syscon-anag0 = <&anlg_phy_g0l_regs>;
 		sprd,vdd-voltage = <3300000>;
 		#phy-cells = <0>;
+		refclk_cfg = <&pmu_apb_regs
+			REG_PMU_APB_USB31PLLV_REL_CFG
+			MASK_PMU_APB_USB31PLLV_PUB_SEL
+			MASK_PMU_APB_USB31PLLV_AUDIO_SEL>;
 	};
 
 	usb: usb@a00000 {
@@ -29,9 +33,6 @@
 				"hclk_source_sel",
 				"hclk_default_source",
 				"hclk_suspend_source";
-		usb31pllv_frc_on = <&pmu_apb_regs
-			REG_PMU_APB_USB31PLLV_REL_CFG
-			MASK_PMU_APB_USB31PLLV_FRC_ON>;
 		pubsys_bypass = <&pmu_apb_regs
 			REG_PMU_APB_PUB_DEEP_SLEEP_POLL_7
 			MASK_PMU_APB_AON_PUB_DEEP_SLEEP_POLL>;

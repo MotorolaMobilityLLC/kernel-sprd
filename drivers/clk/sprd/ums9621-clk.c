@@ -161,7 +161,7 @@ static struct sprd_clk_desc ums9621_pmu_gate_desc = {
 };
 
 /* pll clock at g1 */
-static struct freq_table rpll_ftable[4] = {
+static struct freq_table rpll_ftable[] = {
 	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
 	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
 	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
@@ -211,7 +211,7 @@ static struct sprd_clk_desc ums9621_g1_pll_desc = {
 };
 
 /* pll at g1l */
-static struct freq_table dpll_ftable[4] = {
+static struct freq_table dpll_ftable[] = {
 	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
 	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
 	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
@@ -269,7 +269,7 @@ static struct sprd_clk_desc ums9621_g1l_pll_desc = {
 };
 
 /* pll at g5l */
-static struct freq_table tgpll_ftable[4] = {
+static struct freq_table tgpll_ftable[] = {
 	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
 	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
 	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
@@ -405,7 +405,7 @@ static struct sprd_clk_desc ums9621_g5l_pll_desc = {
 };
 
 /* pll at g5r */
-static struct freq_table gpll_ftable[4] = {
+static struct freq_table gpll_ftable[] = {
 	{ .ibias = 1, .max_freq = 2000000000ULL, .vco_sel = 0 },
 	{ .ibias = 2, .max_freq = 2800000000ULL, .vco_sel = 0 },
 	{ .ibias = 3, .max_freq = 3200000000ULL, .vco_sel = 0 },
@@ -509,7 +509,7 @@ static struct sprd_clk_desc ums9621_g5r_pll_desc = {
 };
 
 /* pll at g8 */
-static struct freq_table mpllm_ftable[12] = {
+static struct freq_table mpllm_ftable[] = {
 	{ .ibias = 7,  .max_freq = 1200000000ULL,  .vco_sel = 1 },
 	{ .ibias = 8,  .max_freq = 1400000000ULL,  .vco_sel = 1 },
 	{ .ibias = 9,  .max_freq = 1600000000ULL,  .vco_sel = 1 },
@@ -3154,7 +3154,7 @@ static int ums9621_clk_probe(struct platform_device *pdev)
 
 		ret = devm_reset_controller_register(&pdev->dev, &reset->rcdev);
 		if (ret)
-			dev_err(&pdev->dev, "Failed to register reset controller\n");
+			dev_warn(&pdev->dev, "Failed to register reset controller\n");
 	}
 
 	return sprd_clk_probe(&pdev->dev, desc->hw_clks);

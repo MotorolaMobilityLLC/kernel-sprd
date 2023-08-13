@@ -34,12 +34,14 @@
 #include <linux/usb/ch9.h>
 #include <linux/usb/composite.h>
 
-#define VSER_BULK_BUFFER_SIZE	(4096 * 4)
+#define VSER_BULK_BUFFER_SIZE	(4096 * 16)
 #define MAX_INST_NAME_LEN	40
 /* number of tx requests to allocate */
 #define TX_REQ_MAX		4
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
 #define TX_REQ_BYPASS_MAX		100
+#define MAX_PKTS_PER_XFER		32
+#define TX_STOP_THRESHOLD		1000
 #endif
 /* Device --> Host */
 #define SET_IN_SIZE		0x00
@@ -56,6 +58,19 @@ static void (*bulk_in_complete_function)(char *buffer,
 					 unsigned int length, void *p);
 static void *s_callback_data;
 static bool s_in_bypass_mode;
+
+struct pass_buf {
+	char				*buf;
+	int				len;
+	struct list_head		list;
+};
+
+struct sg_ctx {
+	struct list_head		list;
+	ktime_t				q_time;
+};
+
+static struct workqueue_struct	*vser_tx_wq;
 #endif
 
 static const char vser_shortname[] = "vser";
@@ -64,7 +79,8 @@ static int tx_req_count;
 struct vser_dev {
 	struct usb_function function;
 	struct usb_composite_dev *cdev;
-	spinlock_t lock;
+	spinlock_t	lock;
+	spinlock_t	req_lock;	/* guard {rx,tx}_reqs */
 
 	struct usb_ep *ep_in;
 	struct usb_ep *ep_out;
@@ -83,20 +99,30 @@ struct vser_dev {
 	struct list_head tx_pass_idle;
 
 	/* statistic */
-	u32					dl_rx_packet_count;
-	u32					dl_sent_packet_count;
-	u32					dl_sent_failed_packet_count;
-	u64					dl_rx_bytes;
-	u64					dl_sent_bytes;
+	u32			dl_rx_packet_count;
+	u32			dl_sent_packet_count;
+	u32			dl_sent_failed_packet_count;
+	u64			dl_rx_bytes;
+	u64			dl_sent_bytes;
 
-	u64					max_cb_time_per_xfer;
+	u64			max_cb_time_per_xfer;
 
-	u64					min_time_per_xfer;
-	u64					max_time_per_xfer;
-	u64					ave_time_per_xfer;
+	u64			min_time_per_xfer;
+	u64			max_time_per_xfer;
 
-	u64					total_transfer_time;
 	struct timer_list	log_print_timer;
+
+	/* sg mode */
+	struct list_head	tx_pass_buf_q;
+	bool			sg_enabled;
+
+	u32		dl_tx_pass_buf_qlen;
+	u32		dl_tx_stop_threshold;
+	u32		dl_max_pkts_per_xfer;
+	int		dl_tx_work_status;
+	int		dl_tx_req_status;
+
+	struct work_struct	tx_work;
 #endif
 
 	wait_queue_head_t read_wq;
@@ -253,10 +279,10 @@ static void vser_req_put(struct vser_dev *dev, struct list_head *head,
 {
 	unsigned long flags;
 
-	spin_lock_irqsave(&dev->lock, flags);
+	spin_lock_irqsave(&dev->req_lock, flags);
 	list_add_tail(&req->list, head);
 	tx_req_count++;
-	spin_unlock_irqrestore(&dev->lock, flags);
+	spin_unlock_irqrestore(&dev->req_lock, flags);
 }
 
 /* remove a request from the head of a list */
@@ -266,7 +292,7 @@ static struct usb_request *vser_req_get(struct vser_dev *dev,
 	unsigned long flags;
 	struct usb_request *req;
 
-	spin_lock_irqsave(&dev->lock, flags);
+	spin_lock_irqsave(&dev->req_lock, flags);
 	if (list_empty(head)) {
 		req = 0;
 	} else {
@@ -274,7 +300,7 @@ static struct usb_request *vser_req_get(struct vser_dev *dev,
 		list_del(&req->list);
 		tx_req_count--;
 	}
-	spin_unlock_irqrestore(&dev->lock, flags);
+	spin_unlock_irqrestore(&dev->req_lock, flags);
 
 	return req;
 }
@@ -292,41 +318,67 @@ static void vser_complete_in(struct usb_ep *ep, struct usb_request *req)
 }
 
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
+/* add a pbuf to the tail of a list */
+static void vser_pbuf_put(struct vser_dev *dev, struct list_head *head,
+			 struct pass_buf *pbuf)
+{
+	unsigned long flags;
+
+	spin_lock_irqsave(&dev->lock, flags);
+	list_add_tail(&pbuf->list, head);
+	if (&dev->tx_pass_buf_q == head)
+		dev->dl_tx_pass_buf_qlen++;
+	spin_unlock_irqrestore(&dev->lock, flags);
+}
+
+/* remove a pbuf from the head of a list */
+static struct pass_buf *vser_pbuf_get(struct vser_dev *dev,
+					struct list_head *head)
+{
+	unsigned long flags;
+	struct pass_buf *pbuf;
+
+	spin_lock_irqsave(&dev->lock, flags);
+	if (list_empty(head)) {
+		pbuf = 0;
+	} else {
+		pbuf = list_first_entry(head, struct pass_buf, list);
+		list_del(&pbuf->list);
+		if (&dev->tx_pass_buf_q == head)
+			dev->dl_tx_pass_buf_qlen--;
+	}
+	spin_unlock_irqrestore(&dev->lock, flags);
+
+	return pbuf;
+}
+
+static struct pass_buf *vser_alloc_pass_buf(unsigned int len, gfp_t flags)
+{
+	struct pass_buf *pbuf;
+
+	pbuf = kzalloc(sizeof(struct pass_buf), flags);
+	if (!pbuf)
+		return NULL;
+
+	pbuf->buf = NULL;
+	pbuf->len = len;
+	INIT_LIST_HEAD(&pbuf->list);
+
+	return pbuf;
+}
+
 static void vser_pass_complete_in(struct usb_ep *ep, struct usb_request *req)
 {
 	struct vser_dev *dev = _vser_dev;
-	ktime_t		tv_end;
-	ktime_t		*tv_begin = req->context;
-	u64			transfer_time;
-	ktime_t		cb_end;
-	ktime_t		cb_begin;
-	u64			cb_time;
-
-	tv_end = ktime_get();
-	transfer_time = ktime_to_ns(ktime_sub(tv_end, *tv_begin));
-	if (transfer_time < dev->min_time_per_xfer)
-		dev->min_time_per_xfer = transfer_time;
-	if (transfer_time > dev->max_time_per_xfer)
-		dev->max_time_per_xfer = transfer_time;
-	dev->total_transfer_time += transfer_time;
-
-	dev->dl_sent_packet_count++;
-	dev->dl_sent_bytes += req->length;
 
 	if (req->status != 0)
 		dev->wr_error = 1;
 
 	vser_req_put(dev, &dev->tx_pass_idle, req);
 
-	cb_begin = ktime_get();
 	if (bulk_in_complete_function != NULL)
 		bulk_in_complete_function(req->buf, req->length,
 						s_callback_data);
-	cb_end = ktime_get();
-	cb_time = ktime_to_ns(ktime_sub(cb_end, cb_begin));
-
-	if (cb_time > dev->max_cb_time_per_xfer)
-		dev->max_cb_time_per_xfer = cb_time;
 
 	wake_up(&dev->write_wq);
 }
@@ -379,6 +431,76 @@ static int vser_alloc_all_request(struct vser_dev *dev)
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
+static void tx_complete(struct usb_ep *ep, struct usb_request *req);
+static void process_tx_w(struct work_struct *work);
+static int prealloc_sg(struct list_head *list,
+	 struct usb_ep *ep, unsigned int n, bool sg_enabled)
+{
+	struct vser_dev	*dev = ep->driver_data;
+	unsigned int		i;
+	struct usb_request	*req;
+	struct sg_ctx		*sg_ctx;
+
+	if (!n)
+		return -EINVAL;
+
+	/* queue/recycle up to N requests */
+	i = n;
+	list_for_each_entry(req, list, list) {
+		if (i-- == 0)
+			goto extra;
+	}
+	while (i--) {
+		req = usb_ep_alloc_request(ep, GFP_KERNEL);
+		if (!req)
+			return list_empty(list) ? -ENOMEM : 0;
+
+		vser_req_put(dev, &dev->tx_pass_idle, req);
+
+		if (!sg_enabled) {
+			req->buf = NULL;
+			req->complete = vser_pass_complete_in;
+			continue;
+		}
+
+		req->complete = tx_complete;
+		req->sg = kcalloc(MAX_PKTS_PER_XFER,
+				sizeof(struct scatterlist), GFP_KERNEL);
+		if (!req->sg)
+			goto extra;
+
+		sg_ctx = kmalloc(sizeof(*sg_ctx), GFP_KERNEL);
+		if (!sg_ctx)
+			goto extra;
+		req->context = sg_ctx;
+		req->buf = NULL;
+	}
+	return 0;
+
+extra:
+	/* free extras */
+	for (;;) {
+		struct list_head	*next;
+
+		next = req->list.next;
+		list_del(&req->list);
+		tx_req_count--;
+
+		kfree(req->buf);
+		kfree(req->sg);
+		kfree(req->context);
+
+		usb_ep_free_request(ep, req);
+
+		if (next == list)
+			break;
+		req = container_of(next, struct usb_request, list);
+	}
+	return -ENOMEM;
+}
+#endif
+
 static int vser_create_bulk_endpoints(struct vser_dev *dev,
 				      struct usb_endpoint_descriptor *in_desc,
 				      struct usb_endpoint_descriptor *out_desc)
@@ -415,32 +537,9 @@ static int vser_create_bulk_endpoints(struct vser_dev *dev,
 		goto fail;
 
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
-	do {
-		int i;
-
-		for (i = 0; i < TX_REQ_BYPASS_MAX; i++) {
-			struct usb_request *req = NULL;
-			ktime_t			*tv_begin = NULL;
-
-			req = usb_ep_alloc_request(dev->ep_in, GFP_KERNEL);
-			if (!req) {
-				vser_free_all_request(dev);
-				ret = -ENOMEM;
-				goto fail;
-			}
-
-			tv_begin = kmalloc(sizeof(ktime_t), GFP_KERNEL);
-			if (!tv_begin) {
-				vser_free_all_request(dev);
-				ret = -ENOMEM;
-				goto fail;
-			}
-			req->context = tv_begin;
-			req->buf = NULL;
-			req->complete = vser_pass_complete_in;
-			vser_req_put(dev, &dev->tx_pass_idle, req);
-		}
-	} while (0);
+	ret = prealloc_sg(&dev->tx_pass_idle, dev->ep_in, TX_REQ_BYPASS_MAX, dev->sg_enabled);
+	if (ret)
+		goto fail;
 #endif
 
 	return 0;
@@ -685,12 +784,9 @@ static ssize_t vser_statistics_show(struct device *dev,
 {
 	struct vser_dev *vdev = _vser_dev;
 
-	vdev->ave_time_per_xfer = vdev->total_transfer_time;
-	do_div(vdev->ave_time_per_xfer, vdev->dl_sent_packet_count);
-
 	return snprintf(buf, PAGE_SIZE, "u32 dl_rx_packet_count= %u;\nu64 dl_rx_bytes= %llu;\n"
 	"u32 dl_sent_packet_count= %u;\nu64 dl_sent_bytes= %llu;\nu32 dl_sent_failed_packet_count= %u;\n"
-	"u64 min_time_per_xfer= %llu(ns);\nu64 max_time_per_xfer= %llu(ns);\nu64 ave_time_per_xfer= %llu(ns);\n"
+	"u64 min_time_per_xfer= %llu(ns);\nu64 max_time_per_xfer= %llu(ns);\n"
 	"u64 max_cb_time_per_xfer= %llu(ns);\n",
 	vdev->dl_rx_packet_count,
 	vdev->dl_rx_bytes,
@@ -699,7 +795,6 @@ static ssize_t vser_statistics_show(struct device *dev,
 	vdev->dl_sent_failed_packet_count,
 	vdev->min_time_per_xfer,
 	vdev->max_time_per_xfer,
-	vdev->ave_time_per_xfer,
 	vdev->max_cb_time_per_xfer
 	);
 }
@@ -710,12 +805,9 @@ static void vser_log_print_timer_func(struct timer_list *timer)
 {
 	struct vser_dev *dev = from_timer(dev, timer, log_print_timer);
 
-	dev->ave_time_per_xfer = dev->total_transfer_time;
-	do_div(dev->ave_time_per_xfer, dev->dl_sent_packet_count);
-
 	pr_info("u32 dl_rx_packet_count= %u; u64 dl_rx_bytes= %llu; "
 	"u32 dl_sent_packet_count= %u; u64 dl_sent_bytes= %llu; u32 dl_sent_failed_packet_count= %u; "
-	"u64 min_time_per_xfer= %llu(ns); u64 max_time_per_xfer= %llu(ns); u64 ave_time_per_xfer= %llu(ns); "
+	"u64 min_time_per_xfer= %llu(ns); u64 max_time_per_xfer= %llu(ns); "
 	"u64 max_cb_time_per_xfer= %llu(ns);\n",
 	dev->dl_rx_packet_count,
 	dev->dl_rx_bytes,
@@ -724,7 +816,6 @@ static void vser_log_print_timer_func(struct timer_list *timer)
 	dev->dl_sent_failed_packet_count,
 	dev->min_time_per_xfer,
 	dev->max_time_per_xfer,
-	dev->ave_time_per_xfer,
 	dev->max_cb_time_per_xfer
 	);
 
@@ -747,6 +838,7 @@ static int vser_init(struct vser_instance *fi_vser)
 		fi_vser->dev = dev;
 
 	spin_lock_init(&dev->lock);
+	spin_lock_init(&dev->req_lock);
 
 	init_waitqueue_head(&dev->read_wq);
 	init_waitqueue_head(&dev->write_wq);
@@ -763,6 +855,10 @@ static int vser_init(struct vser_instance *fi_vser)
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
 	INIT_LIST_HEAD(&dev->tx_pass_idle);
 	timer_setup(&dev->log_print_timer, vser_log_print_timer_func, 0);
+	INIT_LIST_HEAD(&dev->tx_pass_buf_q);
+	INIT_WORK(&dev->tx_work, process_tx_w);
+	dev->sg_enabled = true;
+	dev->dl_max_pkts_per_xfer = MAX_PKTS_PER_XFER;
 #endif
 
 	INIT_WORK(&dev->test_work, vser_test_works);
@@ -811,6 +907,13 @@ static int vser_function_bind(struct usb_configuration *c,
 
 	dev->cdev = cdev;
 
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
+	dev->dl_tx_stop_threshold = TX_STOP_THRESHOLD;
+	dev->dl_tx_pass_buf_qlen = 0;
+	dev->dl_tx_req_status = 0;
+	dev->dl_tx_work_status = 0;
+#endif
+
 	/* allocate interface ID(s) */
 	id = usb_interface_id(c, f);
 	if (id < 0)
@@ -856,10 +959,20 @@ static void vser_function_unbind(struct usb_configuration *c,
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
 	do {
 		struct usb_request *req;
+		struct pass_buf	*pbuf;
 
 		while ((req = vser_req_get(dev, &dev->tx_pass_idle))) {
-			kfree(req->context);
+			if (dev->sg_enabled) {
+				kfree(req->buf);
+				kfree(req->context);
+				kfree(req->sg);
+			}
 			usb_ep_free_request(dev->ep_in, req);
+		}
+
+		if (dev->sg_enabled) {
+			while ((pbuf = vser_pbuf_get(dev, &dev->tx_pass_buf_q)))
+				kfree(pbuf);
 		}
 	} while (0);
 
@@ -871,7 +984,6 @@ static void vser_function_unbind(struct usb_configuration *c,
 
 	dev->max_time_per_xfer = 0;
 	dev->min_time_per_xfer = 0;
-	dev->total_transfer_time = 0;
 	dev->max_cb_time_per_xfer = 0;
 
 	del_timer(&dev->log_print_timer);
@@ -1077,6 +1189,8 @@ static void vser_free_inst(struct usb_function_instance *fi)
 	kfree(fi_vser->name);
 	kfree(fi_vser);
 
+	destroy_workqueue(vser_tx_wq);
+
 	vser_cleanup();
 }
 
@@ -1097,6 +1211,16 @@ static struct usb_function_instance *vser_alloc_inst(void)
 		kfree(fi_vser);
 		return ERR_PTR(ret);
 	}
+
+#if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
+	vser_tx_wq = alloc_workqueue("vser_tx",
+		 WQ_CPU_INTENSIVE | WQ_UNBOUND, 1);
+	if (!vser_tx_wq) {
+		kfree(fi_vser);
+		pr_err("%s: Unable to create workqueue: vser_tx\n", __func__);
+		return ERR_PTR(-ENOMEM);
+	}
+#endif
 
 	config_group_init_type_name(&fi_vser->func_inst.group,
 				    "", &vser_func_type);
@@ -1147,10 +1271,184 @@ void kernel_vser_set_pass_mode(bool pass)
 }
 EXPORT_SYMBOL(kernel_vser_set_pass_mode);
 
+void kernel_vser_enable_sg(bool enable)
+{
+	struct vser_dev *dev = _vser_dev;
+
+	dev->sg_enabled = enable;
+}
+EXPORT_SYMBOL(kernel_vser_enable_sg);
+
+static void do_tx_queue_work(struct vser_dev *dev)
+{
+	unsigned long		flags;
+	u32			max_pkts_per_xfer;
+
+	spin_lock_irqsave(&dev->lock, flags);
+	max_pkts_per_xfer = dev->dl_max_pkts_per_xfer;
+	if (!max_pkts_per_xfer)
+		max_pkts_per_xfer = 1;
+
+	if ((!list_empty(&dev->tx_pass_buf_q) && !dev->dl_tx_req_status
+			&& !dev->dl_tx_work_status)
+		|| (!dev->dl_tx_work_status
+		&& (dev->dl_tx_pass_buf_qlen) >= max_pkts_per_xfer)) {
+		spin_unlock_irqrestore(&dev->lock, flags);
+		queue_work(vser_tx_wq, &dev->tx_work);
+		return;
+	}
+	spin_unlock_irqrestore(&dev->lock, flags);
+}
+
+static void tx_complete(struct usb_ep *ep, struct usb_request *req)
+{
+	struct vser_dev		*dev = _vser_dev;
+	unsigned long		flags;
+	struct sg_ctx		*sg_ctx = req->context;
+	ktime_t			tv_end;
+	ktime_t			tv_begin = sg_ctx->q_time;
+	u64			transfer_time;
+
+	if (req->status != 0) {
+		pr_err("tx err %d\n", req->status);
+		dev->wr_error = 1;
+	}
+
+	tv_end = ktime_get();
+	transfer_time = ktime_to_ns(ktime_sub(tv_end, tv_begin));
+	if (transfer_time < dev->min_time_per_xfer)
+		dev->min_time_per_xfer = transfer_time;
+	if (transfer_time > dev->max_time_per_xfer)
+		dev->max_time_per_xfer = transfer_time;
+
+	dev->dl_sent_packet_count += req->num_sgs;
+	dev->dl_sent_bytes += req->length;
+
+	if (req->num_sgs) {
+		ktime_t			cb_begin;
+		ktime_t			cb_end;
+		u64			cb_time = 0;
+		struct pass_buf		*pbuf = NULL;
+
+		do {
+			pbuf = vser_pbuf_get(dev, &sg_ctx->list);
+			if (!pbuf)
+				break;
+
+			cb_begin = ktime_get();
+			if (bulk_in_complete_function != NULL)
+				bulk_in_complete_function(pbuf->buf, pbuf->len,
+								s_callback_data);
+			cb_end = ktime_get();
+
+			cb_time = ktime_to_ns(ktime_sub(cb_end, cb_begin));
+			if (cb_time > dev->max_cb_time_per_xfer)
+				dev->max_cb_time_per_xfer = cb_time;
+
+			kfree(pbuf);
+		} while (1);
+	}
+
+	vser_req_put(dev, &dev->tx_pass_idle, req);
+
+	spin_lock_irqsave(&dev->lock, flags);
+	if (dev->dl_tx_req_status > 0)
+		dev->dl_tx_req_status--;
+	spin_unlock_irqrestore(&dev->lock, flags);
+
+	if (!req->status)
+		do_tx_queue_work(dev);
+}
+
+static void process_tx_w(struct work_struct *work)
+{
+	struct vser_dev *dev = container_of(work, struct vser_dev, tx_work);
+	struct usb_ep *in = NULL;
+	unsigned long flags;
+	struct usb_request *req;
+	struct pass_buf *pbuf = NULL;
+	struct sg_ctx *sg_ctx;
+	int count, ret = 0;
+
+	spin_lock_irqsave(&dev->lock, flags);
+	in = dev->ep_in;
+	if (!in) {
+		spin_unlock_irqrestore(&dev->lock, flags);
+		return;
+	}
+	dev->dl_tx_work_status = 1;
+	spin_unlock_irqrestore(&dev->lock, flags);
+
+	while (in && !list_empty(&dev->tx_pass_idle) && !list_empty(&dev->tx_pass_buf_q)) {
+		req = vser_req_get(dev, &dev->tx_pass_idle);
+		pbuf = vser_pbuf_get(dev, &dev->tx_pass_buf_q);
+
+		req->num_sgs = 0;
+		req->zero = 0;
+		req->length = 0;
+		sg_ctx = req->context;
+		INIT_LIST_HEAD(&sg_ctx->list);
+		sg_init_table(req->sg, dev->dl_max_pkts_per_xfer);
+
+		count = 1;
+		do {
+			sg_set_buf(&req->sg[req->num_sgs], pbuf->buf, pbuf->len);
+			req->num_sgs++;
+			req->length += pbuf->len;
+			vser_pbuf_put(dev, &sg_ctx->list, pbuf);
+
+			pbuf = vser_pbuf_get(dev, &dev->tx_pass_buf_q);
+			if (!pbuf)
+				break;
+
+			if ((req->length + pbuf->len) >= dev->size_in ||
+					count >= dev->dl_max_pkts_per_xfer) {
+				spin_lock_irqsave(&dev->lock, flags);
+				list_add(&pbuf->list, &dev->tx_pass_buf_q);
+				dev->dl_tx_pass_buf_qlen++;
+				spin_unlock_irqrestore(&dev->lock, flags);
+				break;
+			}
+
+			count++;
+		} while (true);
+
+		sg_mark_end(&req->sg[req->num_sgs - 1]);
+
+		if ((req->length % in->maxpacket) == 0)
+			req->zero = 1;
+
+		spin_lock_irqsave(&dev->lock, flags);
+		dev->dl_tx_req_status++;
+		spin_unlock_irqrestore(&dev->lock, flags);
+
+		sg_ctx->q_time = ktime_get();
+		ret = usb_ep_queue(in, req, GFP_ATOMIC);
+		if (ret) {
+			pr_err("tx usb_ep_queue ERROR!!!\n");
+
+			dev->dl_sent_failed_packet_count++;
+			spin_lock_irqsave(&dev->lock, flags);
+			dev->wr_error = 1;
+			if (dev->dl_tx_req_status > 0)
+				dev->dl_tx_req_status--;
+			spin_unlock_irqrestore(&dev->lock, flags);
+
+			while ((pbuf = vser_pbuf_get(dev, &sg_ctx->list)))
+				kfree(pbuf);
+
+			vser_req_put(dev, &dev->tx_pass_idle, req);
+			break;
+		}
+	}
+	dev->dl_tx_work_status = 0;
+}
+
 ssize_t vser_pass_user_write(char *buf, size_t count)
 {
 	struct vser_dev *dev = _vser_dev;
 	struct usb_request *req = 0;
+	struct pass_buf *pbuf = NULL;
 	int r = count, xfer, ret;
 
 	if (!dev || !dev->online)
@@ -1167,8 +1465,30 @@ ssize_t vser_pass_user_write(char *buf, size_t count)
 	if (vser_lock(&dev->write_excl))
 		return -EBUSY;
 
-	dev->dl_rx_packet_count++;
-	dev->dl_rx_bytes += count;
+	if (dev->sg_enabled) {
+		dev->dl_rx_packet_count++;
+		dev->dl_rx_bytes += count;
+
+		if (dev->dl_tx_pass_buf_qlen >= dev->dl_tx_stop_threshold) {
+			pr_debug("%s stop, qlen:%d stop_threshold:%d\n",
+				__func__, dev->dl_tx_pass_buf_qlen, dev->dl_tx_stop_threshold);
+			vser_unlock(&dev->write_excl);
+			return -EBUSY;
+		}
+
+		pbuf = vser_alloc_pass_buf(count, GFP_KERNEL);
+		if (!pbuf) {
+			vser_unlock(&dev->write_excl);
+			return -ENOMEM;
+		}
+		pbuf->buf = buf;
+		vser_pbuf_put(dev, &dev->tx_pass_buf_q, pbuf);
+
+		do_tx_queue_work(dev);
+		vser_unlock(&dev->write_excl);
+		return r;
+	}
+
 	while (count > 0) {
 		/* get an idle tx request to use */
 		ret = wait_event_interruptible(dev->write_wq,
@@ -1192,7 +1512,6 @@ ssize_t vser_pass_user_write(char *buf, size_t count)
 			if (ret < 0) {
 				pr_debug("%s: xfer error %d\n", __func__, ret);
 				dev->wr_error = 1;
-				dev->dl_sent_failed_packet_count++;
 				r = -EIO;
 				break;
 			}
@@ -1377,7 +1696,7 @@ static void vser_test_works(struct work_struct *work)
 				if (total == 0) {
 					vser_request_free(req_recv,
 							  dev->ep_out);
-					ret = wait_vser_event(dev, req_sent);
+					wait_vser_event(dev, req_sent);
 					break;
 				}
 			} else if (test_mode == DOWNLINK_TEST) {

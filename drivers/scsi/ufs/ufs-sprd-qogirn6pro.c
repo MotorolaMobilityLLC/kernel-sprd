@@ -26,6 +26,250 @@
 #include "ufs-sprd-debug.h"
 #include "ufs-sprd-pwr-debug.h"
 
+enum SPRD_N6P_UFS_DBG_INDEX {
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_80804040,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_40402020,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_20201010,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_08080808,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_04040404,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_02020202,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_01010101,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY1,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY2,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY3,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY4,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY5,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY6,
+	N6P_UFS_AON_DBG_MOD12_SIG_ARRAY7,
+
+	N6P_UFS_AP_DBG_BUS_15,
+	N6P_UFS_AP_DBG_BUS_16,
+	N6P_UFS_AP_DBG_BUS_17,
+	N6P_UFS_AP_DBG_BUS_21,
+	N6P_UFS_AP_DBG_BUS_22,
+	N6P_UFS_AP_DBG_BUS_23,
+
+	N6P_UFS_UNIPRO_UIC_D08C,
+	N6P_UFS_UNIPRO_UIC_D08D,
+	N6P_UFS_UNIPRO_UIC_D08E,
+	N6P_UFS_UNIPRO_UIC_D092,
+	N6P_UFS_UNIPRO_UIC_D093,
+	N6P_UFS_UNIPRO_UIC_D094,
+	N6P_UFS_UNIPRO_UIC_D095,
+	N6P_UFS_UNIPRO_UIC_D096,
+	N6P_UFS_UNIPRO_UIC_D097,
+	N6P_UFS_UNIPRO_UIC_D09D,
+
+	N6P_UFS_VDDEMMCORE_VOLTAGE,
+	N6P_UFS_VDDSRAM_VOLTAGE,
+	N6P_UFS_VDDUFS1V2_VOLTAGE,
+
+	N6P_UFS_DBG_REGS_MAX
+};
+
+static const char *n6p_dbg_regs_name[N6P_UFS_DBG_REGS_MAX] = {
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_80804040 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY0_80804040",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_40402020 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY0_40402020",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_20201010 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY0_20201010",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_08080808 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY0_08080808",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_04040404 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY0_04040404",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_02020202 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY0_02020202",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_01010101 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY0_01010101",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY1 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY1",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY2 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY2",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY3 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY3",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY4 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY4",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY5 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY5",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY6 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY6",
+	/* N6P_UFS_AON_DBG_MOD12_SIG_ARRAY7 */
+	"[DBGBUS]AON_DBG_MOD12_SIG_ARRAY7",
+
+	/* N6P_UFS_AP_DBG_BUS_15] */
+	"[DBGBUS]MonitorUP[31:0]",
+	/* N6P_UFS_AP_DBG_BUS_16] */
+	"[DBGBUS]MonitorUP[63:32]",
+	/* N6P_UFS_AP_DBG_BUS_17] */
+	"[DBGBUS]MonitorUP[79:64]",
+	/* N6P_UFS_AP_DBG_BUS_21] */
+	"[DBGBUS]Monitor[31:0]",
+	/* N6P_UFS_AP_DBG_BUS_22] */
+	"[DBGBUS]Monitor[63:32]",
+	/* N6P_UFS_AP_DBG_BUS_23] */
+	"[DBGBUS]Monitor[79:64]",
+
+	/* N6P_UFS_UNIPRO_UIC_D08C] */
+	"[UIC][D08C]VS_DebugAODomain",
+	/* N6P_UFS_UNIPRO_UIC_D08D] */
+	"[UIC][D08D]VS_DebugAdapt",
+	/* N6P_UFS_UNIPRO_UIC_D08E] */
+	"[UIC][D08E]VS_DebugL15ci",
+	/* N6P_UFS_UNIPRO_UIC_D092] */
+	"[UIC][D092]VS_DebugTxByteCount",
+	/* N6P_UFS_UNIPRO_UIC_D093] */
+	"[UIC][D093]VS_DebugRxByteCount",
+	/* N6P_UFS_UNIPRO_UIC_D094] */
+	"[UIC][D094]VS_DebugInvalidByteEnable",
+	/* N6P_UFS_UNIPRO_UIC_D095] */
+	"[UIC][D095]VS_DebugLinkStartup",
+	/* N6P_UFS_UNIPRO_UIC_D096] */
+	"[UIC][D096]VS_DebugPwrChg",
+	/* N6P_UFS_UNIPRO_UIC_D097] */
+	"[UIC][D097]VS_DebugStates",
+	/* N6P_UFS_UNIPRO_UIC_D09D] */
+	"[UIC][D09D]VS_DebugCounterOverflow",
+
+	/* N6P_UFS_VDDEMMCORE_VOLTAGE] */
+	"[V]vddemmcore",
+	/* N6P_UFS_VDDSRAM_VOLTAGE] */
+	"[V]vddsram",
+	/* N6P_UFS_VDDUFS1V2_VOLTAGE] */
+	"[V]vddufs1v2",
+};
+
+static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt, void *data)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9620_data *priv =
+		(struct ufs_sprd_ums9620_data *) host->ufs_priv_data;
+	struct ufs_dbg_hist *d = ufs_sprd_get_dbg_hist();
+	struct ufs_dbg_pkg *p = &d->pkg[d->pos];
+	u32 *v = p->val_array;
+	unsigned long flags;
+
+	if (!p->val_array)
+		return;
+
+	if (!priv->syssel_reg && !priv->anlg_phy_g12) {
+		dev_warn(hba->dev, "can't get ufs debug bus base.\n");
+		return;
+	}
+
+	spin_lock_irqsave(&ufs_dbg_regs_lock, flags);
+	d->pos = (d->pos + 1) % MAX_UFS_DBG_HIST;
+	spin_unlock_irqrestore(&ufs_dbg_regs_lock, flags);
+
+	p->id = evt;
+	p->data = *(u32 *)data;
+	p->time = local_clock();
+	memset(v, 0, sizeof(u32) * N6P_UFS_DBG_REGS_MAX);
+
+	/* read debugbus START */
+	writel(0x6, priv->syssel_reg);
+	writel(0xD, priv->syssel_reg + 0xc);
+
+	writel(0x1, priv->syssel_reg + 0x10);
+	writel(0xffffffff, priv->anlg_phy_g12 + 0x201c);
+	writel(0x80804040, priv->anlg_phy_g12 + 0x101c);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_80804040] = readl(priv->syssel_reg + 0x208);
+
+	writel(0xffffffff, priv->anlg_phy_g12 + 0x201c);
+	writel(0x40402020, priv->anlg_phy_g12 + 0x101c);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_40402020] = readl(priv->syssel_reg + 0x208);
+
+	writel(0xffffffff, priv->anlg_phy_g12 + 0x201c);
+	writel(0x20201010, priv->anlg_phy_g12 + 0x101c);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_20201010] = readl(priv->syssel_reg + 0x208);
+
+	writel(0xffffffff, priv->anlg_phy_g12 + 0x201c);
+	writel(0x08080808, priv->anlg_phy_g12 + 0x101c);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_08080808] = readl(priv->syssel_reg + 0x208);
+
+	writel(0xffffffff, priv->anlg_phy_g12 + 0x201c);
+	writel(0x04040404, priv->anlg_phy_g12 + 0x101c);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_04040404] = readl(priv->syssel_reg + 0x208);
+
+	writel(0xffffffff, priv->anlg_phy_g12 + 0x201c);
+	writel(0x02020202, priv->anlg_phy_g12 + 0x101c);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_02020202] = readl(priv->syssel_reg + 0x208);
+
+	writel(0xffffffff, priv->anlg_phy_g12 + 0x201c);
+	writel(0x01010101, priv->anlg_phy_g12 + 0x101c);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY0_01010101] = readl(priv->syssel_reg + 0x208);
+
+	writel(0x2, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY1] = readl(priv->syssel_reg + 0x208);
+
+	writel(0x3, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY2] = readl(priv->syssel_reg + 0x208);
+
+	writel(0x4, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY3] = readl(priv->syssel_reg + 0x208);
+
+	writel(0x5, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY4] = readl(priv->syssel_reg + 0x208);
+
+	writel(0x6, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY5] = readl(priv->syssel_reg + 0x208);
+
+	writel(0x7, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY6] = readl(priv->syssel_reg + 0x208);
+
+	writel(0x8, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AON_DBG_MOD12_SIG_ARRAY7] = readl(priv->syssel_reg + 0x208);
+
+	writel(0x0, priv->syssel_reg);
+	writel(0x0, priv->syssel_reg + 0xc);
+
+	writel(0x10, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AP_DBG_BUS_15] = readl(priv->syssel_reg + 0x208);
+	writel(0x11, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AP_DBG_BUS_16] = readl(priv->syssel_reg + 0x208);
+	writel(0x12, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AP_DBG_BUS_17] = readl(priv->syssel_reg + 0x208);
+
+	writel(0x16, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AP_DBG_BUS_21] = readl(priv->syssel_reg + 0x208);
+	writel(0x17, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AP_DBG_BUS_22] = readl(priv->syssel_reg + 0x208);
+	writel(0x18, priv->syssel_reg + 0x10);
+	v[N6P_UFS_AP_DBG_BUS_23] = readl(priv->syssel_reg + 0x208);
+	/* read debugbus END */
+
+	if (!preempt_count()) {
+		p->preempt = false;
+
+		if (!hba->active_uic_cmd) {
+			p->active_uic_cmd = false;
+
+			/* read unipro attr START */
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd08c), &v[N6P_UFS_UNIPRO_UIC_D08C]);
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd08d), &v[N6P_UFS_UNIPRO_UIC_D08D]);
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd08e), &v[N6P_UFS_UNIPRO_UIC_D08E]);
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd092), &v[N6P_UFS_UNIPRO_UIC_D092]);
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd093), &v[N6P_UFS_UNIPRO_UIC_D093]);
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd094), &v[N6P_UFS_UNIPRO_UIC_D094]);
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd095), &v[N6P_UFS_UNIPRO_UIC_D095]);
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd096), &v[N6P_UFS_UNIPRO_UIC_D096]);
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd097), &v[N6P_UFS_UNIPRO_UIC_D097]);
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd09d), &v[N6P_UFS_UNIPRO_UIC_D09D]);
+			/* read unipro attr END */
+		} else {
+			p->active_uic_cmd = true;
+		}
+
+		/* read VOLTAGE START */
+		v[N6P_UFS_VDDEMMCORE_VOLTAGE] = regulator_get_voltage(hba->vreg_info.vcc->reg);
+		v[N6P_UFS_VDDSRAM_VOLTAGE] = regulator_get_voltage(priv->vdd_mphy);
+		v[N6P_UFS_VDDUFS1V2_VOLTAGE] = regulator_get_voltage(priv->vddsram);
+		/* read VOLTAGE END */
+	} else {
+		p->preempt = true;
+	}
+}
+
 static int ufs_efuse_calib_data(struct platform_device *pdev,
 				const char *cell_name)
 {
@@ -128,6 +372,12 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 	if (ret)
 		return -ENODEV;
 
+	priv->vddsram = devm_regulator_get(dev, "vdd-hba");
+	if (IS_ERR(priv->vddsram)) {
+		dev_err(&pdev->dev, "get vdd-hba regulator failed\n");
+		return -ENODEV;
+	}
+
 	ret = ufs_sprd_get_reg_from_dt(dev, priv);
 	if (ret < 0)
 		return -ENODEV;
@@ -175,6 +425,12 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 	if (IS_ERR(priv->syssel_reg)) {
 		pr_err("error to ioremap ufs debug bus base.");
 		priv->syssel_reg = NULL;
+	}
+
+	priv->anlg_phy_g12 = devm_ioremap(dev, REG_ANLG_PHY_G12, 0x3000);
+	if (IS_ERR(priv->anlg_phy_g12)) {
+		pr_err("error to ioremap ufs anlg_phy_g12.");
+		priv->anlg_phy_g12 = NULL;
 	}
 
 	return 0;
@@ -225,46 +481,6 @@ static int ufs_sprd_priv_pre_init(struct device *dev,
 #endif
 
 	return ret;
-}
-
-static void read_ufs_debug_bus(struct ufs_hba *hba)
-{
-	u32 sigsel, debugbus_data;
-	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_ums9620_data *priv =
-		(struct ufs_sprd_ums9620_data *) host->ufs_priv_data;
-
-	if (!priv->syssel_reg) {
-		dev_warn(hba->dev, "can't get ufs debug bus base.\n");
-		return;
-	}
-
-	/* read aon ufs mphy debugbus */
-	writel(0x6, priv->syssel_reg);
-	writel(0xD, priv->syssel_reg + 0xc);
-	dev_err(hba->dev, "aon ufs mphy debugbus_data as follow(syssel:0x6, mod_reg:0xD):\n");
-	for (sigsel = 0x1; sigsel <= 0x8; sigsel++) {
-		writel(sigsel, priv->syssel_reg + 0x10);
-		debugbus_data = readl(priv->syssel_reg + 0x208);
-		dev_err(hba->dev, "sig_sel: 0x%x. debugbus_data: 0x%x\n", sigsel, debugbus_data);
-	}
-	dev_err(hba->dev, "aon ufs mphy debugbus_data end.\n");
-
-	/* read ap ufshcd debugbus */
-	writel(0x0, priv->syssel_reg);
-	writel(0x0, priv->syssel_reg + 0xc);
-	dev_err(hba->dev, "ap ufshcd debugbus_data as follow(syssel:0x0, mod_reg:0x0):\n");
-	for (sigsel = 0x10; sigsel <= 0x12; sigsel++) {
-		writel(sigsel, priv->syssel_reg + 0x10);
-		debugbus_data = readl(priv->syssel_reg + 0x208);
-		dev_err(hba->dev, "sig_sel: 0x%x. debugbus_data: 0x%x\n", sigsel, debugbus_data);
-	}
-	for (sigsel = 0x16; sigsel <= 0x18; sigsel++) {
-		writel(sigsel, priv->syssel_reg + 0x10);
-		debugbus_data = readl(priv->syssel_reg + 0x208);
-		dev_err(hba->dev, "sig_sel: 0x%x. debugbus_data: 0x%x\n", sigsel, debugbus_data);
-	}
-	dev_err(hba->dev, "ap ufshcd debugbus_data end.\n");
 }
 
 static int ufs_sprd_check_stat_after_suspend(struct ufs_hba *hba,
@@ -347,6 +563,8 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 #ifdef CONFIG_COMPAT
 	hba->host->hostt->compat_ioctl = ufshcd_sprd_ioctl;
 #endif
+
+	ufs_sprd_dbg_regs_hist_register(hba, N6P_UFS_DBG_REGS_MAX, n6p_dbg_regs_name);
 	ufs_sprd_debug_init(hba);
 
 	return 0;
@@ -858,8 +1076,10 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 
 static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
 {
+	u32 data = 0;
+
 	sprd_ufs_print_err_cnt(hba);
-	read_ufs_debug_bus(hba);
+	ufs_sprd_get_debug_regs(hba, UFS_EVT_CNT, &data);
 	sprd_ufs_debug_err_dump(hba);
 }
 
@@ -898,6 +1118,9 @@ static void ufs_sprd_update_evt_hist(struct ufs_hba *hba,
 		evt_tmp.val = *(u32 *)data;
 		ufshcd_common_trace(hba, UFS_TRACE_EVT, &evt_tmp);
 	}
+
+	if (evt != UFS_EVT_DEV_RESET && evt != UFS_EVT_HOST_RESET)
+		ufs_sprd_get_debug_regs(hba, evt, data);
 }
 
 const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops = {

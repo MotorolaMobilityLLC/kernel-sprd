@@ -23,7 +23,6 @@ struct sprd_reset {
 	struct regmap			*regmap;
 };
 
-
 extern const struct reset_control_ops sprd_reset_ops;
 extern const struct reset_control_ops sprd_sc_reset_ops;
 

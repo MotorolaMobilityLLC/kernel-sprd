@@ -59,8 +59,8 @@ static void long_running_rt_task_notifier(void *unused, struct rq *rq)
 		per_cpu(rt_task_arrival_time, cpu)
 			> sysctl_sched_long_running_rt_task_ms * MSEC_TO_NSEC) {
 		sprintf(buf,
-			"RT task %s (%d) runtime > %u now=%llu task arrival time=%llu runtime=%llu\n",
-			curr->comm, curr->pid,
+			"cpu%d RT task %s (%d) runtime > %u now=%llu task arrival time=%llu runtime=%llu\n",
+			cpu, curr->comm, curr->pid,
 			sysctl_sched_long_running_rt_task_ms * MSEC_TO_NSEC,
 			rq->clock_task,
 			per_cpu(rt_task_arrival_time, cpu),
@@ -70,7 +70,6 @@ static void long_running_rt_task_notifier(void *unused, struct rq *rq)
 			panic("%s", buf);
 		} else {
 			printk_deferred("%s", buf);
-			WARN_ON(1);
 		}
 	}
 }
@@ -101,7 +100,7 @@ int sched_long_running_rt_task_ms_handler(struct ctl_table *table, int write,
 	return ret;
 }
 
-static int is_idle_cpu(int cpu)
+static bool is_idle_cpu(int cpu)
 {
 	struct rq *rq = cpu_rq(cpu);
 
@@ -386,7 +385,7 @@ void rt_init(void)
 		if (!(zalloc_cpumask_var_node(&per_cpu(walt_local_cpu_mask, i),
 						GFP_KERNEL, cpu_to_node(i)))) {
 			pr_err("walt_local_cpu_mask alloc failed for cpu%d\n", i);
-			return;
+			goto mask_init_fail;
 		}
 	}
 
@@ -400,4 +399,11 @@ void rt_init(void)
 	}
 #endif
 	register_trace_android_rvh_rto_next_cpu(android_rvh_rto_next_cpu, NULL);
+	return;
+
+#if IS_ENABLED(CONFIG_SCHED_WALT)
+mask_init_fail:
+	for_each_possible_cpu(i)
+		free_cpumask_var(per_cpu(walt_local_cpu_mask, i));
+#endif
 }

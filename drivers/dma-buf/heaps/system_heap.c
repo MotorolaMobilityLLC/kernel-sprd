@@ -239,74 +239,16 @@ static int system_heap_dma_buf_end_cpu_access(struct dma_buf *dmabuf,
 	return 0;
 }
 
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
-int dmabuf_sysheap_map_user(struct dma_heap *heap, struct system_heap_buffer *buffer,
-	struct vm_area_struct *vma)
-{
-	struct sg_table *table = &buffer->sg_table;
-	unsigned long addr = vma->vm_start;
-	struct sg_page_iter piter;
-	int ret;
-
-	for_each_sgtable_page(table, &piter, vma->vm_pgoff) {
-		struct page *page = sg_page_iter_page(&piter);
-
-		ret = remap_pfn_range(vma, addr, page_to_pfn(page), PAGE_SIZE,
-					  vma->vm_page_prot);
-		if (ret)
-			return ret;
-		addr += PAGE_SIZE;
-		if (addr >= vma->vm_end)
-			return 0;
-	}
-
-	return 0;
-}
-#endif
-
 static int system_heap_mmap(struct dma_buf *dmabuf, struct vm_area_struct *vma)
 {
 	struct system_heap_buffer *buffer = dmabuf->priv;
 	struct sg_table *table = &buffer->sg_table;
 	unsigned long addr = vma->vm_start;
 	struct sg_page_iter piter;
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
-	struct dma_heap *heap = buffer->heap;
-	struct task_struct *task = current->group_leader;
-	pid_t pid = task_pid_nr(task);
-	int i;
-#endif
 	int ret;
 
 	if (buffer->uncached)
 		vma->vm_page_prot = pgprot_writecombine(vma->vm_page_prot);
-
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
-	ret = dmabuf_sysheap_map_user(heap, buffer, vma);
-
-	if (ret)
-		pr_err("%s: failure mapping sysbuffer to userspace\n", __func__);
-
-	for (i = 0; i < MAX_MAP_USER; i++) {
-		if (pid == buffer->mappers[i].pid) {
-			ktime_get_real_ts64(&buffer->mappers[i].map_ts);
-			buffer->mappers[i].map_ts.tv_sec -= sys_tz.tz_minuteswest * 60;
-			goto out;
-		}
-	}
-
-	for (i = 0; i < MAX_MAP_USER; i++) {
-		if (!(buffer->mappers[i].pid)) {
-			buffer->mappers[i].pid = pid;
-			get_task_comm(buffer->mappers[i].task_name, task);
-			ktime_get_real_ts64(&buffer->mappers[i].map_ts);
-			buffer->mappers[i].map_ts.tv_sec -= sys_tz.tz_minuteswest * 60;
-			break;
-		}
-	}
-out:
-	return ret;
-#endif
 
 	for_each_sgtable_page(table, &piter, vma->vm_pgoff) {
 		struct page *page = sg_page_iter_page(&piter);
@@ -654,26 +596,30 @@ int dmabuf_debug_sysheap_show_printk(struct dma_heap *heap, void *data)
 	for (n = rb_first(&dev->buffers); n; n = rb_next(n)) {
 		struct system_heap_buffer *buffer = rb_entry(n, struct system_heap_buffer,
 			node);
-
-		time64_to_tm(buffer->alloc_ts.tv_sec, 0, &t);
-		pr_info("%-10zu %-5d %-16s %ld.%d.%d-%d:%d:%d.%ld\n",
-			buffer->len, buffer->pid, buffer->task_name,
-			t.tm_year + 1900, t.tm_mon + 1,
-			t.tm_mday, t.tm_hour, t.tm_min,
-			t.tm_sec, buffer->alloc_ts.tv_nsec);
+		if (!IS_ERR_OR_NULL(buffer)) {
+			time64_to_tm(buffer->alloc_ts.tv_sec, 0, &t);
+			pr_info("%-10zu %-5d %-16s %ld.%d.%d-%d:%d:%d.%ld\n",
+				buffer->len, buffer->pid, buffer->task_name,
+				t.tm_year + 1900, t.tm_mon + 1,
+				t.tm_mday, t.tm_hour, t.tm_min,
+				t.tm_sec, buffer->alloc_ts.tv_nsec);
+		}
 		for (i = 0; i < MAX_MAP_USER; i++) {
-			if (buffer->mappers[i].pid) {
-				time64_to_tm(buffer->mappers[i].map_ts.tv_sec, 0, &t);
-				pr_info("       |---%-5d  %-16s  %ld.%d.%d-%d:%d:%d.%ld\n",
+			if (!IS_ERR_OR_NULL(buffer)) {
+				if (buffer->mappers[i].valid) {
+					time64_to_tm(buffer->mappers[i].map_ts.tv_sec, 0, &t);
+					pr_info("       |---%-5d  %-5d  %-16s  %ld.%d.%d-%d:%d:%d.%ld\n",
 						buffer->mappers[i].pid,
+						buffer->mappers[i].fd,
 						buffer->mappers[i].task_name,
 						t.tm_year + 1900, t.tm_mon + 1,
 						t.tm_mday, t.tm_hour, t.tm_min,
 						t.tm_sec, buffer->mappers[i].map_ts.tv_nsec);
+				}
 			}
 		}
-
-		total_size += buffer->len;
+		if (!IS_ERR_OR_NULL(buffer))
+			total_size += buffer->len;
 	}
 	mutex_unlock(&dev->buffer_lock);
 	pr_info("----------------------------------------------------\n");

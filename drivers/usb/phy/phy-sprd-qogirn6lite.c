@@ -32,6 +32,11 @@
 #include <dt-bindings/mfd/sprd,ump9620-mask.h>
 #include <dt-bindings/mfd/sprd,ump9620-regs.h>
 
+struct phy_reg_info {
+	struct regmap		*regmap_ptr;
+	u32			args[3];
+};
+
 struct sprd_hsphy {
 	struct device		*dev;
 	struct usb_phy		phy;
@@ -42,17 +47,15 @@ struct sprd_hsphy {
 	struct regmap           *hsphy_glb;
 	struct regmap           *ana_g0;
 	struct regmap           *pmic;
+	struct phy_reg_info	refclk_cfg;
 	u32			host_eye_pattern;
 	u32			device_eye_pattern;
 	u32			vdd_vol;
 	atomic_t		reset;
 	atomic_t		inited;
 	bool			is_host;
+	bool			avdd1v8_chipsleep_off;
 };
-
-/* Pls keep the same definition as musb_sprd */
-#define CHARGER_2NDDETECT_ENABLE	BIT(30)
-#define CHARGER_2NDDETECT_SELECT	BIT(31)
 
 #define BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_VBUSVALID       0x02000000
 #define BIT_ANLG_PHY_G0L_ANALOG_USB20_USB20_TESTCLK         0x01000000
@@ -397,11 +400,18 @@ static int sprd_hsphy_init(struct usb_phy *x)
 		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,
 		msk, reg);
 
-#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
-	/* set avdd1v8 force on for usb lowpower */
-	regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
-			MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
-#endif
+	/*if avdd1v8 is off on chipsleep, set avdd1v8 force on for usb lowpower */
+	if (phy->avdd1v8_chipsleep_off)
+		regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+
+	if (phy->refclk_cfg.regmap_ptr) {
+		reg = msk = phy->refclk_cfg.args[1] | phy->refclk_cfg.args[2];
+		ret |= regmap_update_bits(phy->refclk_cfg.regmap_ptr,
+				phy->refclk_cfg.args[0],
+				msk, reg);
+	}
+
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
 		atomic_set(&phy->reset, 1);
@@ -424,11 +434,13 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 
 	dev_info(x->dev, "[%s]enter usbm_event_is_active(%d), usbm_ssphy_get_onoff(%d)\n",
 		__func__, sprd_usbm_event_is_active(), sprd_usbm_ssphy_get_onoff());
-#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
-	/* clear avdd1v8 force on for usb lowpower */
-	regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
-			MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
-#endif
+
+	/*if avdd1v8 is off on chipsleep, clear avdd1v8 force on for usb lowpower */
+	if (phy->avdd1v8_chipsleep_off)
+		regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+
+
 	sprd_usbm_hsphy_set_onoff(0);
 	if (!sprd_usbm_ssphy_get_onoff()) {
 		/* usb vbus */
@@ -463,6 +475,13 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		/*disable analog:0x64900004*/
 		msk = MASK_AON_APB_AON_USB2_TOP_EB | MASK_AON_APB_OTG_PHY_EB;;
 		regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, 0);
+
+		if (phy->refclk_cfg.regmap_ptr) {
+			reg = msk = phy->refclk_cfg.args[1] | phy->refclk_cfg.args[2];
+			regmap_update_bits(phy->refclk_cfg.regmap_ptr,
+					phy->refclk_cfg.args[0],
+					msk, ~reg);
+		}
 	}
 
 	if (regulator_is_enabled(phy->vdd))
@@ -778,6 +797,9 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	phy->avdd1v8_chipsleep_off = device_property_read_bool(dev,
+					"avdd1v8-chipsleep-off");
+
 	boot_cali = sprd_hsphy_cali_mode();
 
 	if (boot_cali) {
@@ -816,6 +838,13 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		return PTR_ERR(phy->hsphy_glb);
 	}
 
+	phy->refclk_cfg.regmap_ptr = syscon_regmap_lookup_by_phandle_args(dev->of_node,
+			"refclk_cfg", 3, phy->refclk_cfg.args);
+	if (IS_ERR(phy->refclk_cfg.regmap_ptr)) {
+		dev_warn(&pdev->dev, "failed to get refclk_cfg regmap!\n");
+		phy->refclk_cfg.regmap_ptr = NULL;
+	}
+
 	ret = sprd_eye_pattern_prepared(phy, dev);
 	if (ret < 0)
 		dev_warn(dev, "sprd_eye_pattern_prepared failed, ret = %d\n", ret);
@@ -834,7 +863,6 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	phy->phy.type = USB_PHY_TYPE_USB2;
 	phy->phy.vbus_nb.notifier_call = sprd_hsphy_vbus_notify;
 	phy->phy.charger_detect = sprd_hsphy_charger_detect;
-	phy->phy.flags &= ~CHARGER_2NDDETECT_ENABLE;
 	otg->usb_phy = &phy->phy;
 	phy->ops.dpdm_switch_to_phy = sprd_hsphy_dpdm_switch_to_phy;
 	phy->ops.get_dpdm_from_phy = sprd_hsphy_get_dpdm_from_phy;

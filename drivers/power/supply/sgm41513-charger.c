@@ -103,6 +103,7 @@ struct sgm41513_charger_info {
 	u64 last_wdt_time;
 	bool need_disable_Q1;
 	struct alarm otg_timer;
+	bool disable_wdg;
 	bool otg_enable;
 	bool is_charger_online;
 	bool disable_power_path;
@@ -582,6 +583,18 @@ static void sgm41513_dump_register(struct sgm41513_charger_info *info)
 	}
 }
 
+static int sgm41513_charger_enable_wdg(struct sgm41513_charger_info *info, bool en)
+{
+	u8 val = SGM41513_WDT_DISABLE;
+
+	if (en)
+		val = SGM41513_WDT_40S;
+
+	return sgm41513_update_bits(info, SGM41513_REG_05,
+				    SGM41513_WDT_MASK,
+				    val << SGM41513_WDT_SHIFT);
+}
+
 static int sgm41513_charger_start_charge(struct sgm41513_charger_info *info)
 {
 	int ret = 0;
@@ -592,11 +605,9 @@ static int sgm41513_charger_start_charge(struct sgm41513_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "disable HIZ mode failed\n");
 
-	ret = sgm41513_update_bits(info, SGM41513_REG_05,
-				   SGM41513_WDT_MASK,
-				   0x01 << SGM41513_WDT_SHIFT);
+	ret = sgm41513_charger_enable_wdg(info, true);
 	if (ret) {
-		dev_err(info->dev, "Failed to enable sgm41513 watchdog\n");
+		dev_err(info->dev, "%s, failed to enable watchdog, ret = %d\n", __func__, ret);
 		return ret;
 	}
 
@@ -624,7 +635,7 @@ static void sgm41513_charger_stop_charge(struct sgm41513_charger_info *info)
 {
 	int ret;
 
-	dev_info(info->dev, "%s:line%d: start charge\n", __func__, __LINE__);
+	dev_info(info->dev, "%s:line%d: stop charge\n", __func__, __LINE__);
 
 	if (info->role == SGM41513_ROLE_MASTER) {
 		if (boot_calibration) {
@@ -661,10 +672,9 @@ static void sgm41513_charger_stop_charge(struct sgm41513_charger_info *info)
 			dev_err(info->dev, "Failed to disable power path\n");
 	}
 
-	ret = sgm41513_update_bits(info, SGM41513_REG_05,
-				   SGM41513_WDT_MASK, 0);
+	ret = sgm41513_charger_enable_wdg(info, false);
 	if (ret)
-		dev_err(info->dev, "Failed to disable sgm41513 watchdog\n");
+		dev_err(info->dev, "%s, failed to disable watchdog, ret = %d\n", __func__, ret);
 }
 
 static int sgm41513_charger_set_current(struct sgm41513_charger_info *info, u32 cur)
@@ -1223,6 +1233,18 @@ static int sgm41513_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
+	ret = sgm41513_charger_enable_wdg(info, true);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to enable watchdog, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	ret = sgm41513_charger_feed_watchdog(info);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to feed watchdog, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
 	ret = sgm41513_exit_hiz_mode(info);
 	if (ret)
 		dev_err(info->dev, "Failed to enable power path\n");
@@ -1264,6 +1286,12 @@ static int sgm41513_charger_disable_otg(struct regulator_dev *dev)
 				   SGM41513_OTG_DISABLE << SGM41513_OTG_CONFIG_SHIFT);
 	if (ret) {
 		dev_err(info->dev, "disable sgm41513 otg failed\n");
+		return ret;
+	}
+
+	ret = sgm41513_charger_enable_wdg(info, false);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to disable watchdog, ret = %d\n", __func__, ret);
 		return ret;
 	}
 
@@ -1377,6 +1405,7 @@ static int sgm41513_charger_probe(struct i2c_client *client,
 	}
 
 	info->use_typec_extcon = device_property_read_bool(dev, "use-typec-extcon");
+	info->disable_wdg = device_property_read_bool(dev, "disable-otg-wdg-in-sleep");
 
 	ret = device_property_read_bool(dev, "role-slave");
 	if (ret)
@@ -1559,18 +1588,24 @@ static int sgm41513_charger_suspend(struct device *dev)
 		return -EINVAL;
 	}
 
-	if (info->otg_enable || info->is_charger_online)
+	if (info->otg_enable || info->is_charger_online) {
 		sgm41513_charger_feed_watchdog(info);
+		cancel_delayed_work_sync(&info->wdt_work);
+	}
 
 	if (!info->otg_enable)
 		return 0;
 
-	cancel_delayed_work_sync(&info->wdt_work);
-
-	dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
-	now = ktime_get_boottime();
-	add = ktime_set(SGM41513_OTG_ALARM_TIMER_S, 0);
-	alarm_start(&info->otg_timer, ktime_add(now, add));
+	if (info->disable_wdg) {
+		if (sgm41513_charger_enable_wdg(info, false))
+			dev_err(info->dev, "%s, failed to disable watchdog\n", __func__);
+			return -EBUSY;
+	} else {
+		dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
+		now = ktime_get_boottime();
+		add = ktime_set(SGM41513_OTG_ALARM_TIMER_S, 0);
+		alarm_start(&info->otg_timer, ktime_add(now, add));
+	}
 
 	return 0;
 }
@@ -1584,15 +1619,21 @@ static int sgm41513_charger_resume(struct device *dev)
 		return -EINVAL;
 	}
 
-	if (info->otg_enable || info->is_charger_online)
+	if (info->otg_enable || info->is_charger_online) {
 		sgm41513_charger_feed_watchdog(info);
+		schedule_delayed_work(&info->wdt_work, HZ * 15);
+	}
 
 	if (!info->otg_enable)
 		return 0;
 
-	alarm_cancel(&info->otg_timer);
-
-	schedule_delayed_work(&info->wdt_work, HZ * 15);
+	if (info->disable_wdg) {
+		if (sgm41513_charger_enable_wdg(info, true))
+			dev_err(info->dev, "%s, failed to enable watchdog, ret = %d\n", __func__);
+			return -EBUSY;
+	} else {
+		alarm_cancel(&info->otg_timer);
+	}
 
 	return 0;
 }

@@ -130,6 +130,9 @@ static ssize_t top_cur_volt_show(struct device *dev,
 	struct apsys_dev *apsys = to_apsys(dev);
 	int ret, cur_volt;
 
+	if (!get_display_power_status())
+		return -EINVAL;
+
 	if (apsys->dvfs_ops && apsys->dvfs_ops->top_cur_volt) {
 		cur_volt = apsys->dvfs_ops->top_cur_volt(apsys);
 	} else {
@@ -155,6 +158,9 @@ static ssize_t apsys_hold_en_store(struct device *dev,
 	struct apsys_dev *apsys = to_apsys(dev);
 	int ret, hold_en;
 
+	if (!get_display_power_status())
+		return -EINVAL;
+
 	ret = sscanf(buf, "%d\n", &hold_en);
 	if (ret == 0)
 		return -EINVAL;
@@ -172,6 +178,9 @@ static ssize_t apsys_force_en_store(struct device *dev,
 {
 	struct apsys_dev *apsys = to_apsys(dev);
 	int ret, force_en;
+
+	if (!get_display_power_status())
+		return -EINVAL;
 
 	ret = sscanf(buf, "%d\n", &force_en);
 	if (ret == 0)
@@ -191,6 +200,9 @@ static ssize_t apsys_auto_gate_store(struct device *dev,
 	struct apsys_dev *apsys = to_apsys(dev);
 	int ret, gate_sel;
 
+	if (!get_display_power_status())
+		return -EINVAL;
+
 	ret = sscanf(buf, "%d\n", &gate_sel);
 	if (ret == 0)
 		return -EINVAL;
@@ -209,6 +221,9 @@ static ssize_t apsys_wait_window_store(struct device *dev,
 	struct apsys_dev *apsys = to_apsys(dev);
 	int ret, wait_window;
 
+	if (!get_display_power_status())
+		return -EINVAL;
+
 	ret = sscanf(buf, "%d\n", &wait_window);
 	if (ret == 0)
 		return -EINVAL;
@@ -226,6 +241,9 @@ static ssize_t apsys_min_volt_store(struct device *dev,
 {
 	struct apsys_dev *apsys = to_apsys(dev);
 	int ret, min_volt;
+
+	if (!get_display_power_status())
+		return -EINVAL;
 
 	ret = sscanf(buf, "%d\n", &min_volt);
 	if (ret == 0)

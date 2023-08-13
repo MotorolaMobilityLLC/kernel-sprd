@@ -5,12 +5,11 @@
 // Copyright (C) 2022 Spreadtrum, Inc.
 // Author: Zhifeng Tang <zhifeng.tang@unisoc.com>
 
-#include <linux/reset-controller.h>
-#include <linux/regmap.h>
 #include <linux/delay.h>
+#include <linux/regmap.h>
+#include <linux/reset-controller.h>
 
 #include "reset.h"
-
 
 static inline struct sprd_reset *to_sprd_reset(struct reset_controller_dev *rcdev)
 {
@@ -88,4 +87,3 @@ const struct reset_control_ops sprd_sc_reset_ops = {
 	.reset		= sprd_sc_reset_reset,
 };
 EXPORT_SYMBOL_GPL(sprd_sc_reset_ops);
-

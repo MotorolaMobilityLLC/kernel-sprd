@@ -11,6 +11,7 @@
 #include <linux/kmemleak.h>
 
 #include "uni_sched.h"
+#include "cpu_netlink.h"
 
 #define CREATE_TRACE_POINTS
 #include "trace.h"
@@ -373,10 +374,22 @@ static void sched_show_untask_stack(void *data, bool preempr,
 	}
 }
 
+static void android_rvh_wake_up_new_task(void *data, struct task_struct *p)
+{
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	walt_init_new_task_load(p);
+
+	if (is_fair_task(p))
+		check_parent_vip_status(p);
+}
+
 static void register_sched_vendor_hooks(void)
 {
 	register_trace_android_vh_dup_task_struct(android_vh_dup_task_struct, NULL);
 	register_trace_android_rvh_sched_fork_init(android_rvh_sched_fork_init, NULL);
+	register_trace_android_rvh_wake_up_new_task(android_rvh_wake_up_new_task, NULL);
 	register_trace_android_rvh_after_enqueue_task(android_rvh_after_enqueue_task, NULL);
 	register_trace_android_rvh_after_dequeue_task(android_rvh_after_dequeue_task, NULL);
 	register_trace_android_vh_sched_show_task(android_vh_sched_show_task, NULL);
@@ -524,6 +537,8 @@ static void uni_sched_init(struct work_struct *work)
 	hdr = register_sysctl_table(sched_base_table);
 
 	uscfreq_gov_register();
+
+	cpu_netlink_init();
 
 	core_pause_init();
 	core_ctl_init();

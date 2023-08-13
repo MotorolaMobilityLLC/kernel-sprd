@@ -23,6 +23,12 @@
 #include <linux/memblock.h>
 #include <linux/kmemleak.h>
 
+#ifdef CONFIG_SPRD_SHOW_RESERVED_MEM
+#include <linux/seq_file.h>
+#include <linux/proc_fs.h>
+#include <linux/module.h>
+#endif
+
 #include "of_private.h"
 
 #define MAX_RESERVED_REGIONS	128
@@ -40,6 +46,40 @@ void show_reserved_memory_info(void)
 				(unsigned long long)reserved_mem[i].base,
 				(unsigned long long)reserved_mem[i].size);
 }
+#endif
+
+#ifdef CONFIG_SPRD_SHOW_RESERVED_MEM
+static int meminfo_show(struct seq_file *m, void *p)
+{
+	int i;
+
+	for (i = 0; i < reserved_mem_count; i++)
+		seq_printf(m, "name: %s, base: %#016llx, size: %#016llx\n",
+				reserved_mem[i].name,
+				(unsigned long long)reserved_mem[i].base,
+				(unsigned long long)reserved_mem[i].size);
+	return 0;
+}
+
+static int meminfo_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, meminfo_show, NULL);
+}
+
+static const struct proc_ops proc_show_mem_operations = {
+	.proc_open              = meminfo_open,
+	.proc_read              = seq_read,
+	.proc_lseek             = seq_lseek,
+	.proc_release           = single_release,
+};
+
+static int __init reserved_proc_init(void)
+{
+	proc_create("show_reserved_mem", 0200, NULL, &proc_show_mem_operations);
+	return 0;
+}
+
+module_init(reserved_proc_init);
 #endif
 
 static int __init early_init_dt_alloc_reserved_memory_arch(phys_addr_t size,

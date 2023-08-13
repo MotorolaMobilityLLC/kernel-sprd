@@ -26,6 +26,7 @@
 #include <linux/sched.h>
 #include <linux/seq_file.h>
 #include <linux/slab.h>
+#include <linux/soc/sprd/sprd_pdbg.h>
 #include <linux/wait.h>
 #include <linux/module.h>
 #include <linux/of_address.h>
@@ -73,6 +74,9 @@ static struct smsg_device *smsg_dev;
 
 static u8 g_wakeup_flag;
 static struct smsg_callback_t smsg_callback[SIPC_ID_NR][SMSG_CH_NR + 1];
+#if IS_ENABLED(CONFIG_SPRD_POWER_DEBUG)
+static u32 ws_info = 0xffff;
+#endif
 
 struct smsg_ipc *smsg_ipcs[SIPC_ID_NR];
 EXPORT_SYMBOL_GPL(smsg_ipcs);
@@ -86,6 +90,9 @@ static void smsg_wakeup_print(struct smsg_ipc *ipc, struct smsg *msg)
 	/* if the first msg come after the irq wake up by sipc,
 	 * use prin_fo to output log
 	 */
+#if IS_ENABLED(CONFIG_SPRD_POWER_DEBUG)
+	u32 ch = msg->channel;
+#endif
 	if (g_wakeup_flag) {
 		g_wakeup_flag = 0;
 		pr_info("irq read smsg: dst=%d, channel=%d,type=%d, flag=0x%04x, value=0x%08x\n",
@@ -94,6 +101,9 @@ static void smsg_wakeup_print(struct smsg_ipc *ipc, struct smsg *msg)
 			msg->type,
 			msg->flag,
 			msg->value);
+#if IS_ENABLED(CONFIG_SPRD_POWER_DEBUG)
+		ws_info = (ipc->dst | (ch << 8));
+#endif
 	} else {
 		pr_debug("irq read non wakeup smsg: dst=%d, channel=%d,type=%d, flag=0x%04x, value=0x%08x\n",
 			 ipc->dst,
@@ -400,12 +410,36 @@ static void smsg_wakeup_flag_notify(bool wakeup_flag)
 		sipc_clear_wakeup_flag();
 }
 
+#if IS_ENABLED(CONFIG_SPRD_POWER_DEBUG)
+static int pdbg_nb_cb(struct notifier_block *self, unsigned long cmd, void *priv)
+{
+	switch (cmd) {
+	case PDBG_NB_WS_UPDATE:
+		*(u32 *)priv = ws_info;
+		ws_info = 0xffff;
+		break;
+	default:
+		break;
+	}
+
+	return NOTIFY_OK;
+}
+
+static struct notifier_block pdbg_nb = {
+	.notifier_call = pdbg_nb_cb,
+};
+#endif
+
 void smsg_init_wakeup(void)
 {
 #if defined CONFIG_UNISOC_MAILBOX_R1
 	sprd_mbox_wakeup_flag_callback_register_r1(smsg_wakeup_flag_notify);
 #elif defined CONFIG_UNISOC_MAILBOX_R2
 	sprd_mbox_wakeup_flag_callback_register_r2(smsg_wakeup_flag_notify);
+#endif
+#if IS_ENABLED(CONFIG_SPRD_POWER_DEBUG)
+	if (sprd_pdbg_notify_register(&pdbg_nb))
+		pr_err("sprd_pdbg_notify_register failed!!!\n");
 #endif
 }
 EXPORT_SYMBOL_GPL(smsg_init_wakeup);

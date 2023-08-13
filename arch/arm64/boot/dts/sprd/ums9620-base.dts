@@ -387,10 +387,16 @@
 	status = "okay";
 };
 
+&dsi1 {
+	status = "okay";
+};
+
 &dsi {
 	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
+
+	sprd,dual-channel = <&dsi1>; /* dual dsi enable */
 
 	panel: panel {
 		compatible = "sprd,generic-mipi-panel";
@@ -525,8 +531,13 @@
 	power-domains = <&agdsp_domain>;
 };
 
+&dphy1 {
+	status = "okay";
+};
+
 &dphy {
 	status = "okay";
+	sprd,dual-channel = <&dphy1>; /* dual dphy enable */
 };
 
 &vpu_pd_top {
@@ -635,6 +646,11 @@
 	sprd,tdm_slot_valid = <3>;
 	sprd,trx_sync_mode = <1>;
 	status = "okay";
+};
+
+&power_debug {
+	status = "okay";
+	memory-region = <&pdbg_reserved>;
 };
 
 &jpg {

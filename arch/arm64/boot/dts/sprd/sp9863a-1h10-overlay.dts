@@ -112,6 +112,10 @@
 	};
 };
 
+&chosen {
+	bootargs_ext = "kvm-arm.mode=none";
+};
+
 &i2c0 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -372,4 +376,10 @@
 	avdd-gpio = <&ap_gpio 4 GPIO_ACTIVE_HIGH>;
 	avee-gpio = <&ap_gpio 5 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
+};
+
+&thm_zone {
+	pa_thmzone: pa-thmzone {
+		status = "disabled";
+	};
 };

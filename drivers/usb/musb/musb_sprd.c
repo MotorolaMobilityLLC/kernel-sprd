@@ -59,9 +59,12 @@
 #define MUSB_RUNTIME_CHECK_DELAY		(msecs_to_jiffies(200))
 #define MUSB_UDC_START_CHECK_DELAY		(msecs_to_jiffies(50))
 #define MUSB_DATA_ENABLE_CHECK_DELAY		(msecs_to_jiffies(200))
+#define MUSB_CHG_WAIT_DETECT_DELAY		(msecs_to_jiffies(500))
+#define MUSB_CHG_MAX_WAIT_BC1P2_COUNT		5
 #define MUSB_SPRD_CHG_MAX_REDETECT_COUNT	3
 
 /* Pls keep the same definition as PHY */
+#define CHARGER_DETECT_DONE		BIT(0)
 #define CHARGER_2NDDETECT_ENABLE	BIT(30)
 #define CHARGER_2NDDETECT_SELECT	BIT(31)
 
@@ -126,7 +129,6 @@ struct sprd_glue {
 	struct regulator		*vbus;
 	struct wakeup_source		*pd_wake_lock;
 	struct regmap			*pmu;
-	struct musb_reg_info		usb31pllv_frc_on;
 	struct musb_reg_info		pubsys_bypass;
 	struct musb_reg_info		suspend_clk_src_frc_on;
 	struct usb_role_switch		*role_sw;
@@ -164,6 +166,7 @@ struct sprd_glue {
 	enum musb_drd_state		drd_state;
 	enum usb_chg_detect_state	chg_state;
 	enum usb_charger_type		chg_type;
+	int				wait_chg_detect_count;
 	int				retry_chg_detect_count;
 	int				start_host_retry_count;
 	int				usb_data_enabled;
@@ -654,10 +657,10 @@ static struct musb_fifo_cfg sprd_musb_host_mode_cfg[] = {
 	MUSB_EP_FIFO_DOUBLE(2, FIFO_RX, 512),
 	MUSB_EP_FIFO_DOUBLE(3, FIFO_TX, 512),
 	MUSB_EP_FIFO_DOUBLE(3, FIFO_RX, 512),
-	MUSB_EP_FIFO_SINGLE(4, FIFO_TX, 1024),
-	MUSB_EP_FIFO_SINGLE(4, FIFO_RX, 4096),
-	MUSB_EP_FIFO_DOUBLE(5, FIFO_TX, 512),
-	MUSB_EP_FIFO_DOUBLE(5, FIFO_RX, 512),
+	MUSB_EP_FIFO_DOUBLE(4, FIFO_TX, 512),
+	MUSB_EP_FIFO_DOUBLE(4, FIFO_RX, 512),
+	MUSB_EP_FIFO_SINGLE(5, FIFO_TX, 1024),
+	MUSB_EP_FIFO_SINGLE(5, FIFO_RX, 4096),
 	MUSB_EP_FIFO_DOUBLE(6, FIFO_TX, 1024),
 	MUSB_EP_FIFO_DOUBLE(6, FIFO_RX, 512),
 	MUSB_EP_FIFO_DOUBLE(7, FIFO_TX, 1024),
@@ -836,6 +839,7 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 		glue->chg_state = USB_CHG_STATE_UNDETECT;
 		glue->charging_mode = false;
 		glue->retry_chg_detect_count = 0;
+		glue->wait_chg_detect_count = 0;
 	}
 
 	queue_work(glue->musb_wq, &glue->resume_work);
@@ -1050,26 +1054,6 @@ static void sprd_musb_reset_context(struct musb *musb)
 	for (i = 0; i < musb->config->num_eps; ++i) {
 		musb->context.index_regs[i].txcsr = 0;
 		musb->context.index_regs[i].rxcsr = 0;
-	}
-}
-
-static void musb_sprd_control_usb31pllv_frc_onoff(struct sprd_glue *glue)
-{
-	struct musb *musb = glue->musb;
-
-	if (!glue->usb31pllv_frc_on.regmap_ptr)
-		return;
-
-	if (musb->is_offload && !musb->offload_used) {
-		regmap_update_bits(glue->usb31pllv_frc_on.regmap_ptr,
-				glue->usb31pllv_frc_on.args[0],
-				glue->usb31pllv_frc_on.args[1],
-				~glue->usb31pllv_frc_on.args[1]);
-	} else if (musb->is_offload && musb->offload_used) {
-		regmap_update_bits(glue->usb31pllv_frc_on.regmap_ptr,
-				glue->usb31pllv_frc_on.args[0],
-				glue->usb31pllv_frc_on.args[1],
-				glue->usb31pllv_frc_on.args[1]);
 	}
 }
 
@@ -1618,8 +1602,10 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 	unsigned long delay = 0;
 	bool rework = false;
 
-	if (!glue->vbus_active)
+	if (!glue->vbus_active) {
+		dev_info(glue->dev, "musb:line%d: vbus_active 0\n", __LINE__);
 		return;
+	}
 
 	switch (glue->chg_state) {
 	case USB_CHG_STATE_UNDETECT:
@@ -1634,6 +1620,20 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 	case USB_CHG_STATE_DETECT:
 		if (usb_phy->charger_detect)
 			glue->chg_type = usb_phy->charger_detect(usb_phy);
+
+		if (!glue->vbus_active) {
+			dev_info(glue->dev, "musb:line%d: vbus_active 0\n", __LINE__);
+			break;
+		}
+
+		if (!(usb_phy->flags & CHARGER_DETECT_DONE)
+		    && glue->wait_chg_detect_count < MUSB_CHG_MAX_WAIT_BC1P2_COUNT) {
+			dev_info(glue->dev, "musb:wait bc1.2 done");
+			glue->wait_chg_detect_count++;
+			rework = true;
+			delay = MUSB_CHG_WAIT_DETECT_DELAY;
+			break;
+		}
 		glue->chg_state = USB_CHG_STATE_DETECTED;
 		fallthrough;
 	case USB_CHG_STATE_DETECTED:
@@ -1661,6 +1661,7 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 	case USB_CHG_STATE_RETRY_DETECT:
 		if (extcon_get_state(glue->edev, EXTCON_USB))
 			glue->chg_type = musb_sprd_retry_charger_detect(glue);
+
 		glue->chg_state = USB_CHG_STATE_RETRY_DETECTED;
 		fallthrough;
 	case USB_CHG_STATE_RETRY_DETECTED:
@@ -1701,9 +1702,7 @@ static int musb_sprd_suspend(struct sprd_glue *glue)
 		return 0;
 	}
 
-	if (glue->dr_mode == USB_DR_MODE_HOST)
-		usb_phy_vbus_off(glue->xceiv);
-
+	usb_phy_vbus_off(glue->xceiv);
 	atomic_set(&glue->musb_runtime_suspended, 1);
 	musb_sprd_disable_all_interrupts(musb);
 	clk_disable_unprepare(glue->clk);
@@ -2214,12 +2213,6 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		goto err_core_clk;
 	}
 
-	glue->usb31pllv_frc_on.regmap_ptr = syscon_regmap_lookup_by_phandle_args(dev->of_node,
-						"usb31pllv_frc_on", 2, glue->usb31pllv_frc_on.args);
-	if (IS_ERR(glue->usb31pllv_frc_on.regmap_ptr)) {
-		dev_warn(&pdev->dev, "failed to get usb31pllv_frc_on regmap!\n");
-		glue->usb31pllv_frc_on.regmap_ptr = NULL;
-	}
 #if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
 	glue->suspend_clk_src_frc_on.regmap_ptr = syscon_regmap_lookup_by_phandle_args(dev->of_node,
 						"suspend_clk_source_frc_on", 2,
@@ -2475,8 +2468,6 @@ static int musb_sprd_pm_suspend(struct device *dev)
 					   msk, val);
 		}
 	}
-
-	musb_sprd_control_usb31pllv_frc_onoff(glue);
 
 	/* in host mode, don't do suspend */
 	if (glue->dr_mode == USB_DR_MODE_HOST) {

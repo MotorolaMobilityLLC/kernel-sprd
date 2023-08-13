@@ -12,11 +12,12 @@
 
 #define THM_NAME_LENGTH		20
 #define PERIOD			5000
+#define DEF_THMZONE		"board-thmzone"
 
 struct shell_sensor {
 	u16 sensor_id;
 	int cur_temp;
-	int resume_flag;
+	int init_flag;
 	size_t nsensor;
 	size_t ntemp;
 	int index;
@@ -40,13 +41,13 @@ struct sprd_thermal_zone {
 
 static int __sprd_get_temp(struct shell_sensor *psensor, int *temp)
 {
-	int i, j, ret = 0;
+	int i = 0, j = 0, ret = 0;
 	int sum_temp = 0;
 	int coeff_index = 0;
 	struct thermal_zone_device *tz = NULL;
 	int index = psensor->index;
 
-	for (i = 0; i < psensor->nsensor; i++) {
+	for (; i < psensor->nsensor; i++) {
 		tz = psensor->thm_zones[i];
 		if (!tz || IS_ERR(tz) || !tz->ops->get_temp) {
 			pr_err("get thermal zone failed %d\n", i);
@@ -57,12 +58,16 @@ static int __sprd_get_temp(struct shell_sensor *psensor, int *temp)
 			pr_err("get thermal %s temp failed\n", tz->type);
 			return ret;
 		}
-		if (psensor->resume_flag) {
-			for (j = 1; j < psensor->ntemp; j++)
-				psensor->hty_temp[i][j] = psensor->hty_temp[i][index];
-		}
 	}
-	/* when resumed use the last thm_zone temp as shell sensor temp */
+	if (psensor->init_flag) {
+		tz = thermal_zone_get_zone_by_name(DEF_THMZONE);
+		ret = tz->ops->get_temp(tz, temp);
+		if (ret) {
+			pr_err("get %s temp fail\n", tz->type);
+			return ret;
+		}
+		goto out;
+	}
 
 	for (i = 0; i < psensor->nsensor; i++) {
 		for (j = 0; j < psensor->ntemp; j++) {
@@ -75,11 +80,12 @@ static int __sprd_get_temp(struct shell_sensor *psensor, int *temp)
 	}
 	sum_temp = sum_temp/10000 + psensor->const_temp;
 	*temp = sum_temp;
+out:
 	psensor->index++;
-	psensor->resume_flag = 0;
-	if (index == psensor->ntemp - 1)
+	if (index == psensor->ntemp - 1) {
 		psensor->index = 0;
-
+		psensor->init_flag = 0;
+	}
 	return 0;
 }
 
@@ -204,7 +210,7 @@ static int sprd_shell_thm_resume(struct platform_device *pdev)
 	struct shell_sensor *psensor = platform_get_drvdata(pdev);
 
 	psensor->index = 0;
-	psensor->resume_flag = 1;
+	psensor->init_flag = 1;
 	queue_delayed_work(system_power_efficient_wq, &psensor->read_temp_work,
 			   msecs_to_jiffies(PERIOD));
 
@@ -251,7 +257,7 @@ static int sprd_shell_thm_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	psensor->index = 0;
-	psensor->resume_flag = 1;
+	psensor->init_flag = 1;
 	psensor->cur_temp = 0;
 	ret = sprd_temp_sen_parse_dt(&pdev->dev, psensor);
 	if (ret) {
@@ -299,11 +305,8 @@ static int sprd_shell_thm_remove(struct platform_device *pdev)
 	struct shell_sensor *psensor = platform_get_drvdata(pdev);
 	struct sprd_thermal_zone *pzone = psensor->pzone;
 
+	cancel_delayed_work_sync(&psensor->read_temp_work);
 	thermal_zone_device_unregister(pzone->therm_dev);
-	kfree(psensor->sensor_names);
-	kfree(psensor->thm_zones);
-	kfree(psensor->coeff);
-	kfree(psensor->hty_temp);
 	mutex_destroy(&pzone->th_lock);
 	return 0;
 }

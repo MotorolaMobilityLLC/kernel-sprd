@@ -119,13 +119,13 @@ static struct sprd_reset_map ums9230_pmu_apb_resets[] = {
 static struct sprd_clk_desc ums9230_pmu_gate_desc = {
 	.clk_clks	= ums9230_pmu_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_pmu_gate_clks),
-	.hw_clks        = &ums9230_pmu_gate_hws,
-	.resets = ums9230_pmu_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_pmu_apb_resets),
+	.hw_clks	= &ums9230_pmu_gate_hws,
+	.resets		= ums9230_pmu_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_pmu_apb_resets),
 };
 
 /* pll clock at g0 */
-static struct freq_table dpll0_ftable[5] = {
+static struct freq_table dpll0_ftable[] = {
 	{ .ibias = 2, .max_freq = 1173000000ULL, .vco_sel = 0 },
 	{ .ibias = 3, .max_freq = 1475000000ULL, .vco_sel = 0 },
 	{ .ibias = 4, .max_freq = 1855000000ULL, .vco_sel = 0 },
@@ -199,7 +199,7 @@ static struct sprd_clk_desc ums9230_g1_pll_desc = {
 };
 
 /* pll at g3 */
-static struct freq_table ftable[6] = {
+static struct freq_table ftable[] = {
 	{ .ibias = 2, .max_freq = 900000000ULL, .vco_sel = 0 },
 	{ .ibias = 3, .max_freq = 1100000000ULL, .vco_sel = 0 },
 	{ .ibias = 4, .max_freq = 1300000000ULL, .vco_sel = 0 },
@@ -230,7 +230,7 @@ static SPRD_PLL_HW(rpll, "rpll", &clk_26m_aud.hw, 0x0, 3,
 static SPRD_SC_GATE_CLK_FW_NAME(audio_gate, "audio-gate", "ext-26m", 0x24,
 				0x1000, BIT(1), CLK_IGNORE_UNUSED, 0);
 
-static struct freq_table mpll_ftable[8] = {
+static struct freq_table mpll_ftable[] = {
 	{ .ibias = 0, .max_freq = 1200000000ULL, .vco_sel = 0 },
 	{ .ibias = 1, .max_freq = 1400000000ULL, .vco_sel = 0 },
 	{ .ibias = 2, .max_freq = 1600000000ULL, .vco_sel = 0 },
@@ -604,8 +604,8 @@ static struct sprd_clk_desc ums9230_apapb_gate_desc = {
 	.clk_clks	= ums9230_apapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_apapb_gate),
 	.hw_clks	= &ums9230_apapb_gate_hws,
-	.resets = ums9230_ap_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_ap_apb_resets),
+	.resets		= ums9230_ap_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_ap_apb_resets),
 };
 
 /* ap ahb gates */
@@ -655,8 +655,8 @@ static struct sprd_clk_desc ums9230_apahb_gate_desc = {
 	.clk_clks	= ums9230_apahb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_apahb_gate),
 	.hw_clks	= &ums9230_apahb_gate_hws,
-	.resets = ums9230_ap_ahb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_ap_ahb_resets),
+	.resets		= ums9230_ap_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_ap_ahb_resets),
 };
 
 /* ap clks */
@@ -1416,8 +1416,8 @@ static struct sprd_clk_desc ums9230_aon_gate_desc = {
 	.clk_clks	= ums9230_aon_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_aon_gate),
 	.hw_clks	= &ums9230_aon_gate_hws,
-	.resets = ums9230_aon_ahb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_aon_ahb_resets),
+	.resets		= ums9230_aon_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_aon_ahb_resets),
 };
 
 /* aon apb clks */
@@ -1896,8 +1896,8 @@ static struct sprd_clk_desc ums9230_gpu_clk_desc = {
 	.clk_clks	= ums9230_gpu_clk,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_gpu_clk),
 	.hw_clks	= &ums9230_gpu_clk_hws,
-	.resets = ums9230_gpu_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_gpu_apb_resets),
+	.resets		= ums9230_gpu_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_gpu_apb_resets),
 };
 
 /* mm clocks */
@@ -2164,8 +2164,8 @@ static struct sprd_clk_desc ums9230_mm_gate_clk_desc = {
 	.clk_clks	= ums9230_mm_gate_clk,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_mm_gate_clk),
 	.hw_clks	= &ums9230_mm_gate_clk_hws,
-	.resets = ums9230_mm_ahb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_mm_ahb_resets),
+	.resets		= ums9230_mm_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_mm_ahb_resets),
 };
 
 /* audcp ahb gates */
@@ -2301,8 +2301,8 @@ static const struct sprd_clk_desc ums9230_audcpahb_gate_desc = {
 	.clk_clks	= ums9230_audcpahb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_audcpahb_gate),
 	.hw_clks	= &ums9230_audcpahb_gate_hws,
-	.resets = ums9230_audcp_ahb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_audcp_ahb_resets),
+	.resets		= ums9230_audcp_ahb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_audcp_ahb_resets),
 };
 
 /* audcp apb gates */
@@ -2351,8 +2351,8 @@ static const struct sprd_clk_desc ums9230_audcpapb_gate_desc = {
 	.clk_clks	= ums9230_audcpapb_gate,
 	.num_clk_clks	= ARRAY_SIZE(ums9230_audcpapb_gate),
 	.hw_clks	= &ums9230_audcpapb_gate_hws,
-	.resets = ums9230_audcp_apb_resets,
-	.num_resets = ARRAY_SIZE(ums9230_audcp_apb_resets),
+	.resets		= ums9230_audcp_apb_resets,
+	.num_resets	= ARRAY_SIZE(ums9230_audcp_apb_resets),
 };
 
 static const struct of_device_id sprd_ums9230_clk_ids[] = {
@@ -2415,7 +2415,7 @@ static int ums9230_clk_probe(struct platform_device *pdev)
 
 		ret = devm_reset_controller_register(&pdev->dev, &reset->rcdev);
 		if (ret)
-			dev_err(&pdev->dev, "Failed to register reset controller\n");
+			dev_warn(&pdev->dev, "Failed to register reset controller\n");
 	}
 
 	return sprd_clk_probe(&pdev->dev, desc->hw_clks);

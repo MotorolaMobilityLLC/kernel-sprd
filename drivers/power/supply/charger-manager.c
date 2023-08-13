@@ -890,6 +890,7 @@ static void cm_get_charger_type(struct charger_manager *cm,
 				u32 *type)
 {
 	struct charger_type *chg_type;
+	enum cm_charger_type match_type = CM_CHARGER_TYPE_UNKNOWN;
 
 	switch (chg_type_flag) {
 	case CM_FCHG_TYPE:
@@ -912,12 +913,14 @@ static void cm_get_charger_type(struct charger_manager *cm,
 
 	while ((chg_type)->adap_type != CM_CHARGER_TYPE_UNKNOWN) {
 		if (*type == chg_type->psy_type) {
-			*type = chg_type->adap_type;
-			return;
+			match_type = chg_type->adap_type;
+			break;
 		}
 
 		chg_type++;
 	}
+
+	*type = match_type;
 }
 
 /**
@@ -3970,7 +3973,7 @@ static int cm_set_primary_charge_wirless_type(struct charger_manager *cm, bool e
 			val.intval = POWER_SUPPLY_WIRELESS_CHARGER_TYPE_EPP;
 			break;
 		default:
-			val.intval = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+			val.intval = POWER_SUPPLY_WIRELESS_CHARGER_TYPE_UNKNOWN;
 		}
 	} else {
 		val.intval = 0;
@@ -4599,21 +4602,15 @@ out:
 }
 
 /**
- * cm_use_typec_charger_type_polling - Polling charger type if use typec extcon.
+ * cm_charger_type_polling - Polling charger type.
  * @cm: the Charger Manager representing the battery.
  */
-static int cm_use_typec_charger_type_polling(struct charger_manager *cm)
+static int cm_charger_type_polling(struct charger_manager *cm)
 {
 	int ret;
 	u32 type;
 
-	if (cm->vchg_info && !cm->vchg_info->use_typec_extcon)
-		return 0;
-
 	if (!is_ext_usb_pwr_online(cm))
-		return 0;
-
-	if (cm->desc->is_fast_charge)
 		return 0;
 
 	if (cm->desc->charger_type != POWER_SUPPLY_USB_TYPE_UNKNOWN)
@@ -4638,8 +4635,7 @@ static int cm_use_typec_charger_type_polling(struct charger_manager *cm)
 
 static void cm_charger_type_update_check_start(struct charger_manager *cm)
 {
-	if (cm->vchg_info->use_typec_extcon &&
-	    cm->desc->charger_type == POWER_SUPPLY_USB_TYPE_UNKNOWN &&
+	if (cm->desc->charger_type == POWER_SUPPLY_USB_TYPE_UNKNOWN &&
 	    cm->desc->charge_type_poll_count < CM_CHARGER_TYPE_TIME_OUT_CNT) {
 		cm->desc->charge_type_poll_count++;
 		schedule_delayed_work(&cm->charger_type_update_work,
@@ -4654,7 +4650,7 @@ static void cm_charger_type_update_work(struct work_struct *work)
 						  struct charger_manager,
 						  charger_type_update_work);
 
-	cm_use_typec_charger_type_polling(cm);
+	cm_charger_type_polling(cm);
 	cm_charger_type_update_check_start(cm);
 }
 
@@ -5162,7 +5158,6 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->wl_charge_en = 0;
 		cm->desc->usb_charge_en = 0;
 		cm->vchg_info->charger_type_cnt = 0;
-		cm->desc->pd_port_partner = 0;
 		cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
 					 SPRD_VOTE_TYPE_ALL, 0, 0, 0, cm);
 		cm->desc->xts_limit_cur = false;
@@ -5171,6 +5166,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 	}
 
 	cm_update_charger_type_status(cm);
+	cm->desc->pd_port_partner = 0;
 
 	if (is_polling_required(cm) && cm->desc->polling_interval_ms)
 		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
@@ -6059,7 +6055,6 @@ static void cm_update_charger_type_status(struct charger_manager *cm)
 				wireless_main.ONLINE = 0;
 				usb_main.ONLINE = 0;
 				ac_main.ONLINE = 1;
-				cm->desc->pd_port_partner = 0;
 				dev_info(cm->dev, "ac online\n");
 			}
 			break;
@@ -6114,7 +6109,8 @@ void cm_check_pd_update_ac_usb_online(bool is_pd_hub)
 
 	cm->desc->pd_port_partner = is_pd_hub;
 
-	cm_update_charger_type_status(cm);
+	if (usb_main.ONLINE)
+		cm_update_charger_type_status(cm);
 
 	if (ac_main.ONLINE) {
 		power_supply_changed(cm->charger_psy);

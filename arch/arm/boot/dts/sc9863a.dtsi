@@ -159,8 +159,9 @@
 		};
 	};
 
-	debug_log: debuglog {
-		compatible                         = "sprd,debuglog";
+	power_debug: pdbg {
+		compatible                         = "sprd,pdbg";
+		status                             = "disabled";
 		sprd,pdbg-irq-domain-gic           = "GICv3";
 		sprd,pdbg-irq-domain-gpio          = "sprd-gpio-plus";
 		sprd,pdbg-irq-domain-ana           = "spi4.0";
@@ -169,11 +170,27 @@
 		sprd,pdbg-irq-domain-ap-eic-latch  = "40210080.gpio";
 		sprd,pdbg-irq-domain-ap-eic-async  = "402100a0.gpio";
 		sprd,pdbg-irq-domain-ap-eic-sync   = "402100c0.gpio";
-	};
-
-	debug_stat: debugstat {
-		compatible = "sprd,debugstat";
-		soc_slp_cnt_reg = <&pmu_apb_regs REG_PMU_APB_SLEEP_CNT5 0xffff>;
+		chipset {
+			sprd,subsys-index = <0>;
+			sprd,subsys-slp-cnt = <&pmu_apb_regs REG_PMU_APB_SLEEP_CNT5 0 0xffff>;
+			sprd,subsys-slp-time = <&aon_apb_regs REG_AON_APB_DCXO_LC_REG1 0 0xffffffff>;
+		};
+		ap {
+			sprd,subsys-index = <1>;
+			sprd,subsys-slp-cnt = <&pmu_apb_regs REG_PMU_APB_SLEEP_CNT3 0 0xffff>;
+		};
+		pubcp {
+			sprd,subsys-index = <4>;
+			sprd,subsys-slp-state = <&pmu_apb_regs REG_PMU_APB_SLEEP_CTRL 2 0x1>;
+		};
+		wcn_btwf {
+			sprd,subsys-index = <6>;
+			sprd,subsys-slp-state = <&pmu_apb_regs REG_PMU_APB_SLEEP_CTRL 3 0x1>;
+		};
+		wcn_gnss {
+			sprd,subsys-index = <7>;
+			sprd,subsys-slp-state = <&pmu_apb_regs REG_PMU_APB_SLEEP_CTRL 3 0x1>;
+		};
 	};
 
 	psci {
@@ -187,7 +204,7 @@
 		sprd,cpufreq-boost;
 		sprd,multi-version;
 		sprd,pmic-type = <2>;
-		sprd,temp-threshold = <65>;
+		sprd,temp-threshold = <10 65>;
 		sprd,transition-delay = <500>;
 		sprd,thmzone-names = "cpu-thmzone";
 
@@ -200,7 +217,7 @@
 		sprd,cpufreq-boost;
 		sprd,multi-version;
 		sprd,pmic-type = <0>;
-		sprd,temp-threshold = <65>;
+		sprd,temp-threshold = <10 65>;
 		sprd,transition-delay = <500>;
 		sprd,thmzone-names = "cpu-thmzone";
 

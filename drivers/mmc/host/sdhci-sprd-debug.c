@@ -113,7 +113,7 @@ static void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host
 		wspeed_temp = write_speed;
 		rspeed_mod = do_div(rspeed_temp, 100);
 		wspeed_mod = do_div(wspeed_temp, 100);
-		pr_err("|__speed%7s: r= %lld.%lld M/s, w= %lld.%lld M/s, r_blk= %d, w_blk= %d\n",
+		pr_err("|__speed%7s: r= %lld.%lldM/s, w= %lld.%lldM/s, r_blk= %lld, w_blk= %lld\n",
 			info->name, rspeed_temp, rspeed_mod, wspeed_temp, wspeed_mod,
 			info->read_total_blocks, info->write_total_blocks);
 		if ((read_speed > MMC_SPEED_0M && read_speed < MMC_SPEED_1M) ||

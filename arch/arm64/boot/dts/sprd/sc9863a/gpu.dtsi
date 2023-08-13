@@ -29,11 +29,15 @@
 			MASK_AON_CLK_GPU_EB>;
 		interrupts = <GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>;
 
+		nvmem-cells = <&gpu_bin>;
+		nvmem-cell-names = "gpu_bin";
+
 		operating-points = <
 			/* kHz    uV */
 			256000    0
 			384000    0
 			550000    0
+			600000    0
 			>;
 
 		sprd,dvfs-lists = <
@@ -41,6 +45,7 @@
 			256000  0    5   1
 			384000  0    7   1
 			550000  0    9   1
+			600000  0    9   1
 			>;
 
 		sprd,dvfs-default = <0>;

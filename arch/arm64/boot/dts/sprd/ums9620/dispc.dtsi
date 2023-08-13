@@ -1,3 +1,24 @@
+// SPDX-License-Identifier: (Licenseref-Unisoc-General-1.0 OR GPL-2.0-only)
+/*
+ * dispc.dtsi - Unisoc platform device
+ *
+ * Copyright 2022 Unisoc(Shanghai) Technologies Co.Ltd
+ *
+ * Licensed under the Unisoc General Software License, version 1.0 (the
+ * License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * https://www.unisoc.com/en_us/license/UNISOC_GENERAL_LICENSE_V1.0-EN_US
+ * Software distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OF ANY KIND, either express or implied.
+ * See the Unisoc General Software License, version 1.0 for more details.
+ *
+ * Alternatively you can use and distribute this file under the terms of the
+ * GNU General Public License version 2, provided that it has to be used
+ *  (including but not limited to combining, linking) with any other file under
+ * the GNU General Public License version 2 on platforms that use Unisoc Chips.
+ */
+
 &dpuvsp {
 	dpu: dpu@31000000 {
 		compatible = "sprd,qogirn6pro-dpu";
@@ -91,6 +112,33 @@
 		#iommu-cells = <0>;
 	};
 
+	dsi1: dsi1@31400000 {
+		compatible = "sprd,qogirn6pro-dsi1-host";
+		reg = <0x0 0x31400000 0x0 0x1000>;
+		reset = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_RST
+		MASK_DPU_VSP_APB_DSI1_SOFT_RST>;
+		syscon-names = "reset";
+		interrupts = <GIC_SPI 155 IRQ_TYPE_LEVEL_HIGH>,
+		<GIC_SPI 154 IRQ_TYPE_LEVEL_HIGH>;
+
+		status = "disabled";
+		dev-id = <1>;
+		sprd,ip = "sprd,dsi-ctrl", "r3p1";
+		sprd,soc = "qogirn6pro_s";
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				dsi1_out: endpoint {
+					remote-endpoint = <&dphy1_in>;
+				};
+			};
+		};
+	};
+
 	dsi: dsi@31300000 {
 		compatible = "sprd,qogirn6pro-dsi-host";
 		reg = <0x0 0x31300000 0x0 0x1000>;
@@ -115,6 +163,31 @@
 				dsi_in: endpoint {
 					remote-endpoint = <&dpu_out>;
 				};
+			};
+		};
+	};
+
+	dphy1: dphy1 {
+		compatible = "sprd,qogirn6pro-dsi1-phy";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x0 0x31400000 0x0 0x1000>;
+		enable-syscon = <&dpu_vsp_apb_regs REG_DPU_VSP_APB_MISC_CKG_EB
+			(MASK_DPU_VSP_APB_DPHY1_REF_CKG_EN |
+			MASK_DPU_VSP_APB_DPHY1_CFG_CKG_EN)>;
+		power-syscon = <&pmu_apb_regs REG_PMU_APB_RF_ANALOG_PHY_PD_CFG
+			MASK_PMU_APB_RF_DSI1_PD_REG>;
+		syscon-names = "enable", "power";
+		status = "disabled";
+		dev-id = <1>;
+		sprd,ip = "sprd,megacores-sharkl5";
+		sprd,soc = "qogirn6pro_s";
+		sprd,mipi-drive-capability = <7>;
+		/* input port*/
+		port@1 {
+			reg = <1>;
+			dphy1_in: endpoint {
+				remote-endpoint = <&dsi1_out>;
 			};
 		};
 	};
@@ -310,4 +383,9 @@
 		<&g5l_pll CLK_TGPLL_384M>,
 		<&aonapb_gate CLK_DPU_VSP_EB>,
 		<&dpu_vsp_gate CLK_DPU_EB>;
+};
+
+&dsi1 {
+	clock-names = "clk_dsi1_eb";
+	clocks = <&dpu_vsp_gate CLK_DSI1_EB>;
 };

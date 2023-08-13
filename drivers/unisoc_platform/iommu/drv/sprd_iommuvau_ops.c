@@ -23,14 +23,25 @@
 
 static void sprd_iommuvau_clk_enable(struct sprd_iommu_dev *dev)
 {
-	if (dev->mmu_mclock)
-		clk_prepare_enable(dev->mmu_mclock);
+	int ret;
 
-	if (dev->mmu_clock)
-		clk_prepare_enable(dev->mmu_clock);
+	if (dev->mmu_mclock) {
+		ret = clk_prepare_enable(dev->mmu_mclock);
+		if (ret)
+			IOMMU_ERR("mmu_mclocl enable error\n");
+	}
 
-	if (dev->mmu_axiclock)
-		clk_prepare_enable(dev->mmu_axiclock);
+	if (dev->mmu_clock) {
+		ret = clk_prepare_enable(dev->mmu_clock);
+		if (ret)
+			IOMMU_ERR("mmu_clock enable error\n");
+	}
+
+	if (dev->mmu_axiclock) {
+		ret = clk_prepare_enable(dev->mmu_axiclock);
+		if (ret)
+			IOMMU_ERR("mmu_axiclock enable error\n");
+	}
 }
 
 static void sprd_iommuvau_clk_disable(struct sprd_iommu_dev *dev)

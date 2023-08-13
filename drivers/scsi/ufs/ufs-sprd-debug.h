@@ -8,7 +8,7 @@
 
 #ifndef _UFS_SPRD_DEBUG_H_
 #define _UFS_SPRD_DEBUG_H_
-#include "ufshcd.h"
+
 #ifdef CONFIG_SPRD_DEBUG
 /* Userdebug ver default ON!!! */
 #define UFS_DEBUG_ON_DEF true
@@ -18,9 +18,26 @@
 #define UFS_DEBUG_ERR_PANIC_DEF false
 #endif
 
+#define MAX_UFS_DBG_HIST 15
 #define UFS_CMD_RECORD_DEPTH (300)
 #define UFS_SINGLE_LINE_STR_LIMIT (230)
 #define DUMP_BUFFER_S (UFS_CMD_RECORD_DEPTH * UFS_SINGLE_LINE_STR_LIMIT)
+
+struct ufs_dbg_pkg {
+	ktime_t time;
+	u32 id;
+	u32 data;
+	bool preempt;
+	bool active_uic_cmd;
+	void *val_array;
+};
+
+struct ufs_dbg_hist {
+	u32 pos;
+	void *name_array;
+	u32 each_pkg_num;
+	struct ufs_dbg_pkg pkg[MAX_UFS_DBG_HIST];
+};
 
 enum ufs_event_list {
 	UFS_TRACE_SEND,
@@ -219,9 +236,9 @@ do { \
 		pr_info(fmt, ##args); \
 } while (0)
 
+extern spinlock_t ufs_dbg_regs_lock;
+
 int ufs_sprd_debug_init(struct ufs_hba *hba);
-void ufshcd_transfer_event_trace(struct ufs_hba *hba,
-				      enum ufs_event_list event, unsigned int tag);
 void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *data);
 bool sprd_ufs_debug_is_supported(struct ufs_hba *hba);
 void sprd_ufs_debug_err_dump(struct ufs_hba *hba);
@@ -230,6 +247,9 @@ void ufs_sprd_update_err_cnt(struct ufs_hba *hba, u32 reg, enum err_type type);
 void ufs_sprd_update_uic_err_cnt(struct ufs_hba *hba, u32 reg, enum ufs_event_type evt);
 void ufs_sprd_sysfs_add_nodes(struct ufs_hba *hba);
 void ufs_sprd_cmd_history_dump(u32 dump_req, struct seq_file *m, char **dump_pos);
+
+void *ufs_sprd_get_dbg_hist(void);
+void ufs_sprd_dbg_regs_hist_register(struct ufs_hba *hba, u32 regs_num, void *name_ptr);
 
 #endif/* _UFS_SPRD_DEBUG_H_ */
 

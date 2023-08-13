@@ -27,6 +27,96 @@
 #include "ufs-sprd-debug.h"
 #include "ufs-sprd-pwr-debug.h"
 
+enum SPRD_L6_UFS_DBG_INDEX {
+	L6_UFS_AP_DBG_BUS_0,
+	L6_UFS_AP_DBG_BUS_21,
+	L6_UFS_AP_DBG_BUS_22,
+	L6_UFS_AP_DBG_BUS_28,
+	L6_UFS_AP_DBG_BUS_29,
+	L6_UFS_AP_DBG_BUS_30,
+	L6_UFS_AP_DBG_BUS_31,
+	L6_UFS_AP_DBG_BUS_32,
+
+	L6_UFS_DBG_REGS_MAX
+};
+
+static const char *l6_dbg_regs_name[L6_UFS_DBG_REGS_MAX] = {
+	/* L6_UFS_AP_DBG_BUS_0 */
+	"[DBGBUS]AP_DBG_BUS_0",
+	/* L6_UFS_AP_DBG_BUS_21 */
+	"[DBGBUS]Monitor[31:0]",
+	/* L6_UFS_AP_DBG_BUS_22 */
+	"[DBGBUS]Monitor[63:32]",
+	/* L6_UFS_AP_DBG_BUS_28 */
+	"[DBGBUS]Monitor[73:64]",
+	/* L6_UFS_AP_DBG_BUS_29 */
+	"[DBGBUS]MonitorUP[31:0]",
+	/* L6_UFS_AP_DBG_BUS_30 */
+	"[DBGBUS]MonitorUP[63:32]",
+	/* L6_UFS_AP_DBG_BUS_31 */
+	"[DBGBUS]MonitorUP[79:64]",
+	/* L6_UFS_AP_DBG_BUS_32 */
+	"[DBGBUS]AP_DBG_BUS_32",
+};
+
+static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt, void *data)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9230_data *priv =
+		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
+	struct ufs_dbg_hist *d = ufs_sprd_get_dbg_hist();
+	struct ufs_dbg_pkg *p = &d->pkg[d->pos];
+	u32 *v = p->val_array;
+	unsigned long flags;
+
+	if (!p->val_array)
+		return;
+
+	if (!priv->dbg_apb_reg) {
+		dev_warn(hba->dev, "can't get ufs debug bus base.\n");
+		return;
+	}
+
+	spin_lock_irqsave(&ufs_dbg_regs_lock, flags);
+	d->pos = (d->pos + 1) % MAX_UFS_DBG_HIST;
+	spin_unlock_irqrestore(&ufs_dbg_regs_lock, flags);
+
+	p->id = evt;
+	p->data = *(u32 *)data;
+	p->time = local_clock();
+	memset(v, 0, sizeof(u32) * L6_UFS_DBG_REGS_MAX);
+
+	writel(0x0, priv->dbg_apb_reg + 0x18);
+	writel(0x1 << 8, priv->dbg_apb_reg + 0x1c);
+	v[L6_UFS_AP_DBG_BUS_0] = readl(priv->dbg_apb_reg + 0x50);
+
+	writel(0x16 << 8, priv->dbg_apb_reg + 0x1c);
+	v[L6_UFS_AP_DBG_BUS_21] = readl(priv->dbg_apb_reg + 0x50);
+
+	writel(0x17 << 8, priv->dbg_apb_reg + 0x1c);
+	v[L6_UFS_AP_DBG_BUS_22] = readl(priv->dbg_apb_reg + 0x50);
+
+	writel(0x1D << 8, priv->dbg_apb_reg + 0x1c);
+	v[L6_UFS_AP_DBG_BUS_28] = readl(priv->dbg_apb_reg + 0x50);
+
+	writel(0x1E << 8, priv->dbg_apb_reg + 0x1c);
+	v[L6_UFS_AP_DBG_BUS_29] = readl(priv->dbg_apb_reg + 0x50);
+
+	writel(0x1F << 8, priv->dbg_apb_reg + 0x1c);
+	v[L6_UFS_AP_DBG_BUS_30] = readl(priv->dbg_apb_reg + 0x50);
+
+	writel(0x20 << 8, priv->dbg_apb_reg + 0x1c);
+	v[L6_UFS_AP_DBG_BUS_31] = readl(priv->dbg_apb_reg + 0x50);
+
+	writel(0x21 << 8, priv->dbg_apb_reg + 0x1c);
+	v[L6_UFS_AP_DBG_BUS_32] = readl(priv->dbg_apb_reg + 0x50);
+
+	if (!preempt_count())
+		p->preempt = false;
+	else
+		p->preempt = true;
+}
+
 int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 {
 	int ret = 0;
@@ -440,34 +530,6 @@ out:
 
 }
 
-void read_ufs_debug_bus(struct ufs_hba *hba)
-{
-	u32 sigsel[] = {0x1, 0x16, 0x17, 0x1D, 0x1E, 0x1F, 0x20, 0x21};
-	u32 debugbus_data;
-	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
-	struct ufs_sprd_ums9230_data *priv =
-		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
-	int i;
-
-	if (!priv->dbg_apb_reg) {
-		dev_warn(hba->dev, "can't get ufs debug bus base.\n");
-		return;
-	}
-
-	/* read aon ufs mphy debugbus */
-	dev_err(hba->dev, "No ufs mphy debugbus single.\n");
-
-	/* read ap ufshcd debugbus */
-	writel(0x0, priv->dbg_apb_reg + 0x18);
-	dev_err(hba->dev, "ap ufshcd debugbus_data as follow(syssel:0x0):\n");
-	for (i = 0; i < ARRAY_SIZE(sigsel); i++) {
-		writel(sigsel[i] << 8, priv->dbg_apb_reg + 0x1c);
-		debugbus_data = readl(priv->dbg_apb_reg + 0x50);
-		dev_err(hba->dev, "sig_sel: 0x%x. debugbus_data: 0x%x\n", sigsel[i], debugbus_data);
-	}
-	dev_err(hba->dev, "ap ufshcd debugbus_data end.\n");
-}
-
 static void sprd_ufs_vh_send_uic(struct ufs_hba *hba, struct uic_command *ucmd, int str)
 {
 	/*
@@ -526,7 +588,10 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 		     UFSHCD_CAP_WB_EN | UFSHCD_CAP_HIBERN8_WITH_CLK_GATING;
 
 	ufs_sprd_reset_pre(host);
+
+	ufs_sprd_dbg_regs_hist_register(hba, L6_UFS_DBG_REGS_MAX, l6_dbg_regs_name);
 	ufs_sprd_debug_init(hba);
+
 	return 0;
 }
 
@@ -1045,8 +1110,10 @@ static int ufs_sprd_device_reset(struct ufs_hba *hba)
 
 static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
 {
+	u32 data = 0;
+
 	sprd_ufs_print_err_cnt(hba);
-	read_ufs_debug_bus(hba);
+	ufs_sprd_get_debug_regs(hba, UFS_EVT_CNT, &data);
 	sprd_ufs_debug_err_dump(hba);
 }
 
@@ -1085,6 +1152,9 @@ static void ufs_sprd_update_evt_hist(struct ufs_hba *hba,
 		evt_tmp.val = *(u32 *)data;
 		ufshcd_common_trace(hba, UFS_TRACE_EVT, &evt_tmp);
 	}
+
+	if (evt != UFS_EVT_DEV_RESET && evt != UFS_EVT_HOST_RESET)
+		ufs_sprd_get_debug_regs(hba, evt, data);
 }
 
 const struct ufs_hba_variant_ops ufs_hba_sprd_ums9230_vops = {

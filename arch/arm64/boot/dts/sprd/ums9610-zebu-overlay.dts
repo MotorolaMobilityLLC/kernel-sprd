@@ -1,3 +1,24 @@
+// SPDX-License-Identifier: (Licenseref-Unisoc-General-1.0 OR GPL-2.0-only)
+/*
+ * ums9610-zebu-overlay.dts - Unisoc platform device
+ *
+ * Copyright 2022 Unisoc(Shanghai) Technologies Co.Ltd
+ *
+ * Licensed under the Unisoc General Software License, version 1.0 (the
+ * License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * https://www.unisoc.com/en_us/license/UNISOC_GENERAL_LICENSE_V1.0-EN_US
+ * Software distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OF ANY KIND, either express or implied.
+ * See the Unisoc General Software License, version 1.0 for more details.
+ *
+ * Alternatively you can use and distribute this file under the terms of the
+ * GNU General Public License version 2, provided that it has to be used
+ *  (including but not limited to combining, linking) with any other file under
+ * the GNU General Public License version 2 on platforms that use Unisoc Chips.
+ */
+
 /dts-v1/;
 /plugin/;
 #include <dt-bindings/gpio/gpio.h>
@@ -9,7 +30,7 @@
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "reserved-memory/ums9610-zebu-overlay.dtsi"
 #include "touchscreen/ums9620-spi1-gpio13-14-tp.dtsi"
-#include "battery/ums9620-2h10-overlay.dtsi"
+#include "battery/ums9610-zebu-flash-overlay.dtsi"
 #include <dt-bindings/mfd/sprd,ump9620-regs.h>
 #include <dt-bindings/mfd/sprd,ump9620-mask.h>
 #include <dt-bindings/input/input.h>

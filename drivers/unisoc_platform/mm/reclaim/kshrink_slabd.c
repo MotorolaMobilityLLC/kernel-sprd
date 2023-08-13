@@ -95,7 +95,7 @@ void set_async_slabd_cpus(void)
 
 	cpumask_copy(cpumask, cpumask_of_node(pgdat->node_id));
 
-	if (!policy_max)
+	if (policy_max)
 		cpumask_andnot(cpumask, cpumask, policy_max->related_cpus);
 
 	if (!cpumask_empty(cpumask)) {

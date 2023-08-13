@@ -138,6 +138,10 @@
 	};
 };
 
+&chosen {
+	bootargs_ext = "kvm-arm.mode=none";
+};
+
 &i2c0 {
 	status = "okay";
 	clock-frequency = <400000>;

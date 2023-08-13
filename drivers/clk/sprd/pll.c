@@ -147,8 +147,9 @@ static unsigned long _sprd_pll_recalc_rate(const struct sprd_pll *pll,
 		if (pll->fflag == 1 && pinternal(pll, cfg, PLL_POSTDIV)) {
 			postdiv = pinternal_val(pll, cfg, PLL_POSTDIV);
 			rate = rate / (postdiv + 1);
-		} else if (!pll->fflag && !pinternal(pll, cfg, PLL_POSTDIV))
+		} else if (!pll->fflag && !pinternal(pll, cfg, PLL_POSTDIV)) {
 			rate = rate / 2;
+		}
 	}
 
 	kfree(cfg);

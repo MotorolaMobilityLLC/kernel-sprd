@@ -484,6 +484,10 @@ static void sdhci_del_timer(struct sdhci_host *host, struct mmc_request *mrq)
 		del_timer(&host->data_timer);
 	else
 		del_timer(&host->timer);
+#ifdef CONFIG_SPRD_DEBUG
+	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sdhci_data_line_cmd(mrq->cmd))
+		del_timer(&host->debug_timer);
+#endif
 }
 
 static inline bool sdhci_has_requests(struct sdhci_host *host)
@@ -1697,11 +1701,15 @@ static bool sdhci_send_command(struct sdhci_host *host, struct mmc_command *cmd)
 
 	if (host->use_external_dma)
 		sdhci_external_dma_pre_transfer(host, cmd);
-
-	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->opcode, flags), SDHCI_COMMAND);
 #ifdef CONFIG_SPRD_DEBUG
 	mmc_debug_update(host, cmd, 0);
+	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sdhci_data_line_cmd(cmd)) {
+		mod_timer(&host->debug_timer, jiffies + 256);
+		host->cnt_time = ktime_to_ms(ktime_get());
+	}
 #endif
+
+	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->opcode, flags), SDHCI_COMMAND);
 
 	return true;
 }
@@ -3251,6 +3259,25 @@ static void sdhci_timeout_data_timer(struct timer_list *t)
 	spin_unlock_irqrestore(&host->lock, flags);
 }
 
+#ifdef CONFIG_SPRD_DEBUG
+static void sdhci_timeout_debug_timer(struct timer_list *t)
+{
+	struct sdhci_host *host;
+	unsigned long flags;
+	u32 intmask;
+
+	host = from_timer(host, t, debug_timer);
+
+	spin_lock_irqsave(&host->lock, flags);
+
+	intmask = sdhci_readl(host, SDHCI_INT_STATUS);
+	pr_err("%s: waiting for interrupt over %dms! (256ms timer) int_state = 0x%x\n",
+		mmc_hostname(host->mmc), ktime_to_ms(ktime_get()) - host->cnt_time, intmask);
+	sdhci_dumpregs(host);
+
+	spin_unlock_irqrestore(&host->lock, flags);
+}
+#endif
 /*****************************************************************************\
  *                                                                           *
  * Interrupt handling                                                        *
@@ -4818,6 +4845,9 @@ int __sdhci_add_host(struct sdhci_host *host)
 
 	timer_setup(&host->timer, sdhci_timeout_timer, 0);
 	timer_setup(&host->data_timer, sdhci_timeout_data_timer, 0);
+#ifdef CONFIG_SPRD_DEBUG
+	timer_setup(&host->debug_timer, sdhci_timeout_debug_timer, 0);
+#endif
 
 	init_waitqueue_head(&host->buf_ready_int);
 
@@ -4922,6 +4952,9 @@ void sdhci_remove_host(struct sdhci_host *host, int dead)
 
 	del_timer_sync(&host->timer);
 	del_timer_sync(&host->data_timer);
+#ifdef CONFIG_SPRD_DEBUG
+	del_timer_sync(&host->debug_timer);
+#endif
 
 	destroy_workqueue(host->complete_wq);
 

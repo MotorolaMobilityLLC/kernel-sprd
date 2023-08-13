@@ -75,11 +75,24 @@ struct pd_cache {
 
 extern void enqueue_cfs_vip_task(struct rq *rq, struct task_struct *p);
 extern void dequeue_cfs_vip_task(struct rq *rq, struct task_struct *p);
-#define test_vip_task(uni_task) (uni_task->vip_params & SCHED_VIP_TASK_TYPE)
+#ifdef CONFIG_UNISOC_CPU_NETLINK
+extern void check_parent_vip_status(struct task_struct *p);
+#else
+static inline void check_parent_vip_status(struct task_struct *p) {}
+#endif
+
+
+static inline bool test_vip_task(struct task_struct *tsk)
+{
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *) tsk->android_vendor_data1;
+
+	return (uni_tsk->vip_params & SCHED_VIP_TASK_TYPE);
+}
 
 #else
 static inline void enqueue_cfs_vip_task(struct rq *rq, struct task_struct *p) {}
 static inline void dequeue_cfs_vip_task(struct rq *rq, struct task_struct *p) {}
+static inline void check_parent_vip_status(struct task_struct *p) {}
 #define test_vip_task(uni_task) false
 
 #endif
@@ -104,6 +117,7 @@ extern void walt_init(void);
 extern u64 sched_ktime_clock(void);
 extern void walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p);
 extern void walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p);
+extern void walt_init_new_task_load(struct task_struct *p);
 extern unsigned long walt_cpu_util_freq(int cpu);
 
 #define WALT_HIGH_IRQ_TIMEOUT 3
@@ -145,6 +159,11 @@ static inline unsigned long walt_cpu_util(int cpu)
 	return min_t(unsigned long, cpu_util, capacity_orig_of(cpu));
 }
 
+static inline unsigned long task_util_est(struct task_struct *p)
+{
+	return walt_task_util(p);
+}
+
 static inline unsigned int tg_init_load_pct(struct task_struct *p)
 {
 #ifdef CONFIG_UNISOC_GROUP_CTL
@@ -175,6 +194,7 @@ static inline u64 sched_ktime_clock(void)
 }
 static inline void walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p) {}
 static inline void walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p) {}
+static inline void walt_init_new_task_load(struct task_struct *p) {}
 
 static inline unsigned long task_util(struct task_struct *p)
 {

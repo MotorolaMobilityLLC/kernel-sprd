@@ -51,7 +51,7 @@ struct sprd_hsphy {
 	atomic_t		reset;
 	atomic_t		inited;
 	bool			is_host;
-
+	bool			avdd1v8_chipsleep_off;
 	struct iio_channel	*dp;
 	struct iio_channel	*dm;
 };
@@ -209,11 +209,11 @@ static int sprd_hsphy_init(struct usb_phy *x)
 	reg = msk = MASK_ANLG_PHY_G2_ANALOG_USB20_USB20_DATABUS16_8;
 	regmap_update_bits(phy->ana_g2, REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1, msk, reg);
 
-#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
-	/* set avdd1v8 force on for usb lowpower */
-	regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
-			MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
-#endif
+	/*if avdd1v8 is off on chipsleep, set avdd1v8 force on for usb lowpower */
+	if (phy->avdd1v8_chipsleep_off)
+		regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
 		atomic_set(&phy->reset, 1);
@@ -233,11 +233,11 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		dev_dbg(x->dev, "%s is already shut down\n", __func__);
 		return;
 	}
-#if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
-	/* clear avdd1v8 force on for usb lowpower */
-	regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
-			MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
-#endif
+	/*if avdd1v8 is off on chipsleep, clear avdd1v8 force on for usb lowpower */
+	if (phy->avdd1v8_chipsleep_off)
+		regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+
 	/* usb vbus */
 	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
 	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_OTG_PHY_TEST, msk, 0);
@@ -572,6 +572,9 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		dev_err(dev, "unable to read ssphy vdd voltage\n");
 		goto platform_device_err;
 	}
+
+	phy->avdd1v8_chipsleep_off = device_property_read_bool(dev,
+					"avdd1v8-chipsleep-off");
 
 	calimode = sprd_hsphy_cali_mode();
 	if (calimode) {
