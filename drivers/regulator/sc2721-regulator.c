@@ -10,6 +10,7 @@
 #include <linux/regmap.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/of_regulator.h>
+#include <linux/delay.h>
 
 /*
  * SC2721 regulator base address
@@ -148,9 +149,24 @@ enum sc2721_regulator_id {
 	SC2721_LDO_VDDKPLED,
 };
 
+/* only for sc27xx Project */
+static int sprd_regulator_disable_regmap(struct regulator_dev *rdev)
+{
+	int id = 0, ret = 0;
+
+	id = rdev_get_id(rdev);
+	if (id == SC2721_LDO_VDDSDCORE || id == SC2721_LDO_VDDSDIO) {
+		ret = regulator_disable_regmap(rdev);
+		usleep_range(10 * 1000, 10 * 1250);
+		return ret;
+	} else {
+		return regulator_disable_regmap(rdev);
+	}
+};
+
 static const struct regulator_ops sc2721_regu_linear_ops = {
 	.enable = regulator_enable_regmap,
-	.disable = regulator_disable_regmap,
+	.disable = sprd_regulator_disable_regmap,
 	.is_enabled = regulator_is_enabled_regmap,
 	.list_voltage = regulator_list_voltage_linear,
 	.get_voltage_sel = regulator_get_voltage_sel_regmap,
