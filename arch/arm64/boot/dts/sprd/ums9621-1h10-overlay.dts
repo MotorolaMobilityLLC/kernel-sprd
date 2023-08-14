@@ -82,6 +82,7 @@
 				adma-tx;
 				adma-rx;
 				btwf-wakeup-lock;
+				n79-mode-support;
 				/*
 				 * bound parameter:
 				 * [0]:addr offset, [1]:mask, [2]:unboundval, [3]:boundval
