@@ -87,15 +87,6 @@ static int sprd_adi_p2v(unsigned long paddr, unsigned long *vaddr)
 	return 0;
 }
 
-static inline void chip_raw_ddie_write(void __iomem *vreg,
-				       unsigned long or_val,
-				       unsigned int clear_msk)
-{
-	unsigned long val = readl_relaxed(vreg);
-
-	writel_relaxed((val & ~clear_msk) | or_val, vreg);
-}
-
 static int sprd_read_va(unsigned long vreg, unsigned long *val)
 {
 	if (!val)
@@ -106,10 +97,9 @@ static int sprd_read_va(unsigned long vreg, unsigned long *val)
 	return 0;
 }
 
-static int sprd_write_va(unsigned long vreg, const unsigned long or_val,
-			 const unsigned int clear_msk)
+static int sprd_write_va(unsigned long vreg, const unsigned long set_val)
 {
-	chip_raw_ddie_write((void __iomem *)vreg, or_val, clear_msk);
+	writel_relaxed((unsigned int)set_val, (void __iomem *)vreg);
 
 	return 0;
 }
@@ -147,13 +137,11 @@ static int sprd_read_pa(unsigned long preg, unsigned long *val)
 	return 0;
 }
 
-static int sprd_write_pa(unsigned long paddr, const unsigned long or_val,
-			 const unsigned int clear_msk)
+static int sprd_write_pa(unsigned long paddr, const unsigned long set_val)
 {
 	void *addr;
-	unsigned long val;
 
-	pr_debug("%s 0x%lx, 0x%lx, 0x%x\n", __func__, paddr, or_val, clear_msk);
+	pr_debug("%s 0x%lx, 0x%lx\n", __func__, paddr, set_val);
 	addr = __va(paddr);
 	if (!virt_addr_valid(addr)) {
 		void __iomem *io_addr;
@@ -161,20 +149,18 @@ static int sprd_write_pa(unsigned long paddr, const unsigned long or_val,
 
 		if (!sprd_adi_p2v(paddr, &vaddr)) {
 			regmap_write(lookat_desc.regmap, (unsigned int)vaddr,
-				     (unsigned int)or_val);
+				     (unsigned int)set_val);
 		} else {
 			io_addr = ioremap(paddr, PAGE_SIZE);
 			if (!io_addr) {
 				pr_warn("unable to map i/o region\n");
 				return -ENOMEM;
 			}
-			chip_raw_ddie_write(io_addr, or_val,
-					    clear_msk);
+			writel_relaxed((unsigned int)set_val, io_addr);
 			iounmap(io_addr);
 		}
 	} else {
-		val = *(unsigned long *) addr;
-		*(unsigned long *) addr = ((val & ~clear_msk) | or_val);
+		*(unsigned int *) addr = (unsigned int)set_val;
 	}
 
 	return 0;
@@ -232,10 +218,10 @@ static int do_request(void)
 	if ((lookat_desc.request.cmd & __WRITE__) == __WRITE__) {
 		if ((lookat_desc.request.cmd & __V__) == __V__)
 			ret = sprd_write_va(lookat_desc.request.addr,
-					  lookat_desc.request.value, ~0);
+					  lookat_desc.request.value);
 		else
 			ret = sprd_write_pa(lookat_desc.request.addr,
-					  lookat_desc.request.value, ~0);
+					  lookat_desc.request.value);
 	} else {
 		if ((lookat_desc.request.cmd & __V__) == __V__)
 			ret = sprd_read_va(lookat_desc.request.addr,
