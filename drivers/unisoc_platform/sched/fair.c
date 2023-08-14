@@ -1394,11 +1394,6 @@ static void cfs_replace_next_task_fair(void *data, struct rq *rq, struct task_st
 		if (unlikely(!test_vip_task(vip)))
 			continue;
 
-#ifdef CONFIG_UNISOC_GROUP_CTL
-		/*task's group must be vip-group */
-		if (unlikely(uni_task_group_idx(vip) != VIP_GROUP))
-			continue;
-#endif
 		*p = vip;
 		*se = &vip->se;
 		*repick = true;
