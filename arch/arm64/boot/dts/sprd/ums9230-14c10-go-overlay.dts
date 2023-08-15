@@ -422,3 +422,15 @@
 			<17 0x1844>, <19 0x1844>, <21 0x1864>, <30 0x1820>,
 			<32 0x197c>, <33 0x1988>, <35 0x19b8>, <39 0x19ac>;
 };
+
+&thm_zone {
+	pa_thmzone: pa-thmzone {
+		status = "disabled";
+	};
+};
+
+&thm_zone {
+	chg_thmzone: chg-thmzone {
+		status = "disabled";
+	};
+};
