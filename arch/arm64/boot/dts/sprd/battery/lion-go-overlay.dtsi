@@ -48,8 +48,8 @@
 	charge-sdp-current-microamp = <500000 500000>;
 	charge-dcp-current-microamp = <3200000 3200000>;
 	charge-cdp-current-microamp = <1500000 1500000>;
-	charge-unknown-current-microamp = <1000000 1000000>;
-	charge-fchg-current-microamp = <3000000 2000000>;
+	charge-unknown-current-microamp = <1050000 1050000>;
+	charge-fchg-current-microamp = <3480000 3000000>;
 	charge-flash-current-microamp = <5000000 2700000>;
 
 	cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
@@ -124,7 +124,7 @@
 
 	/* sprd_fchg parameter */
 	sprd,support-fchg;
-	sprd,support-pd-pps;
+	//sprd,support-pd-pps;
 	sprd,pd-fixed-max-microwatt = <18000000>;
 
 	monitored-battery = <&bat>;
@@ -152,9 +152,9 @@
 		use-typec-extcon;
 	};
 
-	/*sgm41513_chg: charger@0B {
+	/*sgm41513_chg: charger@3B {
                 compatible = "sgm,sgm41513_chg";
-                reg = <0x0B>;
+                reg = <0x3B>;
 		phys = <&hsphy>;
                 monitored-battery = <&bat>;
 		extcon = <&extcon_gpio>;
