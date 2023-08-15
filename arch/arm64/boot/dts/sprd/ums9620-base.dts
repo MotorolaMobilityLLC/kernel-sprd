@@ -227,11 +227,6 @@
 			REG_PMU_APB_PWR_STATUS_DBG_22
 			MASK_PMU_APB_PD_PCIE_STATE
 			0x0>,
-		/* PCIEPLLV output clock will be gated for L1sub */
-		<&pmu_apb_regs 0 0
-			REG_PMU_APB_SNPS_PCIE3_SLP_CTRL
-			MASK_PMU_APB_PCIE_CLK_REQ_PLL_GATE_MASK
-			0x0>,
 		<&pmu_apb_regs 0 200
 			REG_PMU_APB_PCIEPLLV_REL_CFG
 			MASK_PMU_APB_PCIEPLLV_FRC_ON
