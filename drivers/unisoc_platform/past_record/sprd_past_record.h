@@ -39,7 +39,6 @@ struct sprd_debug_reg_record {
 
 unsigned long sprd_debug_virt_to_phys(void __iomem *addr);
 
-#if IS_ENABLED(CONFIG_SPRD_PAST_RECORD)
 #define sprd_write_reg_info(entry_no, val, addr)({\
 	unsigned int index;                                                       \
 	unsigned int time;                                                       \
@@ -114,15 +113,5 @@ unsigned long sprd_debug_virt_to_phys(void __iomem *addr);
 			unsigned int entry_no = 64; \
 			sprd_read_reg_info(entry_no, addr); \
 		})
-#else
-#define sprd_writeb_reg_info(val, addr)
-#define sprd_writew_reg_info(val, addr)
-#define sprd_writel_reg_info(val, addr)
-#define sprd_writeq_reg_info(val, addr)
-#define sprd_readb_reg_info(addr)
-#define sprd_readw_reg_info(addr)
-#define sprd_readl_reg_info(addr)
-#define sprd_readq_reg_info(addr)
-#endif
 
 #endif
