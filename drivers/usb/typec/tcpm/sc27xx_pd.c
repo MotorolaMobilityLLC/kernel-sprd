@@ -2443,6 +2443,7 @@ static void sc27xx_pd_detect_typec_work(struct work_struct *work)
 					   typec_detect_work);
 
 	dev_info(pd->dev, "pd try to detect typec extcon\n");
+	pd->pd_attached = true;
 	if (pd->use_pdhub_c2c) {
 		if (extcon_get_state(pd->extcon, SC27XX_EXTCON_SINK) == true) {
 			pd->is_sink = true;
@@ -2460,8 +2461,6 @@ static void sc27xx_pd_detect_typec_work(struct work_struct *work)
 #if IS_ENABLED(CONFIG_SPRD_TYPEC_DP_ALTMODE)
 	extcon_set_property_capability(pd->edev, EXTCON_DISP_DP, EXTCON_PROP_DISP_HPD);
 #endif
-
-	pd->pd_attached = true;
 }
 
 static const u32 sc27xx_pd_hardreset[] = {
