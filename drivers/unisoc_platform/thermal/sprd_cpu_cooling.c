@@ -264,7 +264,7 @@ static int cpu_down_cpus(struct cpu_cooling_device *cpu_cdev,
 			first, cur_cpus - target_cpus, cur_cpus, target_cpus);
 		cpumask_clear(&mask);
 		for (cpu = (first + ncpus - 1); cpu >= first; cpu--) {
-			if (cur_cpus == target_cpus)
+			if (cur_cpus == target_cpus || !cpu)
 				break;
 			if ((target_cpus < cur_cpus) && !is_cpu_paused_fun(cpu)) {
 				cpumask_set_cpu(cpu, &mask);
@@ -289,7 +289,7 @@ static int cpu_down_cpus(struct cpu_cooling_device *cpu_cdev,
 		pr_info("cpu%d hotplug out cpus:%d curr_cpus:%u target_cpus:%u\n",
 			first, cur_cpus - target_cpus, cur_cpus, target_cpus);
 		for (cpu = (first + ncpus - 1); cpu >= first; cpu--) {
-			if (cur_cpus == target_cpus)
+			if (cur_cpus == target_cpus || !cpu)
 				break;
 			if ((target_cpus < cur_cpus) && cpu_online(cpu)) {
 				ret = remove_cpu(cpu);
