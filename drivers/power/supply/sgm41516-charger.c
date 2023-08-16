@@ -119,7 +119,7 @@ static void sgm41516_charger_dump_stack(void)
 		dump_stack();
 }
 
-static void power_path_control(struct sgm41516_charger_info *info)
+static void sgm41516_charger_power_path_control(struct sgm41516_charger_info *info)
 {
 	struct device_node *cmdline_node;
 	const char *cmd_line;
@@ -154,7 +154,7 @@ static bool sgm41516_charger_is_bat_present(struct sgm41516_charger_info *info)
 	struct power_supply *psy;
 	union power_supply_propval val;
 	bool present = false;
-	int ret;
+	int ret = 0;
 
 	psy = power_supply_get_by_name(SGM41516_BATTERY_NAME);
 	if (!psy) {
@@ -163,15 +163,16 @@ static bool sgm41516_charger_is_bat_present(struct sgm41516_charger_info *info)
 	}
 
 	val.intval = 0;
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_PRESENT,
-					&val);
-	if (ret == 0 && val.intval)
-		present = true;
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_PRESENT, &val);
 	power_supply_put(psy);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to get property of present, ret = %d\n",
+			__func__, ret);
+		return present;
+	}
 
-	if (ret)
-		dev_err(info->dev,
-			"Failed to get property of present:%d\n", ret);
+	if (val.intval)
+		present = true;
 
 	return present;
 }
@@ -185,6 +186,7 @@ static int sgm41516_charger_is_fgu_present(struct sgm41516_charger_info *info)
 		dev_err(info->dev, "Failed to find psy of sc27xx_fgu\n");
 		return -ENODEV;
 	}
+
 	power_supply_put(psy);
 
 	return 0;
@@ -213,8 +215,11 @@ static int sgm41516_update_bits(struct sgm41516_charger_info *info, u8 reg, u8 m
 	int ret;
 
 	ret = sgm41516_read(info, reg, &v);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(info->dev, "%s, failed to read reg[%02X], ret = %d\n",
+			__func__, reg, ret);
 		return ret;
+	}
 
 	v &= ~mask;
 	v |= (data & mask);
@@ -222,15 +227,18 @@ static int sgm41516_update_bits(struct sgm41516_charger_info *info, u8 reg, u8 m
 	return sgm41516_write(info, reg, v);
 }
 
-static u32 sgm41516_charger_get_limit_current(struct sgm41516_charger_info *info,
+static int sgm41516_charger_get_limit_current(struct sgm41516_charger_info *info,
 					      u32 *limit_cur)
 {
 	u8 reg_val;
 	int ret;
 
 	ret = sgm41516_read(info, SGM41516_REG_00, &reg_val);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(info->dev, "%s, failed to read reg[%02X], ret = %d\n",
+			__func__, SGM41516_REG_00, ret);
 		return ret;
+	}
 
 	reg_val = (reg_val & SGM41516_IINLIM_MASK) >> SGM41516_IINLIM_SHIFT;
 	if (reg_val >= ARRAY_SIZE(sgm41516_iindpm))
@@ -288,7 +296,7 @@ out:
 	return ret;
 }
 
-static int sgm41516_set_acovp_threshold(struct sgm41516_charger_info *info, int volt)
+static int sgm41516_charger_set_acovp_threshold(struct sgm41516_charger_info *info, int volt)
 {
 	u8 reg_val;
 
@@ -306,54 +314,69 @@ static int sgm41516_set_acovp_threshold(struct sgm41516_charger_info *info, int 
 				    reg_val << SGM41516_OVP_SHIFT);
 }
 
-static int sgm41516_enable_charger(struct sgm41516_charger_info *info)
+static int sgm41516_charger_enable(struct sgm41516_charger_info *info, bool enable)
 {
-	u8 val = SGM41516_CHG_ENABLE << SGM41516_CHG_CONFIG_SHIFT;
-
-	return sgm41516_update_bits(info, SGM41516_REG_01,
-				    SGM41516_CHG_CONFIG_MASK,
-				    val);
-}
-
-static int sgm41516_disable_charger(struct sgm41516_charger_info *info)
-{
-	u8 val = SGM41516_CHG_DISABLE << SGM41516_CHG_CONFIG_SHIFT;
-
-	return sgm41516_update_bits(info, SGM41516_REG_01,
-				    SGM41516_CHG_CONFIG_MASK,
-				    val);
-}
-
-static int sgm41516_enter_hiz_mode(struct sgm41516_charger_info *info)
-{
-	u8 val = SGM41516_HIZ_ENABLE << SGM41516_ENHIZ_SHIFT;
-
-	return sgm41516_update_bits(info, SGM41516_REG_00,
-				    SGM41516_ENHIZ_MASK,
-				    val);
-}
-
-static int sgm41516_exit_hiz_mode(struct sgm41516_charger_info *info)
-{
-	u8 val = SGM41516_HIZ_DISABLE << SGM41516_ENHIZ_SHIFT;
-
-	return sgm41516_update_bits(info, SGM41516_REG_00,
-				    SGM41516_ENHIZ_MASK,
-				    val);
-}
-
-static int sgm41516_enable_term(struct sgm41516_charger_info *info, bool enable)
-{
-	u8 val;
+	u8 val = SGM41516_CHG_DISABLE;
 
 	if (enable)
-		val = SGM41516_TERM_ENABLE << SGM41516_EN_TERM_SHIFT;
-	else
-		val = SGM41516_TERM_DISABLE << SGM41516_EN_TERM_SHIFT;
+		val = SGM41516_CHG_ENABLE;
+
+	return sgm41516_update_bits(info, SGM41516_REG_01,
+				    SGM41516_CHG_CONFIG_MASK,
+				    val  << SGM41516_CHG_CONFIG_SHIFT);
+}
+
+static int sgm41516_charger_enable_hiz_mode(struct sgm41516_charger_info *info, bool enable)
+{
+	u8 val = SGM41516_HIZ_DISABLE;
+
+	if (enable)
+		val = SGM41516_HIZ_ENABLE;
+
+	return sgm41516_update_bits(info, SGM41516_REG_00,
+				    SGM41516_ENHIZ_MASK,
+				    val << SGM41516_ENHIZ_SHIFT);
+}
+
+static bool sgm41516_charger_hiz_mode_is_enabled(struct sgm41516_charger_info *info)
+{
+	bool hiz_mode_is_enabled = false;
+	u8 reg_val = 0;
+	int ret = 0;
+
+	ret = sgm41516_read(info, SGM41516_REG_00, &reg_val);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to read reg[%02X], ret = %d\n",
+			__func__, SGM41516_REG_00, ret);
+		return hiz_mode_is_enabled;
+	}
+
+	if (reg_val & SGM41516_ENHIZ_MASK)
+		hiz_mode_is_enabled = true;
+
+	return hiz_mode_is_enabled;
+}
+
+static int sgm41516_charger_enable_power_path(struct sgm41516_charger_info *info, bool enable)
+{
+	return sgm41516_charger_enable_hiz_mode(info, !enable);
+}
+
+static bool sgm41516_charger_power_path_is_enabled(struct sgm41516_charger_info *info)
+{
+	return !sgm41516_charger_hiz_mode_is_enabled(info);
+}
+
+static int sgm41516_charger_enable_term(struct sgm41516_charger_info *info, bool enable)
+{
+	u8 val = SGM41516_TERM_DISABLE;
+
+	if (enable)
+		val = SGM41516_TERM_ENABLE;
 
 	return sgm41516_update_bits(info, SGM41516_REG_05,
 				    SGM41516_EN_TERM_MASK,
-				    val);
+				    val << SGM41516_EN_TERM_SHIFT);
 }
 
 static int sgm41516_charger_set_vindpm_th_base(struct sgm41516_charger_info *info,
@@ -459,6 +482,25 @@ static int sgm41516_charger_set_safety_cur(struct sgm41516_charger_info *info, u
 				    reg_val << SGM41516_IINLIM_SHIFT);
 }
 
+static int sgm41516_charger_enable_wdg(struct sgm41516_charger_info *info, bool enable)
+{
+	u8 val = SGM41516_WDT_DISABLE;
+
+	if (enable)
+		val = SGM41516_WDT_40S;
+
+	return sgm41516_update_bits(info, SGM41516_REG_05,
+				    SGM41516_WDT_MASK,
+				    val << SGM41516_WDT_SHIFT);
+}
+
+static int sgm41516_charger_wdg_timer_rst(struct sgm41516_charger_info *info)
+{
+	return sgm41516_update_bits(info, SGM41516_REG_01,
+				    SGM41516_WDT_RESET_MASK,
+				    SGM41516_WDT_RESET << SGM41516_WDT_RESET_SHIFT);
+}
+
 static int sgm41516_charger_hw_init(struct sgm41516_charger_info *info)
 {
 	struct sprd_battery_info bat_info = {};
@@ -502,35 +544,40 @@ static int sgm41516_charger_hw_init(struct sgm41516_charger_info *info)
 			dev_err(info->dev, "set sgm41516 safety cur failed\n");
 			return ret;
 		}
+
 		if (info->role ==  SGM41516_ROLE_MASTER) {
-			ret = sgm41516_set_acovp_threshold(info, SGM41516_FCHG_OVP_6V);
+			ret = sgm41516_charger_set_acovp_threshold(info, SGM41516_FCHG_OVP_6V);
 			if (ret)
-				dev_err(info->dev, "set sgm41516 ovp failed\n");
+				dev_err(info->dev, "%s, failed to set 6V bus ovp, ret = %d\n",
+					__func__, ret);
 		} else if (info->role == SGM41516_ROLE_SLAVE) {
-			ret = sgm41516_set_acovp_threshold(info, SGM41516_FCHG_OVP_9V);
+			ret = sgm41516_charger_set_acovp_threshold(info, SGM41516_FCHG_OVP_9V);
 			if (ret)
-				dev_err(info->dev, "set sgm41516 slave ovp failed\n");
+				dev_err(info->dev, "%s, failed to set 9V bus ovp, ret = %d\n",
+					__func__, ret);
 		}
-		ret = sgm41516_enable_term(info, 1);
+
+		ret = sgm41516_charger_enable_term(info, true);
 		if (ret) {
 			dev_err(info->dev, "set sgm41516 terminal cur failed\n");
 			return ret;
 		}
+
 		ret = sgm41516_charger_set_vindpm(info, voltage_max_microvolt);
 		if (ret) {
 			dev_err(info->dev, "set sgm41516 vindpm vol failed\n");
 			return ret;
 		}
 
-		sgm41516_update_bits(info, SGM41516_REG_01,
-				     SGM41516_WDT_RESET_MASK,
-				     SGM41516_WDT_RESET << SGM41516_WDT_RESET_SHIFT);
+		ret = sgm41516_charger_wdg_timer_rst(info);
+		if (ret)
+			dev_err(info->dev, "%s, failed to reset watchdog timer, ret = %d\n",
+				__func__, ret);
 
-		ret = sgm41516_update_bits(info, SGM41516_REG_05,
-					   SGM41516_WDT_MASK,
-					   SGM41516_WDT_DISABLE << SGM41516_WDT_SHIFT);
+		ret = sgm41516_charger_enable_wdg(info, false);
 		if (ret) {
-			dev_err(info->dev, "feed sgm41516 watchdog failed\n");
+			dev_err(info->dev, "%s, failed to disable watchdog, ret = %d\n",
+				__func__, ret);
 			return ret;
 		}
 
@@ -576,7 +623,7 @@ static int sgm41516_charger_get_charge_voltage(struct sgm41516_charger_info *inf
 	return 0;
 }
 
-static void sgm41516_dump_register(struct sgm41516_charger_info *info)
+static void sgm41516_charger_dump_register(struct sgm41516_charger_info *info)
 {
 	int ret;
 	u8 addr;
@@ -591,27 +638,15 @@ static void sgm41516_dump_register(struct sgm41516_charger_info *info)
 	}
 }
 
-static int sgm41516_charger_enable_wdg(struct sgm41516_charger_info *info, bool en)
-{
-	u8 val = SGM41516_WDT_DISABLE;
-
-	if (en)
-		val = SGM41516_WDT_40S;
-
-	return sgm41516_update_bits(info, SGM41516_REG_05,
-								SGM41516_WDT_MASK,
-								val << SGM41516_WDT_SHIFT);
-}
-
 static int sgm41516_charger_start_charge(struct sgm41516_charger_info *info)
 {
 	int ret = 0;
 
 	dev_info(info->dev, "%s:line%d: start charge\n", __func__, __LINE__);
 
-	ret = sgm41516_exit_hiz_mode(info);
+	ret = sgm41516_charger_enable_power_path(info, true);
 	if (ret)
-		dev_err(info->dev, "disable HIZ mode failed\n");
+		dev_err(info->dev, "%s, failed to enable power path, ret = %d\n", __func__, ret);
 
 	ret = sgm41516_charger_enable_wdg(info, true);
 	if (ret) {
@@ -619,9 +654,10 @@ static int sgm41516_charger_start_charge(struct sgm41516_charger_info *info)
 		return ret;
 	}
 
-	ret = sgm41516_enable_charger(info);
+	ret = sgm41516_charger_enable(info, true);
 	if (ret)
-		dev_err(info->dev, "enable charger failed\n");
+		dev_err(info->dev, "%s, failed to enable charge, ret = %d\n",
+			__func__, ret);
 
 	if (info->role == SGM41516_ROLE_MASTER) {
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
@@ -634,7 +670,7 @@ static int sgm41516_charger_start_charge(struct sgm41516_charger_info *info)
 		gpiod_set_value_cansleep(info->gpiod, 0);
 	}
 
-	sgm41516_dump_register(info);
+	sgm41516_charger_dump_register(info);
 
 	return ret;
 }
@@ -646,43 +682,29 @@ static void sgm41516_charger_stop_charge(struct sgm41516_charger_info *info)
 	dev_info(info->dev, "%s:line%d: stop charge\n", __func__, __LINE__);
 
 	if (info->role == SGM41516_ROLE_MASTER) {
-		if (boot_calibration) {
-			ret = sgm41516_enter_hiz_mode(info);
-			if (ret)
-				dev_err(info->dev, "enable HIZ mode failed\n");
-		}
-
-		ret = sgm41516_disable_charger(info);
-		if (ret)
-			dev_err(info->dev, "disable charger failed\n");
-
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
 					 info->charger_pd_mask,
 					 info->charger_pd_mask);
 		if (ret)
 			dev_err(info->dev, "disable sgm41516 charge failed\n");
 	} else if (info->role == SGM41516_ROLE_SLAVE) {
-		sgm41516_disable_charger(info);
-		if (boot_calibration) {
-			ret = sgm41516_enter_hiz_mode(info);
-			if (ret)
-				dev_err(info->dev, "enable HIZ mode failed\n");
-		}
-
 		gpiod_set_value_cansleep(info->gpiod, 1);
 	}
 
-	if (info->disable_power_path) {
-		ret = sgm41516_update_bits(info, SGM41516_REG_00,
-					   SGM41516_ENHIZ_MASK,
-					   0x01 << SGM41516_ENHIZ_SHIFT);
-		if (ret)
-			dev_err(info->dev, "Failed to disable power path\n");
-	}
+	ret = sgm41516_charger_enable(info, false);
+	if (ret)
+		dev_err(info->dev, "%s, failed to disable charge, ret = %d\n", __func__, ret);
 
 	ret = sgm41516_charger_enable_wdg(info, false);
 	if (ret)
 		dev_err(info->dev, "%s, failed to disable watchdog, ret = %d\n", __func__, ret);
+
+	if (info->disable_power_path) {
+		ret = sgm41516_charger_enable_power_path(info, false);
+		if (ret)
+			dev_err(info->dev, "%s, failed to disable power path, ret = %d\n",
+				__func__, ret);
+	}
 }
 
 static int sgm41516_charger_set_current(struct sgm41516_charger_info *info, u32 cur)
@@ -709,13 +731,47 @@ static int sgm41516_charger_get_current(struct sgm41516_charger_info *info, u32 
 	int ret;
 
 	ret = sgm41516_read(info, SGM41516_REG_02, &reg_val);
-	if (ret < 0)
+	if (ret < 0) {
+		dev_err(info->dev, "%s, failed to read reg[%02X], ret = %d\n",
+			__func__, SGM41516_REG_02, ret);
 		return ret;
+	}
 
 	reg_val &= SGM41516_ICHG_MASK;
 	reg_val = reg_val >> SGM41516_ICHG_SHIFT;
 	*cur = ((reg_val * SGM41516_ICHG_LSB) + SGM41516_ICHG_BASE) * 1000;
 	return 0;
+}
+
+static int sgm41516_charger_enable_otg_vbus(struct sgm41516_charger_info *info, bool enable)
+{
+	u8 val = SGM41516_OTG_DISABLE;
+
+	if (enable)
+		val = SGM41516_OTG_ENABLE;
+
+	return sgm41516_update_bits(info, SGM41516_REG_01,
+				    SGM41516_OTG_CONFIG_MASK,
+				    val << SGM41516_OTG_CONFIG_SHIFT);
+}
+
+static bool sgm41516_charger_otg_vbus_is_enabled(struct sgm41516_charger_info *info)
+{
+	bool otg_vbus_is_enabled = false;
+	u8 reg_val = 0;
+	int ret = 0;
+
+	ret = sgm41516_read(info, SGM41516_REG_01, &reg_val);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to read reg[%02X], ret = %d\n",
+			__func__, SGM41516_REG_01, ret);
+		return otg_vbus_is_enabled;
+	}
+
+	if (reg_val & SGM41516_OTG_CONFIG_MASK)
+		otg_vbus_is_enabled = true;
+
+	return otg_vbus_is_enabled;
 }
 
 static int sgm41516_charger_get_health(struct sgm41516_charger_info *info, u32 *health)
@@ -728,23 +784,22 @@ static int sgm41516_charger_get_health(struct sgm41516_charger_info *info, u32 *
 static int sgm41516_charger_feed_watchdog(struct sgm41516_charger_info *info)
 {
 	int ret = 0;
-	u8 reg_val = SGM41516_WDT_RESET << SGM41516_WDT_RESET_SHIFT;
 	u64 duration, curr = ktime_to_ms(ktime_get());
 
-	ret = sgm41516_update_bits(info, SGM41516_REG_01, SGM41516_WDT_RESET_MASK, reg_val);
+	ret = sgm41516_charger_wdg_timer_rst(info);
 	if (ret) {
-		dev_err(info->dev, "reset sgm41516 failed\n");
+		dev_err(info->dev, "%s, failed to reset watchdog timer, ret = %d\n",
+			__func__, ret);
 		return ret;
 	}
 
 	duration = curr - info->last_wdt_time;
 	if (duration >= SGM41516_WATCH_DOG_TIME_OUT_MS) {
 		dev_err(info->dev, "charger wdg maybe time out:%lld ms\n", duration);
-		sgm41516_dump_register(info);
+		sgm41516_charger_dump_register(info);
 	}
 
 	info->last_wdt_time = curr;
-
 	if (info->otg_enable)
 		return ret;
 
@@ -763,40 +818,25 @@ static int sgm41516_charger_get_status(struct sgm41516_charger_info *info)
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 }
 
-static bool sgm41516_charger_get_power_path_status(struct sgm41516_charger_info *info)
-{
-	u8 value;
-	int ret;
-	bool power_path_enabled = true;
-
-	ret = sgm41516_read(info, SGM41516_REG_00, &value);
-	if (ret < 0) {
-		dev_err(info->dev, "Fail to get power path status, ret = %d\n", ret);
-		return power_path_enabled;
-	}
-
-	if (value & SGM41516_ENHIZ_MASK)
-		power_path_enabled = false;
-
-	return power_path_enabled;
-}
-
 static int sgm41516_charger_set_status(struct sgm41516_charger_info *info, int val, u32 input_vol)
 {
 	int ret = 0;
 
 	if (val == CM_FAST_CHARGE_OVP_ENABLE_CMD) {
-		ret = sgm41516_set_acovp_threshold(info, SGM41516_FCHG_OVP_9V);
+		ret = sgm41516_charger_set_acovp_threshold(info, SGM41516_FCHG_OVP_9V);
 		if (ret) {
-			dev_err(info->dev, "failed to set 9V fast charge ovp\n");
+			dev_err(info->dev, "%s, failed to set 9V bus ovp, ret = %d\n",
+				__func__, ret);
 			return ret;
 		}
 	} else if (val == CM_FAST_CHARGE_OVP_DISABLE_CMD) {
-		ret = sgm41516_set_acovp_threshold(info, SGM41516_FCHG_OVP_6V);
+		ret = sgm41516_charger_set_acovp_threshold(info, SGM41516_FCHG_OVP_6V);
 		if (ret) {
-			dev_err(info->dev, "failed to set 9V fast charge ovp\n");
+			dev_err(info->dev, "%s, failed to set 6V bus ovp, ret = %d\n",
+				__func__, ret);
 			return ret;
 		}
+
 		if (info->role == SGM41516_ROLE_MASTER) {
 			if (input_vol > SGM41516_FAST_CHARGER_VOLTAGE_MAX)
 				info->need_disable_Q1 = true;
@@ -814,7 +854,7 @@ static int sgm41516_charger_set_status(struct sgm41516_charger_info *info, int v
 	} else if (val && !info->charging) {
 		ret = sgm41516_charger_start_charge(info);
 		if (ret)
-			dev_err(info->dev, "start charge failed\n");
+			dev_err(info->dev, "%s, failed to start charge, ret = %d\n", __func__, ret);
 		else
 			info->charging = true;
 	}
@@ -822,7 +862,7 @@ static int sgm41516_charger_set_status(struct sgm41516_charger_info *info, int v
 	return ret;
 }
 
-static bool sgm41516_probe_is_ready(struct sgm41516_charger_info *info)
+static bool sgm41516_charger_probe_is_ready(struct sgm41516_charger_info *info)
 {
 	unsigned long timeout;
 
@@ -840,29 +880,18 @@ static bool sgm41516_probe_is_ready(struct sgm41516_charger_info *info)
 static int sgm41516_charger_check_power_path_status(struct sgm41516_charger_info *info)
 {
 	int ret = 0;
-	u8 val;
 
 	if (info->disable_power_path)
 		return 0;
 
-	if (sgm41516_charger_get_power_path_status(info))
+	if (sgm41516_charger_power_path_is_enabled(info))
 		return 0;
 
-	ret = sgm41516_read(info, SGM41516_REG_00, &val);
-	if (ret < 0) {
-		dev_err(info->dev, "%s:line%d, failed to get reg0(%d)\n", __func__, __LINE__, ret);
-		return ret;
-	}
-
-	if (val & SGM41516_ENHIZ_MASK) {
-		dev_info(info->dev, "%s:line%d, exit hiz mode\n", __func__, __LINE__);
-		ret = sgm41516_exit_hiz_mode(info);
-		if (ret < 0) {
-			dev_err(info->dev, "%s:line%d, failed to exit hiz(%d)\n",
-				__func__, __LINE__, ret);
-			return ret;
-		}
-	}
+	dev_info(info->dev, "%s, enable power path\n", __func__);
+	ret = sgm41516_charger_enable_power_path(info, true);
+	if (ret)
+		dev_err(info->dev, "%s, failed to enable power path, ret = %d\n",
+			__func__, ret);
 
 	return ret;
 }
@@ -880,7 +909,7 @@ static int sgm41516_charger_usb_get_property(struct power_supply *psy,
 		return -EINVAL;
 	}
 
-	if (!sgm41516_probe_is_ready(info)) {
+	if (!sgm41516_charger_probe_is_ready(info)) {
 		dev_err(info->dev, "%s wait probe timeout\n", __func__);
 		return -EINVAL;
 	}
@@ -890,7 +919,7 @@ static int sgm41516_charger_usb_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_STATUS:
 		if (val->intval == CM_POWER_PATH_ENABLE_CMD ||
 		    val->intval == CM_POWER_PATH_DISABLE_CMD) {
-			val->intval = sgm41516_charger_get_power_path_status(info);
+			val->intval = sgm41516_charger_power_path_is_enabled(info);
 			break;
 		}
 
@@ -978,7 +1007,7 @@ static int sgm41516_charger_usb_set_property(struct power_supply *psy,
 		}
 	}
 
-	if (!sgm41516_probe_is_ready(info)) {
+	if (!sgm41516_charger_probe_is_ready(info)) {
 		dev_err(info->dev, "%s wait probe timeout\n", __func__);
 		return -EINVAL;
 	}
@@ -999,10 +1028,18 @@ static int sgm41516_charger_usb_set_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_STATUS:
 		if (val->intval == CM_POWER_PATH_ENABLE_CMD) {
-			ret = sgm41516_exit_hiz_mode(info);
+			ret = sgm41516_charger_enable_power_path(info, true);
+			if (ret)
+				dev_err(info->dev, "%s, failed to enable power path, ret = %d\n",
+					__func__, ret);
+
 			break;
 		} else if (val->intval == CM_POWER_PATH_DISABLE_CMD) {
-			ret = sgm41516_enter_hiz_mode(info);
+			ret = sgm41516_charger_enable_power_path(info, false);
+			if (ret)
+				dev_err(info->dev, "%s, failed to disable power path, ret = %d\n",
+					__func__, ret);
+
 			break;
 		}
 
@@ -1113,26 +1150,6 @@ static void sgm41516_charger_feed_watchdog_work(struct work_struct *work)
 }
 
 #if IS_ENABLED(CONFIG_REGULATOR)
-static bool sgm41516_charger_check_otg_valid(struct sgm41516_charger_info *info)
-{
-	int ret;
-	u8 value = 0;
-	bool status = false;
-
-	ret = sgm41516_read(info, SGM41516_REG_01, &value);
-	if (ret) {
-		dev_err(info->dev, "get sgm41516 charger otg valid status failed\n");
-		return status;
-	}
-
-	if (value & SGM41516_OTG_CONFIG_MASK)
-		status = true;
-	else
-		dev_err(info->dev, "otg is not valid, REG_1 = 0x%x\n", value);
-
-	return status;
-}
-
 static bool sgm41516_charger_check_otg_fault(struct sgm41516_charger_info *info)
 {
 	int ret;
@@ -1141,7 +1158,8 @@ static bool sgm41516_charger_check_otg_fault(struct sgm41516_charger_info *info)
 
 	ret = sgm41516_read(info, SGM41516_REG_09, &value);
 	if (ret) {
-		dev_err(info->dev, "get sgm41516 charger otg fault status failed\n");
+		dev_err(info->dev, "%s, failed to read reg[%02X], ret = %d\n",
+			__func__, SGM41516_REG_09, ret);
 		return status;
 	}
 
@@ -1167,21 +1185,20 @@ static void sgm41516_charger_otg_work(struct work_struct *work)
 		return;
 	}
 
-	otg_valid = sgm41516_charger_check_otg_valid(info);
+	otg_valid = sgm41516_charger_otg_vbus_is_enabled(info);
 	if (otg_valid)
 		goto out;
 
 	do {
 		otg_fault = sgm41516_charger_check_otg_fault(info);
 		if (!otg_fault) {
-			ret = sgm41516_update_bits(info, SGM41516_REG_01,
-						   SGM41516_OTG_CONFIG_MASK,
-						   SGM41516_OTG_ENABLE << SGM41516_OTG_CONFIG_SHIFT
-						   );
+			ret = sgm41516_charger_enable_otg_vbus(info, true);
 			if (ret)
-				dev_err(info->dev, "restart sgm41516 charger otg failed\n");
+				dev_err(info->dev, "%s, failed to enable otg vbus, ret = %d\n",
+					__func__, ret);
 		}
-		otg_valid = sgm41516_charger_check_otg_valid(info);
+
+		otg_valid = sgm41516_charger_otg_vbus_is_enabled(info);
 	} while (!otg_valid && retry++ < SGM41516_OTG_RETRY_TIMES);
 
 	if (retry >= SGM41516_OTG_RETRY_TIMES) {
@@ -1208,7 +1225,7 @@ static int sgm41516_charger_enable_otg(struct regulator_dev *dev)
 
 	sgm41516_charger_dump_stack();
 
-	if (!sgm41516_probe_is_ready(info)) {
+	if (!sgm41516_charger_probe_is_ready(info)) {
 		dev_err(info->dev, "%s wait probe timeout\n", __func__);
 		return -EINVAL;
 	}
@@ -1225,11 +1242,10 @@ static int sgm41516_charger_enable_otg(struct regulator_dev *dev)
 		}
 	}
 
-	ret = sgm41516_update_bits(info, SGM41516_REG_01,
-				   SGM41516_OTG_CONFIG_MASK,
-				   SGM41516_OTG_ENABLE << SGM41516_OTG_CONFIG_SHIFT);
+	ret = sgm41516_charger_enable_otg_vbus(info, true);
 	if (ret) {
-		dev_err(info->dev, "enable sgm41516 otg failed\n");
+		dev_err(info->dev, "%s, failed to enable otg vbus, ret = %d\n",
+			__func__, ret);
 		regmap_update_bits(info->pmic, info->charger_detect, BIT_DP_DM_BC_ENB, 0);
 		return ret;
 	}
@@ -1246,9 +1262,9 @@ static int sgm41516_charger_enable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
-	ret = sgm41516_exit_hiz_mode(info);
+	ret = sgm41516_charger_enable_power_path(info, true);
 	if (ret)
-		dev_err(info->dev, "Failed to enable power path\n");
+		dev_err(info->dev, "%s, failed to enable power path, ret = %d\n", __func__, ret);
 
 	info->otg_enable = true;
 	info->last_wdt_time = ktime_to_ms(ktime_get());
@@ -1272,8 +1288,7 @@ static int sgm41516_charger_disable_otg(struct regulator_dev *dev)
 	}
 
 	sgm41516_charger_dump_stack();
-
-	if (!sgm41516_probe_is_ready(info)) {
+	if (!sgm41516_charger_probe_is_ready(info)) {
 		dev_err(info->dev, "%s wait probe timeout\n", __func__);
 		return -EINVAL;
 	}
@@ -1282,11 +1297,10 @@ static int sgm41516_charger_disable_otg(struct regulator_dev *dev)
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
 
-	ret = sgm41516_update_bits(info, SGM41516_REG_01,
-				   SGM41516_OTG_CONFIG_MASK,
-				   SGM41516_OTG_DISABLE << SGM41516_OTG_CONFIG_SHIFT);
+	ret = sgm41516_charger_enable_otg_vbus(info, false);
 	if (ret) {
-		dev_err(info->dev, "disable sgm41516 otg failed\n");
+		dev_err(info->dev, "%s, failed to disable otg vbus, ret = %d\n",
+			__func__, ret);
 		return ret;
 	}
 
@@ -1310,23 +1324,13 @@ static int sgm41516_charger_disable_otg(struct regulator_dev *dev)
 static int sgm41516_charger_vbus_is_enabled(struct regulator_dev *dev)
 {
 	struct sgm41516_charger_info *info = rdev_get_drvdata(dev);
-	int ret;
-	u8 val;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
 	}
 
-	ret = sgm41516_read(info, SGM41516_REG_01, &val);
-	val &= SGM41516_OTG_CONFIG_MASK;
-	val = (val >> SGM41516_OTG_CONFIG_SHIFT) & 0x01;
-	if (ret) {
-		dev_err(info->dev, "failed to get sgm41516 otg status\n");
-		return ret;
-	}
-
-	return val;
+	return sgm41516_charger_otg_vbus_is_enabled(info);
 }
 
 static const struct regulator_ops sgm41516_charger_vbus_ops = {
@@ -1397,7 +1401,7 @@ static int sgm41516_charger_probe(struct i2c_client *client,
 	info->dev = dev;
 
 	i2c_set_clientdata(client, info);
-	power_path_control(info);
+	sgm41516_charger_power_path_control(info);
 
 	ret = sgm41516_charger_is_fgu_present(info);
 	if (ret) {
@@ -1520,7 +1524,7 @@ static int sgm41516_charger_probe(struct i2c_client *client,
 	info->probe_initialized = true;
 	complete_all(&info->probe_init);
 
-	sgm41516_dump_register(info);
+	sgm41516_charger_dump_register(info);
 	dev_info(dev, "use_typec_extcon = %d\n", info->use_typec_extcon);
 
 	return 0;
@@ -1544,15 +1548,15 @@ static void sgm41516_charger_shutdown(struct i2c_client *client)
 	if (info->otg_enable) {
 		info->otg_enable = false;
 		cancel_delayed_work_sync(&info->otg_work);
-		ret = sgm41516_update_bits(info, SGM41516_REG_01,
-					   SGM41516_OTG_CONFIG_MASK,
-					   0);
+		ret = sgm41516_charger_enable_otg_vbus(info, false);
 		if (ret)
-			dev_err(info->dev, "disable sgm41516 otg failed ret = %d\n", ret);
+			dev_err(info->dev, "%s, failed to disable otg vbus, ret = %d\n",
+				__func__, ret);
 
-		ret = sgm41516_enter_hiz_mode(info);
+		ret = sgm41516_charger_enable_power_path(info, false);
 		if (ret)
-			dev_err(info->dev, "Failed to disable power path\n");
+			dev_err(info->dev, "%s, failed to disable power path, ret = %d\n",
+				__func__, ret);
 
 		/* Enable charger detection function to identify the charger type */
 		ret = regmap_update_bits(info->pmic, info->charger_detect,
@@ -1590,7 +1594,9 @@ static int sgm41516_charger_suspend(struct device *dev)
 	}
 
 	if (info->otg_enable || info->is_charger_online) {
-		sgm41516_charger_feed_watchdog(info);
+		if (sgm41516_charger_feed_watchdog(info))
+			dev_err(info->dev, "%s, failed to feed watchdog\n", __func__);
+
 		cancel_delayed_work_sync(&info->wdt_work);
 	}
 
@@ -1598,9 +1604,10 @@ static int sgm41516_charger_suspend(struct device *dev)
 		return 0;
 
 	if (info->disable_wdg) {
-		if (sgm41516_charger_enable_wdg(info, false))
+		if (sgm41516_charger_enable_wdg(info, false)) {
 			dev_err(info->dev, "%s, failed to disable watchdog\n", __func__);
 			return -EBUSY;
+		}
 	} else {
 		dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
 		now = ktime_get_boottime();
@@ -1621,7 +1628,9 @@ static int sgm41516_charger_resume(struct device *dev)
 	}
 
 	if (info->otg_enable || info->is_charger_online) {
-		sgm41516_charger_feed_watchdog(info);
+		if (sgm41516_charger_feed_watchdog(info))
+			dev_err(info->dev, "%s, failed to feed watchdog\n", __func__);
+
 		schedule_delayed_work(&info->wdt_work, HZ * 15);
 	}
 
@@ -1629,9 +1638,10 @@ static int sgm41516_charger_resume(struct device *dev)
 		return 0;
 
 	if (info->disable_wdg) {
-		if (sgm41516_charger_enable_wdg(info, true))
-			dev_err(info->dev, "%s, failed to enable watchdog, ret = %d\n", __func__);
+		if (sgm41516_charger_enable_wdg(info, true)) {
+			dev_err(info->dev, "%s, failed to enable watchdog\n", __func__);
 			return -EBUSY;
+		}
 	} else {
 		alarm_cancel(&info->otg_timer);
 	}
