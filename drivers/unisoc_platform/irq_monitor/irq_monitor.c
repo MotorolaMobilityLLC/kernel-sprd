@@ -8,6 +8,7 @@
 #if defined(CONFIG_ARM)
 #include <linux/math64.h>
 #endif
+#include "irq_consumption_monitor.h"
 
 #define DEFAULT_SCAN_INTERVAL		3000
 #define DEFAULT_THRESHOLD_VAL		3000
@@ -214,6 +215,8 @@ static int __init irq_monitor_init(void)
 	scan_timer.expires = jiffies + msecs_to_jiffies(scan_interval);
 	add_timer(&scan_timer);
 
+	consumption_monitor_init();
+
 	pr_info("Initialized\n");
 	return 0;
 }
@@ -240,6 +243,8 @@ static void __exit irq_monitor_exit(void)
 		}
 		radix_tree_delete(&monitor_tree, hwirq);
 	}
+
+	consumption_monitor_exit();
 
 	pr_warn("Exited\n");
 }
