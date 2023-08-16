@@ -1698,8 +1698,11 @@ static int _mmc_sd_suspend(struct mmc_host *host)
 
 	mmc_claim_host(host);
 
-	if (mmc_card_suspended(card))
+	if (!card || mmc_card_suspended(card))
+	{
+		err = -ENODEV;
 		goto out;
+	}
 
 	if (sd_can_poweroff_notify(card))
 		err = sd_poweroff_notify(card);
