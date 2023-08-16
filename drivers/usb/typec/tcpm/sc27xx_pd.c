@@ -1844,7 +1844,7 @@ static int sc27xx_get_vbus_status(struct sc27xx_pd *pd)
 	} else {
 		/* purpose: wait for vbus to step down */
 		ret = regmap_read_poll_timeout(pd->regmap,
-					       pd->base + SC27XX_TYPEC_DBG1,
+					       pd->typec_base + SC27XX_TYPEC_DBG1,
 					       status,
 					       (!(status & SC27XX_TYPEC_VBUS_OK)),
 					       SC27XX_TYPEC_VBUS_OK_STATUS,

@@ -763,7 +763,7 @@ static int sprd_tcpm_enable_typec_interrupt(struct sprd_tcpm_port *port, bool en
 	} else if (!enable) {
 		/* disable typec interrupt  */
 		port->disable_typec_int = true;
-		if (g_sprd_typec_device_ops && g_sprd_typec_device_ops->set_typec_int_enable)
+		if (g_sprd_typec_device_ops && g_sprd_typec_device_ops->set_typec_int_disable)
 			g_sprd_typec_device_ops->set_typec_int_disable();
 		schedule_delayed_work(&port->role_swap_work, msecs_to_jiffies(6000));
 		sprd_tcpm_log(port, "disable typec interrupt");
