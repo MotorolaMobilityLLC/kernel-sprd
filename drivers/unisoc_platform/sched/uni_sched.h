@@ -577,7 +577,10 @@ static inline void walt_cpufreq_update_util(struct rq *rq, unsigned int flags) {
 #if IS_ENABLED(CONFIG_UNISOC_SCHEDUTIL_GOV)
 extern int uscfreq_gov_register(void);
 #else
-static inline int uscfreq_gov_register(void) {}
+static inline int uscfreq_gov_register(void)
+{
+	return 0;
+}
 #endif
 
 #if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)
