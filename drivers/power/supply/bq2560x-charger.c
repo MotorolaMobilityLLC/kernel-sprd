@@ -1967,6 +1967,7 @@ err_psy_usb:
 	if (info->irq_gpio)
 		gpio_free(info->irq_gpio);
 err_regmap_exit:
+	mutex_destroy(&info->input_limit_cur_lock);
 	mutex_destroy(&info->lock);
 	return ret;
 }
@@ -2006,6 +2007,9 @@ static int bq2560x_charger_remove(struct i2c_client *client)
 
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
+
+	mutex_destroy(&info->input_limit_cur_lock);
+	mutex_destroy(&info->lock);
 
 	return 0;
 }

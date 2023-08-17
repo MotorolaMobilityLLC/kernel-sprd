@@ -1525,6 +1525,7 @@ static int sgm41513_charger_probe(struct i2c_client *client,
 	return 0;
 
 out:
+	mutex_destroy(&info->input_limit_cur_lock);
 	mutex_destroy(&info->lock);
 	return ret;
 }
@@ -1574,6 +1575,10 @@ static int sgm41513_charger_remove(struct i2c_client *client)
 
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
+
+	mutex_destroy(&info->input_limit_cur_lock);
+	mutex_destroy(&info->lock);
+
 	return 0;
 }
 
@@ -1597,9 +1602,10 @@ static int sgm41513_charger_suspend(struct device *dev)
 		return 0;
 
 	if (info->disable_wdg) {
-		if (sgm41513_charger_enable_wdg(info, false))
+		if (sgm41513_charger_enable_wdg(info, false)) {
 			dev_err(info->dev, "%s, failed to disable watchdog\n", __func__);
 			return -EBUSY;
+		}
 	} else {
 		dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
 		now = ktime_get_boottime();
@@ -1628,9 +1634,10 @@ static int sgm41513_charger_resume(struct device *dev)
 		return 0;
 
 	if (info->disable_wdg) {
-		if (sgm41513_charger_enable_wdg(info, true))
-			dev_err(info->dev, "%s, failed to enable watchdog, ret = %d\n", __func__);
+		if (sgm41513_charger_enable_wdg(info, true)) {
+			dev_err(info->dev, "%s, failed to enable watchdog\n", __func__);
 			return -EBUSY;
+		}
 	} else {
 		alarm_cancel(&info->otg_timer);
 	}

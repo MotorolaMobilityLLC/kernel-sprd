@@ -605,6 +605,8 @@ static int sc2721_charger_remove(struct platform_device *pdev)
 		return -EINVAL;
 	}
 
+	mutex_destroy(&info->lock);
+
 	return 0;
 }
 

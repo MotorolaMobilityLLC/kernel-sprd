@@ -517,6 +517,8 @@ static int sc2731_charger_remove(struct platform_device *pdev)
 
 	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 
+	mutex_destroy(&info->lock);
+
 	return 0;
 }
 

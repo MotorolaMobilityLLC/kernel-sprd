@@ -1144,6 +1144,8 @@ static int fan54015_charger_remove(struct i2c_client *client)
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
 
+	mutex_destroy(&info->lock);
+
 	return 0;
 }
 
