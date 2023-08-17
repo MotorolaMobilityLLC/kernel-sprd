@@ -1557,12 +1557,15 @@ static void sprd_musb_free_nodes(struct sprd_musb_dma_controller *controller)
 	for (ch = 1; ch <= MUSB_DMA_CHANNELS; ch++) {
 		chp = &controller->channel[ch];
 #if IS_ENABLED(CONFIG_USB_SPRD_LINKFIFO)
-		for (i = 0; i < CHN_MAX_QUEUE_SIZE; i++) {
+		if (chp->dma_linklist[0]) {
 			dma_free_coherent(musb->controller,
-				sizeof(struct linklist_node_s) * LISTNODE_NUM,
-				chp->dma_linklist[i], chp->list_dma_addr[i]);
-			chp->dma_linklist[i] = NULL;
-			chp->list_dma_addr[i] = 0;
+				sizeof(struct linklist_node_s) * LISTNODE_NUM * CHN_MAX_QUEUE_SIZE,
+				chp->dma_linklist[0], chp->list_dma_addr[0]);
+
+			for (i = 0; i < CHN_MAX_QUEUE_SIZE; i++) {
+				chp->dma_linklist[i] = NULL;
+				chp->list_dma_addr[i] = 0;
+			}
 		}
 #else
 		if (chp->dma_linklist) {
@@ -1614,18 +1617,22 @@ struct dma_controller *sprd_musb_dma_controller_create(struct musb *musb,
 	for (ch = 1; ch <= MUSB_DMA_CHANNELS; ch++) {
 		chp = &controller->channel[ch];
 #if IS_ENABLED(CONFIG_USB_SPRD_LINKFIFO)
-		for (i = 0; i < CHN_MAX_QUEUE_SIZE; i++) {
-			chp->dma_linklist[i] = dma_alloc_coherent(musb->controller,
-				sizeof(struct linklist_node_s) * LISTNODE_NUM,
-				&chp->list_dma_addr[i], GFP_KERNEL);
+		chp->dma_linklist[0] = dma_alloc_coherent(musb->controller,
+			sizeof(struct linklist_node_s) * LISTNODE_NUM * CHN_MAX_QUEUE_SIZE,
+			&chp->list_dma_addr[0], GFP_KERNEL);
 
-			if (!chp->dma_linklist[i]) {
-				dev_err(musb->controller,
-					"failed to allocate dma linklist %d %d\n", ch, i);
-				sprd_musb_free_nodes(controller);
-				kfree(controller);
-				return NULL;
-			}
+		if (!chp->dma_linklist[0]) {
+			dev_err(musb->controller,
+				"failed to allocate dma linklist %d %d\n", ch, i);
+			sprd_musb_free_nodes(controller);
+			kfree(controller);
+			return NULL;
+		}
+
+		for (i = 0; i < CHN_MAX_QUEUE_SIZE - 1; i++) {
+			chp->dma_linklist[i + 1] = chp->dma_linklist[i] +  LISTNODE_NUM;
+			chp->list_dma_addr[i + 1] = chp->list_dma_addr[i] +
+				sizeof(struct linklist_node_s) * LISTNODE_NUM;
 		}
 #else
 		chp->dma_linklist = dma_alloc_coherent(musb->controller,
