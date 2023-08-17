@@ -16,9 +16,9 @@
 
 /*unit: ms*/
 #ifdef CONFIG_SPRD_DEBUG
-#define MODULES_TIME_OUT ((1*1200) >> 1)
+#define MODULES_TIME_OUT (1600)
 #else
-#define MODULES_TIME_OUT (1*1000)
+#define MODULES_TIME_OUT (2000)
 #endif
 
 static RADIX_TREE(modules_tree, GFP_KERNEL|GFP_ATOMIC);
