@@ -307,6 +307,7 @@ static inline void sdhci_sprd_writew(struct sdhci_host *host, u16 val, int reg)
 static inline void sdhci_sprd_writeb(struct sdhci_host *host, u8 val, int reg)
 {
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	u32 status;
 	u64 i = 0;
 
 	if (unlikely(reg == SDHCI_SOFTWARE_RESET)) {
@@ -319,7 +320,9 @@ static inline void sdhci_sprd_writeb(struct sdhci_host *host, u8 val, int reg)
 		if (sprd_host->tuning_flag &&
 		   (sprd_host->int_status & SDHCI_INT_ERROR_MASK)) {
 			while (i++ < 20000) {
-				if (!(sdhci_readl(host, SDHCI_PRESENT_STATE) & SDHCI_DOING_READ))
+				status = sdhci_readl(host, SDHCI_PRESENT_STATE);
+				if (!(status & SDHCI_DOING_READ) &&
+				    ((status & SDHCI_DATA_LVL_MASK) == SDHCI_DATA_LVL_MASK))
 					break;
 			}
 			if (i >= 20000) {
@@ -762,7 +765,7 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	u32 dll_cfg, mid_dll_cnt, dll_cnt, dll_dly;
 	bool cfg_use_adma = false;
 	bool cfg_use_sdma = false;
-	unsigned int udelay, udelay_max = 2097152;
+	u32 tmp;
 	int cmd_error = 0;
 
 	sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
@@ -815,23 +818,17 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	do {
 		/*
 		 * When the wait_read_idle flag is set, we need to waiting fo the HC state
-		 * become idle before the next tuning commond is sent, where the latency
-		 * of the polling is multiplied by 2 each time. So the maximum polling time
-		 * can be about 4s, which is recommended in Spreadtrum's platform.
+		 * become idle before the next tuning commond is sent. The maximum polling
+		 * time can be about 4s, which is recommended in Spreadtrum's platform.
 		 */
 		if (sprd_host->wait_read_idle) {
-			udelay = 32;
-			while (udelay <= udelay_max) {
-				if (!(sdhci_readl(host, SDHCI_PRESENT_STATE) & SDHCI_DOING_READ))
-					break;
-				usleep_range(udelay, udelay * 2);
-				udelay *= 2;
-				if (udelay > udelay_max) {
-					pr_err("%s: wait Read_Active idle fail, exit tuning!\n",
-						mmc_hostname(mmc));
-					err = -EIO;
-					goto out;
-				}
+			if (read_poll_timeout(sdhci_readl, tmp, (!(tmp & SDHCI_DOING_READ) &&
+			    ((tmp & SDHCI_DATA_LVL_MASK) == SDHCI_DATA_LVL_MASK)),
+			    USEC_PER_MSEC, 4 * USEC_PER_SEC, false, host, SDHCI_PRESENT_STATE)) {
+				pr_err("%s: wait device idle fail, exit tuning!\n",
+					mmc_hostname(mmc));
+				err = -EIO;
+				goto out;
 			}
 			sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
 			sprd_host->wait_read_idle = false;
