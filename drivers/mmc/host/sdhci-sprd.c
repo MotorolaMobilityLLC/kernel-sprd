@@ -192,6 +192,7 @@ struct sdhci_sprd_host {
 	void __iomem *cqe_mem;	/* SPRD CQE mapped address (if available) */
 	void __iomem *ice_mem;	/* SPRD ICE mapped address (if available) */
 	struct sprd_host_tuning_info *tuning_info;
+	u8 *tuning_data_buf;
 	u32 tuning_flag;
 	u32 cpst_cmd_dly;
 	u32 int_status;
@@ -845,11 +846,12 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 			if (opcode == MMC_SET_BLOCKLEN)
 				value = !mmc_send_tuning_cmd(mmc);
 			else
-				value = !mmc_send_tuning_read(mmc);
+				value = !mmc_send_tuning_read(mmc, sprd_host->tuning_data_buf);
 		} else if (type == SDHCI_SPRD_TUNING_SD_UHS_CMD) {
 			value = !mmc_send_tuning_cmd(mmc);
 		} else {
-			value = !mmc_send_tuning(mmc, opcode, &cmd_error);
+			value = !mmc_send_tuning_pattern(mmc, opcode, &cmd_error,
+							 sprd_host->tuning_data_buf);
 		}
 
 		/*
@@ -1885,6 +1887,12 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	sprd_host->pdev = pdev;
 
 	sprd_host->tuning_info = &sprd_tuning_info[host->mmc->index];
+
+	sprd_host->tuning_data_buf = kzalloc(128, GFP_KERNEL);
+	if (!sprd_host->tuning_data_buf) {
+		ret = -ENOMEM;
+		goto pltfm_free;
+	}
 
 	sprd_host->pinctrl = devm_pinctrl_get(&pdev->dev);
 	if (!IS_ERR(sprd_host->pinctrl)) {
