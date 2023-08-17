@@ -707,14 +707,17 @@ static ssize_t ddrinfo_dfs_step_show(struct device *dev,
 							  &scene, &buff, &pid, &time, i);
 
 		if (scene == NULL)
-			count += sprintf(&buf[count],
-					 "dfs_dbg_log: DDR_DFS_STEP: %s %s, buff: %u, pid: %d, time: %lld us\n",
-					 arg, step_status, buff, pid, time);
+			count += snprintf(&buf[count], 128,
+					  "dfs_dbg_log: DDR_DFS_STEP: %s %s, buff: %u, pid: %d, time: %lld us\n",
+					  arg, step_status, buff, pid, time);
 		else
-			count += sprintf(&buf[count],
-					 "dfs_dbg_log: DDR_DFS_STEP: %s %s, scene: %s, pid: %d, time: %lld us\n",
-					 arg, step_status, scene, pid, time);
+			count += snprintf(&buf[count], 128,
+					  "dfs_dbg_log: DDR_DFS_STEP: %s %s, scene: %s, pid: %d, time: %lld us\n",
+					  arg, step_status, scene, pid, time);
 		i++;
+
+		if (i >= PAGE_SIZE/128) // make sure count <= 4096
+			break;
 	} while (!err);
 	mutex_unlock(&devfreq->lock);
 	return count;
