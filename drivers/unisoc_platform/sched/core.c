@@ -8,6 +8,7 @@
 #include <trace/hooks/sched.h>
 #include <trace/hooks/dtask.h>
 #include <trace/hooks/topology.h>
+#include <trace/events/power.h>
 #include <linux/kmemleak.h>
 
 #include "uni_sched.h"
@@ -385,6 +386,18 @@ static void android_rvh_wake_up_new_task(void *data, struct task_struct *p)
 		check_parent_vip_status(p);
 }
 
+static void android_vh_set_uclamp(void *data, struct task_struct *p, int clamp_id, unsigned int val)
+{
+	if (trace_clock_set_rate_enabled()) {
+		char buf[32] = {0};
+
+		if (clamp_id == UCLAMP_MIN) {
+			snprintf(buf, sizeof(buf), "uclamp-min-%d", p->pid);
+			trace_clock_set_rate(buf, val, smp_processor_id());
+		}
+	}
+}
+
 static void register_sched_vendor_hooks(void)
 {
 	register_trace_android_vh_dup_task_struct(android_vh_dup_task_struct, NULL);
@@ -394,6 +407,7 @@ static void register_sched_vendor_hooks(void)
 	register_trace_android_rvh_after_dequeue_task(android_rvh_after_dequeue_task, NULL);
 	register_trace_android_vh_sched_show_task(android_vh_sched_show_task, NULL);
 	register_trace_sched_switch(sched_show_untask_stack, NULL);
+	register_trace_android_vh_setscheduler_uclamp(android_vh_set_uclamp, NULL);
 }
 
 static DEFINE_RAW_SPINLOCK(init_lock);
