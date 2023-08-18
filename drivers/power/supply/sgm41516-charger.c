@@ -56,6 +56,16 @@
 
 static bool boot_calibration;
 
+enum {
+	SGM41516_MASTER,
+	SGM41516_SLAVE,
+};
+
+static int sgm41516_mode_data[] = {
+	[SGM41516_MASTER] = SGM41516_ROLE_MASTER,
+	[SGM41516_SLAVE] = SGM41516_ROLE_SLAVE,
+};
+
 /* SGM41516 Register 0x00 IINDPM[4:0] */
 static const u32 sgm41516_iindpm[] = {
 	100, 200, 300, 400, 500, 600, 700, 800,
@@ -108,6 +118,9 @@ struct sgm41516_charger_info {
 	bool probe_initialized;
 	bool use_typec_extcon;
 	bool shutdown_flag;
+
+	struct power_supply_desc psy_desc;
+	struct power_supply_config psy_cfg;
 };
 
 static bool enable_dump_stack;
@@ -1109,26 +1122,6 @@ static enum power_supply_property sgm41516_usb_props[] = {
 	POWER_SUPPLY_PROP_CALIBRATE,
 };
 
-static const struct power_supply_desc sgm41516_charger_desc = {
-	.name			= "sgm41516_charger",
-	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
-	.properties		= sgm41516_usb_props,
-	.num_properties		= ARRAY_SIZE(sgm41516_usb_props),
-	.get_property		= sgm41516_charger_usb_get_property,
-	.set_property		= sgm41516_charger_usb_set_property,
-	.property_is_writeable	= sgm41516_charger_property_is_writeable,
-};
-
-static const struct power_supply_desc sgm41516_slave_charger_desc = {
-	.name			= "sgm41516_slave_charger",
-	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
-	.properties		= sgm41516_usb_props,
-	.num_properties		= ARRAY_SIZE(sgm41516_usb_props),
-	.get_property		= sgm41516_charger_usb_get_property,
-	.set_property		= sgm41516_charger_usb_set_property,
-	.property_is_writeable	= sgm41516_charger_property_is_writeable,
-};
-
 static void sgm41516_charger_feed_watchdog_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -1355,12 +1348,19 @@ static int sgm41516_charger_register_vbus_regulator(struct sgm41516_charger_info
 	struct regulator_dev *reg;
 	int ret = 0;
 
+	/*
+	 * only master to support otg
+	 */
+	if (info->role != SGM41516_ROLE_MASTER)
+		return 0;
+
 	cfg.dev = info->dev;
 	cfg.driver_data = info;
 	reg = devm_regulator_register(info->dev, &sgm41516_charger_vbus_desc, &cfg);
 	if (IS_ERR(reg)) {
 		ret = PTR_ERR(reg);
-		dev_err(info->dev, "Can't register regulator:%d\n", ret);
+		dev_err(info->dev, "%s, failed to register regulator, ret = %d\n",
+			__func__, ret);
 	}
 
 	return ret;
@@ -1373,15 +1373,148 @@ static int sgm41516_charger_register_vbus_regulator(struct sgm41516_charger_info
 }
 #endif
 
+static const struct of_device_id sgm41516_charger_of_match_table[] = {
+	{
+		.compatible = "Sgm,sgm41516_chg",
+		.data = &sgm41516_mode_data[SGM41516_MASTER],
+	},
+
+	{
+		.compatible = "Sgm,sgm41516_slave_chg",
+		.data = &sgm41516_mode_data[SGM41516_SLAVE],
+	},
+	{},
+};
+
+static int sgm41516_charger_match_role(struct sgm41516_charger_info *info)
+{
+	struct device *dev = info->dev;
+	const struct of_device_id *match;
+
+	match = of_match_node(sgm41516_charger_of_match_table, dev->of_node);
+	if (match == NULL) {
+		dev_err(dev, "%s, device tree match not found!\n", __func__);
+		return -ENODEV;
+	}
+
+	info->role = *(int *)match->data;
+	dev_info(dev, "%s, match role: %s\n",
+		 __func__, info->role == SGM41516_ROLE_MASTER ? "Master" : "Slave");
+
+	return 0;
+}
+
+static int sgm41516_charger_slave_adapt_enable_pin_cfg(struct sgm41516_charger_info *info)
+{
+	if (info->role != SGM41516_ROLE_SLAVE)
+		return 0;
+
+	info->gpiod = devm_gpiod_get(info->dev, "enable", GPIOD_OUT_HIGH);
+	if (IS_ERR(info->gpiod)) {
+		dev_err(info->dev, "%s, failed to get enable gpio\n", __func__);
+		return PTR_ERR(info->gpiod);
+	}
+
+	return 0;
+}
+
+static int sgm41516_charger_master_adapt_enable_pin_cfg(struct sgm41516_charger_info *info)
+{
+	struct device_node *regmap_np;
+	struct platform_device *regmap_pdev;
+	int ret = 0;
+
+	if (info->role != SGM41516_ROLE_MASTER)
+		return 0;
+
+	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
+	if (!regmap_np)
+		regmap_np = of_find_compatible_node(NULL, NULL, "sprd,ump962x-syscon");
+
+	if (regmap_np) {
+		if (of_device_is_compatible(regmap_np->parent, "sprd,sc2730")) {
+			info->charger_pd_mask = SGM41516_DISABLE_PIN_MASK_2730;
+		} else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2721")) {
+			info->charger_pd_mask = SGM41516_DISABLE_PIN_MASK_2721;
+		} else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2720")) {
+			info->charger_pd_mask = SGM41516_DISABLE_PIN_MASK_2720;
+		} else if (of_device_is_compatible(regmap_np, "sprd,ump962x-syscon")) {
+			info->charger_pd_mask = SGM41516_DISABLE_PIN_MASK;
+		} else {
+			dev_err(info->dev, "%s, failed to get charger_pd mask\n", __func__);
+			return -EINVAL;
+		}
+	} else {
+		dev_err(info->dev, "%s, unable to get syscon node\n", __func__);
+		return -ENODEV;
+	}
+
+	ret = of_property_read_u32_index(regmap_np, "reg", 1,
+					 &info->charger_detect);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to get charger_detect, ret = %d\n", __func__, ret);
+		return -EINVAL;
+	}
+
+	ret = of_property_read_u32_index(regmap_np, "reg", 2,
+					 &info->charger_pd);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to get charger_pd reg, ret = %d\n", __func__, ret);
+		return -EINVAL;
+	}
+
+	regmap_pdev = of_find_device_by_node(regmap_np);
+	if (!regmap_pdev) {
+		of_node_put(regmap_np);
+		dev_err(info->dev, "%s, unable to get syscon device\n", __func__);
+		return -ENODEV;
+	}
+
+	of_node_put(regmap_np);
+	info->pmic = dev_get_regmap(regmap_pdev->dev.parent, NULL);
+	if (!info->pmic) {
+		dev_err(info->dev, "%s, unable to get pmic regmap device\n", __func__);
+		return -ENODEV;
+	}
+
+	return 0;
+}
+
+static int sgm41516_charger_psy_register(struct sgm41516_charger_info *info)
+{
+	info->psy_cfg.drv_data = info;
+	info->psy_cfg.of_node = info->dev->of_node;
+
+	if (info->role == SGM41516_ROLE_SLAVE)
+		info->psy_desc.name = "sgm41516_slave_charger";
+	else
+		info->psy_desc.name = "sgm41516_charger";
+
+	info->psy_desc.type = POWER_SUPPLY_TYPE_UNKNOWN;
+	info->psy_desc.properties = sgm41516_usb_props;
+	info->psy_desc.num_properties = ARRAY_SIZE(sgm41516_usb_props);
+	info->psy_desc.get_property = sgm41516_charger_usb_get_property;
+	info->psy_desc.set_property = sgm41516_charger_usb_set_property;
+	info->psy_desc.property_is_writeable = sgm41516_charger_property_is_writeable;
+
+	info->psy_usb = devm_power_supply_register(info->dev, &info->psy_desc, &info->psy_cfg);
+	if (IS_ERR(info->psy_usb)) {
+		dev_err(info->dev, "%s, failed to register power supply\n", __func__);
+		return PTR_ERR(info->psy_usb);
+	}
+
+	dev_info(info->dev, "%s, %s power supply register successfully\n",
+		 __func__, info->psy_desc.name);
+
+	return 0;
+}
+
 static int sgm41516_charger_probe(struct i2c_client *client,
 				  const struct i2c_device_id *id)
 {
 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
 	struct device *dev = &client->dev;
-	struct power_supply_config charger_cfg = { };
 	struct sgm41516_charger_info *info;
-	struct device_node *regmap_np;
-	struct platform_device *regmap_pdev;
 	int ret;
 
 	if (!adapter) {
@@ -1412,88 +1545,33 @@ static int sgm41516_charger_probe(struct i2c_client *client,
 	info->use_typec_extcon = device_property_read_bool(dev, "use-typec-extcon");
 	info->disable_wdg = device_property_read_bool(dev, "disable-otg-wdg-in-sleep");
 
-	ret = device_property_read_bool(dev, "role-slave");
-	if (ret)
-		info->role = SGM41516_ROLE_SLAVE;
-	else
-		info->role = SGM41516_ROLE_MASTER;
-
-	if (info->role == SGM41516_ROLE_SLAVE) {
-		info->gpiod = devm_gpiod_get(dev, "enable", GPIOD_OUT_HIGH);
-		if (IS_ERR(info->gpiod)) {
-			dev_err(dev, "failed to get enable gpio\n");
-			return PTR_ERR(info->gpiod);
-		}
-	}
-
-	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
-	if (!regmap_np)
-		regmap_np = of_find_compatible_node(NULL, NULL, "sprd,ump962x-syscon");
-
-	if (regmap_np) {
-		if (of_device_is_compatible(regmap_np->parent, "sprd,sc2730"))
-			info->charger_pd_mask = SGM41516_DISABLE_PIN_MASK_2730;
-		else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2721"))
-			info->charger_pd_mask = SGM41516_DISABLE_PIN_MASK_2721;
-		else if (of_device_is_compatible(regmap_np->parent, "sprd,sc2720"))
-			info->charger_pd_mask = SGM41516_DISABLE_PIN_MASK_2720;
-		else if (of_device_is_compatible(regmap_np, "sprd,ump962x-syscon"))
-			info->charger_pd_mask = SGM41516_DISABLE_PIN_MASK;
-		else {
-			dev_err(dev, "failed to get charger_pd mask\n");
-			return -EINVAL;
-		}
-	} else {
-		dev_err(dev, "unable to get syscon node\n");
-		return -ENODEV;
-	}
-
-	ret = of_property_read_u32_index(regmap_np, "reg", 1,
-					 &info->charger_detect);
+	ret = sgm41516_charger_match_role(info);
 	if (ret) {
-		dev_err(dev, "failed to get charger_detect\n");
-		return -EINVAL;
-	}
-
-	ret = of_property_read_u32_index(regmap_np, "reg", 2,
-					 &info->charger_pd);
-	if (ret) {
-		dev_err(dev, "failed to get charger_pd reg\n");
+		dev_err(dev, "%s, failed to get work mode, ret = %d\n", __func__, ret);
 		return ret;
 	}
 
-	regmap_pdev = of_find_device_by_node(regmap_np);
-	if (!regmap_pdev) {
-		of_node_put(regmap_np);
-		dev_err(dev, "unable to get syscon device\n");
-		return -ENODEV;
+	ret = sgm41516_charger_slave_adapt_enable_pin_cfg(info);
+	if (ret) {
+		dev_err(dev, "%s, failed to configure the adptive enable pin in slave, ret = %d\n",
+			__func__, ret);
+		return ret;
 	}
 
-	of_node_put(regmap_np);
-	info->pmic = dev_get_regmap(regmap_pdev->dev.parent, NULL);
-	if (!info->pmic) {
-		dev_err(dev, "unable to get pmic regmap device\n");
-		return -ENODEV;
+	ret = sgm41516_charger_master_adapt_enable_pin_cfg(info);
+	if (ret) {
+		dev_err(dev, "%s, failed to configure the adptive enable pin in master, ret = %d\n",
+			__func__, ret);
+		return ret;
 	}
+
 	mutex_init(&info->lock);
 	mutex_init(&info->input_limit_cur_lock);
 	init_completion(&info->probe_init);
 
-	charger_cfg.drv_data = info;
-	charger_cfg.of_node = dev->of_node;
-	if (info->role == SGM41516_ROLE_MASTER) {
-		info->psy_usb = devm_power_supply_register(dev,
-							   &sgm41516_charger_desc,
-							   &charger_cfg);
-	} else if (info->role == SGM41516_ROLE_SLAVE) {
-		info->psy_usb = devm_power_supply_register(dev,
-							   &sgm41516_slave_charger_desc,
-							   &charger_cfg);
-	}
-
-	if (IS_ERR(info->psy_usb)) {
-		dev_err(dev, "failed to register power supply\n");
-		ret = PTR_ERR(info->psy_usb);
+	ret = sgm41516_charger_psy_register(info);
+	if (ret) {
+		dev_err(dev, "%s, failed to register power supply, ret = %d\n", __func__, ret);
 		goto out;
 	}
 
@@ -1510,15 +1588,11 @@ static int sgm41516_charger_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&info->otg_work, sgm41516_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work, sgm41516_charger_feed_watchdog_work);
 
-	/*
-	 * only master to support otg
-	 */
-	if (info->role == SGM41516_ROLE_MASTER) {
-		ret = sgm41516_charger_register_vbus_regulator(info);
-		if (ret) {
-			dev_err(dev, "failed to register vbus regulator.\n");
-			goto out;
-		}
+	ret = sgm41516_charger_register_vbus_regulator(info);
+	if (ret) {
+		dev_err(dev, "%s, failed to register vbus regulator, ret = %d\n",
+			__func__, ret);
+		goto out;
 	}
 
 	info->probe_initialized = true;
@@ -1530,6 +1604,7 @@ static int sgm41516_charger_probe(struct i2c_client *client,
 	return 0;
 
 out:
+	mutex_destroy(&info->input_limit_cur_lock);
 	mutex_destroy(&info->lock);
 	return ret;
 }
@@ -1579,6 +1654,8 @@ static int sgm41516_charger_remove(struct i2c_client *client)
 
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
+	mutex_destroy(&info->input_limit_cur_lock);
+	mutex_destroy(&info->lock);
 	return 0;
 }
 
@@ -1661,18 +1738,10 @@ static const struct i2c_device_id sgm41516_i2c_id[] = {
 	{}
 };
 
-static const struct of_device_id sgm41516_charger_of_match[] = {
-	{ .compatible = "Sgm,sgm41516_chg", },
-	{ .compatible = "Sgm,sgm41516_slave_chg", },
-	{ }
-};
-
-MODULE_DEVICE_TABLE(of, sgm41516_charger_of_match);
-
 static struct i2c_driver sgm41516_charger_driver = {
 	.driver = {
 		.name = "sgm41516_chg",
-		.of_match_table = sgm41516_charger_of_match,
+		.of_match_table = sgm41516_charger_of_match_table,
 		.pm = &sgm41516_charger_pm_ops,
 	},
 	.probe = sgm41516_charger_probe,
