@@ -8029,6 +8029,9 @@ static int charger_manager_remove(struct platform_device *pdev)
 	if (cm->fchg_info->ops && cm->fchg_info->ops->remove)
 		cm->fchg_info->ops->remove(cm->fchg_info);
 
+	if (cm->vchg_info->ops && cm->vchg_info->ops->remove)
+		cm->vchg_info->ops->remove(cm->vchg_info);
+
 	cancel_work_sync(&setup_polling);
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->cap_update_work);
@@ -8052,6 +8055,9 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 
 	if (cm->fchg_info->ops && cm->fchg_info->ops->shutdown)
 		cm->fchg_info->ops->shutdown(cm->fchg_info);
+
+	if (cm->vchg_info->ops && cm->vchg_info->ops->shutdown)
+		cm->vchg_info->ops->shutdown(cm->vchg_info);
 
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);

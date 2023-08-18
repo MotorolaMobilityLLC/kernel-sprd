@@ -395,7 +395,8 @@ static int sprd_vchg_detect_init(struct sprd_vchg_info *info, struct power_suppl
 
 #if IS_ENABLED(CONFIG_SC27XX_PD)
 err_reg_usb:
-	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
+	if (!info->use_typec_extcon)
+		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 #endif
 
 remove_wakeup:
@@ -424,8 +425,15 @@ static void sprd_vchg_remove(struct sprd_vchg_info *info)
 		return;
 	}
 
-	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
+	if (!info->use_typec_extcon)
+		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 	wakeup_source_remove(info->sprd_vchg_ws);
+#if IS_ENABLED(CONFIG_SC27XX_PD)
+	cancel_delayed_work_sync(&info->pd_hard_reset_work);
+	cancel_delayed_work_sync(&info->typec_extcon_work);
+	cancel_work_sync(&info->ignore_hard_reset_work);
+#endif
+	cancel_work_sync(&info->sprd_vchg_work);
 }
 
 static void sprd_vchg_shutdown(struct sprd_vchg_info *info)
@@ -434,6 +442,16 @@ static void sprd_vchg_shutdown(struct sprd_vchg_info *info)
 		pr_err("%s:line%d: NULL pointer!!!\n", SPRD_VCHG_TAG, __LINE__);
 		return;
 	}
+
+	if (!info->use_typec_extcon)
+		usb_unregister_notifier(info->usb_phy, &info->usb_notify);
+	wakeup_source_remove(info->sprd_vchg_ws);
+#if IS_ENABLED(CONFIG_SC27XX_PD)
+	cancel_delayed_work_sync(&info->pd_hard_reset_work);
+	cancel_delayed_work_sync(&info->typec_extcon_work);
+	cancel_work_sync(&info->ignore_hard_reset_work);
+#endif
+	cancel_work_sync(&info->sprd_vchg_work);
 }
 
 struct sprd_vchg_info *sprd_vchg_info_register(struct device *dev)
