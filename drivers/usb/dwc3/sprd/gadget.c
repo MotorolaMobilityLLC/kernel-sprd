@@ -2476,8 +2476,11 @@ static int dwc3_gadget_run_stop(struct dwc3 *dwc, int is_on, int suspend)
 		reg &= DWC3_DSTS_DEVCTRLHLT;
 	} while (--timeout && !(!is_on ^ !reg));
 
-	if (!timeout)
+	if (!timeout) {
+		dev_err(dwc->dev, "failed to %s controller\n",
+			is_on ? "start" : "stop");
 		return -ETIMEDOUT;
+	}
 
 	return 0;
 }
@@ -2579,6 +2582,13 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 	}
 
 	ret = dwc3_gadget_run_stop(dwc, is_on, false);
+	if (ret == -ETIMEDOUT && is_on == 0) {
+		/*
+		 * WORKAROUND: Sometimes DWC3 is impossible to
+		 * enter the core idle state.
+		 */
+		ret = 0;
+	}
 	spin_unlock_irqrestore(&dwc->lock, flags);
 	enable_irq(dwc->irq_gadget);
 
