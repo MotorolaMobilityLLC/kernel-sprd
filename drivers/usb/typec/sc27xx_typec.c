@@ -254,8 +254,9 @@ struct sc27xx_typec {
 	struct extcon_dev *vbus_dev;
 	struct notifier_block vbus_nb;
 
-	bool vbus_connect;
+	bool vbus_connect_value;
 	bool vbus_only_connect;
+	bool vbus_events;
 	bool usb20_only;
 	bool partner_connected;
 	bool soft_typec_out;
@@ -264,6 +265,7 @@ struct sc27xx_typec {
 	u8 pr_mode;
 	u8 pd_swap_evt;
 	spinlock_t lock;
+	spinlock_t vbus_lock;
 	enum sc27xx_typec_connection_state state;
 	enum sc27xx_typec_connection_state pre_state;
 	enum sprd_typec_cc_polarity cc_polarity;
@@ -485,6 +487,9 @@ static int sc27xx_connect_set_status_no_pdhubc2c(struct sc27xx_typec *sc, u32 st
 		break;
 	}
 
+	spin_lock(&sc->lock);
+	sc->partner_connected = true;
+	spin_unlock(&sc->lock);
 	sc27xx_typec_set_cc_polarity_role(sc);
 
 	return 0;
@@ -562,6 +567,10 @@ static void sc27xx_disconnect_set_status_no_pdhubc2c(struct sc27xx_typec *sc)
 	typec_set_pwr_role(sc->port, TYPEC_SINK);
 	typec_set_data_role(sc->port, TYPEC_DEVICE);
 	typec_set_vconn_role(sc->port, TYPEC_SINK);
+
+	spin_lock(&sc->lock);
+	sc->partner_connected = false;
+	spin_unlock(&sc->lock);
 
 	switch (sc->pre_state) {
 	case SC27XX_ATTACHED_SNK:
@@ -791,7 +800,7 @@ typec_cc_polarity_role_show(struct device *dev, struct device_attribute *attr,
 {
 	struct sc27xx_typec *sc = dev_get_drvdata(dev);
 
-	return sprintf(buf, "%s\n", sprd_typec_cc_polarity_roles[sc->cc_polarity]);
+	return snprintf(buf, 5, "%s\n", sprd_typec_cc_polarity_roles[sc->cc_polarity]);
 }
 static DEVICE_ATTR_RO(typec_cc_polarity_role);
 
@@ -1183,33 +1192,36 @@ static int sc27xx_typec_get_vbus_notify(struct notifier_block *nb,
 	struct sc27xx_typec *sc = container_of(nb,
 				  struct sc27xx_typec, vbus_nb);
 
-	spin_lock(&sc->lock);
-	if (event)
-		sc->vbus_connect = true;
-	else
-		sc->vbus_connect = false;
-	spin_unlock(&sc->lock);
+	spin_lock(&sc->vbus_lock);
+	sc->vbus_events = true;
+	sc->vbus_connect_value = event;
+	spin_unlock(&sc->vbus_lock);
 
-	dev_info(sc->dev, "vbus_connect:%d\n", sc->vbus_connect);
-	queue_delayed_work(system_unbound_wq, &sc->vbus_only_work,
-				msecs_to_jiffies(1000));
+	dev_info(sc->dev, "vbus_connect_value:%d\n", sc->vbus_connect_value);
+	queue_delayed_work(system_unbound_wq, &sc->vbus_only_work, 0);
 
 	return 0;
 }
 
-static void sc27xx_typec_vbus_only_work(struct work_struct *work)
+static void sc27xx_typec_handle_vbus(struct sc27xx_typec *sc)
 {
-	struct sc27xx_typec *sc = typec_sc;
-	bool vbus_connect_val;
+	u32 timeout = 25;
 
-	spin_lock(&sc->lock);
-	vbus_connect_val = sc->vbus_connect;
-	spin_unlock(&sc->lock);
+	dev_info(sc->dev, "%s event %d", __func__, sc->vbus_connect_value);
+	if (sc->vbus_connect_value) {
+		do {
+			/* typec has attach,not vbusonly */
+			if (sc->partner_connected) {
+				dev_info(sc->dev, "typec connect, not vbusonly\n");
+				return;
+			}
+			msleep(20);
+			if (!sc->vbus_connect_value) {
+				dev_info(sc->dev, "vbusonly plug out during 500ms\n");
+				return;
+			}
 
-	if (vbus_connect_val) {
-		/* typec has attach,not vbusonly */
-		if (sc27xx_get_current_status_detach_or_attach())
-			return;
+		} while (--timeout > 0);
 		/* vbus attach and 1s no typec attch,
 		 * attach cable recognize vbusonly cable.
 		 */
@@ -1217,14 +1229,30 @@ static void sc27xx_typec_vbus_only_work(struct work_struct *work)
 		dev_info(sc->dev, "vbus_only_connect\n");
 		extcon_set_state_sync(sc->edev, EXTCON_USB, true);
 		extcon_set_state_sync(sc->edev, EXTCON_SINK, true);
-	} else {
-		if (sc->vbus_only_connect) {
-			dev_info(sc->dev, "vbus_only_disconnect\n");
-			extcon_set_state_sync(sc->edev, EXTCON_USB, false);
-			extcon_set_state_sync(sc->edev, EXTCON_SINK, false);
-		}
-		sc->vbus_only_connect = false;
+		return;
 	}
+
+	if (sc->vbus_only_connect) {
+		dev_info(sc->dev, "vbus_only_disconnect\n");
+		extcon_set_state_sync(sc->edev, EXTCON_USB, false);
+		extcon_set_state_sync(sc->edev, EXTCON_SINK, false);
+	}
+	sc->vbus_only_connect = false;
+}
+
+static void sc27xx_typec_vbus_only_work(struct work_struct *work)
+{
+	struct sc27xx_typec *sc = typec_sc;
+
+	spin_lock(&sc->vbus_lock);
+	while (sc->vbus_events) {
+		sc->vbus_events = false;
+		spin_unlock(&sc->vbus_lock);
+		sc27xx_typec_handle_vbus(sc);
+		spin_lock(&sc->vbus_lock);
+	}
+
+	spin_unlock(&sc->vbus_lock);
 }
 
 static int sc27xx_typec_probe(struct platform_device *pdev)
@@ -1310,6 +1338,7 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 
 	typec_sc = sc;
 	spin_lock_init(&sc->lock);
+	spin_lock_init(&sc->vbus_lock);
 	sc27xx_set_dr_swap_executing(0);
 	sc27xx_set_current_status_detach_or_attach(0);
 
@@ -1333,8 +1362,7 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 	}
 
 	/* typec get vbus extcon notify */
-	if (sc->use_pdhub_c2c &&
-		of_property_read_bool(pdev->dev.of_node, "extcon")) {
+	if (of_property_read_bool(pdev->dev.of_node, "extcon")) {
 		sc->vbus_dev = extcon_get_edev_by_phandle(&pdev->dev, 0);
 		if (IS_ERR(sc->vbus_dev)) {
 			ret = PTR_ERR(sc->vbus_dev);
@@ -1348,12 +1376,18 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 			dev_err(sc->dev, "failed to register vbus extcon.\n");
 			goto error;
 		}
+		dev_info(sc->dev, "typec vbus notify on.\n");
+	} else {
+		dev_info(sc->dev, "typec vbus notify off.\n");
 	}
 
 	sc->pd_swap_evt = TYPEC_NO_SWAP;
 	INIT_DELAYED_WORK(&sc->typec_int_clr_work, sc27xx_typec_int_clr_work);
 	INIT_DELAYED_WORK(&sc->drswap_work, sc27xx_typec_extcon_drswap_work);
 	INIT_DELAYED_WORK(&sc->vbus_only_work, sc27xx_typec_vbus_only_work);
+	if (extcon_get_state(sc->vbus_dev, EXTCON_USB) == true)
+		sc27xx_typec_get_vbus_notify(&sc->vbus_nb, true, sc->vbus_dev);
+
 	sc27xx_typec_register_ops();
 
 	ret = sc27xx_typec_enable(sc);
