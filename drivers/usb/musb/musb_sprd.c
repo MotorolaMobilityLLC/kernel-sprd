@@ -895,12 +895,12 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
 		__pm_stay_awake(glue->wake_lock);
 		glue->wake_lock_relaxed = false;
+		spin_unlock_irqrestore(&glue->lock, flags);
 	} else {
+		spin_unlock_irqrestore(&glue->lock, flags);
 		del_timer_sync(&glue->relax_wakelock_timer);
 		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
 	}
-
-	spin_unlock_irqrestore(&glue->lock, flags);
 
 	queue_work(glue->musb_wq, &glue->resume_work);
 	return NOTIFY_DONE;
@@ -938,12 +938,12 @@ static int musb_sprd_audio_notifier(struct notifier_block *nb,
 		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
 		__pm_stay_awake(glue->wake_lock);
 		glue->wake_lock_relaxed = false;
+		spin_unlock_irqrestore(&glue->lock, flags);
 	} else {
+		spin_unlock_irqrestore(&glue->lock, flags);
 		del_timer_sync(&glue->relax_wakelock_timer);
 		mod_timer(&glue->relax_wakelock_timer, jiffies + RELAX_WAKE_LOCK_DELAY);
 	}
-
-	spin_unlock_irqrestore(&glue->lock, flags);
 
 	queue_work(glue->musb_wq, &glue->resume_work);
 	return NOTIFY_DONE;
