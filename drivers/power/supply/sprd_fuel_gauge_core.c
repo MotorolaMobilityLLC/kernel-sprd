@@ -4236,14 +4236,14 @@ static int sprd_fgu_probe(struct platform_device *pdev)
 	data->channel = devm_iio_channel_get(dev, "bat-temp");
 	if (IS_ERR(data->channel)) {
 		dev_err(dev, "failed to get IIO channel, ret = %ld\n", PTR_ERR(data->channel));
-		return -ENXIO;
+		return PTR_ERR(data->channel);
 	}
 
 	data->charge_chan = devm_iio_channel_get(dev, "charge-vol");
 	if (IS_ERR(data->charge_chan)) {
 		dev_err(dev, "failed to get charge IIO channel, ret = %ld\n",
 			PTR_ERR(data->charge_chan));
-		return -ENXIO;
+		return PTR_ERR(data->charge_chan);
 	}
 
 	ret = sprd_fgu_init_cap_remap_table(data);
