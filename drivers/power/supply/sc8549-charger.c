@@ -502,10 +502,12 @@ static int sc8549_set_busocp_th(struct sc8549 *sc, int threshold)
 
 static int sc8549_set_acovp_th(struct sc8549 *sc, int threshold)
 {
-	int ret;
 	u8 val;
 
-	if (threshold < SC8549_AC_OVP_BASE)
+	if (threshold == SC8549_AC_OVP_6P5V) {
+		dev_info(sc->dev, "%s, VAC_OVP set default 6.5V\n", __func__);
+		threshold = SC8549_AC_OVP_MAX + SC8549_AC_OVP_LSB;
+	} else if (threshold < SC8549_AC_OVP_BASE)
 		threshold = SC8549_AC_OVP_BASE;
 	else if (threshold > SC8549_AC_OVP_MAX)
 		threshold = SC8549_AC_OVP_MAX;
@@ -514,10 +516,8 @@ static int sc8549_set_acovp_th(struct sc8549 *sc, int threshold)
 
 	val <<= SC8549_AC_OVP_SHIFT;
 
-	ret = sc8549_update_bits(sc, SC8549_REG_02,
-				 SC8549_AC_OVP_MASK, val);
-
-	return ret;
+	return sc8549_update_bits(sc, SC8549_REG_02,
+				  SC8549_AC_OVP_MASK, val);
 }
 
 static int sc8549_set_vdrop_th(struct sc8549 *sc, int threshold)

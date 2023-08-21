@@ -31,6 +31,7 @@
 #define BQ2597X_BAT_OVP_MASK				0x3F
 #define BQ2597X_BAT_OVP_SHIFT				0
 #define BQ2597X_BAT_OVP_BASE				3475
+#define BQ2597X_BAT_OVP_MAX				5050
 #define BQ2597X_BAT_OVP_LSB				25
 
 /* Register 01h */
@@ -55,6 +56,7 @@
 #define BQ2597X_BAT_OCP_MASK				0x7F
 #define BQ2597X_BAT_OCP_SHIFT				0
 #define BQ2597X_BAT_OCP_BASE				2000
+#define BQ2597X_BAT_OCP_MAX				10000
 #define BQ2597X_BAT_OCP_LSB				100
 
 /* Register 03h */
@@ -67,6 +69,7 @@
 #define BQ2597X_BAT_OCP_ALM_MASK			0x7F
 #define BQ2597X_BAT_OCP_ALM_SHIFT			0
 #define BQ2597X_BAT_OCP_ALM_BASE			2000
+#define BQ2597X_BAT_OCP_ALM_MAX				10000
 #define BQ2597X_BAT_OCP_ALM_LSB				100
 
 /* Register 04h */
@@ -79,6 +82,7 @@
 #define BQ2597X_BAT_UCP_ALM_MASK			0x7F
 #define BQ2597X_BAT_UCP_ALM_SHIFT			0
 #define	BQ2597X_BAT_UCP_ALM_BASE			0
+#define	BQ2597X_BAT_UCP_ALM_MAX				6000
 #define	BQ2597X_BAT_UCP_ALM_LSB				50
 
 /* Register 05h */
@@ -105,6 +109,7 @@
 #define BQ2597X_AC_OVP_MASK				0x07
 #define BQ2597X_AC_OVP_SHIFT				0
 #define BQ2597X_AC_OVP_BASE				11
+#define BQ2597X_AC_OVP_MAX				17
 #define BQ2597X_AC_OVP_LSB				1
 #define BQ2597X_AC_OVP_6P5V				65
 
