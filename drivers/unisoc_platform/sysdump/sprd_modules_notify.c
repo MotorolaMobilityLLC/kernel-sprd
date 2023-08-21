@@ -16,7 +16,7 @@
 
 /*unit: ms*/
 #ifdef CONFIG_SPRD_DEBUG
-#define MODULES_TIME_OUT ((1*1200) >> 1)
+#define MODULES_TIME_OUT ((1*2000) >> 1)
 #else
 #define MODULES_TIME_OUT (1*1000)
 #endif
