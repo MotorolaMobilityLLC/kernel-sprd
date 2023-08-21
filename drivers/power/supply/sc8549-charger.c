@@ -1661,7 +1661,7 @@ static int sc8549_psy_register(struct sc8549 *sc)
 	else
 		sc->psy_desc.name = "sc8549-standalone";
 
-	sc->psy_desc.type = POWER_SUPPLY_TYPE_MAINS;
+	sc->psy_desc.type = POWER_SUPPLY_TYPE_UNKNOWN;
 	sc->psy_desc.properties = sc8549_charger_props;
 	sc->psy_desc.num_properties = ARRAY_SIZE(sc8549_charger_props);
 	sc->psy_desc.get_property = sc8549_charger_get_property;

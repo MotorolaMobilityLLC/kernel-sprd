@@ -2011,7 +2011,7 @@ static int hl7139_psy_register(struct hl7139 *hl)
 	else
 		hl->psy_desc.name = "hl7139-standalone";
 
-	hl->psy_desc.type = POWER_SUPPLY_TYPE_MAINS;
+	hl->psy_desc.type = POWER_SUPPLY_TYPE_UNKNOWN;
 	hl->psy_desc.properties = hl7139_charger_props;
 	hl->psy_desc.num_properties = ARRAY_SIZE(hl7139_charger_props);
 	hl->psy_desc.get_property = hl7139_charger_get_property;
