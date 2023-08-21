@@ -185,6 +185,7 @@
 &dpu {
 	sprd,backlight = <&pwm_backlight>;
 	sprd,logo-memory = <&logo_reserved>;
+	sprd,widevine-use-fastcall;
 	status = "okay";
 };
 
