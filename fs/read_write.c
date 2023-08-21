@@ -5,6 +5,8 @@
  *  Copyright (C) 1991, 1992  Linus Torvalds
  */
 
+//This file has been modified by Unisoc (Shanghai) Technologies Co., Ltd in 2023.
+
 #include <linux/slab.h>
 #include <linux/stat.h>
 #include <linux/sched/xacct.h>
@@ -24,6 +26,13 @@
 
 #include <linux/uaccess.h>
 #include <asm/unistd.h>
+
+#if defined(CONFIG_SPRD_DEBUG)
+#define SPRD_BLK_SIZE (1024 * 512)
+#define SPRD_PAGE_SIZE (1024 * 4)
+#define SPRD_DIFF (0x1)
+static int sprd_debug_buf[SPRD_BLK_SIZE / sizeof(int)];
+#endif
 
 const struct file_operations generic_ro_fops = {
 	.llseek		= generic_file_llseek,
@@ -609,6 +618,28 @@ static inline loff_t *file_ppos(struct file *file)
 	return file->f_mode & FMODE_STREAM ? NULL : &file->f_pos;
 }
 
+#if defined(CONFIG_SPRD_DEBUG)
+static void sprd_fs_debug_check_data(struct file *filep, char __user *buf, size_t count)
+{
+	int i;
+	ssize_t ret = -EBADF;
+
+	for (i = 0; i < SPRD_BLK_SIZE / sizeof(int); i += SPRD_PAGE_SIZE / sizeof(int)) {
+		if ((*(sprd_debug_buf + i + 1) - *(sprd_debug_buf + i) != SPRD_DIFF) &&
+			(*(sprd_debug_buf + i + 2) - *(sprd_debug_buf + i + 1) != SPRD_DIFF)) {
+			loff_t pos, *ppos = file_ppos(filep);
+
+			if (ppos) {
+				pos = *ppos;
+				ppos = &pos;
+			}
+			ret = vfs_read(filep, buf, count, ppos);
+			panic("fs read_write test panic\n");
+		}
+	}
+}
+#endif
+
 ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count)
 {
 	struct fd f = fdget_pos(fd);
@@ -621,6 +652,13 @@ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count)
 			ppos = &pos;
 		}
 		ret = vfs_read(f.file, buf, count, ppos);
+#if defined(CONFIG_SPRD_DEBUG)
+		if ((ret >= 0) && (count == SPRD_BLK_SIZE) &&
+		(!strcmp(f.file->f_path.dentry->d_name.name, "SequenceRead_test_file"))) {
+			if (!__copy_from_user(sprd_debug_buf, buf, SPRD_BLK_SIZE))
+				sprd_fs_debug_check_data(f.file, buf, count);
+		}
+#endif
 		if (ret >= 0 && ppos)
 			f.file->f_pos = pos;
 		fdput_pos(f);
