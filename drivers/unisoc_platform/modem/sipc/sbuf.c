@@ -1370,6 +1370,28 @@ struct sbuf_mgr *sbuf_register_notifier_ex(u8 dst, u8 channel, u32 mark,
 }
 EXPORT_SYMBOL_GPL(sbuf_register_notifier_ex);
 
+int sbuf_unregister_notifier(u8 dst, u8 channel, u32 bufid)
+{
+	struct sbuf_mgr *sbuf;
+	struct sbuf_ring *ring = NULL;
+	u8 ch_index;
+
+	ch_index = sipc_channel2index(channel);
+	if (ch_index == INVALID_CHANEL_INDEX) {
+		pr_err("channel %d invalid!\n", channel);
+		return -EINVAL;
+	}
+	sbuf = sbufs[dst][ch_index];
+	if (!sbuf)
+		return -ENODEV;
+	ring = &sbuf->rings[bufid];
+	ring->handler = NULL;
+	ring->data = NULL;
+
+	return 0;
+}
+EXPORT_SYMBOL(sbuf_unregister_notifier);
+
 void sbuf_get_status(u8 dst, char *status_info, int size)
 {
 	struct sbuf_mgr *sbuf = NULL;
