@@ -21,7 +21,7 @@
 #include <linux/usb/phy.h>
 #include <uapi/linux/usb/charger.h>
 
-#define SPRD_VCHG_TAG	"srpd_vchg"
+#define SPRD_VCHG_TAG				"sprd_vchg"
 #define SPRD_VCHG_PD_HARD_RESET_MS		500
 #define SPRD_VCHG_PD_RECONNECT_MS		3000
 #define SPRD_VCHG_WAKE_UP_MS			1000
@@ -49,6 +49,7 @@ struct sprd_vchg_info {
 	int pd_extcon_status;
 	bool is_sink;
 	bool use_typec_extcon;
+	bool shutdown_flag;
 	int charger_type_cnt;
 };
 

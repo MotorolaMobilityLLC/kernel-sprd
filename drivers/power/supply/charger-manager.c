@@ -10,6 +10,8 @@
  *
 **/
 
+//This file has been modified by Unisoc (Shanghai) Technologies Co., Ltd in 2023.
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/io.h>
@@ -8041,7 +8043,6 @@ static int charger_manager_remove(struct platform_device *pdev)
 	power_supply_unregister(cm->charger_psy);
 
 	try_charger_enable(cm, false);
-	wakeup_source_remove(cm->charge_ws);
 
 	return 0;
 }
@@ -8050,6 +8051,7 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 {
 	struct charger_manager *cm = platform_get_drvdata(pdev);
 
+	cm->shutdown_flag = true;
 	if (cm->desc->uvlo_trigger_cnt < CM_UVLO_CALIBRATION_CNT_THRESHOLD)
 		set_batt_cap(cm, cm->desc->cap);
 
@@ -8198,6 +8200,9 @@ module_exit(charger_manager_cleanup);
  */
 static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_types type, char *msg)
 {
+	if (cm->shutdown_flag)
+		return;
+
 	switch (type) {
 	case CM_EVENT_BATT_FULL:
 		fullbatt_handler(cm);

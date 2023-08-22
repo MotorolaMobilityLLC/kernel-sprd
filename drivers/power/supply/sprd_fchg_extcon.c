@@ -780,6 +780,9 @@ static int sprd_fchg_change(struct notifier_block *nb,
 		container_of(nb, struct sprd_fchg_info, fchg_notify);
 	struct power_supply *psy = data;
 
+	if (info->shutdown_flag)
+		return NOTIFY_OK;
+
 	if (strcmp(psy->desc->name, SPRD_FCHG_TCPM_PD_NAME) == 0 &&
 	    event == PSY_EVENT_PROP_CHANGED) {
 		dev_info(info->dev, "%s, pps or pd extcon\n", __func__);
@@ -1218,6 +1221,7 @@ static void sprd_fchg_shutdown(struct sprd_fchg_info *info)
 	if (!info->support_fchg)
 		return;
 
+	info->shutdown_flag = true;
 	power_supply_unreg_notifier(&info->fchg_notify);
 	cancel_delayed_work_sync(&info->fixed_fchg_handshake_work);
 	cancel_work_sync(&info->pd_online_work);
