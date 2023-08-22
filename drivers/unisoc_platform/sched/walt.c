@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2016-2022, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022, Unisoc, Inc.
+ * This file has been modified by Unisoc (shanghai) Technologies Co., Ltd in 2022
  */
 
 #include <linux/syscore_ops.h>

@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
+ * Copyright (c) 2023, Unisoc (shanghai) Technologies Co., Ltd
+ *
  * /proc/cpuload implementation
  */
 #include "uni_sched.h"

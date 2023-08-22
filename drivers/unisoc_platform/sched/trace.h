@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2016-2022, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022, Unisoc, Inc.
+ * Copyright (c) 2022, Unisoc (shanghai) Technologies Co., Ltd
  */
 #undef TRACE_SYSTEM
 #define TRACE_SYSTEM unisoc_sched
