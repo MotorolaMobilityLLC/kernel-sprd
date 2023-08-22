@@ -216,10 +216,9 @@ static int sprd_thm_temp_read(void *devdata, int *temp)
 	struct sprd_thermal_data *thm = devdata;
 	int sensor_temp;
 
-	thm->rawdata = readl(thm->thm_base + SPRD_THM_LAST_TEMPER0_READ);
-	thm->rawdata = thm->rawdata & SPRD_THM_RAW_READ_MSK;
-
 	if (thm->ready_flag) {
+		thm->rawdata = readl(thm->thm_base + SPRD_THM_LAST_TEMPER0_READ);
+		thm->rawdata = thm->rawdata & SPRD_THM_RAW_READ_MSK;
 		sensor_temp = sprd_rawdata_to_temp_v1(thm);
 		thm->lasttemp = sensor_temp;
 		*temp = sensor_temp;
