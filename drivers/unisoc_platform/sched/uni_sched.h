@@ -118,6 +118,7 @@ extern void walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *
 extern void walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p);
 extern void walt_init_new_task_load(struct task_struct *p);
 extern unsigned long walt_cpu_util_freq(int cpu);
+extern void reset_rt_task_arrival_time(int cpu);
 
 #define WALT_HIGH_IRQ_TIMEOUT 3
 static inline int walt_cpu_high_irqload(int cpu)
@@ -194,6 +195,7 @@ static inline u64 sched_ktime_clock(void)
 static inline void walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p) {}
 static inline void walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p) {}
 static inline void walt_init_new_task_load(struct task_struct *p) {}
+static inline void reset_rt_task_arrival_time(int cpu) {}
 
 static inline unsigned long task_util(struct task_struct *p)
 {

@@ -342,6 +342,21 @@ static void android_rvh_sched_fork_init(void *data, struct task_struct *p)
 	__sched_fork_init(p);
 }
 
+static void android_rvh_do_sched_yield(void *data, struct rq *rq)
+{
+	struct task_struct *curr = rq->curr;
+
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	lockdep_assert_rq_held(rq);
+
+	if (is_fair_task(curr))
+		dequeue_cfs_vip_task(rq, curr);
+
+	reset_rt_task_arrival_time(cpu_of(rq));
+}
+
 static void android_vh_sched_show_task(void *unused, struct task_struct *task)
 {
 	unsigned int state;
@@ -405,6 +420,7 @@ static void register_sched_vendor_hooks(void)
 	register_trace_android_rvh_wake_up_new_task(android_rvh_wake_up_new_task, NULL);
 	register_trace_android_rvh_after_enqueue_task(android_rvh_after_enqueue_task, NULL);
 	register_trace_android_rvh_after_dequeue_task(android_rvh_after_dequeue_task, NULL);
+	register_trace_android_rvh_do_sched_yield(android_rvh_do_sched_yield, NULL);
 	register_trace_android_vh_sched_show_task(android_vh_sched_show_task, NULL);
 	register_trace_sched_switch(sched_show_untask_stack, NULL);
 	register_trace_android_vh_setscheduler_uclamp(android_vh_set_uclamp, NULL);
