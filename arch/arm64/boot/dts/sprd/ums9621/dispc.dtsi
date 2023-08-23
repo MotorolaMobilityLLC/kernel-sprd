@@ -58,6 +58,7 @@
 		reg = <0 0x31100000 0 0x2000>;
 		core-id = <0>;
 		kcfg-num = <16>;
+		real-time = <1>;
 		interrupts = <GIC_SPI 151 IRQ_TYPE_LEVEL_HIGH>;
 		iommus = <&iommu_gsp>;
 
