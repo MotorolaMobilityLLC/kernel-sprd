@@ -2224,7 +2224,6 @@ static int sprd_iommu_remove(struct platform_device *pdev)
 
 	sprd_iommu_sysfs_destroy(iommu_dev, iommu_dev->init_data->name);
 	iommu_dev->ops->exit(iommu_dev);
-	gen_pool_destroy(iommu_dev->pool);
 	kfree(iommu_dev);
 	return 0;
 }
