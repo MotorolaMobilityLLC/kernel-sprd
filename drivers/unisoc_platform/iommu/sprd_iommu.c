@@ -1661,7 +1661,7 @@ static int sprd_iommu_get_resource(struct device_node *np,
 
 	err = of_address_to_resource(np, 1, &res);
 	if (err < 0)
-		return err;
+		goto err_pgt_base;
 
 	/*sharkl2 ctrl_reg is iommu base reg addr*/
 	IOMMU_INFO("ctrl_reg phy:0x%lx\n", (unsigned long)(res.start));
@@ -1672,11 +1672,13 @@ static int sprd_iommu_get_resource(struct device_node *np,
 
 	err = of_property_read_u32(np, "iova-base", &val);
 	if (err < 0)
-		return err;
+		goto err_ctrl_reg;
+
 	pdata->iova_base = val;
 	err = of_property_read_u32(np, "iova-size", &val);
 	if (err < 0)
-		return err;
+		goto err_ctrl_reg;
+
 	pdata->iova_size = val;
 
 	err = of_property_read_u32(np, "phys-offset", &val);
@@ -1750,6 +1752,31 @@ static int sprd_iommu_get_resource(struct device_node *np,
 	}
 
 	return 0;
+
+err_ctrl_reg:
+	iounmap((void __iomem *)pdata->ctrl_reg);
+
+err_pgt_base:
+	iounmap((void __iomem *)pdata->pgt_base);
+
+	return err;
+}
+
+static void sprd_iommu_put_resource(struct device_node *np,
+				struct sprd_iommu_init_data *pdata)
+{
+	int err = 0;
+	uint32_t val;
+
+	err = of_property_read_u32(np, "sprd,reserved-fault-page", &val);
+	if (err && pdata->fault_page)
+		__free_page(phys_to_virt(pdata->fault_page));
+
+	if (pdata->ctrl_reg)
+		iounmap((void __iomem *)pdata->ctrl_reg);
+
+	if (pdata->pgt_base)
+		iounmap((void __iomem *)pdata->pgt_base);
 }
 
 static int sprd_iommu_pt_cma_alloc(struct sprd_iommu_dev *iommu_dev)
@@ -2182,7 +2209,7 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	err = sprd_iommu_pt_cma_alloc(iommu_dev);
 	if (err) {
 		IOMMU_ERR("%s: Failed to get pagetable memory\n", pdata->name);
-		goto errout;
+		goto err_alloc;
 	}
 
 	err = iommu_dev->ops->init(iommu_dev, pdata);
@@ -2210,8 +2237,11 @@ static int sprd_iommu_probe(struct platform_device *pdev)
 	IOMMU_INFO("%s end\n", iommu_dev->init_data->name);
 	return 0;
 
+
 errpt:
 	sprd_iommu_pt_cma_free(iommu_dev);
+err_alloc:
+	sprd_iommu_put_resource(np, pdata);
 errout:
 	kfree(iommu_dev);
 	kfree(pdata);
