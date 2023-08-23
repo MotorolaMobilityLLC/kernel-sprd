@@ -2379,6 +2379,7 @@ static int sprd_tcpm_pd_select_pdo(struct sprd_tcpm_port *port, int *sink_pdo, i
 		     max_mv = 0, src_mw = 0, src_ma = 0, max_snk_mv = 0,
 		     min_snk_mv = 0;
 	int ret = -EINVAL;
+	bool dual_role_power = false, usb_comm = false;
 
 	port->pps_data.supported = false;
 	port->usb_type = POWER_SUPPLY_USB_TYPE_PD;
@@ -2390,6 +2391,10 @@ static int sprd_tcpm_pd_select_pdo(struct sprd_tcpm_port *port, int *sink_pdo, i
 	for (i = 0; i < port->nr_source_caps; i++) {
 		u32 pdo = port->source_caps[i];
 		enum sprd_pd_pdo_type type = sprd_pdo_type(pdo);
+		if (i == 0) {
+			dual_role_power = !!(pdo & SPRD_PDO_FIXED_DUAL_ROLE);
+			usb_comm = !!(pdo & SPRD_PDO_FIXED_USB_COMM);
+		}
 
 		switch (type) {
 		case SPRD_PDO_TYPE_FIXED:
@@ -2402,7 +2407,8 @@ static int sprd_tcpm_pd_select_pdo(struct sprd_tcpm_port *port, int *sink_pdo, i
 			min_src_mv = sprd_pdo_min_voltage(pdo);
 			break;
 		case SPRD_PDO_TYPE_APDO:
-			if (sprd_pdo_apdo_type(pdo) == SPRD_APDO_TYPE_PPS) {
+			if (sprd_pdo_apdo_type(pdo) == SPRD_APDO_TYPE_PPS &&
+			    !usb_comm && !dual_role_power) {
 				port->pps_data.supported = true;
 				port->usb_type =
 					POWER_SUPPLY_USB_TYPE_PD_PPS;
