@@ -79,7 +79,18 @@
 
 			fingerprint@0 {
 				compatible = "microarray,afs121";
-				fpint-gpios = <&eic_async 29 0>;
+				//fpint-gpios = <&eic_async 29 0>;
+			};
+
+			fpc1020 {
+				status = "ok";
+				compatible = "fpc,fpc1553";
+				fpc,irq_gpio = <&eic_async 29 0x0>;
+				fpc,rst_gpio = <&ap_gpio 169 0x0>;
+				fpc,power_ctl_gpio= <&ap_gpio 56 0x0>;
+				interrupt-parent = <&eic_async>;
+				interrupts = <29 IRQ_TYPE_EDGE_RISING>;
+				/* vfp-supply = <&pm8994_l18>; */ // use regulator power
 			};
 
 			gpio-keys {
@@ -121,7 +132,7 @@
 			audio-voice-trig {
 				status = "disable";
 				compatible = "sprd,voice_trig";
-				irq_gpio = <&ap_gpio 169 GPIO_ACTIVE_HIGH>;
+				//irq_gpio = <&ap_gpio 169 GPIO_ACTIVE_HIGH>;
 			};
 
 			sprd-uid {
@@ -363,10 +374,10 @@
 	stm_vl53l0: vl53l0@52 {
 		compatible = "st,stmvl53l0";
 		reg = <0x52>;
-		reset_gpios = <168>;
-		irq_gpios = <169>;
-		interrupt-parent = <&ap_gpio>;
-		interrupts = <169 IRQ_TYPE_LEVEL_LOW>;
+		//reset_gpios = <168>;
+		//irq_gpios = <169>;
+		//interrupt-parent = <&ap_gpio>;
+		//interrupts = <169 IRQ_TYPE_LEVEL_LOW>;
 	};
 };
 
