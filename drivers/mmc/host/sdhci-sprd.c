@@ -198,6 +198,9 @@ struct sdhci_sprd_host {
 	bool tuning_merged;
 	bool cmd_dly_all_pass;
 	bool wait_read_idle;
+#ifdef CONFIG_SPRD_DEBUG
+	u64 timestamp[10];
+#endif
 };
 
 enum sdhci_sprd_tuning_type {
@@ -1916,6 +1919,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			mmc_hostname(host->mmc));
 	}
 
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[0] = sched_clock();
+#endif
+
 	if (of_property_read_bool(node, "supports-swcq")) {
 		sprd_host->support_swcq = true;
 	} else {
@@ -1931,6 +1938,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			sprd_host->support_ice = false;
 		}
 	}
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[1] = sched_clock();
+#endif
 
 	clk = devm_clk_get(&pdev->dev, "enable");
 	if (IS_ERR(clk)) {
@@ -1963,6 +1974,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	if (ret)
 		goto clk_1x_disable;
 
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[2] = sched_clock();
+#endif
+
 	sdhci_sprd_init_config(host);
 	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
 	sprd_host->version = ((host->version & SDHCI_VENDOR_VER_MASK) >>
@@ -1975,6 +1990,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	sprd_host->power_mode = MMC_POWER_OFF;
 
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[3] = sched_clock();
+#endif
+
 	pm_runtime_get_noresume(&pdev->dev);
 	pm_runtime_set_active(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);
@@ -1983,6 +2002,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	pm_suspend_ignore_children(&pdev->dev, 1);
 
 	sdhci_enable_v4_mode(host);
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[4] = sched_clock();
+#endif
 
 	/*
 	 * Supply the existing CAPS, but clear the UHS-I modes. This
@@ -2000,6 +2023,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			goto pm_runtime_disable;
 	}
 
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[5] = sched_clock();
+#endif
+
 	ret = sdhci_setup_host(host);
 	if (ret)
 		goto pm_runtime_disable;
@@ -2015,6 +2042,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	sprd_host->flags = host->flags;
 	sprd_host->tuning_merged = true;
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[6] = sched_clock();
+#endif
 
 	if (sprd_host->support_swcq) {
 		ret = mmc_hsq_swcq_init(host, pdev);
@@ -2039,6 +2070,11 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 		if (ret)
 			goto err_cleanup_host;
 	}
+
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[7] = sched_clock();
+#endif
 
 	ret = __sdhci_add_host(host);
 	if (ret)
