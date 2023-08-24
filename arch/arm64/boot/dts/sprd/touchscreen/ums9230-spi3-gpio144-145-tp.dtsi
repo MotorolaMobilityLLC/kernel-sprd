@@ -26,7 +26,7 @@
 
 	/* Novatek device tree node */
 	touchpanel@0 {
-		compatible = "focaltech,fts","novatek,NVT-ts-spi","tchip,ilitek";
+		compatible = "focaltech,fts","novatek,NVT-ts-spi","tchip,ilitek","omnivision,tcm-spi";
 		reg = <0>; //Same as CS ID
 		status = "ok";
 		spi-max-frequency = <8000000>;	//4800000,9600000,15000000,19200000
@@ -41,7 +41,19 @@
 		touch,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
 		touch,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 		touch,eic-irq-gpio = <&eic_async 16 GPIO_ACTIVE_HIGH>;
-		
+		/***************omnivision*****************/
+		omnivision,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_LOW>;
+		omnivision,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_LOW>;
+		omnivision,irq-on-state = <0>;
+		omnivision,reset-on-state = <0>;
+		omnivision,reset-active-ms = <20>;
+		omnivision,reset-delay-ms = <200>;
+		omnivision,power-delay-ms = <200>;
+		omnivision,spi-mode = <3>;
+		omnivision,byte-delay-us = <0>;
+		omnivision,block-delay-us = <0>;
+		omnivision,ubl-max-freq = <8000000>;
+		omnivision,ubl-byte-delay-us = <20>;
 		/*------------------novatek------------------*/
 		//novatek,pen-support;
 		//novatek,wgp-stylus;
