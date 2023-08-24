@@ -6,5 +6,12 @@ config SPRD_PIKE2_SLEEP
         help
         Select this to enable light sleep function for pike2 soc.
 
+config SPRD_PMIC_REFOUT
+	tristate "Spreadtrum PMIC refout driver"
+	depends on MFD_SC27XX_PMIC || COMPILE_TEST
+	
+	help
+		Enable this configuration option to enable pmic refout driver.
+
 source "drivers/soc/sprd/domain/Kconfig"
 
