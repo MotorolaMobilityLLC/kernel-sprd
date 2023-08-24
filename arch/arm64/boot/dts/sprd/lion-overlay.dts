@@ -108,6 +108,14 @@
 					debounce-interval = <2>;
 					wakeup-source;
 				};
+
+				key-antcheck {
+                                        label = "antcheck";
+                                        linux,code = <KEY_ANT>;
+                                        gpios = <&ap_gpio 122 GPIO_ACTIVE_HIGH>;
+                                        debounce-interval = <2>;
+                                        //wakeup-source;
+                                };
 			};
 
 			audio-voice-trig {
