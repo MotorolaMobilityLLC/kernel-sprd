@@ -83,7 +83,7 @@
 	/*Charge pump target charge current*/
 	cm-cp-taper-current = <1000000>;
 
-	cm-chargers = "upm6920_charger";
+	cm-chargers = "charger";
 	//cm-chargers = "sgm41513_charger", "upm6920_charger";
 	//cm-charge-pumps = "bq2597x-standalone";
 	cm-fuel-gauge = "sc27xx-fgu";

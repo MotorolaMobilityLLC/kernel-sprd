@@ -1442,7 +1442,7 @@ static enum power_supply_property upm6920_usb_props[] = {
 };
 
 static const struct power_supply_desc upm6920_charger_desc = {
-    .name            = "upm6920_charger",
+    .name            = "charger",
     //.type            = POWER_SUPPLY_TYPE_USB,
     .type            = POWER_SUPPLY_TYPE_UNKNOWN,
     .properties        = upm6920_usb_props,
