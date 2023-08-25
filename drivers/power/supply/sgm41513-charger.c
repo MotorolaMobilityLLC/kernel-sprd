@@ -115,6 +115,11 @@ struct sgm41513_charger_info {
 static bool enable_dump_stack;
 module_param(enable_dump_stack, bool, 0644);
 
+#ifndef OTG_USE_REGULATOR
+static int sgm41513_charger_enable_otg(struct sgm41513_charger_info *info);
+static int sgm41513_charger_disable_otg(struct sgm41513_charger_info *info);
+static int sgm41513_charger_vbus_is_enabled(struct sgm41513_charger_info *info);
+#endif
 static void sgm41513_charger_dump_stack(void)
 {
 	if (enable_dump_stack)
@@ -941,6 +946,11 @@ static int sgm41513_charger_usb_get_property(struct power_supply *psy,
 
 		val->intval = !enabled;
 		break;
+#ifndef OTG_USE_REGULATOR
+	case POWER_SUPPLY_PROP_SCOPE:
+		val->intval = sgm41513_charger_vbus_is_enabled(info);
+		break;
+#endif
 	default:
 		ret = -EINVAL;
 	}
@@ -1034,6 +1044,15 @@ static int sgm41513_charger_usb_set_property(struct power_supply *psy,
 			cancel_delayed_work_sync(&info->wdt_work);
 		}
 		break;
+#ifndef OTG_USE_REGULATOR
+	case POWER_SUPPLY_PROP_SCOPE:
+		dev_err(info->dev, "xzy:set otg %d\n",val->intval);
+		if (val->intval == 1)
+			sgm41513_charger_enable_otg(info);
+		else
+			sgm41513_charger_disable_otg(info);
+		break;
+#endif
 	default:
 		ret = -EINVAL;
 	}
@@ -1192,6 +1211,7 @@ out:
 	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(1500));
 }
 
+#ifdef OTG_USE_REGULATOR
 static int sgm41513_charger_enable_otg(struct regulator_dev *dev)
 {
 	struct sgm41513_charger_info *info = rdev_get_drvdata(dev);
@@ -1360,6 +1380,146 @@ static int sgm41513_charger_register_vbus_regulator(struct sgm41513_charger_info
 
 	return ret;
 }
+#else
+static int sgm41513_charger_enable_otg(struct sgm41513_charger_info *info)
+{
+	int ret = 0;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	if (info->shutdown_flag)
+		return ret;
+
+	sgm41513_charger_dump_stack();
+
+	if (!sgm41513_probe_is_ready(info)) {
+		dev_err(info->dev, "%s wait probe timeout\n", __func__);
+		return -EINVAL;
+	}
+	/*
+	 * Disable charger detection function in case
+	 * affecting the OTG timing sequence.
+	 */
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+		if (ret) {
+			dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
+			return ret;
+		}
+	}
+
+	ret = sgm41513_update_bits(info, SGM41513_REG_01,
+				   SGM41513_OTG_CONFIG_MASK,
+				   SGM41513_OTG_ENABLE << SGM41513_OTG_CONFIG_SHIFT);
+	if (ret) {
+		dev_err(info->dev, "enable sgm41513 otg failed\n");
+		regmap_update_bits(info->pmic, info->charger_detect, BIT_DP_DM_BC_ENB, 0);
+		return ret;
+	}
+
+	ret = sgm41513_charger_enable_wdg(info, true);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to enable watchdog, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	ret = sgm41513_charger_feed_watchdog(info);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to feed watchdog, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	ret = sgm41513_exit_hiz_mode(info);
+	if (ret)
+		dev_err(info->dev, "Failed to enable power path\n");
+
+	info->otg_enable = true;
+	info->last_wdt_time = ktime_to_ms(ktime_get());
+	schedule_delayed_work(&info->wdt_work,
+			      msecs_to_jiffies(SGM41513_FEED_WATCHDOG_VALID_MS));
+	schedule_delayed_work(&info->otg_work,
+			      msecs_to_jiffies(SGM41513_OTG_VALID_MS));
+	dev_info(info->dev, "%s:line%d:enable_otg\n", __func__, __LINE__);
+
+	return ret;
+}
+
+static int sgm41513_charger_disable_otg(struct sgm41513_charger_info *info)
+{
+	int ret = 0;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	sgm41513_charger_dump_stack();
+
+	if (!sgm41513_probe_is_ready(info)) {
+		dev_err(info->dev, "%s wait probe timeout\n", __func__);
+		return -EINVAL;
+	}
+
+	info->otg_enable = false;
+	cancel_delayed_work_sync(&info->wdt_work);
+	cancel_delayed_work_sync(&info->otg_work);
+
+	ret = sgm41513_update_bits(info, SGM41513_REG_01,
+				   SGM41513_OTG_CONFIG_MASK,
+				   SGM41513_OTG_DISABLE << SGM41513_OTG_CONFIG_SHIFT);
+	if (ret) {
+		dev_err(info->dev, "disable sgm41513 otg failed\n");
+		return ret;
+	}
+
+	ret = sgm41513_charger_enable_wdg(info, false);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to disable watchdog, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	/* Enable charger detection function to identify the charger type */
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect, BIT_DP_DM_BC_ENB, 0);
+		if (ret)
+			dev_err(info->dev, "enable BC1.2 failed\n");
+	}
+	dev_info(info->dev, "%s:line%d:disable_otg\n", __func__, __LINE__);
+
+	return ret;
+}
+
+static int sgm41513_charger_vbus_is_enabled(struct sgm41513_charger_info *info)
+{
+	int ret;
+	u8 val;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	ret = sgm41513_read(info, SGM41513_REG_01, &val);
+	val &= SGM41513_OTG_CONFIG_MASK;
+	val = (val >> SGM41513_OTG_CONFIG_SHIFT) & 0x01;
+	if (ret) {
+		dev_err(info->dev, "failed to get sgm41513 otg status\n");
+		return ret;
+	}
+
+	return val;
+}
+
+static int
+sgm41513_charger_register_vbus_regulator(struct sgm41513_charger_info *info)
+{
+	return 0;
+}
+#endif
 
 #else
 static int sgm41513_charger_register_vbus_regulator(struct sgm41513_charger_info *info)

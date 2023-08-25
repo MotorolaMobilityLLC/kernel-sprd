@@ -276,6 +276,11 @@ static struct upm6920_charger_reg_tab reg_tab[UPM6920_REG_NUM + 1] = {
 static bool enable_dump_stack;
 module_param(enable_dump_stack, bool, 0644);
 
+#ifndef OTG_USE_REGULATOR
+static int upm6920_charger_enable_otg(struct upm6920_charger_info *info);
+static int upm6920_charger_disable_otg(struct upm6920_charger_info *info);
+static int upm6920_charger_vbus_is_enabled(struct upm6920_charger_info *info);
+#endif
 static void upm6920_charger_dump_stack(void)
 {
 	if (enable_dump_stack)
@@ -1279,6 +1284,11 @@ static int upm6920_charger_usb_get_property(struct power_supply *psy,
             }
 
             break;
+#ifndef OTG_USE_REGULATOR
+	case POWER_SUPPLY_PROP_SCOPE:
+		val->intval = upm6920_charger_vbus_is_enabled(info);
+		break;
+#endif
     default:
         ret = -EINVAL;
     }
@@ -1402,6 +1412,16 @@ static int upm6920_charger_usb_set_property(struct power_supply *psy,
 			cancel_delayed_work_sync(&info->wdt_work);
 		}
 		break;
+#ifndef OTG_USE_REGULATOR
+	case POWER_SUPPLY_PROP_SCOPE:
+		dev_err(info->dev, "xzy:set otg %d\n",val->intval);
+		if (val->intval == 1)
+			upm6920_charger_enable_otg(info);
+		else
+			upm6920_charger_disable_otg(info);
+		break;
+#endif
+
     default:
         ret = -EINVAL;
     }
@@ -1874,6 +1894,7 @@ out:
 	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(1500));
 }
 
+#ifdef OTG_USE_REGULATOR
 static int upm6920_charger_enable_otg(struct regulator_dev *dev)
 {
     struct upm6920_charger_info *info = rdev_get_drvdata(dev);
@@ -2021,6 +2042,120 @@ static int upm6920_charger_register_vbus_regulator(struct upm6920_charger_info *
 
     return ret;
 }
+#else
+static int upm6920_charger_enable_otg(struct upm6920_charger_info *info)
+{
+    int ret = 0;
+
+	if (!info) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -EINVAL;
+	}
+
+	if (info->shutdown_flag)
+		return ret;
+
+	upm6920_charger_dump_stack();
+
+	if (!upm6920_probe_is_ready(info)) {
+		dev_err(info->dev, "%s wait probe timeout\n", __func__);
+		return -EINVAL;
+	}
+    /*
+    * Disable charger detection function in case
+    * affecting the OTG timing sequence.
+    */
+    if (!info->use_typec_extcon) {
+        ret = regmap_update_bits(info->pmic, info->charger_detect,
+                    BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+        if (ret) {
+            dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
+            return ret;
+        }
+    }
+
+    ret = upm6920_charger_set_otg_en(info, true);
+    if (ret) {
+        dev_err(info->dev, "enable upm6920 otg failed\n");
+        regmap_update_bits(info->pmic, info->charger_detect,
+                BIT_DP_DM_BC_ENB, 0);
+        return ret;
+    }
+
+    info->otg_enable = true;
+	info->last_wdt_time = ktime_to_ms(ktime_get());
+    schedule_delayed_work(&info->wdt_work,
+                msecs_to_jiffies(UPM6920_FEED_WATCHDOG_VALID_MS));
+    schedule_delayed_work(&info->otg_work,
+                msecs_to_jiffies(UPM6920_OTG_VALID_MS));
+
+	dev_info(info->dev, "%s:line%d:enable_otg\n", __func__, __LINE__);
+
+    return ret;
+}
+
+static int upm6920_charger_disable_otg(struct upm6920_charger_info *info)
+{
+    int ret = 0;
+
+    if (!info) {
+        pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+        return -EINVAL;
+    }
+
+	upm6920_charger_dump_stack();
+
+    if (!upm6920_probe_is_ready(info)) {
+        dev_err(info->dev, "%s wait probe timeout\n", __func__);
+        return -EINVAL;
+    }
+    info->otg_enable = false;
+    cancel_delayed_work_sync(&info->wdt_work);
+    cancel_delayed_work_sync(&info->otg_work);
+    ret = upm6920_charger_set_otg_en(info, false);
+    if (ret) {
+        dev_err(info->dev, "disable upm6920 otg failed\n");
+        return ret;
+    }
+
+    if (!info->use_typec_extcon) {
+        ret = regmap_update_bits(info->pmic, info->charger_detect, BIT_DP_DM_BC_ENB, 0);
+        if (ret)
+            dev_err(info->dev, "enable BC1.2 failed\n");
+    }
+	dev_info(info->dev, "%s:line%d:disable_otg\n", __func__, __LINE__);
+
+	return ret;
+}
+
+static int upm6920_charger_vbus_is_enabled(struct upm6920_charger_info *info)
+{
+    int ret;
+    u8 val;
+
+    dev_info(info->dev, "%s:line%d enter\n", __func__, __LINE__);
+    if (!info) {
+        pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+        return -EINVAL;
+    }
+
+    ret = upm6920_read(info, UPM6920_REG_3, &val);
+    if (ret) {
+        dev_err(info->dev, "failed to get upm6920 otg status\n");
+        return ret;
+    }
+
+    val &= REG03_OTG_MASK;
+    dev_info(info->dev, "%s:line%d val = %d\n", __func__, __LINE__, val);
+
+    return val;
+}
+static int
+upm6920_charger_register_vbus_regulator(struct upm6920_charger_info *info)
+{
+	return 0;
+}
+#endif
 
 #else
 static int
