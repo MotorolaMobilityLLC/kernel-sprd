@@ -1072,7 +1072,7 @@ static enum power_supply_property sgm41513_usb_props[] = {
 };
 
 static const struct power_supply_desc sgm41513_charger_desc = {
-	.name			= "sgm41513_charger",
+	.name			= "charger",
 	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= sgm41513_usb_props,
 	.num_properties		= ARRAY_SIZE(sgm41513_usb_props),

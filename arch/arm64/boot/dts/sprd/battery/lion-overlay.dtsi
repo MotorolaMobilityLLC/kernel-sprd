@@ -152,7 +152,7 @@
 		use-typec-extcon;
 	};
 
-	/*sgm41513_chg: charger@3B {
+	sgm41513_chg: charger@3B {
                 compatible = "sgm,sgm41513_chg";
                 reg = <0x3B>;
 		phys = <&hsphy>;
@@ -160,7 +160,7 @@
 		extcon = <&extcon_gpio>;
                 irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
-        };*/
+        };
 
 	/*bq2560x_chg: charger@6b {
 		compatible = "ti,bq2560x_chg";
