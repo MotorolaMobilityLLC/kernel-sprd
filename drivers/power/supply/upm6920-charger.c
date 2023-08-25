@@ -938,7 +938,7 @@ static int upm6920_charger_set_limit_current(struct upm6920_charger_info *info,
         limit_cur = REG00_IINDPM_MAX;
     }
 
-    reg_val = (limit_cur - REG00_IINDPM_BASE) / REG00_IINDPM_LSB;
+    reg_val = limit_cur / REG00_IINDPM_LSB;
 
     ret = upm6920_update_bits(info, UPM6920_REG_0, REG00_IINDPM_MASK,
                 reg_val << REG00_IINDPM_SHIFT);
