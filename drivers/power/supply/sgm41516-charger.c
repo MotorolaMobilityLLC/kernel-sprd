@@ -28,7 +28,6 @@
 
 #include <linux/power/sgm41516_reg.h>
 
-#define SGM41516_BATTERY_NAME			"sc27xx-fgu"
 #define BIT_DP_DM_BC_ENB			BIT(0)
 #define SGM41516_OTG_VALID_MS			500
 #define SGM41516_FEED_WATCHDOG_VALID_MS		50
@@ -46,8 +45,6 @@
 
 #define SGM41516_FCHG_OVP_6V			6000
 #define SGM41516_FCHG_OVP_9V			9000
-#define SGM41516_FAST_CHARGER_VOLTAGE_MAX	10500000
-#define SGM41516_NORMAL_CHARGER_VOLTAGE_MAX	6500000
 
 #define SGM41516_WAKE_UP_MS			1000
 #define SGM41516_PROBE_TIMEOUT			msecs_to_jiffies(3000)
@@ -109,7 +106,6 @@ struct sgm41516_charger_info {
 	u32 actual_limit_cur;
 	u32 role;
 	u64 last_wdt_time;
-	bool need_disable_Q1;
 	struct alarm otg_timer;
 	bool disable_wdg;
 	bool otg_enable;
@@ -160,49 +156,6 @@ static void sgm41516_charger_power_path_control(struct sgm41516_charger_info *in
 		if (!strcmp(result, "cali"))
 			boot_calibration = true;
 	}
-}
-
-static bool sgm41516_charger_is_bat_present(struct sgm41516_charger_info *info)
-{
-	struct power_supply *psy;
-	union power_supply_propval val;
-	bool present = false;
-	int ret = 0;
-
-	psy = power_supply_get_by_name(SGM41516_BATTERY_NAME);
-	if (!psy) {
-		dev_err(info->dev, "Failed to get psy of sc27xx_fgu\n");
-		return present;
-	}
-
-	val.intval = 0;
-	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_PRESENT, &val);
-	power_supply_put(psy);
-	if (ret) {
-		dev_err(info->dev, "%s, failed to get property of present, ret = %d\n",
-			__func__, ret);
-		return present;
-	}
-
-	if (val.intval)
-		present = true;
-
-	return present;
-}
-
-static int sgm41516_charger_is_fgu_present(struct sgm41516_charger_info *info)
-{
-	struct power_supply *psy;
-
-	psy = power_supply_get_by_name(SGM41516_BATTERY_NAME);
-	if (!psy) {
-		dev_err(info->dev, "Failed to find psy of sc27xx_fgu\n");
-		return -ENODEV;
-	}
-
-	power_supply_put(psy);
-
-	return 0;
 }
 
 static int sgm41516_read(struct sgm41516_charger_info *info, u8 reg, u8 *data)
@@ -609,33 +562,6 @@ static int sgm41516_charger_hw_init(struct sgm41516_charger_info *info)
 	return ret;
 }
 
-static int sgm41516_charger_get_charge_voltage(struct sgm41516_charger_info *info, u32 *charge_vol)
-{
-	struct power_supply *psy;
-	union power_supply_propval val;
-	int ret;
-
-	psy = power_supply_get_by_name(SGM41516_BATTERY_NAME);
-	if (!psy) {
-		dev_err(info->dev, "failed to get SGM41516_BATTERY_NAME\n");
-		return -ENODEV;
-	}
-
-	val.intval = 0;
-	ret = power_supply_get_property(psy,
-					POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
-					&val);
-	power_supply_put(psy);
-	if (ret) {
-		dev_err(info->dev, "failed to get CONSTANT_CHARGE_VOLTAGE\n");
-		return ret;
-	}
-
-	*charge_vol = val.intval;
-
-	return 0;
-}
-
 static void sgm41516_charger_dump_register(struct sgm41516_charger_info *info)
 {
 	int ret;
@@ -668,9 +594,11 @@ static int sgm41516_charger_start_charge(struct sgm41516_charger_info *info)
 	}
 
 	ret = sgm41516_charger_enable(info, true);
-	if (ret)
+	if (ret) {
 		dev_err(info->dev, "%s, failed to enable charge, ret = %d\n",
 			__func__, ret);
+		return ret;
+	}
 
 	if (info->role == SGM41516_ROLE_MASTER) {
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
@@ -831,7 +759,7 @@ static int sgm41516_charger_get_status(struct sgm41516_charger_info *info)
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 }
 
-static int sgm41516_charger_set_status(struct sgm41516_charger_info *info, int val, u32 input_vol)
+static int sgm41516_charger_set_status(struct sgm41516_charger_info *info, int val)
 {
 	int ret = 0;
 
@@ -849,18 +777,11 @@ static int sgm41516_charger_set_status(struct sgm41516_charger_info *info, int v
 				__func__, ret);
 			return ret;
 		}
-
-		if (info->role == SGM41516_ROLE_MASTER) {
-			if (input_vol > SGM41516_FAST_CHARGER_VOLTAGE_MAX)
-				info->need_disable_Q1 = true;
-		}
-	} else if ((val == false) && (info->role == SGM41516_ROLE_MASTER)) {
-		if (input_vol > SGM41516_NORMAL_CHARGER_VOLTAGE_MAX)
-			info->need_disable_Q1 = true;
 	}
 
 	if (val > CM_FAST_CHARGE_NORMAL_CMD)
 		return 0;
+
 	if (!val && info->charging) {
 		sgm41516_charger_stop_charge(info);
 		info->charging = false;
@@ -999,25 +920,10 @@ static int sgm41516_charger_usb_set_property(struct power_supply *psy,
 {
 	struct sgm41516_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
-	u32 input_vol;
-	bool bat_present;
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
-	}
-
-	/*
-	 * input_vol and bat_present should be assigned a value, only if psp is
-	 * POWER_SUPPLY_PROP_STATUS and POWER_SUPPLY_PROP_CALIBRATE.
-	 */
-	if (psp == POWER_SUPPLY_PROP_STATUS || psp == POWER_SUPPLY_PROP_CALIBRATE) {
-		bat_present = sgm41516_charger_is_bat_present(info);
-		ret = sgm41516_charger_get_charge_voltage(info, &input_vol);
-		if (ret) {
-			input_vol = 0;
-			dev_err(info->dev, "failed to get charge voltage! ret = %d\n", ret);
-		}
 	}
 
 	if (!sgm41516_charger_probe_is_ready(info)) {
@@ -1056,7 +962,7 @@ static int sgm41516_charger_usb_set_property(struct power_supply *psy,
 			break;
 		}
 
-		ret = sgm41516_charger_set_status(info, val->intval, input_vol);
+		ret = sgm41516_charger_set_status(info, val->intval);
 		if (ret < 0)
 			dev_err(info->dev, "set charge status failed\n");
 		break;
@@ -1535,12 +1441,6 @@ static int sgm41516_charger_probe(struct i2c_client *client,
 
 	i2c_set_clientdata(client, info);
 	sgm41516_charger_power_path_control(info);
-
-	ret = sgm41516_charger_is_fgu_present(info);
-	if (ret) {
-		dev_err(dev, "sc27xx_fgu not ready.\n");
-		return -EPROBE_DEFER;
-	}
 
 	info->use_typec_extcon = device_property_read_bool(dev, "use-typec-extcon");
 	info->disable_wdg = device_property_read_bool(dev, "disable-otg-wdg-in-sleep");
