@@ -460,83 +460,73 @@ static int sgm41513_charger_hw_init(struct sgm41513_charger_info *info)
 	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info);
 	if (ret) {
 		dev_warn(info->dev, "no battery information is supplied\n");
-
-		/*
-		 * If no battery information is supplied, we should set
-		 * default charge termination current to 100 mA, and default
-		 * charge termination voltage to 4.2V.
-		 */
-		info->cur.sdp_limit = 500000;
-		info->cur.sdp_cur = 500000;
-		info->cur.dcp_limit = 1500000;
-		info->cur.dcp_cur = 1500000;
-		info->cur.cdp_limit = 1000000;
-		info->cur.cdp_cur = 1000000;
-		info->cur.unknown_limit = 500000;
-		info->cur.unknown_cur = 500000;
-	} else {
-		info->cur.sdp_limit = bat_info.cur.sdp_limit;
-		info->cur.sdp_cur = bat_info.cur.sdp_cur;
-		info->cur.dcp_limit = bat_info.cur.dcp_limit;
-		info->cur.dcp_cur = bat_info.cur.dcp_cur;
-		info->cur.cdp_limit = bat_info.cur.cdp_limit;
-		info->cur.cdp_cur = bat_info.cur.cdp_cur;
-		info->cur.unknown_limit = bat_info.cur.unknown_limit;
-		info->cur.unknown_cur = bat_info.cur.unknown_cur;
-		info->cur.fchg_limit = bat_info.cur.fchg_limit;
-		info->cur.fchg_cur = bat_info.cur.fchg_cur;
-
-		voltage_max_microvolt = bat_info.constant_charge_voltage_max_uv / 1000;
-		sprd_battery_get_battery_info(info->psy_usb, &bat_info);
-
-		ret = sgm41513_charger_set_safety_cur(info, info->cur.dcp_cur);
-		if (ret) {
-			dev_err(info->dev, "set sgm41513 safety cur failed\n");
-			return ret;
-		}
-		if (info->role ==  SGM41513_ROLE_MASTER) {
-			ret = sgm41513_set_acovp_threshold(info, SGM41513_FCHG_OVP_6V);
-			if (ret)
-				dev_err(info->dev, "set sgm41513 ovp failed\n");
-		} else if (info->role == SGM41513_ROLE_SLAVE) {
-			ret = sgm41513_set_acovp_threshold(info, SGM41513_FCHG_OVP_9V);
-			if (ret)
-				dev_err(info->dev, "set sgm41513 slave ovp failed\n");
-		}
-		ret = sgm41513_enable_term(info, 1);
-		if (ret) {
-			dev_err(info->dev, "set sgm41513 terminal cur failed\n");
-			return ret;
-		}
-		ret = sgm41513_charger_set_vindpm(info, voltage_max_microvolt);
-		if (ret) {
-			dev_err(info->dev, "set sgm41513 vindpm vol failed\n");
-			return ret;
-		}
-
-		sgm41513_update_bits(info, SGM41513_REG_01,
-				     SGM41513_WDT_RESET_MASK,
-				     SGM41513_WDT_RESET << SGM41513_WDT_RESET_SHIFT);
-
-		ret = sgm41513_update_bits(info, SGM41513_REG_05,
-					   SGM41513_WDT_MASK,
-					   SGM41513_WDT_DISABLE << SGM41513_WDT_SHIFT);
-		if (ret) {
-			dev_err(info->dev, "feed sgm41513 watchdog failed\n");
-			return ret;
-		}
-
-		ret = sgm41513_charger_set_termina_vol(info, voltage_max_microvolt);
-		if (ret) {
-			dev_err(info->dev, "set sgm41513 terminal vol failed\n");
-			return ret;
-		}
-
-		ret = sgm41513_charger_set_limit_current(info,
-							 info->cur.unknown_cur, false);
-		if (ret)
-			dev_err(info->dev, "set sgm41513 limit current failed\n");
+		return -EPROBE_DEFER;
 	}
+
+	info->cur.sdp_limit = bat_info.cur.sdp_limit;
+	info->cur.sdp_cur = bat_info.cur.sdp_cur;
+	info->cur.dcp_limit = bat_info.cur.dcp_limit;
+	info->cur.dcp_cur = bat_info.cur.dcp_cur;
+	info->cur.cdp_limit = bat_info.cur.cdp_limit;
+	info->cur.cdp_cur = bat_info.cur.cdp_cur;
+	info->cur.unknown_limit = bat_info.cur.unknown_limit;
+	info->cur.unknown_cur = bat_info.cur.unknown_cur;
+	info->cur.fchg_limit = bat_info.cur.fchg_limit;
+	info->cur.fchg_cur = bat_info.cur.fchg_cur;
+
+	voltage_max_microvolt = bat_info.constant_charge_voltage_max_uv / 1000;
+	sprd_battery_put_battery_info(info->psy_usb, &bat_info);
+
+	ret = sgm41513_charger_set_safety_cur(info, info->cur.dcp_cur);
+	if (ret) {
+		dev_err(info->dev, "set sgm41513 safety cur failed\n");
+		return ret;
+	}
+
+	if (info->role ==  SGM41513_ROLE_MASTER) {
+		ret = sgm41513_set_acovp_threshold(info, SGM41513_FCHG_OVP_6V);
+		if (ret)
+			dev_err(info->dev, "set sgm41513 ovp failed\n");
+	} else if (info->role == SGM41513_ROLE_SLAVE) {
+		ret = sgm41513_set_acovp_threshold(info, SGM41513_FCHG_OVP_9V);
+		if (ret)
+			dev_err(info->dev, "set sgm41513 slave ovp failed\n");
+	}
+
+	ret = sgm41513_enable_term(info, 1);
+	if (ret) {
+		dev_err(info->dev, "set sgm41513 terminal cur failed\n");
+		return ret;
+	}
+
+	ret = sgm41513_charger_set_vindpm(info, voltage_max_microvolt);
+	if (ret) {
+		dev_err(info->dev, "set sgm41513 vindpm vol failed\n");
+		return ret;
+	}
+
+	sgm41513_update_bits(info, SGM41513_REG_01,
+			     SGM41513_WDT_RESET_MASK,
+			     SGM41513_WDT_RESET << SGM41513_WDT_RESET_SHIFT);
+
+	ret = sgm41513_update_bits(info, SGM41513_REG_05,
+				   SGM41513_WDT_MASK,
+				   SGM41513_WDT_DISABLE << SGM41513_WDT_SHIFT);
+	if (ret) {
+		dev_err(info->dev, "feed sgm41513 watchdog failed\n");
+		return ret;
+	}
+
+	ret = sgm41513_charger_set_termina_vol(info, voltage_max_microvolt);
+	if (ret) {
+		dev_err(info->dev, "set sgm41513 terminal vol failed\n");
+		return ret;
+	}
+
+	ret = sgm41513_charger_set_limit_current(info,
+						 info->cur.unknown_cur, false);
+	if (ret)
+		dev_err(info->dev, "set sgm41513 limit current failed\n");
 
 	return ret;
 }
