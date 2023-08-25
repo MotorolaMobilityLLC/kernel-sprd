@@ -240,6 +240,9 @@ static void sdhci_sprd_health_and_powp(void *data, struct mmc_card *card)
 	/* mmc powp handle */
 	if (!mmc_check_wp_fn(card->host))
 		mmc_set_powp(card);
+	/* print mmc device info */
+	pr_info("%s: manfid= 0x%06x, name= %s, prv= 0x%x\n", mmc_hostname(card->host),
+		card->cid.manfid, card->cid.prod_name, card->cid.prv);
 }
 
 static void sdhci_sprd_init_config(struct sdhci_host *host)
@@ -591,6 +594,8 @@ static void sdhci_sprd_hw_reset(struct sdhci_host *host)
 	val |= SDHCI_HW_RESET_CARD;
 	writeb_relaxed(val, host->ioaddr + SDHCI_SOFTWARE_RESET);
 	usleep_range_state(300, 500, TASK_UNINTERRUPTIBLE);
+
+	pr_info("%s: %s end\n", mmc_hostname(host->mmc), __func__);
 }
 
 static unsigned int sdhci_sprd_get_max_timeout_count(struct sdhci_host *host)

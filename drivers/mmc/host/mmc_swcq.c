@@ -301,10 +301,15 @@ void dump_cmd_history(struct mmc_swcq *swcq, int print_num)
 {
 	int i, j;
 	struct dbg_run_host_log *dbg_info;
+	struct mmc_card *card;
 
 	if (!swcq)
 		return;
 
+	card = swcq->mmc->card;
+	if (card)
+		pr_err("%s: manfid= 0x%06x, name= %s, prv= 0x%x\n", mmc_hostname(card->host),
+			card->cid.manfid, card->cid.prod_name, card->cid.prv);
 	pr_err("==========dump cmd history[print_num:%d entries]==========\n", print_num);
 	j = swcq->dbg_host_cnt >= print_num ?
 		swcq->dbg_host_cnt - print_num : swcq->dbg_host_cnt - print_num + dbg_max_cnt;
