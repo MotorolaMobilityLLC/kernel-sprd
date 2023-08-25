@@ -602,14 +602,24 @@ static int sprd_eye_pattern_prepared(struct sprd_hsphy *phy, struct device *dev)
 {
 	int ret = 0;
 
-	/* set default eyepatt */
-	phy->device_eye_pattern = DEFAULT_DEVICE_EYE_PATTERN;
-	dev_info(dev, "%s: default device eye_pattern: 0x%x\n", __func__,
-				phy->device_eye_pattern);
+	/* set eyepatt */
+	ret = of_property_read_u32(dev->of_node, "sprd,hsphy-device-eye-pattern",
+                                        &phy->device_eye_pattern);
+        if (ret < 0) {
+                dev_err(dev, "unable to get sprd,sphy-device-eye-pattern node\n");
+                phy->device_eye_pattern = DEFAULT_DEVICE_EYE_PATTERN;
+		dev_info(dev, "%s: default device eye_pattern: 0x%x\n", __func__,
+                                phy->device_eye_pattern);
+        }
 
-	phy->host_eye_pattern = DEFAULT_HOST_EYE_PATTERN;
-	dev_info(dev, "%s: default host eye_pattern: 0x%x\n", __func__,
-				phy->host_eye_pattern);
+        ret = of_property_read_u32(dev->of_node, "sprd,hsphy-host-eye-pattern",
+                                        &phy->host_eye_pattern);
+        if (ret < 0) {
+                dev_err(dev, "unable to get sprd,hsphy-host-eye-pattern node\n");
+                phy->host_eye_pattern = DEFAULT_HOST_EYE_PATTERN;
+		dev_info(dev, "%s: default host eye_pattern: 0x%x\n", __func__,
+                                phy->host_eye_pattern);
+        }
 
 	/* set eyepatt tunehsamp */
 	ret |= sprd_eyepatt_tunehsamp_set(phy, dev);
