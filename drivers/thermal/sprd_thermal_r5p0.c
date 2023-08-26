@@ -141,6 +141,7 @@ struct sprd_thermal_data {
 	int ratio_off;
 	u32 ratio_sign;
 	const struct sprd_thm_variant_data *var_data;
+	bool disable_clk_flag;
 };
 
 /*
@@ -446,6 +447,7 @@ static int sprd_thm_probe(struct platform_device *pdev)
 
 	INIT_LIST_HEAD(&thm->senlist);
 	sprd_thm_para_config(thm);
+	thm->disable_clk_flag = false;
 
 	ret = sprd_thm_cal_read(np, "thm_ratio_cal", &thm->ratio_off);
 	if (ret)
@@ -513,6 +515,8 @@ static void sprd_thm_hw_suspend(struct sprd_thermal_data *thm)
 {
 	struct sprd_thermal_sensor *sen, *temp;
 
+	if (thm->disable_clk_flag)
+		return;
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node) {
 		sprd_thm_update_bits(sen->base + SPRD_THM_CTL, sen->enable, 0x0);
 	}
@@ -576,6 +580,7 @@ static int sprd_thm_resume(struct platform_device *pdev)
 
 disable_clk:
 	clk_disable_unprepare(thm->clk);
+	thm->disable_clk_flag = true;
 	return ret;
 }
 
