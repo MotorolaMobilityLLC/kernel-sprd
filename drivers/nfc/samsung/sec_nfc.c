@@ -49,7 +49,7 @@
 #endif
 #include <linux/of_gpio.h>
 #include <linux/clk.h>
-#include <linux/sprd_pmic.h> //samsung add
+
 
 #ifndef CONFIG_SEC_NFC_IF_I2C
 struct sec_nfc_i2c_info {};
@@ -530,7 +530,7 @@ static void sec_nfc_set_mode(struct sec_nfc_info *info,
     if (mode != SEC_NFC_MODE_OFF) {
         msleep(SEC_NFC_VEN_WAIT_TIME);
         sec_nfc_clk_ctl_enable(info);
-		 pmic_refout_update(4, 1);//samsung add
+		 //pmic_refout_update(4, 1);//samsung add
         gpio_set_value(pdata->ven, SEC_NFC_PW_ON);
 #ifdef CONFIG_SEC_NFC_DEDICATED_CLK
         val |= 0xC0000000;
@@ -556,7 +556,7 @@ static void sec_nfc_set_mode(struct sec_nfc_info *info,
         pr_err("DeepStby: enter DeepStby(PW_ON)\n");
 #endif
         sec_nfc_clk_ctl_disable(info);
-		pmic_refout_update(4, 0);//samsung add
+		//pmic_refout_update(4, 0);//samsung add
 #ifdef CONFIG_SEC_NFC_DEDICATED_CLK
         val &= ~0xC0000000;
         writel(val, info->clkctrl);
@@ -1046,7 +1046,7 @@ static int __sec_nfc_remove(struct device *dev)
     struct i2c_client *client = info->i2c_info.i2c_dev;
     struct sec_nfc_platform_data *pdata = info->pdata;
     dev_dbg(info->dev, "%s\n", __func__);
-	pmic_refout_update(4, 0); //samsung add remove  refout 4;  //该方案使用编号4,0表示关闭
+	//pmic_refout_update(4, 0); //samsung add remove  refout 4;  //该方案使用编号4,0表示关闭
 
 #ifdef CONFIG_SEC_NFC_GPIO_CLK
     if (pdata->clk)
