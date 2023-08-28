@@ -51,7 +51,8 @@ u32 sprd_iommudrv_uninit(sprd_iommu_hdl p_iommu_hdl)
 
 	p_iommu_data = (struct sprd_iommu_widget *)p_iommu_hdl;
 
-	p_iommu_data->p_priv = NULL;
+	if (p_iommu_data->p_iommu_tbl != NULL)
+		p_iommu_data->p_iommu_tbl->uninit((sprd_iommu_hdl)p_iommu_data);
 
 	sprd_free(p_iommu_data);
 
