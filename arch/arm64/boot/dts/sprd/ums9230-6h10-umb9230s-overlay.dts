@@ -11,6 +11,7 @@
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/sprd,ums9230-clk.h>
+#include <dt-bindings/reset/sprd,ums9230-reset.h>
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include <dt-bindings/usb/pd.h>
@@ -310,9 +311,22 @@
 };
 
 &i2c3 {
-	status = "okay";
+	status = "disabled";
 	#address-cells = <1>;
 	#size-cells = <0>;
+};
+
+&ap_apb {
+	ums9230s_i2c: ums9230s_i2c {
+		compatible = "sprd,umb9230s-i2c";
+		reg = <0 0x20100000 0 0x100>;
+		clock-frequency = <1700000>;
+		clock-names ="enable", "i2c", "source";
+		clocks = <&apapb_gate CLK_I2C3_EB>,
+			<&ap_clk CLK_AP_I2C3>, <&pll1 CLK_TWPLL_153M6>;
+		reset-names = "i2c_rst";
+		resets = <&apapb_gate RESET_AP_APB_I2C3_SOFT_RST>;
+	};
 };
 
 &i2c4 {
