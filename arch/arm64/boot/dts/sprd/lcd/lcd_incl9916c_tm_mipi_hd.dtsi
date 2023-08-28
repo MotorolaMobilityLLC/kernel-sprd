@@ -1,0 +1,84 @@
+
+/*
+ * incl9916c LCD config dtsi file for spreadtrum
+ *
+ * Copyright (C) 2022, Spreadtrum Communications Inc.
+ *
+ * SPDX-License-Identifier: (GPL-2.0+ OR MIT)
+ */
+
+/ {
+	fragment {
+		target-path = "/";
+		__overlay__ {
+			lcds {
+				lcd_incl9916c_tm_mipi_hd: lcd_incl9916c_tm_mipi_hd {
+
+					sprd,dsi-work-mode = <1>; /* video burst mode*/
+					sprd,dsi-lane-number = <4>;
+					sprd,dsi-color-format = "rgb888";
+
+					sprd,phy-bit-clock = <921600>;	/* kbps */
+					sprd,phy-escape-clock = <20000>;/* kHz */
+					sprd,power-gpio-delay = <20>;/* ms */
+					sprd,width-mm = <68>;
+					sprd,height-mm = <152>;
+					sprd,dpi-clk-div = <6>;
+					sprd,video-lp-cmd-enable = <1>;
+					sprd,hporch-lp-disable = <1>;
+					sprd,esd-check-enable = <1>;
+					sprd,esd-check-mode = <0>;
+					sprd,esd-check-period = <2000>;
+					sprd,esd-check-regs = <0xA>;
+					sprd,esd-return-code = <0x9c>;
+
+					sprd,reset-on-sequence = <1 5>, <0 5>, <1 10>;
+					//sprd,reset-off-sequence = <0 5>;
+
+					sprd,initial-command = [
+						39 00 00 04 F0 99 16 0C
+						39 00 00 03 51 00 00
+						15 00 00 02 53 24
+						15 00 00 02 35 00
+						05 78 00 01 11
+						05 14 00 01 29
+						];
+
+					sprd,sleep-in-command = [
+						39 0A 00 01 28
+						39 78 00 01 10
+						];
+
+					sprd,sleep-out-command = [
+						39 78 00 01 11
+						39 14 00 01 29
+						];
+
+					oled-backlight {
+						default-brightness = <900>;
+						sprd,max-level = <4095>;
+						brightness-levels = [
+						39 00 00 03 51 0C CC
+						];
+					};
+
+					display-timings {
+						native-mode = <&incl9916c_tm_timing0>;
+
+						incl9916c_tm_timing0: timing0 {
+							clock-frequency = <153600000>;
+							hactive = <720>;
+							vactive = <1612>;
+							hfront-porch = <76>;
+							hback-porch = <76>;
+							hsync-len = <4>;
+							vfront-porch = <300>;
+							vback-porch = <32>;
+							vsync-len = <4>;
+						};
+					};
+				};
+			};
+		};
+	};
+};
