@@ -2251,9 +2251,16 @@ errout:
 static int sprd_iommu_remove(struct platform_device *pdev)
 {
 	struct sprd_iommu_dev *iommu_dev = platform_get_drvdata(pdev);
+	struct device_node *np = pdev->dev.of_node;
 
 	sprd_iommu_sysfs_destroy(iommu_dev, iommu_dev->init_data->name);
 	iommu_dev->ops->exit(iommu_dev);
+	sprd_iommu_pt_cma_free(iommu_dev);
+	sprd_iommu_put_resource(np, iommu_dev->init_data);
+
+	kfree(iommu_dev->init_data);
+	iommu_dev->init_data = NULL;
+
 	kfree(iommu_dev);
 	return 0;
 }
