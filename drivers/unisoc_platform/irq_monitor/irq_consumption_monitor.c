@@ -1,4 +1,15 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-only
+/* copyright (C) 2023 Unisoc (Shanghai) Technologies Co.Ltd
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
 #include <asm/irq.h>
 #include <linux/kprobes.h>
 #include <linux/sched/clock.h>
@@ -90,26 +101,31 @@ static void trace_irqexit_callback(void *data, int irq,
 			do_the_div(p_irq_t_rec->irq_dur_in_win * 100, real_win);
 		if (cpu_consumption_rate_this_irq > CPU_CONSUMPTION_THRESHOLD_RATE_PER_IRQ) {
 			desc = irq_to_desc(irq);
-			dur_in_us = do_the_div(p_irq_t_rec->irq_dur_in_win, NSEC_PER_USEC);
-			win_in_us = do_the_div(real_win, NSEC_PER_USEC);
-			pr_warn("CON_WARN: cpu=%d, single irq consumption rate=%lld percents\n",
-					cpu, cpu_consumption_rate_this_irq);
-			pr_warn("CON_WARN: cpu=%d, irq %d:%d:%s, con:%lld us, dur:%lld us\n",
-					cpu, irq, desc->irq_data.hwirq, desc->action->name,
-					dur_in_us, win_in_us);
+			if (desc) {
+				dur_in_us = do_the_div(p_irq_t_rec->irq_dur_in_win, NSEC_PER_USEC);
+				win_in_us = do_the_div(real_win, NSEC_PER_USEC);
+				pr_warn("CWARN: cpu=%d, single irq consumption rate=%lld percents\n",
+						cpu, cpu_consumption_rate_this_irq);
+				pr_warn("CWARN: cpu=%d, irq %d:%d:%s, con:%lld us, dur:%lld us\n",
+						cpu, irq, desc->irq_data.hwirq, desc->action->name,
+						dur_in_us, win_in_us);
+			}
 		}
 
 		cpu_consumption_rate =
 			do_the_div(p_ic_stat->whole_irq_dur_in_win * 100, real_win);
 		if (cpu_consumption_rate > CPU_CONSUMPTION_THRESHOLD_RATE) {
 			desc = irq_to_desc(irq);
-			dur_in_us = do_the_div(p_ic_stat->whole_irq_dur_in_win, NSEC_PER_USEC);
-			win_in_us = do_the_div(real_win, NSEC_PER_USEC);
-			pr_warn("CON_WARN: cpu=%d, whole irq consumption rate=%lld percents\n",
-					cpu, cpu_consumption_rate);
-			pr_warn("CON_WARN: cpu=%d, curr_irq %d:%d:%s, con:%lld us, dur:%lld us\n",
-					cpu, irq, desc->irq_data.hwirq, desc->action->name,
-					dur_in_us, win_in_us);
+			if (desc) {
+				dur_in_us = do_the_div(p_ic_stat->whole_irq_dur_in_win,
+							NSEC_PER_USEC);
+				win_in_us = do_the_div(real_win, NSEC_PER_USEC);
+				pr_warn("CWARN: cpu=%d, whole irq consumption rate=%lld percents\n",
+						cpu, cpu_consumption_rate);
+				pr_warn("CWARN: cpu=%d, cur_irq %d:%d:%s, con:%lld us, dur:%lld us\n",
+						cpu, irq, desc->irq_data.hwirq, desc->action->name,
+						dur_in_us, win_in_us);
+			}
 		}
 
 		p_ic_stat->win_start = curr_time;
@@ -170,12 +186,3 @@ void consumption_monitor_exit(void)
 }
 
 #endif
-
-
-
-
-
-
-
-
-
