@@ -12,6 +12,8 @@
 #include <linux/seq_file.h>
 #include <linux/sprd_soc_id.h>
 
+struct proc_dir_entry *socid_base;
+
 static const char * const syscon_name[] = {
 	"chip-id",
 	"plat-id",
@@ -112,8 +114,6 @@ static const struct proc_ops socid_fops = {
 
 static int sprd_create_socid_node(void)
 {
-	struct proc_dir_entry *socid_base;
-
 	socid_base = proc_mkdir("socid", NULL);
 	if (!socid_base)
 		return -ENOMEM;
@@ -153,6 +153,14 @@ static int sprd_soc_id_probe(struct platform_device *pdev)
 	return sprd_create_socid_node();
 }
 
+static int sprd_soc_id_remove(struct platform_device *pdev)
+{
+	remove_proc_entry("socid_inf", socid_base);
+	remove_proc_entry("socid", NULL);
+
+	return 0;
+}
+
 static const struct of_device_id sprd_soc_id_of_match[] = {
 	{.compatible = "sprd,soc-id"},
 	{},
@@ -160,6 +168,7 @@ static const struct of_device_id sprd_soc_id_of_match[] = {
 
 static struct platform_driver sprd_soc_id_driver = {
 	.probe = sprd_soc_id_probe,
+	.remove = sprd_soc_id_remove,
 	.driver = {
 		.name = "sprd-soc-id",
 		.of_match_table = sprd_soc_id_of_match,
