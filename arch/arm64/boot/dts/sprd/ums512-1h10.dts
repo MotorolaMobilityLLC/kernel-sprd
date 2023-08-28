@@ -59,7 +59,7 @@
 		stdout-path = "serial1:921600n8";
 		bootargs = "earlycon loop.max_part=7 loglevel=7
 			    printk.devkmsg=on log_buf_len=1M
-			    dummy_hcd.num=0 swiotlb=1 initcall_debug=1 ";
+			    dummy_hcd.num=0 swiotlb=1";
 	};
 
 	pwm_backlight: sprd_backlight {
