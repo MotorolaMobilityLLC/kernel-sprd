@@ -185,6 +185,8 @@ source "drivers/input/touchscreen/Kconfig"
 
 source "drivers/input/fpc/Kconfig"
 
+source "drivers/input/goodix/Kconfig"
+
 source "drivers/input/misc/Kconfig"
 
 source "drivers/input/rmi4/Kconfig"
