@@ -746,28 +746,45 @@ static int sgm41516_charger_get_status(struct sgm41516_charger_info *info)
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
 }
 
-static int sgm41516_charger_set_status(struct sgm41516_charger_info *info, int val)
+static int sgm41516_charger_set_extend_status(struct sgm41516_charger_info *info, int intval)
 {
 	int ret = 0;
 
-	if (val == CM_FAST_CHARGE_OVP_ENABLE_CMD) {
+	switch (intval) {
+	case CM_FAST_CHARGE_OVP_ENABLE_CMD:
 		ret = sgm41516_charger_set_acovp_threshold(info, SGM41516_FCHG_OVP_9V);
-		if (ret) {
+		if (ret)
 			dev_err(info->dev, "%s, failed to set 9V bus ovp, ret = %d\n",
 				__func__, ret);
-			return ret;
-		}
-	} else if (val == CM_FAST_CHARGE_OVP_DISABLE_CMD) {
+		break;
+	case CM_FAST_CHARGE_OVP_DISABLE_CMD:
 		ret = sgm41516_charger_set_acovp_threshold(info, SGM41516_FCHG_OVP_6V);
-		if (ret) {
+		if (ret)
 			dev_err(info->dev, "%s, failed to set 6V bus ovp, ret = %d\n",
 				__func__, ret);
-			return ret;
-		}
+		break;
+	case CM_POWER_PATH_ENABLE_CMD:
+		ret = sgm41516_charger_enable_power_path(info, true);
+		if (ret)
+			dev_err(info->dev, "%s, failed to enable power path, ret = %d\n",
+				__func__, ret);
+		break;
+	case CM_POWER_PATH_DISABLE_CMD:
+		ret = sgm41516_charger_enable_power_path(info, false);
+		if (ret)
+			dev_err(info->dev, "%s, failed to disable power path, ret = %d\n",
+				__func__, ret);
+		break;
+	default:
+		ret = 0;
 	}
 
-	if (val > CM_FAST_CHARGE_NORMAL_CMD)
-		return 0;
+	return ret;
+}
+
+static int sgm41516_charger_set_status(struct sgm41516_charger_info *info, int val)
+{
+	int ret = 0;
 
 	if (!val && info->charging) {
 		sgm41516_charger_stop_charge(info);
@@ -817,12 +834,167 @@ static int sgm41516_charger_check_power_path_status(struct sgm41516_charger_info
 	return ret;
 }
 
+static int sgm41516_charger_get_input_current_limit_psp(struct sgm41516_charger_info *info,
+							int *intval)
+{
+	int ret = 0;
+
+	if (!info->charging) {
+		*intval = 0;
+		return 0;
+	}
+
+	ret = sgm41516_charger_get_limit_current(info, intval);
+	if (ret)
+		dev_err(info->dev, "%s, failed to get limit current, ret = %d\n",
+			__func__, ret);
+
+	return ret;
+}
+
+static int sgm41516_charger_set_input_current_limit_psp(struct sgm41516_charger_info *info,
+							int intval)
+{
+	return sgm41516_charger_set_limit_current(info, intval, false);
+}
+
+static int sgm41516_charger_get_constant_charge_current_psp(struct sgm41516_charger_info *info,
+							    int *intval)
+{
+	int ret = 0;
+
+	if (!info->charging) {
+		*intval = 0;
+		return 0;
+	}
+
+	ret = sgm41516_charger_get_current(info, intval);
+	if (ret)
+		dev_err(info->dev, "%s, failed to get current, ret = %d\n",
+			__func__, ret);
+
+	return ret;
+}
+
+static int sgm41516_charger_set_constant_charge_current_psp(struct sgm41516_charger_info *info,
+							    int intval)
+{
+	return sgm41516_charger_set_current(info, intval);
+}
+
+static int sgm41516_charger_get_status_psp(struct sgm41516_charger_info *info, int *intval)
+{
+	int status = -EINVAL;
+
+	switch (*intval) {
+	case CM_POWER_PATH_ENABLE_CMD:
+	case CM_POWER_PATH_DISABLE_CMD:
+		status = sgm41516_charger_power_path_is_enabled(info);
+		break;
+	default:
+		status = sgm41516_charger_get_status(info);
+	}
+
+	*intval = status;
+	return 0;
+}
+
+static int sgm41516_charger_set_status_psp(struct sgm41516_charger_info *info, int intval)
+{
+	int ret = 0;
+
+	if (intval > CM_FAST_CHARGE_NORMAL_CMD)
+		ret = sgm41516_charger_set_extend_status(info, intval);
+	else
+		ret = sgm41516_charger_set_status(info, intval);
+
+	if (ret)
+		dev_err(info->dev, "%s, failed to set%s status, ret = %d\n",
+			__func__, intval > CM_FAST_CHARGE_NORMAL_CMD ? " extend" : "", ret);
+
+	return ret;
+}
+
+static int sgm41516_charger_get_health_psp(struct sgm41516_charger_info *info, int *intval)
+{
+	int ret = 0;
+
+	if (info->charging) {
+		*intval = POWER_SUPPLY_HEALTH_UNKNOWN;
+		return 0;
+	}
+
+	ret = sgm41516_charger_get_health(info, intval);
+	if (ret)
+		dev_err(info->dev, "%s, failed to get health, ret = %d\n",
+			__func__, ret);
+
+	return ret;
+}
+
+static int sgm41516_charger_set_constant_charge_voltage_max_psp(struct sgm41516_charger_info *info,
+								int intval)
+{
+	return sgm41516_charger_set_termina_vol(info, intval / 1000);
+}
+
+static int sgm41516_charger_get_calibrate_psp(struct sgm41516_charger_info *info, int *intval)
+{
+	int ret = 0, status = 0;
+	bool enabled = false;
+
+	if (info->role == SGM41516_ROLE_MASTER) {
+		ret = regmap_read(info->pmic, info->charger_pd, &status);
+		if (ret) {
+			dev_err(info->dev, "%s, failed to read chg_pd pin status, ret = %d\n",
+				__func__, ret);
+			return ret;
+		}
+	} else if (info->role == SGM41516_ROLE_SLAVE) {
+		status = gpiod_get_value_cansleep(info->gpiod);
+	}
+
+	enabled = !status;
+	*intval = enabled;
+
+	return ret;
+}
+
+static int sgm41516_charger_set_calibrate_psp(struct sgm41516_charger_info *info, int intval)
+{
+	int ret = 0;
+
+	dev_info(info->dev, "%s, intval = %d\n", __func__, intval);
+	if (intval == true) {
+		ret = sgm41516_charger_start_charge(info);
+		if (ret)
+			dev_err(info->dev, "start charge failed\n");
+	} else if (intval == false) {
+		sgm41516_charger_stop_charge(info);
+	}
+
+	return ret;
+}
+
+static int sgm41516_charger_set_present_psp(struct sgm41516_charger_info *info, int intval)
+{
+	info->is_charger_online = !!intval;
+	if (info->is_charger_online) {
+		info->last_wdt_time = ktime_to_ms(ktime_get());
+		schedule_delayed_work(&info->wdt_work, 0);
+	} else {
+		info->actual_limit_cur = 0;
+		cancel_delayed_work_sync(&info->wdt_work);
+	}
+
+	return 0;
+}
+
 static int sgm41516_charger_usb_get_property(struct power_supply *psy,
 					     enum power_supply_property psp,
 					     union power_supply_propval *val)
 {
 	struct sgm41516_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur = 0, health, enabled = 0;
 	int ret = 0;
 
 	if (!info) {
@@ -838,66 +1010,28 @@ static int sgm41516_charger_usb_get_property(struct power_supply *psy,
 	mutex_lock(&info->lock);
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-		if (val->intval == CM_POWER_PATH_ENABLE_CMD ||
-		    val->intval == CM_POWER_PATH_DISABLE_CMD) {
-			val->intval = sgm41516_charger_power_path_is_enabled(info);
-			break;
-		}
-
-		val->intval = sgm41516_charger_get_status(info);
+		ret = sgm41516_charger_get_status_psp(info, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
-		if (!info->charging) {
-			val->intval = 0;
-		} else {
-			ret = sgm41516_charger_get_current(info, &cur);
-			if (ret)
-				goto out;
-
-			val->intval = cur;
-		}
+		ret = sgm41516_charger_get_constant_charge_current_psp(info, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
-		if (!info->charging) {
-			val->intval = 0;
-		} else {
-			ret = sgm41516_charger_get_limit_current(info, &cur);
-			if (ret)
-				goto out;
-
-			val->intval = cur;
-		}
+		ret = sgm41516_charger_get_input_current_limit_psp(info, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
-		if (info->charging) {
-			val->intval = 0;
-		} else {
-			ret = sgm41516_charger_get_health(info, &health);
-			if (ret)
-				goto out;
-
-			val->intval = health;
-		}
+		ret = sgm41516_charger_get_health_psp(info, &val->intval);
 		break;
 	case POWER_SUPPLY_PROP_CALIBRATE:
-		if (info->role == SGM41516_ROLE_MASTER) {
-			ret = regmap_read(info->pmic, info->charger_pd, &enabled);
-			if (ret) {
-				dev_err(info->dev, "get sgm41516 charge status failed\n");
-				goto out;
-			}
-		} else if (info->role == SGM41516_ROLE_SLAVE) {
-			enabled = gpiod_get_value_cansleep(info->gpiod);
-		}
-
-		val->intval = !enabled;
+		ret = sgm41516_charger_get_calibrate_psp(info, &val->intval);
 		break;
 	default:
 		ret = -EINVAL;
 	}
 
-out:
 	mutex_unlock(&info->lock);
+	if (ret)
+		dev_err(info->dev, "failed to get psp: %d, ret = %d\n", psp, ret);
+
 	return ret;
 }
 
@@ -922,67 +1056,32 @@ static int sgm41516_charger_usb_set_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
-		ret = sgm41516_charger_set_current(info, val->intval);
-		if (ret < 0)
-			dev_err(info->dev, "set charge current failed\n");
+		ret = sgm41516_charger_set_constant_charge_current_psp(info, val->intval);
 		break;
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
-		ret = sgm41516_charger_set_limit_current(info, val->intval, false);
-		if (ret < 0)
-			dev_err(info->dev, "set input current limit failed\n");
+		ret = sgm41516_charger_set_input_current_limit_psp(info, val->intval);
 		break;
-
 	case POWER_SUPPLY_PROP_STATUS:
-		if (val->intval == CM_POWER_PATH_ENABLE_CMD) {
-			ret = sgm41516_charger_enable_power_path(info, true);
-			if (ret)
-				dev_err(info->dev, "%s, failed to enable power path, ret = %d\n",
-					__func__, ret);
-
-			break;
-		} else if (val->intval == CM_POWER_PATH_DISABLE_CMD) {
-			ret = sgm41516_charger_enable_power_path(info, false);
-			if (ret)
-				dev_err(info->dev, "%s, failed to disable power path, ret = %d\n",
-					__func__, ret);
-
-			break;
-		}
-
-		ret = sgm41516_charger_set_status(info, val->intval);
-		if (ret < 0)
-			dev_err(info->dev, "set charge status failed\n");
+		ret = sgm41516_charger_set_status_psp(info, val->intval);
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
-		ret = sgm41516_charger_set_termina_vol(info, val->intval / 1000);
-		if (ret < 0)
-			dev_err(info->dev, "failed to set terminate voltage\n");
+		ret = sgm41516_charger_set_constant_charge_voltage_max_psp(info, val->intval);
 		break;
 	case POWER_SUPPLY_PROP_CALIBRATE:
-		dev_info(info->dev, "POWER_SUPPLY_PROP_CHARGE_ENABLED = %d\n", val->intval);
-		if (val->intval == true) {
-			ret = sgm41516_charger_start_charge(info);
-			if (ret)
-				dev_err(info->dev, "start charge failed\n");
-		} else if (val->intval == false) {
-			sgm41516_charger_stop_charge(info);
-		}
+		ret = sgm41516_charger_set_calibrate_psp(info, val->intval);
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
-		info->is_charger_online = val->intval;
-		if (val->intval == true) {
-			info->last_wdt_time = ktime_to_ms(ktime_get());
-			schedule_delayed_work(&info->wdt_work, 0);
-		} else {
-			info->actual_limit_cur = 0;
-			cancel_delayed_work_sync(&info->wdt_work);
-		}
+		ret = sgm41516_charger_set_present_psp(info, val->intval);
 		break;
 	default:
 		ret = -EINVAL;
 	}
 
 	mutex_unlock(&info->lock);
+	if (ret)
+		dev_err(info->dev, "failed to set psp: %d, intval: %d, ret = %d\n",
+			psp, val->intval, ret);
+
 	return ret;
 }
 
