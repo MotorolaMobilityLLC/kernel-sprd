@@ -2432,7 +2432,8 @@ static bool cm_is_need_start_fixed_fchg(struct charger_manager *cm)
 {
 	bool need = false;
 
-	if (!cm->fchg_info->support_fchg || cm->desc->fixed_fchg_running)
+	if (!cm->desc->support_fixed_fchg || !cm->fchg_info->support_fchg
+	    || cm->desc->fixed_fchg_running)
 		return false;
 
 	cm_charger_is_support_fchg(cm);
@@ -2616,7 +2617,7 @@ static void cm_enable_fixed_fchg_handshake(struct charger_manager *cm, bool enab
 		return;
 	}
 
-	if (!cm->fchg_info->support_fchg)
+	if (!cm->desc->support_fixed_fchg || !cm->fchg_info->support_fchg)
 		return;
 
 	if (enable && !cm->desc->is_fast_charge &&
@@ -3740,7 +3741,8 @@ static bool cm_is_need_start_cp(struct charger_manager *cm)
 	bool need = false;
 	int ret;
 
-	if (!cm->desc->psy_cp_stat || cm->desc->cp.cp_running || cm->desc->force_pps_diasbled ||
+	if (!cm->desc->support_adaptive_fchg || !cm->desc->psy_cp_stat ||
+	    cm->desc->cp.cp_running || cm->desc->force_pps_diasbled ||
 	    cm->desc->fast_charger_type != CM_CHARGER_TYPE_ADAPTIVE)
 		return false;
 
@@ -7208,6 +7210,12 @@ static int cm_get_bat_info(struct charger_manager *cm)
 		dev_info(cm->dev, "Ignoring full-battery voltage offset as it is not supplied\n");
 
 	sprd_battery_put_battery_info(cm->charger_psy, &info);
+
+	if (cm->desc->cur.fchg_limit > 0 && cm->desc->cur.fchg_cur > 0)
+		cm->desc->support_fixed_fchg = true;
+
+	if (cm->desc->cur.flash_limit > 0 && cm->desc->cur.flash_cur > 0)
+		cm->desc->support_adaptive_fchg = true;
 
 	return 0;
 }
