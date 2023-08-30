@@ -398,6 +398,14 @@ static void ufs_sprd_dump_uic_event(struct seq_file *m, char **dump_pos,
 {
 	if (event == UFS_TRACE_UIC_CMPL && uei[ptr].pkg.uci.dwc_hc_ee_h8_compl) {
 		PRINT_SWITCH(m, dump_pos, "cmd:0x%2x\n", UIC_CMD_DME_HIBER_ENTER);
+	} else if (uei[ptr].pkg.uci.pwr_change) {
+		PRINT_SWITCH(m, dump_pos,
+		"cmd:0x%2x,arg1:0x%x,arg2:0x%x,arg3:0x%x,upmcrs:0x%x\n",
+		uei[ptr].pkg.uci.cmd,
+		uei[ptr].pkg.uci.argu1,
+		uei[ptr].pkg.uci.argu2,
+		uei[ptr].pkg.uci.argu3,
+		uei[ptr].pkg.uci.upmcrs);
 	} else {
 		PRINT_SWITCH(m, dump_pos,
 		"cmd:0x%2x,arg1:0x%x,arg2:0x%x,arg3:0x%x\n",

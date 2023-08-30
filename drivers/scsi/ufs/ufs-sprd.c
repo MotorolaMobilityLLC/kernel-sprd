@@ -151,9 +151,11 @@ void ufs_sprd_uic_cmd_record(struct ufs_hba *hba, struct uic_command *ucmd, int 
 			uic_tmp.dwc_hc_ee_h8_compl = true;
 			ufshcd_common_trace(hba, UFS_TRACE_UIC_CMPL, &uic_tmp);
 			return;
+		} else if (hba->uic_async_done && str == UFS_CMD_COMP) {
+			uic_tmp.pwr_change = true;
+			uic_tmp.upmcrs = (ufshcd_readl(hba, REG_CONTROLLER_STATUS) >> 8) & 0x7;
 		}
 
-		uic_tmp.dwc_hc_ee_h8_compl = false;
 		uic_tmp.argu1 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_1);
 		uic_tmp.argu2 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_2);
 		uic_tmp.argu3 = ufshcd_readl(hba, REG_UIC_COMMAND_ARG_3);

@@ -101,6 +101,8 @@ struct ufs_uic_cmd_info {
 	u32 argu1;
 	u32 argu2;
 	u32 argu3;
+	u32 upmcrs;
+	bool pwr_change;
 	/* True if caps UFS_SPRD_CAP_ACC_FORBIDDEN_AFTER_H8_EE is set */
 	bool dwc_hc_ee_h8_compl;
 };
