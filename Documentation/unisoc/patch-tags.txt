@@ -127,6 +127,7 @@ iommu:
 iommu:sprd:
 irqchip:
 
+kernel:
 kernel:sysctl:
 kernel:gcov:
 kernel:irq:
