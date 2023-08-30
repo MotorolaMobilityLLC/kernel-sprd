@@ -99,6 +99,8 @@ arch/arm64/boot/dts/sprd/ums9230-1h10_go-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-4h10-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-4h10-go-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-6h10-overlay.dtbo
+arch/arm64/boot/dts/sprd/ums9230-6h10-umb9230s-overlay.dtbo
+arch/arm64/boot/dts/sprd/ums9230-6h10-customer-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-6h10-go-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-14c10-go-overlay.dtbo
 vmlinux
