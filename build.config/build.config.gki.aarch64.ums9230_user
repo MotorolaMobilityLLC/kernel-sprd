@@ -26,6 +26,7 @@ EXT_MODULES="
 ../modules/common/camera/cam_sys
 ../modules/common/camera/cpp
 ../modules/common/camera/flash/ocp8137
+../modules/common/camera/flash/ocp81375
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/sensor
 ../modules/common/camera/mmdvfs
