@@ -127,13 +127,17 @@
 #define CM_CHARGER_TYPE_WORK_TIME_MS		500
 #define CM_CHARGER_TYPE_TIME_OUT_CNT		20
 
-#define CM_CAP_ONE_TIME_24S			24
-#define CM_CAP_ONE_TIME_20S			20
 #define CM_CAP_ONE_TIME_16S			16
+#define CM_CAP_ONE_TIME_8S			8
+#define CM_CAP_ONE_TIME_4S			4
 #define CM_CAP_CYCLE_TRACK_TIME_15S		15
-#define CM_CAP_CYCLE_TRACK_TIME_12S		12
-#define CM_CAP_CYCLE_TRACK_TIME_10S		10
 #define CM_CAP_CYCLE_TRACK_TIME_8S		8
+#define CM_CAP_CYCLE_TRACK_TIME_4S		4
+#define CM_CAP_CYCLE_TRACK_TIME_2S		2
+#define CM_CAP_CALC_BATT_WORKS_LOW_TEMP		50
+#define CM_CAP_CALC_BATT_WORKS_LOW_CAP		50
+#define CM_CAP_CALC_BATT_WORKS_BIG_CUR_UA	3000000
+#define CM_CAP_CALC_BATT_WORKS_SOC_GAP		50
 #define CM_INIT_BOARD_TEMP			250
 
 /* Google limit power transfer support */
@@ -7267,6 +7271,122 @@ static void cm_uvlo_check_work(struct work_struct *work)
 		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(800));
 }
 
+static int cm_get_charging_works_cycle(struct charger_manager *cm,
+				       int ibat_avg_ma, int *work_cycle)
+{
+	int ret = 0, one_cap_time, mas_one_percent, total_uah, total_mah;
+
+	*work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
+
+	if (ibat_avg_ma <= 0)
+		return ret;
+
+	ret = get_batt_total_cap(cm, &total_uah);
+	if (ret) {
+		dev_err(cm->dev, "%s failed to get total uah.\n", __func__);
+		return ret;
+	}
+
+	/*
+	 * When fast charging and high current charging,
+	 * the work cycle needs to be updated according to the current value.
+	 * formula: 1 mAh = 1mA * 3600s = 3600mAs.
+	 * mas_one_percent = 3600mAs / 100.
+	 * mas_one_percent represents how many mAs there are in 1% battery capacity.
+	 * one_cap_time = mas_one_percent / ibat_avg_ma.
+	 * one_cap_time represents 1% battery capacity the fastest update time(unit/s).
+	 */
+	cm->desc->cap_one_time = cm->desc->default_cap_one_time;
+	one_cap_time = cm->desc->cap_one_time;
+	total_mah = total_uah / 1000;
+	mas_one_percent = total_mah * 3600 / 100;
+	one_cap_time = DIV_ROUND_CLOSEST(mas_one_percent, ibat_avg_ma);
+	if (one_cap_time <= 10) {
+		cm->desc->cap_one_time = CM_CAP_ONE_TIME_4S;
+		*work_cycle = CM_CAP_CYCLE_TRACK_TIME_2S;
+	} else if (one_cap_time <= 20) {
+		cm->desc->cap_one_time = CM_CAP_ONE_TIME_8S;
+		*work_cycle = CM_CAP_CYCLE_TRACK_TIME_4S;
+	} else if (one_cap_time < 30) {
+		cm->desc->cap_one_time = CM_CAP_ONE_TIME_16S;
+		*work_cycle = CM_CAP_CYCLE_TRACK_TIME_8S;
+	}
+
+	return ret;
+}
+
+static int cm_get_discharging_works_cycle(struct charger_manager *cm,
+					  int ibat_avg_ua, int *work_cycle)
+{
+	int ret = 0, batt_uV;
+	static int uvlo_check_cnt;
+
+	*work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
+
+	if (ibat_avg_ua >= 0)
+		return ret;
+
+	ret = get_vbat_now_uV(cm, &batt_uV);
+	if (ret) {
+		dev_err(cm->dev, "%s failed to get vbat_now_uV\n", __func__);
+		return ret;
+	}
+
+	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD) {
+		if (++uvlo_check_cnt > 2) {
+			cm->desc->cap_one_time = CM_CAP_ONE_TIME_16S;
+			*work_cycle = CM_CAP_CYCLE_TRACK_TIME_8S;
+		}
+	} else {
+		uvlo_check_cnt = 0;
+	}
+
+	return ret;
+}
+
+static int cm_calc_batt_works_cycle(struct charger_manager *cm, int uisoc)
+{
+	int ibat_avg_ua, ret = 0, bat_soc, work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S, bat_temp;
+
+	ret = get_ibat_avg_uA(cm, &ibat_avg_ua);
+	if (ret) {
+		dev_err(cm->dev, "%s failed to get ibat_avg_uA.\n", __func__);
+		goto out;
+	}
+
+	ret = cm_get_charging_works_cycle(cm, ibat_avg_ua / 1000, &work_cycle);
+	if (ret || work_cycle != CM_CAP_CYCLE_TRACK_TIME_15S)
+		goto out;
+
+	ret = cm_get_discharging_works_cycle(cm, ibat_avg_ua, &work_cycle);
+	if (ret || work_cycle != CM_CAP_CYCLE_TRACK_TIME_15S)
+		goto out;
+
+	ret = cm_get_battery_temperature(cm, &bat_temp);
+	if (ret) {
+		dev_err(cm->dev, "%s failed to get battery temperature\n", __func__);
+		goto out;
+	}
+
+	ret = get_batt_cap(cm, &bat_soc);
+	if (ret) {
+		dev_err(cm->dev, "%s failed to get bat_soc\n", __func__);
+		goto out;
+	}
+
+	bat_soc = clamp(bat_soc, 0, CM_CAP_FULL_PERCENT);
+
+	if (bat_temp < CM_CAP_CALC_BATT_WORKS_LOW_TEMP || uisoc < CM_CAP_CALC_BATT_WORKS_LOW_CAP ||
+	    abs(ibat_avg_ua) > CM_CAP_CALC_BATT_WORKS_BIG_CUR_UA ||
+	    abs(bat_soc - uisoc) > CM_CAP_CALC_BATT_WORKS_SOC_GAP) {
+		cm->desc->cap_one_time = CM_CAP_ONE_TIME_16S;
+		work_cycle = CM_CAP_CYCLE_TRACK_TIME_8S;
+	}
+
+out:
+	return work_cycle;
+}
+
 static void cm_batt_works(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -7277,9 +7397,8 @@ static void cm_batt_works(struct work_struct *work)
 	int period_time, flush_time, cur_temp, board_temp = 0;
 	int chg_cur = 0, chg_limit_cur = 0, input_cur = 0;
 	int chg_vol = 0, vbat_avg = 0, ibat_avg = 0, recharge_uv = 0;
-	static int last_fuel_cap = CM_MAGIC_NUM, uvlo_check_cnt;
-	int total_uah, total_mah, one_cap_time, mah_one_percent;
-	int ibat_avg_ma, work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
+	static int last_fuel_cap = CM_MAGIC_NUM;
+	int work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
 
 	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
@@ -7306,12 +7425,6 @@ static void cm_batt_works(struct work_struct *work)
 	ret = get_ibat_avg_uA(cm, &ibat_avg);
 	if (ret)
 		dev_err(cm->dev, "get ibat_avg_uA error.\n");
-
-	ret = get_batt_total_cap(cm, &total_uah);
-	if (ret) {
-		dev_err(cm->dev, "failed to get total uah.\n");
-		goto schedule_cap_update_work;
-	}
 
 	ret = get_batt_cap(cm, &fuel_cap);
 	if (ret) {
@@ -7360,10 +7473,7 @@ static void cm_batt_works(struct work_struct *work)
 		cm->desc->low_temp_trigger_cnt = 0;
 	}
 
-	if (fuel_cap > CM_CAP_FULL_PERCENT)
-		fuel_cap = CM_CAP_FULL_PERCENT;
-	else if (fuel_cap < 0)
-		fuel_cap = 0;
+	fuel_cap = clamp(fuel_cap, 0, CM_CAP_FULL_PERCENT);
 
 	if (last_fuel_cap == CM_MAGIC_NUM)
 		last_fuel_cap = fuel_cap;
@@ -7553,37 +7663,7 @@ static void cm_batt_works(struct work_struct *work)
 		break;
 	}
 
-	/*
-	* When fast charging and high current charging,
-	* the work cycle needs to be updated according to the current value.
-	*/
-	cm->desc->cap_one_time = cm->desc->default_cap_one_time;
-	one_cap_time = cm->desc->cap_one_time;
-	ibat_avg_ma = ibat_avg / 1000;
-	if (ibat_avg_ma > 0) {
-		total_mah = total_uah / 1000;
-		mah_one_percent = total_mah * 3600 / 100;
-		one_cap_time = DIV_ROUND_CLOSEST(mah_one_percent, ibat_avg_ma);
-		if (one_cap_time <= 20) {
-			cm->desc->cap_one_time = CM_CAP_ONE_TIME_16S;
-			work_cycle = CM_CAP_CYCLE_TRACK_TIME_8S;
-		} else if (one_cap_time <= 25) {
-			cm->desc->cap_one_time = CM_CAP_ONE_TIME_20S;
-			work_cycle = CM_CAP_CYCLE_TRACK_TIME_10S;
-		} else if (one_cap_time < 30) {
-			cm->desc->cap_one_time = CM_CAP_ONE_TIME_24S;
-			work_cycle = CM_CAP_CYCLE_TRACK_TIME_12S;
-		}
-	}
-
-	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD && ibat_avg < 0) {
-		if (++uvlo_check_cnt > 2) {
-			cm->desc->cap_one_time = CM_CAP_ONE_TIME_20S;
-			work_cycle = CM_CAP_CYCLE_TRACK_TIME_10S;
-		}
-	} else {
-		uvlo_check_cnt = 0;
-	}
+	work_cycle = cm_calc_batt_works_cycle(cm, fuel_cap);
 
 	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD) {
 		dev_info(cm->dev, "batt_uV is less than UVLO calib volt\n");
