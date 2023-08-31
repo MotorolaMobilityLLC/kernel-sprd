@@ -55,6 +55,7 @@ void sprd_time_sync_fn(void *data, struct timekeeper *tk)
 		input_tm.tm_sec,
 		monotime_ns,
 		boottime_ns);
+	pr_info("name: %s pid: %d\n", current->comm, current->pid);
 #endif
 }
 

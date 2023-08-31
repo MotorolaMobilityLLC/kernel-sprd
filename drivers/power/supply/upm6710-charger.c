@@ -1873,7 +1873,6 @@ static void upm6710_dump_reg(struct upm6710_charger_info *upm)
 		if (!ret)
 			dev_err(upm->dev, "Reg[%02X] = 0x%02X\n", addr, val);
 	}
-
 }
 
 static void upm6710_check_alarm_status(struct upm6710_charger_info *upm)
@@ -1883,25 +1882,19 @@ static void upm6710_check_alarm_status(struct upm6710_charger_info *upm)
 	u8 stat = 0;
 
 	mutex_lock(&upm->data_lock);
-
-	ret = upm6710_read_byte(upm, UPM6710_REG_08, &flag);
-	if (!ret && (flag & UPM6710_IBUS_UCP_FALL_FLAG_MASK))
-		dev_dbg(upm->dev, "UCP_FLAG =0x%02X\n",
-			!!(flag & UPM6710_IBUS_UCP_FALL_FLAG_MASK));
-
 	ret = upm6710_read_byte(upm, UPM6710_REG_2D, &flag);
 	if (!ret && (flag & UPM6710_VDROP_OVP_FLAG_MASK))
-		dev_dbg(upm->dev, "VDROP_OVP_FLAG =0x%02X\n",
-			!!(flag & UPM6710_VDROP_OVP_FLAG_MASK));
+		dev_err(upm->dev, "VDROP OVP event, REG_FLAG_MASK[%02x] =0x%02X\n",
+			UPM6710_REG_2D, flag);
 
 	/* read to clear alarm flag */
 	ret = upm6710_read_byte(upm, UPM6710_REG_0E, &flag);
 	if (!ret && flag)
-		dev_dbg(upm->dev, "INT_FLAG =0x%02X\n", flag);
+		dev_dbg(upm->dev, "INT_FLAG[%02x] =0x%02X\n", UPM6710_REG_0E, flag);
 
 	ret = upm6710_read_byte(upm, UPM6710_REG_0D, &stat);
 	if (!ret && stat != upm->prev_alarm) {
-		dev_dbg(upm->dev, "INT_STAT = 0X%02x\n", stat);
+		dev_dbg(upm->dev, "INT_STAT[%02x]= 0X%02x\n", UPM6710_REG_0D, stat);
 		upm->prev_alarm = stat;
 		upm->bat_ovp_alarm = !!(stat & BAT_OVP_ALARM);
 		upm->bat_ocp_alarm = !!(stat & BAT_OCP_ALARM);
@@ -1913,12 +1906,14 @@ static void upm6710_check_alarm_status(struct upm6710_charger_info *upm)
 	}
 
 	ret = upm6710_read_byte(upm, UPM6710_REG_08, &stat);
-	if (!ret && (stat & 0x50))
-		dev_err(upm->dev, "Reg[05]BUS_UCPOVP = 0x%02X\n", stat);
+	if (!ret && (stat & (UPM6710_IBUS_UCP_FALL_FLAG_MASK | UPM6710_IBUS_UCP_RISE_FLAG_MASK)))
+		dev_err(upm->dev, "Ibus ucp rise or fall event, IBUS_OCP_UCP[%02x] = 0x%02X\n",
+			UPM6710_REG_08, stat);
 
 	ret = upm6710_read_byte(upm, UPM6710_REG_0A, &stat);
-	if (!ret && (stat & 0x02))
-		dev_err(upm->dev, "Reg[0A]CONV_OCP = 0x%02X\n", stat);
+	if (!ret && (stat & UPM6710_CONV_OCP_FLAG_MASK))
+		dev_err(upm->dev, "Internal MOSFET OCP event, CONVERTER_STATE[%02x] = 0x%02X\n",
+			UPM6710_REG_0A, stat);
 
 	upm6710_dump_reg(upm);
 	mutex_unlock(&upm->data_lock);
@@ -1929,20 +1924,17 @@ static void upm6710_check_fault_status(struct upm6710_charger_info *upm)
 	int ret;
 	u8 flag = 0;
 	u8 stat = 0;
-	bool changed = false;
 
 	mutex_lock(&upm->data_lock);
-
 	ret = upm6710_read_byte(upm, UPM6710_REG_10, &stat);
 	if (!ret && stat)
-		dev_err(upm->dev, "FAULT_STAT = 0x%02X\n", stat);
+		dev_err(upm->dev, "FAULT_STAT[%02X] = 0x%02X\n", UPM6710_REG_10, stat);
 
 	ret = upm6710_read_byte(upm, UPM6710_REG_11, &flag);
 	if (!ret && flag)
-		dev_err(upm->dev, "FAULT_FLAG = 0x%02X\n", flag);
+		dev_err(upm->dev, "FAULT_FLAG[%02X] = 0x%02X\n", UPM6710_REG_11, flag);
 
 	if (!ret && flag != upm->prev_fault) {
-		changed = true;
 		upm->prev_fault = flag;
 		upm->bat_ovp_fault = !!(flag & BAT_OVP_FAULT);
 		upm->bat_ocp_fault = !!(flag & BAT_OCP_FAULT);
@@ -1957,7 +1949,6 @@ static void upm6710_check_fault_status(struct upm6710_charger_info *upm)
 
 	mutex_unlock(&upm->data_lock);
 }
-
 
 /*
  * interrupt does nothing, just info event chagne, other module could get info

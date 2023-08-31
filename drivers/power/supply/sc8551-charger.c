@@ -1860,37 +1860,33 @@ static void sc8551_check_alarm_status(struct sc8551 *sc)
 	u8 stat = 0;
 
 	mutex_lock(&sc->data_lock);
-
-	ret = sc8551_read_byte(sc, SC8551_REG_08, &flag);
-	if (!ret && (flag & SC8551_IBUS_UCP_FALL_FLAG_MASK))
-		dev_dbg(sc->dev, "UCP_FLAG =0x%02X\n",
-			!!(flag & SC8551_IBUS_UCP_FALL_FLAG_MASK));
-
 	ret = sc8551_read_byte(sc, SC8551_REG_2D, &flag);
 	if (!ret && (flag & SC8551_VDROP_OVP_FLAG_MASK))
-		dev_dbg(sc->dev, "VDROP_OVP_FLAG =0x%02X\n",
-			!!(flag & SC8551_VDROP_OVP_FLAG_MASK));
+		dev_err(sc->dev, "VDROP OVP event, REG_FLAG_MASK[%02x] =0x%02X\n",
+			SC8551_REG_2D, flag);
 
 	/*read to clear alarm flag*/
 	ret = sc8551_read_byte(sc, SC8551_REG_0E, &flag);
 	if (!ret && flag)
-		dev_dbg(sc->dev, "INT_FLAG =0x%02X\n", flag);
+		dev_dbg(sc->dev, "INT_FLAG[%02x] =0x%02X\n", SC8551_REG_0E, flag);
 
 	ret = sc8551_read_byte(sc, SC8551_REG_0D, &stat);
 	if (!ret && stat != sc->prev_alarm) {
-		dev_dbg(sc->dev, "INT_STAT = 0X%02x\n", stat);
+		dev_dbg(sc->dev, "INT_STAT[%02x] = 0X%02x\n", SC8551_REG_0D, stat);
 		sc->prev_alarm = stat;
 		sc->batt_present  = !!(stat & VBAT_INSERT);
 		sc->vbus_present  = !!(stat & VBUS_INSERT);
 	}
 
 	ret = sc8551_read_byte(sc, SC8551_REG_08, &stat);
-	if (!ret && (stat & 0x50))
-		dev_err(sc->dev, "Reg[05]BUS_UCPOVP = 0x%02X\n", stat);
+	if (!ret && (stat & (SC8551_IBUS_UCP_FALL_FLAG_MASK | SC8551_IBUS_UCP_RISE_FLAG_MASK)))
+		dev_err(sc->dev, "Ibus ucp rise or fall event, IBUS_OCP_UCP[%02x] = 0x%02X\n",
+			SC8551_REG_08, stat);
 
 	ret = sc8551_read_byte(sc, SC8551_REG_0A, &stat);
-	if (!ret && (stat & 0x02))
-		dev_err(sc->dev, "Reg[0A]CONV_OCP = 0x%02X\n", stat);
+	if (!ret && (stat & SC8551_CONV_OCP_FLAG_MASK))
+		dev_err(sc->dev, "Internal MOSFET OCP event, CONVERTER_STATE[%02x] = 0x%02X\n",
+			SC8551_REG_0A, stat);
 
 	mutex_unlock(&sc->data_lock);
 }
@@ -1900,20 +1896,17 @@ static void sc8551_check_fault_status(struct sc8551 *sc)
 	int ret;
 	u8 flag = 0;
 	u8 stat = 0;
-	bool changed = false;
 
 	mutex_lock(&sc->data_lock);
-
 	ret = sc8551_read_byte(sc, SC8551_REG_10, &stat);
 	if (!ret && stat)
-		dev_err(sc->dev, "FAULT_STAT = 0x%02X\n", stat);
+		dev_err(sc->dev, "FAULT_STAT[%02X] = 0x%02X\n", SC8551_REG_10, stat);
 
 	ret = sc8551_read_byte(sc, SC8551_REG_11, &flag);
 	if (!ret && flag)
-		dev_err(sc->dev, "FAULT_FLAG = 0x%02X\n", flag);
+		dev_err(sc->dev, "FAULT_FLAG[%02X] = 0x%02X\n", SC8551_REG_11, flag);
 
 	if (!ret && flag != sc->prev_fault) {
-		changed = true;
 		sc->prev_fault = flag;
 		sc->bat_ovp_fault = !!(flag & BAT_OVP_FAULT);
 		sc->bat_ocp_fault = !!(flag & BAT_OCP_FAULT);

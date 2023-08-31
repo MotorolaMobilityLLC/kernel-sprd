@@ -1080,6 +1080,19 @@ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struc
 	int override_rlimit;
 	int ret = 0, result;
 
+#ifdef CONFIG_SPRD_SIGNAL_DEBUG
+	if ((sig == SIGKILL || sig == SIGTERM) && (!strcmp(t->comm, "system_server")
+					|| !strcmp(t->comm, "surfaceflinger")
+					|| !strcmp(t->comm, "netd")
+					|| !strcmp(t->comm, "inputflinger")
+					|| !strcmp(t->comm, "servicemanager"))) {
+		pr_warn("SPRD_Signal_Debug: Current request process is %s, pid= %d\n",
+			current->comm, task_pid_nr(current));
+		pr_warn("SPRD_Signal_Debug: Target process is %s, pid= %d, sig=%d\n",
+			t->comm, task_pid_nr(t), sig);
+	}
+#endif
+
 	assert_spin_locked(&t->sighand->siglock);
 
 	result = TRACE_SIGNAL_IGNORED;

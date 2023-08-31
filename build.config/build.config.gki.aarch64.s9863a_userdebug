@@ -9,7 +9,7 @@ S9863A_BASE_CONFIG="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig
                     "
 if [[ $BSP_PRODUCT_NAME_TAIL == "Skynet" ]]; then
 	if [[ $BSP_PRODUCT_GO_DEVICE == "true" ]]; then
-		S9863A_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_go_Skynet.fragment"
+		S9863A_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_swkasan_Skynet.fragment"
 	fi
 fi
 

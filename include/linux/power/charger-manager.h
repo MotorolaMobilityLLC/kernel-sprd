@@ -430,8 +430,8 @@ struct cm_charge_pump_status {
 
 	int ir_vbat;
 
-	struct cm_fault_status  flt;
-	struct cm_alarm_status  alm;
+	struct cm_fault_status flt;
+	struct cm_alarm_status alm;
 };
 
 struct cm_charge_current {
