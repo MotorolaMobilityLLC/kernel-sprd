@@ -789,7 +789,7 @@ static ssize_t raw_data_als_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
-	u8 data[2];
+	u8 data[6];
 	u16 *ptr;
 	int err;
 
@@ -806,7 +806,7 @@ static ssize_t raw_data_als_show(struct device *dev,
 			"read RegMapR_GetLightRawData failed!\n");
 		return err;
 	}
-	return sprintf(buf, "%d\n", ptr[0]);
+	return sprintf(buf, "%d %d %d\n", ptr[0], ptr[1], ptr[2]);
 }
 static DEVICE_ATTR_RO(raw_data_als);
 
