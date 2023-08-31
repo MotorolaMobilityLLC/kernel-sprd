@@ -1086,10 +1086,8 @@ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struc
 					|| !strcmp(t->comm, "netd")
 					|| !strcmp(t->comm, "inputflinger")
 					|| !strcmp(t->comm, "servicemanager"))) {
-		pr_warn("SPRD_Signal_Debug: Current request process is %s, pid= %d\n",
-			current->comm, task_pid_nr(current));
-		pr_warn("SPRD_Signal_Debug: Target process is %s, pid= %d, sig=%d\n",
-			t->comm, task_pid_nr(t), sig);
+		pr_warn("Signal_Debug: Req_process is %s, pid=%d, Tar_process is%s, pid=%d, sig=%d\n",
+			current->comm, task_pid_nr(current), t->comm, task_pid_nr(t), sig);
 	}
 #endif
 
