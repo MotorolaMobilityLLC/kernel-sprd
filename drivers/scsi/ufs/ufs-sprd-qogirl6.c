@@ -36,6 +36,8 @@ enum SPRD_L6_UFS_DBG_INDEX {
 	L6_UFS_AP_DBG_BUS_30,
 	L6_UFS_AP_DBG_BUS_31,
 	L6_UFS_AP_DBG_BUS_32,
+	L6_UFS_AP_DCO_CAL_RESULT,
+	L6_UFS_AP_DCO_CNT_RESULT,
 
 	L6_UFS_DBG_REGS_MAX
 };
@@ -57,6 +59,10 @@ static const char *l6_dbg_regs_name[L6_UFS_DBG_REGS_MAX] = {
 	"[DBGBUS]MonitorUP[79:64]",
 	/* L6_UFS_AP_DBG_BUS_32 */
 	"[DBGBUS]AP_DBG_BUS_32",
+	/* L6_UFS_AP_DCO_CAL_RESULT */
+	"[DCO]AP_DCO_CAL_RESULT",
+	/* L6_UFS_AP_DCO_CNT_RESULT */
+	"[DCO]AP_DCO_CNT_RESULT",
 };
 
 static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt, void *data)
@@ -110,6 +116,10 @@ static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt
 
 	writel(0x21 << 8, priv->dbg_apb_reg + 0x1c);
 	v[L6_UFS_AP_DBG_BUS_32] = readl(priv->dbg_apb_reg + 0x50);
+
+	v[L6_UFS_AP_DCO_CAL_RESULT] = readl((priv->ufs_analog_reg) + MPHY_DIG_CFG62_LANE0) >> 24;
+	v[L6_UFS_AP_DCO_CNT_RESULT] =
+			(readl((priv->ufs_analog_reg) + MPHY_DIG_CFG66_LANE0) >> 18) & 0x1FF;
 
 	if (!preempt_count())
 		p->preempt = false;
@@ -736,6 +746,7 @@ static void ufs_sprd_dco_calibration(struct ufs_hba *hba, struct uic_command *uc
 	struct ufs_sprd_ums9230_data *priv = (struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
 	int value = 0;
 	int apb_dco_cal_result = 0;
+	int apb_dco_cnt_result = 0;
 
 	if (ucmd->command == UIC_CMD_DME_LINK_STARTUP) {
 		while (1) {
@@ -757,6 +768,14 @@ static void ufs_sprd_dco_calibration(struct ufs_hba *hba, struct uic_command *uc
 				      MPHY_APB_OVR_REG_DCO_VALUE,
 				      MPHY_DIG_CFG1_LANE0);
 		}
+
+		value = readl((priv->ufs_analog_reg) + MPHY_DIG_CFG62_LANE0);
+		apb_dco_cal_result = (value >> 24);
+		value = readl((priv->ufs_analog_reg) + MPHY_DIG_CFG66_LANE0);
+		apb_dco_cnt_result = (value >> 18) & 0x1FF;
+
+		dev_err(hba->dev, "apb_dco_cal_result: 0x%x, apb_dco_cnt_result: 0x%x\n",
+			   apb_dco_cal_result, apb_dco_cnt_result);
 	}
 }
 
