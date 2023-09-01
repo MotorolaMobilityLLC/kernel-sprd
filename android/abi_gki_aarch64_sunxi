@@ -1144,6 +1144,7 @@
   reset_controller_register
   reset_control_put
   reset_control_reset
+  reset_control_status
   rfkill_alloc
   rfkill_blocked
   rfkill_destroy
@@ -1396,6 +1397,7 @@
   tasklet_setup
   tasklet_unlock_wait
   __task_pid_nr_ns
+  tcpm_tcpc_reset
   thermal_zone_get_temp
   thermal_zone_get_zone_by_name
   time64_to_tm
@@ -1440,6 +1442,7 @@
   tracepoint_probe_unregister
   trace_print_array_seq
   trace_print_flags_seq
+  trace_print_hex_dump_seq
   trace_print_symbols_seq
   trace_raw_output_prep
   trace_seq_printf
