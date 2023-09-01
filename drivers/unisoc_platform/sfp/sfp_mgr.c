@@ -1173,7 +1173,8 @@ int sfp_mgr_proc_enable(void)
 
 	FP_PRT_DBG(FP_PRT_DEBUG, "Network Fast Processing Enabled\n");
 	err = register_netdevice_notifier(&sfp_if_netdev_notifier_blk);
-	return 0;
+	FP_PRT_DBG(FP_PRT_DEBUG, "Register netdev notifier, ret %d\n", err);
+	return err;
 }
 
 void sfp_mgr_proc_disable(void)
