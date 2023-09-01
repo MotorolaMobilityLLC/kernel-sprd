@@ -243,6 +243,12 @@
 		switch_flag_en_gpio = <&ap_gpio 176 GPIO_ACTIVE_HIGH>;
 	};
 
+	i2c_lcd_bias: ocp2131@3e {
+		compatible = "sprd,i2c_lcd_bias";
+		reg = <0x3e>;
+		status = "okay";
+	};
+
 /*	flash_ic: flash-ic@63 {
 		compatible = "sprd,flash-ocp8137";
 		reg = <0x63>;
