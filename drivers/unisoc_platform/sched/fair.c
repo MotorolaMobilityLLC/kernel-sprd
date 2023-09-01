@@ -753,7 +753,7 @@ static void walt_attach_task(struct rq *rq, struct task_struct *p)
 	lockdep_assert_rq_held(rq);
 
 	BUG_ON(task_rq(p) != rq);
-	activate_task(rq, p, ENQUEUE_NOCLOCK);
+	activate_task(rq, p, 0);
 	check_preempt_curr(rq, p, 0);
 }
 
@@ -1559,7 +1559,7 @@ static void uni_attach_task(struct rq *rq, struct task_struct *p)
 	lockdep_assert_rq_held(rq);
 
 	BUG_ON(task_rq(p) != rq);
-	activate_task(rq, p, ENQUEUE_NOCLOCK);
+	activate_task(rq, p, 0);
 	check_preempt_curr(rq, p, 0);
 }
 
@@ -1646,21 +1646,26 @@ unlock:
 static int lb_find_busiest_from_similar_cap_cpu(int dst_cpu, const cpumask_t *src_mask,
 						int *has_misfit, bool is_newidle)
 {
-	int i;
-	int busiest_cpu = -1;
+	int i, busiest_cpu = -1;
+	unsigned int nr_running, most_nr_running = 0;
 	unsigned long util, busiest_util = 0;
 	struct uni_rq *uni_rq;
 
 	for_each_cpu(i, src_mask) {
 		uni_rq = (struct uni_rq *) cpu_rq(i)->android_vendor_data1;
+		nr_running = cpu_rq(i)->nr_running;
 
-		if (cpu_rq(i)->nr_running < 2 || !cpu_rq(i)->cfs.h_nr_running)
+		if (nr_running < 2 || !cpu_rq(i)->cfs.h_nr_running)
 			continue;
 
 		util = lb_cpu_util(i);
 		if (util < busiest_util)
 			continue;
 
+		if (util == busiest_util && nr_running < most_nr_running)
+			continue;
+
+		most_nr_running = nr_running;
 		busiest_util = util;
 		busiest_cpu = i;
 	}
@@ -1712,42 +1717,9 @@ static void android_rvh_sched_newidle_balance(void *unused, struct rq *this_rq,
 	struct uni_rq *uni_this_rq = (struct uni_rq *) this_rq->android_vendor_data1;
 	struct sched_cluster *this_cluster = uni_this_rq->cluster;
 	int busy_cpu = -1;
+	bool pull_success = false;
 
 	if (unlikely(uni_sched_disabled))
-		return;
-
-	if ((!cpu_active(this_cpu)) || cpu_halted(this_cpu) || is_reserved(this_cpu)) {
-		/*
-		 * newly idle load balance is completely handled here, so
-		 * set done to skip the load balance by the caller.
-		 */
-		*done = 1;
-		*pulled_task = 0;
-
-		/*
-		 * This CPU is about to enter idle, so clear the
-		 * misfit_task_load and mark the idle stamp.
-		 */
-		this_rq->misfit_task_load = 0;
-		this_rq->idle_stamp = rq_clock(this_rq);
-
-		return;
-	}
-
-	if (num_sched_clusters != 1)
-		return;
-
-	if (atomic_read(&this_rq->nr_iowait) && !enough_idle)
-		return;
-
-	if (!READ_ONCE(this_rq->rd->overload))
-		return;
-
-	/*
-	 * There is a task waiting to run. No need to search for one.
-	 * Return 0; the task will be enqueued when switching to idle.
-	 */
-	if (this_rq->ttwu_pending)
 		return;
 
 	/*
@@ -1761,30 +1733,52 @@ static void android_rvh_sched_newidle_balance(void *unused, struct rq *this_rq,
 	 * This CPU is about to enter idle, so clear the
 	 * misfit_task_load and mark the idle stamp.
 	 */
-	this_rq->misfit_task_load = 0;
+	if (num_sched_clusters > 1)
+		this_rq->misfit_task_load = 0;
+
+	/*
+	 * There is a task waiting to run. No need to search for one.
+	 * Return 0; the task will be enqueued when switching to idle.
+	 */
+	if (this_rq->ttwu_pending)
+		return;
+
 	this_rq->idle_stamp = rq_clock(this_rq);
+
+	if ((!cpu_active(this_cpu)) || cpu_halted(this_cpu) || is_reserved(this_cpu))
+		return;
+
+	if (!sysctl_force_newidle_balance) {
+		*done = 0;
+		return;
+	}
 
 	rq_unpin_lock(this_rq, rf);
 
-	raw_spin_unlock(&this_rq->__lock);
+	if (atomic_read(&this_rq->nr_iowait) && !enough_idle)
+		goto repin;
 
-	if (num_sched_clusters == 1) {
-		busy_cpu = lb_find_busiest_cpu(this_cpu, &this_cluster->cpus, &has_misfit, true);
-		if (busy_cpu != -1)
-			goto found_busy_cpu;
+	if (!READ_ONCE(this_rq->rd->overload))
+		goto repin;
 
+	raw_spin_rq_unlock(this_rq);
+
+	busy_cpu = lb_find_busiest_cpu(this_cpu, &this_cluster->cpus, &has_misfit, true);
+	if (busy_cpu == -1 && num_sched_clusters != 1)
 		goto unlock;
-	}
 
-found_busy_cpu:
+	/* set true first */
+	pull_success = true;
+
 	/* sanity checks before attempting the pull */
 	if (this_rq->nr_running > 0 || (busy_cpu == this_cpu) || busy_cpu == -1)
 		goto unlock;
 
 	*pulled_task = lb_pull_tasks(this_cpu, busy_cpu);
-
+	if (*pulled_task == 0)
+		pull_success = false;
 unlock:
-	raw_spin_lock(&this_rq->__lock);
+	raw_spin_rq_lock(this_rq);
 
 	if (this_rq->cfs.h_nr_running && !*pulled_task)
 		*pulled_task = 1;
@@ -1797,7 +1791,13 @@ unlock:
 	if (*pulled_task)
 		this_rq->idle_stamp = 0;
 
+	if ((!pull_success) && (*pulled_task == 0))
+		*done = 0;
+
+repin:
 	rq_repin_lock(this_rq, rf);
+
+	trace_sched_uni_newidle_balance(this_cpu, busy_cpu, *pulled_task, 0, enough_idle);
 }
 
 static void android_rvh_can_migrate_task(void *data, struct task_struct *p,

@@ -225,6 +225,7 @@ extern unsigned int sysctl_sched_uclamp_min_to_boost;
 #endif
 extern unsigned int sysctl_cpu_multi_thread_opt;
 extern unsigned int sysctl_multi_thread_heavy_load_runtime;
+extern unsigned int sysctl_force_newidle_balance;
 
 extern unsigned int min_max_possible_capacity;
 extern unsigned int max_possible_capacity;

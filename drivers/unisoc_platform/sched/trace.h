@@ -616,6 +616,45 @@ TRACE_EVENT(sched_show_untask_stack,
 		(void *)__entry->c2, (void *)__entry->c3, (void *)__entry->c4,
 		(void *)__entry->c5)
 );
+
+TRACE_EVENT(sched_uni_newidle_balance,
+
+	TP_PROTO(int this_cpu, int busy_cpu, int pulled, bool help_min_cap, bool enough_idle),
+
+	TP_ARGS(this_cpu, busy_cpu, pulled, help_min_cap, enough_idle),
+
+	TP_STRUCT__entry(
+		__field(int,		cpu)
+		__field(int,		busy_cpu)
+		__field(int,		pulled)
+		__field(unsigned int,	nr_running)
+		__field(unsigned int,	rt_nr_running)
+		__field(int,		nr_iowait)
+		__field(bool,		help_min_cap)
+		__field(u64,		avg_idle)
+		__field(bool,		enough_idle)
+		__field(int,		overload)
+	),
+
+	TP_fast_assign(
+		__entry->cpu		= this_cpu;
+		__entry->busy_cpu	= busy_cpu;
+		__entry->pulled		= pulled;
+		__entry->nr_running	= cpu_rq(this_cpu)->nr_running;
+		__entry->rt_nr_running	= cpu_rq(this_cpu)->rt.rt_nr_running;
+		__entry->nr_iowait	= atomic_read(&(cpu_rq(this_cpu)->nr_iowait));
+		__entry->help_min_cap	= help_min_cap;
+		__entry->avg_idle	= cpu_rq(this_cpu)->avg_idle;
+		__entry->enough_idle	= enough_idle;
+		__entry->overload	= cpu_rq(this_cpu)->rd->overload;
+	),
+
+	TP_printk("cpu=%d busy_cpu=%d pulled=%d nr_running=%u rt_nr_running=%u nr_iowait=%d help_min_cap=%d avg_idle=%llu enough_idle=%d overload=%d",
+		  __entry->cpu, __entry->busy_cpu, __entry->pulled, __entry->nr_running,
+		  __entry->rt_nr_running, __entry->nr_iowait, __entry->help_min_cap,
+		  __entry->avg_idle, __entry->enough_idle, __entry->overload)
+);
+
 #endif /* _TRACE_H */
 
 #undef TRACE_INCLUDE_PATH
