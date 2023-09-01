@@ -521,6 +521,10 @@
 	};
 };
 
+&pmic_typec {
+	no_support_typec_analog_earphone;
+};
+
 &pmic_fgu {
 	monitored-battery = <&bat>;
 	fgu-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
