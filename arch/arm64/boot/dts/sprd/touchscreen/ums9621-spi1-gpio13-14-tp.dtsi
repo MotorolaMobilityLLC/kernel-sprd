@@ -12,6 +12,7 @@
 
 	/* Novatek device tree node */
 	touchpanel@0 {
+		power-dependency = <&dpu>;
 		compatible = "focaltech,fts","novatek,NVT-ts-spi";
 		reg = <0>; //Same as CS ID
 		status = "ok";
