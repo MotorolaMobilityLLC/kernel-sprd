@@ -654,7 +654,10 @@ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count)
 		ret = vfs_read(f.file, buf, count, ppos);
 #if defined(CONFIG_SPRD_DEBUG)
 		if ((ret >= 0) && (count == SPRD_BLK_SIZE) &&
-		(!strcmp(f.file->f_path.dentry->d_name.name, "SequenceRead_test_file"))) {
+		((!strcmp(f.file->f_path.dentry->d_name.name, "SequenceRead_test_file")) ||
+		(!strcmp(f.file->f_path.dentry->d_name.name, "RandomRead_test_file")) ||
+		(!strcmp(f.file->f_path.dentry->d_name.name, "SequenceWrite_test_file")) ||
+		(!strcmp(f.file->f_path.dentry->d_name.name, "RandomWrite_test_file")))) {
 			if (!__copy_from_user(sprd_debug_buf, buf, SPRD_BLK_SIZE))
 				sprd_fs_debug_check_data(f.file, buf, count);
 		}
