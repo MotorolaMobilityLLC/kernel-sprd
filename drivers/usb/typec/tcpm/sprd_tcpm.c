@@ -3307,7 +3307,9 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		port->pwr_opmode = TYPEC_PWR_MODE_USB;
 		port->caps_count = 0;
 		port->negotiated_rev = SPRD_PD_MAX_REV;
-		port->message_id = 0;
+		if (!port->power_role_swap)
+			port->message_id = 0;
+
 		port->rx_msgid = -1;
 		port->explicit_contract = false;
 		sprd_tcpm_set_state(port, SRC_SEND_CAPABILITIES, 0);
@@ -3551,7 +3553,9 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		typec_set_pwr_opmode(port->typec_port, opmode);
 		port->pwr_opmode = TYPEC_PWR_MODE_USB;
 		port->negotiated_rev = SPRD_PD_MAX_REV;
-		port->message_id = 0;
+		if (!port->power_role_swap)
+			port->message_id = 0;
+
 		port->rx_msgid = -1;
 		port->explicit_contract = false;
 		sprd_tcpm_set_state(port, SNK_DISCOVERY, 0);
@@ -3747,8 +3751,11 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		sprd_tcpm_set_state(port, HARD_RESET_START, 0);
 		break;
 	case HARD_RESET_START:
-		if (port->power_role_swap)
+		if (port->power_role_swap) {
 			port->power_role_swap_hard_reset = true;
+			port->message_id = 0;
+		}
+
 		port->hard_reset_count++;
 		port->tcpc->set_pd_rx(port->tcpc, false);
 		sprd_tcpm_unregister_altmodes(port);
