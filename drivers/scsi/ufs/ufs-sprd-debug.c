@@ -1036,7 +1036,7 @@ static enum blk_eh_timer_return ufs_sprd_eh_timed_out(struct scsi_cmnd *scmd)
 	if (sprd_ufs_debug_is_supported(hba) == TRUE)
 		ufshcd_common_trace(hba, UFS_TRECE_SCSI_TIME_OUT, &tag);
 
-	sprd_ufs_debug_err_dump(hba);
+	ufshcd_vops_dbg_register_dump(hba);
 
 	return BLK_EH_DONE;
 }
