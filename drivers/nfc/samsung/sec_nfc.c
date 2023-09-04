@@ -38,6 +38,9 @@
 #include <linux/gpio.h>
 #include <linux/slab.h>
 #include <linux/fs.h>
+#include <linux/regmap.h>
+#include <linux/compat.h>
+#include <linux/of_platform.h>
 #include <asm/uaccess.h>
 #include <linux/clk-provider.h>
 #ifdef CONFIG_SEC_NFC_GPIO_CLK
@@ -49,6 +52,7 @@
 #endif
 #include <linux/of_gpio.h>
 #include <linux/clk.h>
+#include <linux/regulator/consumer.h>
 
 
 #ifndef CONFIG_SEC_NFC_IF_I2C
@@ -95,6 +99,7 @@ struct sec_nfc_info {
 #ifdef CONFIG_SEC_NFC_WAKE_LOCK
     struct wake_lock nfc_wake_lock;
 #endif
+	struct pmic_refout *sc27xx_refout;
 #ifdef CONFIG_SEC_NFC_GPIO_CLK
     bool clk_ctl;
     bool clk_state;
@@ -112,6 +117,40 @@ u8 disable_combo_reset_cmd[4] = {0x2F, 0x30, 0x01, 0x00};
 bool is_shutdown = false;
 enum sec_nfc_mode cur_mode;
 #endif
+
+static struct device_node *np = NULL;
+#define NFC_CLK_FREQ 26000000
+#define SEC_NFC_CLOCK_AP 1
+#define SEC_NFC_CLOCK_PMIC 2
+
+int pmic_refout_update(struct sec_nfc_info *info, unsigned int refout_num, int refout_state){
+	 int ret;
+	 //add debug log
+	pr_err("lion pmic debug start!\n");
+	 if (refout_num > info->sc27xx_refout->refnum){
+		 pr_err("%s- refnum is out.\n", __func__);
+		 return -EINVAL;
+	 }
+	 
+	 if (info->sc27xx_refout == NULL){
+		pr_err("%s- refout is NULL.\n", __func__);
+	 }
+	 
+	 if (!refout_state)
+		 ret = regmap_update_bits(info->sc27xx_refout->regmap, info->sc27xx_refout->regsw,
+		 1 << refout_num, 0);
+	 else if (refout_state == 1)
+		 ret = regmap_update_bits(info->sc27xx_refout->regmap, info->sc27xx_refout->regsw,
+		 1 << refout_num, 1 << refout_num);
+	 else {
+		 pr_err("%s- invalid state(%d)\n", __func__); 
+		 ret = -EINVAL;
+	 } 
+	 //add debug log
+	pr_err("lion pmic debug end!\n");
+	 return ret;
+}
+
 
 #ifdef CONFIG_SEC_NFC_IF_I2C
 static irqreturn_t sec_nfc_irq_thread_fn(int irq, void *dev_id)
@@ -530,7 +569,7 @@ static void sec_nfc_set_mode(struct sec_nfc_info *info,
     if (mode != SEC_NFC_MODE_OFF) {
         msleep(SEC_NFC_VEN_WAIT_TIME);
         sec_nfc_clk_ctl_enable(info);
-		 //pmic_refout_update(4, 1);//samsung add
+		pmic_refout_update(info,4, 1);//samsung add
         gpio_set_value(pdata->ven, SEC_NFC_PW_ON);
 #ifdef CONFIG_SEC_NFC_DEDICATED_CLK
         val |= 0xC0000000;
@@ -556,7 +595,7 @@ static void sec_nfc_set_mode(struct sec_nfc_info *info,
         pr_err("DeepStby: enter DeepStby(PW_ON)\n");
 #endif
         sec_nfc_clk_ctl_disable(info);
-		//pmic_refout_update(4, 0);//samsung add
+		pmic_refout_update(info,4, 0);//samsung add
 #ifdef CONFIG_SEC_NFC_DEDICATED_CLK
         val &= ~0xC0000000;
         writel(val, info->clkctrl);
@@ -909,8 +948,10 @@ static int __sec_nfc_probe(struct device *dev)
 {
     struct sec_nfc_info *info;
     struct sec_nfc_platform_data *pdata = NULL;
+	struct platform_device *pmic_device;
     int ret = 0;
-
+	int reg_val;
+	
     pr_info("%s : start\n", __func__);
     if (dev->of_node) {
         pdata = devm_kzalloc(dev, sizeof(struct sec_nfc_platform_data), GFP_KERNEL);
@@ -946,6 +987,50 @@ static int __sec_nfc_probe(struct device *dev)
     info->miscdev.name = SEC_NFC_DRIVER_NAME;
     info->miscdev.fops = &sec_nfc_fops;
     info->miscdev.parent = dev;
+	
+	np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-refout");
+    if (!np) {
+        pr_err("%s-can't find refout node.\n", __func__);
+    } else {
+        pr_info("%s- enter refout init.\n", __func__);
+
+        info->sc27xx_refout = kzalloc(sizeof(struct pmic_refout), GFP_KERNEL);
+        if (!info->sc27xx_refout) {
+            pr_err("%s- can't alloc memory for pmic refout", __func__);
+            return -ENOMEM;
+        }
+
+        ret = of_property_read_u32_index(np, "regsw", 0, &info->sc27xx_refout->regsw);
+        if (ret) {
+            pr_err("Get base register failed\n");
+            return -EINVAL;
+        }
+
+        ret = of_property_read_u32_index(np, "refnum", 0, &info->sc27xx_refout->refnum);
+        if (ret) {
+            pr_err("Get refout num failed\n");
+            return -EINVAL;
+        }
+        pmic_device = of_find_device_by_node(np);
+        if(!pmic_device) {
+            of_node_put(np);
+            pr_err("%s- find refout node fail.\n", __func__);
+            return -ENODEV;
+        }
+        of_node_put(np);
+        info->sc27xx_refout->regmap = dev_get_regmap(pmic_device->dev.parent, NULL);
+        if (!info->sc27xx_refout->regmap) {
+            put_device(&pmic_device->dev);
+            pr_err("%s- cant't get pmic regmap device\n", __func__);
+            return -ENODEV;
+        }
+        put_device(&pmic_device->dev);
+        reg_val = regmap_read(info->sc27xx_refout->regmap, info->sc27xx_refout->regsw, &reg_val);
+        pr_info("%s- reg_val value is = %d, refout addr is:%x.", __func__, reg_val, &info->sc27xx_refout);
+    }
+	//add debug log 
+	pr_info("%s : start 1 \n", __func__);
+	
     ret = misc_register(&info->miscdev);
     if (ret < 0) {
         dev_err(dev, "failed to register Device\n");
@@ -1046,7 +1131,7 @@ static int __sec_nfc_remove(struct device *dev)
     struct i2c_client *client = info->i2c_info.i2c_dev;
     struct sec_nfc_platform_data *pdata = info->pdata;
     dev_dbg(info->dev, "%s\n", __func__);
-	//pmic_refout_update(4, 0); //samsung add remove  refout 4;  //该方案使用编号4,0表示关闭
+	pmic_refout_update(info,4, 0); //samsung add remove  refout 4;  //该方案使用编号4,0表示关闭
 
 #ifdef CONFIG_SEC_NFC_GPIO_CLK
     if (pdata->clk)
@@ -1137,7 +1222,7 @@ static const struct of_device_id nfc_match_table[] = {
 #else /* CONFIG_OF */
 #define nfc_match_table NULL
 #endif
-#ifdef CONFIG_NFC_SHUTDOWN_WORKAROUND
+
 static void sec_nfc_shutdown(struct i2c_client *client)
 {
     struct sec_nfc_info *info = dev_get_drvdata(&client->dev);
@@ -1146,15 +1231,14 @@ static void sec_nfc_shutdown(struct i2c_client *client)
 
     sec_nfc_set_mode(info, SEC_NFC_MODE_FIRMWARE);
 }
-#endif
 
 static struct i2c_driver sec_nfc_driver = {
     .probe = sec_nfc_probe,
     .id_table = sec_nfc_id_table,
     .remove = sec_nfc_remove,
-#ifdef CONFIG_NFC_SHUTDOWN_WORKAROUND
+
     .shutdown = sec_nfc_shutdown,
-#endif
+
     .driver = {
         .name = SEC_NFC_DRIVER_NAME,
 #ifdef CONFIG_PM

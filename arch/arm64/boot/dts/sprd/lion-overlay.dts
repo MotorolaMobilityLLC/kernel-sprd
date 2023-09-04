@@ -362,7 +362,7 @@
 	sec-nfc@27 {
 		compatible = "sec-nfc";
 		reg = <0x27>;
-		clock-names = "nfc_ref_clk";
+		clock-names = "nfc_ref_clk","source","enable";
 		//clocks = <&aon_clk CLK_AUX2>, <&ext_26m>, <&aonapb_gate CLK_AUX2_EB>;
 		sec-nfc,ven-gpio = <&ap_gpio 63 0>;
 		sec-nfc,firm-gpio = <&ap_gpio 132 0>;

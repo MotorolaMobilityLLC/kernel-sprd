@@ -14,6 +14,9 @@
  */
 
 #include <linux/platform_device.h>
+#ifndef CONFIG_SEC_NFC_GPIO_CLK
+#define CONFIG_SEC_NFC_GPIO_CLK
+#endif
 #ifdef CONFIG_SEC_NFC_GPIO_CLK
 #include <linux/clk.h>
 #endif
@@ -92,6 +95,12 @@ struct sec_nfc_platform_data {
 #ifdef CONFIG_SEC_NFC_DEDICATED_CLK
     phys_addr_t clkctrl_addr;
 #endif
+};
+
+struct pmic_refout {
+	unsigned int regsw;
+	unsigned int refnum;
+	struct regmap *regmap;
 };
 
 enum sec_nfc_mode {
