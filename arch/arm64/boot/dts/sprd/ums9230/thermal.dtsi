@@ -144,6 +144,29 @@
 			thermal-sensors = <&ap_thm2 4>;
 		};
 
+		front_thmzone: front-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+		};
+
+		back_thmzone: back-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+		};
+
+		left_thmzone: left-thmzone {
+			status = "disabled";
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+		};
+
+		right_thmzone: right-thmzone {
+			status = "disabled";
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+		};
+
+
 		osctsen_thmzone: osctsen-thmzone {
 			 polling-delay-passive = <0>;
 			 polling-delay = <0>;
