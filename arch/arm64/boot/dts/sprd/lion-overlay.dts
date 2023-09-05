@@ -41,7 +41,7 @@
 	fragment {
 		target-path = "/";
 		__overlay__ {
-			pwm_backlight: sprd_backlight {
+			/*pwm_backlight: sprd_backlight {
 				compatible = "sprd,sharkl6-backlight";
 				pwms = <&pwms 2 40000>;
 				pwm-names = "backlight";
@@ -76,7 +76,7 @@
 					803 810 817 825 832 840 845 850 855 861
 					866 872 878 884 890 896 903 911 918 924
 				>;
-			};
+			};*/
 
 			fingerprint@0 {
 				compatible = "microarray,afs121";
@@ -466,7 +466,7 @@
 };
 
 &panel {
-	sprd,backlight = <&pwm_backlight>;
+	//sprd,backlight = <&pwm_backlight>;
 	avdd-gpio = <&ap_gpio 113 GPIO_ACTIVE_HIGH>;
 	avee-gpio = <&ap_gpio 133 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
@@ -477,7 +477,7 @@
 
 	//sprd,backlight = <&pwm_backlight>;
 };
-
+/*
 &lcd_g40396_truly_mipi_fhd {
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
@@ -487,7 +487,7 @@
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
 };
-
+*/
 &ddr_dfs {
 	  sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 			"camhigh", "camveryhigh", "faceid", "top", "boot-opt";

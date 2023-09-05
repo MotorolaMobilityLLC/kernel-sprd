@@ -20,7 +20,7 @@
 
 					sprd,phy-bit-clock = <921600>;	/* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
-					sprd,power-gpio-delay = <20>;/* ms */
+					// sprd,power-gpio-delay = <20>; ms
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
 					sprd,dpi-clk-div = <6>;
@@ -60,10 +60,10 @@
 						];
 
 					oled-backlight {
-						default-brightness = <900>;
-						sprd,max-level = <4095>;
+						//default-brightness = <900>;
+						//sprd,max-level = <4095>;
 						brightness-levels = [
-						39 00 00 03 51 0C CC
+						39 00 00 03 51 06 66
 						];
 					};
 
