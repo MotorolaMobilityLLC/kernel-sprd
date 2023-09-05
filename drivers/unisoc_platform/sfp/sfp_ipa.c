@@ -540,8 +540,9 @@ bool sfp_ipa_tbl_timeout(struct sfp_conn *sfp_ct)
 	return true;
 }
 
-static void sfp_ipa_alloc_tbl(int sz)
+static int sfp_ipa_alloc_tbl(int sz)
 {
+	int ret = 0;
 	u8 *v0, *v1;
 	dma_addr_t h0, h1;
 
@@ -549,7 +550,8 @@ static void sfp_ipa_alloc_tbl(int sz)
 
 	if (!v0) {
 		FP_PRT_DBG(FP_PRT_ERR, "IPA: alloc tbl 0 fail!!\n");
-		return;
+		ret = -1;
+		goto exit;
 	}
 
 	v1 = (u8 *)dma_ipa_alloc(NULL, sz, &h1, GFP_KERNEL);
@@ -557,7 +559,8 @@ static void sfp_ipa_alloc_tbl(int sz)
 	if (!v1) {
 		FP_PRT_DBG(FP_PRT_ERR,	"IPA: alloc tbl 1 fail!!\n");
 		dma_ipa_free(NULL, sz, v0, h0);
-		return;
+		ret = -1;
+		goto exit;
 	}
 
 	FP_PRT_DBG(FP_PRT_INFO,
@@ -578,6 +581,8 @@ static void sfp_ipa_alloc_tbl(int sz)
 
 	/*zero hash tbl*/
 	sfp_clear_all_ipa_tbl();
+exit:
+	return ret;
 }
 
 static inline void sfp_clear_ipa_tbl(int id)
@@ -631,20 +636,27 @@ void sfp_destroy_ipa_tbl(void)
 	       sizeof(fwd_tbl.ipa_tbl_mgr.tbl));
 }
 
-static void sfp_init_ipa_tbl(void)
+static int sfp_init_ipa_tbl(void)
 {
-	sfp_ipa_alloc_tbl(DEFAULT_IPA_TBL_SIZE);
+	int value;
+
+	value = sfp_ipa_alloc_tbl(DEFAULT_IPA_TBL_SIZE);
+	return value;
 }
 
 void sfp_ipa_init(void)
 {
+	int result;
+
 	spin_lock_init(&fwd_tbl.sp_lock);
 	atomic_set(&fwd_tbl.entry_cnt, 0);
 	fwd_tbl.op_flag = IPA_HASH_APPEND;
 	fwd_tbl.append_cnt = 0;
 
-	sfp_init_ipa_tbl();
-	fwd_tbl_init_flag = true;
+	result = sfp_init_ipa_tbl();
+	if (!result)
+		fwd_tbl_init_flag = true;
+
 }
 
 bool sfp_ipa_ipv6_check(const struct sk_buff *skb,
