@@ -1071,17 +1071,22 @@ static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 static void android_rvh_place_entity(void *data, struct cfs_rq *cfs_rq,
 				struct sched_entity *se, int initial, u64 *vruntime)
 {
+	struct cfs_rq *se_cfs_rq;
 	u64 sleep_time;
 
-	/*
-	 * Pull vruntime of the entity being placed to the base level of
-	 * cfs_rq, to prevent boosting it if placed backwards.  If the entity
-	 * slept for a long time, don't even try to compare its vruntime with
-	 * the base as it may be too far off and the comparison may get
-	 * inversed due to s64 overflow.
-	 */
-	sleep_time = rq_clock_task(rq_of(cfs_rq)) - se->exec_start;
-	if ((s64)sleep_time > 60LL * NSEC_PER_SEC)
+	if (se->exec_start == 0)
+		return;
+
+	se_cfs_rq = cfs_rq_of(se);
+
+	sleep_time = rq_clock_task(rq_of(se_cfs_rq));
+
+	/* Happen while migrating because of clock task divergence */
+	if (sleep_time <= se->exec_start)
+		return;
+
+	sleep_time -= se->exec_start;
+	if (sleep_time > 60LL * NSEC_PER_SEC)
 		se->vruntime = *vruntime;
 }
 #endif
