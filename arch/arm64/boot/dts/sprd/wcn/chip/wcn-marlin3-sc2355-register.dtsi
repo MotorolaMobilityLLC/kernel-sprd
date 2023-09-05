@@ -16,7 +16,7 @@
 
 						sprd,wifi-aon-reg = <0x400f0000 0x120 0 WIFI>;
 						sprd,wifi-rtn_pd_mac = <0x400f1000 0xD100 0 WIFI>;
-						sprd,wifi-ram = <0x40300000 0x4A800 0 WIFI>;
+						sprd,wifi-ram = <0x40300000 0x58000 0 WIFI>;
 						sprd,wifi-glb-reg = <0x400a0000 0x58 0 WIFI>;
 						sprd,wifi-phy-top-reg = <0x400B0000 0x388 0 WIFI>;
 						sprd,wifi-phy-tx11a-reg = <0x400B1000 0x154 0 WIFI>;
