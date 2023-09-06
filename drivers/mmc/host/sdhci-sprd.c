@@ -242,8 +242,9 @@ static void sdhci_sprd_health_and_powp(void *data, struct mmc_card *card)
 	if (!mmc_check_wp_fn(card->host))
 		mmc_set_powp(card);
 	/* print mmc device info */
-	pr_info("%s: manfid= 0x%06x, name= %s, prv= 0x%x\n", mmc_hostname(card->host),
-		card->cid.manfid, card->cid.prod_name, card->cid.prv);
+	pr_info("%s: manfid= 0x%06x, name= %s, prv= 0x%x fwrev= 0x%x\n",
+		mmc_hostname(card->host), card->cid.manfid, card->cid.prod_name,
+		card->cid.prv, card->cid.fwrev);
 }
 
 static void sdhci_sprd_init_config(struct sdhci_host *host)

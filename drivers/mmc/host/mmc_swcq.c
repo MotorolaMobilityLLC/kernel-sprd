@@ -308,8 +308,9 @@ void dump_cmd_history(struct mmc_swcq *swcq, int print_num)
 
 	card = swcq->mmc->card;
 	if (card)
-		pr_err("%s: manfid= 0x%06x, name= %s, prv= 0x%x\n", mmc_hostname(card->host),
-			card->cid.manfid, card->cid.prod_name, card->cid.prv);
+		pr_err("%s: manfid= 0x%06x, name= %s, prv= 0x%x fwrev= 0x%x\n",
+			mmc_hostname(card->host), card->cid.manfid, card->cid.prod_name,
+			card->cid.prv, card->cid.fwrev);
 	pr_err("==========dump cmd history[print_num:%d entries]==========\n", print_num);
 	j = swcq->dbg_host_cnt >= print_num ?
 		swcq->dbg_host_cnt - print_num : swcq->dbg_host_cnt - print_num + dbg_max_cnt;
@@ -1669,7 +1670,11 @@ void mmc_wait_cmdq_done(struct mmc_request *mrq)
 			else if (time_after(jiffies, not_ready_time
 			+ msecs_to_jiffies(5 * 1000))) {
 				pr_info("mmc0: error: task not ready over 5s\n");
-				//msleep(2000);
+				/* stop transfer and discard cmdq task and then reset */
+				dump_cmd_history(swcq, dbg_max_cnt);
+				mmc_wait_transfer(host);
+				mmc_discard_cmdq(swcq);
+				mmc_wait_transfer(host);
 				if (mmc_reset_for_cmdq(swcq)) {
 					pr_notice("[CQ] reinit fail\n");
 					WARN_ON(1);
