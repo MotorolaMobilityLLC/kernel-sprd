@@ -1,8 +1,20 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * limit task's read and write in cgroup.
+ * limit task's buffer write in cgroup.
  *
+ * Copyright 2023 Unisoc(Shanghai) Technologies Co.Ltd
+ *
+ * Licensed under the Unisoc General Software License, version 1.0 (the
+ * License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * https://www.unisoc.com/en_us/license/UNISOC_GENERAL_LICENSE_V1.0-EN_US
+ * Software distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OF ANY KIND, either express or implied.
+ * See the Unisoc General Software License, version 1.0 for more details.
  */
+
+//This file has been modified by Unisoc (Tianjin) Technologies Co., Ltd in 2023.
 
 #include <linux/atomic.h>
 #include <linux/module.h>
@@ -47,7 +59,6 @@ static inline struct iolimit_grp *css_to_iolimitcg(struct cgroup_subsys_state *c
 		return NULL;
 
 	return cpd_to_iolimitcg(blkcg_to_cpd(blkcg, &iolimit_policy));
-
 }
 
 static inline struct iolimit_grp *current_to_iolimitcg(void)
@@ -124,9 +135,8 @@ repeat:
 
 		if (css_tryget_online(css)) {
 			rcu_read_unlock();
-			ret = wait_event_interruptible_timeout(iolimit_blkcg->write_wq,
-				is_write_need_wakeup(iolimit_blkcg, count),
-				WAIT_INTERNAL_JIF);
+			ret = wait_event_interruptible(iolimit_blkcg->write_wq,
+				is_write_need_wakeup(iolimit_blkcg, count));
 
 			css_put(css);
 
@@ -211,12 +221,9 @@ static int write_limit_store(struct cgroup_subsys_state *css,
 		struct cftype *cft, s64 limit)
 {
 	struct iolimit_grp *iolimit_blkcg;
-	int err = 0;
 
-	if (limit < 0 || !css) {
-		err = -EINVAL;
-		goto out;
-	}
+	if (limit < 0 || !css)
+		return -EINVAL;
 
 	iolimit_blkcg = css_to_iolimitcg(css);
 	atomic64_set(&iolimit_blkcg->write_max, limit);
@@ -225,8 +232,7 @@ static int write_limit_store(struct cgroup_subsys_state *css,
 	iolimit_blkcg->nr_written_pause = limit / WAIT_PARTS_NUM;
 	spin_unlock_bh(&iolimit_blkcg->write_lock);
 
-out:
-	return err;
+	return 0;
 }
 
 static s64 write_limit_show(struct cgroup_subsys_state *css,
@@ -241,17 +247,28 @@ static s64 write_limit_show(struct cgroup_subsys_state *css,
 	return atomic64_read(&iolimit_blkcg->write_max);
 }
 
+static struct cftype iolimit_files[] = {
+	{
+		.name		= "iolimit.write_max",
+		.flags		= CFTYPE_NOT_ON_ROOT,
+		.write_s64	= write_limit_store,
+		.read_s64	= write_limit_show,
+	},
+	{ } /* terminate */
+};
+
 static struct cftype iolimit_legacy_files[] = {
 	{
-		.name = "iolimit.write_max",
-		.flags = CFTYPE_NOT_ON_ROOT,
-		.write_s64 = write_limit_store,
-		.read_s64  = write_limit_show,
+		.name		= "iolimit.write_max",
+		.flags		= CFTYPE_NOT_ON_ROOT,
+		.write_s64	= write_limit_store,
+		.read_s64	= write_limit_show,
 	},
 	{ } /* terminate */
 };
 
 static struct blkcg_policy iolimit_policy = {
+	.dfl_cftypes	= iolimit_files,
 	.legacy_cftypes	= iolimit_legacy_files,
 
 	.cpd_alloc_fn	= iolimit_alloc_cpd,
@@ -262,8 +279,10 @@ static int __init iolimit_init(void)
 {
 	int ret = blkcg_policy_register(&iolimit_policy);
 
-	if (ret < 0)
+	if (ret < 0) {
+		pr_err("blkcg policy register failed: %d\n", ret);
 		return ret;
+	}
 
 	register_trace_android_rvh_ctl_dirty_rate(io_write_bandwidth_control, NULL);
 	pr_info("iolimit module init done\n");
@@ -276,11 +295,12 @@ static int __init iolimit_init(void)
  * So, iolimit cannot support rmmod, or task calling vendor hook
  * will panic as mem abort.
  */
-//static void __exit iolimit_exit(void)
-//{
-//	blkcg_policy_unregister(&iolimit_policy);
-//}
-
+/*
+ * static void __exit iolimit_exit(void)
+ *{
+ *	blkcg_policy_unregister(&iolimit_policy);
+ *}
+ */
 
 module_init(iolimit_init)
 //module_exit(iolimit_exit)

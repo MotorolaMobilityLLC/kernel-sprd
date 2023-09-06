@@ -1,8 +1,21 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2016-2022, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022, Unisoc, Inc.
+ * limit task's buffer write in cgroup.
+ *
+ * Copyright 2023 Unisoc(Shanghai) Technologies Co.Ltd
+ *
+ * Licensed under the Unisoc General Software License, version 1.0 (the
+ * License);
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * https://www.unisoc.com/en_us/license/UNISOC_GENERAL_LICENSE_V1.0-EN_US
+ * Software distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OF ANY KIND, either express or implied.
+ * See the Unisoc General Software License, version 1.0 for more details.
  */
+
+//This file has been modified by Unisoc (Tianjin) Technologies Co., Ltd in 2023.
+
 #undef TRACE_SYSTEM
 #define TRACE_SYSTEM unisoc_io
 
@@ -19,7 +32,7 @@ TRACE_EVENT(iolimit_write_control,
 	TP_STRUCT__entry(
 		__field(pid_t, tgid)
 		__field(pid_t, pid)
-		__array(char,   comm,   TASK_COMM_LEN)
+		__array(char, comm, TASK_COMM_LEN)
 		__field(unsigned long, delta)
 	),
 

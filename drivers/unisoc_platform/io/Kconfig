@@ -7,5 +7,5 @@ config UNISOC_IOLIMIT
 	depends on BLK_CGROUP
 	help
 	Provide a blkio policy implementing for io bandwidth while a process
-	in the cgroup read or write.
+	in the cgroup buffer write.
 
