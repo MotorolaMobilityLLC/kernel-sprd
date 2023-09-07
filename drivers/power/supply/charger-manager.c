@@ -7276,7 +7276,7 @@ static void cm_uvlo_check_work(struct work_struct *work)
 	}
 
 	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD)
-		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(800));
+		queue_delayed_work(system_unbound_wq, &cm->uvlo_work, msecs_to_jiffies(800));
 }
 
 static int cm_get_charging_works_cycle(struct charger_manager *cm,
@@ -7675,7 +7675,7 @@ static void cm_batt_works(struct work_struct *work)
 
 	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD) {
 		dev_info(cm->dev, "batt_uV is less than UVLO calib volt\n");
-		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(100));
+		queue_delayed_work(system_unbound_wq, &cm->uvlo_work, msecs_to_jiffies(100));
 	}
 
 	dev_info(cm->dev, "new_uisoc = %d, old_uisoc = %d, work_cycle = %ds, cap_one_time = %ds\n",
