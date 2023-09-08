@@ -248,6 +248,26 @@ static int cpu_get_cur_state(struct thermal_cooling_device *cdev,
 	return 0;
 }
 
+static void update_idle_cpus(struct cpu_cooling_device *cpu_cdev)
+{
+	int cpu, first, ncpus;
+
+	first = cpumask_first(&cpu_cdev->allowed_cpus);
+	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
+
+	cpu = first;
+	for_each_cpu(cpu, &cpu_cdev->allowed_cpus) {
+#ifdef CONFIG_UNISOC_SCHED_PAUSE_CPU
+		if (is_cpu_paused_fun(cpu))
+#else
+		if (!cpu_online(cpu))
+#endif
+			cpumask_set_cpu(cpu, &cpu_cdev->idle_cpus);
+		else
+			cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
+	}
+}
+
 static DEFINE_MUTEX(core_ctl_lock);
 static int cpu_down_cpus(struct cpu_cooling_device *cpu_cdev,
 			u32 cur_cpus, u32 target_cpus)
@@ -264,11 +284,20 @@ static int cpu_down_cpus(struct cpu_cooling_device *cpu_cdev,
 			first, cur_cpus - target_cpus, cur_cpus, target_cpus);
 		cpumask_clear(&mask);
 		for (cpu = (first + ncpus - 1); cpu >= first; cpu--) {
+			/*at least keep 2 core*/
+			if (first == 0 && cur_cpus <= 2)
+				break;
 			if (cur_cpus == target_cpus || !cpu)
 				break;
-			if ((target_cpus < cur_cpus) && !is_cpu_paused_fun(cpu)) {
-				cpumask_set_cpu(cpu, &mask);
-				cur_cpus--;
+			if (target_cpus < cur_cpus) {
+				if (!is_cpu_paused_fun(cpu)) {
+					cpumask_set_cpu(cpu, &mask);
+					cur_cpus--;
+				} else if (!cpumask_test_cpu(cpu, &cpu_cdev->idle_cpus)) {
+					/*found paused by other programs and update bit*/
+					cpumask_set_cpu(cpu, &cpu_cdev->idle_cpus);
+					cur_cpus--;
+				}
 			}
 		}
 
@@ -289,18 +318,25 @@ static int cpu_down_cpus(struct cpu_cooling_device *cpu_cdev,
 		pr_info("cpu%d hotplug out cpus:%d curr_cpus:%u target_cpus:%u\n",
 			first, cur_cpus - target_cpus, cur_cpus, target_cpus);
 		for (cpu = (first + ncpus - 1); cpu >= first; cpu--) {
+			/*at least keep 2 core*/
+			if (first == 0 && cur_cpus <= 2)
+				break;
 			if (cur_cpus == target_cpus || !cpu)
 				break;
-			if ((target_cpus < cur_cpus) && cpu_online(cpu)) {
-				ret = remove_cpu(cpu);
-				if (!ret && !cpu_online(cpu)) {
+			if (target_cpus < cur_cpus) {
+				if (cpu_online(cpu)) {
+					ret = remove_cpu(cpu);
+					if (!ret && !cpu_online(cpu)) {
+						cur_cpus--;
+						cpumask_set_cpu(cpu, &cpu_cdev->idle_cpus);
+					}
+				} else if (!cpumask_test_cpu(cpu, &cpu_cdev->idle_cpus)) {
+					/*found down by other programs and update bit*/
+					cpumask_set_cpu(cpu, &cpu_cdev->idle_cpus);
 					cur_cpus--;
-					cpumask_set_cpu(cpu,
-						&cpu_cdev->idle_cpus);
 				}
 			}
 		}
-
 	}
 
 	return ret;
@@ -323,9 +359,15 @@ static int cpu_up_cpus(struct cpu_cooling_device *cpu_cdev,
 		for (cpu = first; cpu < first + ncpus; cpu++) {
 			if (cur_cpus == target_cpus)
 				break;
-			if ((target_cpus > cur_cpus) && is_cpu_paused_fun(cpu)) {
-				cpumask_set_cpu(cpu, &mask);
-				cur_cpus++;
+			if (target_cpus > cur_cpus) {
+				if (is_cpu_paused_fun(cpu)) {
+					cpumask_set_cpu(cpu, &mask);
+					cur_cpus++;
+				} else if (cpumask_test_cpu(cpu, &cpu_cdev->idle_cpus)) {
+					/*found resumed by other programs and update bit*/
+					cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
+					cur_cpus++;
+				}
 			}
 		}
 		if (!cpumask_empty(&mask)) {
@@ -347,9 +389,15 @@ static int cpu_up_cpus(struct cpu_cooling_device *cpu_cdev,
 		for_each_cpu(cpu, &cpu_cdev->allowed_cpus) {
 			if (cur_cpus == target_cpus)
 				break;
-			if ((target_cpus > cur_cpus) && !cpu_online(cpu)) {
-				ret = add_cpu(cpu);
-				if (!ret && cpu_online(cpu)) {
+			if (target_cpus > cur_cpus) {
+				if (!cpu_online(cpu)) {
+					ret = add_cpu(cpu);
+					if (!ret && cpu_online(cpu)) {
+						cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
+						cur_cpus++;
+					}
+				} else if (cpumask_test_cpu(cpu, &cpu_cdev->idle_cpus)) {
+					/*found up by other programs and update bit*/
 					cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
 					cur_cpus++;
 				}
@@ -367,7 +415,7 @@ static void cpu_update_target_cpus(struct cpu_cooling_device *cpu_cdev)
 	unsigned long state;
 
 	state = cpu_cdev->target_state;
-
+	update_idle_cpus(cpu_cdev);
 	cpumask_andnot(&run_cpus, &cpu_cdev->allowed_cpus,
 			&cpu_cdev->idle_cpus);
 	cpu_cdev->run_cpus = cpumask_weight(&run_cpus);
