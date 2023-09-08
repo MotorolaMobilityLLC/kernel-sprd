@@ -1701,8 +1701,8 @@ static int musb_sprd_suspend(struct sprd_glue *glue)
 		mutex_unlock(&glue->suspend_resume_mutex);
 		return 0;
 	}
-
-	usb_phy_vbus_off(glue->xceiv);
+	if (glue->drd_state == DRD_STATE_RUNTIME_SUSPENDING)
+		usb_phy_vbus_off(glue->xceiv);
 	atomic_set(&glue->musb_runtime_suspended, 1);
 	musb_sprd_disable_all_interrupts(musb);
 	clk_disable_unprepare(glue->clk);
