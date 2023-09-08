@@ -6,6 +6,9 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+
+//This file has been modified by Unisoc (Shanghai) Technologies Co., Ltd in 2023.
+
 #include <linux/alarmtimer.h>
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
@@ -111,6 +114,7 @@ struct fan54015_charger_info {
 	bool is_charger_online;
 	bool probe_initialized;
 	bool shutdown_flag;
+	bool use_typec_extcon;
 };
 
 static int
@@ -843,11 +847,13 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 	 * Disable charger detection function in case
 	 * affecting the OTG timing sequence.
 	 */
-	ret = regmap_update_bits(info->pmic, info->charger_detect,
-				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
-	if (ret) {
-		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
-		return ret;
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+		if (ret) {
+			dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
+			return ret;
+		}
 	}
 
 	ret = fan54015_update_bits(info, FAN54015_REG_1,
@@ -905,10 +911,12 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 	}
 
 	/* Enable charger detection function to identify the charger type */
-	ret = regmap_update_bits(info->pmic, info->charger_detect,
-				 BIT_DP_DM_BC_ENB, 0);
-	if (ret)
-		dev_err(info->dev, "enable BC1.2 failed\n");
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, 0);
+		if (ret)
+			dev_err(info->dev, "enable BC1.2 failed\n");
+	}
 
 	dev_info(info->dev, "%s:line%d:disable_otg\n", __func__, __LINE__);
 
@@ -1018,6 +1026,8 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 		return -EPROBE_DEFER;
 	}
 
+	info->use_typec_extcon = device_property_read_bool(dev, "use-typec-extcon");
+
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
 	if (!regmap_np) {
 		dev_err(dev, "unable to get syscon node\n");
@@ -1103,6 +1113,7 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 	complete_all(&info->probe_init);
 
 	fan54015_charger_dump_register(info);
+	dev_info(dev, "use_typec_extcon = %d\n", info->use_typec_extcon);
 
 	return 0;
 
