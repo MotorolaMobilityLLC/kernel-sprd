@@ -28,6 +28,24 @@
 
 static struct ufs_perf_s ufs_perf;
 
+int get_boot_mode(struct ufs_hba *hba)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct device_node *cmdline_node;
+	const char *cmd_line;
+	int ret;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+	if (ret)
+		return ret;
+
+	if (strstr(cmd_line, "sprdboot.mode=cali"))
+		host->cali_mode_enable = true;
+
+	return 0;
+}
+
 void ufs_sprd_get_gic_reg(struct ufs_hba *hba)
 {
 	int ret;
