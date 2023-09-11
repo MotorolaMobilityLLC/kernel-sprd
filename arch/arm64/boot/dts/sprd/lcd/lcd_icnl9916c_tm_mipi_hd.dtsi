@@ -20,6 +20,7 @@
 
 					sprd,phy-bit-clock = <921600>;	/* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
+					sprd,vrr-enable;  /*90hz 60hz*/
 					// sprd,power-gpio-delay = <20>; ms
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
@@ -78,6 +79,17 @@
 							hback-porch = <76>;
 							hsync-len = <4>;
 							vfront-porch = <300>;
+							vback-porch = <32>;
+							vsync-len = <4>;
+						};
+						icnl9916c_tm_timing1: timing1 {
+							clock-frequency = <153600000>;
+							hactive = <720>;
+							vactive = <1612>;
+							hfront-porch = <76>;
+							hback-porch = <76>;
+							hsync-len = <4>;
+							vfront-porch = <1280>;
 							vback-porch = <32>;
 							vsync-len = <4>;
 						};

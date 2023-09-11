@@ -20,12 +20,13 @@
 
 					sprd,phy-bit-clock = <1105000>;	/* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
+					sprd,vrr-enable;  /*90hz 60hz*/
 					//sprd,power-gpio-delay = <20>; ms
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
-				//	sprd,dpi-clk-div = <6>;
-				//	sprd,video-lp-cmd-enable = <1>;
-				//	sprd,hporch-lp-disable = <1>;
+					//sprd,dpi-clk-div = <6>;
+					//sprd,video-lp-cmd-enable = <1>;
+					//sprd,hporch-lp-disable = <1>;
 					sprd,esd-check-enable = <1>;
 					sprd,esd-check-mode = <0>;
 					sprd,esd-check-period = <2000>;
@@ -37,6 +38,9 @@
 
 					sprd,initial-command = [
 						39 00 00 02 B0 00
+						39 00 00 28 C1 30 81 50 FA 01 00 00 10 00 00
+						   00 00 40 0F 00 00 00 00 00 00 00 00 00 00
+						   00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 						39 00 00 03 51 00 00
 						15 00 00 02 53 2C
 						15 00 00 02 35 00
@@ -73,6 +77,17 @@
 							hback-porch = <55>;
 							hsync-len = <4>;
 							vfront-porch = <180>;
+							vback-porch = <30>;
+							vsync-len = <4>;
+						};
+						td4160_txd_timing1: timing1 {
+							clock-frequency = <153600000>;
+							hactive = <720>;
+							vactive = <1612>;
+							hfront-porch = <155>;
+							hback-porch = <81>;
+							hsync-len = <4>;
+							vfront-porch = <1020>;
 							vback-porch = <30>;
 							vsync-len = <4>;
 						};

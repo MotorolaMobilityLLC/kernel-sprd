@@ -20,6 +20,7 @@
 
 					sprd,phy-bit-clock = <921600>;	/* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
+					sprd,vrr-enable;  /*90hz 60hz*/
 					//sprd,power-gpio-delay = <20>; ms
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
@@ -73,6 +74,17 @@
 							hback-porch = <40>;
 							hsync-len = <40>;
 							vfront-porch = <370>;
+							vback-porch = <30>;
+							vsync-len = <2>;
+						};
+						ili9883c_boe_timing1: timing1 {
+							clock-frequency = <153600000>;
+							hactive = <720>;
+							vactive = <1612>;
+							hfront-porch = <48>;
+							hback-porch = <40>;
+							hsync-len = <40>;
+							vfront-porch = <1378>;
 							vback-porch = <30>;
 							vsync-len = <2>;
 						};
