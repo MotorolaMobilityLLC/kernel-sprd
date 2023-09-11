@@ -2617,6 +2617,8 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	pd->sprd_tcpm_port->can_power_data_role_swap = pd->use_pdhub_c2c;
 	dev_info(&pdev->dev, "use_pdhub_c2c = %d\n", pd->use_pdhub_c2c);
 
+	sprd_tcpm_set_support_accessory_mode(pd->sprd_tcpm_port);
+
 	INIT_DELAYED_WORK(&pd->typec_detect_work, sc27xx_pd_detect_typec_work);
 	INIT_DELAYED_WORK(&pd->read_msg_work, sc27xx_pd_read_msg_work);
 	INIT_DELAYED_WORK(&pd->power_role_swap_work, sc27xx_pd_power_role_swap_work);

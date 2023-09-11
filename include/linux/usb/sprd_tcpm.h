@@ -189,6 +189,7 @@ struct sprd_typec_device_ops {
 	int (*typec_set_pd_swap_event)(u8 pd_swap_flag);
 	int (*set_typec_rp_rd)(enum sprd_typec_cc_status cc);
 	int (*set_typec_rp_level)(enum sprd_typec_cc_status cc);
+	void (*set_support_accessory_mode)(struct typec_port *port);
 };
 
 struct sprd_charger_ops {
@@ -722,6 +723,7 @@ void sprd_tcpm_pd_hard_reset(struct sprd_tcpm_port *port);
 void sprd_tcpm_tcpc_reset(struct sprd_tcpm_port *port);
 
 void sprd_tcpm_shutdown(struct sprd_tcpm_port *port);
+void sprd_tcpm_set_support_accessory_mode(struct sprd_tcpm_port *port);
 #if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
 void sprd_tcpm_log_do_outside(struct sprd_tcpm_port *port, const char *dev_tag,
 			      const char *fmt, va_list args);
