@@ -429,6 +429,8 @@
 #define BTN_GEAR_DOWN		0x150
 #define BTN_GEAR_UP		0x151
 
+#define WAKEUP_AD		0x15d
+
 #define KEY_OK			0x160
 #define KEY_SELECT		0x161
 #define KEY_GOTO		0x162
