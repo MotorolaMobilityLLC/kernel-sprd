@@ -1,142 +1,61 @@
-# How do I submit patches to Android Common Kernels
+##MMI-TLA33.226-2 For Moto e13
 
-1. BEST: Make all of your changes to upstream Linux. If appropriate, backport to the stable releases.
-   These patches will be merged automatically in the corresponding common kernels. If the patch is already
-   in upstream Linux, post a backport of the patch that conforms to the patch requirements below.
+Kernel Modules:
+---------------
+Download prebuilts folder from Android distribution. Move it to $my_top_dir
 
-2. LESS GOOD: Develop your patches out-of-tree (from an upstream Linux point-of-view). Unless these are
-   fixing an Android-specific bug, these are very unlikely to be accepted unless they have been
-   coordinated with kernel-team@android.com. If you want to proceed, post a patch that conforms to the
-   patch requirements below.
+For example:
 
-# Common Kernel patch requirements
+my_top_dir=$PWD
 
-- All patches must conform to the Linux kernel coding standards and pass `script/checkpatch.pl`
-- Patches shall not break gki_defconfig or allmodconfig builds for arm, arm64, x86, x86_64 architectures
-(see  https://source.android.com/setup/build/building-kernels)
-- If the patch is not merged from an upstream branch, the subject must be tagged with the type of patch:
-`UPSTREAM:`, `BACKPORT:`, `FROMGIT:`, `FROMLIST:`, or `ANDROID:`.
-- All patches must have a `Change-Id:` tag (see https://gerrit-review.googlesource.com/Documentation/user-changeid.html)
-- If an Android bug has been assigned, there must be a `Bug:` tag.
-- All patches must have a `Signed-off-by:` tag by the author and the submitter
+mkdir -vp $my_root_dir/prebuilts/clang/host
 
-Additional requirements are listed below based on patch type
+cd $my_root_dir/prebuilts/clang/host
 
-## Requirements for backports from mainline Linux: `UPSTREAM:`, `BACKPORT:`
+git clone https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86
 
-- If the patch is a cherry-pick from Linux mainline with no changes at all
-    - tag the patch subject with `UPSTREAM:`.
-    - add upstream commit information with a `(cherry-picked from ...)` line
-    - Example:
-        - if the upstream commit message is
-```
-        important patch from upstream
+mkdir -vp $my_root_dir/prebuilts/gcc/linux-x86/aarch64
 
-        This is the detailed description of the important patch
+cd $my_root_dir/prebuilts/gcc/linux-x86/aarch64
 
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
-```
-        - then Joe Smith would upload the patch for the common kernel as
-```
-        UPSTREAM: important patch from upstream
+git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9
 
-        This is the detailed description of the important patch
+Download kernel source code. Rename kernel-* folder to $my_root_dir/kernel5.4 
 
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
+mkdir -p $my_top_dir/out/target/product/sabahlite/obj/kernel5.4
 
-        Bug: 135791357
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        (cherry-picked from c31e73121f4c1ec41143423ac6ce3ce6dafdcec1)
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
+kernel_out_dir=$my_top_dir/out/target/product/sabahlite/obj/kernel5.4
 
-- If the patch requires any changes from the upstream version, tag the patch with `BACKPORT:`
-instead of `UPSTREAM:`.
-    - use the same tags as `UPSTREAM:`
-    - add comments about the changes under the `(cherry-picked from ...)` line
-    - Example:
-```
-        BACKPORT: important patch from upstream
+clang_1=$my_top_dir/prebuilts/clang/host/linux-x86/clang-r416183b/bin/clang
 
-        This is the detailed description of the important patch
+make=$my_top_dir/prebuilts/build-tools/linux-x86/bin/make
 
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
+aarch64_linux_android_=$my_top_dir/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
 
-        Bug: 135791357
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        (cherry-picked from c31e73121f4c1ec41143423ac6ce3ce6dafdcec1)
-        [ Resolved minor conflict in drivers/foo/bar.c ]
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
-
-## Requirements for other backports: `FROMGIT:`, `FROMLIST:`,
-
-- If the patch has been merged into an upstream maintainer tree, but has not yet
-been merged into Linux mainline
-    - tag the patch subject with `FROMGIT:`
-    - add info on where the patch came from as `(cherry picked from commit <sha1> <repo> <branch>)`. This
-must be a stable maintainer branch (not rebased, so don't use `linux-next` for example).
-    - if changes were required, use `BACKPORT: FROMGIT:`
-    - Example:
-        - if the commit message in the maintainer tree is
-```
-        important patch from upstream
-
-        This is the detailed description of the important patch
-
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
-```
-        - then Joe Smith would upload the patch for the common kernel as
-```
-        FROMGIT: important patch from upstream
-
-        This is the detailed description of the important patch
-
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
-
-        Bug: 135791357
-        (cherry picked from commit 878a2fd9de10b03d11d2f622250285c7e63deace
-         https://git.kernel.org/pub/scm/linux/kernel/git/foo/bar.git test-branch)
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
+export ARCH=arm64 LLVM=1 LLVM_LAS=1 INSTALL_MOD_STRIP=1 CLANG_TRIPLE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-androidkernel- SUBARCH=arm64 CROSS_COMPILE=aarch64-linux-androidkernel- LD_LIBRARY_PATH=$my_top_dir/prebuilts/clang/host/linux-x86/clang-r416183b/lib64:$$LD_LIBRARY_PATH PATH=$my_top_dir/prebuilts/clang/host/linux-x86/clang-r416183b/bin/:$aarch64_linux_android_:$PATH BSP_MODULES_OUT=$kernel_out_dir BSP_KERNEL_PATH=$my_top_dir/kernel5.4 BSP_BOARD_BASE_PATH=$my_top_dir/kernel5.4/modules BSP_KERNEL_OUT=$kernel_out_dir KERNEL_MAKE_ARGS="ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-gnueabi- INSTALL_MOD_STRIP=1" BSP_NPROC=96 CONFIG_MALI_PLATFORM_NAME=qogirl6 CONFIG_TARGET_BOARD=sabahlite BSP_ROOT_DIR=$my_top_dir BSP_KERNEL_VERSION=kernel5.4 BSP_BOARD_ARCH=
 
 
-- If the patch has been submitted to LKML, but not accepted into any maintainer tree
-    - tag the patch subject with `FROMLIST:`
-    - add a `Link:` tag with a link to the submittal on lore.kernel.org
-    - if changes were required, use `BACKPORT: FROMLIST:`
-    - Example:
-```
-        FROMLIST: important patch from upstream
+$make -C $BSP_KERNEL_PATH O=$kernel_out_dir ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-gnueabi- INSTALL_MOD_STRIP=1 sprd_qogirl6_defconfig -j96
 
-        This is the detailed description of the important patch
+$make -C $BSP_KERNEL_PATH O=$kernel_out_dir ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-gnueabi- INSTALL_MOD_STRIP=1 dtbs -j96
 
-        Signed-off-by: Fred Jones <fred.jones@foo.org>
+$make -C $BSP_KERNEL_PATH O=$kernel_out_dir ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-gnueabi- INSTALL_MOD_STRIP=1 -j96
 
-        Bug: 135791357
-        Link: https://lore.kernel.org/lkml/20190619171517.GA17557@someone.com/
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
+$make -C $BSP_KERNEL_PATH O=$kernel_out_dir ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-gnueabi- INSTALL_MOD_STRIP=1 INSTALL_HDR_PATH=$kernel_out_dir/out/androidt/sabahlite/headers/kernel/usr headers_install -j96
 
-## Requirements for Android-specific patches: `ANDROID:`
+$make -C $kernel_out_dir O=$kernel_out_dir ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-gnueabi- INSTALL_MOD_STRIP=1 ARCH=arm64 INSTALL_MOD_PATH=$kernel_out_dir/modules modules_install -j96
 
-- If the patch is fixing a bug to Android-specific code
-    - tag the patch subject with `ANDROID:`
-    - add a `Fixes:` tag that cites the patch with the bug
-    - Example:
-```
-        ANDROID: fix android-specific bug in foobar.c
 
-        This is the detailed description of the important fix
+make -C $BSP_KERNEL_PATH LLVM=1 LLVM_IAS=1 DEPMOD=depmod O=$kernel_obj_out_dir CC=$clang_1 CROSS_COMPILE=$aarch64_linux_android_ clean
 
-        Fixes: 1234abcd2468 ("foobar: add cool feature")
-        Change-Id: I4caaaa566ea080fa148c5e768bb1a0b6f7201c01
-        Signed-off-by: Joe Smith <joe.smith@foo.org>
-```
+make -C $BSP_KERNEL_PATH LLVM=1 LLVM_IAS=1 DEPMOD=depmod O=$kernel_obj_out_dir CC=$clang_1 CROSS_COMPILE=$aarch64_linux_android_ mrproper
 
-- If the patch is a new feature
-    - tag the patch subject with `ANDROID:`
-    - add a `Bug:` tag with the Android bug (required for android-specific features)
+make -C $BSP_KERNEL_PATH LLVM=1 LLVM_IAS=1 DEPMOD=depmod O=$kernel_obj_out_dir  CC=$clang_1 CROSS_COMPILE=$aarch64_linux_android_ distclean
 
+source kernel5.4/modules/modules.sh
+
+
+WLAN Driver:
+---------------
+make -C $BSP_KERNEL_PATH/modules/kernel5.4/wcn/wlan/wlan_combo -f Makefile O=$kernel_out_dir ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-gnueabi- INSTALL_MOD_STRIP=1 modules -j96
+make -C $BSP_KERNEL_PATH/modules/kernel5.4/wcn/wlan/wlan_combo -f Makefile O=$kernel_out_dir ARCH=arm64 LLVM=1 LLVM_IAS=1 CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-gnueabi- INSTALL_MOD_STRIP=1 INSTALL_MOD_PATH=$kernel_out_dir/modules modules_install -j96
