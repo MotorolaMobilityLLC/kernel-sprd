@@ -1,0 +1,95 @@
+#
+# sprd_camera.ko
+#
+# Kbuild: for kernel building external module
+#
+# Note:
+# - Please refer to modules/sample/Kbuild to find out what should be
+#   done is this Kbuild file
+#
+
+#
+# Source List
+#
+KO_MODULE_NAME := sprd_camera
+KO_MODULE_PATH := $(src)
+KO_MODULE_SRC  :=
+
+ISP_DIR	  := $(BSP_BOARD_CAMERA_MODULE_ISP_VERSION)
+CSI_DIR   := $(BSP_BOARD_CAMERA_MODULE_CSI_VERSION)
+ADAPT_DIR := $(BSP_BOARD_CAMERA_MODULE_ISP_ADAPT_VERSION)
+
+ifeq ($(ISP_DIR),dcam_r6p0_isp_r6p91)
+KO_MODULE_SRC += $(shell find $(KO_MODULE_PATH)/$(ISP_DIR) -name "*.c")
+else
+KO_MODULE_SRC += \
+	$(wildcard $(KO_MODULE_PATH)/$(ISP_DIR)/src/*.c)
+  ifeq ($(ISP_DIR),dcam_if_r4p0_isp_r6p11)
+  KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/common/*.c)
+  endif
+  ifeq ($(ISP_DIR),isp2.6)
+  KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/$(ISP_DIR)/adpt/$(ADAPT_DIR)/block/*.c)
+  KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/$(ISP_DIR)/adpt/$(ADAPT_DIR)/*.c)
+  KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/$(ISP_DIR)/test/*.c)
+  KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/$(ISP_DIR)/alg_calc/*.c)
+  else
+  KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/$(ISP_DIR)/block/*.c)
+  endif
+  ifeq ($(CONFIG_COMPAT),y)
+  KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/$(ISP_DIR)/compat/*.c)
+  endif
+endif
+
+ifeq ($(strip $(BSP_KERNEL_VERSION)), kernel5.4)
+ifeq ($(strip $(BSP_BUILD_VARIANT)),userdebug)
+ccflags-y += -DCONFIG_SPRD_DCAM_DEBUG_RAW
+endif
+endif
+
+
+#
+# Build Options
+#
+# target includes
+ifeq ($(ISP_DIR),dcam_if_r4p0_isp_r6p11)
+ccflags-y += -I$(KO_MODULE_PATH)/common
+endif
+
+ccflags-y += -I$(KO_MODULE_PATH)/../common
+ccflags-y += -I$(KO_MODULE_PATH)/../interface
+ccflags-y += -I$(KO_MODULE_PATH)/../sensor
+ccflags-y += -I$(KO_MODULE_PATH)/../sensor/csi2/sprd/$(CSI_DIR)
+ccflags-y += -I$(KO_MODULE_PATH)/../flash/flash_drv
+ccflags-y += -I$(KO_MODULE_PATH)/$(ISP_DIR)/inc
+ccflags-y += -I$(srctree)/drivers/staging/android/ion
+
+ifeq ($(ISP_DIR),dcam_r6p0_isp_r6p91)
+ccflags-y += -I$(KO_MODULE_PATH)/$(ISP_DIR)/common
+endif
+
+ifeq ($(ISP_DIR),isp2.6)
+ccflags-y += -I$(KO_MODULE_PATH)/$(ISP_DIR)/adpt/$(ADAPT_DIR)/inc
+ccflags-y += -I$(KO_MODULE_PATH)/$(ISP_DIR)/test/
+ccflags-y += -I$(KO_MODULE_PATH)/$(ISP_DIR)/alg_calc/
+endif
+
+ifeq ($(ADAPT_DIR), sharkl3)
+ccflags-y += -DPROJ_SHARKL3
+else ifeq ($(ADAPT_DIR), sharkl5pro)
+ccflags-y += -DPROJ_SHARKL5PRO
+else ifeq ($(ADAPT_DIR), sharkl5)
+ccflags-y += -DPROJ_SHARKL5
+else ifeq ($(ADAPT_DIR), qogirl6)
+ccflags-y += -DPROJ_QOGIRL6
+else ifeq ($(ADAPT_DIR), qogirn6pro)
+ccflags-y += -DPROJ_QOGIRN6PRO
+else ifeq ($(ADAPT_DIR), qogirn6l)
+ccflags-y += -DPROJ_QOGIRN6L
+endif
+
+#
+# Final Objects
+#
+obj-m := $(KO_MODULE_NAME).o
+# Comment it if the only object file has the same name with module
+$(KO_MODULE_NAME)-y := $(patsubst $(src)/%.c,%.o,$(KO_MODULE_SRC))

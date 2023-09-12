@@ -1,0 +1,93 @@
+#
+# Configurations
+#
+ifeq ($(BSP_MODULE_DISP_VERSION),sp7731e)
+CONFIG_DRM_SPRD_GSP := m
+CONFIG_DRM_SPRD_GSP_IPC_TRUSTY := n
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),sp9832e)
+CONFIG_DRM_SPRD_GSP := m
+CONFIG_DRM_SPRD_GSP_IPC_TRUSTY := n
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),s9863a)
+CONFIG_DRM_SPRD_GSP := m
+CONFIG_DRM_SPRD_GSP_IPC_TRUSTY := n
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),ums312)
+CONFIG_DRM_SPRD_GSP := m
+CONFIG_DRM_SPRD_GSP_IPC_TRUSTY := n
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),ums512)
+CONFIG_DRM_SPRD_GSP := m
+CONFIG_DRM_SPRD_GSP_IPC_TRUSTY := n
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),ums9230)
+CONFIG_DRM_SPRD_GSP := m
+CONFIG_DRM_SPRD_GSP_IPC_TRUSTY := n
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),ums9610)
+CONFIG_DRM_SPRD_GSP := m
+CONFIG_DRM_SPRD_GSP_IPC_TRUSTY := n
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),ums9620)
+CONFIG_DRM_SPRD_GSP := m
+CONFIG_DRM_SPRD_GSP_IPC_TRUSTY := y
+endif
+
+#
+# Source List
+#
+sprd-gsp-y := \
+	gsp_core.o \
+	gsp_dev.o \
+	gsp_interface.o \
+	gsp_kcfg.o \
+	gsp_layer.o \
+	gsp_sync.o \
+	gsp_sysfs.o \
+	gsp_workqueue.o
+
+INCLUDE_SUBDIR = \
+	$(src)/gsp_interface/Kbuild \
+	$(src)/gsp_lite_r2p0/Kbuild \
+	$(src)/gsp_lite_r3p0/Kbuild \
+	$(src)/gsp_lite_r4p0/Kbuild \
+	$(src)/gsp_r6p0/Kbuild \
+	$(src)/gsp_r8p0/Kbuild \
+	$(src)/gsp_r9p0/Kbuild
+
+include $(INCLUDE_SUBDIR)
+
+#
+# Build Options
+#
+ccflags-y := \
+	-I$(srctree)/include/linux \
+	-I$(srctree)/drivers/staging/android \
+	-I$(src)
+
+subdir-ccflags-y += -I$(srctree)/drivers/devfreq/apsys/
+
+#
+# Conditional Compilation
+#
+ifneq ($(CONFIG_DRM_SPRD_GSP),n)
+    ccflags-y += -DCONFIG_DRM_SPRD_GSP=$(CONFIG_DRM_SPRD_GSP)
+endif
+
+ifeq ($(CONFIG_DRM_SPRD_GSP_IPC_TRUSTY),y)
+    sprd-gsp-y += gsp_ipc_trusty.o
+	ccflags-y += -DCONFIG_DRM_SPRD_GSP_IPC_TRUSTY=$(CONFIG_DRM_SPRD_GSP_IPC_TRUSTY)
+endif
+
+#
+# Final Objects
+#
+obj-$(CONFIG_DRM_SPRD_GSP) := sprd-gsp.o

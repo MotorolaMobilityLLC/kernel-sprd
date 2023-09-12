@@ -1,0 +1,9 @@
+config INPUT_SENSORS_ST_VL53L0
+	tristate "VL53L0 device with I2C bus"
+	depends on I2C
+	default Y
+	help
+	  Say Y here if you have a VL53L0 device on the board and use I2C
+	  communication, else say N.
+
+	  To compile this driver as a module, choose M here.

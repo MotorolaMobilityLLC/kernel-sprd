@@ -1,0 +1,65 @@
+#
+# focaltech_ats.ko
+#
+# Kbuild: for kernel building external module
+#
+# Note:
+# - Please refer to modules/sample/Kbuild to find out what should be
+#   done is this Kbuild file
+#
+
+#
+# Source List
+#
+
+TS_MODULE_DIR  := $(BSP_BOARD_TOUCHSCREEN_MODULE_NAME)
+KO_MODULE_NAME := focaltech_ats
+
+KO_MODULE_SRC  :=
+
+
+
+ifneq ($(strip $(TS_MODULE_DIR)),)
+KO_MODULE_PATH := $(src)
+KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/*.c)
+KO_MODULE_SRC += $(shell find $(KO_MODULE_PATH)/$(TS_MODULE_DIR) -name "*.c")
+
+ccflags-y += -DDEBUG
+#ccflags-y += -DCONFIG_TOUCHSCREEN_ADAPTIVE_INCELL
+#ccflags-y += -DCONFIG_USB_SPRD_DWC
+#ccflags-y += -DCONFIG_DSP_NOTIFIER
+ccflags-y += -DCONFIG_FACTORY_TEST_EN
+ccflags-y += -DCONFIG_GPIO_SYSFS
+ccflags-y += -DCONFIG_TOUCHSCREEN_ADAPTIVE
+ccflags-y += -I$(KO_MODULE_PATH)
+ccflags-y += -I$(KO_MODULE_PATH)/$(TS_MODULE_DIR)
+ifeq ($(TS_MODULE_DIR) , focaltech_ft6436u)
+    ccflags-y  += -DCONFIG_TOUCHSCREEN_ADAPTIVE_FTS6436U
+    #ccflags-y += -I$(KO_MODULE_PATH)/focaltech_ft6436u
+    ccflags-y += -I$(KO_MODULE_PATH)/focaltech_ft6436u/include
+    ccflags-y += -I$(KO_MODULE_PATH)/focaltech_ft6436u/focaltech_test
+    ccflags-y += -I$(KO_MODULE_PATH)/focaltech_ft6436u/focaltech_test/supported_ic
+    ccflags-y += -I$(KO_MODULE_PATH)/focaltech_ft6436u/include/firmaware
+    ccflags-y += -I$(KO_MODULE_PATH)/focaltech_ft6436u/include/pramboot
+endif
+ifeq ($(TS_MODULE_DIR) , tlsc6x)
+    ccflags-y += -DCONFIG_TOUCHSCREEN_ADAPTIVE_TLSC6X
+    #ccflags-y += -I$(KO_MODULE_PATH)/tlsc6x
+endif
+ifeq ($(TS_MODULE_DIR) , focaltech_ft5x46)
+    ccflags-y += -DCONFIG_TOUCHSCREEN_ADAPTIVE_FT5X46
+endif
+else
+# For orginal driver
+
+KO_MODULE_PATH := $(src)/ats_v1
+KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/*.c)
+ccflags-y += -DCONFIG_TOUCHSCREEN_ADAPTIVE
+ccflags-y += -I$(KO_MODULE_PATH)
+endif
+#
+# Final Objects
+#
+obj-m := $(KO_MODULE_NAME).o
+# Comment it if the only object file has the same name with module
+$(KO_MODULE_NAME)-y := $(patsubst $(src)/%.c,%.o,$(KO_MODULE_SRC))

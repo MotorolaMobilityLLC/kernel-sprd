@@ -1,0 +1,24 @@
+LOCAL_PATH:= $(call my-dir)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := focaltech_spi_ts.ko
+LOCAL_MODULE_CLASS := SHARED_LIBRARIES
+LOCAL_MODULE_PATH := $(TARGET_OUT_VENDOR)/lib/modules
+LOCAL_STRIP_MODULE := keep_symbols
+LOCAL_SRC_FILES := $(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+ifeq ($(TARGET_BUILD_VARIANT),user)
+DEBUGMODE := BUILD=no
+else
+DEBUGMODE := $(DEBUGMODE)
+endif
+
+#convert to absolute directory
+PRODUCT_OUT_ABSOLUTE:=$(shell cd $(PRODUCT_OUT); pwd)
+
+$(LOCAL_PATH)/focaltech_spi_ts: $(TARGET_PREBUILT_KERNEL)
+	$(MAKE) -C $(shell dirname $@) ARCH=$(TARGET_KERNEL_ARCH) CROSS_COMPILE=$(KERNEL_CROSS_COMPILE) $(DEBUGMODE) KDIR=$(PRODUCT_OUT_ABSOLUTE)/obj/KERNEL clean
+	$(MAKE) -C $(shell dirname $@) ARCH=$(TARGET_KERNEL_ARCH) CROSS_COMPILE=$(KERNEL_CROSS_COMPILE) $(DEBUGMODE) KDIR=$(PRODUCT_OUT_ABSOLUTE)/obj/KERNEL
+	$(TARGET_STRIP) -d --strip-unneeded $@

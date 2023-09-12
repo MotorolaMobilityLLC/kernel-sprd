@@ -1,0 +1,13 @@
+*.o
+*.o.cmd
+*.mod.c
+cscope.*
+tags
+*.o
+*.mod.c
+*.mod.o
+*.ko
+modules.order
+Module.symvers
+.tmp_versions
+m.sh

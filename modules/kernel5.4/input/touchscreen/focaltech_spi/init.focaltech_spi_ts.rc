@@ -1,0 +1,2 @@
+on post-fs
+    insmod /mnt/vendor/focaltech_spi_ts.ko

@@ -1,0 +1,34 @@
+#
+# bmi160sum.ko
+#
+# Kbuild: for kernel building external module
+#
+# Note:
+# - Please refer to modules/sample/Kbuild to find out what should be
+#   done is this Kbuild file
+#
+
+#
+# Source List
+#
+
+KO_MODULE_NAME := bmi160sum
+KO_MODULE_PATH := $(src)
+KO_MODULE_SRC  :=
+
+KO_MODULE_SRC += \
+	$(KO_MODULE_PATH)/bmi160_driver.c \
+	$(KO_MODULE_PATH)/bmi160.c \
+	$(KO_MODULE_PATH)/bmi160_i2c.c
+
+#
+# Build Options
+#
+ccflags-y += -DDEBUG
+
+#
+# Final Objects
+#
+obj-m := $(KO_MODULE_NAME).o
+# Comment it if the only object file has the same name with module
+$(KO_MODULE_NAME)-y := $(patsubst $(src)/%.c,%.o,$(KO_MODULE_SRC))

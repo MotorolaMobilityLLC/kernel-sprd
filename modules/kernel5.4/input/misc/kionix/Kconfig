@@ -1,0 +1,12 @@
+#
+# Makefile for KIONIX sensor driver.
+#
+config INPUT_SENSORS_KIONIX_ACC
+	tristate "KIONIX acceleration sensor support"
+	depends on I2C
+	help
+	  Say Y here to enable support for the KIONIX's
+	  acceleration sensor KXTJ3-1057.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called kionix_accel.

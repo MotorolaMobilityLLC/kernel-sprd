@@ -1,0 +1,13 @@
+#
+# Makefile for AKM09911 sensor driver.
+#
+config INPUT_AKM09911
+     tristate "AKM magnetic device with I2C bus"
+     depends on I2C
+     default n
+     help
+       Say Y here if you have a AKM magnetic device on the board and use I2C
+       communication, else say N.
+
+       To compile this driver as a module, choose M here.
+       module will be called AKM099XX.

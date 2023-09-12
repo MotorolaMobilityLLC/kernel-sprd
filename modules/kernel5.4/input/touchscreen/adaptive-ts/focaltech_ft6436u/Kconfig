@@ -1,0 +1,15 @@
+#
+# Focaltech Touchscreen driver configuration
+#
+
+config TOUCHSCREEN_FTS6436U
+    tristate "Focaltech controller definition for adaptive touchscreen"
+    depends on I2C || TOUCHSCREEN_ADAPTIVE
+    help
+      Say y here if you have a FTS6436U based touchscreen controller.
+      If unsure, say N.
+
+config TOUCHSCREEN_FTS_DIRECTORY
+    string "Focaltech ts directory name"
+    default "focaltech_touch"
+    depends on TOUCHSCREEN_FTS6436U

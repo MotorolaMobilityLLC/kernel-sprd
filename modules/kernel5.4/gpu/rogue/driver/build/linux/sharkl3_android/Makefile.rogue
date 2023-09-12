@@ -1,0 +1,91 @@
+########################################################################### ###
+#@Copyright     Copyright (c) Imagination Technologies Ltd. All Rights Reserved
+#@License       Dual MIT/GPLv2
+# 
+# The contents of this file are subject to the MIT license as set out below.
+# 
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+# 
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+# 
+# Alternatively, the contents of this file may be used under the terms of
+# the GNU General Public License Version 2 ("GPL") in which case the provisions
+# of GPL are applicable instead of those above.
+# 
+# If you wish to allow use of your version of this file only under the terms of
+# GPL, and not to allow others to use your version of this file under the terms
+# of the MIT license, indicate your decision by deleting the provisions above
+# and replace them with the notice and other provisions required by GPL as set
+# out in the file called "GPL-COPYING" included in this distribution. If you do
+# not delete the provisions above, a recipient may use your version of this file
+# under the terms of either the MIT license or GPL.
+# 
+# This License is also included in this distribution in the file called
+# "MIT-COPYING".
+# 
+# EXCEPT AS OTHERWISE STATED IN A NEGOTIATED AGREEMENT: (A) THE SOFTWARE IS
+# PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
+# BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+# PURPOSE AND NONINFRINGEMENT; AND (B) IN NO EVENT SHALL THE AUTHORS OR
+# COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
+# IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+# CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+### ###########################################################################
+# $(gettop) can get top dir in shell
+# method: make file call bash shell
+
+#defines
+ARCH ?= arm64
+BUILD ?= release
+HAL_VARIANT ?= generic
+LDM_PLATFORM := 1
+
+RGX_BVNC ?= 22.86.104.218
+$(warning BOARD_NAME: $(BOARD_NAME))
+$(warning RGX_BVNC: $(RGX_BVNC))
+RGX_NOHW ?= 0
+MULTIARCH ?= 64only
+# PDUMP := 1
+CACHEFLUSH_NO_KMRBF_USING_UMVA ?= 1
+
+ANDROID_ROOT ?= $(ANDROID_BUILD_TOP)
+TARGET_DEVICE ?= $(notdir $(ANDROID_PRODUCT_OUT))
+DISCIMAGE ?= $(ANDROID_PRODUCT_OUT)
+#KERNELDIR ?= $(ANDROID_PRODUCT_OUT)/obj/KERNEL
+BOARD_NAME ?= sharkl3
+CROSS_COMPILE ?= $(BSP_KERNEL_CROSS_COMPILE)
+$(warning BOARD_NAME: $(BOARD_NAME))
+ifeq ($(RGX_NOHW),1)
+$(warning Warning-----------Now building no hardware user driver!)
+PVR_SYSTEM := rgx_nohw
+override NO_HARDWARE := 1
+else
+PVR_SYSTEM := rgx_sprd
+override NO_HARDWARE := 0
+endif
+
+$(warning ******************checking the settings****************)
+$(warning TARGET_DEVICE: $(TARGET_DEVICE))
+$(warning ANDROID_ROOT: $(ANDROID_ROOT))
+$(warning DEBUGMODE: $(BUILD), ARCH=$(ARCH))
+$(warning RGX_NOHW: $(RGX_NOHW), PVR_SYSTEM: $(PVR_SYSTEM))
+$(warning CROSS_COMPILE: $(CROSS_COMPILE))
+$(warning CACHEFLUSH_NO_KMRBF_USING_UMVA: $(CACHEFLUSH_NO_KMRBF_USING_UMVA))
+$(warning *******************************************************)
+
+
+include ../config/preconfig.mk
+
+include ../common/android/paths.mk
+include ../common/android/arch.mk
+include ../common/android/$(BOARD_NAME)/features.mk
+
+PDUMP_STREAMBUF_SIZE_MB := 10
+include ../config/core.mk
+include ../common/android/extra_config.mk

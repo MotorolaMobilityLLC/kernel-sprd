@@ -1,0 +1,179 @@
+#
+# Configurations
+#
+ifeq ($(BSP_MODULE_DISP_VERSION),sp7731e)
+CONFIG_DRM_SPRD := m
+CONFIG_DRM_SPRD_DPU0 := y
+CONFIG_DRM_SPRD_DSI := y
+CONFIG_DRM_SPRD_DUMMY := n
+CONFIG_DRM_SPRD_WB_DEBUG := n
+CONFIG_DRM_SPRD_GSP := m
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),sp9832e)
+CONFIG_DRM_SPRD :=m
+CONFIG_DRM_SPRD_DPU0 := y
+CONFIG_DRM_SPRD_DSI := y
+CONFIG_DRM_SPRD_DUMMY := n
+CONFIG_DRM_SPRD_WB_DEBUG := n
+CONFIG_DRM_SPRD_GSP := m
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),s9863a)
+CONFIG_DRM_SPRD := m
+CONFIG_DRM_SPRD_DPU0 := y
+CONFIG_DRM_SPRD_DSI := y
+CONFIG_DRM_SPRD_DUMMY := n
+CONFIG_DRM_SPRD_WB_DEBUG := n
+CONFIG_DRM_SPRD_GSP := m
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),ums312)
+CONFIG_DRM_SPRD := m
+CONFIG_DRM_SPRD_DPU0 := y
+CONFIG_DRM_SPRD_DSI := y
+CONFIG_DRM_SPRD_DUMMY := n
+CONFIG_DRM_SPRD_WB_DEBUG := n
+CONFIG_DRM_SPRD_GSP := m
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),ums512)
+CONFIG_DRM_SPRD := m
+CONFIG_DRM_SPRD_DPU0 := y
+CONFIG_DRM_SPRD_DSI := y
+CONFIG_DRM_SPRD_DUMMY := n
+CONFIG_DRM_SPRD_WB_DEBUG := n
+CONFIG_DRM_SPRD_GSP := m
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),ums9230)
+CONFIG_DRM_SPRD := m
+CONFIG_DRM_SPRD_DPU0 := y
+CONFIG_DRM_SPRD_DSI := y
+CONFIG_DRM_SPRD_DUMMY := n
+CONFIG_DRM_SPRD_WB_DEBUG := y
+CONFIG_DRM_SPRD_GSP := m
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),ums9610)
+CONFIG_DRM_SPRD := m
+CONFIG_DRM_SPRD_DPU0 := y
+CONFIG_DRM_SPRD_DSI := y
+CONFIG_DRM_SPRD_DUMMY := n
+CONFIG_DRM_SPRD_WB_DEBUG := n
+CONFIG_DRM_SPRD_GSP := m
+endif
+
+ifeq ($(BSP_MODULE_DISP_VERSION),ums9620)
+CONFIG_DRM_SPRD := m
+CONFIG_DRM_SPRD_DPU0 := y
+CONFIG_DRM_SPRD_DPU1 := y
+CONFIG_DRM_SPRD_DSI := y
+CONFIG_DRM_SPRD_DP := y
+CONFIG_DRM_SPRD_DUMMY := n
+CONFIG_DRM_SPRD_WB_DEBUG := y
+CONFIG_DRM_SPRD_GSP := m
+endif
+
+#
+# Source List
+#
+sprd-drm-y := \
+	disp_lib.o \
+	sprd_crtc.o \
+	sprd_drm.o \
+	sprd_dsc.o \
+	sprd_gem.o \
+	sprd_plane.o
+
+INCLUDE_SUBDIR = \
+	$(src)/pike2/Kbuild \
+	$(src)/qogirl6/Kbuild \
+	$(src)/qogirn6pro/Kbuild \
+	$(src)/sharkl3/Kbuild \
+	$(src)/sharkl5/Kbuild \
+	$(src)/sharkl5pro/Kbuild \
+	$(src)/sharkle/Kbuild \
+	$(src)/sysfs/Kbuild
+
+#
+# Build Options
+#
+ccflags-y := \
+	-I$(srctree)/include/linux \
+	-I$(srctree)/drivers/staging/android \
+	-I$(src)
+
+subdir-ccflags-y += -I$(srctree)/drivers/devfreq/apsys/
+
+#
+# Conditional Compilation
+#
+ifneq ($(CONFIG_DRM_SPRD),n)
+    ccflags-y += -DCONFIG_DRM_SPRD=$(CONFIG_DRM_SPRD)
+endif
+
+ifeq ($(CONFIG_DRM_SPRD_DPU0),y)
+	sprd-drm-y += \
+		sprd_dpu.o \
+		sprd_bl.o \
+		sprd_corner.o
+	INCLUDE_SUBDIR += $(src)/dpu/Kbuild
+    ccflags-y += -DCONFIG_DRM_SPRD_DPU0=$(CONFIG_DRM_SPRD_DPU0)
+endif
+
+ifeq ($(CONFIG_DRM_SPRD_DP),y)
+	INCLUDE_SUBDIR += $(src)/dp/Kbuild
+    ccflags-y += -DCONFIG_DRM_SPRD_DP=$(CONFIG_DRM_SPRD_DP)
+endif
+
+ifeq ($(CONFIG_DRM_SPRD_DPU1),y)
+	sprd-drm-y += \
+		sprd_dp.o \
+		sprd_dpu1.o \
+		dpu/dpu_lite_r3p0.o \
+		qogirn6pro/global_dpu1.o \
+		qogirn6pro/global_dp.o
+    ccflags-y += -DCONFIG_DRM_SPRD_DPU1=$(CONFIG_DRM_SPRD_DPU1)
+endif
+
+ifeq ($(CONFIG_DRM_SPRD_DSI),y)
+	sprd-drm-y += \
+		sprd_dsi.o \
+		sprd_dphy.o \
+		sprd_dsi_panel.o
+	INCLUDE_SUBDIR += \
+		$(src)/dphy/Kbuild \
+		$(src)/dsi/Kbuild
+    ccflags-y += -DCONFIG_DRM_SPRD_DSI=$(CONFIG_DRM_SPRD_DSI)
+endif
+
+ifeq ($(CONFIG_DRM_SPRD_DUMMY),y)
+    INCLUDE_SUBDIR += $(src)/dummy/Kbuild
+    ccflags-y += -DCONFIG_DRM_SPRD_DUMMY=$(CONFIG_DRM_SPRD_DUMMY)
+endif
+
+ifeq ($(CONFIG_DRM_SPRD_WB_DEBUG),y)
+ifeq ($(TARGET_BUILD_VARIANT),userdebug)
+    ccflags-y += -DCONFIG_DRM_SPRD_WB_DEBUG=$(CONFIG_DRM_SPRD_WB_DEBUG)
+endif
+endif
+
+ifneq ($(CONFIG_DRM_SPRD_GSP),n)
+    ccflags-y += -DCONFIG_DRM_SPRD_GSP=$(CONFIG_DRM_SPRD_GSP)
+endif
+
+ifneq ($(CONFIG_TRUSTY_VIRTIO_IPC),n)
+    sprd-drm-y += disp_trusty.o
+endif
+
+ifeq ($(CONFIG_COMPAT),y)
+    sprd-drm-y += sprd_ioc32.o
+endif
+
+include $(INCLUDE_SUBDIR)
+
+#
+# Final Objects
+#
+obj-$(CONFIG_DRM_SPRD) := sprd-drm.o

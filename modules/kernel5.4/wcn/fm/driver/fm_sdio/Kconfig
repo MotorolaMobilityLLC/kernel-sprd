@@ -1,0 +1,11 @@
+#
+# Spreadtrum SC2331 FM drivers
+#
+config RADIO_MARLIN3
+	tristate "MARLIN3 FM Support"
+	default n
+	---help---
+	  Say Y to enable built-in FM controller in the
+	  Spreadtrum SC2331 based System-on-Chip devices.
+
+

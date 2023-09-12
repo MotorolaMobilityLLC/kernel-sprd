@@ -1,0 +1,22 @@
+#
+# Configurations
+#
+CONFIG_UNISOC_VPU := m
+
+#
+# Source List
+#
+vpu-y := \
+	sprd_vpu.o \
+	vpu_drv.o
+
+#
+# Build Options
+#
+
+ccflags-y += -I$(srctree)/drivers/devfreq/apsys/
+
+#
+# Final Objects
+#
+obj-$(CONFIG_UNISOC_VPU) := vpu.o

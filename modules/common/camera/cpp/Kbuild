@@ -1,0 +1,57 @@
+#
+# sprd_cpp.ko
+#
+# Kbuild: for kernel building external module
+#
+# Note:
+# - Please refer to modules/sample/Kbuild to find out what should be
+#   done is this Kbuild file
+#
+
+#
+# Source List
+#
+KO_MODULE_NAME := sprd_cpp
+KO_MODULE_PATH := $(src)
+KO_MODULE_SRC  :=
+
+CPP_DIR := cpp_lite
+ADAPT_DIR := $(BSP_BOARD_CAMERA_MODULE_CPP_VERSION)
+KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/$(CPP_DIR)/src/*.c)
+KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/$(CPP_DIR)/hw/$(ADAPT_DIR)/*.c)
+ISP_ADAPT_VERSION := $(BSP_BOARD_CAMERA_MODULE_ISP_ADAPT_VERSION)
+
+#
+# Build Options
+#
+ccflags-y += -I$(KO_MODULE_PATH)/../core/isp2.6/inc/
+ccflags-y += -I$(KO_MODULE_PATH)/../common
+ccflags-y += -I$(KO_MODULE_PATH)/../interface
+ccflags-y += -I$(KO_MODULE_PATH)/$(CPP_DIR)/inc
+ccflags-y += -I$(KO_MODULE_PATH)/$(CPP_DIR)/hw/$(ADAPT_DIR)
+ccflags-y += -I$(srctree)/drivers/staging/android/ion
+
+#
+# Final Objects
+#
+obj-m := $(KO_MODULE_NAME).o
+# Comment it if the only object file has the same name with module
+$(KO_MODULE_NAME)-y := $(patsubst $(src)/%.c,%.o,$(KO_MODULE_SRC))
+
+ifeq ($(ADAPT_DIR), lite_r3p0)
+ccflags-y += -DPROJ_CPP_R3P0
+else ifeq ($(ADAPT_DIR), lite_r4p0)
+ccflags-y += -DPROJ_CPP_R4P0
+else ifeq ($(ADAPT_DIR), lite_r5p0)
+ccflags-y += -DPROJ_CPP_R5P0
+else ifeq ($(ADAPT_DIR), lite_r6p0)
+ccflags-y += -DPROJ_CPP_R6P0
+endif
+
+ifeq ($(ISP_ADAPT_VERSION), qogirn6pro)
+ccflags-y += -DPROJ_CPP_N6PRO
+endif
+
+ifeq ($(ISP_ADAPT_VERSION), qogirn6l)
+ccflags-y += -DPROJ_CPP_N6L
+endif

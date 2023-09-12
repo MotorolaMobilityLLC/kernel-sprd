@@ -1,0 +1,54 @@
+#
+# sprd_sensor.ko
+#
+# Kbuild: for kernel building external module
+#
+# Note:
+# - Please refer to modules/sample/Kbuild to find out what should be
+#   done is this Kbuild file
+#
+
+CSI_DIR := $(BSP_BOARD_CAMERA_MODULE_CSI_VERSION)
+
+#
+# Source List
+#
+KO_MODULE_NAME := sprd_sensor
+KO_MODULE_PATH := $(src)
+KO_MODULE_SRC  :=
+
+KO_MODULE_SRC += \
+	$(KO_MODULE_PATH)/sprd_sensor_core.c \
+	$(KO_MODULE_PATH)/sprd_sensor_drv.c
+
+KO_MODULE_SRC += \
+	$(shell find $(KO_MODULE_PATH)/csi2/sprd/$(CSI_DIR) -name "*.c")
+
+ifeq ($(CONFIG_COMPAT),y)
+KO_MODULE_SRC += $(KO_MODULE_PATH)/compat_sensor_drv.c
+endif
+
+#
+# Build Options
+#
+ccflags-y += -I$(KO_MODULE_PATH)
+ccflags-y += -I$(KO_MODULE_PATH)/../common
+ccflags-y += -I$(KO_MODULE_PATH)/../interface
+ccflags-y += -I$(KO_MODULE_PATH)/csi2/sprd/$(CSI_DIR)
+ifeq ($(strip $(CSI_DIR)),receiver_r3p1)
+ccflags-y += -DMCLK_NEW_PROCESS
+endif
+ifeq ($(strip $(CSI_DIR)),receiver_r3p1v2)
+ccflags-y += -DMCLK_NEW_PROCESS
+ccflags-y += -DMCLK_NEW_PROCESS1
+endif
+ifeq ($(strip $(CSI_DIR)),receiver_r3p2)
+ccflags-y += -DMCLK_NEW_PROCESS
+ccflags-y += -DMCLK_NEW_PROCESS1
+endif
+#
+# Final Objects
+#
+obj-m := $(KO_MODULE_NAME).o
+# Comment it if the only object file has the same name with module
+$(KO_MODULE_NAME)-y := $(patsubst $(src)/%.c,%.o,$(KO_MODULE_SRC))

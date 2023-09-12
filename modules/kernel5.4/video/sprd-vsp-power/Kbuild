@@ -1,0 +1,16 @@
+#
+# Configurations
+#
+CONFIG_UNISOC_VSP_POWER := m
+
+#
+# Source List
+#
+sprd-vsp-pw-domain-y := \
+	sprd_vsp_pw_domain.o
+
+
+#
+# Final Objects
+#
+obj-$(CONFIG_UNISOC_VSP_POWER) := sprd-vsp-pw-domain.o

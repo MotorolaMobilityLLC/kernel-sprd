@@ -1,0 +1,12 @@
+#
+# Makefile for stk8baxx sensor driver.
+#
+config INPUT_STK8BAXX_I2C
+	tristate "stk8baxx acceleration sensor support"
+	depends on I2C
+	help
+	  Say Y here to enable support for the stk8baxx's
+	  acceleration sensor stk8baxx.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called stk8baxx.

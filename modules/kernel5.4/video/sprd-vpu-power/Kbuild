@@ -1,0 +1,19 @@
+#
+# Configurations
+#
+CONFIG_UNISOC_VPU_PW := m
+
+#
+# Source List
+#
+sprd-vpu-pw-domain-y := \
+	sprd_vpu_pw_domain.o
+
+#
+# Build Options
+#
+
+#
+# Final Objects
+#
+obj-$(CONFIG_UNISOC_VPU_PW) := sprd-vpu-pw-domain.o

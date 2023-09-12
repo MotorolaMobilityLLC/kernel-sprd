@@ -1,0 +1,15 @@
+*.o
+*o.cmd
+*.d
+*.ko
+*.mod.c
+*tmp_versions
+*Module.symvers
+*modules.order
+!.gitignore
+
+*.patch
+*.diff
+
+cscope.*
+ncscope.*

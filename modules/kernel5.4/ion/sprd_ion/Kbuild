@@ -1,0 +1,66 @@
+#
+# sprd-ion.ko
+#
+# Kbuild: for kernel building external module
+#
+# Note:
+# - Please refer to modules/sample/Kbuild to find out what should be
+#   done is this Kbuild file
+#
+
+#
+# Configurations
+#
+ifeq ($(BSP_MODULE_ION_VERSION),ums512)
+CONFIG_ION_SPRD := m
+endif
+
+ifeq ($(BSP_MODULE_ION_VERSION),ums312)
+CONFIG_ION_SPRD := m
+endif
+
+ifeq ($(BSP_MODULE_ION_VERSION),sp7731e)
+CONFIG_ION_SPRD := m
+endif
+
+ifeq ($(BSP_MODULE_ION_VERSION),sp9832e)
+CONFIG_ION_SPRD := m
+endif
+
+ifeq ($(BSP_MODULE_ION_VERSION),ums9620)
+CONFIG_ION_SPRD := m
+endif
+
+ifeq ($(BSP_MODULE_ION_VERSION),s9863a)
+CONFIG_ION_SPRD := m
+endif
+
+ifeq ($(BSP_MODULE_ION_VERSION),ums9230)
+CONFIG_ION_SPRD := m
+endif
+
+ifeq ($(BSP_MODULE_ION_VERSION),ums9610)
+CONFIG_ION_SPRD := m
+endif
+
+#
+# Source List
+#
+KO_MODULE_NAME := sprd-ion
+KO_MODULE_PATH := $(src)
+KO_MODULE_SRC  :=
+
+KO_MODULE_SRC += $(wildcard $(KO_MODULE_PATH)/*.c)
+
+#
+# Build Options
+#
+ccflags-y := \
+	-I$(srctree)/include/linux \
+	-I$(srctree)/include/uapi/linux \
+	-I$(src)
+
+#
+# Final Objects
+#
+obj-$(CONFIG_ION_SPRD) := $(KO_MODULE_NAME).o

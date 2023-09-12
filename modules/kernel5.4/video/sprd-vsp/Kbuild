@@ -1,0 +1,20 @@
+#
+# Configurations
+#
+CONFIG_UNISOC_VSP := m
+
+#
+# Source List
+#
+vsp-y := \
+	sprd_vsp.o \
+	vsp_common.o \
+	vsp_isr_func.o
+
+#
+# Build Options
+#
+#
+# Final Objects
+#
+obj-$(CONFIG_UNISOC_VSP) := vsp.o

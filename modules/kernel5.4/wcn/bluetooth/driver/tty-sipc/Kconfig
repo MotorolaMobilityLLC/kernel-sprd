@@ -1,0 +1,11 @@
+#
+# Spreadtrum FM drivers
+#
+config SPRD_WCN_BT
+	tristate "BT Support"
+	default m
+	---help---
+	  Say Y to enable built-in BT controller in the
+	  Spreadtrum BT based System-on-Chip devices.
+
+

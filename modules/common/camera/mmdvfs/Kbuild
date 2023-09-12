@@ -1,0 +1,58 @@
+#
+# mmdvfs.ko
+#
+# Kbuild: for kernel building external module
+#
+# Note:
+# - Please refer to modules/sample/Kbuild to find out what should be
+#   done is this Kbuild file
+#
+
+ifeq ($(strip $(BSP_BOARD_CAMERA_MODULE_DVFS)),)
+$(error BSP_BOARD_CAMERA_MODULE_DVFS not provided!)
+endif
+
+DVFS_DEVICE := $(strip $(BSP_BOARD_CAMERA_MODULE_DVFS))
+ifeq ($(DVFS_DEVICE),qogirn6pro)
+ADAPT_DIR := r2p0
+else ifeq ($(DVFS_DEVICE),qogirn6l)
+ADAPT_DIR := r2p0
+else
+ADAPT_DIR := r1p0
+endif
+#
+# Source List
+#
+KO_MODULE_NAME := mmdvfs
+KO_MODULE_PATH := $(src)
+KO_MODULE_SRC  :=
+
+KO_MODULE_SRC += \
+	$(shell find $(KO_MODULE_PATH)/$(ADAPT_DIR)/mm_dvfs_devfreq -name "*.c") \
+	$(shell find $(KO_MODULE_PATH)/$(ADAPT_DIR)/mmsys_comm -name "*.c") \
+	$(shell find $(KO_MODULE_PATH)/$(ADAPT_DIR)/dvfs_driver/dvfs_driver_common -name "*.c") \
+	$(shell find $(KO_MODULE_PATH)/$(ADAPT_DIR)/dvfs_driver/dvfs_reg_param/$(DVFS_DEVICE) -name "*.c")
+
+#
+# Build Options
+#
+# TODO: refine these includes
+ccflags-y += -I$(KO_MODULE_PATH)/$(ADAPT_DIR)/mm_dvfs_devfreq
+ccflags-y += -I$(KO_MODULE_PATH)/$(ADAPT_DIR)/mmsys_comm
+ccflags-y += -I$(KO_MODULE_PATH)/$(ADAPT_DIR)/dvfs_driver/dvfs_driver_common
+ccflags-y += -I$(KO_MODULE_PATH)/$(ADAPT_DIR)/dvfs_driver/dvfs_reg_param/$(DVFS_DEVICE)
+ccflags-y += -I$(KO_MODULE_PATH)/../common/
+ccflags-y += -I$(srctree)/drivers/devfreq/
+
+# HAPS only
+ifeq ($(TEST_ON_HAPS),true)
+ccflags-y += -DTEST_ON_HAPS
+endif
+
+#
+# Final Objects
+#
+obj-m := $(KO_MODULE_NAME).o
+EXTRA_CFLAGS += -I$(KO_MODULE_PATH)/../power/kernel
+# Comment it if the only object file has the same name with module
+$(KO_MODULE_NAME)-y := $(patsubst $(src)/%.c,%.o,$(KO_MODULE_SRC))
