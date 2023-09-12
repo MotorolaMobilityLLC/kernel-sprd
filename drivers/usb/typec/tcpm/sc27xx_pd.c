@@ -19,6 +19,7 @@
 #include <linux/usb/sprd_tcpm.h>
 #include <linux/usb/sprd_pd.h>
 #include <linux/usb/typec_dp.h>
+#include <linux/power_supply.h>
 
 /* PMIC global registers definition */
 #define SC27XX_MODULE_EN		0x1808
@@ -339,6 +340,7 @@ struct sc27xx_pd {
 	struct regulator *vconn;
 	struct tcpc_config config;
 	struct work_struct pd_work;
+	struct power_supply *chg_psy;
 	const struct sc27xx_pd_variant_data *var_data;
 	enum sprd_typec_cc_polarity cc_polarity;
 	enum sprd_typec_cc_status cc1;
@@ -377,6 +379,23 @@ struct sc27xx_pd {
 	bool vbus_only;
 	bool suspend;
 	u64 resume_time;
+};
+
+static const char * const charger_supply_name[] = {
+        "sc2731_charger",
+        "sc2720_charger",
+        "sc2721_charger",
+        "sc2723_charger",
+        "sc2703_charger",
+        "fan54015_charger",
+        "bq2560x_charger",
+        "bq25890_charger",
+        "bq25910_charger",
+        "eta6937_charger",
+        "aw32257",
+        "upm6920_charger",
+        "sgm41513_charger",
+        "charger",
 };
 
 /*
@@ -582,7 +601,7 @@ static int sc27xx_pd_get_cc(struct tcpc_dev *tcpc,
 	mutex_unlock(&pd->lock);
 	return 0;
 }
-
+#ifdef OTG_USE_REGULATOR
 static void sc27xx_pd_wait_for_i2c_set_vbus(struct sc27xx_pd *pd)
 {
 	u64 cur_time;
@@ -604,17 +623,22 @@ static void sc27xx_pd_wait_for_i2c_set_vbus(struct sc27xx_pd *pd)
 		} while ((ret == -ESHUTDOWN) && retry_cnt++ < 4);
 	}
 }
-
+#endif
 static int sc27xx_pd_set_vbus(struct tcpc_dev *tcpc, bool on, bool charge)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
 	int ret = 0;
+#ifndef OTG_USE_REGULATOR
+	int i;
+	union power_supply_propval val;
+#endif
 
 	mutex_lock(&pd->lock);
 	if (pd->vbus_on == on) {
 		sprd_pd_log(pd, "vbus is already %s\n", on ? "On" : "Off");
 		dev_info(pd->dev, "vbus is already %s\n", on ? "On" : "Off");
 	} else {
+#ifdef OTG_USE_REGULATOR
 		if (!pd->vbus) {
 			pd->vbus = devm_regulator_get_optional(pd->dev, "vbus");
 			if (IS_ERR(pd->vbus)) {
@@ -625,8 +649,22 @@ static int sc27xx_pd_set_vbus(struct tcpc_dev *tcpc, bool on, bool charge)
 		}
 
 		sc27xx_pd_wait_for_i2c_set_vbus(pd);
+#else
+		if (pd->chg_psy == NULL) {
+			for (i = 0; i < ARRAY_SIZE(charger_supply_name); i++) {
+				pd->chg_psy = power_supply_get_by_name(charger_supply_name[i]);
+				if (pd->chg_psy)
+					break;
+			}
+			if (pd->chg_psy == NULL) {
+				dev_err(pd->dev, "get chg_psy failed\n");
+				goto set_vbus_done;
+			}
+		}
+#endif
 
 		if (on) {
+#ifdef OTG_USE_REGULATOR
 			if (!regulator_is_enabled(pd->vbus)) {
 				sprd_pd_log(pd, "set vbus on");
 				ret = regulator_enable(pd->vbus);
@@ -635,7 +673,18 @@ static int sc27xx_pd_set_vbus(struct tcpc_dev *tcpc, bool on, bool charge)
 					goto set_vbus_done;
 				}
 			}
+#else
+			if (pd->chg_psy) {
+				val.intval = 1;
+				ret = power_supply_set_property(pd->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
+				if (ret) {
+					dev_err(pd->dev, "failed to enable vbus\n");
+					goto set_vbus_done;
+				}
+			}
+#endif
 		} else {
+#ifdef OTG_USE_REGULATOR
 			if (regulator_is_enabled(pd->vbus)) {
 				sprd_pd_log(pd, "set vbus off");
 				ret = regulator_disable(pd->vbus);
@@ -644,6 +693,16 @@ static int sc27xx_pd_set_vbus(struct tcpc_dev *tcpc, bool on, bool charge)
 					goto set_vbus_done;
 				}
 			}
+#else
+                        if (pd->chg_psy) {
+                                val.intval = 0;
+                                ret = power_supply_set_property(pd->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
+                                if (ret) {
+                                        dev_err(pd->dev, "failed to enable vbus\n");
+                                        goto set_vbus_done;
+                                }
+                        }
+#endif
 		}
 
 		pd->vbus_on = on;
@@ -2477,6 +2536,10 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	struct sc27xx_pd *pd;
 	const struct sc27xx_pd_variant_data *pdata;
 	int pd_irq, ret;
+#ifndef OTG_USE_REGULATOR
+        int i;
+#endif
+
 
 	pdata = of_device_get_match_data(&pdev->dev);
 	if (!pdata) {
@@ -2564,11 +2627,25 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	}
 	sc27xx_init_tcpc_dev(pd);
 
+#ifdef OTG_USE_REGULATOR
 	pd->vbus = devm_regulator_get(pd->dev, "vbus");
 	if (IS_ERR(pd->vbus)) {
 		dev_err(&pdev->dev, "pd failed to get vbus\n");
 		return PTR_ERR(pd->vbus);
 	}
+#else
+	if (pd->chg_psy == NULL) {
+		for (i = 0; i < ARRAY_SIZE(charger_supply_name); i++) {
+			pd->chg_psy = power_supply_get_by_name(charger_supply_name[i]);
+			if (pd->chg_psy)
+				break;
+		}
+		if (pd->chg_psy == NULL) {
+			dev_err(pd->dev, "get chg_psy failed\n");
+			return -EPROBE_DEFER;
+		}
+	}
+#endif
 
 	pd->vconn = devm_regulator_get_optional(pd->dev, "vconn");
 	if (IS_ERR(pd->vconn)) {
@@ -2634,6 +2711,9 @@ static int sc27xx_pd_remove(struct platform_device *pdev)
 {
 	struct sc27xx_pd *pd = platform_get_drvdata(pdev);
 
+	if (pd->chg_psy) {
+		power_supply_put(pd->chg_psy);
+	}
 	sprd_tcpm_unregister_port(pd->sprd_tcpm_port);
 	return 0;
 }

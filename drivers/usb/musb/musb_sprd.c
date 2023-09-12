@@ -1527,8 +1527,8 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 
 	if (on) {
 		dev_info(glue->dev, "%s: turn on host\n", __func__);
-#ifdef OTG_USE_REGULATOR
 		if (!glue->use_pdhub_c2c) {
+#ifdef OTG_USE_REGULATOR
 			if (!regulator_is_enabled(glue->vbus)) {
 				dev_info(glue->dev, "%s: regulator enable\n", __func__);
 				ret = regulator_enable(glue->vbus);
@@ -1537,17 +1537,17 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 					return ret;
 				}
 			}
-		}
 #else
-		if (glue->chg_psy) {
-			val.intval = 1;
-			ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
-			if (ret) {
-				dev_err(glue->dev, "failed to enable vbus\n");
-				return ret;
+			if (glue->chg_psy) {
+				val.intval = 1;
+				ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
+				if (ret) {
+					dev_err(glue->dev, "failed to enable vbus\n");
+					return ret;
+				}
 			}
-		}
 #endif
+		}
 		if (!glue->enable_pm_suspend_in_host && !IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER))
 			pm_stay_awake(musb->controller);
 
@@ -1611,25 +1611,24 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 
 		if (musb->port_mode != MUSB_HOST)
 			musb_host_cleanup(musb);
-
+                if (!glue->use_pdhub_c2c) {
 #ifdef OTG_USE_REGULATOR
-		if (!glue->use_pdhub_c2c) {
 			ret = regulator_disable(glue->vbus);
 			if (ret)
 				dev_err(glue->dev, "Failed to disable vbus: %d\n", ret);
-		}
 #else
-		if (glue->dr_mode == USB_DR_MODE_HOST) {
-			if (glue->chg_psy) {
-				val.intval = 0;
-				ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
-				if (ret) {
-					dev_err(glue->dev, "failed to disable vbus\n");
-					return ret;
+			if (glue->dr_mode == USB_DR_MODE_HOST) {
+				if (glue->chg_psy) {
+					val.intval = 0;
+					ret = power_supply_set_property(glue->chg_psy, POWER_SUPPLY_PROP_SCOPE, &val);
+					if (ret) {
+						dev_err(glue->dev, "failed to disable vbus\n");
+						return ret;
+					}
 				}
 			}
-		}
 #endif
+                }
 
 		/* disable usb audio offload */
 		if (musb->is_offload) {
