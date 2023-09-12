@@ -262,8 +262,8 @@ static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt
 
 		/* read VOLTAGE START */
 		v[N6P_UFS_VDDEMMCORE_VOLTAGE] = regulator_get_voltage(hba->vreg_info.vcc->reg);
-		v[N6P_UFS_VDDSRAM_VOLTAGE] = regulator_get_voltage(priv->vdd_mphy);
-		v[N6P_UFS_VDDUFS1V2_VOLTAGE] = regulator_get_voltage(priv->vddsram);
+		v[N6P_UFS_VDDSRAM_VOLTAGE] = regulator_get_voltage(priv->vddsram);
+		v[N6P_UFS_VDDUFS1V2_VOLTAGE] = regulator_get_voltage(priv->vdd_mphy);
 		/* read VOLTAGE END */
 	} else {
 		p->preempt = true;
