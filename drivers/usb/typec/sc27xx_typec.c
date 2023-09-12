@@ -559,6 +559,7 @@ static void sc27xx_disconnect_set_status_use_pdhubc2c(struct sc27xx_typec *sc)
 	default:
 		break;
 	}
+	sc->pre_state = SC27XX_DETACHED_SNK;
 
 }
 
@@ -589,6 +590,7 @@ static void sc27xx_disconnect_set_status_no_pdhubc2c(struct sc27xx_typec *sc)
 	default:
 		break;
 	}
+	sc->pre_state = SC27XX_DETACHED_SNK;
 }
 
 static void sc27xx_typec_disconnect(struct sc27xx_typec *sc, u32 status)
@@ -1225,8 +1227,10 @@ static void sc27xx_typec_handle_vbus(struct sc27xx_typec *sc)
 	dev_info(sc->dev, "%s event %d", __func__, sc->vbus_connect_value);
 	if (sc->vbus_connect_value) {
 		do {
-			/* typec has attach,not vbusonly */
-			if (sc->partner_connected) {
+			/* typec has attach,not vbusonly, notify charging when analog headphone
+			 *  have vbus connection
+			 */
+			if (sc->partner_connected && sc->pre_state != SC27XX_AUDIO_CABLE) {
 				dev_info(sc->dev, "typec connect, not vbusonly\n");
 				return;
 			}
@@ -1237,7 +1241,7 @@ static void sc27xx_typec_handle_vbus(struct sc27xx_typec *sc)
 			}
 
 		} while (--timeout > 0);
-		/* vbus attach and 1s no typec attch,
+		/* vbus attach and 500ms no typec attch,
 		 * attach cable recognize vbusonly cable.
 		 */
 		sc->vbus_only_connect = true;
