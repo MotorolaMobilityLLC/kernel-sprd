@@ -49,7 +49,8 @@
 		bootargs = "earlycon console=ttyS1,921600n8 loop.max_part=7
 			    loglevel=1 init=/init root=/dev/ram0 rw printk.devkmsg=on
 			    firmware_class.path=/odm/firmware,/vendor/firmware
-			    dummy_hcd.num=0 swiotlb=1 initcall_debug=1";
+			    dummy_hcd.num=0 swiotlb=1 initcall_debug=1
+			    rcupdate.rcu_expedited=1 rcu_nocbs=0-7";
 	};
 
 	extcon_gpio: extcon-gpio {

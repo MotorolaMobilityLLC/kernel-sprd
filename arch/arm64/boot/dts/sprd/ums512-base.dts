@@ -55,7 +55,8 @@
 		stdout-path = "serial1:921600n8";
 		bootargs = "earlycon console=ttyS1,921600n8 loop.max_part=7 loglevel=1
 			    log_buf_len=1M firmware_class.path=/odm/firmware,/vendor/firmware
-			    printk.devkmsg=on dummy_hcd.num=0 swiotlb=1 nosoftlockup";
+			    printk.devkmsg=on dummy_hcd.num=0 swiotlb=1 nosoftlockup
+			    rcupdate.rcu_expedited=1 rcu_nocbs=0-7";
 	};
 
 	pwm_backlight: sprd_backlight {
