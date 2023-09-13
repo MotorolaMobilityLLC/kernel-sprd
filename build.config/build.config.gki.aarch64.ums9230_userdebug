@@ -33,6 +33,7 @@ EXT_MODULES="
 ../modules/common/camera/cpp
 ../modules/common/camera/flash/ocp8135b
 ../modules/common/camera/flash/flash_drv
+../modules/common/camera/actuator_noise_reduction
 ../modules/common/camera/sensor
 ../modules/common/camera/mmdvfs
 ../modules/kernel5.15/wcn/fm/driver
