@@ -662,10 +662,10 @@ static int sprd_spi_dma_request(struct sprd_spi *ss)
 
 static void sprd_spi_dma_release(struct sprd_spi *ss)
 {
-	if (ss->dma.dma_chan[SPRD_SPI_RX])
+	if (!IS_ERR_OR_NULL(ss->dma.dma_chan[SPRD_SPI_RX]))
 		dma_release_channel(ss->dma.dma_chan[SPRD_SPI_RX]);
 
-	if (ss->dma.dma_chan[SPRD_SPI_TX])
+	if (!IS_ERR_OR_NULL(ss->dma.dma_chan[SPRD_SPI_TX]))
 		dma_release_channel(ss->dma.dma_chan[SPRD_SPI_TX]);
 }
 
@@ -1247,7 +1247,8 @@ err_rpm_put:
 disable_clk:
 	clk_disable_unprepare(ss->clk);
 release_dma:
-	sprd_spi_dma_release(ss);
+	if (ss->dma.enable)
+		sprd_spi_dma_release(ss);
 free_controller:
 	spi_controller_put(sctlr);
 
