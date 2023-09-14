@@ -145,12 +145,12 @@
 				sensor-names = "board-thmzone",
 						"pa-thmzone",
 						"chg-thmzone";
-				temp-coeff = <258 6021 6717 6220 6403 5567 1932
-						22394 6883 6595 7336 7926 8495 9599
-						10327 6204 6741 7261 6727 6692 10702>;
-				coeff-offset = <7000>;
-				temp-const = <904>;
-				const-offset = <5000>;
+				temp-coeff = <14292 9939 8900 13513 8276 7805 17101
+						8447 9451 9868 9727 8829 8646 15398
+						663 5078 10226 11557 11231 13976 17077>;
+				coeff-offset = <10000>;
+				temp-const = <558>;
+				const-offset = <6000>;
 			};
 
 			back_sensor: back-sensor {
@@ -159,12 +159,12 @@
 				sensor-names = "board-thmzone",
 						"pa-thmzone",
 						"chg-thmzone";
-				temp-coeff = <719 3481 3711 3601 3420 2466 2753
-						10130 4929 4812 4919 5107 5523 8347
-						5330 3649 3909 4031 3694 3576 5893>;
-				coeff-offset = <4000>;
-				temp-const = <837>;
-				const-offset = <4000>;
+				temp-coeff = <320 2483 3604 2818 1867 5305 9494
+						2535 3588 3406 2776 3693 4220 6623
+						4116 2923 1958 2428 2669 1499 4676>;
+				coeff-offset = <3000>;
+				temp-const = <39>;
+				const-offset = <3000>;
 			};	
 			audio-voice-trig {
 				status = "disable";
