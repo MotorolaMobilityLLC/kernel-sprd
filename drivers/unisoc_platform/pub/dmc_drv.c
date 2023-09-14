@@ -27,6 +27,7 @@
 #include <linux/regmap.h>
 #include <linux/seq_file.h>
 #include <linux/uaccess.h>
+#include <../sysdump/unisoc_sysdump.h>
 
 #ifdef pr_fmt
 #undef pr_fmt
@@ -50,6 +51,12 @@
 #define PROC_RW_PERMS 0666
 #define PROC_RO_PERMS 0444
 
+#define DMC_DUMP_OFFSET 0x480
+#define PHY_DUMP_OFFSET 0x640
+#define INFO_LEN_MAX 128
+#define PHY_NUM_MAX 4
+#define REG_DUMP_SIZE 5120 //5k dump buff
+#define ADDRESS_STRING "____address|_________0 _________4 _________8 _________C"
 /*
  * new requirement: all register value is clear to 0,
  * when enable signle change from 0 to 1;
@@ -70,6 +77,7 @@ struct dmc_data {
 	u32 proc_res;
 	u32 mon_res;
 	u32 dmc_res;
+	u32 phy_res;
 	u32 size_l_offset;
 	u32 size_h_offset;
 	u32 type_offset;
@@ -85,6 +93,11 @@ struct dmc_drv_data {
 	struct proc_dir_entry *pub_monitor_status;
 	void __iomem *mon_base;
 	void __iomem *dmc_base;
+	u64 dmc_pa;
+	u32 dmc_dump_len;
+	void __iomem *phy_base[PHY_NUM_MAX];
+	u64 phy_pa[PHY_NUM_MAX];
+	u32 phy_dump_len[PHY_NUM_MAX];
 	int pub_mon_enabled;
 	u32 type;
 	u32 mr_val[DDR_MAX_SUPPORT_CS_NUM];
@@ -102,6 +115,7 @@ static const struct dmc_data pub_dmc_data = {
 	.proc_res = 0,
 	.mon_res = 1,
 	.dmc_res = 2,
+	.phy_res = 3, /* phy_res use index 3 - 6 */
 	.size_l_offset = PUB_DMC_SIZE_L_OFFSET,
 	.size_h_offset = PUB_DMC_SIZE_H_OFFSET,
 	.type_offset = PUB_DMC_TYPE_OFFSET,
@@ -115,6 +129,7 @@ static const struct dmc_data pub_dmc_original_data = {
 	.proc_res = 0,
 	.mon_res = INVALID_RES_IDX, /* not support pub status mointor */
 	.dmc_res = 1,
+	.phy_res = INVALID_RES_IDX,
 	.size_l_offset = PUB_DMC_SIZE_L_OFFSET,
 	.size_h_offset = PUB_DMC_SIZE_H_OFFSET,
 	.type_offset = PUB_DMC_TYPE_OFFSET,
@@ -138,6 +153,7 @@ static const char *const ddr_type_to_str[] = {
 };
 
 static u32 g_ddr_cur_freq;
+static char *g_dmc_reg_dump;
 
 #ifdef CONFIG_PROC_FS
 static int sprd_ddr_size_show(struct seq_file *m, void *v)
@@ -423,29 +439,123 @@ static int sprd_pub_monitor_proc_create(struct dmc_drv_data *pdrv_data)
 
 #endif
 
-static int sprd_get_ddr_cur_freq(struct notifier_block *nb,
+static void sprd_dmc_dump_reg(void __iomem *base, u64 phy_addr, u32 offset, u32 len, ssize_t *count)
+{
+	u32 reg_val;
+	void __iomem *address;
+	int i;
+
+	for (i = 0; i < (len / 4); i++) {
+		if (*count > REG_DUMP_SIZE) {
+			pr_err("reg_dump buff no enough\n");
+			return;
+		}
+
+		address = base + offset + i * 4;
+		reg_val = readl_relaxed(address);
+		if (!(i % 4))
+			*count += snprintf(&g_dmc_reg_dump[*count], INFO_LEN_MAX,
+					   "\n 0x%08llx", (phy_addr + offset + i * 4));
+
+		*count += snprintf(&g_dmc_reg_dump[*count], INFO_LEN_MAX, " 0x%08x", reg_val);
+	}
+	*count += snprintf(&g_dmc_reg_dump[*count], INFO_LEN_MAX, "\n");
+}
+
+static int sprd_dmc_panic_handler(struct notifier_block *nb,
 				 unsigned long action, void *data)
 {
-	g_ddr_cur_freq = (readl_relaxed(drv_data.dmc_base + 0x12c) >> 8) & 0x7;
-	pr_info("ddr_cur_freq: %d\n", g_ddr_cur_freq);
+	ssize_t count = 0;
+	int i = 0;
 
-	return 0;
+	//dmc_reg dump
+	if (!drv_data.dmc_base) {
+		pr_info("no need dump ddr register\n");
+		return NOTIFY_DONE;
+	}
+
+	g_ddr_cur_freq = (readl_relaxed(drv_data.dmc_base + 0x12c) >> 8) & 0x7;
+	pr_info("ddr_cur_freq_index: %d\n", g_ddr_cur_freq);
+
+	if (g_dmc_reg_dump == NULL)
+		return NOTIFY_DONE;
+
+	count += snprintf(&g_dmc_reg_dump[count], INFO_LEN_MAX,
+			  "ddr_cur_freq_index: %d\n", g_ddr_cur_freq);
+
+	count += snprintf(&g_dmc_reg_dump[count], INFO_LEN_MAX, "dmc_register:\n");
+	count += snprintf(&g_dmc_reg_dump[count], INFO_LEN_MAX, ADDRESS_STRING);
+	sprd_dmc_dump_reg(drv_data.dmc_base, drv_data.dmc_pa,
+			  DMC_DUMP_OFFSET, drv_data.dmc_dump_len, &count);
+
+	//phy_reg dump
+	for (i = 0; i < PHY_NUM_MAX; i++) {
+		if (!drv_data.phy_base[i])
+			return NOTIFY_DONE;
+
+		count += snprintf(&g_dmc_reg_dump[count], INFO_LEN_MAX, "phy%d_register:\n", i);
+		count += snprintf(&g_dmc_reg_dump[count], INFO_LEN_MAX, ADDRESS_STRING);
+		sprd_dmc_dump_reg(drv_data.phy_base[i], drv_data.phy_pa[i],
+				  PHY_DUMP_OFFSET, drv_data.phy_dump_len[i], &count);
+	}
+
+	return NOTIFY_DONE;
 }
 
 static struct notifier_block dmc_panic_event_nb = {
-	.notifier_call  = sprd_get_ddr_cur_freq,
+	.notifier_call  = sprd_dmc_panic_handler,
 	.priority       = INT_MAX,
 };
 
-static int sprd_get_panic_freq_init(struct notifier_block *event_nb)
+static void sprd_dmc_register_debug(struct device *dev)
 {
-	if (!event_nb) {
-		pr_err("event_nb is null\n");
-		return -EINVAL;
+	g_dmc_reg_dump = devm_kzalloc(dev, REG_DUMP_SIZE + INFO_LEN_MAX, GFP_KERNEL);
+	if (g_dmc_reg_dump) {
+		atomic_notifier_chain_register(&panic_notifier_list, &dmc_panic_event_nb);
+		if (minidump_save_extend_information("ddr_register_dump", __pa(g_dmc_reg_dump),
+						     __pa(g_dmc_reg_dump + REG_DUMP_SIZE)))
+			dev_err(dev, "fail to link ddr_register_dump to minidump\n");
+	}
+}
+
+static int sprd_dmc_register_debug_init(const struct dmc_data *pdata, struct platform_device *pdev)
+{
+	struct resource *res = NULL;
+	u32 i, len = 0;
+
+	if (pdata->phy_res != INVALID_RES_IDX) {
+		for (i = 0; i < PHY_NUM_MAX; i++) {
+			res = platform_get_resource(pdev, IORESOURCE_MEM, pdata->phy_res + i);
+			if (!res) {
+				drv_data.phy_base[i] = NULL;
+				drv_data.phy_dump_len[i] = 0;
+			} else {
+				drv_data.phy_base[i] = devm_ioremap_resource(&pdev->dev, res);
+				if (IS_ERR(drv_data.phy_base[i]))
+					return (int)PTR_ERR(drv_data.phy_base[i]);
+				drv_data.phy_pa[i] = res->start;
+				len = (u32)(res->end - res->start + 1);
+				if (len > PHY_DUMP_OFFSET)
+					drv_data.phy_dump_len[i] = len - PHY_DUMP_OFFSET;
+			}
+		}
 	}
 
-	pr_info("register ddr painc_callback func\n");
-	atomic_notifier_chain_register(&panic_notifier_list, event_nb);
+	if (pdata->dmc_res != INVALID_RES_IDX) {
+		res = platform_get_resource(pdev, IORESOURCE_MEM, pdata->dmc_res);
+		if (res) {
+			drv_data.dmc_base = devm_ioremap_resource(&pdev->dev, res);
+			if (IS_ERR(drv_data.dmc_base))
+				return (int)PTR_ERR(drv_data.dmc_base);
+
+			drv_data.dmc_pa = res->start;
+			len = (u32)(res->end - res->start + 1);
+			if (len > DMC_DUMP_OFFSET)
+				drv_data.dmc_dump_len = len - DMC_DUMP_OFFSET;
+
+			sprd_dmc_register_debug(&pdev->dev);
+		}
+	}
 
 	return 0;
 }
@@ -500,17 +610,9 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 #endif
 	}
 
-	if (pdata->dmc_res != INVALID_RES_IDX) {
-		res = platform_get_resource(pdev, IORESOURCE_MEM, pdata->dmc_res);
-		if (res) {
-			drv_data.dmc_base = devm_ioremap_resource(&pdev->dev, res);
-			if (IS_ERR(drv_data.dmc_base))
-				return (int)PTR_ERR(drv_data.dmc_base);
-			result = sprd_get_panic_freq_init(&dmc_panic_event_nb);
-			if (result)
-				dev_err(&pdev->dev, "sprd_get_panic_freq creat fail\n");
-		}
-	}
+	result = sprd_dmc_register_debug_init(pdata, pdev);
+	if (result)
+		return result;
 
 	return 0;
 }
