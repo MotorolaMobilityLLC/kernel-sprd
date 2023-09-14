@@ -8,7 +8,7 @@
 &ump9620_pmic {
 	power-controller@2000 {
 		compatible = "sprd,ump9620-regulator";
-		/* regulator-debugfs-enable; */
+		regulator-debugfs-enable;
 
 		vddcpu2: DCDC_CPU2 {
 			regulator-name = "vddcpu2";

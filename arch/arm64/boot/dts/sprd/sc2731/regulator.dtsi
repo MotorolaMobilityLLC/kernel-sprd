@@ -22,7 +22,7 @@
 &sc2731_pmic {
 	regulators {
 		compatible = "sprd,sc2731-regulator";
-		/* regulator-debugfs-enable; */
+		regulator-debugfs-enable;
 
 		vddarm0: BUCK_CPU0 {
 			regulator-name = "vddarm0";

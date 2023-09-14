@@ -8,7 +8,7 @@
 &ump9621_pmic {
 		power-controller@2000 {
 		compatible = "sprd,ump9621-regulator";
-		/* regulator-debugfs-enable; */
+		regulator-debugfs-enable;
 
 		vddsram1: DCDC_SRAM1 {
 			regulator-name = "vddsram1";
