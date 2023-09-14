@@ -450,6 +450,10 @@
 	regulator-always-on;
 };
 
+&vddldo1 {
+	regulator-always-on;
+};
+
 &panel {
 	//sprd,backlight = <&pwm_backlight>;
 	avdd-gpio = <&ap_gpio 113 GPIO_ACTIVE_HIGH>;
