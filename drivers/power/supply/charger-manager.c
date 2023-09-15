@@ -7313,8 +7313,6 @@ static int cm_get_charging_works_cycle(struct charger_manager *cm,
 	 * one_cap_time = mas_one_percent / ibat_avg_ma.
 	 * one_cap_time represents 1% battery capacity the fastest update time(unit/s).
 	 */
-	cm->desc->cap_one_time = cm->desc->default_cap_one_time;
-	one_cap_time = cm->desc->cap_one_time;
 	total_mah = total_uah / 1000;
 	mas_one_percent = total_mah * 3600 / 100;
 	one_cap_time = DIV_ROUND_CLOSEST(mas_one_percent, ibat_avg_ma);
@@ -7364,6 +7362,8 @@ static int cm_get_discharging_works_cycle(struct charger_manager *cm,
 static int cm_calc_batt_works_cycle(struct charger_manager *cm, int uisoc)
 {
 	int ibat_avg_ua, ret = 0, bat_soc, work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S, bat_temp;
+
+	cm->desc->cap_one_time = cm->desc->default_cap_one_time;
 
 	ret = get_ibat_avg_uA(cm, &ibat_avg_ua);
 	if (ret) {
