@@ -1966,7 +1966,6 @@ static void sc27xx_cc_status_use_pdhub_c2c(struct sc27xx_pd *pd, u32 status)
 		break;
 
 	case SC27XX_ATTACHED_SRC:
-	case SC27XX_AUDIO_CABLE:
 		if (pd->cc_polarity == SPRD_TYPEC_POLARITY_CC1) {
 			pd->cc1 = SPRD_TYPEC_CC_RD;
 			pd->cc2 = SPRD_TYPEC_CC_OPEN;
@@ -2020,7 +2019,6 @@ static int sc27xx_pd_typec_connect(struct sc27xx_pd *pd)
 		vconn_role = TYPEC_SINK;
 		break;
 	case SC27XX_ATTACHED_SRC:
-	case SC27XX_AUDIO_CABLE:
 		power_role = TYPEC_SOURCE;
 		data_role = TYPEC_HOST;
 		vconn_role = TYPEC_SOURCE;
@@ -2171,8 +2169,7 @@ static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 	sprd_pd_log(pd, "typec status = %d", pd->state);
 	if (pd->use_pdhub_c2c && (pd->state == SC27XX_ATTACHED_SNK ||
 				  pd->state == SC27XX_ATTACHED_SRC ||
-				  pd->state == SC27XX_DEBUG_CABLE ||
-				  pd->state == SC27XX_AUDIO_CABLE)) {
+				  pd->state == SC27XX_DEBUG_CABLE)) {
 		sprd_pd_log(pd, "use pdhub c2c typec plug in");
 		pd->typec_online = true;
 		pd->is_first_negotiate = true;
