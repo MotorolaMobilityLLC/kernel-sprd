@@ -267,6 +267,12 @@ static void sprd_get_bc1p2_type(struct sprd_bc1p2_priv *bc1p2_info)
 	unsigned int chg_det_fgu_ctrl = 0, bc1p2_status = 0;
 
 	switch (bc1p2->detect_state) {
+	case CHG_STATE_UNDETECT:
+		dev_info(x->dev, "bc1p2:chg entry\n");
+		bc1p2->detect_state = CHG_STATE_DETECT;
+		if (x->flags & CHARGER_DETECT_DONE)
+			bc1p2->detect_state = CHG_STATE_DETECTED;
+		fallthrough;
 	case CHG_STATE_DETECT:
 		dev_info(x->dev, "bc1p2:chg detect\n");
 		bc1p2->type = sprd_bc1p2_detect();
@@ -350,11 +356,6 @@ static void sprd_get_bc1p2_type_work(struct kthread_work *work)
 	switch (x->chg_state) {
 	case USB_CHARGER_PRESENT:
 		mutex_lock(&bc1p2->bc1p2_lock);
-		if (bc1p2->detect_state == CHG_STATE_UNDETECT)
-			bc1p2->detect_state = CHG_STATE_DETECT;
-
-		if (x->flags & CHARGER_DETECT_DONE)
-			bc1p2->detect_state = CHG_STATE_DETECTED;
 		sprd_get_bc1p2_type(bc1p2_info);
 		mutex_unlock(&bc1p2->bc1p2_lock);
 
