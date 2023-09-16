@@ -15,9 +15,6 @@
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include <dt-bindings/usb/pd.h>
-#include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
-#include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
-//#include "lcd/lcd_nt36672e_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_umb9230s.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "touchscreen/ums9230-spi3-gpio144-145-tp.dtsi"
@@ -448,16 +445,6 @@
 	sprd,umb9230s-en;
 };
 
-&lcd_g40396_truly_mipi_fhd {
-	sprd,sr-width = <720>;
-	sprd,sr-height = <1600>;
-};
-
-&lcd_nt36672e_truly_mipi_fhd_nodsc {
-	sprd,sr-width = <720>;
-	sprd,sr-height = <1600>;
-};
-
 &lcd_nt36672e_truly_mipi_fhd_umb9230s {
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
@@ -478,7 +465,7 @@
 	umb9230s: umb9230s {
 		compatible = "sprd,umb9230s";
 		umb-gpios = <&ap_gpio 171 GPIO_ACTIVE_HIGH>,
-				<&ap_gpio 172 GPIO_ACTIVE_HIGH>,
+				<&ap_gpio 172 GPIO_ACTIVE_LOW>,
 				<&ap_gpio 170 GPIO_ACTIVE_HIGH>;
 		sprd,i2c-addr = <0x12>;
 		status = "okay";
