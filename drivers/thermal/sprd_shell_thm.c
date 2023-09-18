@@ -235,7 +235,7 @@ int sprd_thm_init(struct sprd_thermal_zone *pzone)
 		pr_err("Register thermal zone device failed.\n");
 		return PTR_ERR(pzone->therm_dev);
 	};
-	thermal_zone_device_update(pzone->therm_dev, THERMAL_EVENT_UNSPECIFIED);
+
 	return 0;
 }
 
