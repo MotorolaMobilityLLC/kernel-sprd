@@ -103,7 +103,6 @@ struct sprd_vote {
 	int (*vote)(struct sprd_vote *vote_gov, bool enable, int vote_type,
 		    int vote_type_id, int vote_cmd, int value, void *data);
 	void (*cb)(struct sprd_vote *vote_gov, int vote_type, int value, void *date);
-	void (*destroy)(struct sprd_vote *vote_gov);
 	void *data;
 	struct sprd_vote_sysfs *sysfs;
 	unsigned int current_vote_type;

@@ -25,6 +25,10 @@
 			reg = <0x4a 0x2>;
 		};
 
+		sfcp_calib: calib@0a {
+			reg = <0x0a 0x2>;
+		};
+
 		pdrc_calib: calib@2c {
 			reg = <0x2c 0x2>;
 		};

@@ -281,7 +281,7 @@ static int sprd_pd_fixed_adjust_voltage(struct sprd_fchg_info *info, u32 input_v
 {
 	struct sprd_tcpm_port *port;
 	struct power_supply *psy_tcpm;
-	int ret, i, index = -1;
+	int ret, i, index = -1, last_select_max_mv = 0;
 	u32 pdo[SPRD_PDO_MAX_OBJECTS];
 	unsigned int snk_uw;
 
@@ -306,9 +306,12 @@ static int sprd_pd_fixed_adjust_voltage(struct sprd_fchg_info *info, u32 input_v
 	}
 
 	for (i = 0; i < info->pd_source_cap.nr_source_caps; i++) {
-		if ((info->pd_source_cap.max_mv[i] <= input_vol / 1000) &&
-		    (info->pd_source_cap.type[i] == SPRD_PDO_TYPE_FIXED))
+		if (info->pd_source_cap.max_mv[i] <= input_vol / 1000 &&
+		    info->pd_source_cap.type[i] == SPRD_PDO_TYPE_FIXED &&
+		    last_select_max_mv < info->pd_source_cap.max_mv[i]) {
+			last_select_max_mv = info->pd_source_cap.max_mv[i];
 			index = i;
+		}
 	}
 
 	/*
@@ -780,6 +783,9 @@ static int sprd_fchg_change(struct notifier_block *nb,
 		container_of(nb, struct sprd_fchg_info, fchg_notify);
 	struct power_supply *psy = data;
 
+	if (info->shutdown_flag)
+		return NOTIFY_OK;
+
 	if (strcmp(psy->desc->name, SPRD_FCHG_TCPM_PD_NAME) == 0 &&
 	    event == PSY_EVENT_PROP_CHANGED) {
 		dev_info(info->dev, "%s, pps or pd extcon\n", __func__);
@@ -1218,6 +1224,7 @@ static void sprd_fchg_shutdown(struct sprd_fchg_info *info)
 	if (!info->support_fchg)
 		return;
 
+	info->shutdown_flag = true;
 	power_supply_unreg_notifier(&info->fchg_notify);
 	cancel_delayed_work_sync(&info->fixed_fchg_handshake_work);
 	cancel_work_sync(&info->pd_online_work);

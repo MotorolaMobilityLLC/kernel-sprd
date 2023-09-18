@@ -8,7 +8,7 @@ UMS9620_BASE_CONFIG="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig
                      ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_gki_qogirn6pro.fragment
                     "
 if [[ $BSP_PRODUCT_NAME_TAIL == "Skynet" ]]; then
-	UMS9620_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_${BSP_PRODUCT_NAME_TAIL}.fragment"
+	UMS9620_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_swkasan_Skynet.fragment"
 fi
 
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \

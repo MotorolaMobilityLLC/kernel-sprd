@@ -55,8 +55,7 @@
 		stdout-path = "serial1:921600n8";
 		bootargs = "earlycon console=ttyS1,921600n8 loop.max_part=7 loglevel=1
 			    log_buf_len=1M firmware_class.path=/odm/firmware,/vendor/firmware
-			    printk.devkmsg=on dummy_hcd.num=0 swiotlb=1 initcall_debug=1
-			    nosoftlockup";
+			    printk.devkmsg=on dummy_hcd.num=0 swiotlb=1 nosoftlockup";
 	};
 
 	pwm_backlight: sprd_backlight {
@@ -186,6 +185,7 @@
 &dpu {
 	sprd,backlight = <&pwm_backlight>;
 	sprd,logo-memory = <&logo_reserved>;
+	sprd,widevine-use-fastcall;
 	status = "okay";
 };
 
@@ -269,10 +269,6 @@
 
 	fgu-capacity-track;
 	phys = <&hsphy>;
-
-	sprd,relax-counter-threshold = <580>;
-	sprd,relax-current-threshold = <30>;
-	sprd,capacity-sleep-calibration;
 
 	sprd,capacity-boot-calibration;
 	sprd,capacity-charge-cycle;

@@ -147,6 +147,8 @@ static int sprd_iommuvau_hw_exit(struct sprd_iommu_dev *dev)
 {
 	sprd_iommudrv_uninit(dev->private);
 	dev->private = NULL;
+
+	gen_pool_destroy(dev->pool);
 	return 0;
 }
 

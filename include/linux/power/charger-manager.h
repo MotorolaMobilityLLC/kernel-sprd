@@ -10,6 +10,8 @@
  *
 **/
 
+//This file has been modified by Unisoc (Shanghai) Technologies Co., Ltd in 2023.
+
 #ifndef _CHARGER_MANAGER_H
 #define _CHARGER_MANAGER_H
 
@@ -714,6 +716,8 @@ struct charger_desc {
 	bool wait_vbus_stable;
 	bool check_fixed_fchg_threshold;
 	bool force_pps_diasbled;
+	bool support_fixed_fchg;
+	bool support_adaptive_fchg;
 	u32 fchg_voltage_check_count;
 	u32 fast_charge_enable_count;
 	u32 fast_charge_disable_count;
@@ -789,6 +793,7 @@ struct charger_manager {
 	struct thermal_zone_device *tzd_batt;
 #endif
 	bool charger_enabled;
+	bool shutdown_flag;
 
 	unsigned long fullbatt_vchk_jiffies_at;
 	struct delayed_work fullbatt_vchk_work;

@@ -1137,6 +1137,8 @@ static int bq25910_charger_remove(struct i2c_client *client)
 	cancel_delayed_work_sync(&info->wdt_work);
 	usb_unregister_notifier(info->usb_phy, &info->usb_notify);
 
+	mutex_destroy(&info->lock);
+
 	return 0;
 }
 

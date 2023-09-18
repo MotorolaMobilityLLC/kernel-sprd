@@ -39,15 +39,23 @@
 					sprd,vrr-max-layers = <2>;
 					sprd,supported-vrefresh-count = <3>;
 					sprd,supported-vrefresh-rate = <120 90 60>;
-					sprd,vrefresh-cmd-prefix = [
-						15 00 00 02 fe 40
-					];
+
 					sprd,bl-prefix = [
 						15 00 00 02 fe 00
 					];
-					sprd,vrefresh-rate-cmd = [
+
+					sprd,vrefresh-cmd-120 = [
+						15 00 00 02 fe 40
 						15 00 00 02 bd 06
+					];
+
+					sprd,vrefresh-cmd-90 = [
+						15 00 00 02 fe 40
 						15 00 00 02 bd 05
+					];
+
+					sprd,vrefresh-cmd-60 = [
+						15 00 00 02 fe 40
 						15 00 00 02 bd 00
 					];
 

@@ -262,8 +262,8 @@ static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt
 
 		/* read VOLTAGE START */
 		v[N6P_UFS_VDDEMMCORE_VOLTAGE] = regulator_get_voltage(hba->vreg_info.vcc->reg);
-		v[N6P_UFS_VDDSRAM_VOLTAGE] = regulator_get_voltage(priv->vdd_mphy);
-		v[N6P_UFS_VDDUFS1V2_VOLTAGE] = regulator_get_voltage(priv->vddsram);
+		v[N6P_UFS_VDDSRAM_VOLTAGE] = regulator_get_voltage(priv->vddsram);
+		v[N6P_UFS_VDDUFS1V2_VOLTAGE] = regulator_get_voltage(priv->vdd_mphy);
 		/* read VOLTAGE END */
 	} else {
 		p->preempt = true;
@@ -1123,6 +1123,32 @@ static void ufs_sprd_update_evt_hist(struct ufs_hba *hba,
 		ufs_sprd_get_debug_regs(hba, evt, data);
 }
 
+static int ufs_sprd_program_key(struct ufs_hba *hba,
+			      const union ufs_crypto_cfg_entry *cfg, int slot)
+{
+	int i;
+	u32 slot_offset = hba->crypto_cfg_register + slot * sizeof(*cfg);
+	int err = 0;
+
+	if (hba->curr_dev_pwr_mode == UFS_POWERDOWN_PWR_MODE)
+		goto out;
+
+	/* Ensure that CFGE is cleared before programming the key */
+	ufshcd_writel(hba, 0, slot_offset + 16 * sizeof(cfg->reg_val[0]));
+	for (i = 0; i < 16; i++) {
+		ufshcd_writel(hba, le32_to_cpu(cfg->reg_val[i]),
+			      slot_offset + i * sizeof(cfg->reg_val[0]));
+	}
+	/* Write dword 17 */
+	ufshcd_writel(hba, le32_to_cpu(cfg->reg_val[17]),
+		      slot_offset + 17 * sizeof(cfg->reg_val[0]));
+	/* Dword 16 must be written last */
+	ufshcd_writel(hba, le32_to_cpu(cfg->reg_val[16]),
+		      slot_offset + 16 * sizeof(cfg->reg_val[0]));
+out:
+	return err;
+}
+
 const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops = {
 	.name = "sprd,ufshc-ums9620",
 	.init = ufs_sprd_init,
@@ -1137,5 +1163,6 @@ const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops = {
 	.device_reset = ufs_sprd_device_reset,
 	.suspend = ufs_sprd_suspend,
 	.event_notify = ufs_sprd_update_evt_hist,
+	.program_key = ufs_sprd_program_key,
 };
 EXPORT_SYMBOL(ufs_hba_sprd_ums9620_vops);

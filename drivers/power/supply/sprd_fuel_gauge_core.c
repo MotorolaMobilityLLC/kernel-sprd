@@ -134,7 +134,7 @@ enum sprd_fgu_track_mode {
 };
 
 struct sprd_fgu_ocv_info {
-	s64 ocv_rtc_time;
+	s64 ocv_time_stamp;
 	int ocv_uv;
 	bool valid;
 };
@@ -575,12 +575,6 @@ static int sprd_fgu_init_cap_remap_table(struct sprd_fgu_data *data)
 static int sprd_fgu_capacity_remap(struct sprd_fgu_data *data, int fuel_cap)
 {
 	int i, temp, cap = 0;
-
-	if (data->cap_remap_full_percent) {
-		fuel_cap = fuel_cap * 100 / data->cap_remap_full_percent;
-		if (fuel_cap > SPRD_FGU_FCC_PERCENT)
-			fuel_cap  = SPRD_FGU_FCC_PERCENT;
-	}
 
 	if (!data->cap_remap_table)
 		return fuel_cap;
@@ -1148,7 +1142,7 @@ static void sprd_fgu_boot_cap_calibration(struct sprd_fgu_data *data,
 
 	data->track.pocv_info.valid = true;
 	data->track.pocv_info.ocv_uv = pocv_uv;
-	data->track.pocv_info.ocv_rtc_time = cur_time;
+	data->track.pocv_info.ocv_time_stamp = cur_time;
 
 
 	dev_info(data->dev, "Boot calib: pocv_cap = %d, *cap = %d\n", pocv_cap, *cap);
@@ -1663,15 +1657,14 @@ static int sprd_fgu_suspend_calib_check_temp(struct sprd_fgu_data *data)
 
 static int sprd_fgu_suspend_calib_check_sleep_time(struct sprd_fgu_data *data)
 {
-	s64 cur_time;
-	int ret;
+	struct timespec64 cur_time;
+	s64 cur_times;
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
 
-	ret = sprd_fgu_get_rtc_time(data, &cur_time);
-	if (ret)
-		return -EINVAL;
+	cur_time = ktime_to_timespec64(ktime_get_boottime());
+	cur_times = cur_time.tv_sec;
 
-	fgu_info->slp_cap_calib.resume_time = cur_time;
+	fgu_info->slp_cap_calib.resume_time = cur_times;
 
 	dev_info(data->dev, "%s, resume_time = %lld, suspend_time = %lld\n",
 		 __func__, fgu_info->slp_cap_calib.resume_time,
@@ -1779,7 +1772,7 @@ static void sprd_fgu_suspend_calib_cap_calib(struct sprd_fgu_data *data)
 
 	data->track.lpocv_info.valid = true;
 	data->track.lpocv_info.ocv_uv = fgu_info->slp_cap_calib.resume_ocv_uv;
-	data->track.lpocv_info.ocv_rtc_time = fgu_info->slp_cap_calib.resume_time;
+	data->track.lpocv_info.ocv_time_stamp = fgu_info->slp_cap_calib.resume_time;
 }
 
 static void sprd_fgu_suspend_calib_check(struct sprd_fgu_data *data)
@@ -1824,18 +1817,17 @@ static void sprd_fgu_suspend_calib_check(struct sprd_fgu_data *data)
 
 static void sprd_fgu_suspend_calib_config(struct sprd_fgu_data *data)
 {
-	s64 cur_time;
-	int ret = 0;
+	struct timespec64 cur_time;
+	s64 cur_times;
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
 
 	if (!fgu_info->slp_cap_calib.support_slp_calib)
 		return;
 
-	ret = sprd_fgu_get_rtc_time(data, &cur_time);
-	if (ret)
-		cur_time = 0;
+	cur_time = ktime_to_timespec64(ktime_get_boottime());
+	cur_times = cur_time.tv_sec;
 
-	fgu_info->slp_cap_calib.suspend_time =  cur_time;
+	fgu_info->slp_cap_calib.suspend_time =  cur_times;
 	fgu_info->ops->get_cc_uah(fgu_info, &fgu_info->slp_cap_calib.suspend_cc_uah, false);
 
 	fgu_info->ops->relax_mode_config(fgu_info);
@@ -2841,9 +2833,9 @@ static bool sprd_fgu_cap_track_is_ocv_valid(struct sprd_fgu_data *data, int *ocv
 
 	ocv_info->valid = false;
 
-	if (cur_time - ocv_info->ocv_rtc_time > SPRD_FGU_TRACK_OCV_VALID_TIME) {
+	if (cur_time - ocv_info->ocv_time_stamp > SPRD_FGU_TRACK_OCV_VALID_TIME) {
 		dev_info(data->dev, "capacity track ocv is invalid cur_time = %lld, rtc_time = %lld\n",
-			 cur_time, ocv_info->ocv_rtc_time);
+			 cur_time, ocv_info->ocv_time_stamp);
 		return false;
 	}
 
@@ -2854,6 +2846,35 @@ static bool sprd_fgu_cap_track_is_ocv_valid(struct sprd_fgu_data *data, int *ocv
 
 	*ocv_uv = ocv_info->ocv_uv;
 
+	return true;
+}
+
+static bool sprd_fgu_cap_track_is_sr_ocv_valid(struct sprd_fgu_data *data, int *ocv_uv,
+					       struct sprd_fgu_ocv_info *ocv_info)
+{
+	struct timespec64 cur_time;
+	s64 cur_times;
+
+	if (!ocv_info->valid)
+		return false;
+
+	cur_time = ktime_to_timespec64(ktime_get_boottime());
+	cur_times  = cur_time.tv_sec;
+
+	ocv_info->valid = false;
+
+	if (cur_times - ocv_info->ocv_time_stamp > SPRD_FGU_TRACK_OCV_VALID_TIME) {
+		dev_info(data->dev, "capacity track ocv is invalid cur_time = %lld, rtc_time = %lld\n",
+			 cur_times, ocv_info->ocv_time_stamp);
+		return false;
+	}
+
+	if (!sprd_fgu_is_in_low_energy_dens(data, ocv_info->ocv_uv,
+					    data->track.dens_ocv_table,
+					    data->track.dens_ocv_table_len))
+		return false;
+
+	*ocv_uv = ocv_info->ocv_uv;
 
 	return true;
 }
@@ -2918,7 +2939,7 @@ static bool sprd_fgu_is_meet_cap_track_start_conditon(struct sprd_fgu_data *data
 	if (sprd_fgu_cap_track_is_ocv_valid(data, ocv_uv, &data->track.pocv_info)) {
 		data->track.mode = CAP_TRACK_MODE_POCV;
 		dev_info(data->dev, "capacity track pocv = %d meet start condition", *ocv_uv);
-	} else if (sprd_fgu_cap_track_is_ocv_valid(data, ocv_uv, &data->track.lpocv_info)) {
+	} else if (sprd_fgu_cap_track_is_sr_ocv_valid(data, ocv_uv, &data->track.lpocv_info)) {
 		data->track.mode = CAP_TRACK_MODE_LP_OCV;
 		dev_info(data->dev, "capacity track lpocv = %d meet start condition", *ocv_uv);
 	} else if (sprd_fgu_cap_track_is_sw_ocv_valid(data, ocv_uv)) {
@@ -2935,7 +2956,7 @@ static bool sprd_fgu_is_new_cap_track_start_conditon_meet(struct sprd_fgu_data *
 {
 	int ocv_uv, cap;
 
-	if (!sprd_fgu_cap_track_is_ocv_valid(data, &ocv_uv, &data->track.lpocv_info))
+	if (!sprd_fgu_cap_track_is_sr_ocv_valid(data, &ocv_uv, &data->track.lpocv_info))
 		return false;
 
 	cap = sprd_fgu_ocv2cap(data->cap_table, data->table_len, ocv_uv);
@@ -4215,14 +4236,14 @@ static int sprd_fgu_probe(struct platform_device *pdev)
 	data->channel = devm_iio_channel_get(dev, "bat-temp");
 	if (IS_ERR(data->channel)) {
 		dev_err(dev, "failed to get IIO channel, ret = %ld\n", PTR_ERR(data->channel));
-		return -ENXIO;
+		return PTR_ERR(data->channel);
 	}
 
 	data->charge_chan = devm_iio_channel_get(dev, "charge-vol");
 	if (IS_ERR(data->charge_chan)) {
 		dev_err(dev, "failed to get charge IIO channel, ret = %ld\n",
 			PTR_ERR(data->charge_chan));
-		return -ENXIO;
+		return PTR_ERR(data->charge_chan);
 	}
 
 	ret = sprd_fgu_init_cap_remap_table(data);
@@ -4478,6 +4499,29 @@ static bool sprd_fgu_sr_ocv_is_valid(struct sprd_fgu_data *data)
 	return true;
 }
 
+static void sprd_fgu_sr_calib_cap_calib(struct sprd_fgu_data *data)
+{
+	int sr_ocv_cap;
+	struct timespec64 cur_time;
+	s64 cur_times;
+
+	cur_time = ktime_to_timespec64(ktime_get_boottime());
+	cur_times = cur_time.tv_sec;
+	sr_ocv_cap = sprd_fgu_ocv2cap(data->cap_table, data->table_len, data->sr_ocv_uv);
+
+	dev_info(data->dev, "%s, sr_ocv_cap = %d, normal_temp_cap = %d, init_cap = %d\n",
+		 __func__, sr_ocv_cap, data->normal_temp_cap, data->init_cap);
+
+	if (sr_ocv_cap > data->normal_temp_cap + 30)
+		data->init_cap += (sr_ocv_cap - data->normal_temp_cap - 30);
+	else if (sr_ocv_cap < data->normal_temp_cap - 30)
+		data->init_cap -= (data->normal_temp_cap - sr_ocv_cap - 30);
+
+	data->track.lpocv_info.valid = true;
+	data->track.lpocv_info.ocv_uv = data->sr_ocv_uv;
+	data->track.lpocv_info.ocv_time_stamp = cur_times;
+}
+
 static int sprd_fgu_sr_get_ocv(struct sprd_fgu_data *data)
 {
 	int ret, i, cur_ma = 0x7fffffff, total_vol_mv = 0, valid_cnt = 0;
@@ -4532,6 +4576,7 @@ static int sprd_fgu_sr_get_ocv(struct sprd_fgu_data *data)
 	if (sprd_fgu_is_in_low_energy_dens(data, vol_uv, data->cap_calib_dens_ocv_table,
 					   data->cap_calib_dens_ocv_table_len)) {
 		data->sr_ocv_uv = vol_mv * 1000;
+		sprd_fgu_sr_calib_cap_calib(data);
 		dev_info(data->dev, "%s suspend calib: get sr_ocv_uv = %duV!!!\n",
 			 __func__, data->sr_ocv_uv);
 	}
@@ -4564,7 +4609,7 @@ static void sprd_fgu_sr_calib_resume_check(struct sprd_fgu_data *data)
 		return;
 	}
 
-	dev_info(data->dev, "%s suspend calib: current time_stamp = %lld, stop charge time_stamp = %lld, sleep_time = %lld, current cc_mah = %d\n",
+	dev_info(data->dev, "%s suspend calib: current time_stamp = %lld, stop charge time_stamp = %lld, sleep_time = %lld, current cc_uah = %d\n",
 		 __func__, cur_times, data->stop_charge_times, sleep_time, data->awake_cc_uah);
 
 	if ((cur_times - data->stop_charge_times) > SPRD_FGU_SR_STOP_CHARGE_TIMES &&

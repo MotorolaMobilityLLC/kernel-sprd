@@ -1,8 +1,24 @@
 /* SPDX-License-Identifier: GPL-2.0-or-later */
+/*
+ * sprd_tcpm.h - Unisoc platform header
+ *
+ * Copyright 2022 Unisoc(Shanghai) Technologies Co.Ltd
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ */
 
 #ifndef __LINUX_USB_SPRD_TCPM_H
 #define __LINUX_USB_SPRD_TCPM_H
 
+#include <linux/kthread.h>
 #include <linux/power_supply.h>
 #include <linux/usb.h>
 #include <linux/usb/sprd_pd.h>
@@ -470,9 +486,8 @@ struct sprd_pd_pps_data {
 struct sprd_tcpm_sysfs {
 	char *name;
 	struct attribute_group attr_g;
-	struct device_attribute attr_log_level_ctl;
 	struct device_attribute attr_log_ctl;
-	struct attribute *attrs[3];
+	struct attribute *attrs[2];
 
 	struct sprd_tcpm_port *port;
 };
@@ -481,7 +496,8 @@ struct sprd_tcpm_port {
 	struct device *dev;
 
 	struct mutex lock;		/* tcpm state machine lock */
-	struct workqueue_struct *wq;
+	struct kthread_worker tcpm_kworker;
+	struct task_struct *tcpm_event_task;
 
 	struct typec_capability typec_caps;
 	struct typec_port *typec_port;
@@ -507,6 +523,7 @@ struct sprd_tcpm_port {
 
 	bool attached;
 	bool connected;
+	bool registered;
 	enum typec_port_type port_type;
 	bool vbus_present;
 	bool vbus_never_low;
@@ -526,15 +543,17 @@ struct sprd_tcpm_port {
 	enum sprd_tcpm_state prev_state;
 	enum sprd_tcpm_state state;
 	enum sprd_tcpm_state delayed_state;
-	unsigned long delayed_runtime;
+	ktime_t delayed_runtime;
 	unsigned long delay_ms;
 
 	spinlock_t pd_event_lock;
 	u32 pd_events;
 
-	struct work_struct event_work;
-	struct delayed_work state_machine;
-	struct delayed_work vdm_state_machine;
+	struct kthread_work event_work;
+	struct hrtimer state_machine_timer;
+	struct kthread_work state_machine;
+	struct hrtimer vdm_state_machine_timer;
+	struct kthread_work vdm_state_machine;
 	struct delayed_work role_swap_work;
 	bool state_machine_running;
 
@@ -640,7 +659,9 @@ struct sprd_tcpm_port {
 	/* tcpm debug log*/
 	struct dentry *dentry;
 	struct mutex logbuffer_lock;	/* log buffer access lock */
-	struct delayed_work log2printk;
+	struct kthread_worker log_kworker;
+	struct kthread_delayed_work log_kwork;
+	struct task_struct *log_task;
 	struct mutex logprintk_lock;	/* log buffer printk lock */
 	struct sprd_tcpm_sysfs *sysfs;
 	int logbuffer_head;
@@ -652,7 +673,7 @@ struct sprd_tcpm_port {
 	bool logbuffer_show_full;
 	u8 *logbuffer[SPRD_LOG_BUFFER_ENTRIES];
 	bool enable_tcpm_log;
-	bool enbale_log_level_ctl;
+	bool log_output_running;
 	bool xts_limit_cur;
 
 	struct wakeup_source *pd_source_ws;

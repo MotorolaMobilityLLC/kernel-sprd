@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2022, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2022, Unisoc (shanghai) Technologies Co., Ltd
  */
 
 #include <trace/hooks/sched.h>
@@ -14,6 +14,12 @@
 static DEFINE_PER_CPU(cpumask_var_t, walt_local_cpu_mask);
 DEFINE_PER_CPU(u64, rt_task_arrival_time) = 0;
 static bool long_running_rt_task_trace_rgstrd;
+
+void reset_rt_task_arrival_time(int cpu)
+{
+	if (per_cpu(rt_task_arrival_time, cpu))
+		per_cpu(rt_task_arrival_time, cpu) = 0;
+}
 
 static void rt_task_arrival_marker(void *unused, bool preempt,
 	struct task_struct *prev, struct task_struct *next)

@@ -4,6 +4,8 @@
  *
  * Copyright (C) 2021, Unisoc Inc.
  */
+#include <dt-bindings/mfd/sprd,ump9620-regs.h>
+#include <dt-bindings/mfd/sprd,ump9620-mask.h>
 
 &mm {
 
@@ -11,7 +13,7 @@
 		compatible = "sprd,mali-natt";
 		reg = <0x0 0x23140000 0x0 0x4000>;
 
-		gpu-supply = <&vddgpu>;
+		//gpu-supply = <&vddgpu>;
 		system-coherency = <31>;
 
 		sprd,gpu-apb-syscon = <&gpu_apb_regs>;
@@ -74,6 +76,9 @@
 		gpll_cfg_frc_on=<&pmu_apb_regs
 			REG_PMU_APB_GPLL_REL_CFG
 			MASK_PMU_APB_GPLL_FRC_ON>;
+		dcdc_gpu_pd=<&pmu_apb_regs /*Fake addr, real syscon config in init*/
+			REG_ANA_POWER_PD_SW
+			MASK_ANA_DCDC_GPU_PD>;
 
 		resets = <&pmu_gate
 			RESET_PMU_APB_GPU_SOFT_RST>;

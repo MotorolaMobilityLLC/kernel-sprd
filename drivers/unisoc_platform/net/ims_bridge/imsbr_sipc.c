@@ -278,7 +278,7 @@ static int imsbr_sipc_query_to_register(struct imsbr_sipc *sipc)
 again:
 	err = sblock_query(sipc->dst, sipc->channel);
 	if (err) {
-		if (++try > 90) {
+		if (++try > 300) {
 			pr_err("sblock [%d-%u] not ready, try %d, err %d\n",
 			       sipc->dst, sipc->channel, try, err);
 			return err;

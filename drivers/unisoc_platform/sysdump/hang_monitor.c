@@ -41,7 +41,7 @@ static struct task_struct *hd_thread;
 static struct task_struct *hdinfo_thread;
 static struct semaphore hang_detect_sema;
 #define NH_LOGBUF_SIZE (128 * 1024)
-char nh_log_buf[NH_LOGBUF_SIZE];
+static char *nh_log_buf;
 #ifdef CONFIG_SPRD_DEBUG
 static int dump_info_enable;
 static int panic_enable; /* only for debug version */
@@ -607,16 +607,14 @@ static void reset_hang_info(void)
 }
 static void get_current_kernel_log(void)
 {
-	int ret;
+	if (nh_log_buf == NULL) {
+		pr_err("nh_log_buf is NULL, do nothing\n");
+		return;
+	}
 
-	pr_emerg("start save kernel log\n");
 	if (get_kernel_log_to_buffer(nh_log_buf, NH_LOGBUF_SIZE))
 		pr_err("get_current kernel log fail!\n");
 
-	ret = minidump_save_extend_information("nh_log_buf", unisoc_virt_to_phys(nh_log_buf),
-			unisoc_virt_to_phys(nh_log_buf + NH_LOGBUF_SIZE));
-	if (ret < 0)
-		pr_err("add nh_log_buf fail, ret = %d\n", ret);
 }
 static int hang_detect_thread_info(void *arg)
 {
@@ -633,19 +631,19 @@ static int hang_detect_thread_info(void *arg)
 		/* get kernel log first */
 		get_current_kernel_log();
 		reset_hang_info();
-		log_to_hang_info("[Native Hang detect]Dump process bt.\n");
-		save_native_hang_monitor_data();
 
-		pr_emerg("hang detect save data finish ......\n");
+		log_to_hang_info("[Native Hang detect] save data start.\n");
+		if (hang_info != NULL) {
+			save_native_hang_monitor_data();
+			pr_emerg("[Native Hang detect]save data finished\n");
+		} else {
+			pr_err("hang_info is NULL, don't save anything.\n");
+		}
 	}
 
 	return 0;
 
 }
-
-#ifdef CONFIG_SPRD_DEBUG
-static int log_saved_flag;
-#endif
 
 static int hang_detect_thread(void *arg)
 {
@@ -665,15 +663,12 @@ static int hang_detect_thread(void *arg)
 				pr_emerg("[Native Hang Detect] ");
 				pr_emerg("hang_detect_counter:%d ...\n",
 					atomic_read(&hang_detect_counter));
-				/* save kernel log for native hung first time */
-				if (!log_saved_flag) {
-					get_current_kernel_log();
-					log_saved_flag = 1;
-				}
 
 				if (dump_info_enable > 0) {
 					up(&hang_detect_sema);
 					dump_info_enable--;
+					/* wait for log saving done */
+					msleep(10 * 1000);
 				}
 				if (panic_enable) {
 					pr_emerg("panic enable = %d, panic!!\n", panic_enable);
@@ -687,8 +682,8 @@ static int hang_detect_thread(void *arg)
 				pr_emerg("[Native Hang Detect] hang_detect_counter:%d, ",
 					atomic_read(&hang_detect_counter));
 				up(&hang_detect_sema);
-				/* wait for info save 10s, wdh 40s */
-				msleep(50 * 1000);
+				/* wait for wdh 40s and log saving */
+				msleep(40 * 1000);
 				/* check hang_detect_counter before panic */
 				if (atomic_add_negative(0, &hang_detect_counter)) {
 					pr_emerg("we should trigger panic...\n");
@@ -701,7 +696,6 @@ static int hang_detect_thread(void *arg)
 				atomic_read(&hang_detect_counter), hang_detect_timeout);
 
 		} else {
-			reset_hang_info();
 			pr_notice("[Native Hang Detect] hang_detect disabled.\n");
 		}
 
@@ -713,7 +707,6 @@ static int hang_detect_thread(void *arg)
 static void native_hang_monitor_para_set(int para)
 {
 	if (para > 0) {
-		reset_hang_info();
 		hang_detect_timeout = para;
 		atomic_set(&hang_detect_counter, para);
 		pr_debug("[Native Hang Detect] hang_detect enabled %d\n", hang_detect_timeout);
@@ -897,14 +890,27 @@ static int monitor_hang_init(void)
 		memset(hang_info, 0, HANG_INFO_MAX);
 		ret = minidump_save_extend_information("nhang", __pa(hang_info), __pa(hang_info + HANG_INFO_MAX));
 
-                if(ret)
+		if (ret)
                         pr_err("nhang added to minidump section failed!!\n");
 	} else {
 		pr_err("kzalloc hang info failed, required size:%d\n", HANG_INFO_MAX);
-		return -1;
 	}
 
+	nh_log_buf = kzalloc(NH_LOGBUF_SIZE, GFP_KERNEL);
+	if (nh_log_buf != NULL) {
+		SetPageReserved(virt_to_page(nh_log_buf));
+		memset(nh_log_buf, 0, NH_LOGBUF_SIZE);
+		ret = minidump_save_extend_information("nh_log_buf", __pa(nh_log_buf),
+				__pa(nh_log_buf + NH_LOGBUF_SIZE));
+		if (ret)
+			pr_err("nh_log_buf added to minidump section failed!!\n");
+	} else {
+		pr_err("kzalloc nh_log_buf failed, required size:%d\n", HANG_INFO_MAX);
+	}
+
+	/* modules loaded monitor init */
 	sprd_modules_init();
+
 	return err;
 }
 
@@ -912,8 +918,17 @@ static void monitor_hang_exit(void)
 {
 	misc_deregister(&native_hang_monitor_dev);
 
-	ClearPageReserved(virt_to_page(hang_info));
-	kfree(hang_info);
+	if (hang_info != NULL) {
+		ClearPageReserved(virt_to_page(hang_info));
+		kfree(hang_info);
+		hang_info = NULL;
+	}
+	if (nh_log_buf != NULL) {
+		ClearPageReserved(virt_to_page(nh_log_buf));
+		kfree(nh_log_buf);
+		nh_log_buf = NULL;
+	}
+
 	sprd_modules_exit();
 }
 

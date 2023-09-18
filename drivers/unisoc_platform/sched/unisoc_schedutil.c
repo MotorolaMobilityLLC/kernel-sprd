@@ -4,6 +4,7 @@
  *
  * Copyright (C) 2016, Intel Corporation
  * Author: Rafael J. Wysocki <rafael.j.wysocki@intel.com>
+ * This file has been modified by Unisoc (shanghai) Technologies Co., Ltd in 2022
  */
 
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt

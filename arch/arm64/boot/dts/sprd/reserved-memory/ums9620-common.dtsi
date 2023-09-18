@@ -21,6 +21,15 @@
 
 #include "modem-5g-common.dtsi"
 &reserved_memory {
+	cp_reserved: cp-mem@88000000 {
+		no-map;
+		reg = <0x0 0x88000000 0x0 0x1a400000>;
+	};
+
+	nrphyiqmem_reserved: nrphy-iqmem@0xa2400000 {
+		reg = <0x0 0xa2400000 0x0 0x02c00000>;
+		status = "disabled";
+	};
 	/* the @addr value is not accurate on N6Pro, please refer to the reg value */
 	logobuffer@be000000 {
 		reg = <0x0 0xb0000000 0x0 0x009e4000>;

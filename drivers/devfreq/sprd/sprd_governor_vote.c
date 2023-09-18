@@ -581,8 +581,8 @@ static ssize_t scene_boost_dfs_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t count)
 {
-	unsigned int enable;
-	unsigned int freq;
+	unsigned int i, enable, freq, freq_num = 0;
+	unsigned long data = 0;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
@@ -596,18 +596,51 @@ static ssize_t scene_boost_dfs_store(struct device *dev,
 		dev_warn(dev->parent, "get boost para err: %d", err);
 		return count;
 	}
-	if (enable == 1)
-		err = gov_callback->governor_vote("boost");
-	else if (enable == 0)
-		err = gov_callback->governor_unvote("boost");
-	else
-		err = -EINVAL;
-	if (err)
-		dev_err(dev->parent, "scene boost enter[%u] fail: %d",
-			enable, err);
 
-	gov_callback->ddr_dfs_step_add(scene_boost_enter,
-				err, NULL, enable, task_pid_nr(current), call_time);
+	if (enable == 1) {
+		err = gov_callback->get_freq_num(&freq_num);
+		if (err < 0) {
+			dev_err(dev->parent, "boost flow get ddr freq num err: %d", err);
+			goto out;
+		}
+
+		for (i = 0; i < freq_num; i++) {
+			err = gov_callback->get_freq_table(&data, i);
+			if (!err) {
+				if ((data > 0) && (data != 0xff) && (freq == data)) {
+					err = gov_callback->governor_change_point("boost", freq);
+					if (err < 0) {
+						dev_err(dev->parent,
+							"change boost freq %u fail %d", freq, err);
+						goto out;
+					}
+					break;
+				}
+			} else {
+				dev_err(dev->parent, "boost get freq table fn%u fail %d", i, err);
+				goto out;
+			}
+		}
+		if (i < freq_num)
+			err = gov_callback->governor_vote("boost");
+		else
+			err = -EFAULT;
+	} else if (enable == 0) {
+		err = gov_callback->governor_unvote("boost");
+	} else {
+		err = -EINVAL;
+	}
+	if (err)
+		dev_err(dev->parent, "scene boost freq %u enter[%u] fail: %d",
+			freq, enable, err);
+
+out:
+	if (enable == 1)
+		gov_callback->ddr_dfs_step_add(scene_boost_enter,
+					err, NULL, freq, task_pid_nr(current), call_time);
+	else
+		gov_callback->ddr_dfs_step_add(scene_boost_enter,
+					err, NULL, enable, task_pid_nr(current), call_time);
 	return count;
 }
 static DEVICE_ATTR_WO(scene_boost_dfs);
@@ -707,14 +740,17 @@ static ssize_t ddrinfo_dfs_step_show(struct device *dev,
 							  &scene, &buff, &pid, &time, i);
 
 		if (scene == NULL)
-			count += sprintf(&buf[count],
-					 "dfs_dbg_log: DDR_DFS_STEP: %s %s, buff: %u, pid: %d, time: %lld us\n",
-					 arg, step_status, buff, pid, time);
+			count += snprintf(&buf[count], 128,
+					  "dfs_dbg_log: DDR_DFS_STEP: %s %s, buff: %u, pid: %d, time: %lld us\n",
+					  arg, step_status, buff, pid, time);
 		else
-			count += sprintf(&buf[count],
-					 "dfs_dbg_log: DDR_DFS_STEP: %s %s, scene: %s, pid: %d, time: %lld us\n",
-					 arg, step_status, scene, pid, time);
+			count += snprintf(&buf[count], 128,
+					  "dfs_dbg_log: DDR_DFS_STEP: %s %s, scene: %s, pid: %d, time: %lld us\n",
+					  arg, step_status, scene, pid, time);
 		i++;
+
+		if (i >= PAGE_SIZE/128) // make sure count <= 4096
+			break;
 	} while (!err);
 	mutex_unlock(&devfreq->lock);
 	return count;

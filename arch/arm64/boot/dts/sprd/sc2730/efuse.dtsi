@@ -46,6 +46,10 @@
 			reg = <0x1a 0x2>;
 		};
 
+		sfcp_calib: calib@1c {
+			reg = <0x1c 0x2>;
+		};
+
 		aud_pabst_vcal: calib@20 {
 			reg = <0x20 0x2>;
 		};

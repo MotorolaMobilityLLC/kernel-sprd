@@ -79,7 +79,7 @@
 			interrupt-parent = <&sc2730_pmic>;
 			interrupts = <5 IRQ_TYPE_LEVEL_HIGH>;
 			nvmem-cell-names = "fchg_cur_calib";
-			nvmem-cells = <&headset_adc_fir>;
+			nvmem-cells = <&sfcp_calib>;
 			status = "disabled";
 		};
 

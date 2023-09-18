@@ -451,6 +451,8 @@ static int bq2597x_set_batovp_th(struct bq2597x_charger_info *bq, int threshold)
 
 	if (threshold < BQ2597X_BAT_OVP_BASE)
 		threshold = BQ2597X_BAT_OVP_BASE;
+	else if (threshold > BQ2597X_BAT_OVP_MAX)
+		threshold = BQ2597X_BAT_OVP_MAX;
 
 	val = (threshold - BQ2597X_BAT_OVP_BASE) / BQ2597X_BAT_OVP_LSB;
 
@@ -507,6 +509,8 @@ static int bq2597x_set_batocp_th(struct bq2597x_charger_info *bq, int threshold)
 
 	if (threshold < BQ2597X_BAT_OCP_BASE)
 		threshold = BQ2597X_BAT_OCP_BASE;
+	else if (threshold > BQ2597X_BAT_OCP_MAX)
+		threshold = BQ2597X_BAT_OCP_MAX;
 
 	val = (threshold - BQ2597X_BAT_OCP_BASE) / BQ2597X_BAT_OCP_LSB;
 
@@ -536,6 +540,8 @@ static int bq2597x_set_batocp_alarm_th(struct bq2597x_charger_info *bq, int thre
 
 	if (threshold < BQ2597X_BAT_OCP_ALM_BASE)
 		threshold = BQ2597X_BAT_OCP_ALM_BASE;
+	else if (threshold > BQ2597X_BAT_OCP_ALM_MAX)
+		threshold = BQ2597X_BAT_OCP_ALM_MAX;
 
 	val = (threshold - BQ2597X_BAT_OCP_ALM_BASE) / BQ2597X_BAT_OCP_ALM_LSB;
 
@@ -666,6 +672,8 @@ static int bq2597x_set_batucp_alarm_th(struct bq2597x_charger_info *bq, int thre
 
 	if (threshold < BQ2597X_BAT_UCP_ALM_BASE)
 		threshold = BQ2597X_BAT_UCP_ALM_BASE;
+	else if (threshold > BQ2597X_BAT_UCP_ALM_MAX)
+		threshold = BQ2597X_BAT_UCP_ALM_MAX;
 
 	val = (threshold - BQ2597X_BAT_UCP_ALM_BASE) / BQ2597X_BAT_UCP_ALM_LSB;
 
@@ -678,19 +686,19 @@ static int bq2597x_set_acovp_th(struct bq2597x_charger_info *bq, int threshold)
 {
 	u8 val;
 
-	if (threshold < BQ2597X_AC_OVP_BASE)
+	if (threshold == BQ2597X_AC_OVP_6P5V) {
+		dev_info(bq->dev, "%s, VAC_OVP set default 6.5V\n", __func__);
+		threshold = BQ2597X_AC_OVP_MAX + BQ2597X_AC_OVP_LSB;
+	} else if (threshold < BQ2597X_AC_OVP_BASE) {
 		threshold = BQ2597X_AC_OVP_BASE;
+	} else if (threshold > BQ2597X_AC_OVP_MAX) {
+		threshold = BQ2597X_AC_OVP_MAX;
+	}
 
-	if (threshold == BQ2597X_AC_OVP_6P5V)
-		val = 0x07;
-	else
-		val = (threshold - BQ2597X_AC_OVP_BASE) /  BQ2597X_AC_OVP_LSB;
-
+	val = (threshold - BQ2597X_AC_OVP_BASE) /  BQ2597X_AC_OVP_LSB;
 	val <<= BQ2597X_AC_OVP_SHIFT;
 
 	return bq2597x_update_bits(bq, BQ2597X_REG_05, BQ2597X_AC_OVP_MASK, val);
-
-
 }
 
 static int bq2597x_set_vdrop_th(struct bq2597x_charger_info *bq, int threshold)
@@ -707,7 +715,6 @@ static int bq2597x_set_vdrop_th(struct bq2597x_charger_info *bq, int threshold)
 	return bq2597x_update_bits(bq, BQ2597X_REG_05,
 				   BQ2597X_VDROP_THRESHOLD_SET_MASK,
 				   val);
-
 }
 
 static int bq2597x_set_vdrop_deglitch(struct bq2597x_charger_info *bq, int us)
@@ -1383,6 +1390,7 @@ static int bq2597x_init_protection(struct bq2597x_charger_info *bq)
 			__func__, bq->cfg->bus_ocp_alm_th, ret);
 
 	ret = bq2597x_set_batucp_alarm_th(bq, bq->cfg->bat_ucp_alm_th);
+	if (ret)
 		dev_err(bq->dev, "%s, failed to set bat ucp th %d, ret = %d\n",
 			__func__, bq->cfg->bat_ucp_alm_th, ret);
 

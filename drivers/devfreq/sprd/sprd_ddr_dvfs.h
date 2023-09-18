@@ -35,7 +35,7 @@ enum DDR_DFS_STATE_STEP {
 	send_freq_request_t,
 };
 
-#define DDR_DB_NODE_NUM 50
+#define DDR_DB_NODE_NUM 32
 #define SCENE_MAX 25
 struct DDR_DFS_STEP_T {
 	enum DDR_DFS_STATE_STEP step;

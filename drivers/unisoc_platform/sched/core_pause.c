@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (C) 2020 Spreadtrum Communications Inc.
+/*
+ * Copyright (c) 2023, Unisoc (shanghai) Technologies Co., Ltd
+ */
 
 #define pr_fmt(fmt)	"core_pause: " fmt
 

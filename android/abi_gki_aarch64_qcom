@@ -426,6 +426,7 @@
   devm_iio_channel_get_all
   devm_iio_device_alloc
   __devm_iio_device_register
+  devm_iio_triggered_buffer_setup_ext
   devm_input_allocate_device
   devm_ioremap
   devm_ioremap_resource
@@ -780,6 +781,10 @@
   geni_se_tx_dma_unprep
   genphy_check_and_restart_aneg
   __genphy_config_aneg
+  genphy_c45_an_config_aneg
+  genphy_c45_check_and_restart_aneg
+  genphy_c45_pma_setup_forced
+  genphy_c45_read_status
   genphy_read_abilities
   genphy_read_lpa
   genphy_read_mmd_unsupported
@@ -1040,9 +1045,11 @@
   iommu_group_get_iommudata
   iommu_group_put
   iommu_group_ref_get
+  iommu_group_remove_device
   iommu_group_set_iommudata
   iommu_iova_to_phys
   iommu_map
+  iommu_map_atomic
   iommu_map_sg
   iommu_present
   iommu_put_dma_cookie
@@ -1583,6 +1590,7 @@
   phy_modify
   phy_modify_changed
   phy_modify_mmd
+  phy_modify_mmd_changed
   phy_modify_paged
   phy_modify_paged_changed
   phy_power_off
@@ -1593,6 +1601,7 @@
   phy_restore_page
   phy_save_page
   phy_select_page
+  phy_set_max_speed
   phy_set_mode_ext
   phy_sfp_attach
   phy_sfp_detach
@@ -1844,6 +1853,13 @@
   regulator_set_mode
   regulator_set_voltage
   regulator_unregister_notifier
+  relay_close
+  relay_file_operations
+  relay_flush
+  relay_open
+  relay_reset
+  relay_subbufs_consumed
+  relay_switch_subbuf
   release_firmware
   __release_region
   release_sock
@@ -1896,6 +1912,7 @@
   rproc_put
   rproc_remove_subdev
   rproc_report_crash
+  rproc_set_firmware
   rproc_shutdown
   rtc_time64_to_tm
   rtc_tm_to_time64

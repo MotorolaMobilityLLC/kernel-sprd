@@ -14,11 +14,12 @@
 #include <dt-bindings/mfd/sprd,sc2730-regs.h>
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include <dt-bindings/usb/pd.h>
+#include "lcd/lcd_nt36528_boe_mipi_hdp.dtsi"
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
 //#include "lcd/lcd_nt36672e_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
-#include "touchscreen/ums9230-spi3-gpio144-145-tp.dtsi"
+#include "touchscreen/ums9230-14c10-spi3-eic16-gpio145-tp.dtsi"
 #include "battery/ums9230-14c10-go-overlay.dtsi"
 #include "reserved-memory/ums9230-14c10-go-overlay.dtsi"
 #include "ums9230/wcn.dtsi"
@@ -38,43 +39,6 @@
 	fragment {
 		target-path = "/";
 		__overlay__ {
-			pwm_backlight: sprd_backlight {
-				compatible = "sprd,sharkl6-backlight";
-				pwms = <&pwms 2 40000>;
-				pwm-names = "backlight";
-				sprd,max-brightness-level = <924>;
-				default-brightness-level = <262>;
-				sprd,brightness-scale = <1023>;
-				brightness-levels = <
-							  0   3   4   5   6   7
-					  8   9  10  11  12  13  14  16  17  18
-					 19  20  21  22  23  24  25  26  27  28
-					 29  31  33  35  37  39  41  43  45  47
-					 48  50  52  54  56  58  60  62  64  67
-					 69  72  74  76  78  80  82  84  86  88
-					 90  92  94  96  98 100 102 104 107 109
-					112 114 116 118 120 122 124 126 128 130
-					132 134 136 138 140 142 144 147 149 151
-					154 156 158 160 162 164 166 168 170 172
-					175 178 181 184 187 190 193 196 199 203
-					205 208 211 214 217 220 223 226 229 234
-					237 240 243 247 250 253 256 259 263 266
-					269 270 274 277 280 283 287 290 294 297
-					300 303 307 310 314 318 325 329 334 339
-					340 343 347 350 354 358 365 369 374 380
-					382 385 389 392 396 400 407 411 416 422
-					426 430 434 438 442 446 452 457 460 464
-					470 474 480 486 492 498 504 508 512 516
-					522 527 532 536 540 545 550 555 561 568
-					574 579 584 589 594 600 605 610 615 620
-					625 630 635 641 647 652 657 662 667 673
-					688 694 700 706 712 716 720 725 730 735
-					740 746 752 758 764 770 776 782 790 798
-					803 810 817 825 832 840 845 850 855 861
-					866 872 878 884 890 896 903 911 918 924
-				>;
-			};
-
 			fingerprint@0 {
 				compatible = "microarray,afs121";
 				fpint-gpios = <&eic_async 29 0>;
@@ -145,32 +109,10 @@
 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama0>;
-		dvdd-gpios = <&ap_gpio 11 0>;
-		vddcammot-supply = <&vddcammot>;
-		reset-gpios = <&ap_gpio 45 0>;
-		power-down-gpios = <&ap_gpio 47 0>;
-		sprd,phyid = <0>;
-		csi = <&csi0>;
-		power-domains = <&mm_domain>;
-	};
-
-	sensor_sub: sensor-sub@5a {
-		compatible = "sprd,sensor-sub";
-		reg = <0x5a>;
-		clock-names = "clk_src","sensor_eb",
-			"clk_96m","clk_76m8",
-			"clk_48m","clk_26m";
-		clocks = <&mm_clk CLK_SENSOR0>,<&mm_gate CLK_MM_SENSOR0_EB>,
-				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
-				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
-		vddio-supply = <&vddcamio>;
-		vddcama-supply = <&vddcama0>;
-		dvdd-gpios = <&ap_gpio 11 0>;
+		vddcamd-supply = <&vddcamd0>;
 		vddcammot-supply = <&vddcammot>;
 		reset-gpios = <&ap_gpio 44 0>;
 		power-down-gpios = <&ap_gpio 46 0>;
-	/*	mipi-switch-en-gpios = <&ap_gpio 55 0>;*/
-	/*	mipi-switch-mode-gpios = <&ap_gpio 8 0>;*/
 		sprd,phyid = <2>;
 		csi = <&csi0>;
 		power-domains = <&mm_domain>;
@@ -183,9 +125,9 @@
 	#address-cells = <1>;
 	#size-cells = <0>;
 
-	sensor_main2: sensor-main2@20 {
-		compatible = "sprd,sensor-main2";
-		reg = <0x20>;
+	sensor_sub: sensor-sub@5a {
+		compatible = "sprd,sensor-sub";
+		reg = <0x5a>;
 		clock-names = "clk_src","sensor_eb",
 			"clk_96m","clk_76m8",
 			"clk_48m","clk_26m";
@@ -194,16 +136,32 @@
 				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama1>;
-		vddcamd-supply = <&vddcamd0>;
-		vddcammot-supply = <&vddcammot>;
-		avdd-gpios = <&ap_gpio 10 0>;
-		mot-gpios = <&ap_gpio 88 0>;
+		vddcamd-supply = <&vddcamd1>;
 		reset-gpios = <&ap_gpio 41 0>;
 		power-down-gpios = <&ap_gpio 40 0>;
-	/*	mipi-switch-en-gpios = <&ap_gpio 55 0>;*/
-	/*	mipi-switch-mode-gpios = <&ap_gpio 8 0>;*/
-		sprd,phyid = <4>;
+		/* mipi-switch-en-gpios = <&ap_gpio 55 0>; */
+		/* mipi-switch-mode-gpios = <&ap_gpio 8 0>; */
+		sprd,phyid = <0>;
 		csi = <&csi1>;
+		power-domains = <&mm_domain>;
+	};
+
+	sensor_main2: sensor-main2@20 {
+		compatible = "sprd,sensor-main2";
+		reg = <0x20>;
+		clock-names = "clk_src","sensor_eb",
+			"clk_96m","clk_76m8",
+			"clk_48m","clk_26m";
+		clocks = <&mm_clk CLK_SENSOR2>,<&mm_gate CLK_MM_SENSOR2_EB>,
+				<&pll1 CLK_TWPLL_96M>,<&pll1 CLK_TWPLL_76M8>,
+				<&pll1 CLK_TWPLL_48M>,<&ext_26m>;
+		vddcama-supply = <&vddcama1>;
+		/* power-down-gpios = <&ap_gpio 47 0>; */
+		fakeserial-gpios = <&ap_gpio 126 0>;
+		/* mipi-switch-en-gpios = <&ap_gpio 55 0>; */
+		/* mipi-switch-mode-gpios = <&ap_gpio 8 0>; */
+		sprd,phyid = <3>;
+		csi = <&csi2>;
 		power-domains = <&mm_domain>;
 	};
 
@@ -214,36 +172,20 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
-	hl1506_cp_converter: charger@1b {
-		compatible = "halo,hl1506_cp_converter";
-		reg = <0x1b>;
-		chg_pump_en_gpio = <&ap_gpio 147 GPIO_ACTIVE_HIGH>;
-	};
-
-	nu1619_rx: charger@61 {
-		compatible = "nuvolta,wl_charger_nu1619";
-		reg = <0x61>;
-		phys = <&hsphy>;
-		rx,irq_gpio = <&ap_gpio 146 GPIO_ACTIVE_LOW>;
-		switch_chg_en_gpio = <&ap_gpio 171 GPIO_ACTIVE_HIGH>;
-		switch_flag_en_gpio = <&ap_gpio 176 GPIO_ACTIVE_HIGH>;
-	};
-
 	flash_ic: flash-ic@63 {
-		compatible = "sprd,flash-ocp8137";
+		compatible = "sprd,flash-ocp81375";
+		flash-ic = <81375>;
 		reg = <0x63>;
-		sprd,flash-ic = <8137>;
-		sprd,torch = <1>;
-		sprd,preflash = <1>;
-		sprd,highlight = <1>;
-		sprd,torch-level = <128>;
-		sprd,preflash-level = <128>;
-		sprd,highlight-level = <128>;
-		sprd,lvfm-enable = <1>;
-		flash-torch-en-gpios = <&ap_gpio 32 0>;
-		flash-chip-en-gpios = <&ap_gpio 138 0>;
-		flash-en-gpios = <&ap_gpio 139 0>;
-		flash-sync-gpios = <&ap_gpio 121 0>;
+		/* flash-idx usage: */
+		/* 1: LED1 used for back, LED2 not installed; */
+		/* 2: LED1 used for front, LED2 not installed; */
+		/* 3: LED1 used for back, LED2 used for front; */
+		/* 4: LED1 used for front, LED2 used for back; */
+		/* 5: LED1 and LED2 used for back; */
+		/* 6: LED1 and LED2 used for front; */
+		/* 7: LED2 used for back, LED1 not installed; */
+		/* 8: LED2 used for front,LED1 not installed; */
+		flash-idx = <4>;
 	};
 };
 
@@ -306,13 +248,6 @@
 		sec-nfc,irq-gpio = <&ap_gpio 62 0>;
 		sec-nfc,clk-req = <&ap_gpio 60 0>;
 	};
-
-	ucp1301_rcv: ucp1301@58 {
-		compatible = "unisoc,ucp1301-rcv";
-		reg = <0x58>;
-		reset-gpios = <&ap_gpio 172 GPIO_ACTIVE_HIGH>;
-		#sound-dai-cells = <1>;
-	};
 };
 
 &i2c3 {
@@ -325,12 +260,6 @@
 	status = "okay";
 	#address-cells = <1>;
 	#size-cells = <0>;
-	ucp1301_spk: ucp1301@58 {
-		compatible = "unisoc,ucp1301-spk";
-		reg = <0x58>;
-		reset-gpios = <&ap_gpio 167 GPIO_ACTIVE_HIGH>;
-		#sound-dai-cells = <1>;
-	};
 
 	stm_vl53l0: vl53l0@52 {
 		compatible = "st,stmvl53l0";
@@ -349,10 +278,6 @@
 
 &sprd_headset {
 	status = "okay";
-	extcon = <&pmic_typec>;
-	mic-gpios = <&ap_gpio 175 GPIO_ACTIVE_HIGH>;
-	lr-gpios = <&ap_gpio 174 GPIO_ACTIVE_HIGH>;
-	sprd,3pole-adc-threshold = <112>;
 };
 
 &pdm_dmic {
@@ -365,86 +290,10 @@
 
 &sound_vbc_v4_sprd_codec {
 	status = "okay";
-	sprd-audio-card,routing =
-		"HPMIC Pin", "HP Mic Jack",
-		"MIC Pin", "Mic Jack",
-		"MIC2 Pin", "Aux Mic Jack",
-		"HeadPhone Jack", "HP Pin",
-		"Ext Spk", "SPK Pin",
-		"UCP1301 SPK ON", "SPK Pin",
-		"Ext Spk", "UCP1301 SPK",
-		"PDM DMIC2 ON", "SPK Pin",
-		"Ext Spk", "PDM_DMIC2",
-		"DMIC Pin", "DMic Jack",
-		"DMIC1 Pin", "DMic1 Jack",
-		"Ext Ear", "EAR Pin",
-		"UCP1301 RCV ON", "EAR Pin",
-		"Ext Ear", "UCP1301 RCV";
 
-	/* 35: ucp1301 normal ap01 */
-	sprd-audio-card,dai-link@53 {
-		ignore-suspend = <1>;
-		link-name = "BE_NORMAL_AP01_UCPSPK";
-		stream-name = "BE_ST_NORMAL_AP01_UCPSPK";
-		no-pcm = <1>;
-		dpcm-playback = <1>;
-		be-id = <0>;
-		dai-format = "i2s";
-		plat {
-			sound-dai = <&sprd_route_pcm>;
-		};
-		cpu {
-			sound-dai = <&vbc_v4 31>;
-		};
-		codec {
-			sound-dai = <&ucp1301_spk 0>;
-		};
-	};
-
-	/*
-	 * node 54 and node 55 (index 36 and 37) are reserved for
-	 * "ucp1301-spk2" and "ucp1301-rcv"
-	 * nodes from 56 to 67 (index from 38 to 49) are used by HIFI
-	 */
-	/* 37: ucp1301 normal ap01 rcv */
-	sprd-audio-card,dai-link@55 {
-		ignore-suspend = <1>;
-		link-name = "BE_NORMAL_AP01_UCPRCV";
-		stream-name = "BE_ST_NORMAL_AP01_UCPRCV";
-		no-pcm = <1>;
-		dpcm-playback = <1>;
-		be-id = <0>;
-		dai-format = "i2s";
-		plat {
-			sound-dai = <&sprd_route_pcm>;
-		};
-		cpu {
-			sound-dai = <&vbc_v4 31>;
-		};
-		codec {
-			sound-dai = <&ucp1301_rcv 0>;
-		};
-	};
-
-	/* 63: pdm dmic */
-	sprd-audio-card,dai-link@81 {
-		ignore-suspend = <1>;
-		link-name = "BE_PDM_DMIC";
-		stream-name = "BE_ST_PDM_DMIC";
-		no-pcm = <1>;
-		dpcm-capture = <1>;
-		be-id = <0>;
-		//dai-format = "i2s";
-		plat {
-			sound-dai = <&sprd_route_pcm>;
-		};
-		cpu {
-			sound-dai = <&vbc_v4 31>;
-		};
-		codec {
-			sound-dai = <&pdm_dmic 0>;
-		};
-	};
+	/* ext_control_type, hook selection, mode, gpio share */
+	sprd,spk-ext-pa-info = <0 0 2 0>;
+	sprd,spk-ext-pa-gpio = <&ap_gpio 113 GPIO_ACTIVE_HIGH>;
 };
 
 &vddldo0 {
@@ -452,16 +301,16 @@
 };
 
 &panel {
-	sprd,backlight = <&pwm_backlight>;
-	avdd-gpio = <&ap_gpio 135 GPIO_ACTIVE_HIGH>;
-	avee-gpio = <&ap_gpio 136 GPIO_ACTIVE_HIGH>;
+	//sprd,backlight = <&pwm_backlight>;
+	avdd-gpio = <&ap_gpio 54 GPIO_ACTIVE_HIGH>;
+	avee-gpio = <&ap_gpio 55 GPIO_ACTIVE_HIGH>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;
 };
 
 &dpu {
 	sprd,logo-memory = <&logo_reserved>;
 
-	sprd,backlight = <&pwm_backlight>;
+	//sprd,backlight = <&pwm_backlight>;
 };
 
 &lcd_g40396_truly_mipi_fhd {
@@ -550,4 +399,16 @@
 	sprd,hw-channels1 = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
 			<17 0x1844>, <19 0x1844>, <21 0x1864>, <30 0x1820>,
 			<32 0x197c>, <33 0x1988>, <35 0x19b8>, <39 0x19ac>;
+};
+
+&thm_zone {
+	pa_thmzone: pa-thmzone {
+		status = "disabled";
+	};
+};
+
+&thm_zone {
+	chg_thmzone: chg-thmzone {
+		status = "disabled";
+	};
 };

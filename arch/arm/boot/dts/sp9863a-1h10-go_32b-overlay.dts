@@ -530,10 +530,6 @@
 	fgu-capacity-track;
 	phys = <&hsphy>;
 
-	sprd,relax-counter-threshold = <580>;
-	sprd,relax-current-threshold = <30>;
-	sprd,capacity-sleep-calibration;
-
 	sprd,capacity-boot-calibration;
 	sprd,capacity-charge-cycle;
 	sprd,basp;

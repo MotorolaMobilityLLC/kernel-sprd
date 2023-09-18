@@ -32,8 +32,10 @@ int sfp_sync_with_nfl_ct(const struct nf_conntrack_tuple *tuple)
 
 	ct = nf_ct_tuplehash_to_ctrack(h);
 
-	if (!ct)
+	if (!ct) {
+		nf_ct_put(ct);
 		return 0;
+	}
 
 	nf_ct_put(ct);
 	return 0;

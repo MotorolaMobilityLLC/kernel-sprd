@@ -55,7 +55,7 @@
 #define BQ2560X_REG_CHG_SHIFT			4
 
 
-#define BQ2560X_REG_RESET_MASK			GENMASK(6, 6)
+#define BQ2560X_REG_WD_RST_MASK			GENMASK(6, 6)
 
 #define BQ2560X_REG_OTG_MASK			GENMASK(5, 5)
 #define BQ2560X_REG_BOOST_FAULT_MASK		GENMASK(6, 6)
@@ -434,14 +434,6 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		sprd_battery_put_battery_info(info->psy_usb, &bat_info);
 	}
 
-	ret = bq2560x_update_bits(info, BQ2560X_REG_B,
-				  BQ2560X_REG_RESET_MASK,
-				  BQ2560X_REG_RESET_MASK);
-	if (ret) {
-		dev_err(info->dev, "reset bq2560x failed\n");
-		return ret;
-	}
-
 	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
 		ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_6V);
 		if (ret) {
@@ -767,8 +759,8 @@ static int bq2560x_charger_feed_watchdog(struct bq2560x_charger_info *info)
 	u64 duration, curr = ktime_to_ms(ktime_get());
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_1,
-				  BQ2560X_REG_RESET_MASK,
-				  BQ2560X_REG_RESET_MASK);
+				  BQ2560X_REG_WD_RST_MASK,
+				  BQ2560X_REG_WD_RST_MASK);
 	if (ret) {
 		dev_err(info->dev, "reset bq2560x failed\n");
 		return ret;
@@ -1967,6 +1959,7 @@ err_psy_usb:
 	if (info->irq_gpio)
 		gpio_free(info->irq_gpio);
 err_regmap_exit:
+	mutex_destroy(&info->input_limit_cur_lock);
 	mutex_destroy(&info->lock);
 	return ret;
 }
@@ -2006,6 +1999,9 @@ static int bq2560x_charger_remove(struct i2c_client *client)
 
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
+
+	mutex_destroy(&info->input_limit_cur_lock);
+	mutex_destroy(&info->lock);
 
 	return 0;
 }

@@ -450,6 +450,8 @@ static int upm6710_set_batovp_th(struct upm6710_charger_info *upm, int threshold
 
 	if (threshold < UPM6710_BAT_OVP_BASE)
 		threshold = UPM6710_BAT_OVP_BASE;
+	else if (threshold > UPM6710_BAT_OVP_MAX)
+		threshold = UPM6710_BAT_OVP_MAX;
 
 	val = (threshold - UPM6710_BAT_OVP_BASE) / UPM6710_BAT_OVP_LSB;
 
@@ -506,6 +508,8 @@ static int upm6710_set_batocp_th(struct upm6710_charger_info *upm, int threshold
 
 	if (threshold < UPM6710_BAT_OCP_BASE)
 		threshold = UPM6710_BAT_OCP_BASE;
+	else if (threshold > UPM6710_BAT_OCP_MAX)
+		threshold = UPM6710_BAT_OCP_MAX;
 
 	val = (threshold - UPM6710_BAT_OCP_BASE) / UPM6710_BAT_OCP_LSB;
 
@@ -535,6 +539,8 @@ static int upm6710_set_batocp_alarm_th(struct upm6710_charger_info *upm, int thr
 
 	if (threshold < UPM6710_BAT_OCP_ALM_BASE)
 		threshold = UPM6710_BAT_OCP_ALM_BASE;
+	else if (threshold > UPM6710_BAT_OCP_ALM_MAX)
+		threshold = UPM6710_BAT_OCP_ALM_MAX;
 
 	val = (threshold - UPM6710_BAT_OCP_ALM_BASE) / UPM6710_BAT_OCP_ALM_LSB;
 
@@ -665,6 +671,8 @@ static int upm6710_set_batucp_alarm_th(struct upm6710_charger_info *upm, int thr
 
 	if (threshold < UPM6710_BAT_UCP_ALM_BASE)
 		threshold = UPM6710_BAT_UCP_ALM_BASE;
+	else if (threshold > UPM6710_BAT_UCP_ALM_MAX)
+		threshold = UPM6710_BAT_UCP_ALM_MAX;
 
 	val = (threshold - UPM6710_BAT_UCP_ALM_BASE) / UPM6710_BAT_UCP_ALM_LSB;
 
@@ -677,19 +685,19 @@ static int upm6710_set_acovp_th(struct upm6710_charger_info *upm, int threshold)
 {
 	u8 val;
 
-	if (threshold < UPM6710_AC_OVP_BASE)
+	if (threshold == UPM6710_AC_OVP_6P5V) {
+		dev_info(upm->dev, "%s, VAC_OVP set default 6.5V\n", __func__);
+		threshold = UPM6710_AC_OVP_MAX + UPM6710_AC_OVP_LSB;
+	} else if (threshold < UPM6710_AC_OVP_BASE) {
 		threshold = UPM6710_AC_OVP_BASE;
+	} else if (threshold > UPM6710_AC_OVP_MAX) {
+		threshold = UPM6710_AC_OVP_MAX;
+	}
 
-	if (threshold == UPM6710_AC_OVP_6P5V)
-		val = 0x07;
-	else
-		val = (threshold - UPM6710_AC_OVP_BASE) /  UPM6710_AC_OVP_LSB;
-
+	val = (threshold - UPM6710_AC_OVP_BASE) /  UPM6710_AC_OVP_LSB;
 	val <<= UPM6710_AC_OVP_SHIFT;
 
 	return upm6710_update_bits(upm, UPM6710_REG_05, UPM6710_AC_OVP_MASK, val);
-
-
 }
 
 static int upm6710_set_vdrop_th(struct upm6710_charger_info *upm, int threshold)
@@ -706,7 +714,6 @@ static int upm6710_set_vdrop_th(struct upm6710_charger_info *upm, int threshold)
 	return upm6710_update_bits(upm, UPM6710_REG_05,
 				   UPM6710_VDROP_THRESHOLD_SET_MASK,
 				   val);
-
 }
 
 static int upm6710_set_vdrop_deglitch(struct upm6710_charger_info *upm, int us)

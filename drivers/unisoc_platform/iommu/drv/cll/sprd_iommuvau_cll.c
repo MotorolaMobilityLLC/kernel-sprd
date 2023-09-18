@@ -65,15 +65,7 @@ u32 sprd_iommuvau_cll_init(struct sprd_iommu_init_param *p_init_param,
 	pagt_size = (p_iommu_priv->vpn_range / MMU_MAPING_PAGESIZE) * 4;
 	p_iommu_priv->pagt_base_phy_ddr = p_init_param->pagt_base_ddr;
 	p_iommu_priv->pagt_ddr_size = p_init_param->pagt_ddr_size;
-
-	if (p_init_param->pagt_base_virt > 0) {
-		p_iommu_priv->pagt_base_ddr = p_init_param->pagt_base_virt;
-	} else {
-		p_iommu_priv->pagt_base_ddr =
-			(ulong)ioremap(p_iommu_priv->pagt_base_phy_ddr,
-					       p_iommu_priv->pagt_ddr_size);
-	}
-
+	p_iommu_priv->pagt_base_ddr = p_init_param->pagt_base_virt;
 	p_iommu_priv->pgt_size = pagt_size;
 	p_iommu_priv->ppn_base_addr = p_iommu_priv->pagt_base_ddr;
 
@@ -155,10 +147,6 @@ u32 sprd_iommuvau_cll_uninit(sprd_iommu_hdl  p_iommu_hdl)
 	}
 
 	mmu_vau_enable(p_iommu_priv->mmu_reg_addr, iommu_id, 0);
-	if (p_iommu_priv->pagt_base_phy_ddr > 0)
-		iounmap((void __iomem *)p_iommu_priv->pagt_base_ddr);
-	else
-		sprd_free((void *)p_iommu_priv->ppn_base_addr);
 
 	p_iommu_priv->ppn_base_addr = 0;
 

@@ -47,7 +47,7 @@ struct sprd_hsphy {
 	atomic_t		reset;
 	atomic_t		inited;
 	bool			is_host;
-
+	bool			shutdown;
 	struct iio_channel	*dp;
 	struct iio_channel	*dm;
 };
@@ -72,6 +72,9 @@ struct sprd_hsphy {
 static void sprd_hsphy_charger_detect_work(struct work_struct *work)
 {
 	struct sprd_hsphy *phy = container_of(work, struct sprd_hsphy, work);
+
+	if (phy->shutdown)
+		return;
 
 	__pm_stay_awake(phy->wake_lock);
 	if (phy->event)
@@ -302,6 +305,9 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 	struct sprd_hsphy *phy = container_of(usb_phy, struct sprd_hsphy, phy);
 	u32 reg, msk;
 
+	if (phy->shutdown)
+		return 0;
+
 	if (phy->is_host) {
 		dev_info(phy->dev, "USB PHY is host mode\n");
 		return 0;
@@ -452,6 +458,9 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	int dm_voltage, dp_voltage;
 	int cnt = 20;
 
+	if (phy->shutdown)
+		return UNKNOWN_TYPE;
+
 	if (!phy->dm || !phy->dp) {
 		phy->dp = devm_iio_channel_get(x->dev, "dp");
 		phy->dm = devm_iio_channel_get(x->dev, "dm");
@@ -475,6 +484,9 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	dp_voltage = sc2730_voltage_cali(dp_voltage);
 	if (dp_voltage > VOLT_LO_LIMIT) {
 		do {
+			if (phy->shutdown)
+				return UNKNOWN_TYPE;
+
 			iio_read_channel_processed(phy->dm, &dm_voltage);
 			dm_voltage = sc2730_voltage_cali(dm_voltage);
 			if (dm_voltage > VOLT_LO_LIMIT) {
@@ -675,6 +687,8 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	if (ret)
 		dev_warn(dev, "failed to create usb hsphy attributes\n");
 
+	phy->shutdown = false;
+
 	if (extcon_get_state(phy->phy.edev, EXTCON_USB) > 0)
 		sprd_usb_changed(&phy->bc1p2_info, USB_CHARGER_PRESENT);
 
@@ -701,6 +715,15 @@ static int sprd_hsphy_remove(struct platform_device *pdev)
 	return 0;
 }
 
+static void sprd_hsphy_drshutdown(struct platform_device *pdev)
+{
+	struct sprd_hsphy *phy = platform_get_drvdata(pdev);
+
+	phy->shutdown = true;
+	cancel_work_sync(&phy->work);
+	usb_shutdown_bc1p2(&phy->bc1p2_info);
+}
+
 static const struct of_device_id sprd_hsphy_match[] = {
 	{ .compatible = "sprd,sharkl5-phy" },
 	{},
@@ -711,6 +734,7 @@ MODULE_DEVICE_TABLE(of, sprd_hsphy_match);
 static struct platform_driver sprd_hsphy_driver = {
 	.probe = sprd_hsphy_probe,
 	.remove = sprd_hsphy_remove,
+	.shutdown = sprd_hsphy_drshutdown,
 	.driver = {
 		.name = "sprd-hsphy",
 		.of_match_table = sprd_hsphy_match,

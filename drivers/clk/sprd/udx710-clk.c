@@ -72,7 +72,7 @@ static struct sprd_reset_map udx710_pmu_apb_resets[] = {
 static struct sprd_clk_desc udx710_pmu_gate_desc = {
 	.clk_clks	= udx710_pmu_gate_clks,
 	.num_clk_clks	= ARRAY_SIZE(udx710_pmu_gate_clks),
-	.hw_clks        = &udx710_pmu_gate_hws,
+	.hw_clks	= &udx710_pmu_gate_hws,
 	.resets		= udx710_pmu_apb_resets,
 	.num_resets	= ARRAY_SIZE(udx710_pmu_apb_resets),
 };
@@ -1917,11 +1917,11 @@ static struct sprd_reset_map udx710_spahb_resets[] = {
 };
 
 static const struct sprd_clk_desc udx710_spahb_gate_desc = {
-	.clk_clks	 = udx710_spahb_gate,
-	.num_clk_clks	 = ARRAY_SIZE(udx710_spahb_gate),
-	.hw_clks	 = &udx710_spahb_gate_hws,
-	.resets		 = udx710_spahb_resets,
-	.num_resets	 = ARRAY_SIZE(udx710_spahb_resets),
+	.clk_clks	= udx710_spahb_gate,
+	.num_clk_clks	= ARRAY_SIZE(udx710_spahb_gate),
+	.hw_clks	= &udx710_spahb_gate_hws,
+	.resets		= udx710_spahb_resets,
+	.num_resets	= ARRAY_SIZE(udx710_spahb_resets),
 };
 
 static const struct of_device_id sprd_udx710_clk_ids[] = {
@@ -1970,6 +1970,7 @@ static int udx710_clk_probe(struct platform_device *pdev)
 		if (!reset)
 			return -ENOMEM;
 
+		spin_lock_init(&reset->lock);
 		reset->rcdev.of_node = pdev->dev.of_node;
 		reset->rcdev.ops = &sprd_sc_reset_ops;
 		reset->rcdev.nr_resets = desc->num_resets;

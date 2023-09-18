@@ -75,6 +75,7 @@
 
 				wlan {
 					compatible = "sprd,sc2355-sdio-wifi";
+					enable-n79;
 				};
 
 				gnss {
@@ -271,6 +272,10 @@
 };
 
 &vddsim1 {
+	status = "disabled";
+};
+
+&vddgpu {
 	status = "disabled";
 };
 

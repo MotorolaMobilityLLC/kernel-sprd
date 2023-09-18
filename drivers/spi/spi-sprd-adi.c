@@ -449,18 +449,6 @@ static int sprd_adi_transfer_one(struct spi_controller *ctlr,
 	return ret;
 }
 
-static void sprd_adi_set_wdt_rst_mode(struct sprd_adi *sadi)
-{
-#if IS_ENABLED(CONFIG_SPRD_WATCHDOG) || IS_ENABLED(CONFIG_SPRD_WATCHDOG_FIQ)
-	u32 val;
-
-	/* Init watchdog reset mode */
-	sprd_adi_read(sadi, sadi->data->rst_sts, &val);
-	val |= HWRST_STATUS_WATCHDOG;
-	sprd_adi_write(sadi, sadi->data->rst_sts, val);
-#endif
-}
-
 static int sprd_adi_restart_handler(struct notifier_block *this, unsigned long mode,
 				  void *cmd)
 {
@@ -677,7 +665,6 @@ static int sprd_adi_probe(struct platform_device *pdev)
 
 	sprd_adi_hw_init(sadi);
 	adi_get_panic_reason_init();
-	sprd_adi_set_wdt_rst_mode(sadi);
 
 	ctlr->dev.of_node = pdev->dev.of_node;
 	ctlr->bus_num = pdev->id;

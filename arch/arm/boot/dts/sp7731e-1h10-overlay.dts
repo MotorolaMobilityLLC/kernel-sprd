@@ -518,7 +518,6 @@
 	first-calib-voltage = <3600000>;
 	first-calib-capacity = <50>;
 
-	sprd,capacity-sleep-calibration;
 	sprd,capacity-boot-calibration;
 
 	fgu-capacity-track;

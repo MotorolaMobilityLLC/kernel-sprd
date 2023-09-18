@@ -98,11 +98,13 @@ DTC_BIN=${ROOT_DIR}/build/kernel/build-tools/path/linux-x86/dtc
 CLANG_BIN=${ROOT_DIR}/prebuilts/clang/host/linux-x86/clang-${CLANG_VERSION}/bin
 merge_check=$(git --git-dir=${MAIN_SCRIPT_DIR}/.git log -1 --pretty=short|grep "^Merge:")
 set -e
-sprd_branch="korg/sprdlinux5.15"
-aosp_branch="korg/android13-5.15"
+sprd_branch=${sprd_branch:-"korg/sprdlinux5.15"}
+aosp_branch=${aosp_branch:-"korg/android13-5.15"}
 patch_file=$(git --git-dir=${MAIN_SCRIPT_DIR}/.git log -1 --pretty="format:" --name-only --diff-filter=AMCR)
 patch_commit=$(git --git-dir=${MAIN_SCRIPT_DIR}/.git log -1 --pretty="format:%H")
 aosp_commit=$(git --git-dir=${MAIN_SCRIPT_DIR}/.git merge-base ${sprd_branch} ${aosp_branch})
+echo sprd_branch:$sprd_branch  aosp_branch:$aosp_branch
+echo base_commit:$aosp_commit
 set +e
 
 # set the common sysroot

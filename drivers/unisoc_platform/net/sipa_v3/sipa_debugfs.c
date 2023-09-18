@@ -400,7 +400,9 @@ int sipa_init_debugfs(struct sipa_plat_drv_cfg *ipa)
 		goto err1;
 	}
 
+#ifdef CONFIG_DEBUG_FS
 	ipa->debugfs_root = root;
+#endif
 
 	ret = sipa_test_init(ipa);
 	if (ret)

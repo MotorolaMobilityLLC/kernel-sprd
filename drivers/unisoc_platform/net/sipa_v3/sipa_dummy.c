@@ -740,8 +740,10 @@ static ssize_t sipa_dummy_affinity_write(struct file *filp,
 	ipa->cpu_num = val;
 	ipa->cpu_num_ano = val;
 
-	if (!cpu_online(ipa->cpu_num))
+	if (!cpu_online(ipa->cpu_num)) {
+		pm_relax(ipa->dev);
 		return -EINVAL;
+	}
 
 	pr_info("set fifo 0 to cpu %lu\n", val);
 	sipa_hal_config_irq_affinity(0, ipa->cpu_num);

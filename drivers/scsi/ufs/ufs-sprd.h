@@ -32,6 +32,8 @@ struct ufs_sprd_host {
 	bool debug_en;
 	/* Panic when UFS encounters an error. */
 	bool err_panic;
+	/* Set when entering calibration mode. */
+	bool cali_mode_enable;
 
 	struct completion pwm_async_done;
 	struct completion hs_async_done;
@@ -103,6 +105,7 @@ int ufs_sprd_get_syscon_reg(struct device_node *np,
 void ufs_sprd_get_gic_reg(struct ufs_hba *hba);
 void ufs_sprd_print_gic_reg(struct ufs_hba *hba);
 void ufs_sprd_uic_cmd_record(struct ufs_hba *hba, struct uic_command *ucmd, int str);
+int get_boot_mode(struct ufs_hba *hba);
 
 extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops;
 extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops;

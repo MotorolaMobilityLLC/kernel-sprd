@@ -326,6 +326,7 @@
 	no-sdio;
 	no-sd;
 	status = "okay";
+	supports-swcq;
 };
 
 &adi_bus {

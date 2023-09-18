@@ -6,7 +6,7 @@
  * Copyright (C) 2019 Linaro, Inc.
  * Author: Baolin Wang <baolin.wang@linaro.org>
  */
-
+//This file has been modified by Unisoc (Shanghai) Technologies Co., Ltd in 2023.
 #include <linux/mmc/card.h>
 #include <linux/mmc/host.h>
 #include <linux/module.h>
@@ -44,14 +44,25 @@ static void mmc_hsq_pump_requests(struct mmc_hsq *hsq)
 
 	slot = &hsq->slot[hsq->next_tag];
 	hsq->mrq = slot->mrq;
+#ifdef CONFIG_SPRD_DEBUG
+	hsq->stamp2 = ktime_get_ns();
+	if (!slot->mrq)
+		panic("slot->mrq = null\n");
+#endif
 	hsq->qcnt--;
 
 	spin_unlock_irqrestore(&hsq->lock, flags);
 
 	if (mmc->ops->request_atomic)
 		ret = mmc->ops->request_atomic(mmc, hsq->mrq);
-	else
+	else {
+#ifdef CONFIG_SPRD_DEBUG
+		if (!hsq->mrq)
+			panic("hsq->mrq = null, s1: %lld, s1_temp: %lld, s2: %lld\n",
+			      hsq->stamp1, hsq->stamp1_temp, hsq->stamp2);
+#endif
 		mmc->ops->request(mmc, hsq->mrq);
+	}
 
 	/*
 	 * If returning BUSY from request_atomic(), which means the card
@@ -84,6 +95,13 @@ static void mmc_hsq_update_next_tag(struct mmc_hsq *hsq, int remains)
 
 	tag = hsq->tag_slot[hsq->next_tag];
 	hsq->tag_slot[hsq->next_tag] = HSQ_INVALID_TAG;
+#ifdef CONFIG_SPRD_DEBUG
+	if (tag == HSQ_INVALID_TAG) {
+		panic("mmc qcnt:%d, tail:%d, remains:%d, next:%d\n",
+				hsq->qcnt, hsq->tail_tag, remains, hsq->next_tag);
+	}
+	hsq->old_next_tag = tag;
+#endif
 	hsq->next_tag = tag;
 }
 
@@ -95,6 +113,10 @@ static void mmc_hsq_post_request(struct mmc_hsq *hsq)
 	spin_lock_irqsave(&hsq->lock, flags);
 
 	remains = hsq->qcnt;
+#ifdef CONFIG_SPRD_DEBUG
+	hsq->stamp1_temp = hsq->stamp1;
+	hsq->stamp1 = ktime_get_ns();
+#endif
 	hsq->mrq = NULL;
 
 	/* Update the next available tag to be queued. */
@@ -188,6 +210,22 @@ static void mmc_hsq_recovery_finish(struct mmc_host *mmc)
 		mmc_hsq_pump_requests(hsq);
 }
 
+#ifdef CONFIG_SPRD_DEBUG
+static void mmc_hsq_record_tag(struct mmc_host *mmc, int tag)
+{
+	struct mmc_hsq *hsq = mmc->cqe_private;
+
+	hsq->record[hsq->record_end] = tag;
+
+	hsq->record_end++;
+
+	if (hsq->record_end == HSQ_NUM_SLOTS)
+		hsq->record_end = 0;
+
+	hsq->record[hsq->record_end] = 0xFF;
+}
+#endif
+
 static int mmc_hsq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 {
 	struct mmc_hsq *hsq = mmc->cqe_private;
@@ -207,6 +245,12 @@ static int mmc_hsq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	}
 
 	hsq->slot[tag].mrq = mrq;
+#ifdef CONFIG_SPRD_DEBUG
+	mmc_hsq_record_tag(mmc, tag);
+	hsq->slot[tag].time = sched_clock();
+	hsq->slot[tag].pre_next_tag = hsq->next_tag;
+	hsq->slot[tag].pre_tail_tag = hsq->tail_tag;
+#endif
 
 	/*
 	 * Set the next tag as current request tag if no available
@@ -220,6 +264,14 @@ static int mmc_hsq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 		hsq->tag_slot[hsq->tail_tag] = tag;
 		hsq->tail_tag = tag;
 	}
+
+#ifdef CONFIG_SPRD_DEBUG
+	hsq->slot[tag].post_next_tag = hsq->next_tag;
+	hsq->slot[tag].post_tail_tag = hsq->tail_tag;
+
+	if (!hsq->slot[tag].mrq)
+		panic("hsq->slot[tag].mrq = null\n");
+#endif
 
 	hsq->qcnt++;
 
@@ -328,6 +380,9 @@ int mmc_hsq_init(struct mmc_hsq *hsq, struct mmc_host *mmc)
 	hsq->num_slots = HSQ_NUM_SLOTS;
 	hsq->next_tag = HSQ_INVALID_TAG;
 	hsq->tail_tag = HSQ_INVALID_TAG;
+#ifdef CONFIG_SPRD_DEBUG
+	hsq->record_end = 0;
+#endif
 
 	hsq->slot = devm_kcalloc(mmc_dev(mmc), hsq->num_slots,
 				 sizeof(struct hsq_slot), GFP_KERNEL);

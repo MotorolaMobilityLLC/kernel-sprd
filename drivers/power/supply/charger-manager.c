@@ -10,6 +10,8 @@
  *
 **/
 
+//This file has been modified by Unisoc (Shanghai) Technologies Co., Ltd in 2023.
+
 #define pr_fmt(fmt) KBUILD_MODNAME ": " fmt
 
 #include <linux/io.h>
@@ -125,13 +127,17 @@
 #define CM_CHARGER_TYPE_WORK_TIME_MS		500
 #define CM_CHARGER_TYPE_TIME_OUT_CNT		20
 
-#define CM_CAP_ONE_TIME_24S			24
-#define CM_CAP_ONE_TIME_20S			20
 #define CM_CAP_ONE_TIME_16S			16
+#define CM_CAP_ONE_TIME_8S			8
+#define CM_CAP_ONE_TIME_4S			4
 #define CM_CAP_CYCLE_TRACK_TIME_15S		15
-#define CM_CAP_CYCLE_TRACK_TIME_12S		12
-#define CM_CAP_CYCLE_TRACK_TIME_10S		10
 #define CM_CAP_CYCLE_TRACK_TIME_8S		8
+#define CM_CAP_CYCLE_TRACK_TIME_4S		4
+#define CM_CAP_CYCLE_TRACK_TIME_2S		2
+#define CM_CAP_CALC_BATT_WORKS_LOW_TEMP		50
+#define CM_CAP_CALC_BATT_WORKS_LOW_CAP		50
+#define CM_CAP_CALC_BATT_WORKS_BIG_CUR_UA	3000000
+#define CM_CAP_CALC_BATT_WORKS_SOC_GAP		50
 #define CM_INIT_BOARD_TEMP			250
 
 /* Google limit power transfer support */
@@ -217,125 +223,21 @@ static bool cm_charger_is_support_fchg(struct charger_manager *cm);
 static int cm_get_battery_temperature(struct charger_manager *cm, int *temp);
 static bool cm_pd_is_ac_online(struct charger_manager *cm);
 
-static void cm_cap_remap_init_boundary(struct charger_desc *desc, int index, struct device *dev)
-{
-
-	if (index == 0) {
-		desc->cap_remap_table[index].lb = (desc->cap_remap_table[index].lcap) * 1000;
-		desc->cap_remap_total_cnt = desc->cap_remap_table[index].lcap;
-	} else {
-		desc->cap_remap_table[index].lb = desc->cap_remap_table[index - 1].hb +
-			(desc->cap_remap_table[index].lcap -
-			 desc->cap_remap_table[index - 1].hcap) * 1000;
-		desc->cap_remap_total_cnt += (desc->cap_remap_table[index].lcap -
-					      desc->cap_remap_table[index - 1].hcap);
-	}
-
-	desc->cap_remap_table[index].hb = desc->cap_remap_table[index].lb +
-		(desc->cap_remap_table[index].hcap - desc->cap_remap_table[index].lcap) *
-		desc->cap_remap_table[index].cnt * 1000;
-
-	desc->cap_remap_total_cnt +=
-		(desc->cap_remap_table[index].hcap - desc->cap_remap_table[index].lcap) *
-		desc->cap_remap_table[index].cnt;
-
-	dev_dbg(dev, "%s, cap_remap_table[%d].lb =%d,cap_remap_table[%d].hb = %d\n",
-		 __func__, index, desc->cap_remap_table[index].lb, index,
-		 desc->cap_remap_table[index].hb);
-}
-
 /*
- * cm_capacity_remap - remap fuel_cap
+ * cm_cap_advance_full - capacity value are
+ * reported in advance based on percentage
  * @ fuel_cap: cap from fuel gauge
- * Return the remapped cap
+ * Return the fuel cap
  */
-static int cm_capacity_remap(struct charger_manager *cm, int fuel_cap)
+static int cm_cap_advance_full(struct charger_manager *cm, int fuel_cap)
 {
-	int i, temp, cap = 0;
-
 	if (cm->desc->cap_remap_full_percent) {
 		fuel_cap = fuel_cap * 100 / cm->desc->cap_remap_full_percent;
 		if (fuel_cap > CM_CAP_FULL_PERCENT)
 			fuel_cap  = CM_CAP_FULL_PERCENT;
 	}
 
-	if (!cm->desc->cap_remap_table)
-		return fuel_cap;
-
-	if (fuel_cap < 0) {
-		fuel_cap = 0;
-		return 0;
-	} else if (fuel_cap >  CM_CAP_FULL_PERCENT) {
-		fuel_cap  = CM_CAP_FULL_PERCENT;
-		return fuel_cap;
-	}
-
-	temp = fuel_cap * cm->desc->cap_remap_total_cnt;
-
-	for (i = 0; i < cm->desc->cap_remap_table_len; i++) {
-		if (temp <= cm->desc->cap_remap_table[i].lb) {
-			if (i == 0)
-				cap = DIV_ROUND_CLOSEST(temp, 100);
-			else
-				cap = DIV_ROUND_CLOSEST((temp -
-					cm->desc->cap_remap_table[i - 1].hb), 100) +
-					cm->desc->cap_remap_table[i - 1].hcap * 10;
-			break;
-		} else if (temp <= cm->desc->cap_remap_table[i].hb) {
-			cap = DIV_ROUND_CLOSEST((temp - cm->desc->cap_remap_table[i].lb),
-						cm->desc->cap_remap_table[i].cnt * 100)
-				+ cm->desc->cap_remap_table[i].lcap * 10;
-			break;
-		}
-
-		if (i == cm->desc->cap_remap_table_len - 1 && temp > cm->desc->cap_remap_table[i].hb)
-			cap = DIV_ROUND_CLOSEST((temp - cm->desc->cap_remap_table[i].hb), 100)
-				+ cm->desc->cap_remap_table[i].hcap;
-
-	}
-
-	return cap;
-}
-
-static int cm_init_cap_remap_table(struct charger_desc *desc, struct device *dev)
-{
-
-	struct device_node *np = dev->of_node;
-	const __be32 *list;
-	int i, size;
-
-	list = of_get_property(np, "cm-cap-remap-table", &size);
-	if (!list || !size) {
-		dev_err(dev, "%s  get cm-cap-remap-table fail\n", __func__);
-		return 0;
-	}
-	desc->cap_remap_table_len = (u32)size / (3 * sizeof(__be32));
-	desc->cap_remap_table = devm_kzalloc(dev, sizeof(struct cap_remap_table) *
-				(desc->cap_remap_table_len + 1), GFP_KERNEL);
-	if (!desc->cap_remap_table) {
-		dev_err(dev, "%s, get cap_remap_table fail\n", __func__);
-		return -ENOMEM;
-	}
-	for (i = 0; i < desc->cap_remap_table_len; i++) {
-		desc->cap_remap_table[i].lcap = be32_to_cpu(*list++);
-		desc->cap_remap_table[i].hcap = be32_to_cpu(*list++);
-		desc->cap_remap_table[i].cnt = be32_to_cpu(*list++);
-
-		cm_cap_remap_init_boundary(desc, i, dev);
-
-		dev_dbg(dev, "cap_remap_table[%d].lcap= %d,cap_remap_table[%d].hcap = %d,"
-			 "cap_remap_table[%d].cnt= %d\n", i, desc->cap_remap_table[i].lcap,
-			 i, desc->cap_remap_table[i].hcap, i, desc->cap_remap_table[i].cnt);
-	}
-
-	if (desc->cap_remap_table[desc->cap_remap_table_len - 1].hcap != 100)
-		desc->cap_remap_total_cnt +=
-			(100 - desc->cap_remap_table[desc->cap_remap_table_len - 1].hcap);
-
-	dev_dbg(dev, "cap_remap_total_cnt =%d, cap_remap_table_len = %d\n",
-		 desc->cap_remap_total_cnt, desc->cap_remap_table_len);
-
-	return 0;
+	return fuel_cap;
 }
 
 /**
@@ -2530,7 +2432,8 @@ static bool cm_is_need_start_fixed_fchg(struct charger_manager *cm)
 {
 	bool need = false;
 
-	if (!cm->fchg_info->support_fchg || cm->desc->fixed_fchg_running)
+	if (!cm->desc->support_fixed_fchg || !cm->fchg_info->support_fchg
+	    || cm->desc->fixed_fchg_running)
 		return false;
 
 	cm_charger_is_support_fchg(cm);
@@ -2714,7 +2617,7 @@ static void cm_enable_fixed_fchg_handshake(struct charger_manager *cm, bool enab
 		return;
 	}
 
-	if (!cm->fchg_info->support_fchg)
+	if (!cm->desc->support_fixed_fchg || !cm->fchg_info->support_fchg)
 		return;
 
 	if (enable && !cm->desc->is_fast_charge &&
@@ -3838,7 +3741,8 @@ static bool cm_is_need_start_cp(struct charger_manager *cm)
 	bool need = false;
 	int ret;
 
-	if (!cm->desc->psy_cp_stat || cm->desc->cp.cp_running || cm->desc->force_pps_diasbled ||
+	if (!cm->desc->support_adaptive_fchg || !cm->desc->psy_cp_stat ||
+	    cm->desc->cp.cp_running || cm->desc->force_pps_diasbled ||
 	    cm->desc->fast_charger_type != CM_CHARGER_TYPE_ADAPTIVE)
 		return false;
 
@@ -7065,8 +6969,7 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	struct device_node *np = dev->of_node;
 	u32 poll_mode = CM_POLL_DISABLE;
 	u32 battery_stat = CM_NO_BATTERY;
-	int ret, i = 0, num_chgs = 0;
-	int num_cp_psys = 0;
+	int i = 0, num_chgs = 0, num_cp_psys = 0;
 
 	desc = devm_kzalloc(dev, sizeof(*desc), GFP_KERNEL);
 	if (!desc)
@@ -7222,10 +7125,6 @@ static struct charger_desc *of_cm_parse_desc(struct device *dev)
 	if (desc->psy_cp_stat && !desc->cp.cp_taper_current)
 		desc->cp.cp_taper_current = CM_CP_DEFAULT_TAPER_CURRENT;
 
-	ret = cm_init_cap_remap_table(desc, dev);
-	if (ret)
-		dev_err(dev, "%s init cap remap table fail\n", __func__);
-
 	return desc;
 }
 
@@ -7312,6 +7211,12 @@ static int cm_get_bat_info(struct charger_manager *cm)
 
 	sprd_battery_put_battery_info(cm->charger_psy, &info);
 
+	if (cm->desc->cur.fchg_limit > 0 && cm->desc->cur.fchg_cur > 0)
+		cm->desc->support_fixed_fchg = true;
+
+	if (cm->desc->cur.flash_limit > 0 && cm->desc->cur.flash_cur > 0)
+		cm->desc->support_adaptive_fchg = true;
+
 	return 0;
 }
 
@@ -7371,7 +7276,123 @@ static void cm_uvlo_check_work(struct work_struct *work)
 	}
 
 	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD)
-		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(800));
+		queue_delayed_work(system_unbound_wq, &cm->uvlo_work, msecs_to_jiffies(800));
+}
+
+static int cm_get_charging_works_cycle(struct charger_manager *cm,
+				       int ibat_avg_ma, int *work_cycle)
+{
+	int ret = 0, one_cap_time, mas_one_percent, total_uah, total_mah;
+
+	*work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
+
+	if (ibat_avg_ma <= 0)
+		return ret;
+
+	ret = get_batt_total_cap(cm, &total_uah);
+	if (ret) {
+		dev_err(cm->dev, "%s failed to get total uah.\n", __func__);
+		return ret;
+	}
+
+	/*
+	 * When fast charging and high current charging,
+	 * the work cycle needs to be updated according to the current value.
+	 * formula: 1 mAh = 1mA * 3600s = 3600mAs.
+	 * mas_one_percent = 3600mAs / 100.
+	 * mas_one_percent represents how many mAs there are in 1% battery capacity.
+	 * one_cap_time = mas_one_percent / ibat_avg_ma.
+	 * one_cap_time represents 1% battery capacity the fastest update time(unit/s).
+	 */
+	cm->desc->cap_one_time = cm->desc->default_cap_one_time;
+	one_cap_time = cm->desc->cap_one_time;
+	total_mah = total_uah / 1000;
+	mas_one_percent = total_mah * 3600 / 100;
+	one_cap_time = DIV_ROUND_CLOSEST(mas_one_percent, ibat_avg_ma);
+	if (one_cap_time <= 10) {
+		cm->desc->cap_one_time = CM_CAP_ONE_TIME_4S;
+		*work_cycle = CM_CAP_CYCLE_TRACK_TIME_2S;
+	} else if (one_cap_time <= 20) {
+		cm->desc->cap_one_time = CM_CAP_ONE_TIME_8S;
+		*work_cycle = CM_CAP_CYCLE_TRACK_TIME_4S;
+	} else if (one_cap_time < 30) {
+		cm->desc->cap_one_time = CM_CAP_ONE_TIME_16S;
+		*work_cycle = CM_CAP_CYCLE_TRACK_TIME_8S;
+	}
+
+	return ret;
+}
+
+static int cm_get_discharging_works_cycle(struct charger_manager *cm,
+					  int ibat_avg_ua, int *work_cycle)
+{
+	int ret = 0, batt_uV;
+	static int uvlo_check_cnt;
+
+	*work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
+
+	if (ibat_avg_ua >= 0)
+		return ret;
+
+	ret = get_vbat_now_uV(cm, &batt_uV);
+	if (ret) {
+		dev_err(cm->dev, "%s failed to get vbat_now_uV\n", __func__);
+		return ret;
+	}
+
+	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD) {
+		if (++uvlo_check_cnt > 2) {
+			cm->desc->cap_one_time = CM_CAP_ONE_TIME_16S;
+			*work_cycle = CM_CAP_CYCLE_TRACK_TIME_8S;
+		}
+	} else {
+		uvlo_check_cnt = 0;
+	}
+
+	return ret;
+}
+
+static int cm_calc_batt_works_cycle(struct charger_manager *cm, int uisoc)
+{
+	int ibat_avg_ua, ret = 0, bat_soc, work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S, bat_temp;
+
+	ret = get_ibat_avg_uA(cm, &ibat_avg_ua);
+	if (ret) {
+		dev_err(cm->dev, "%s failed to get ibat_avg_uA.\n", __func__);
+		goto out;
+	}
+
+	ret = cm_get_charging_works_cycle(cm, ibat_avg_ua / 1000, &work_cycle);
+	if (ret || work_cycle != CM_CAP_CYCLE_TRACK_TIME_15S)
+		goto out;
+
+	ret = cm_get_discharging_works_cycle(cm, ibat_avg_ua, &work_cycle);
+	if (ret || work_cycle != CM_CAP_CYCLE_TRACK_TIME_15S)
+		goto out;
+
+	ret = cm_get_battery_temperature(cm, &bat_temp);
+	if (ret) {
+		dev_err(cm->dev, "%s failed to get battery temperature\n", __func__);
+		goto out;
+	}
+
+	ret = get_batt_cap(cm, &bat_soc);
+	if (ret) {
+		dev_err(cm->dev, "%s failed to get bat_soc\n", __func__);
+		goto out;
+	}
+
+	bat_soc = clamp(bat_soc, 0, CM_CAP_FULL_PERCENT);
+
+	if (bat_temp < CM_CAP_CALC_BATT_WORKS_LOW_TEMP || uisoc < CM_CAP_CALC_BATT_WORKS_LOW_CAP ||
+	    abs(ibat_avg_ua) > CM_CAP_CALC_BATT_WORKS_BIG_CUR_UA ||
+	    abs(bat_soc - uisoc) > CM_CAP_CALC_BATT_WORKS_SOC_GAP) {
+		cm->desc->cap_one_time = CM_CAP_ONE_TIME_16S;
+		work_cycle = CM_CAP_CYCLE_TRACK_TIME_8S;
+	}
+
+out:
+	return work_cycle;
 }
 
 static void cm_batt_works(struct work_struct *work)
@@ -7384,9 +7405,8 @@ static void cm_batt_works(struct work_struct *work)
 	int period_time, flush_time, cur_temp, board_temp = 0;
 	int chg_cur = 0, chg_limit_cur = 0, input_cur = 0;
 	int chg_vol = 0, vbat_avg = 0, ibat_avg = 0, recharge_uv = 0;
-	static int last_fuel_cap = CM_MAGIC_NUM, uvlo_check_cnt;
-	int total_uah, total_mah, one_cap_time, mah_one_percent;
-	int ibat_avg_ma, work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
+	static int last_fuel_cap = CM_MAGIC_NUM;
+	int work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
 
 	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
@@ -7414,18 +7434,12 @@ static void cm_batt_works(struct work_struct *work)
 	if (ret)
 		dev_err(cm->dev, "get ibat_avg_uA error.\n");
 
-	ret = get_batt_total_cap(cm, &total_uah);
-	if (ret) {
-		dev_err(cm->dev, "failed to get total uah.\n");
-		goto schedule_cap_update_work;
-	}
-
 	ret = get_batt_cap(cm, &fuel_cap);
 	if (ret) {
 		dev_err(cm->dev, "get fuel_cap error.\n");
 		goto schedule_cap_update_work;
 	}
-	fuel_cap = cm_capacity_remap(cm, fuel_cap);
+	fuel_cap = cm_cap_advance_full(cm, fuel_cap);
 
 	ret = get_constant_charge_current(cm, &chg_cur);
 	if (ret)
@@ -7467,10 +7481,7 @@ static void cm_batt_works(struct work_struct *work)
 		cm->desc->low_temp_trigger_cnt = 0;
 	}
 
-	if (fuel_cap > CM_CAP_FULL_PERCENT)
-		fuel_cap = CM_CAP_FULL_PERCENT;
-	else if (fuel_cap < 0)
-		fuel_cap = 0;
+	fuel_cap = clamp(fuel_cap, 0, CM_CAP_FULL_PERCENT);
 
 	if (last_fuel_cap == CM_MAGIC_NUM)
 		last_fuel_cap = fuel_cap;
@@ -7660,41 +7671,11 @@ static void cm_batt_works(struct work_struct *work)
 		break;
 	}
 
-	/*
-	* When fast charging and high current charging,
-	* the work cycle needs to be updated according to the current value.
-	*/
-	cm->desc->cap_one_time = cm->desc->default_cap_one_time;
-	one_cap_time = cm->desc->cap_one_time;
-	ibat_avg_ma = ibat_avg / 1000;
-	if (ibat_avg_ma > 0) {
-		total_mah = total_uah / 1000;
-		mah_one_percent = total_mah * 3600 / 100;
-		one_cap_time = DIV_ROUND_CLOSEST(mah_one_percent, ibat_avg_ma);
-		if (one_cap_time <= 20) {
-			cm->desc->cap_one_time = CM_CAP_ONE_TIME_16S;
-			work_cycle = CM_CAP_CYCLE_TRACK_TIME_8S;
-		} else if (one_cap_time <= 25) {
-			cm->desc->cap_one_time = CM_CAP_ONE_TIME_20S;
-			work_cycle = CM_CAP_CYCLE_TRACK_TIME_10S;
-		} else if (one_cap_time < 30) {
-			cm->desc->cap_one_time = CM_CAP_ONE_TIME_24S;
-			work_cycle = CM_CAP_CYCLE_TRACK_TIME_12S;
-		}
-	}
-
-	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD && ibat_avg < 0) {
-		if (++uvlo_check_cnt > 2) {
-			cm->desc->cap_one_time = CM_CAP_ONE_TIME_20S;
-			work_cycle = CM_CAP_CYCLE_TRACK_TIME_10S;
-		}
-	} else {
-		uvlo_check_cnt = 0;
-	}
+	work_cycle = cm_calc_batt_works_cycle(cm, fuel_cap);
 
 	if (batt_uV < CM_UVLO_CALIBRATION_VOLTAGE_THRESHOLD) {
 		dev_info(cm->dev, "batt_uV is less than UVLO calib volt\n");
-		schedule_delayed_work(&cm->uvlo_work, msecs_to_jiffies(100));
+		queue_delayed_work(system_unbound_wq, &cm->uvlo_work, msecs_to_jiffies(100));
 	}
 
 	dev_info(cm->dev, "new_uisoc = %d, old_uisoc = %d, work_cycle = %ds, cap_one_time = %ds\n",
@@ -8138,6 +8119,9 @@ static int charger_manager_remove(struct platform_device *pdev)
 	if (cm->fchg_info->ops && cm->fchg_info->ops->remove)
 		cm->fchg_info->ops->remove(cm->fchg_info);
 
+	if (cm->vchg_info->ops && cm->vchg_info->ops->remove)
+		cm->vchg_info->ops->remove(cm->vchg_info);
+
 	cancel_work_sync(&setup_polling);
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->cap_update_work);
@@ -8147,7 +8131,6 @@ static int charger_manager_remove(struct platform_device *pdev)
 	power_supply_unregister(cm->charger_psy);
 
 	try_charger_enable(cm, false);
-	wakeup_source_remove(cm->charge_ws);
 
 	return 0;
 }
@@ -8156,11 +8139,15 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 {
 	struct charger_manager *cm = platform_get_drvdata(pdev);
 
+	cm->shutdown_flag = true;
 	if (cm->desc->uvlo_trigger_cnt < CM_UVLO_CALIBRATION_CNT_THRESHOLD)
 		set_batt_cap(cm, cm->desc->cap);
 
 	if (cm->fchg_info->ops && cm->fchg_info->ops->shutdown)
 		cm->fchg_info->ops->shutdown(cm->fchg_info);
+
+	if (cm->vchg_info->ops && cm->vchg_info->ops->shutdown)
+		cm->vchg_info->ops->shutdown(cm->vchg_info);
 
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);
@@ -8301,6 +8288,9 @@ module_exit(charger_manager_cleanup);
  */
 static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_types type, char *msg)
 {
+	if (cm->shutdown_flag)
+		return;
+
 	switch (type) {
 	case CM_EVENT_BATT_FULL:
 		fullbatt_handler(cm);

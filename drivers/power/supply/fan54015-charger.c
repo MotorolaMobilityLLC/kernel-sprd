@@ -6,6 +6,9 @@
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
  */
+
+//This file has been modified by Unisoc (Shanghai) Technologies Co., Ltd in 2023.
+
 #include <linux/alarmtimer.h>
 #include <linux/interrupt.h>
 #include <linux/i2c.h>
@@ -111,6 +114,7 @@ struct fan54015_charger_info {
 	bool is_charger_online;
 	bool probe_initialized;
 	bool shutdown_flag;
+	bool use_typec_extcon;
 };
 
 static int
@@ -185,17 +189,17 @@ static int fan54015_charger_set_safety_cur(struct fan54015_charger_info *info, u
 
 	if (cur < 650000)
 		reg_val = 0x0;
-	else if (cur >= 650000 && cur < 750000)
+	else if (cur < 750000)
 		reg_val = 0x1;
-	else if (cur >= 750000 && cur < 850000)
+	else if (cur < 850000)
 		reg_val = 0x2;
-	else if (cur >= 850000 && cur < 1050000)
+	else if (cur < 1050000)
 		reg_val = 0x3;
-	else if (cur >= 1050000 && cur < 1150000)
+	else if (cur < 1150000)
 		reg_val = 0x4;
-	else if (cur >= 1150000 && cur < 1350000)
+	else if (cur < 1350000)
 		reg_val = 0x5;
-	else if (cur >= 1350000 && cur < 1450000)
+	else if (cur < 1450000)
 		reg_val = 0x6;
 	else
 		reg_val = 0x7;
@@ -383,17 +387,17 @@ static int fan54015_charger_set_current(struct fan54015_charger_info *info, u32 
 
 	if (cur < 650000)
 		reg_val = 0x0;
-	else if (cur >= 650000 && cur < 750000)
+	else if (cur < 750000)
 		reg_val = 0x1;
-	else if (cur >= 750000 && cur < 850000)
+	else if (cur < 850000)
 		reg_val = 0x2;
-	else if (cur >= 850000 && cur < 1050000)
+	else if (cur < 1050000)
 		reg_val = 0x3;
-	else if (cur >= 1050000 && cur < 1150000)
+	else if (cur < 1150000)
 		reg_val = 0x4;
-	else if (cur >= 1150000 && cur < 1350000)
+	else if (cur < 1350000)
 		reg_val = 0x5;
-	else if (cur >= 1350000 && cur < 1450000)
+	else if (cur < 1450000)
 		reg_val = 0x6;
 	else
 		reg_val = 0x7;
@@ -454,9 +458,9 @@ fan54015_charger_set_limit_current(struct fan54015_charger_info *info, u32 limit
 
 	if (limit_cur <= 100000)
 		reg_val = 0x0;
-	else if (limit_cur > 100000 && limit_cur <= 500000)
+	else if (limit_cur <= 500000)
 		reg_val = 0x1;
-	else if (limit_cur > 500000 && limit_cur <= 800000)
+	else if (limit_cur <= 800000)
 		reg_val = 0x2;
 	else
 		reg_val = 0x3;
@@ -843,11 +847,13 @@ static int fan54015_charger_enable_otg(struct regulator_dev *dev)
 	 * Disable charger detection function in case
 	 * affecting the OTG timing sequence.
 	 */
-	ret = regmap_update_bits(info->pmic, info->charger_detect,
-				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
-	if (ret) {
-		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
-		return ret;
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+		if (ret) {
+			dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
+			return ret;
+		}
 	}
 
 	ret = fan54015_update_bits(info, FAN54015_REG_1,
@@ -905,10 +911,12 @@ static int fan54015_charger_disable_otg(struct regulator_dev *dev)
 	}
 
 	/* Enable charger detection function to identify the charger type */
-	ret = regmap_update_bits(info->pmic, info->charger_detect,
-				 BIT_DP_DM_BC_ENB, 0);
-	if (ret)
-		dev_err(info->dev, "enable BC1.2 failed\n");
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, 0);
+		if (ret)
+			dev_err(info->dev, "enable BC1.2 failed\n");
+	}
 
 	dev_info(info->dev, "%s:line%d:disable_otg\n", __func__, __LINE__);
 
@@ -1018,6 +1026,8 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 		return -EPROBE_DEFER;
 	}
 
+	info->use_typec_extcon = device_property_read_bool(dev, "use-typec-extcon");
+
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
 	if (!regmap_np) {
 		dev_err(dev, "unable to get syscon node\n");
@@ -1103,6 +1113,7 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 	complete_all(&info->probe_init);
 
 	fan54015_charger_dump_register(info);
+	dev_info(dev, "use_typec_extcon = %d\n", info->use_typec_extcon);
 
 	return 0;
 
@@ -1143,6 +1154,8 @@ static int fan54015_charger_remove(struct i2c_client *client)
 
 	cancel_delayed_work_sync(&info->wdt_work);
 	cancel_delayed_work_sync(&info->otg_work);
+
+	mutex_destroy(&info->lock);
 
 	return 0;
 }

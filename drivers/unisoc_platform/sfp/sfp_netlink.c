@@ -22,7 +22,6 @@
 
 #define SFP_GENL_NAME		"sfp"
 #define SFP_GENL_VERSION	0x1
-#define SFP_RULE_SIZE 200
 
 static struct genl_family sfp_genl_family;
 
@@ -60,9 +59,11 @@ static int sfp_nl_do_stats_rule(struct sk_buff *skb, struct genl_info *info)
 		return -ENOBUFS;
 	}
 
+	pr_debug("sfp stats bytes: %d\n", sfp_stats_bytes);
+
 	genlmsg_end(msg, hdr);
 	genlmsg_reply(msg, info);
-	return 1;
+	return 0;
 }
 
 static struct genl_ops sfp_genl_ops[] = {

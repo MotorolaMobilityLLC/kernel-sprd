@@ -16,9 +16,9 @@
 
 /*unit: ms*/
 #ifdef CONFIG_SPRD_DEBUG
-#define MODULES_TIME_OUT ((1*2000) >> 1)
+#define MODULES_TIME_OUT (1600)
 #else
-#define MODULES_TIME_OUT (1*1000)
+#define MODULES_TIME_OUT (2000)
 #endif
 
 static RADIX_TREE(modules_tree, GFP_KERNEL|GFP_ATOMIC);
@@ -39,6 +39,7 @@ static int sprd_module_notify(struct notifier_block *self,
 #ifdef CONFIG_ANDROID_KABI_RESERVE
 		mod->android_kabi_reserved1 = ktime_get_boot_fast_ns();
 		radix_tree_insert(&modules_tree, mod->android_kabi_reserved1, mod);
+		module_timer.android_kabi_reserved1 = 1;
 #endif
 		module_timer.expires = jiffies + msecs_to_jiffies(MODULES_TIME_OUT);
 		add_timer(&module_timer);
@@ -48,6 +49,7 @@ static int sprd_module_notify(struct notifier_block *self,
 		del_timer(&module_timer);
 
 #ifdef CONFIG_ANDROID_KABI_RESERVE
+		module_timer.android_kabi_reserved1 = 0;
 		pr_debug("live, name %s ,diff = %llu ns\n", mod->name,
 				ktime_get_boot_fast_ns() - mod->android_kabi_reserved1);
 
@@ -57,6 +59,11 @@ static int sprd_module_notify(struct notifier_block *self,
 		break;
 
 	case  MODULE_STATE_GOING:
+#ifdef CONFIG_ANDROID_KABI_RESERVE
+		if (module_timer.android_kabi_reserved1)
+			module_timer.android_kabi_reserved1 = 0;
+#endif
+		del_timer(&module_timer);
 		break;
 	default:
 		break;

@@ -27,6 +27,7 @@
 #include <linux/completion.h>
 #include <linux/debugfs.h>
 #include <linux/device.h>
+#include <linux/hrtimer.h>
 #include <linux/jiffies.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -41,9 +42,10 @@
 #include <linux/sysfs.h>
 #include <linux/usb/sprd_tcpm.h>
 #include <linux/workqueue.h>
+#include <uapi/linux/sched/types.h>
 
 struct sprd_pd_rx_event {
-	struct work_struct work;
+	struct kthread_work work;
 	struct sprd_tcpm_port *port;
 	struct sprd_pd_message msg;
 };
@@ -185,12 +187,10 @@ static bool sprd_tcpm_port_is_disconnected(struct sprd_tcpm_port *port)
 
 static const char *sprd_tcpm_log_tag = "[sprd_tcpm_log]";
 
-#define SPRD_LOG_PRINT_WORK_PERIOD_8_S	8000
-#define SPRD_LOG_PRINT_WORK_PERIOD_10_S	10000
-#define SPRD_LOG_PRINT_WORK_PERIOD_20_S	20000
-#define SPRD_LOG_BUFFER_IDLE_COUNT		90
-#define SPRD_LOG_BUFFER_NEED_PRINT_NUM_FULL	300
-#define SPRD_LOG_BUFFER_NEED_PRINT_NUM	200
+#define SPRD_LOG_PRINT_WORK_PERIOD_30_S	30000
+#define SPRD_LOG_PRINT_WORK_PERIOD_60_S	60000
+#define SPRD_LOG_POLLING_MS		20
+#define SPRD_LOG_BUFFER_IDLE_COUNT	30
 
 static bool sprd_tcpm_log_full(struct sprd_tcpm_port *port)
 {
@@ -241,10 +241,12 @@ static void _sprd_tcpm_log(struct sprd_tcpm_port *port, const char *fmt, va_list
 	if (sprd_tcpm_log_full(port)) {
 		port->logbuffer_full = true;
 		port->logbuffer_show_full = true;
-		cancel_delayed_work(&port->log2printk);
-		schedule_delayed_work(&port->log2printk, 0);
 	}
 	port->logbuffer_head = (port->logbuffer_head + 1) % SPRD_LOG_BUFFER_ENTRIES;
+	if (!port->log_output_running) {
+		port->log_output_running = true;
+		kthread_mod_delayed_work(&port->log_kworker, &port->log_kwork, 0);
+	}
 
 abort:
 	mutex_unlock(&port->logbuffer_lock);
@@ -293,7 +295,7 @@ void sprd_tcpm_log_do_outside(struct sprd_tcpm_port *port, const char *dev_tag,
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_log_do_outside);
 
-static void sprd_tcpm_log_buffer_free(struct sprd_tcpm_port *port)
+static void sprd_tcpm_log_buffer_release(struct sprd_tcpm_port *port)
 {
 	int i;
 
@@ -311,94 +313,88 @@ static void sprd_tcpm_log_buffer_free(struct sprd_tcpm_port *port)
 	mutex_unlock(&port->logbuffer_lock);
 }
 
-static void sprd_tcpm_log_print_work(struct work_struct *work)
+static void sprd_tcpm_log_print_kwork(struct kthread_work *work)
 {
-	struct sprd_tcpm_port *port = container_of(work, struct sprd_tcpm_port, log2printk.work);
+	struct sprd_tcpm_port *port = container_of(work, struct sprd_tcpm_port,
+						   log_kwork.work);
 	int tail, head;
-	u32 work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_10_S;
-	static bool need_log = true;
+	u32 work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_30_S;
+	bool re_check;
 
 	if (!port) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return;
 	}
 
-	if (port->enbale_log_level_ctl && console_loglevel >= LOGLEVEL_INFO) {
-		if (need_log) {
-			pr_info("%s:console_loglevel=%d, don't log\n", __func__, console_loglevel);
-			need_log = false;
-		}
-		goto re_schedule;
+	mutex_lock(&port->logbuffer_lock);
+	port->log_output_running = true;
+	mutex_unlock(&port->logbuffer_lock);
+
+recheck:
+	mutex_lock(&port->logprintk_lock);
+	re_check = false;
+	tail = port->logbuffer_last;
+	if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
+		pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
+		goto unlock;
 	}
 
-	if (!need_log)
-		need_log = true;
-
-	mutex_lock(&port->logprintk_lock);
-	if (port->logbuffer_full) {
-		tail = port->logbuffer_last;
-		head = SPRD_LOG_BUFFER_ENTRIES;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			goto unlock;
-		}
-
-		if (port->logbuffer_idle_count && (head != tail))
-			port->logbuffer_idle_count = 0;
-
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[full][%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-		port->logbuffer_last = 0;
-		port->logbuffer_full = false;
-
-		if (port->logbuffer_head >= SPRD_LOG_BUFFER_NEED_PRINT_NUM_FULL)
-			work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_8_S;
-	} else {
-		tail = port->logbuffer_last;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			goto unlock;
-		}
+	if (likely(!port->logbuffer_full))
 		head = port->logbuffer_head;
-		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
+	else
+		head = SPRD_LOG_BUFFER_ENTRIES;
+
+	if (!port->logbuffer_full && (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES)) {
+		pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
+		goto unlock;
+	}
+
+	if (port->logbuffer_idle_count && (head != tail))
+		port->logbuffer_idle_count = 0;
+
+	if (head == tail) {
+		work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_60_S;
+
+		if (port->logbuffer_idle_count > SPRD_LOG_BUFFER_IDLE_COUNT)
 			goto unlock;
-		}
 
-		if (port->logbuffer_idle_count && (head != tail))
-			port->logbuffer_idle_count = 0;
+		port->logbuffer_idle_count++;
+		if (port->logbuffer_idle_count > SPRD_LOG_BUFFER_IDLE_COUNT)
+			sprd_tcpm_log_buffer_release(port);
+	}
 
-		if (head == tail) {
-			work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_20_S;
+	while (tail < head) {
+		if (port->logbuffer[tail])
+			pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
+		tail++;
+	}
 
-			if (port->logbuffer_idle_count > SPRD_LOG_BUFFER_IDLE_COUNT)
-				goto unlock;
-
-			port->logbuffer_idle_count++;
-			if (port->logbuffer_idle_count > SPRD_LOG_BUFFER_IDLE_COUNT)
-				sprd_tcpm_log_buffer_free(port);
-		}
-
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		if ((port->logbuffer_head - head) >= SPRD_LOG_BUFFER_NEED_PRINT_NUM)
-			work_time_ms = SPRD_LOG_PRINT_WORK_PERIOD_8_S;
-
+	if (likely(!port->logbuffer_full)) {
 		if (port->logbuffer_last != head)
 			port->logbuffer_last = head;
+
+		if (port->logbuffer_head != head)
+			re_check = true;
+	} else {
+		port->logbuffer_last = 0;
+		port->logbuffer_full = false;
+		re_check = true;
 	}
 
 unlock:
 	mutex_unlock(&port->logprintk_lock);
-re_schedule:
-	schedule_delayed_work(&port->log2printk, msecs_to_jiffies(work_time_ms));
+
+	if (re_check) {
+		msleep(SPRD_LOG_POLLING_MS);
+		goto recheck;
+	}
+
+	mutex_lock(&port->logbuffer_lock);
+	port->log_output_running = false;
+	mutex_unlock(&port->logbuffer_lock);
+
+	kthread_queue_delayed_work(&port->log_kworker, &port->log_kwork,
+				   msecs_to_jiffies(work_time_ms));
 }
 
 static void sprd_tcpm_source_acquire_wake_lock(struct sprd_tcpm_port *port)
@@ -490,64 +486,6 @@ static void sprd_tcpm_log_source_caps(struct sprd_tcpm_port *port)
 }
 
 #if IS_ENABLED(CONFIG_DEBUG_FS)
-static int sprd_tcpm_debug_console_log_check(struct sprd_tcpm_port *port)
-{
-	int tail, head;
-
-	if (!port->logbuffer_full) {
-		tail = port->logbuffer_last;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			return -EINVAL;
-		}
-		head = port->logbuffer_head;
-		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
-			return -EINVAL;
-		}
-		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		if (port->logbuffer_last != head)
-			port->logbuffer_last = head;
-	} else {
-		tail = port->logbuffer_last;
-		if (tail < 0 || tail >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]tail:%d out of range\n", __func__, __LINE__, tail);
-			return -EINVAL;
-		}
-		head = SPRD_LOG_BUFFER_ENTRIES;
-		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		tail = 0;
-		head = port->logbuffer_head;
-		if (head < 0 || head >= SPRD_LOG_BUFFER_ENTRIES) {
-			pr_err("[%s:%d]head:%d out of range\n", __func__, __LINE__, head);
-			return -EINVAL;
-		}
-		pr_info("[%s]line%d [tail:%d / head:%d]\n", __func__, __LINE__, tail, head);
-		while (tail < head) {
-			if (port->logbuffer[tail])
-				pr_info("[%d / %d] %s\n", tail, head, port->logbuffer[tail]);
-			tail++;
-		}
-
-		port->logbuffer_full = false;
-		port->logbuffer_last = tail;
-	}
-
-	return 0;
-}
-
 static int sprd_tcpm_debug_seq_log_check(struct sprd_tcpm_port *port, struct seq_file *s)
 {
 	int tail, head;
@@ -620,30 +558,18 @@ static int _sprd_tcpm_debug_show(struct sprd_tcpm_port *port, struct seq_file *s
 	}
 
 	pr_info("[%s]line%d\n", __func__, __LINE__);
-	cancel_delayed_work_sync(&port->log2printk);
-
-	mutex_lock(&port->logprintk_lock);
 
 	if (port->logbuffer_idle_count > SPRD_LOG_BUFFER_IDLE_COUNT) {
 		pr_info("[%s:%d]log buffer free\n", __func__, __LINE__);
-		goto unlock;
+		goto out;
 	}
 
-	if (console_loglevel >= LOGLEVEL_INFO) {
-		pr_info("[%s:%d]console_loglevel = %d\n", __func__, __LINE__, console_loglevel);
-		goto skip_console_log;
-	}
+	kthread_mod_delayed_work(&port->log_kworker, &port->log_kwork, 0);
+	kthread_flush_work(&port->log_kwork.work);
 
-	sprd_tcpm_debug_console_log_check(port);
-
-skip_console_log:
 	sprd_tcpm_debug_seq_log_check(port, s);
 
-unlock:
-	mutex_unlock(&port->logprintk_lock);
-
-	schedule_delayed_work(&port->log2printk, msecs_to_jiffies(10000));
-
+out:
 	return 0;
 }
 
@@ -695,48 +621,6 @@ static void sprd_tcpm_debugfs_exit(const struct sprd_tcpm_port *port) { }
 
 #endif
 
-static ssize_t sprd_tcpm_log_level_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	struct sprd_tcpm_sysfs *tcpm_sysfs =
-		container_of(attr, struct sprd_tcpm_sysfs, attr_log_level_ctl);
-	struct sprd_tcpm_port *port = tcpm_sysfs->port;
-
-	if (!port)
-		return snprintf(buf, PAGE_SIZE, "%s tcpm_sysfs->port is null\n", __func__);
-
-	return snprintf(buf, PAGE_SIZE, "1(enable), 0(disable), current state = %d\n",
-			port->enbale_log_level_ctl);
-}
-
-static ssize_t sprd_tcpm_log_level_store(struct device *dev,
-					 struct device_attribute *attr,
-					 const char *buf, size_t count)
-{
-	struct sprd_tcpm_sysfs *tcpm_sysfs =
-		container_of(attr, struct sprd_tcpm_sysfs, attr_log_level_ctl);
-	struct sprd_tcpm_port *port = tcpm_sysfs->port;
-	int ret;
-	bool enbale_log_level_ctl;
-
-	if (!port) {
-		pr_err("%s tcpm_sysfs->port is null\n", __func__);
-		return count;
-	}
-
-	ret =  kstrtobool(buf, &enbale_log_level_ctl);
-	if (ret) {
-		pr_err("%s: store log level ctl fail\n", __func__);
-		return count;
-	}
-
-	port->enbale_log_level_ctl = enbale_log_level_ctl;
-
-	pr_info("%s store enbale_log_level_ctl = %d success\n", __func__, enbale_log_level_ctl);
-	return count;
-}
-
 static ssize_t sprd_tcpm_log_ctl_show(struct device *dev,
 				      struct device_attribute *attr,
 				      char *buf)
@@ -775,7 +659,8 @@ static ssize_t sprd_tcpm_log_ctl_store(struct device *dev,
 
 	if (enbale_log_ctl && !port->enable_tcpm_log) {
 		port->enable_tcpm_log = true;
-		schedule_delayed_work(&port->log2printk, msecs_to_jiffies(15000));
+		kthread_queue_delayed_work(&port->log_kworker, &port->log_kwork,
+					   msecs_to_jiffies(15000));
 	} else if (!enbale_log_ctl && port->enable_tcpm_log) {
 		port->enable_tcpm_log = false;
 	}
@@ -796,17 +681,10 @@ static int sprd_tcpm_debug_log_register_sysfs(struct sprd_tcpm_port *port)
 	port->sysfs = tcpm_sysfs;
 	tcpm_sysfs->name = "sprd_tcpm_sysfs";
 	tcpm_sysfs->port = port;
-	tcpm_sysfs->attrs[0] = &tcpm_sysfs->attr_log_level_ctl.attr;
-	tcpm_sysfs->attrs[1] = &tcpm_sysfs->attr_log_ctl.attr;
-	tcpm_sysfs->attrs[2] = NULL;
+	tcpm_sysfs->attrs[0] = &tcpm_sysfs->attr_log_ctl.attr;
+	tcpm_sysfs->attrs[1] = NULL;
 	tcpm_sysfs->attr_g.name = "debug";
 	tcpm_sysfs->attr_g.attrs = tcpm_sysfs->attrs;
-
-	sysfs_attr_init(&tcpm_sysfs->attr_log_level_ctl.attr);
-	tcpm_sysfs->attr_log_level_ctl.attr.name = "log_level_ctl";
-	tcpm_sysfs->attr_log_level_ctl.attr.mode = 0644;
-	tcpm_sysfs->attr_log_level_ctl.show = sprd_tcpm_log_level_show;
-	tcpm_sysfs->attr_log_level_ctl.store = sprd_tcpm_log_level_store;
 
 	sysfs_attr_init(&tcpm_sysfs->attr_log_ctl.attr);
 	tcpm_sysfs->attr_log_ctl.attr.name = "log_ctl";
@@ -824,18 +702,10 @@ static int sprd_tcpm_debug_log_register_sysfs(struct sprd_tcpm_port *port)
 
 static void sprd_tcpm_debug_log_init(struct sprd_tcpm_port *port)
 {
-	port->enbale_log_level_ctl = true;
 	mutex_init(&port->logbuffer_lock);
 	mutex_init(&port->logprintk_lock);
-	INIT_DELAYED_WORK(&port->log2printk, sprd_tcpm_log_print_work);
-}
-
-static void sprd_tcpm_debug_init_schedule_work(struct sprd_tcpm_port *port)
-{
-	if (!port->enable_tcpm_log)
-		return;
-
-	schedule_delayed_work(&port->log2printk, msecs_to_jiffies(15000));
+	kthread_init_worker(&port->log_kworker);
+	kthread_init_delayed_work(&port->log_kwork, sprd_tcpm_log_print_kwork);
 }
 
 static int sprd_tcpm_debug_log_switch(struct sprd_tcpm_port *port)
@@ -895,7 +765,7 @@ static int sprd_tcpm_enable_typec_interrupt(struct sprd_tcpm_port *port, bool en
 	} else if (!enable) {
 		/* disable typec interrupt  */
 		port->disable_typec_int = true;
-		if (g_sprd_typec_device_ops && g_sprd_typec_device_ops->set_typec_int_enable)
+		if (g_sprd_typec_device_ops && g_sprd_typec_device_ops->set_typec_int_disable)
 			g_sprd_typec_device_ops->set_typec_int_disable();
 		schedule_delayed_work(&port->role_swap_work, msecs_to_jiffies(6000));
 		sprd_tcpm_log(port, "disable typec interrupt");
@@ -1208,6 +1078,37 @@ static int sprd_tcpm_pd_send_sink_caps(struct sprd_tcpm_port *port)
 	return sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
 }
 
+static void sprd_mod_tcpm_delayed_work(struct sprd_tcpm_port *port, unsigned int delay_ms)
+{
+	if (unlikely(!port->registered)) {
+		pr_info("%s:line%d: port unregister\n", __func__, __LINE__);
+		return;
+	}
+
+	if (delay_ms) {
+		hrtimer_start(&port->state_machine_timer, ms_to_ktime(delay_ms), HRTIMER_MODE_REL);
+	} else {
+		hrtimer_cancel(&port->state_machine_timer);
+		kthread_queue_work(&port->tcpm_kworker, &port->state_machine);
+	}
+}
+
+static void sprd_mod_vdm_delayed_work(struct sprd_tcpm_port *port, unsigned int delay_ms)
+{
+	if (unlikely(!port->registered)) {
+		pr_info("%s:line%d: port unregister\n", __func__, __LINE__);
+		return;
+	}
+
+	if (delay_ms) {
+		hrtimer_start(&port->vdm_state_machine_timer, ms_to_ktime(delay_ms),
+			      HRTIMER_MODE_REL);
+	} else {
+		hrtimer_cancel(&port->vdm_state_machine_timer);
+		kthread_queue_work(&port->tcpm_kworker, &port->vdm_state_machine);
+	}
+}
+
 static void sprd_tcpm_set_state(struct sprd_tcpm_port *port, enum sprd_tcpm_state state,
 				unsigned int delay_ms)
 {
@@ -1216,9 +1117,8 @@ static void sprd_tcpm_set_state(struct sprd_tcpm_port *port, enum sprd_tcpm_stat
 			      sprd_tcpm_states[port->state], sprd_tcpm_states[state],
 			      delay_ms);
 		port->delayed_state = state;
-		mod_delayed_work(port->wq, &port->state_machine,
-				 msecs_to_jiffies(delay_ms));
-		port->delayed_runtime = jiffies + msecs_to_jiffies(delay_ms);
+		sprd_mod_tcpm_delayed_work(port, delay_ms);
+		port->delayed_runtime = ktime_add(ktime_get(), ms_to_ktime(delay_ms));
 		port->delay_ms = delay_ms;
 	} else {
 		sprd_tcpm_log(port, "state change %s -> %s",
@@ -1233,7 +1133,7 @@ static void sprd_tcpm_set_state(struct sprd_tcpm_port *port, enum sprd_tcpm_stat
 		 * machine.
 		 */
 		if (!port->state_machine_running)
-			mod_delayed_work(port->wq, &port->state_machine, 0);
+			sprd_mod_tcpm_delayed_work(port, 0);
 	}
 }
 
@@ -1254,7 +1154,7 @@ static void sprd_tcpm_queue_message(struct sprd_tcpm_port *port,
 				    enum sprd_pd_msg_request message)
 {
 	port->queued_message = message;
-	mod_delayed_work(port->wq, &port->state_machine, 0);
+	sprd_mod_tcpm_delayed_work(port, 0);
 }
 
 /*
@@ -1548,8 +1448,7 @@ static void sprd_tcpm_handle_vdm_request(struct sprd_tcpm_port *port,
 		if (SPRD_PD_VDO_CMDT(p0) == SPRD_CMDT_RSP_BUSY) {
 			port->vdm_state = VDM_STATE_WAIT_RSP_BUSY;
 			port->vdo_retry = (p0 & ~SPRD_VDO_CMDT_MASK) | SPRD_CMDT_INIT;
-			mod_delayed_work(port->wq, &port->vdm_state_machine,
-					 msecs_to_jiffies(SPRD_PD_T_VDM_BUSY));
+			sprd_mod_vdm_delayed_work(port, SPRD_PD_T_VDM_BUSY);
 			return;
 		}
 		port->vdm_state = VDM_STATE_DONE;
@@ -1560,7 +1459,7 @@ static void sprd_tcpm_handle_vdm_request(struct sprd_tcpm_port *port,
 
 	if (rlen > 0) {
 		sprd_tcpm_queue_vdm(port, response[0], &response[1], rlen - 1);
-		mod_delayed_work(port->wq, &port->vdm_state_machine, 0);
+		sprd_mod_vdm_delayed_work(port, 0);
 	}
 }
 
@@ -1577,7 +1476,7 @@ static void sprd_tcpm_send_vdm(struct sprd_tcpm_port *port,
 		     1 : (SPRD_PD_VDO_CMD(cmd) <= SPRD_CMD_ATTENTION), cmd);
 	sprd_tcpm_queue_vdm(port, header, data, count);
 
-	mod_delayed_work(port->wq, &port->vdm_state_machine, 0);
+	sprd_mod_vdm_delayed_work(port, 0);
 }
 
 static unsigned int sprd_vdm_ready_timeout(u32 vdm_hdr)
@@ -1614,7 +1513,7 @@ static void sprd_tcpm_cancel_vdm(struct sprd_tcpm_port *port)
 		port->vdm_state = VDM_STATE_BUSY;
 		port->send_discover = false;
 		port->vdm_retries = 3;
-		cancel_delayed_work(&port->vdm_state_machine);
+		kthread_cancel_work_sync(&port->vdm_state_machine);
 		port->vdm_state = VDM_STATE_DONE;
 	}
 }
@@ -1657,8 +1556,7 @@ static void sprd_vdm_run_state_machine(struct sprd_tcpm_port *port)
 			port->vdm_retries = 0;
 			port->vdm_state = VDM_STATE_BUSY;
 			timeout = sprd_vdm_ready_timeout(port->vdo_data[0]);
-			mod_delayed_work(port->wq, &port->vdm_state_machine,
-					 timeout);
+			sprd_mod_vdm_delayed_work(port, timeout);
 		}
 		break;
 	case VDM_STATE_WAIT_RSP_BUSY:
@@ -1687,10 +1585,10 @@ static void sprd_vdm_run_state_machine(struct sprd_tcpm_port *port)
 	}
 }
 
-static void sprd_vdm_state_machine_work(struct work_struct *work)
+static void sprd_vdm_state_machine_work(struct kthread_work *work)
 {
 	struct sprd_tcpm_port *port = container_of(work, struct sprd_tcpm_port,
-						   vdm_state_machine.work);
+						   vdm_state_machine);
 	enum sprd_vdm_states prev_state;
 
 	mutex_lock(&port->lock);
@@ -1842,7 +1740,7 @@ static int sprd_tcpm_altmode_enter(struct typec_altmode *altmode, u32 *vdo)
 	header |= SPRD_VDO_OPOS(altmode->mode);
 
 	sprd_tcpm_queue_vdm(port, header, NULL, 0);
-	mod_delayed_work(port->wq, &port->vdm_state_machine, 0);
+	sprd_mod_vdm_delayed_work(port, 0);
 	mutex_unlock(&port->lock);
 
 	return 0;
@@ -1858,7 +1756,7 @@ static int sprd_tcpm_altmode_exit(struct typec_altmode *altmode)
 	header |= SPRD_VDO_OPOS(altmode->mode);
 
 	sprd_tcpm_queue_vdm(port, header, NULL, 0);
-	mod_delayed_work(port->wq, &port->vdm_state_machine, 0);
+	sprd_mod_vdm_delayed_work(port, 0);
 	mutex_unlock(&port->lock);
 
 	return 0;
@@ -1871,7 +1769,7 @@ static int sprd_tcpm_altmode_vdm(struct typec_altmode *altmode,
 
 	mutex_lock(&port->lock);
 	sprd_tcpm_queue_vdm(port, header, data, count - 1);
-	mod_delayed_work(port->wq, &port->vdm_state_machine, 0);
+	sprd_mod_vdm_delayed_work(port, 0);
 	mutex_unlock(&port->lock);
 
 	return 0;
@@ -2306,7 +2204,7 @@ static void sprd_tcpm_pd_ext_msg_request(struct sprd_tcpm_port *port,
 
 static inline enum sprd_tcpm_state sprd_hard_reset_state(struct sprd_tcpm_port *port);
 
-static void sprd_tcpm_pd_rx_handler(struct work_struct *work)
+static void sprd_tcpm_pd_rx_handler(struct kthread_work *work)
 {
 	struct sprd_pd_rx_event *event = container_of(work,
 						      struct sprd_pd_rx_event, work);
@@ -2379,10 +2277,10 @@ void sprd_tcpm_pd_receive(struct sprd_tcpm_port *port, const struct sprd_pd_mess
 	if (!event)
 		return;
 
-	INIT_WORK(&event->work, sprd_tcpm_pd_rx_handler);
+	kthread_init_work(&event->work, sprd_tcpm_pd_rx_handler);
 	event->port = port;
 	memcpy(&event->msg, msg, sizeof(*msg));
-	queue_work(port->wq, &event->work);
+	kthread_queue_work(&port->tcpm_kworker, &event->work);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_pd_receive);
 
@@ -2435,9 +2333,10 @@ static bool sprd_tcpm_send_queued_message(struct sprd_tcpm_port *port)
 	} while (port->queued_message != PD_MSG_NONE);
 
 	if (port->delayed_state != INVALID_STATE) {
-		if (time_is_after_jiffies(port->delayed_runtime)) {
-			mod_delayed_work(port->wq, &port->state_machine,
-					 port->delayed_runtime - jiffies);
+		if (ktime_after(port->delayed_runtime, ktime_get())) {
+			sprd_mod_tcpm_delayed_work(port,
+						   ktime_to_ms(ktime_sub(port->delayed_runtime,
+									 ktime_get())));
 			return true;
 		}
 		port->delayed_state = INVALID_STATE;
@@ -2511,6 +2410,7 @@ static int sprd_tcpm_pd_select_pdo(struct sprd_tcpm_port *port, int *sink_pdo, i
 		     max_mv = 0, src_mw = 0, src_ma = 0, max_snk_mv = 0,
 		     min_snk_mv = 0;
 	int ret = -EINVAL;
+	bool dual_role_power = false, usb_comm = false;
 
 	port->pps_data.supported = false;
 	port->usb_type = POWER_SUPPLY_USB_TYPE_PD;
@@ -2522,6 +2422,10 @@ static int sprd_tcpm_pd_select_pdo(struct sprd_tcpm_port *port, int *sink_pdo, i
 	for (i = 0; i < port->nr_source_caps; i++) {
 		u32 pdo = port->source_caps[i];
 		enum sprd_pd_pdo_type type = sprd_pdo_type(pdo);
+		if (i == 0) {
+			dual_role_power = !!(pdo & SPRD_PDO_FIXED_DUAL_ROLE);
+			usb_comm = !!(pdo & SPRD_PDO_FIXED_USB_COMM);
+		}
 
 		switch (type) {
 		case SPRD_PDO_TYPE_FIXED:
@@ -2534,7 +2438,8 @@ static int sprd_tcpm_pd_select_pdo(struct sprd_tcpm_port *port, int *sink_pdo, i
 			min_src_mv = sprd_pdo_min_voltage(pdo);
 			break;
 		case SPRD_PDO_TYPE_APDO:
-			if (sprd_pdo_apdo_type(pdo) == SPRD_APDO_TYPE_PPS) {
+			if (sprd_pdo_apdo_type(pdo) == SPRD_APDO_TYPE_PPS &&
+			    !usb_comm && !dual_role_power) {
 				port->pps_data.supported = true;
 				port->usb_type =
 					POWER_SUPPLY_USB_TYPE_PD_PPS;
@@ -3131,13 +3036,6 @@ static void sprd_tcpm_reset_port(struct sprd_tcpm_port *port)
 
 static void sprd_tcpm_detach(struct sprd_tcpm_port *port)
 {
-	if (port->enable_tcpm_log) {
-		sprd_tcpm_log_force(port, "tcpm detach start call log printk");
-		cancel_delayed_work(&port->log2printk);
-		schedule_delayed_work(&port->log2printk, 0);
-		sprd_tcpm_log_force(port, "tcpm detach call log printk end");
-	}
-
 	if (sprd_tcpm_port_is_disconnected(port))
 		port->hard_reset_count = 0;
 
@@ -3409,7 +3307,9 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		port->pwr_opmode = TYPEC_PWR_MODE_USB;
 		port->caps_count = 0;
 		port->negotiated_rev = SPRD_PD_MAX_REV;
-		port->message_id = 0;
+		if (!port->power_role_swap)
+			port->message_id = 0;
+
 		port->rx_msgid = -1;
 		port->explicit_contract = false;
 		sprd_tcpm_set_state(port, SRC_SEND_CAPABILITIES, 0);
@@ -3653,7 +3553,9 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		typec_set_pwr_opmode(port->typec_port, opmode);
 		port->pwr_opmode = TYPEC_PWR_MODE_USB;
 		port->negotiated_rev = SPRD_PD_MAX_REV;
-		port->message_id = 0;
+		if (!port->power_role_swap)
+			port->message_id = 0;
+
 		port->rx_msgid = -1;
 		port->explicit_contract = false;
 		sprd_tcpm_set_state(port, SNK_DISCOVERY, 0);
@@ -3682,9 +3584,10 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 	case SNK_DISCOVERY_DEBOUNCE_DONE:
 		if (!sprd_tcpm_port_is_disconnected(port) &&
 		    sprd_tcpm_port_is_sink(port) &&
-		    time_is_after_jiffies(port->delayed_runtime)) {
+		    ktime_after(port->delayed_runtime, ktime_get())) {
 			sprd_tcpm_set_state(port, SNK_DISCOVERY,
-					    jiffies_to_msecs(port->delayed_runtime - jiffies));
+					    ktime_to_ms(ktime_sub(port->delayed_runtime,
+								  ktime_get())));
 			break;
 		}
 		sprd_tcpm_set_state(port, sprd_unattached_state(port), 0);
@@ -3848,8 +3751,11 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		sprd_tcpm_set_state(port, HARD_RESET_START, 0);
 		break;
 	case HARD_RESET_START:
-		if (port->power_role_swap)
+		if (port->power_role_swap) {
 			port->power_role_swap_hard_reset = true;
+			port->message_id = 0;
+		}
+
 		port->hard_reset_count++;
 		port->tcpc->set_pd_rx(port->tcpc, false);
 		sprd_tcpm_unregister_altmodes(port);
@@ -4247,10 +4153,10 @@ source_pr_send_psrdy_retry:
 	}
 }
 
-static void sprd_tcpm_state_machine_work(struct work_struct *work)
+static void sprd_tcpm_state_machine_work(struct kthread_work *work)
 {
 	struct sprd_tcpm_port *port = container_of(work, struct sprd_tcpm_port,
-						   state_machine.work);
+						   state_machine);
 	enum sprd_tcpm_state prev_state;
 
 	mutex_lock(&port->lock);
@@ -4314,16 +4220,6 @@ static void sprd_tcpm_role_swap_work(struct work_struct *work)
 	mutex_unlock(&port->lock);
 }
 
-static void sprd_tcpm_cc_change_log_check(struct sprd_tcpm_port *port)
-{
-	if (port->enable_tcpm_log && !sprd_tcpm_port_is_disconnected(port)) {
-		sprd_tcpm_log_force(port, "tcpm cc connected call log printk start");
-		cancel_delayed_work(&port->log2printk);
-		schedule_delayed_work(&port->log2printk, msecs_to_jiffies(10000));
-		sprd_tcpm_log_force(port, "tcpm cc connected call log printk end");
-	}
-}
-
 static void _sprd_tcpm_cc_change(struct sprd_tcpm_port *port,
 				 enum sprd_typec_cc_status cc1,
 				 enum sprd_typec_cc_status cc2)
@@ -4341,8 +4237,6 @@ static void _sprd_tcpm_cc_change(struct sprd_tcpm_port *port,
 			    old_cc1, cc1, old_cc2, cc2, sprd_tcpm_states[port->state],
 			    port->polarity,
 			    sprd_tcpm_port_is_disconnected(port) ? "disconnected" : "connected");
-
-	sprd_tcpm_cc_change_log_check(port);
 
 	switch (port->state) {
 	case TOGGLING:
@@ -4653,7 +4547,7 @@ static void _sprd_tcpm_pd_hard_reset(struct sprd_tcpm_port *port)
 			    0);
 }
 
-static void sprd_tcpm_pd_event_handler(struct work_struct *work)
+static void sprd_tcpm_pd_event_handler(struct kthread_work *work)
 {
 	struct sprd_tcpm_port *port = container_of(work, struct sprd_tcpm_port,
 					      event_work);
@@ -4694,7 +4588,7 @@ void sprd_tcpm_cc_change(struct sprd_tcpm_port *port)
 	spin_lock(&port->pd_event_lock);
 	port->pd_events |= SPRD_TCPM_CC_EVENT;
 	spin_unlock(&port->pd_event_lock);
-	queue_work(port->wq, &port->event_work);
+	kthread_queue_work(&port->tcpm_kworker, &port->event_work);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_cc_change);
 
@@ -4703,7 +4597,7 @@ void sprd_tcpm_vbus_change(struct sprd_tcpm_port *port)
 	spin_lock(&port->pd_event_lock);
 	port->pd_events |= SPRD_TCPM_VBUS_EVENT;
 	spin_unlock(&port->pd_event_lock);
-	queue_work(port->wq, &port->event_work);
+	kthread_queue_work(&port->tcpm_kworker, &port->event_work);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_vbus_change);
 
@@ -4712,7 +4606,7 @@ void sprd_tcpm_pd_hard_reset(struct sprd_tcpm_port *port)
 	spin_lock(&port->pd_event_lock);
 	port->pd_events = SPRD_TCPM_RESET_EVENT;
 	spin_unlock(&port->pd_event_lock);
-	queue_work(port->wq, &port->event_work);
+	kthread_queue_work(&port->tcpm_kworker, &port->event_work);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_pd_hard_reset);
 
@@ -5600,6 +5494,28 @@ static int devm_sprd_tcpm_psy_register(struct sprd_tcpm_port *port)
 	return PTR_ERR_OR_ZERO(port->psy);
 }
 
+static enum hrtimer_restart sprd_tcpm_state_machine_timer_handler(struct hrtimer *timer)
+{
+	struct sprd_tcpm_port *port = container_of(timer, struct sprd_tcpm_port,
+						   state_machine_timer);
+
+	if (port->registered)
+		kthread_queue_work(&port->tcpm_kworker, &port->state_machine);
+
+	return HRTIMER_NORESTART;
+}
+
+static enum hrtimer_restart sprd_tcpm_vdm_state_machine_timer_handler(struct hrtimer *timer)
+{
+	struct sprd_tcpm_port *port = container_of(timer, struct sprd_tcpm_port,
+						   vdm_state_machine_timer);
+
+	if (port->registered)
+		kthread_queue_work(&port->tcpm_kworker, &port->vdm_state_machine);
+
+	return HRTIMER_NORESTART;
+}
+
 static int sprd_tcpm_copy_caps(struct sprd_tcpm_port *port, const struct tcpc_config *tcfg)
 {
 	if (sprd_tcpm_validate_caps(port, tcfg->src_pdo, tcfg->nr_src_pdo) ||
@@ -5691,9 +5607,13 @@ void sprd_tcpm_shutdown(struct sprd_tcpm_port *port)
 			       __func__, ret);
 	}
 
-	cancel_delayed_work_sync(&port->state_machine);
-	cancel_delayed_work_sync(&port->vdm_state_machine);
-	cancel_work_sync(&port->event_work);
+	port->registered = false;
+	kthread_cancel_work_sync(&port->state_machine);
+	kthread_cancel_work_sync(&port->vdm_state_machine);
+	kthread_cancel_work_sync(&port->event_work);
+	hrtimer_cancel(&port->vdm_state_machine_timer);
+	hrtimer_cancel(&port->state_machine_timer);
+	kthread_cancel_delayed_work_sync(&port->log_kwork);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_shutdown);
 
@@ -5721,13 +5641,30 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 	sprd_tcpm_debug_log_switch(port);
 	mutex_init(&port->keep_source_awake_mtx);
 
-	port->wq = create_singlethread_workqueue(dev_name(dev));
-	if (!port->wq)
-		return ERR_PTR(-ENOMEM);
-	INIT_DELAYED_WORK(&port->state_machine, sprd_tcpm_state_machine_work);
-	INIT_DELAYED_WORK(&port->vdm_state_machine, sprd_vdm_state_machine_work);
+	port->log_task = kthread_run(kthread_worker_fn, &port->log_kworker,
+			  "sprd_tcpm_log_worker");
+	if (IS_ERR(port->log_task)) {
+		pr_err("failed to run sprd tcpm log worker\n");
+		return ERR_CAST(port->log_task);
+	}
+
+	kthread_init_worker(&port->tcpm_kworker);
+	port->tcpm_event_task = kthread_run(kthread_worker_fn, &port->tcpm_kworker,
+					    "sprd_tcpm_event_worker");
+	if (IS_ERR(port->tcpm_event_task)) {
+		pr_err("failed to run sprd tcpm event worker\n");
+		return ERR_CAST(port->tcpm_event_task);
+	}
+	sched_set_fifo(port->tcpm_event_task);
+
+	kthread_init_work(&port->state_machine, sprd_tcpm_state_machine_work);
+	kthread_init_work(&port->vdm_state_machine, sprd_vdm_state_machine_work);
+	kthread_init_work(&port->event_work, sprd_tcpm_pd_event_handler);
+	hrtimer_init(&port->state_machine_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	port->state_machine_timer.function = sprd_tcpm_state_machine_timer_handler;
+	hrtimer_init(&port->vdm_state_machine_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	port->vdm_state_machine_timer.function = sprd_tcpm_vdm_state_machine_timer_handler;
 	INIT_DELAYED_WORK(&port->role_swap_work, sprd_tcpm_role_swap_work);
-	INIT_WORK(&port->event_work, sprd_tcpm_pd_event_handler);
 
 	spin_lock_init(&port->pd_event_lock);
 
@@ -5802,6 +5739,7 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 			paltmode++;
 		}
 	}
+	port->registered = true;
 
 	sprd_tcpm_debug_log_register_sysfs(port);
 
@@ -5809,7 +5747,6 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 	sprd_tcpm_init(port);
 	mutex_unlock(&port->lock);
 
-	sprd_tcpm_debug_init_schedule_work(port);
 	sprd_tcpm_log(port, "%s: registered", dev_name(dev));
 	return port;
 
@@ -5817,7 +5754,10 @@ out_role_sw_put:
 	usb_role_switch_put(port->role_sw);
 out_destroy_wq:
 	sprd_tcpm_debugfs_exit(port);
-	destroy_workqueue(port->wq);
+	kthread_flush_worker(&port->tcpm_kworker);
+	kthread_stop(port->tcpm_event_task);
+	kthread_flush_worker(&port->log_kworker);
+	kthread_stop(port->log_task);
 	wakeup_source_remove(port->pd_source_ws);
 	return ERR_PTR(err);
 }
@@ -5827,13 +5767,21 @@ void sprd_tcpm_unregister_port(struct sprd_tcpm_port *port)
 {
 	int i;
 
+	port->registered = false;
+	kthread_flush_worker(&port->tcpm_kworker);
+	kthread_stop(port->tcpm_event_task);
+
+	hrtimer_cancel(&port->vdm_state_machine_timer);
+	hrtimer_cancel(&port->state_machine_timer);
+
 	sprd_tcpm_reset_port(port);
 	for (i = 0; i < ARRAY_SIZE(port->port_altmode); i++)
 		typec_unregister_altmode(port->port_altmode[i]);
 	typec_unregister_port(port->typec_port);
 	usb_role_switch_put(port->role_sw);
 	sprd_tcpm_debugfs_exit(port);
-	destroy_workqueue(port->wq);
+	kthread_flush_worker(&port->log_kworker);
+	kthread_stop(port->log_task);
 	wakeup_source_remove(port->pd_source_ws);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_unregister_port);

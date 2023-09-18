@@ -475,15 +475,6 @@ static int sprd_vote_register_sysfs(struct device *dev)
 	return ret;
 }
 
-static void sprd_vote_destroy(struct sprd_vote *vote_gov)
-{
-	if (!vote_gov)
-		return;
-
-	kfree(vote_gov->name);
-	kfree(vote_gov);
-}
-
 struct sprd_vote *sprd_charge_vote_register(char *name,
 					    void (*cb)(struct sprd_vote *vote_gov,
 						       int vote_type, int value,
@@ -494,21 +485,19 @@ struct sprd_vote *sprd_charge_vote_register(char *name,
 	struct sprd_vote *vote_gov = NULL;
 	int ret;
 
-	vote_gov = kzalloc(sizeof(struct sprd_vote), GFP_KERNEL);
+	vote_gov = devm_kzalloc(dev, sizeof(struct sprd_vote), GFP_KERNEL);
 	if (!vote_gov)
 		return ERR_PTR(-ENOMEM);
 
-	vote_gov->name = kstrdup(name, GFP_KERNEL);
+	vote_gov->name = devm_kstrdup(dev, name, GFP_KERNEL);
 	if (!vote_gov->name) {
 		pr_err("vote_gov: fail to dum name %s\n", name);
-		kfree(vote_gov);
 		return ERR_PTR(-ENOMEM);
 	}
 
 	vote_gov->cb = cb;
 	vote_gov->data = data;
 	vote_gov->vote = sprd_vote_func;
-	vote_gov->destroy = sprd_vote_destroy;
 	g_vote = vote_gov;
 	private_data = data;
 	mutex_init(&vote_gov->lock);

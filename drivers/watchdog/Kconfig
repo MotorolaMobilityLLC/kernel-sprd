@@ -968,7 +968,7 @@ config SPRD_WATCHDOG_FIQ
 
 config SPRD_WATCHDOG
 	tristate "Spreadtrum watchdog support"
-	depends on ARCH_SPRD || COMPILE_TEST
+	depends on ARCH_SPRD || COMPILE_TEST && SPRD_WATCHDOG_PMIC
 	select WATCHDOG_CORE
 	help
 	  Say Y here to include watchdog timer supported

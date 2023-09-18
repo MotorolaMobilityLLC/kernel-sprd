@@ -265,17 +265,219 @@ void ufshcd_common_trace(struct ufs_hba *hba, enum ufs_event_list event, void *d
 	}
 }
 
+static int ufs_sprd_dump_get_cdb(int ptr, char *b, int sb)
+{
+	int k = 0;
+	int n = 0;
+
+	if (!((uei[ptr].pkg.ci.opcode == READ_10) ||
+		(uei[ptr].pkg.ci.opcode == WRITE_10) ||
+		(uei[ptr].pkg.ci.opcode == UNMAP)))
+		for (; k < uei[ptr].pkg.ci.cmd_len && n < sb; ++k)
+			n += scnprintf(b + n, sb - n, "%02x ",
+				       (u32)uei[ptr].pkg.ci.cmnd[k]);
+	return n;
+}
+
+static int ufs_sprd_dump_get_sense(int ptr, char *b, int sb)
+{
+	int k = 0;
+	int n = 0;
+
+	if (uei[ptr].pkg.ci.ocs == SUCCESS &&
+	    uei[ptr].pkg.ci.trans_type == UPIU_TRANSACTION_RESPONSE &&
+	    (uei[ptr].pkg.ci.scsi_stat & (SAM_STAT_CHECK_CONDITION |
+					  SAM_STAT_TASK_SET_FULL |
+					  SAM_STAT_BUSY)) != 0 &&
+	    uei[ptr].pkg.ci.sd_size)
+		for (; k < uei[ptr].pkg.ci.sd_size && n < sb; ++k)
+			n += scnprintf(b + n, sb - n, "%02x ",
+				(u32)uei[ptr].pkg.ci.sense_data[k]);
+	return n;
+}
+
+static void ufs_sprd_dump_scsi_event(struct seq_file *m, char **dump_pos,
+				enum ufs_event_list event, int ptr)
+{
+	char b[120];
+	int sb = (int)sizeof(b);
+
+	if (event == UFS_TRECE_SCSI_TIME_OUT) {
+		PRINT_SWITCH(m, dump_pos,
+		"opc:0x%2x,tag:%2d,LBA:%10lld,ICE:%s,(dl:%lld,rq:0x%lx),CDB:(%s)\n",
+		uei[ptr].pkg.ci.opcode,
+		uei[ptr].pkg.ci.tag,
+		(u64)uei[ptr].pkg.ci.lba,
+		uei[ptr].pkg.ci.crypto_en ? "ON " : "OFF",
+		uei[ptr].pkg.ci.deadline,
+		(unsigned long)uei[ptr].pkg.ci.rq,
+		ufs_sprd_dump_get_cdb(ptr, b, sb) ? b : "NO RECORD");
+	} else if (event == UFS_TRACE_SEND) {
+		PRINT_SWITCH(m, dump_pos,
+		"opc:0x%2x,tag:%2d,lun:0x%2x,LBA:%10lld,len:%6d,ICE:%s,KS:%2d,FUA:%s,CDB:(%s)\n",
+		uei[ptr].pkg.ci.opcode,
+		uei[ptr].pkg.ci.tag,
+		uei[ptr].pkg.ci.lun,
+		(u64)uei[ptr].pkg.ci.lba,
+		uei[ptr].pkg.ci.transfer_len,
+		uei[ptr].pkg.ci.crypto_en ? "ON " : "OFF",
+		uei[ptr].pkg.ci.keyslot,
+		uei[ptr].pkg.ci.fua ? "ON " : "OFF",
+		ufs_sprd_dump_get_cdb(ptr, b, sb) ? b : "NO RECORD");
+	} else if (event == UFS_TRACE_COMPLETED) {
+		PRINT_SWITCH(m, dump_pos,
+"opc:0x%2x,tag:%2d,lun:0x%2x,LBA:%10lld,len:%6d,LAT:%lluns,OCS:0x%2x,TT:0x%2x,SS:0x%2x,SD:(%s)\n",
+		uei[ptr].pkg.ci.opcode,
+		uei[ptr].pkg.ci.tag,
+		uei[ptr].pkg.ci.lun,
+		(u64)uei[ptr].pkg.ci.lba,
+		uei[ptr].pkg.ci.transfer_len,
+		(u64)uei[ptr].pkg.ci.time_cost,
+		uei[ptr].pkg.ci.ocs,
+		uei[ptr].pkg.ci.trans_type, uei[ptr].pkg.ci.scsi_stat,
+		ufs_sprd_dump_get_sense(ptr, b, sb) ? b : "NO SENSEDATA");
+	}
+}
+
+static void ufs_sprd_dump_dm_event(struct seq_file *m, char **dump_pos,
+				enum ufs_event_list event, int ptr)
+{
+	int transaction_type;
+
+	if (event == UFS_TRACE_DEV_SEND) {
+		PRINT_SWITCH(m, dump_pos,
+		"opc:0x%2x,tag:%2d,lun:0x%2x,idn:0x%x,idx:0x%x,sel:0x%x\n",
+		uei[ptr].pkg.dmi.req.qr.opcode,
+		uei[ptr].pkg.dmi.tag,
+		uei[ptr].pkg.dmi.lun,
+		uei[ptr].pkg.dmi.req.qr.idn,
+		uei[ptr].pkg.dmi.req.qr.index,
+		uei[ptr].pkg.dmi.req.qr.selector);
+	} else if (event == UFS_TRACE_DEV_COMPLETED) {
+		transaction_type =
+			be32_to_cpu(uei[ptr].pkg.dmi.rsp.header.dword_0) >> 24;
+		PRINT_SWITCH(m, dump_pos,
+"opc:0x%2x,tag:%2d,lun:0x%2x,idn:0x%x,idx:0x%x,sel:0x%x,LAT:%lluns,OCS:0x%2x,TT:0x%2x,query_rsp:%4d\n",
+		uei[ptr].pkg.dmi.rsp.qr.opcode,
+		uei[ptr].pkg.dmi.tag,
+		uei[ptr].pkg.dmi.lun,
+		uei[ptr].pkg.dmi.rsp.qr.idn,
+		uei[ptr].pkg.dmi.rsp.qr.index,
+		uei[ptr].pkg.dmi.rsp.qr.selector,
+		(u64)uei[ptr].pkg.dmi.time_cost,
+		uei[ptr].pkg.dmi.ocs,
+		transaction_type,
+		transaction_type == UPIU_TRANSACTION_QUERY_RSP ?
+			(int)((be32_to_cpu(uei[ptr].pkg.dmi.rsp.header.dword_1) &
+				MASK_RSP_UPIU_RESULT) >> UPIU_RSP_CODE_OFFSET) : -1);
+	}
+}
+
+static void ufs_sprd_dump_tm_event(struct seq_file *m, char **dump_pos,
+				enum ufs_event_list event, int ptr)
+{
+	if (event == UFS_TRACE_TM_SEND) {
+		PRINT_SWITCH(m, dump_pos,
+		"tm_func:0x%2x,lun:0x%8x,tag:0x%8x\n",
+		uei[ptr].pkg.tmi.tm_func,
+		uei[ptr].pkg.tmi.lun,
+		uei[ptr].pkg.tmi.tag);
+	} else if (event == UFS_TRACE_TM_COMPLETED || event == UFS_TRACE_TM_ERR) {
+		PRINT_SWITCH(m, dump_pos,
+		"tm_func:0x%2x,lun:0x%8x,tag:0x%8x，param1:0x%8x,OCS:0x%2x\n",
+		uei[ptr].pkg.tmi.tm_func,
+		uei[ptr].pkg.tmi.lun,
+		uei[ptr].pkg.tmi.tag,
+		uei[ptr].pkg.tmi.param1,
+		uei[ptr].pkg.tmi.ocs);
+	}
+}
+
+static void ufs_sprd_dump_uic_event(struct seq_file *m, char **dump_pos,
+				enum ufs_event_list event, int ptr)
+{
+	if (event == UFS_TRACE_UIC_CMPL && uei[ptr].pkg.uci.dwc_hc_ee_h8_compl) {
+		PRINT_SWITCH(m, dump_pos, "cmd:0x%2x\n", UIC_CMD_DME_HIBER_ENTER);
+	} else if (uei[ptr].pkg.uci.pwr_change) {
+		PRINT_SWITCH(m, dump_pos,
+		"cmd:0x%2x,arg1:0x%x,arg2:0x%x,arg3:0x%x,upmcrs:0x%x\n",
+		uei[ptr].pkg.uci.cmd,
+		uei[ptr].pkg.uci.argu1,
+		uei[ptr].pkg.uci.argu2,
+		uei[ptr].pkg.uci.argu3,
+		uei[ptr].pkg.uci.upmcrs);
+	} else {
+		PRINT_SWITCH(m, dump_pos,
+		"cmd:0x%2x,arg1:0x%x,arg2:0x%x,arg3:0x%x\n",
+		uei[ptr].pkg.uci.cmd,
+		uei[ptr].pkg.uci.argu1,
+		uei[ptr].pkg.uci.argu2,
+		uei[ptr].pkg.uci.argu3);
+	}
+}
+
+static void ufs_sprd_dump_clk_event(struct seq_file *m, char **dump_pos,
+				enum ufs_event_list event, int ptr)
+{
+	PRINT_SWITCH(m, dump_pos, "status:%s, req_clk:%s\n",
+	uei[ptr].pkg.cd.status ? "POST" : "PRE ",
+	uei[ptr].pkg.cd.on ? "ON " : "OFF");
+}
+
+static void ufs_sprd_dump_evt_event(struct seq_file *m, char **dump_pos,
+				enum ufs_event_list event, int ptr)
+{
+	PRINT_SWITCH(m, dump_pos, "id:%2d, data:0x%08x\n",
+	uei[ptr].pkg.evt.id,
+	uei[ptr].pkg.evt.val);
+}
+
+static void ufs_sprd_dump_rst_event(struct seq_file *m, char **dump_pos,
+				enum ufs_event_list event, int ptr)
+{
+	PRINT_SWITCH(m, dump_pos, "\n");
+}
+
+static void ufs_sprd_dump_intr_event(struct seq_file *m, char **dump_pos,
+				enum ufs_event_list event, int ptr)
+{
+	PRINT_SWITCH(m, dump_pos, "err:0x%08x, uic_err:0x%08x\n",
+	uei[ptr].pkg.ie.errors,
+	uei[ptr].pkg.ie.uic_error);
+}
+
+static void ufs_sprd_dump_debug_event(struct seq_file *m, char **dump_pos,
+				enum ufs_event_list event, int ptr)
+{
+	PRINT_SWITCH(m, dump_pos, "debug_on:%d, err_panic:%d\n",
+	uei[ptr].flag,
+	uei[ptr].panic_f);
+}
+
+static void (*event_callback[])(struct seq_file *, char **, enum ufs_event_list, int) = {
+	ufs_sprd_dump_scsi_event,	/* UFS_TRACE_SEND */
+	ufs_sprd_dump_scsi_event,	/* UFS_TRACE_COMPLETED */
+	ufs_sprd_dump_scsi_event,	/* UFS_TRECE_SCSI_TIME_OUT */
+	ufs_sprd_dump_dm_event,		/* UFS_TRACE_DEV_SEND */
+	ufs_sprd_dump_dm_event,		/* UFS_TRACE_DEV_COMPLETED */
+	ufs_sprd_dump_tm_event,		/* UFS_TRACE_TM_SEND */
+	ufs_sprd_dump_tm_event,		/* UFS_TRACE_TM_COMPLETED */
+	ufs_sprd_dump_tm_event,		/* UFS_TRACE_TM_ERR */
+	ufs_sprd_dump_uic_event,	/* UFS_TRACE_UIC_SEND */
+	ufs_sprd_dump_uic_event,	/* UFS_TRACE_UIC_CMPL */
+	ufs_sprd_dump_clk_event,	/* UFS_TRACE_CLK_GATE */
+	ufs_sprd_dump_evt_event,	/* UFS_TRACE_EVT */
+	ufs_sprd_dump_rst_event,	/* UFS_TRACE_RESET_AND_RESTORE */
+	ufs_sprd_dump_intr_event,	/* UFS_TRACE_INT_ERROR */
+	ufs_sprd_dump_debug_event	/* UFS_TRACE_DEBUG_TRIGGER */
+};
+
 void ufs_sprd_cmd_history_dump(u32 dump_req, struct seq_file *m, char **dump_pos)
 {
 	int ptr;
 	int i = 0;
 	int actual_dump_num;
 	unsigned long flags;
-	char b[120];
-	int k = 0;
-	int n = 0;
-	int sb = (int)sizeof(b);
-	int transaction_type;
 
 	if (cmd_record_index == -1)
 		return;
@@ -297,7 +499,7 @@ void ufs_sprd_cmd_history_dump(u32 dump_req, struct seq_file *m, char **dump_pos
 	PRINT_SWITCH(m, dump_pos, "\n[UFS] CMD History: total_dump_num=%d\n",
 		     actual_dump_num);
 
-	for (; i < actual_dump_num; i++, ptr++, k = 0, n = 0) {
+	for (; i < actual_dump_num; i++, ptr++) {
 		if (ptr == UFS_CMD_RECORD_DEPTH)
 			ptr = 0;
 
@@ -306,156 +508,7 @@ void ufs_sprd_cmd_history_dump(u32 dump_req, struct seq_file *m, char **dump_pos
 			     uei[ptr].jiffies, uei[ptr].pid, uei[ptr].cpu,
 			     ufs_event_str[uei[ptr].event]);
 
-		switch (uei[ptr].event) {
-		case UFS_TRECE_SCSI_TIME_OUT:
-			/* CDB info */
-			if (!((uei[ptr].pkg.ci.opcode == READ_10) ||
-				(uei[ptr].pkg.ci.opcode == WRITE_10) ||
-				(uei[ptr].pkg.ci.opcode == UNMAP)))
-				for (; k < uei[ptr].pkg.ci.cmd_len && n < sb; ++k)
-					n += scnprintf(b + n, sb - n, "%02x ",
-						       (u32)uei[ptr].pkg.ci.cmnd[k]);
-
-			PRINT_SWITCH(m, dump_pos,
-			"opc:0x%2x,tag:%2d,LBA:%10lld,ICE:%s,(dl:%lld,rq:0x%lx),CDB:(%s)\n",
-			uei[ptr].pkg.ci.opcode,
-			uei[ptr].pkg.ci.tag,
-			(u64)uei[ptr].pkg.ci.lba,
-			uei[ptr].pkg.ci.crypto_en ? "ON " : "OFF",
-			uei[ptr].pkg.ci.deadline,
-			(unsigned long)uei[ptr].pkg.ci.rq,
-			n ? b : "NO RECORD");
-			break;
-		case UFS_TRACE_SEND:
-			/* CDB info */
-			if (!((uei[ptr].pkg.ci.opcode == READ_10) ||
-				(uei[ptr].pkg.ci.opcode == WRITE_10) ||
-				(uei[ptr].pkg.ci.opcode == UNMAP)))
-				for (; k < uei[ptr].pkg.ci.cmd_len && n < sb; ++k)
-					n += scnprintf(b + n, sb - n, "%02x ",
-						       (u32)uei[ptr].pkg.ci.cmnd[k]);
-
-			PRINT_SWITCH(m, dump_pos,
-			"opc:0x%2x,tag:%2d,lun:0x%2x,LBA:%10lld,len:%6d,ICE:%s,KS:%2d,FUA:%s,CDB:(%s)\n",
-			uei[ptr].pkg.ci.opcode,
-			uei[ptr].pkg.ci.tag,
-			uei[ptr].pkg.ci.lun,
-			(u64)uei[ptr].pkg.ci.lba,
-			uei[ptr].pkg.ci.transfer_len,
-			uei[ptr].pkg.ci.crypto_en ? "ON " : "OFF",
-			uei[ptr].pkg.ci.keyslot,
-			uei[ptr].pkg.ci.fua ? "ON " : "OFF",
-			n ? b : "NO RECORD");
-			break;
-		case UFS_TRACE_COMPLETED:
-			/* sense data info */
-			if (uei[ptr].pkg.ci.ocs == SUCCESS &&
-			    uei[ptr].pkg.ci.trans_type == UPIU_TRANSACTION_RESPONSE &&
-			    (uei[ptr].pkg.ci.scsi_stat & (SAM_STAT_CHECK_CONDITION |
-							  SAM_STAT_TASK_SET_FULL |
-							  SAM_STAT_BUSY)) != 0 &&
-			    uei[ptr].pkg.ci.sd_size)
-				for (; k < uei[ptr].pkg.ci.sd_size && n < sb; ++k)
-					n += scnprintf(b + n, sb - n, "%02x ",
-					   (u32)uei[ptr].pkg.ci.sense_data[k]);
-
-			PRINT_SWITCH(m, dump_pos,
-"opc:0x%2x,tag:%2d,lun:0x%2x,LBA:%10lld,len:%6d,LAT:%lluns,OCS:0x%2x,TT:0x%2x,SS:0x%2x,SD:(%s)\n",
-			uei[ptr].pkg.ci.opcode,
-			uei[ptr].pkg.ci.tag,
-			uei[ptr].pkg.ci.lun,
-			(u64)uei[ptr].pkg.ci.lba,
-			uei[ptr].pkg.ci.transfer_len,
-			(u64)uei[ptr].pkg.ci.time_cost,
-			uei[ptr].pkg.ci.ocs,
-			uei[ptr].pkg.ci.trans_type, uei[ptr].pkg.ci.scsi_stat,
-			n ? b : "NO SENSEDATA");
-			break;
-		case UFS_TRACE_DEV_SEND:
-			PRINT_SWITCH(m, dump_pos,
-			"opc:0x%2x,tag:%2d,lun:0x%2x,idn:0x%x,idx:0x%x,sel:0x%x\n",
-			uei[ptr].pkg.dmi.req.qr.opcode,
-			uei[ptr].pkg.dmi.tag,
-			uei[ptr].pkg.dmi.lun,
-			uei[ptr].pkg.dmi.req.qr.idn,
-			uei[ptr].pkg.dmi.req.qr.index,
-			uei[ptr].pkg.dmi.req.qr.selector);
-			break;
-		case UFS_TRACE_DEV_COMPLETED:
-			transaction_type =
-				be32_to_cpu(uei[ptr].pkg.dmi.rsp.header.dword_0) >> 24;
-			PRINT_SWITCH(m, dump_pos,
-"opc:0x%2x,tag:%2d,lun:0x%2x,idn:0x%x,idx:0x%x,sel:0x%x,LAT:%lluns,OCS:0x%2x,TT:0x%2x,query_rsp:%4d\n",
-			uei[ptr].pkg.dmi.rsp.qr.opcode,
-			uei[ptr].pkg.dmi.tag,
-			uei[ptr].pkg.dmi.lun,
-			uei[ptr].pkg.dmi.rsp.qr.idn,
-			uei[ptr].pkg.dmi.rsp.qr.index,
-			uei[ptr].pkg.dmi.rsp.qr.selector,
-			(u64)uei[ptr].pkg.dmi.time_cost,
-			uei[ptr].pkg.dmi.ocs,
-			transaction_type,
-			transaction_type == UPIU_TRANSACTION_QUERY_RSP ?
-			(int)((be32_to_cpu(uei[ptr].pkg.dmi.rsp.header.dword_1) &
-			      MASK_RSP_UPIU_RESULT) >> UPIU_RSP_CODE_OFFSET) : -1);
-			break;
-		case UFS_TRACE_TM_SEND:
-			PRINT_SWITCH(m, dump_pos,
-			"tm_func:0x%2x,lun:0x%8x,tag:0x%8x\n",
-			uei[ptr].pkg.tmi.tm_func,
-			uei[ptr].pkg.tmi.lun,
-			uei[ptr].pkg.tmi.tag);
-			break;
-		case UFS_TRACE_TM_COMPLETED:
-		case UFS_TRACE_TM_ERR:
-			PRINT_SWITCH(m, dump_pos,
-			"tm_func:0x%2x,lun:0x%8x,tag:0x%8x，param1:0x%8x,OCS:0x%2x\n",
-			uei[ptr].pkg.tmi.tm_func,
-			uei[ptr].pkg.tmi.lun,
-			uei[ptr].pkg.tmi.tag,
-			uei[ptr].pkg.tmi.param1,
-			uei[ptr].pkg.tmi.ocs);
-			break;
-		case UFS_TRACE_UIC_CMPL:
-			if (uei[ptr].pkg.uci.dwc_hc_ee_h8_compl) {
-				PRINT_SWITCH(m, dump_pos, "cmd:0x%2x\n", UIC_CMD_DME_HIBER_ENTER);
-				break;
-			}
-			fallthrough;
-		case UFS_TRACE_UIC_SEND:
-			PRINT_SWITCH(m, dump_pos,
-			"cmd:0x%2x,arg1:0x%x,arg2:0x%x,arg3:0x%x\n",
-			uei[ptr].pkg.uci.cmd,
-			uei[ptr].pkg.uci.argu1,
-			uei[ptr].pkg.uci.argu2,
-			uei[ptr].pkg.uci.argu3);
-			break;
-		case UFS_TRACE_CLK_GATE:
-			PRINT_SWITCH(m, dump_pos, "status:%s, req_clk:%s\n",
-			uei[ptr].pkg.cd.status ? "POST" : "PRE ",
-			uei[ptr].pkg.cd.on ? "ON " : "OFF");
-			break;
-		case UFS_TRACE_RESET_AND_RESTORE:
-			PRINT_SWITCH(m, dump_pos, "\n");
-			break;
-		case UFS_TRACE_DEBUG_TRIGGER:
-			PRINT_SWITCH(m, dump_pos, "debug_on:%d, err_panic:%d\n",
-			uei[ptr].flag,
-			uei[ptr].panic_f);
-			break;
-		case UFS_TRACE_INT_ERROR:
-			PRINT_SWITCH(m, dump_pos, "err:0x%08x, uic_err:0x%08x\n",
-			uei[ptr].pkg.ie.errors,
-			uei[ptr].pkg.ie.uic_error);
-			break;
-		case UFS_TRACE_EVT:
-			PRINT_SWITCH(m, dump_pos, "id:%2d, data:0x%08x\n",
-			uei[ptr].pkg.evt.id,
-			uei[ptr].pkg.evt.val);
-			break;
-		default:
-			break;
-		}
+		event_callback[uei[ptr].event](m, dump_pos, uei[ptr].event, ptr);
 	}
 
 	spin_unlock_irqrestore(&ufs_debug_dump, flags);

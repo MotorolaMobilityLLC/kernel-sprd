@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 
+#include <linux/atomic.h>
 #include <linux/module.h>
 #include <linux/blkdev.h>
 #include <linux/string.h>
@@ -23,6 +24,8 @@ int shutdown_save_log_flag;
 
 #define LAST_KMSG_OFFSET	0
 #define LAST_ANDROID_LOG_OFFSET	(1 * 1024 * 1024)
+
+atomic_t log_saving;
 
 int get_kernel_log_to_buffer(char *buf, size_t buf_size)
 {
@@ -85,19 +88,19 @@ static int write_data_to_partition(struct file *filp, char *buf, size_t buf_size
 	return ret;
 
 }
-static int save_log_to_partition_handler(struct notifier_block *nb, unsigned long event, void *buf)
+static void save_log_to_partition(void *buf)
 {
 	int ret;
 	static struct file *plog_file;
 
 	if (shutdown_save_log_flag == 1)
-		return 0;
+		return;
 
 	plog_file = filp_open_block(devicename, O_RDWR | O_DSYNC | O_NOATIME | O_EXCL, 0);
 	if (IS_ERR(plog_file)) {
 		ret = PTR_ERR(plog_file);
 		pr_err("failed to open '%s':%d!\n", devicename, ret);
-		return -1;
+		return;
 	}
 
 	/* handle last kmsg */
@@ -105,14 +108,19 @@ static int save_log_to_partition_handler(struct notifier_block *nb, unsigned lon
 	get_last_kmsg(kmsg_buf, KMSG_BUF_SIZE, buf);
 	mutex_unlock(&kmsg_buf_lock);
 
-	ret = write_data_to_partition(plog_file, kmsg_buf, KMSG_BUF_SIZE, LAST_KMSG_OFFSET);
-	if (ret < 0)
-		pr_err("write kmsg to partition error! '%s':%d!\n", devicename, ret);
+	if (kmsg_buf != NULL) {
+		ret = write_data_to_partition(plog_file, kmsg_buf,
+				KMSG_BUF_SIZE, LAST_KMSG_OFFSET);
+		if (ret < 0)
+			pr_err("write kmsg to partition error! '%s':%d!\n",
+					devicename, ret);
+	}
 
 	/* handle last android log */
 	if (ylog_buffer == NULL) {
+		fput(plog_file);
 		pr_err("ylog_buffer is null, return!\n");
-		return -1;
+		return;
 	}
 	ret = write_data_to_partition(plog_file, ylog_buffer, YLOG_BUF_SIZE,
 			LAST_ANDROID_LOG_OFFSET);
@@ -120,9 +128,16 @@ static int save_log_to_partition_handler(struct notifier_block *nb, unsigned lon
 		pr_err("write ylog to partition error! '%s':%d!\n", devicename, ret);
 
 	fput(plog_file);
+}
+static int save_log_to_partition_handler(struct notifier_block *nb, unsigned long event, void *buf)
+{
+	if (atomic_read(&log_saving))
+		return 0;
+	atomic_inc(&log_saving);
+	save_log_to_partition(buf);
+	atomic_dec(&log_saving);
 
 	return 0;
-
 }
 const char *kmsg_dump_reason(enum kmsg_dump_reason reason)
 {
@@ -192,14 +207,15 @@ int last_kmsg_init(void)
 	void *vaddr;
 	unsigned int i;
 
+	pr_info("register sysdump log notifier\n");
+	register_reboot_notifier(&sysdump_log_notifier);
+	atomic_set(&log_saving, 0);
+
 	kmsg_buf = kzalloc(KMSG_BUF_SIZE, GFP_KERNEL);
 	if (kmsg_buf == NULL)
 		return -1;
 
 	SetPageReserved(virt_to_page(kmsg_buf));
-
-	pr_info("register sysdump log notifier\n");
-	register_reboot_notifier(&sysdump_log_notifier);
 
 	ret = minidump_save_extend_information("last_kmsg", __pa(kmsg_buf),
 			__pa(kmsg_buf + KMSG_BUF_SIZE));

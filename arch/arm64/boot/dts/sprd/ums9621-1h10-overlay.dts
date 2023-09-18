@@ -25,8 +25,10 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/sprd,ums9621-clk.h>
 #include <dt-bindings/usb/pd.h>
+#include "lcd/lcd_nt36528_kti_mipi_hdp.dtsi"
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt36672e_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_nt36672c_truly_mipi_fhd.dtsi"
 #include "lcd/amoled_g3655fp103ff_visionox_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "reserved-memory/ums9621-1h10-overlay.dtsi"
@@ -81,6 +83,7 @@
 				adma-tx;
 				adma-rx;
 				btwf-wakeup-lock;
+				n79-mode-support;
 				/*
 				 * bound parameter:
 				 * [0]:addr offset, [1]:mask, [2]:unboundval, [3]:boundval
@@ -90,6 +93,7 @@
 
 				wlan {
 					compatible = "sprd,sc2355-sdio-wifi";
+					enable-n79;
 				};
 
 				gnss {
@@ -216,6 +220,10 @@
 };
 
 &vddsim1 {
+	status = "disabled";
+};
+
+&vddgpu {
 	status = "disabled";
 };
 

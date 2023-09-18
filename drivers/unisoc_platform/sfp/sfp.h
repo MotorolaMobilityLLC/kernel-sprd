@@ -529,8 +529,6 @@ int sfp_proc_create(void);
 void nfp_proc_exit(void);
 
 void sfp_fwd_entry_table_clear(void);
-int  sfp_fwd_entry_delete(u32 src_ip, u32 dst_ip,
-			  u16 src_port, u16 dst_port, u8 proto);
 int check_sfp_fwd_table(struct nf_conntrack_tuple *tuple,
 			struct sfp_trans_tuple *ret_info);
 bool sfp_pkt_to_tuple(void *data,

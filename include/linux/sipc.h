@@ -588,6 +588,16 @@ int sbuf_status(u8 dst, u8 channel);
 int sbuf_register_notifier(u8 dst, u8 channel, u32 bufid,
 		void (*handler)(int event, void *data), void *data);
 
+/**
+ * sbuf_unregister_notifier -- unregister a ring callback for sbuf.
+ *
+ * @dst: dest processor ID
+ * @channel: channel ID
+ * @bufid: buf ID
+ * @return: 0 on success, <0 on failure
+ */
+int sbuf_unregister_notifier(u8 dst, u8 channel, u32 bufid);
+
 /* ****************************************************************** */
 /* SBLOCK interfaces */
 

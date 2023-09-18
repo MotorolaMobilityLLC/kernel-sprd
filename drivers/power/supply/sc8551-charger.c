@@ -567,22 +567,21 @@ static int sc8551_set_busocp_th(struct sc8551 *sc, int threshold)
 
 static int sc8551_set_acovp_th(struct sc8551 *sc, int threshold)
 {
-	int ret;
 	u8 val;
 
-	if (threshold < SC8551_AC_OVP_BASE)
+	if (threshold == SC8551_AC_OVP_6P5V) {
+		dev_info(sc->dev, "%s, VAC_OVP set default 6.5V\n", __func__);
+		threshold = SC8551_AC_OVP_MAX + SC8551_AC_OVP_LSB;
+	} else if (threshold < SC8551_AC_OVP_BASE) {
 		threshold = SC8551_AC_OVP_BASE;
-	else if (threshold > SC8551_AC_OVP_MAX)
+	} else if (threshold > SC8551_AC_OVP_MAX) {
 		threshold = SC8551_AC_OVP_MAX;
+	}
 
 	val = (threshold - SC8551_AC_OVP_BASE) / SC8551_AC_OVP_LSB;
-
 	val <<= SC8551_AC_OVP_SHIFT;
 
-	ret = sc8551_update_bits(sc, SC8551_REG_05,
-				 SC8551_AC_OVP_MASK, val);
-
-	return ret;
+	return sc8551_update_bits(sc, SC8551_REG_05, SC8551_AC_OVP_MASK, val);
 }
 
 static int sc8551_set_vdrop_th(struct sc8551 *sc, int threshold)

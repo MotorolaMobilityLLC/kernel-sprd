@@ -192,12 +192,16 @@ struct sdhci_sprd_host {
 	void __iomem *cqe_mem;	/* SPRD CQE mapped address (if available) */
 	void __iomem *ice_mem;	/* SPRD ICE mapped address (if available) */
 	struct sprd_host_tuning_info *tuning_info;
+	u8 *tuning_data_buf;
 	u32 tuning_flag;
 	u32 cpst_cmd_dly;
 	u32 int_status;
 	bool tuning_merged;
 	bool cmd_dly_all_pass;
 	bool wait_read_idle;
+#ifdef CONFIG_SPRD_DEBUG
+	u64 timestamp[10];
+#endif
 };
 
 enum sdhci_sprd_tuning_type {
@@ -237,6 +241,10 @@ static void sdhci_sprd_health_and_powp(void *data, struct mmc_card *card)
 	/* mmc powp handle */
 	if (!mmc_check_wp_fn(card->host))
 		mmc_set_powp(card);
+	/* print mmc device info */
+	pr_info("%s: manfid= 0x%06x, name= %s, prv= 0x%x fwrev= 0x%x\n",
+		mmc_hostname(card->host), card->cid.manfid, card->cid.prod_name,
+		card->cid.prv, card->cid.fwrev);
 }
 
 static void sdhci_sprd_init_config(struct sdhci_host *host)
@@ -300,6 +308,7 @@ static inline void sdhci_sprd_writew(struct sdhci_host *host, u16 val, int reg)
 static inline void sdhci_sprd_writeb(struct sdhci_host *host, u8 val, int reg)
 {
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	u32 status;
 	u64 i = 0;
 
 	if (unlikely(reg == SDHCI_SOFTWARE_RESET)) {
@@ -312,7 +321,9 @@ static inline void sdhci_sprd_writeb(struct sdhci_host *host, u8 val, int reg)
 		if (sprd_host->tuning_flag &&
 		   (sprd_host->int_status & SDHCI_INT_ERROR_MASK)) {
 			while (i++ < 20000) {
-				if (!(sdhci_readl(host, SDHCI_PRESENT_STATE) & SDHCI_DOING_READ))
+				status = sdhci_readl(host, SDHCI_PRESENT_STATE);
+				if (!(status & SDHCI_DOING_READ) &&
+				    ((status & SDHCI_DATA_LVL_MASK) == SDHCI_DATA_LVL_MASK))
 					break;
 			}
 			if (i >= 20000) {
@@ -588,6 +599,8 @@ static void sdhci_sprd_hw_reset(struct sdhci_host *host)
 	val |= SDHCI_HW_RESET_CARD;
 	writeb_relaxed(val, host->ioaddr + SDHCI_SOFTWARE_RESET);
 	usleep_range_state(300, 500, TASK_UNINTERRUPTIBLE);
+
+	pr_info("%s: %s end\n", mmc_hostname(host->mmc), __func__);
 }
 
 static unsigned int sdhci_sprd_get_max_timeout_count(struct sdhci_host *host)
@@ -753,7 +766,7 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	u32 dll_cfg, mid_dll_cnt, dll_cnt, dll_dly;
 	bool cfg_use_adma = false;
 	bool cfg_use_sdma = false;
-	unsigned int udelay, udelay_max = 2097152;
+	u32 tmp;
 	int cmd_error = 0;
 
 	sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
@@ -806,23 +819,17 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	do {
 		/*
 		 * When the wait_read_idle flag is set, we need to waiting fo the HC state
-		 * become idle before the next tuning commond is sent, where the latency
-		 * of the polling is multiplied by 2 each time. So the maximum polling time
-		 * can be about 4s, which is recommended in Spreadtrum's platform.
+		 * become idle before the next tuning commond is sent. The maximum polling
+		 * time can be about 4s, which is recommended in Spreadtrum's platform.
 		 */
 		if (sprd_host->wait_read_idle) {
-			udelay = 32;
-			while (udelay <= udelay_max) {
-				if (!(sdhci_readl(host, SDHCI_PRESENT_STATE) & SDHCI_DOING_READ))
-					break;
-				usleep_range(udelay, udelay * 2);
-				udelay *= 2;
-				if (udelay > udelay_max) {
-					pr_err("%s: wait Read_Active idle fail, exit tuning!\n",
-						mmc_hostname(mmc));
-					err = -EIO;
-					goto out;
-				}
+			if (read_poll_timeout(sdhci_readl, tmp, (!(tmp & SDHCI_DOING_READ) &&
+			    ((tmp & SDHCI_DATA_LVL_MASK) == SDHCI_DATA_LVL_MASK)),
+			    USEC_PER_MSEC, 4 * USEC_PER_SEC, false, host, SDHCI_PRESENT_STATE)) {
+				pr_err("%s: wait device idle fail, exit tuning!\n",
+					mmc_hostname(mmc));
+				err = -EIO;
+				goto out;
 			}
 			sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
 			sprd_host->wait_read_idle = false;
@@ -837,11 +844,12 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 			if (opcode == MMC_SET_BLOCKLEN)
 				value = !mmc_send_tuning_cmd(mmc);
 			else
-				value = !mmc_send_tuning_read(mmc);
+				value = !mmc_send_tuning_read(mmc, sprd_host->tuning_data_buf);
 		} else if (type == SDHCI_SPRD_TUNING_SD_UHS_CMD) {
 			value = !mmc_send_tuning_cmd(mmc);
 		} else {
-			value = !mmc_send_tuning(mmc, opcode, &cmd_error);
+			value = !mmc_send_tuning_pattern(mmc, opcode, &cmd_error,
+							 sprd_host->tuning_data_buf);
 		}
 
 		/*
@@ -1878,6 +1886,12 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	sprd_host->tuning_info = &sprd_tuning_info[host->mmc->index];
 
+	sprd_host->tuning_data_buf = kzalloc(128, GFP_KERNEL);
+	if (!sprd_host->tuning_data_buf) {
+		ret = -ENOMEM;
+		goto pltfm_free;
+	}
+
 	sprd_host->pinctrl = devm_pinctrl_get(&pdev->dev);
 	if (!IS_ERR(sprd_host->pinctrl)) {
 		sprd_host->pins_uhs =
@@ -1916,6 +1930,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			mmc_hostname(host->mmc));
 	}
 
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[0] = sched_clock();
+#endif
+
 	if (of_property_read_bool(node, "supports-swcq")) {
 		sprd_host->support_swcq = true;
 	} else {
@@ -1931,6 +1949,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			sprd_host->support_ice = false;
 		}
 	}
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[1] = sched_clock();
+#endif
 
 	clk = devm_clk_get(&pdev->dev, "enable");
 	if (IS_ERR(clk)) {
@@ -1963,6 +1985,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	if (ret)
 		goto clk_1x_disable;
 
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[2] = sched_clock();
+#endif
+
 	sdhci_sprd_init_config(host);
 	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
 	sprd_host->version = ((host->version & SDHCI_VENDOR_VER_MASK) >>
@@ -1975,6 +2001,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	sprd_host->power_mode = MMC_POWER_OFF;
 
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[3] = sched_clock();
+#endif
+
 	pm_runtime_get_noresume(&pdev->dev);
 	pm_runtime_set_active(&pdev->dev);
 	pm_runtime_enable(&pdev->dev);
@@ -1983,6 +2013,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	pm_suspend_ignore_children(&pdev->dev, 1);
 
 	sdhci_enable_v4_mode(host);
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[4] = sched_clock();
+#endif
 
 	/*
 	 * Supply the existing CAPS, but clear the UHS-I modes. This
@@ -2000,6 +2034,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			goto pm_runtime_disable;
 	}
 
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[5] = sched_clock();
+#endif
+
 	ret = sdhci_setup_host(host);
 	if (ret)
 		goto pm_runtime_disable;
@@ -2015,6 +2053,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	sprd_host->flags = host->flags;
 	sprd_host->tuning_merged = true;
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[6] = sched_clock();
+#endif
 
 	if (sprd_host->support_swcq) {
 		ret = mmc_hsq_swcq_init(host, pdev);
@@ -2039,6 +2081,11 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 		if (ret)
 			goto err_cleanup_host;
 	}
+
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[7] = sched_clock();
+#endif
 
 	ret = __sdhci_add_host(host);
 	if (ret)

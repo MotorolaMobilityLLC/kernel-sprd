@@ -389,3 +389,7 @@
 		status = "disabled";
 	};
 };
+
+&sdio0 {
+	cd-gpios = <&eic_async 9 1>;
+};

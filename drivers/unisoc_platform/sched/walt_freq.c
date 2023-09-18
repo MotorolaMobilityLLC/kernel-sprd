@@ -1,4 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
+/*
+ * Copyright (c) 2022, Unisoc (shanghai) Technologies Co., Ltd
+ */
 
 #include "uni_sched.h"
 

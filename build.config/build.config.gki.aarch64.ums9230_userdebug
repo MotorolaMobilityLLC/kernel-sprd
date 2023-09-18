@@ -8,7 +8,7 @@ UMS9230_BASE_CONFIG="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig
                      ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_gki_sharkl6.fragment
                     "
 if [[ $BSP_PRODUCT_NAME_TAIL == "Skynet" ]]; then
-	UMS9230_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_${BSP_PRODUCT_NAME_TAIL}.fragment"
+	UMS9230_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_swkasan_Skynet.fragment"
 fi
 
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \
@@ -106,6 +106,8 @@ arch/arm64/boot/dts/sprd/ums9230-1h10_go-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-4h10-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-4h10-go-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-6h10-overlay.dtbo
+arch/arm64/boot/dts/sprd/ums9230-6h10-umb9230s-overlay.dtbo
+arch/arm64/boot/dts/sprd/ums9230-6h10-customer-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-6h10-go-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9230-14c10-go-overlay.dtbo
 arch/arm64/boot/dts/sprd/lion-overlay.dtbo

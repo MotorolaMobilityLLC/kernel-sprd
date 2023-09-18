@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2016-2022, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022, Unisoc, Inc.
+ * Copyright (c) 2022, Unisoc (shanghai) Technologies Co., Ltd.
  */
 #ifndef _UNI_SCHED_H
 #define _UNI_SCHED_H
@@ -119,6 +118,7 @@ extern void walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *
 extern void walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p);
 extern void walt_init_new_task_load(struct task_struct *p);
 extern unsigned long walt_cpu_util_freq(int cpu);
+extern void reset_rt_task_arrival_time(int cpu);
 
 #define WALT_HIGH_IRQ_TIMEOUT 3
 static inline int walt_cpu_high_irqload(int cpu)
@@ -195,6 +195,7 @@ static inline u64 sched_ktime_clock(void)
 static inline void walt_inc_cumulative_runnable_avg(struct rq *rq, struct task_struct *p) {}
 static inline void walt_dec_cumulative_runnable_avg(struct rq *rq, struct task_struct *p) {}
 static inline void walt_init_new_task_load(struct task_struct *p) {}
+static inline void reset_rt_task_arrival_time(int cpu) {}
 
 static inline unsigned long task_util(struct task_struct *p)
 {
@@ -224,6 +225,7 @@ extern unsigned int sysctl_sched_uclamp_min_to_boost;
 #endif
 extern unsigned int sysctl_cpu_multi_thread_opt;
 extern unsigned int sysctl_multi_thread_heavy_load_runtime;
+extern unsigned int sysctl_force_newidle_balance;
 
 extern unsigned int min_max_possible_capacity;
 extern unsigned int max_possible_capacity;
@@ -576,7 +578,10 @@ static inline void walt_cpufreq_update_util(struct rq *rq, unsigned int flags) {
 #if IS_ENABLED(CONFIG_UNISOC_SCHEDUTIL_GOV)
 extern int uscfreq_gov_register(void);
 #else
-static inline int uscfreq_gov_register(void) {}
+static inline int uscfreq_gov_register(void)
+{
+	return 0;
+}
 #endif
 
 #if IS_ENABLED(CONFIG_UNISOC_ROTATION_TASK)

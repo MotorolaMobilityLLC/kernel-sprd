@@ -11,6 +11,7 @@
 #include <linux/regulator/driver.h>
 #include <linux/regulator/of_regulator.h>
 #include <linux/sched.h>
+#include <linux/delay.h>
 
 /*
  * SC2730 regulator base address
@@ -215,9 +216,24 @@ static int regulator_set_voltage_sel_sprd(struct regulator_dev *rdev, unsigned i
 	return regulator_set_voltage_sel_regmap(rdev, sel);
 };
 
+/* only for sc27xx Project */
+static int sprd_regulator_disable_regmap(struct regulator_dev *rdev)
+{
+	int id = 0, ret = 0;
+
+	id = rdev_get_id(rdev);
+	if (id == SC2730_LDO_VDDSDCORE || id == SC2730_LDO_VDDSDIO) {
+		ret = regulator_disable_regmap(rdev);
+		usleep_range(10 * 1000, 10 * 1250);
+		return ret;
+	} else {
+		return regulator_disable_regmap(rdev);
+	}
+};
+
 static const struct regulator_ops sc2730_regu_linear_ops = {
 	.enable = regulator_enable_regmap,
-	.disable = regulator_disable_regmap,
+	.disable = sprd_regulator_disable_regmap,
 	.is_enabled = regulator_is_enabled_regmap,
 	.list_voltage = regulator_list_voltage_linear,
 	.get_voltage_sel = regulator_get_voltage_sel_regmap,

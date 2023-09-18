@@ -47,7 +47,7 @@ static inline void __raw_writew(u16 val, volatile void __iomem *addr)
 static __always_inline void __raw_writel(u32 val, volatile void __iomem *addr)
 {
 #if IS_ENABLED(CONFIG_SPRD_PAST_RECORD)
-	//sprd_writel_reg_info(val, addr);
+	sprd_writel_reg_info(val, addr);
 #endif
 	asm volatile("str %w0, [%1]" : : "rZ" (val), "r" (addr));
 }
@@ -94,7 +94,7 @@ static __always_inline u32 __raw_readl(const volatile void __iomem *addr)
 {
 	u32 val;
 #if IS_ENABLED(CONFIG_SPRD_PAST_RECORD)
-	//sprd_readl_reg_info(addr);
+	sprd_readl_reg_info(addr);
 #endif
 	asm volatile(ALTERNATIVE("ldr %w0, [%1]",
 				 "ldar %w0, [%1]",

@@ -43,7 +43,7 @@
 			    loop.max_part=7 loglevel=1 log_buf_len=1M
 			    firmware_class.path=/odm/firmware,/vendor/firmware
 			    init=/init root=/dev/ram0 rw printk.devkmsg=on
-			    swiotlb=1 dummy_hcd.num=0 initcall_debug=1";
+			    swiotlb=1 dummy_hcd.num=0";
 	};
 
 	pwm_backlight: sprd_backlight {
@@ -303,7 +303,7 @@
 
 &dpu {
 	/* if we need use fastcall for widevine, open the following config */
-	// sprd,widevine-use-fastcall;
+	sprd,widevine-use-fastcall;
 
 	status = "okay";
 };

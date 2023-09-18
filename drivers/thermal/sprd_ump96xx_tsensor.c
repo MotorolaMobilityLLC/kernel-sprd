@@ -22,8 +22,11 @@
 #define ABNORMAL_TEMP			160000
 
 /* Temperature query table according to integral index */
-/*26MHZ TSX
-static const int v2t_table[256] = {
+/* crystal name:TSX
+ * manu name:TXC
+ */
+
+static int v2t_table_0[256] = {
 	298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119,
 	298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119,
 	298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119, 298119,
@@ -48,10 +51,14 @@ static const int v2t_table[256] = {
 	-136903, -141357, -145991, -150823, -155881, -161216, -166830, -172781, -179140, -185969,
 	-193354, -201441, -210423, -220528, -232181, -245984, -263191, -263191, -263191
 };
-*/
 
-//52M TSX
-static const int v2t_table[256] = {
+
+//52M TSX N6LITE
+/* crystal name: TSX
+ * manu name:
+ */
+
+static int v2t_table_1[256] = {
 	297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768,
 	297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768,
 	297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768, 297768,
@@ -87,6 +94,7 @@ struct tsen_manager {
 	struct device *dev;
 	struct regmap *regmap;
 	u32 base;
+	int v2t_table_id;
 } tsen_mager;
 
 struct ump96xx_tsen {
@@ -95,6 +103,7 @@ struct ump96xx_tsen {
 	struct regmap *regmap;
 	u32 base;
 	int id;
+	int v2t_table_id;
 };
 
 static int ump96xx_tsensor_read_config(struct ump96xx_tsen *tsen)
@@ -229,7 +238,8 @@ static int ump96xx_tsensor_out_rawdata_read(struct ump96xx_tsen *tsen, int *rawd
 	return ret;
 }
 
-static int ump96xx_tsensor_out_temp_read(struct ump96xx_tsen *tsen, int *temp)
+static int ump96xx_tsensor_out_temp_read(struct ump96xx_tsen *tsen, int *temp,
+					 int v2t_table[], int len)
 {
 	int ret, rawdata, index, frac, t;
 
@@ -248,9 +258,9 @@ static int ump96xx_tsensor_out_temp_read(struct ump96xx_tsen *tsen, int *temp)
 	 * the index.
 	 * t = (v2t_table[index] * (0x1000-frac) + v2t_table[index+1] * frac + 0x800) / 4096;
 	 */
-	if (index != sizeof(v2t_table) / 4 - 1)
-		t = (v2t_table[index] * (0x1000 - frac) +
-			v2t_table[index + 1] * frac + 0x800) / 4096;
+	if (index != len / 4 - 1)
+		t = (v2t_table[index] * (0x1000 - frac) + v2t_table[index + 1] *
+			frac + 0x800) / 4096;
 	else
 		t = v2t_table[index];
 
@@ -320,14 +330,22 @@ static int get_boot_mode(void)
 static int ump96xx_tsensor_get_temp(void *data, int *temp)
 {
 	struct ump96xx_tsen *tsen = data;
-	int ret;
+	int ret = -EOPNOTSUPP;
+	int len = 0;
 
-	if (tsen->id == 0)
+	if (tsen->id == 0) {
 		ret = ump96xx_tsensor_osc_temp_read(tsen, temp);
-	else if (tsen->id == 1)
-		ret = ump96xx_tsensor_out_temp_read(tsen, temp);
-	else
-		ret = -ENOTSUPP;
+		return ret;
+	}
+	if (tsen->id == 1) {
+		if (!tsen->v2t_table_id) {
+			len = sizeof(v2t_table_0);
+			ret = ump96xx_tsensor_out_temp_read(tsen, temp, v2t_table_0, len);
+		} else {
+			len = sizeof(v2t_table_1);
+			ret = ump96xx_tsensor_out_temp_read(tsen, temp, v2t_table_1, len);
+		}
+	}
 
 	return ret;
 }
@@ -493,7 +511,8 @@ static int modem_tsen_control(struct regmap *regmap, unsigned int base, bool en)
 	return ret;
 }
 
-static int modem_tsen_read(struct regmap *regmap, unsigned int base, int *temp)
+static int modem_tsen_read(struct regmap *regmap, unsigned int base, int *temp,
+			   int v2t_table[], int len)
 {
 	int ret = 0, th = 0, tl = 0, rawdata = 0;
 	int index, frac, t, i = 0;
@@ -520,7 +539,7 @@ static int modem_tsen_read(struct regmap *regmap, unsigned int base, int *temp)
 
 		index = (rawdata >> UMP96XX_TSEN_INDEX_SHIFT) & UMP96XX_TSEN_INDEX_MASK;
 		frac = rawdata & UMP96XX_TSEN_FRAC_MASK;
-		if (index != sizeof(v2t_table) / 4 - 1)
+		if (index != len / 4 - 1)
 			t = (v2t_table[index] * (0x1000 - frac) +
 				v2t_table[index + 1] * frac + 0x800) / 4096;
 		else
@@ -543,7 +562,15 @@ static ssize_t modem_tsen_show(struct device_driver *dev, char *buf)
 	if (ret)
 		return ret;
 
-	ret = modem_tsen_read(tsen_mager.regmap, tsen_mager.base, &tsen_temp);
+	if (tsen_mager.v2t_table_id == 0) {
+		len = sizeof(v2t_table_0);
+		ret = modem_tsen_read(tsen_mager.regmap, tsen_mager.base,
+				      &tsen_temp, v2t_table_0, len);
+	} else if (tsen_mager.v2t_table_id == 1) {
+		len = sizeof(v2t_table_1);
+		ret = modem_tsen_read(tsen_mager.regmap, tsen_mager.base,
+				      &tsen_temp, v2t_table_1, len);
+	}
 
 	ret = modem_tsen_control(tsen_mager.regmap, tsen_mager.base, false);
 	if (!ret)
@@ -563,10 +590,11 @@ static int ump96xx_tsen_probe(struct platform_device *pdev)
 	struct regmap *regmap;
 	u32 base;
 	int ret = 0;
+	int tsx_table_id = 0;
 
 	ret = get_boot_mode();
 	if (ret) {
-		pr_err("boot_mode can't not parse bootargs property\n");
+		pr_err("boot_mode can't parse bootargs property\n");
 		return ret;
 	}
 
@@ -582,9 +610,16 @@ static int ump96xx_tsen_probe(struct platform_device *pdev)
 		return ret;
 	}
 
+	ret = of_property_read_u32(np, "v2t_table_id", &tsx_table_id);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to get v2t table id\n");
+		tsx_table_id = 1;
+	}
+
 	tsen_mager.dev = &pdev->dev;
 	tsen_mager.regmap = regmap;
 	tsen_mager.base = base;
+	tsen_mager.v2t_table_id = tsx_table_id;
 
 	if (cali_mode) {
 		for_each_child_of_node(np, sen_child) {
@@ -594,6 +629,7 @@ static int ump96xx_tsen_probe(struct platform_device *pdev)
 
 			tsen->regmap = regmap;
 			tsen->base = base;
+			tsen->v2t_table_id = tsx_table_id;
 
 			ret = of_property_read_u32(sen_child, "reg", &tsen->id);
 			if (ret) {

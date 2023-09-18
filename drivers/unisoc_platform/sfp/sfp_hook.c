@@ -252,6 +252,8 @@ int __init nf_sfp_conntrack_init(void)
 	if (ret < 0) {
 		FP_PRT_DBG(FP_PRT_DEBUG,
 			   "v6 can't register hooks.\n");
+		nf_unregister_net_hooks(&init_net, ipv4_sfp_conntrack_ops,
+				    ARRAY_SIZE(ipv4_sfp_conntrack_ops));
 		return ret;
 	}
 	return ret;

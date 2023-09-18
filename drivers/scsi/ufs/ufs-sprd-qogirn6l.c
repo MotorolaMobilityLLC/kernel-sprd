@@ -262,8 +262,8 @@ static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt
 
 		/* read VOLTAGE START */
 		v[N6L_UFS_VDDEMMCORE_VOLTAGE] = regulator_get_voltage(hba->vreg_info.vcc->reg);
-		v[N6L_UFS_VDDSRAM_VOLTAGE] = regulator_get_voltage(priv->vdd_mphy);
-		v[N6L_UFS_VDDUFS1V2_VOLTAGE] = regulator_get_voltage(priv->vddsram);
+		v[N6L_UFS_VDDSRAM_VOLTAGE] = regulator_get_voltage(priv->vddsram);
+		v[N6L_UFS_VDDUFS1V2_VOLTAGE] = regulator_get_voltage(priv->vdd_mphy);
 		/* read VOLTAGE END */
 	} else {
 		p->preempt = true;
@@ -545,6 +545,10 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	host->hba = hba;
 	ufshcd_set_variant(hba, host);
+
+	ret = get_boot_mode(hba);
+	if (ret < 0)
+		dev_err(dev, "boot_mode can't not parse bootargs property\n");
 
 	ufs_sprd_get_gic_reg(hba);
 
@@ -912,6 +916,7 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 	int err = 0;
 	int ret = 0;
 	struct sprd_sip_svc_handle *svc_handle;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
 	switch (status) {
 	case PRE_CHANGE:
@@ -923,8 +928,10 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 		}
 		hba->capabilities &= ~MASK_AUTO_HIBERN8_SUPPORT;
 		hba->ahit = 0;
-		hba->clk_gating.delay_ms = 10;
-
+		if (host->cali_mode_enable)
+			hba->clk_gating.delay_ms = 1;
+		else
+			hba->clk_gating.delay_ms = 10;
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 		ufshcd_writel(hba, CONTROLLER_ENABLE, REG_CONTROLLER_ENABLE);
 		svc_handle = sprd_sip_svc_get_handle();
@@ -1088,10 +1095,11 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
 {
 	u32 data = 0;
-
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 	sprd_ufs_print_err_cnt(hba);
 	ufs_sprd_get_debug_regs(hba, UFS_EVT_CNT, &data);
-	sprd_ufs_debug_err_dump(hba);
+	if (!host->cali_mode_enable)
+		sprd_ufs_debug_err_dump(hba);
 }
 
 static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,

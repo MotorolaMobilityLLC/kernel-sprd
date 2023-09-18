@@ -2072,7 +2072,6 @@ static int sipa_init_sysfs(struct sipa_plat_drv_cfg *ipa)
 	ret = sysfs_create_groups(&ipa->dev->kobj, sipa_groups);
 	if (ret) {
 		dev_err(ipa->dev, "sipa fail to create sysfs\n");
-		sysfs_remove_groups(&ipa->dev->kobj, sipa_groups);
 		return ret;
 	}
 
