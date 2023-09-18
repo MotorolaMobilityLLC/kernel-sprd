@@ -248,6 +248,7 @@ void sprd_ufs_print_err_cnt(struct ufs_hba *hba);
 void ufs_sprd_update_err_cnt(struct ufs_hba *hba, u32 reg, enum err_type type);
 void ufs_sprd_update_uic_err_cnt(struct ufs_hba *hba, u32 reg, enum ufs_event_type evt);
 void ufs_sprd_sysfs_add_nodes(struct ufs_hba *hba);
+extern struct ufs_hba *hba_tmp;
 void ufs_sprd_cmd_history_dump(u32 dump_req, struct seq_file *m, char **dump_pos);
 
 void *ufs_sprd_get_dbg_hist(void);

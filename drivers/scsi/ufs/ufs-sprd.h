@@ -7,6 +7,12 @@
 #define _UFS_SPRD_H_
 
 #define UFS_MAX_GENERAL_LUN	8
+#define B_WB_AVAIL_BUF_ALL (0xA)
+#define SEGMENT_SIZE (512)
+
+//for example 0x9/0xa == 0,so we need (0x9*100*4Mbyte/0xa/100)
+#define PER_100  (100)
+#define SIZE_1K  (1024)
 
 enum ufs_sprd_caps {
 	/*
@@ -61,6 +67,13 @@ struct syscon_ufs {
 
 struct ufs_perf_s {
 	u64 start;
+	u8 index;
+	unsigned long unmap_cmd_nums;
+	unsigned long wb_avail_buf;
+	unsigned long wb_cur_buf;
+	unsigned long b_allocation_unit_size;
+	unsigned long b_segment_size;
+	struct work_struct wb_size_work;
 	unsigned long r_d2c[UFS_PERF_ARRAY_SIZE];
 	unsigned long w_d2c[UFS_PERF_ARRAY_SIZE];
 };
