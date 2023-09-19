@@ -82,7 +82,6 @@ static int virtual_thm_register(struct platform_device *pdev)
 							   &virtual_thm_ops);
 	if (IS_ERR_OR_NULL(vir_thm->thm_dev))
 		return -ENODEV;
-	thermal_zone_device_update(vir_thm->thm_dev, THERMAL_EVENT_UNSPECIFIED);
 
 	return 0;
 }
@@ -167,7 +166,7 @@ static int virtual_thm_probe(struct platform_device *pdev)
 	ret = get_thm_zone_device(pdev);
 	if (ret) {
 		dev_err(dev, "failed to get thmzone device\n");
-		return -EINVAL;
+		return ret;
 	}
 	id = of_alias_get_id(np, "thm-sensor");
 	if (id < 0) {
@@ -179,7 +178,7 @@ static int virtual_thm_probe(struct platform_device *pdev)
 	ret = virtual_thm_register(pdev);
 	if (ret) {
 		dev_err(dev, "failed to register virtual thermal\n");
-		return -ENODEV;
+		return ret;
 	}
 
 	return 0;
