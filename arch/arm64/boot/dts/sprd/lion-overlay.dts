@@ -23,7 +23,7 @@
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "touchscreen/ums9230-spi3-gpio144-145-tp.dtsi"
 #include "battery/lion-overlay.dtsi"
-#include "reserved-memory/ums9230-6h10-go-overlay.dtsi"
+#include "reserved-memory/ums9230-6h10-overlay.dtsi"
 #include "ums9230/wcn.dtsi"
 #include "wcn/wcn_modules.h"
 #include "wcn/chip/wcn-integrate-sharkl6-register.dtsi"
@@ -32,11 +32,11 @@
 
 	model = "Spreadtrum UMS9230 6H10 Board";
 
-	compatible = "sprd,ums9230-6h10-go";
+	compatible = "sprd,ums9230-6h10";
 
-	sprd,sc-id = "ums9230 6h10 go";
+	sprd,sc-id = "ums9230 6h10 1000";
 
-	sprd,board_id = <0x690000>; //XXYY00:base board,XXYY00~XXYYFF:customize board
+	sprd,board_id = <0x610000>; //XXYY00:base board,XXYY00~XXYYFF:customize board
 
 	fragment {
 		target-path = "/";
