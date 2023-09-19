@@ -455,7 +455,7 @@ static int cpu_set_cur_state(struct thermal_cooling_device *cdev,
 	struct thermal_governor *governor = cpu_tz->governor;
 
 	/* the cpu_tz governor should be the same as GOV_NAME */
-	if (unlikely(strncmp(governor->name, GOV_NAME, sizeof(GOV_NAME))))
+	if (strncmp(governor->name, GOV_NAME, sizeof(GOV_NAME)))
 		return -EINVAL;
 
 	/* Request state should be less than max_level */
@@ -909,6 +909,9 @@ static ssize_t sprd_cpu_store_min_core_num(struct device *dev,
 
 	if (id < 0 || kstrtoul(buf, 10, &val))
 		return -EINVAL;
+
+	if (val > cpu_cdev->max_level)
+		val = cpu_cdev->max_level;
 
 	cluster_data[id].min_cpunum = val;
 
@@ -1483,9 +1486,8 @@ static struct cpu_power_ops power_ops = {
 static int create_cpu_cooling_device(void)
 {
 	struct device_node *np, *child;
+	int cpu;
 	int ret = 0;
-	int cpu = 0;
-	int result = 0;
 	struct cpumask cpu_online_check;
 	struct device *dev = NULL;
 	struct thermal_cooling_device *cool_dev = NULL;
@@ -1501,10 +1503,8 @@ static int create_cpu_cooling_device(void)
 
 	cluster_data = kcalloc(counts,
 		sizeof(struct cluster_power_coefficients), GFP_KERNEL);
-	if (cluster_data == NULL) {
-		ret = -ENOMEM;
-		goto ERR_RET;
-	}
+	if (cluster_data == NULL)
+		return -ENOMEM;
 
 	for_each_child_of_node(np, child) {
 		int cluster_id_n;
@@ -1565,17 +1565,16 @@ static int create_cpu_cooling_device(void)
 			pr_err("No cpu cooling devices!\n");
 	}
 
-	result = register_pm_notifier(&cpu_cooling_pm_nb);
-	if (result)
-		pr_warn("Thermal: Can not register suspend notifier, return %d\n",
-			result);
+	ret = register_pm_notifier(&cpu_cooling_pm_nb);
+	if (ret)
+		pr_warn("Cpu cdev: Can not register suspend notifier, return %d\n",
+			ret);
 
-	return ret;
+	return 0;
 
 free_cluster:
 	kfree(cluster_data);
 	cluster_data = NULL;
-ERR_RET:
 	return ret;
 }
 
