@@ -73,6 +73,7 @@ struct uni_task_struct {
 	u64			total_exec;
 	int			vip_level;
 	u8			vip_params;
+	int			binder_from_cpu;
 #endif
 	/*
 	 * for debug iowait;

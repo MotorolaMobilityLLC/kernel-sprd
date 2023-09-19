@@ -319,6 +319,7 @@ static void __sched_fork_init(struct task_struct *p)
 	uni_tsk->sum_exec_snapshot_for_total = 0;
 	uni_tsk->total_exec = 0;
 	uni_tsk->vip_level = SCHED_NOT_VIP;
+	uni_tsk->binder_from_cpu = -1;
 #endif
 	uni_tsk->last_sleep_ts = 0;
 	uni_tsk->last_enqueue_ts = 0;

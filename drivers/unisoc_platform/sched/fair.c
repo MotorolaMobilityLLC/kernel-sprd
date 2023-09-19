@@ -4,6 +4,7 @@
  */
 
 #include <linux/reciprocal_div.h>
+#include <trace/hooks/binder.h>
 #include <trace/hooks/sched.h>
 #include "uni_sched.h"
 #include "cpu_netlink.h"
@@ -469,6 +470,11 @@ static inline int select_cpu_when_overutiled(struct task_struct *p, int prev_cpu
 static inline int select_cpu_with_same_energy(int prev_cpu, int best_cpu,
 					struct pd_cache *pdc, bool boosted)
 {
+	int prev_vip = num_vip_tasks_of_cpu(prev_cpu);
+	int best_vip = num_vip_tasks_of_cpu(best_cpu);
+
+	if (prev_vip > 0 && best_vip == 0)
+		return best_cpu;
 	/* the prev_cpu and the best_cpu belong to the same cluster */
 	if (boosted && pdc[prev_cpu].cap_orig == pdc[best_cpu].cap_orig &&
 	    pdc[best_cpu].wake_util < pdc[prev_cpu].wake_util)
@@ -491,6 +497,56 @@ snapshot_pd_cache_of(struct pd_cache *pd_cache, int cpu, struct task_struct *p)
 	pd_cache[cpu].is_idle = is_idle_cpu(cpu);
 }
 
+static int select_best_performance_cpu_for_vip(struct task_struct *p, unsigned long uclamp_util)
+{
+	int cpu, max_spare_cap_cpu = -1;
+	unsigned long util, spare_cap, cpu_cap, max_spare_cap = 0;
+	unsigned long min_wake_util = ULONG_MAX;
+	struct cpumask cpus;
+	struct sched_cluster *cluster, *tmp;
+
+	list_for_each_entry_safe_reverse(cluster, tmp, &cluster_head, list) {
+		if (is_min_capacity_cluster(cluster))
+			continue;
+
+		cpumask_and(&cpus, &cluster->cpus, cpu_active_mask);
+
+		if (cpumask_empty(&cpus))
+			continue;
+
+		for_each_cpu(cpu, &cpus) {
+			unsigned long wake_util;
+
+			if (!cpumask_test_cpu(cpu, p->cpus_ptr) || is_reserved(cpu))
+				continue;
+
+			if (walt_cpu_high_irqload(cpu))
+				continue;
+
+			if (num_vip_tasks_of_cpu(cpu))
+				continue;
+
+			if (is_idle_cpu(cpu) && is_max_capacity_cpu(cpu))
+				return cpu;
+
+			wake_util = cpu_util_without(cpu, p);
+			util = uclamp_util + wake_util;
+			cpu_cap = capacity_orig_of(cpu) - arch_scale_thermal_pressure(cpu);
+			spare_cap = cpu_cap;
+			lsub_positive(&spare_cap, util);
+
+			if (max_spare_cap_cpu == -1 || spare_cap > max_spare_cap ||
+			    (spare_cap == max_spare_cap && wake_util < min_wake_util)) {
+				max_spare_cap_cpu = cpu;
+				max_spare_cap = spare_cap;
+				min_wake_util = wake_util;
+			}
+		}
+	}
+
+	return max_spare_cap_cpu;
+}
+
 static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sync)
 {
 	unsigned long prev_delta = ULONG_MAX, best_delta = ULONG_MAX;
@@ -507,6 +563,7 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 	struct perf_domain *pd;
 	struct pd_cache pdc[UNI_NR_CPUS];
 	struct cpumask cpus;
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *) p->android_vendor_data1;
 
 	rcu_read_lock();
 	pd = rcu_dereference(rd->pd);
@@ -530,6 +587,22 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 	trace_sched_feec_task_info(p, prev_cpu, walt_task_util(p), task_boost,
 				   uclamp_util, boosted, latency_sensitive, blocked);
 
+	if (sched_custom_scene(SCENE_LAUNCH) && test_vip_task(p)) {
+		if ((uni_tsk->vip_params & SCHED_BINDER_TYPE) && (uni_tsk->binder_from_cpu != -1)) {
+			target = uni_tsk->binder_from_cpu;
+			goto unlock;
+		}
+
+		if (is_max_capacity_cpu(prev_cpu) && is_idle_cpu(cpu)) {
+			target = prev_cpu;
+			goto unlock;
+		}
+
+		target = select_best_performance_cpu_for_vip(p, uclamp_util);
+		if (target != -1)
+			goto unlock;
+	}
+
 	for (; pd; pd = pd->next) {
 		unsigned long cur_delta = ULONG_MAX, spare_cap, max_spare_cap = 0;
 		bool compute_prev_delta = false;
@@ -552,6 +625,10 @@ static int walt_find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, i
 				continue;
 
 			if (walt_cpu_high_irqload(cpu))
+				continue;
+
+			if (sched_custom_scene(SCENE_LAUNCH) && (!test_vip_task(p)) &&
+				num_vip_tasks_of_cpu(cpu))
 				continue;
 
 			/* speed up goto big core */
@@ -1082,6 +1159,9 @@ static int get_task_vip_level(struct task_struct *p)
 	if (!test_vip_task(p))
 		return SCHED_NOT_VIP;
 
+	if (uni_tsk->vip_params & SCHED_BINDER_TYPE)
+		return SCHED_BINDER_VIP;
+
 	if (uni_tsk->vip_params & SCHED_AUDIO_TYPE)
 		return SCHED_AUDIO_VIP;
 
@@ -1114,6 +1194,9 @@ static inline unsigned int cfs_vip_task_limit(struct task_struct *p)
 	/* audio tasks are high prio but have only single slice */
 	if (uni_tsk->vip_level == SCHED_AUDIO_VIP)
 		return SCHED_VIP_SLICE;
+
+	if (sched_custom_scene(SCENE_LAUNCH))
+		return SCHED_VIP_LAUNCH_LIMIT;
 
 	return SCHED_VIP_LIMIT;
 }
@@ -1412,6 +1495,24 @@ static void cfs_replace_next_task_fair(void *data, struct rq *rq, struct task_st
 	}
 }
 
+static void cfs_binder_vip_task_set(void *data, struct task_struct *task,
+				bool sync, struct binder_proc *proc)
+{
+	struct uni_task_struct *uni_tsk = (struct uni_task_struct *)task->android_vendor_data1;
+
+	if (unlikely(uni_sched_disabled))
+		return;
+
+	if (is_fair_task(task) && test_vip_task(current)) {
+		uni_tsk->vip_params |= SCHED_BINDER_TYPE;
+		if (sched_custom_scene(SCENE_LAUNCH))
+			uni_tsk->binder_from_cpu = smp_processor_id();
+	} else if (uni_tsk->vip_params & SCHED_BINDER_TYPE) {
+		uni_tsk->vip_params &= ~SCHED_BINDER_TYPE;
+		uni_tsk->binder_from_cpu = -1;
+	}
+}
+
 void check_parent_vip_status(struct task_struct *tsk)
 {
 	pid_t pid = tsk->pid, tgid = tsk->tgid;
@@ -1598,6 +1699,11 @@ static int lb_pull_tasks(int dst_cpu, int src_cpu)
 		if (!_can_migrate_task(p, dst_cpu))
 			continue;
 
+		/* do not pull vip-task when launch */
+		if (sched_custom_scene(SCENE_LAUNCH) && test_vip_task(p) &&
+		    num_vip_tasks_of_cpu(src_cpu) < 3)
+			continue;
+
 		if (pull_me == NULL) {
 			pull_me = p;
 		} else {
@@ -1645,6 +1751,13 @@ static int lb_find_busiest_from_similar_cap_cpu(int dst_cpu, const cpumask_t *sr
 
 		if (nr_running < 2 || !cpu_rq(i)->cfs.h_nr_running)
 			continue;
+
+		if (sched_custom_scene(SCENE_LAUNCH)) {
+			int vip_running = num_vip_tasks_of_cpu(i);
+
+			if (nr_running == vip_running && vip_running < 3)
+				continue;
+		}
 
 		util = lb_cpu_util(i);
 		if (util < busiest_util)
@@ -1807,6 +1920,7 @@ void fair_init(void)
 #ifdef CONFIG_UNISOC_SCHED_VIP_TASK
 	register_trace_android_vh_scheduler_tick(cfs_vip_scheduler_tick, NULL);
 	register_trace_android_rvh_replace_next_task_fair(cfs_replace_next_task_fair, NULL);
+	register_trace_android_vh_binder_wakeup_ilocked(cfs_binder_vip_task_set, NULL);
 #endif
 #if IS_ENABLED(CONFIG_SCHED_WALT)
 	register_trace_android_rvh_update_misfit_status(android_rvh_update_misfit_status, NULL);
