@@ -605,7 +605,7 @@ static int sipa_dummy_set_mac_address(struct net_device *ndev, void *priv)
 		return -EADDRNOTAVAIL;
 
 	ether_addr_copy(dummy->mac_addr, addr->sa_data);
-	ether_addr_copy(ndev->dev_addr, addr->sa_data);
+	ether_addr_copy((u8 *)ndev->dev_addr, addr->sa_data);
 
 	return 0;
 }
