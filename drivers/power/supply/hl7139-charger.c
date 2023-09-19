@@ -2332,8 +2332,7 @@ static int hl7139_resume(struct device *dev)
 		mutex_unlock(&hl->irq_complete);
 	}
 
-	power_supply_changed(hl->fc2_psy);
-	dev_err(dev, "Resume successfully!");
+	dev_info(dev, "Resume successfully!");
 
 	return 0;
 }
