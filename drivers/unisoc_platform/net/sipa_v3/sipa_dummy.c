@@ -985,6 +985,11 @@ static void sipa_dummy_debugfs_init(void)
 		pr_err("failed to create debugfs dir\n");
 }
 
+static void sipa_dummy_debugfs_remove(void)
+{
+	debugfs_remove_recursive(dummy_debugfs_root);
+}
+
 #if NO_CONNTRACK
 static int
 sipa_ctnetlink_conntrack_event(unsigned int events,
@@ -1066,6 +1071,11 @@ EXPORT_SYMBOL_GPL(sipa_dummy_init);
 void sipa_dummy_exit(void)
 {
 	sipa_dummy_unreg_netdev_notifier();
+	sipa_dummy_debugfs_remove();
+	dev_close(dummy_dev);
+	unregister_netdev(dummy_dev);
+	free_netdev(dummy_dev);
+	dummy_dev = NULL;
 }
 EXPORT_SYMBOL_GPL(sipa_dummy_exit);
 
