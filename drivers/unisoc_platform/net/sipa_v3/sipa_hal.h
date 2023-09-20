@@ -86,8 +86,7 @@ bool sipa_hal_check_send_cmn_fifo_com(struct device *dev,
 int sipa_hal_cmn_fifo_get_filled_depth(struct device *dev,
 				       enum sipa_cmn_fifo_index fifo_id,
 				       u32 *rx, u32 *tx);
-int sipa_hal_free_tx_rx_fifo_buf(struct device *dev,
-				 enum sipa_cmn_fifo_index fifo_id);
+int sipa_hal_free_tx_rx_fifo_buf(struct device *dev);
 int sipa_hal_init_pam_param(enum sipa_cmn_fifo_index dl_idx,
 			    enum sipa_cmn_fifo_index ul_idx,
 			    struct sipa_to_pam_info *out);
