@@ -148,4 +148,14 @@ config UNISOC_CPU_NETLINK
 	  the message.
 	  If you do not use unisoc android framework, or you do not want to receive
 	  the messege, turn off it.
+
+config UNISOC_WORKAROUND_L3_HANG
+	bool "workaround sharkl3 32b cpu hang"
+	depends on UNISOC_SCHED && ARM
+	default n
+	help
+	  Enable the l3 cpu hang workaround.
+	  Start a timer when boot, when time out, send ipi_rescheduler to other
+	  cpus to wake up the cpu.
+	  Do not open it except for sharkl3 32b.
 endmenu
