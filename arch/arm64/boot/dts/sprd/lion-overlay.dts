@@ -23,7 +23,7 @@
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "touchscreen/ums9230-spi3-gpio144-145-tp.dtsi"
 #include "battery/lion-overlay.dtsi"
-#include "reserved-memory/ums9230-6h10-overlay.dtsi"
+#include "reserved-memory/lion-overlay.dtsi"
 #include "ums9230/wcn.dtsi"
 #include "wcn/wcn_modules.h"
 #include "wcn/chip/wcn-integrate-sharkl6-register.dtsi"
@@ -546,6 +546,10 @@
 };
 
 &dmabuf {
+	oemcrypto-reserved {
+		label = "uncached_carveout_oem";
+		memory-region = <&oemcrypto_reserved>;
+	};
 
 	fd-reserved {
 		label = "carveout_fd";
