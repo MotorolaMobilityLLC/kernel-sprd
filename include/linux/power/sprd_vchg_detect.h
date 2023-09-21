@@ -25,6 +25,7 @@
 #define SPRD_VCHG_PD_HARD_RESET_MS		500
 #define SPRD_VCHG_PD_RECONNECT_MS		3000
 #define SPRD_VCHG_WAKE_UP_MS			1000
+#define SPRD_VCHG_EXTCON_SINK			3
 
 struct sprd_vchg_info {
 	struct device *dev;
