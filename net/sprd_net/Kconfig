@@ -5,7 +5,7 @@
 config SPRD_NET_HELPER
 	tristate "Spreadtrum net helper support"
 	depends on NET && IPV6
-	default m
+	default n
 	help
 	  This option adds net helper support to the kernel.
 	  We will get the global ipv6 address.
