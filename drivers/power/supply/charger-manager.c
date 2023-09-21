@@ -7342,6 +7342,11 @@ static void cm_uvlo_check_work(struct work_struct *work)
 				struct charger_manager, uvlo_work);
 	int batt_uV, ret;
 
+	if (unlikely(cm->shutdown_flag)) {
+		dev_info(cm->dev, "don't check uvlo when shutdown\n");
+		return;
+	}
+
 	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret || batt_uV < 0) {
 		dev_err(cm->dev, "get_vbat_now_uV error.\n");
@@ -8243,6 +8248,7 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);
 	cancel_delayed_work_sync(&cm->cap_update_work);
+	cancel_delayed_work_sync(&cm->uvlo_work);
 }
 
 static const struct platform_device_id charger_manager_id[] = {
