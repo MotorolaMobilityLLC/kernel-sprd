@@ -686,7 +686,7 @@ static int sgm41513_charger_set_current(struct sgm41513_charger_info *info, u32 
 	if (i == 0)
 		reg_val = 0;
 	else
-		reg_val = i - 1;
+		reg_val = sgm41513_ichg[i - 1] / 60;
 
 	return sgm41513_update_bits(info, SGM41513_REG_02,
 				    SGM41513_ICHG_MASK,
@@ -703,12 +703,13 @@ static int sgm41513_charger_get_current(struct sgm41513_charger_info *info, u32 
 		return ret;
 
 	reg_val &= SGM41513_ICHG_MASK;
-	reg_val = reg_val >> SGM41513_ICHG_SHIFT;
+	//reg_val = reg_val >> SGM41513_ICHG_SHIFT;
+	//reg_val = reg_val * 60;
+	//if (reg_val >= ARRAY_SIZE(sgm41513_ichg))
+	//	reg_val = sgm41513_ichg[ARRAY_SIZE(sgm41513_ichg) - 1];
 
-	if (reg_val >= ARRAY_SIZE(sgm41513_ichg))
-		reg_val = sgm41513_ichg[ARRAY_SIZE(sgm41513_ichg) - 1];
-
-	*cur = sgm41513_ichg[reg_val] * 1000;
+	//*cur = sgm41513_ichg[reg_val] * 1000;
+	*cur = reg_val * 1000 * 60;
 	return 0;
 }
 
