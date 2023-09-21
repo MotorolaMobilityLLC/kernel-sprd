@@ -284,11 +284,8 @@ static int ufs_sprd_dump_get_sense(int ptr, char *b, int sb)
 	int k = 0;
 	int n = 0;
 
-	if (uei[ptr].pkg.ci.ocs == SUCCESS &&
+	if (uei[ptr].pkg.ci.ocs == OCS_SUCCESS &&
 	    uei[ptr].pkg.ci.trans_type == UPIU_TRANSACTION_RESPONSE &&
-	    (uei[ptr].pkg.ci.scsi_stat & (SAM_STAT_CHECK_CONDITION |
-					  SAM_STAT_TASK_SET_FULL |
-					  SAM_STAT_BUSY)) != 0 &&
 	    uei[ptr].pkg.ci.sd_size)
 		for (; k < uei[ptr].pkg.ci.sd_size && n < sb; ++k)
 			n += scnprintf(b + n, sb - n, "%02x ",
