@@ -505,6 +505,11 @@ static void __init sipa_eth_debugfs_init(void)
 #endif
 }
 
+static void __init sipa_eth_debugfs_remove(void)
+{
+	debugfs_remove_recursive(root);
+}
+
 static int __init sipa_eth_init(void)
 {
 	sipa_eth_debugfs_init();
@@ -514,6 +519,7 @@ static int __init sipa_eth_init(void)
 
 static void __exit sipa_eth_exit(void)
 {
+	sipa_eth_debugfs_remove();
 	platform_driver_unregister(&sipa_eth_driver);
 }
 
