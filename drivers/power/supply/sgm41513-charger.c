@@ -510,6 +510,9 @@ static int sgm41513_charger_hw_init(struct sgm41513_charger_info *info)
 		return ret;
 	}
 
+	pr_info("[%s]line=%d: otg cur modify 1.2A \n", __FUNCTION__, __LINE__);
+	ret = sgm41513_update_bits(info, SGM41513_REG_02, SGM41513_REG_OTG_BOOST_MASK, 0x0 << SGM41513_REG_OTG_BOOST_SHIFT);
+
 	sgm41513_update_bits(info, SGM41513_REG_01,
 			     SGM41513_WDT_RESET_MASK,
 			     SGM41513_WDT_RESET << SGM41513_WDT_RESET_SHIFT);

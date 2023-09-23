@@ -110,6 +110,7 @@
 #define UPM6920_REG_A                   0x0A
 #define UPM6920_REG_BOOST_MASK          GENMASK(2, 0)
 #define UPM6920_REG_BOOST_SHIFT         0
+#define UPM6920_REG_BOOST_LIMIT_MA      750
 
 #define UPM6920_REG_B                   0x0B
 
@@ -610,6 +611,20 @@ static int upm6920_charger_set_wd_timer(struct upm6920_charger_info *info,
                 reg_val << REG07_TWD_SHIFT);
 }
 
+static int upm6920_otg_boost_lim(struct upm6920_charger_info *info,
+            u32 cur)
+{
+    u8 reg_val = 0;
+
+    if (cur == 750)
+        reg_val = 1;
+    else
+        reg_val = 4;
+
+    return upm6920_update_bits(info, UPM6920_REG_A, UPM6920_REG_BOOST_MASK,
+                reg_val);
+}
+
 static int upm6920_charger_set_chg_en(struct upm6920_charger_info *info, 
             bool enable)
 {
@@ -728,6 +743,10 @@ static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
     ret = upm6920_charger_set_wd_timer(info, 0);
     if (ret)
         dev_err(info->dev, "failed to disable wdt\n");
+
+    ret = upm6920_otg_boost_lim(info, UPM6920_REG_BOOST_LIMIT_MA);
+    if (ret)
+        dev_err(info->dev, "failed to set boost lim\n");
 
     info->current_charge_limit_cur = 2020 * 1000;
     info->current_input_limit_cur = REG00_IINDPM_LSB * 1000;
