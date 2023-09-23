@@ -277,11 +277,6 @@ static struct upm6920_charger_reg_tab reg_tab[UPM6920_REG_NUM + 1] = {
 static bool enable_dump_stack;
 module_param(enable_dump_stack, bool, 0644);
 
-#ifndef OTG_USE_REGULATOR
-static int upm6920_charger_enable_otg(struct upm6920_charger_info *info);
-static int upm6920_charger_disable_otg(struct upm6920_charger_info *info);
-static int upm6920_charger_vbus_is_enabled(struct upm6920_charger_info *info);
-#endif
 static void upm6920_charger_dump_stack(void)
 {
 	if (enable_dump_stack)
@@ -1303,11 +1298,6 @@ static int upm6920_charger_usb_get_property(struct power_supply *psy,
             }
 
             break;
-#ifndef OTG_USE_REGULATOR
-	case POWER_SUPPLY_PROP_SCOPE:
-		val->intval = upm6920_charger_vbus_is_enabled(info);
-		break;
-#endif
     default:
         ret = -EINVAL;
     }
@@ -1431,16 +1421,6 @@ static int upm6920_charger_usb_set_property(struct power_supply *psy,
 			cancel_delayed_work_sync(&info->wdt_work);
 		}
 		break;
-#ifndef OTG_USE_REGULATOR
-	case POWER_SUPPLY_PROP_SCOPE:
-		dev_err(info->dev, "xzy:set otg %d\n",val->intval);
-		if (val->intval == 1)
-			upm6920_charger_enable_otg(info);
-		else
-			upm6920_charger_disable_otg(info);
-		break;
-#endif
-
     default:
         ret = -EINVAL;
     }
@@ -1481,7 +1461,7 @@ static enum power_supply_property upm6920_usb_props[] = {
 };
 
 static const struct power_supply_desc upm6920_charger_desc = {
-    .name            = "charger",
+    .name            = "upm6920_charger",
     //.type            = POWER_SUPPLY_TYPE_USB,
     .type            = POWER_SUPPLY_TYPE_UNKNOWN,
     .properties        = upm6920_usb_props,
@@ -1913,7 +1893,6 @@ out:
 	schedule_delayed_work(&info->otg_work, msecs_to_jiffies(1500));
 }
 
-#ifdef OTG_USE_REGULATOR
 static int upm6920_charger_enable_otg(struct regulator_dev *dev)
 {
     struct upm6920_charger_info *info = rdev_get_drvdata(dev);
@@ -2050,6 +2029,12 @@ static int upm6920_charger_register_vbus_regulator(struct upm6920_charger_info *
     struct regulator_dev *reg;
     int ret = 0;
 
+	/*
+	 * only master to support otg
+	 */
+	if (info->role != UPM6920_ROLE_MASTER_DEFAULT)
+		return 0;
+
     cfg.dev = info->dev;
     cfg.driver_data = info;
     reg = devm_regulator_register(info->dev,
@@ -2061,127 +2046,65 @@ static int upm6920_charger_register_vbus_regulator(struct upm6920_charger_info *
 
     return ret;
 }
+
+static int upm6920_charger_register_external_vbus_regulator(struct upm6920_charger_info *info)
+{
+	struct regulator_config cfg = { };
+	struct regulator_dev *reg;
+	int ret = 0;
+	struct device_node *otg_nd;
+	struct device_node *otg_parent_nd;
+	struct platform_device *otg_parent_nd_pdev;
+
+	/*
+	 * only master to support otg
+	 */
+	if (info->role != UPM6920_ROLE_MASTER_DEFAULT)
+		return 0;
+
+	otg_nd = of_find_node_by_name(NULL, "otg-vbus");
+	if (!otg_nd) {
+		dev_warn(info->dev, "%s, unable to get otg node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd = of_get_parent(otg_nd);
+	of_node_put(otg_nd);
+	if (!otg_parent_nd) {
+		dev_warn(info->dev, "%s, unable to get otg parent node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd_pdev = of_find_device_by_node(otg_parent_nd);
+	of_node_put(otg_parent_nd);
+	if (!otg_parent_nd_pdev) {
+		dev_warn(info->dev, "%s, unable to get otg parent node device\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	cfg.dev = &otg_parent_nd_pdev->dev;
+	platform_device_put(otg_parent_nd_pdev);
+	cfg.driver_data = info;
+	reg = devm_regulator_register(cfg.dev, &upm6920_charger_vbus_desc, &cfg);
+	if (IS_ERR(reg)) {
+		ret = PTR_ERR(reg);
+		dev_warn(info->dev, "%s, failed to register vddvbus regulator:%d\n",
+			 __func__, ret);
+ 	}
+        return ret;
+}
 #else
-static int upm6920_charger_enable_otg(struct upm6920_charger_info *info)
-{
-    int ret = 0;
-
-	if (!info) {
-		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
-		return -EINVAL;
-	}
-
-	if (info->shutdown_flag)
-		return ret;
-
-	upm6920_charger_dump_stack();
-
-	if (!upm6920_probe_is_ready(info)) {
-		dev_err(info->dev, "%s wait probe timeout\n", __func__);
-		return -EINVAL;
-	}
-    /*
-    * Disable charger detection function in case
-    * affecting the OTG timing sequence.
-    */
-    if (!info->use_typec_extcon) {
-        ret = regmap_update_bits(info->pmic, info->charger_detect,
-                    BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
-        if (ret) {
-            dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
-            return ret;
-        }
-    }
-
-    ret = upm6920_charger_set_otg_en(info, true);
-    if (ret) {
-        dev_err(info->dev, "enable upm6920 otg failed\n");
-        regmap_update_bits(info->pmic, info->charger_detect,
-                BIT_DP_DM_BC_ENB, 0);
-        return ret;
-    }
-
-    info->otg_enable = true;
-	info->last_wdt_time = ktime_to_ms(ktime_get());
-    schedule_delayed_work(&info->wdt_work,
-                msecs_to_jiffies(UPM6920_FEED_WATCHDOG_VALID_MS));
-    schedule_delayed_work(&info->otg_work,
-                msecs_to_jiffies(UPM6920_OTG_VALID_MS));
-
-	dev_info(info->dev, "%s:line%d:enable_otg\n", __func__, __LINE__);
-
-    return ret;
-}
-
-static int upm6920_charger_disable_otg(struct upm6920_charger_info *info)
-{
-    int ret = 0;
-
-    if (!info) {
-        pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
-        return -EINVAL;
-    }
-
-	upm6920_charger_dump_stack();
-
-    if (!upm6920_probe_is_ready(info)) {
-        dev_err(info->dev, "%s wait probe timeout\n", __func__);
-        return -EINVAL;
-    }
-    info->otg_enable = false;
-    cancel_delayed_work_sync(&info->wdt_work);
-    cancel_delayed_work_sync(&info->otg_work);
-    ret = upm6920_charger_set_otg_en(info, false);
-    if (ret) {
-        dev_err(info->dev, "disable upm6920 otg failed\n");
-        return ret;
-    }
-
-    if (!info->use_typec_extcon) {
-        ret = regmap_update_bits(info->pmic, info->charger_detect, BIT_DP_DM_BC_ENB, 0);
-        if (ret)
-            dev_err(info->dev, "enable BC1.2 failed\n");
-    }
-	dev_info(info->dev, "%s:line%d:disable_otg\n", __func__, __LINE__);
-
-	return ret;
-}
-
-static int upm6920_charger_vbus_is_enabled(struct upm6920_charger_info *info)
-{
-    int ret;
-    u8 val;
-
-    dev_info(info->dev, "%s:line%d enter\n", __func__, __LINE__);
-    if (!info) {
-        pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
-        return -EINVAL;
-    }
-
-    ret = upm6920_read(info, UPM6920_REG_3, &val);
-    if (ret) {
-        dev_err(info->dev, "failed to get upm6920 otg status\n");
-        return ret;
-    }
-
-    val &= REG03_OTG_MASK;
-    dev_info(info->dev, "%s:line%d val = %d\n", __func__, __LINE__, val);
-
-    return val;
-}
 static int
 upm6920_charger_register_vbus_regulator(struct upm6920_charger_info *info)
 {
 	return 0;
 }
-#endif
 
-#else
-static int
-upm6920_charger_register_vbus_regulator(struct upm6920_charger_info *info)
+static int upm6920_charger_register_external_vbus_regulator(struct upm6920_charger_info *info)
 {
-    return 0;
+        return 0;
 }
+
 #endif
 
 static int upm6920_charger_probe(struct i2c_client *client,
@@ -2333,15 +2256,13 @@ static int upm6920_charger_probe(struct i2c_client *client,
     INIT_DELAYED_WORK(&info->otg_work, upm6920_charger_otg_work);
     INIT_DELAYED_WORK(&info->wdt_work, upm6920_charger_feed_watchdog_work);
 
-    /*
-    * only master to support otg
-    */
-    if (info->role == UPM6920_ROLE_MASTER_DEFAULT) {
+	if (device_property_read_bool(dev, "otg-vbus-node-external"))
+		ret = upm6920_charger_register_external_vbus_regulator(info);
+	else
         ret = upm6920_charger_register_vbus_regulator(info);
-        if (ret) {
-            dev_err(dev, "failed to register vbus regulator.\n");
-            goto err_psy_usb;
-        }
+	if (ret) {
+		dev_err(dev, "failed to register vbus regulator.\n");
+		goto err_regmap_exit;
     }
 
     INIT_DELAYED_WORK(&info->cur_work, upm6920_current_work);

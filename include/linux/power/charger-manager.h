@@ -622,6 +622,7 @@ struct charger_desc {
 
 	enum data_source battery_present;
 
+	const char **psy_alt_charger_adpt_stat;
 	const char **psy_charger_stat;
 	const char **psy_alt_cp_adpt_stat;
 	const char **psy_cp_stat;
@@ -724,6 +725,9 @@ struct charger_desc {
 	u32 cp_nums;
 	u32 alt_cp_nums;
 	bool enable_alt_cp_adapt;
+
+	u32 alt_charger_nums;
+	bool enable_alt_charger_adapt;
 
 	bool cm_check_int;
 	bool cm_check_fault;
