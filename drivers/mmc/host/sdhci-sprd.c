@@ -1886,7 +1886,7 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	sprd_host->tuning_info = &sprd_tuning_info[host->mmc->index];
 
-	sprd_host->tuning_data_buf = kzalloc(128, GFP_KERNEL);
+	sprd_host->tuning_data_buf = kzalloc(512, GFP_KERNEL);
 	if (!sprd_host->tuning_data_buf) {
 		ret = -ENOMEM;
 		goto pltfm_free;
