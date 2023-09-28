@@ -2073,11 +2073,14 @@ static int musb_sprd_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct device_node *node = pdev->dev.of_node;
+	struct device_node *cmdline_node;
 	struct musb_hdrc_platform_data pdata;
 	struct platform_device_info pinfo;
 	struct sprd_glue *glue;
+	const char *cmdline;
 	u32 buf[2];
 	int ret;
+	bool mode;
 
 	if (sprd_usbmux_check_mode() == MUX_MODE) {
 		dev_info(&pdev->dev, "musb driver stop probe since usb mux jtag\n");
@@ -2197,6 +2200,25 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		pdata.config = &sprd_musb_hdrc_config;
 		glue->use_singlefifo = false;
 	}
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
+	if (ret) {
+		dev_err(&pdev->dev, "Can't not parse bootargs\n");
+		goto err_core_clk;
+	}
+
+	mode = (strstr(cmdline, "androidboot.mode=cali") != NULL) ||
+	       (strstr(cmdline, "androidboot.mode=autotest") != NULL) ||
+	       (strstr(cmdline, "sprdboot.mode=cali") != NULL) ||
+	       (strstr(cmdline, "sprdboot.mode=autotest") != NULL);
+	if (mode) {
+		if (glue->use_singlefifo)
+			sprd_musb_hdrc_config_single.maximum_speed = USB_SPEED_FULL;
+		else
+			sprd_musb_hdrc_config.maximum_speed = USB_SPEED_FULL;
+	}
+
 	glue->enable_pm_suspend_in_host = of_property_read_bool(node, "wakeup-source");
 	pdata.board_data = &glue->enable_pm_suspend_in_host;
 	atomic_set(&glue->pm_suspended, 0);
