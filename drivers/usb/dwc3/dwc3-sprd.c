@@ -370,31 +370,6 @@ static void dwc3_flush_all_events(struct dwc3_sprd *sdwc)
 	spin_unlock_irqrestore(&dwc->lock, flags);
 }
 
-#if IS_ENABLED(CONFIG_SPRD_REDRIVER_PTN38003A)
-extern int ptn38003a_mode_usb32_set(unsigned int enable);
-/*if HW didn't have ptn38003a, we should limit usb speed to 3.0 */
-static void adjust_dwc3_max_speed(struct dwc3_sprd *sdwc)
-{
-	struct dwc3 *dwc = platform_get_drvdata(sdwc->dwc3);
-
-	if (ptn38003a_mode_usb32_set(1)) {
-		u32 reg;
-		unsigned long flags;
-
-		spin_lock_irqsave(&dwc->lock, flags);
-		reg = sdwc_readl(dwc->regs, DWC3_DCFG);
-		reg &= ~(DWC3_DCFG_SPEED_MASK);
-		reg |= DWC3_DCFG_SUPERSPEED;
-		sdwc_writel(dwc->regs, DWC3_DCFG, reg);
-		reg = sdwc_readl(dwc->regs, DWC3_DSTS);
-		spin_unlock_irqrestore(&dwc->lock, flags);
-		dev_info(dwc->dev, "limit dwc3 max speed to usb30, DWC3_DSTS: 0x%x\n", reg);
-	} else {
-		dev_info(dwc->dev, "Donnot limit dwc3 max speed!\n");
-	}
-}
-#endif
-
 static int dwc3_sprd_charger_mode(void)
 {
 	struct device_node *cmdline_node;
@@ -426,8 +401,9 @@ static int dwc3_sprd_charger_mode(void)
 static int dwc3_sprd_calibration_mode(void)
 {
 	struct device_node *cmdline_node;
-	const char *cmdline, *mode;
+	const char *cmdline;
 	int ret;
+	bool mode;
 
 	cmdline_node = of_find_node_by_path("/chosen");
 	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
@@ -437,26 +413,51 @@ static int dwc3_sprd_calibration_mode(void)
 		return 0;
 	}
 
-	mode = strstr(cmdline, "androidboot.mode=cali");
+	mode = (strstr(cmdline, "androidboot.mode=cali") != NULL) ||
+	       (strstr(cmdline, "androidboot.mode=autotest") != NULL) ||
+	       (strstr(cmdline, "sprdboot.mode=cali") != NULL) ||
+	       (strstr(cmdline, "sprdboot.mode=autotest") != NULL);
 
 	if (mode)
 		return 1;
-	else {
-		mode = strstr(cmdline, "androidboot.mode=autotest");
-		if (mode)
-			return 1;
-		else {
-			mode = strstr(cmdline, "sprdboot.mode=cali");
-			if (mode)
-				return 1;
-			else {
-				mode = strstr(cmdline, "sprdboot.mode=autotest");
-				if (mode)
-					return 1;
-				else
-					return 0;
-			}
-		}
+	else
+		return 0;
+}
+
+#if IS_ENABLED(CONFIG_SPRD_REDRIVER_PTN38003A)
+extern int ptn38003a_mode_usb32_set(unsigned int enable);
+#endif
+/*if HW didn't have ptn38003a, we should limit usb speed to 3.0 */
+static void adjust_dwc3_max_speed(struct dwc3_sprd *sdwc)
+{
+	struct dwc3 *dwc = platform_get_drvdata(sdwc->dwc3);
+	u32 reg;
+	unsigned long flags;
+
+#if IS_ENABLED(CONFIG_SPRD_REDRIVER_PTN38003A)
+	if (ptn38003a_mode_usb32_set(1)) {
+		spin_lock_irqsave(&dwc->lock, flags);
+		reg = sdwc_readl(dwc->regs, DWC3_DCFG);
+		reg &= ~(DWC3_DCFG_SPEED_MASK);
+		reg |= DWC3_DCFG_SUPERSPEED;
+		sdwc_writel(dwc->regs, DWC3_DCFG, reg);
+		reg = sdwc_readl(dwc->regs, DWC3_DSTS);
+		spin_unlock_irqrestore(&dwc->lock, flags);
+		dev_info(dwc->dev, "limit dwc3 max speed to usb30, DWC3_DSTS: 0x%x\n", reg);
+	} else {
+		dev_info(dwc->dev, "Donnot limit dwc3 max speed!\n");
+	}
+#endif
+
+	if (dwc3_sprd_calibration_mode()) {
+		spin_lock_irqsave(&dwc->lock, flags);
+		reg = sdwc_readl(dwc->regs, DWC3_DCFG);
+		reg &= ~(DWC3_DCFG_SPEED_MASK);
+		reg |= DWC3_DCFG_FULLSPEED;
+		sdwc_writel(dwc->regs, DWC3_DCFG, reg);
+		reg = sdwc_readl(dwc->regs, DWC3_DSTS);
+		spin_unlock_irqrestore(&dwc->lock, flags);
+		dev_info(dwc->dev, "set dwc3 max speed to fs in cali mode, DWC3_DSTS: 0x%x\n", reg);
 	}
 }
 
@@ -595,9 +596,12 @@ static int dwc3_sprd_otg_start_peripheral(struct dwc3_sprd *sdwc, int on)
 			flush_work(&dwc->drd_work);
 		usb_udc_vbus_handler(dwc->gadget, true);
 		usb_gadget_set_state(dwc->gadget, USB_STATE_ATTACHED);
-#if IS_ENABLED(CONFIG_SPRD_REDRIVER_PTN38003A)
+		/* 1. modify usb speed to fs while cali mode *
+		 * 2. if HW didn't have ptn38003a, we should *
+		 * limit usb speed to 3.0		     *
+		 */
 		adjust_dwc3_max_speed(sdwc);
-#endif
+
 		sdwc->glue_dr_mode = USB_DR_MODE_PERIPHERAL;
 	} else {
 		dev_info(sdwc->dev, "%s: turn off gadget %s\n",
