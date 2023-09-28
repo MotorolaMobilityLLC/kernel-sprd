@@ -502,8 +502,9 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 int sprd_hsphy_cali_mode(void)
 {
 	struct device_node *cmdline_node;
-	const char *cmdline, *mode;
+	const char *cmdline;
 	int ret;
+	bool mode;
 
 	cmdline_node = of_find_node_by_path("/chosen");
 	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
@@ -513,7 +514,10 @@ int sprd_hsphy_cali_mode(void)
 		return 0;
 	}
 
-	mode = strstr(cmdline, "androidboot.mode=cali");
+	mode = (strstr(cmdline, "androidboot.mode=cali") != NULL) ||
+	       (strstr(cmdline, "androidboot.mode=autotest") != NULL) ||
+	       (strstr(cmdline, "sprdboot.mode=cali") != NULL) ||
+	       (strstr(cmdline, "sprdboot.mode=autotest") != NULL);
 
 	if (mode)
 		return 1;

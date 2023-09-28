@@ -211,8 +211,9 @@ static int boot_cali;
 static int sprd_hsphy_cali_mode(void)
 {
 	struct device_node *cmdline_node;
-	const char *cmdline, *mode;
+	const char *cmdline;
 	int ret;
+	bool mode;
 
 	cmdline_node = of_find_node_by_path("/chosen");
 	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
@@ -222,17 +223,15 @@ static int sprd_hsphy_cali_mode(void)
 		return 0;
 	}
 
-	mode = strstr(cmdline, "androidboot.mode=cali");
+	mode = (strstr(cmdline, "androidboot.mode=cali") != NULL) ||
+	       (strstr(cmdline, "androidboot.mode=autotest") != NULL) ||
+	       (strstr(cmdline, "sprdboot.mode=cali") != NULL) ||
+	       (strstr(cmdline, "sprdboot.mode=autotest") != NULL);
 
 	if (mode)
 		return 1;
-	else {
-		mode = strstr(cmdline, "sprdboot.mode=cali");
-		if (mode)
-			return 1;
-		else
-			return 0;
-	}
+	else
+		return 0;
 }
 
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
