@@ -1433,8 +1433,10 @@ static int sgm41513_charger_detect_device(struct sgm41513_charger_info *info)
 	}
 
 	part_id = (reg_val & SGM41513_PN_MASK) >> SGM41513_PN_SHIFT;
-	if (part_id != SGM41513_DEV_ID || part_id != SGM41513A_OR_D_DEV_ID) {
-		dev_err(info->dev, "%s, the device id is 0x%x\n", __func__, part_id);
+	if (part_id == SGM41513_DEV_ID || part_id == SGM41513A_OR_D_DEV_ID || part_id ==  SGM41542_DEV_ID) {
+		return ret;
+	}else{
+		dev_err(info->dev, "%s, detect fail, the device id is 0x%x\n", __func__, part_id);
 		return -EINVAL;
 	}
 
