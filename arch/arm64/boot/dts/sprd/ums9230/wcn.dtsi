@@ -61,6 +61,7 @@
 				merlion-chip-en-gpios = <&ap_gpio 118 GPIO_ACTIVE_HIGH>;
 				merlion-rst-gpios = <&ap_gpio 117 GPIO_ACTIVE_HIGH>;
 				xtal-26m-type-sel-gpios = <&ap_gpio 173 GPIO_ACTIVE_HIGH>;
+				wifi-bin-gpios = <&ap_gpio 58 GPIO_ACTIVE_HIGH>;
 //				#address-cells = <1>;
 				nvmem-cells = <&wcn_alpha>;
 				nvmem-cell-names = "wcn_efuse_blk0";
@@ -125,6 +126,7 @@
 				merlion-chip-en-gpios = <&ap_gpio 118 GPIO_ACTIVE_HIGH>;
 				merlion-rst-gpios = <&ap_gpio 117 GPIO_ACTIVE_HIGH>;
 				xtal-26m-type-sel-gpios = <&ap_gpio 173 GPIO_ACTIVE_HIGH>;
+				wifi-bin-gpios = <&ap_gpio 58 GPIO_ACTIVE_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <1>;
 				nvmem-cells = <&wcn_alpha>;
