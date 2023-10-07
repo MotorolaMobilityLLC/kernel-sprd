@@ -1833,7 +1833,13 @@ static void mmc_hsq_status(void *data, const struct blk_mq_queue_data *bd, int *
 		q->limits.max_discard_sectors = UINT_MAX;
 		queue_flag = true;
 	}
-
+        /* add for [EKLION-2098] by yaoshuihua on 2023-10-08 start */
+        if (!strcmp(mmc_hostname(mmc), "mmc1")) {
+                q->limits.discard_granularity = card->pref_erase << 9;
+                q->limits.max_hw_discard_sectors = UINT_MAX;
+                q->limits.max_discard_sectors = UINT_MAX;
+        }
+        /* add for [EKLION-2098] by yaoshuihua on 2023-10-08 end */
 	req->cmd_flags &= ~REQ_FUA;
 }
 
