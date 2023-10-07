@@ -18,6 +18,7 @@
 #include <linux/spi/spi.h>
 #include <linux/sizes.h>
 #include <linux/seq_buf.h>
+#include <linux/syscore_ops.h>
 #include <../drivers/unisoc_platform/sysdump/unisoc_sysdump.h>
 
 /* Registers definitions for ADI controller */
@@ -82,6 +83,7 @@
 #define ADI_FIFO_DRAIN_TIMEOUT		1000
 #define ADI_READ_TIMEOUT		2000
 #define ADI_WRITE_TIMEOUT		2000
+#define ADI_READ_PMIC_TIMEOUT           4
 
 /*
  * Read back address from REG_ADI_RD_DATA bit[30:16] which maps to:
@@ -134,6 +136,14 @@
 #define SC2720_SOFT_RST_HW              0xc24
 #define REG_RST_EN                      BIT(4)
 #define REG_SOFT_RST                    BIT(0)
+#define SC2720_PMIC_CHIPID_BASE         0xc04
+#define SC2721_PMIC_CHIPID_BASE         0xc04
+#define SC2730_PMIC_CHIPID_BASE         0x1804
+#define UMP9620_PMIC_CHIPID_BASE        0x2004
+#define SC2720_PMIC_CHIP_ID             0x2720
+#define SC2721_PMIC_CHIP_ID             0x2721
+#define SC2730_PMIC_CHIP_ID             0x2730
+#define UMP9620_PMIC_CHIP_ID            0x7520
 
 /* Definition of PMIC reset status register */
 #define HWRST_STATUS_SECURITY		0x02
@@ -160,6 +170,10 @@
 #define WDG_LOAD_MASK			GENMASK(15, 0)
 #define WDG_UNLOCK_KEY			0xe551
 #define SPRD_PRINT_BUF_LEN              10240
+#define ADI_DBG_GROUPS			6
+#define ADI_DBG_GROUP0			0
+#define ADI_DBG_GROUP1                  1
+#define ADI_DBG_NUM			64
 
 /*Adi single soft multi hard*/
 #define SPRD_ADI_MAGIC_LEN_MAX          5
@@ -185,6 +199,8 @@ struct sprd_adi_data {
 	u32 wdg_base;
 	u32 wdg_en;
 	u32 wdg_clk;
+	u32 chip_id_base;
+	u32 chip_id;
 };
 
 struct sprd_adi {
@@ -196,10 +212,39 @@ struct sprd_adi {
 	unsigned long		slave_pbase;
 	struct notifier_block	restart_handler;
 	const struct sprd_adi_data *data;
+	struct mutex *lock;
 };
 
+static struct sprd_adi *sprd_sadi;
+static DEFINE_MUTEX(sprd_adi_mutex);
 static char *sprd_adi_buf;
 static struct seq_buf *sprd_adi_seq_buf;
+
+/*
+ * start: start address
+ * end: end address
+ * pre_data: save adi init and debug register
+ */
+struct debug_reg_info {
+	u32 start;
+	u32 end;
+	u32 pre_data[ADI_DBG_GROUPS][ADI_DBG_NUM];
+};
+
+#define REGS_INIT(regs_base, regs_end)	\
+{					\
+	.start = regs_base,		\
+	.end = regs_end,		\
+}
+
+#define REG_ARRAY_SIZE(a)	(sizeof(a) / sizeof((a)[0]))
+
+static struct debug_reg_info adi_regs_array[] = {
+	REGS_INIT(0x0, 0x3c),
+	REGS_INIT(0x21c, 0x21c),
+	REGS_INIT(0x220, 0x220),
+};
+
 static char panic_reason[1024] = {0};
 static int adi_panic_event(struct notifier_block *self, unsigned long val, void
 			   *reason)
@@ -601,6 +646,68 @@ static void sprd_adi_hw_init(struct sprd_adi *sadi)
 	}
 }
 
+static inline void spi_sprd_adi_reg_dump(int num, bool dump)
+{
+	u32 size = REG_ARRAY_SIZE(adi_regs_array), regdata;
+	struct debug_reg_info *reg_info;
+	int i, j, k;
+
+	for (i = 0; i < size; i++) {
+		reg_info = &adi_regs_array[i];
+		for (j = reg_info->start, k = 0; j <= reg_info->end && k < ADI_DBG_NUM;
+		     j += 4, k++) {
+			if (!dump) {
+				regdata = readl_relaxed(sprd_sadi->base + j);
+				reg_info->pre_data[num][k] = regdata;
+			} else
+				ADI_printf(sprd_adi_seq_buf, "%d:adireg[%d][0x%x]=[0x%x]\n",
+					   num, k, j, reg_info->pre_data[num][k]);
+		}
+	}
+}
+
+static int spi_sprd_adi_syscore_suspend(void)
+{
+	int d = ADI_DBG_GROUP0;
+
+	mutex_lock(sprd_sadi->lock);
+	spi_sprd_adi_reg_dump(d, false);
+	mutex_unlock(sprd_sadi->lock);
+	return 0;
+}
+
+static void spi_sprd_adi_syscore_resume(void)
+{
+	int d = ADI_DBG_GROUP1;
+	u32 value = 0;
+	u32 timeout = ADI_READ_PMIC_TIMEOUT;
+
+	mutex_lock(sprd_sadi->lock);
+	spi_sprd_adi_reg_dump(d, false);
+
+	do {
+		sprd_adi_read(sprd_sadi, sprd_sadi->data->chip_id_base, &value);
+		if (sprd_sadi->data->chip_id == value)
+			break;
+		d++;
+		ADI_printf(sprd_adi_seq_buf, "PMIC chip id is: 0x%x\n", value);
+		spi_sprd_adi_reg_dump(d, false);
+		udelay(1);
+	} while (--timeout);
+
+	if (!timeout) {
+		ADI_printf(sprd_adi_seq_buf, "ADI read PMIC is abnormal\n");
+		for (d = 0; d < ADI_DBG_GROUPS; d++)
+			spi_sprd_adi_reg_dump(d, true);
+	}
+	mutex_unlock(sprd_sadi->lock);
+}
+
+static struct syscore_ops spi_sprd_adi_syscore_ops = {
+	.resume = spi_sprd_adi_syscore_resume,
+	.suspend = spi_sprd_adi_syscore_suspend
+};
+
 static int sprd_adi_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -631,6 +738,9 @@ static int sprd_adi_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(&pdev->dev, ctlr);
 	sadi = spi_controller_get_devdata(ctlr);
+
+	sadi->lock = &sprd_adi_mutex;
+	mutex_init(sadi->lock);
 
 	res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
 	sadi->base = devm_ioremap_resource(&pdev->dev, res);
@@ -712,6 +822,8 @@ static int sprd_adi_probe(struct platform_device *pdev)
 		goto free_seq_buf;
 	}
 
+	sprd_sadi = sadi;
+	register_syscore_ops(&spi_sprd_adi_syscore_ops);
 	return 0;
 
 free_seq_buf:
@@ -759,6 +871,8 @@ static struct sprd_adi_data sc9863_data = {
 	.wdg_clk = SC2721_CLK_EN,
 	.swrst_base = SC2721_SWRST_CTRL0,
 	.softrst_base = SC2721_SOFT_RST_HW,
+	.chip_id_base = SC2721_PMIC_CHIPID_BASE,
+	.chip_id = SC2721_PMIC_CHIP_ID,
 };
 
 static struct sprd_adi_data pike2_data = {
@@ -771,6 +885,8 @@ static struct sprd_adi_data pike2_data = {
 	.wdg_clk = SC2720_CLK_EN,
 	.swrst_base = SC2720_SWRST_CTRL0,
 	.softrst_base = SC2720_SOFT_RST_HW,
+	.chip_id_base = SC2720_PMIC_CHIPID_BASE,
+	.chip_id = SC2720_PMIC_CHIP_ID,
 };
 
 static struct sprd_adi_data ums512_data = {
@@ -780,6 +896,8 @@ static struct sprd_adi_data ums512_data = {
 	.rst_sts = SC2730_RST_STATUS,
 	.swrst_base = SC2730_SWRST_CTRL0,
 	.softrst_base = SC2730_SOFT_RST_HW,
+	.chip_id_base = SC2730_PMIC_CHIPID_BASE,
+	.chip_id = SC2730_PMIC_CHIP_ID,
 };
 
 static struct sprd_adi_data ums9620_data = {
@@ -789,6 +907,8 @@ static struct sprd_adi_data ums9620_data = {
 	.rst_sts = UMP9620_RST_STATUS,
 	.swrst_base = UMP9620_SWRST_CTRL0,
 	.softrst_base = UMP9620_SOFT_RST_HW,
+	.chip_id_base = UMP9620_PMIC_CHIPID_BASE,
+	.chip_id = UMP9620_PMIC_CHIP_ID,
 };
 
 static const struct of_device_id sprd_adi_of_match[] = {
