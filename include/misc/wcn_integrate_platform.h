@@ -145,6 +145,7 @@ int wcn_get_module_status(void);
 int wcn_get_module_status_changed(void);
 int marlin_reset_register_notify(void *callback_func, void *para);
 int marlin_reset_unregister_notify(void);
+bool copy_devices_for_wifi(void);
 phys_addr_t wcn_get_btwf_base_addr(void);
 phys_addr_t wcn_get_btwf_sleep_addr(void);
 phys_addr_t wcn_get_btwf_init_status_addr(void);
