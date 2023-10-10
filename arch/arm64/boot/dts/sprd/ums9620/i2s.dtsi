@@ -39,7 +39,7 @@
 	agcp_i2s0: i2s@56270800 {
 		compatible = "sprd,agcp-i2s-dai";
 		reg = <0 0x56270800 0 0x80>;
-		#sound-dai-cells = <0>;
+		#sound-dai-cells = <1>;
 		sprd,syscon-agcp-ahb = <&audcp_glb_regs>;
 		sprd,id = <AGCP_IIS0_TX>;
 		sprd,tx-dma-no = <24>;

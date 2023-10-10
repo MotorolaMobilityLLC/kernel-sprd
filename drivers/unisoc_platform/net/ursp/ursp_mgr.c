@@ -332,6 +332,6 @@ static void __exit exit_ursp_module(void)
 late_initcall(init_ursp_module);
 module_exit(exit_ursp_module);
 MODULE_ALIAS("platform:SPRD URSP.");
-MODULE_AUTHOR("Junjie Wang <junjie.wang@spreadtrum.com>");
+MODULE_AUTHOR("Cathy Cai <cathy.cai@unisoc.com>");
 MODULE_LICENSE("GPL v2");
 MODULE_VERSION("1.0");

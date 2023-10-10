@@ -25,7 +25,7 @@
 					sprd,height-mm = <121>;
 
 					sprd,esd-check-mode = <0>;
-					sprd,esd-check-enable = <1>;
+					sprd,esd-check-enable = <0>;
 					sprd,esd-check-register = <0x0A>;
 					sprd,esd-check-value = <0x1C>;
 

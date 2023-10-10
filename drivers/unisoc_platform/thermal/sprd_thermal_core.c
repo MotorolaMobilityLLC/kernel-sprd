@@ -189,7 +189,7 @@ static void cpufreq_cdev_debug(struct cpufreq_policy *policy, unsigned int targe
 		return;
 
 	ret = soc_tz->ops->get_trip_temp(soc_tz, trip_control, &control_temp);
-	if (!ret && (soc_tz->temperature >= (control_temp-5000) || user_power_range)) {
+	if (!ret && (soc_tz->temperature >= (control_temp - 5000) || user_power_range)) {
 		if (target_freq != last_target_freq[cluster_id]) {
 			pr_info("temp:%d clus%d target_max_freq:%u, cpu online:%d, user_power:%u\n",
 				soc_tz->temperature, cluster_id, target_freq,
@@ -390,7 +390,7 @@ fail:
 		kfree(thm_ctl);
 	}
 
-	return -ENOMEM;
+	return -EINVAL;
 }
 
 static void sprd_thermal_ctl_exit(void)

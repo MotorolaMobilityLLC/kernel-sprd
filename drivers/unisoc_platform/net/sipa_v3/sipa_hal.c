@@ -905,11 +905,14 @@ bool sipa_hal_check_send_cmn_fifo_com(struct device *dev,
 	return false;
 }
 
-int sipa_hal_free_tx_rx_fifo_buf(struct device *dev,
-				 enum sipa_cmn_fifo_index fifo_id)
+int sipa_hal_free_tx_rx_fifo_buf(struct device *dev)
 {
-	free_rx_fifo_ram(dev, fifo_id);
-	free_tx_fifo_ram(dev, fifo_id);
+	int i = 0;
+
+	for (i = 0; i < SIPA_FIFO_MAX; i++) {
+		free_rx_fifo_ram(dev, i);
+		free_tx_fifo_ram(dev, i);
+	}
 
 	return 0;
 }

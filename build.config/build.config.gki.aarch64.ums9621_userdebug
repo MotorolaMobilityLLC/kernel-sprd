@@ -30,6 +30,7 @@ EXT_MODULES="
 ../modules/kernel5.15/touchscreen/novatek_nt36xxx
 ../modules/kernel5.15/touchscreen/novatek_nt36528_spi
 ../modules/kernel5.15/touchscreen/focaltech_ft3680_spi
+../modules/kernel5.15/touchscreen/synaptics_td4320_spi
 ../modules/kernel5.15/microarray
 ../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
 ../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_common_ctl

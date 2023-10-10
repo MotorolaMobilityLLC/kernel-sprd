@@ -86,7 +86,7 @@ EXPORT_SYMBOL(sprd_get_soc_id);
 static ssize_t read_socid(struct file *file, char  *buf,
 			size_t count, loff_t *data)
 {
-	u32 value[2];
+	u32 value[2] = {0};
 	int i, n = 0;
 	char c[140] = {0};
 

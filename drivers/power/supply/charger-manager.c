@@ -48,6 +48,8 @@
 #define CM_UVLO_CALIBRATION_CNT_THRESHOLD	5
 #define CM_LOW_TEMP_SHUTDOWN_VALTAGE		3400000
 #define CM_LOW_CAP_SHUTDOWN_VOLTAGE_THRESHOLD	3400000
+#define CM_UNKNOW_TYPE_CURRENT_THRESHOLD_H	2000000
+#define CM_UNKNOW_TYPE_CURRENT_THRESHOLD_L	500000
 
 #define CM_CAP_ONE_PERCENT			10
 #define CM_HCAP_DECREASE_STEP			8
@@ -835,7 +837,7 @@ static void cm_get_charger_type(struct charger_manager *cm,
  */
 static int get_usb_charger_type(struct charger_manager *cm, u32 *type)
 {
-	int ret = -EINVAL;
+	int ret;
 
 	mutex_lock(&cm->desc->charger_type_mtx);
 	if (cm->desc->is_fast_charge) {
@@ -6151,7 +6153,7 @@ static ssize_t jeita_control_show(struct device *dev,  struct device_attribute *
 		return -ENOMEM;
 	}
 
-	return sprintf(buf, "%d\n", !desc->jeita_disabled);
+	return snprintf(buf, PAGE_SIZE, "%d\n", !desc->jeita_disabled);
 }
 
 static ssize_t jeita_control_store(struct device *dev,
@@ -6213,7 +6215,7 @@ static ssize_t step_chg_control_show(struct device *dev,  struct device_attribut
 		return -ENOMEM;
 	}
 
-	return sprintf(buf, "%d\n", !desc->step_chg_disabled);
+	return snprintf(buf, PAGE_SIZE, "%d\n", !desc->step_chg_disabled);
 }
 
 static ssize_t step_chg_control_store(struct device *dev,
@@ -6272,7 +6274,7 @@ charge_pump_present_show(struct device *dev, struct device_attribute *attr, char
 	if (cm_check_cp_charger_enabled(cm))
 		status = true;
 
-	return sprintf(buf, "%d\n", status);
+	return snprintf(buf, PAGE_SIZE, "%d\n", status);
 }
 
 static ssize_t charge_pump_present_store(struct device *dev,
@@ -6343,14 +6345,14 @@ charge_pump_current_show(struct device *dev, struct device_attribute *attr, char
 	if (sysfs->cp_id < 0) {
 		dev_err(cm->dev, "charge pump id is error!!!!!!\n");
 		cur = 0;
-		return sprintf(buf, "%d\n", cur);
+		return snprintf(buf, PAGE_SIZE, "%d\n", cur);
 	}
 
 	ret = get_cp_ibat_uA_by_id(cm, &cur, sysfs->cp_id);
 	if (ret)
 		cur = 0;
 
-	return sprintf(buf, "%d\n", cur);
+	return snprintf(buf, PAGE_SIZE, "%d\n", cur);
 }
 
 static ssize_t charge_pump_current_id_store(struct device *dev,
@@ -6402,7 +6404,7 @@ static ssize_t charger_stop_show(struct device *dev,
 	}
 	stop_charge = is_charging(sysfs->cm);
 
-	return sprintf(buf, "%d\n", !stop_charge);
+	return snprintf(buf, PAGE_SIZE, "%d\n", !stop_charge);
 }
 
 static ssize_t charger_stop_store(struct device *dev,
@@ -6464,7 +6466,7 @@ static ssize_t charger_externally_control_show(struct device *dev,
 		return -ENOMEM;
 	}
 
-	return sprintf(buf, "%d\n", sysfs->externally_control);
+	return snprintf(buf, PAGE_SIZE, "%d\n", sysfs->externally_control);
 }
 
 static ssize_t charger_externally_control_store(struct device *dev,
@@ -6556,7 +6558,7 @@ static ssize_t cp_num_show(struct device *dev, struct device_attribute *attr, ch
 	}
 
 	cp_num = cm->desc->cp_nums;
-	return sprintf(buf, "%d\n", cp_num);
+	return snprintf(buf, PAGE_SIZE, "%d\n", cp_num);
 }
 
 static ssize_t enable_power_path_show(struct device *dev,
@@ -6581,7 +6583,7 @@ static ssize_t enable_power_path_show(struct device *dev,
 
 	power_path_enabled = cm_is_power_path_enabled(cm);
 
-	return sprintf(buf, "%d\n", power_path_enabled);
+	return snprintf(buf, PAGE_SIZE, "%d\n", power_path_enabled);
 }
 
 static ssize_t enable_power_path_store(struct device *dev,
@@ -6641,7 +6643,7 @@ static ssize_t keep_awake_show(struct device *dev,
 		return -ENOMEM;
 	}
 
-	return sprintf(buf, "%d\n", cm->desc->keep_awake);
+	return snprintf(buf, PAGE_SIZE, "%d\n", cm->desc->keep_awake);
 }
 
 static ssize_t keep_awake_store(struct device *dev,
@@ -6706,7 +6708,7 @@ static ssize_t support_fast_charge_show(struct device *dev,
 
 	support_fast_charge = cm->fchg_info->support_fchg;
 
-	return sprintf(buf, "%d\n", support_fast_charge);
+	return snprintf(buf, PAGE_SIZE, "%d\n", support_fast_charge);
 }
 
 static ssize_t support_step_chg_show(struct device *dev,
@@ -6730,7 +6732,80 @@ static ssize_t support_step_chg_show(struct device *dev,
 
 	support_step_chg = cm->desc->support_step_chg;
 
-	return sprintf(buf, "%d\n", support_step_chg);
+	return snprintf(buf, PAGE_SIZE, "%d\n", support_step_chg);
+}
+
+static ssize_t unknow_type_cur_control_show(struct device *dev,
+					    struct device_attribute *attr,
+					    char *buf)
+{
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_unknow_type_cur_control);
+	struct charger_manager *cm;
+
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm || !cm->desc) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	return snprintf(buf, PAGE_SIZE, "Charge Limit =%d, Input Limit =%d\n",
+			cm->desc->cur.unknown_cur, cm->desc->cur.unknown_limit);
+}
+
+static ssize_t unknow_type_cur_control_store(struct device *dev,
+					     struct device_attribute *attr,
+					     const char *buf, size_t count)
+{
+	int ret, i, size;
+	struct charger_manager *cm;
+	struct sprd_battery_jeita_table *table;
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_unknow_type_cur_control);
+	int value;
+
+	if (!sysfs) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	cm = sysfs->cm;
+	if (!cm || !cm->desc) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return -ENOMEM;
+	}
+
+	ret =  kstrtoint(buf, 10, &value);
+	if (ret)
+		return ret;
+
+	if (value > CM_UNKNOW_TYPE_CURRENT_THRESHOLD_H)
+		value = CM_UNKNOW_TYPE_CURRENT_THRESHOLD_H;
+	else if (value < CM_UNKNOW_TYPE_CURRENT_THRESHOLD_L)
+		value = CM_UNKNOW_TYPE_CURRENT_THRESHOLD_L;
+
+	cm->desc->cur.unknown_cur = value;
+	cm->desc->cur.unknown_limit = value;
+
+	table = cm->desc->jeita_tab_array[SPRD_BATTERY_JEITA_UNKNOWN];
+	size = cm->desc->jeita_size[SPRD_BATTERY_JEITA_UNKNOWN];
+
+	for (i = 0; i < size; i++) {
+		table[i].current_ua = value;
+		dev_info(cm->dev, "set jeita current_ua from %d to %d\n",
+			 table[i].current_ua, value);
+	}
+
+	cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
+				   CM_CHARGE_INFO_INPUT_LIMIT |
+				   CM_CHARGE_INFO_JEITA_LIMIT));
+
+	return count;
 }
 
 /**
@@ -6784,7 +6859,8 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		sysfs->attrs[8] = &sysfs->attr_keep_awake.attr;
 		sysfs->attrs[9] = &sysfs->attr_support_fast_charge.attr;
 		sysfs->attrs[10] = &sysfs->attr_support_step_chg.attr;
-		sysfs->attrs[11] = NULL;
+		sysfs->attrs[11] = &sysfs->attr_unknow_type_cur_control.attr;
+		sysfs->attrs[12] = NULL;
 
 		sysfs->attr_grp.name = name;
 		sysfs->attr_grp.attrs = sysfs->attrs;
@@ -6854,6 +6930,12 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 				= charger_externally_control_show;
 		sysfs->attr_externally_control.store
 				= charger_externally_control_store;
+
+		sysfs_attr_init(&sysfs->attr_unknow_type_cur_control.attr);
+		sysfs->attr_unknow_type_cur_control.attr.name = "unknow_type_cur_control";
+		sysfs->attr_unknow_type_cur_control.attr.mode = 0644;
+		sysfs->attr_unknow_type_cur_control.show = unknow_type_cur_control_show;
+		sysfs->attr_unknow_type_cur_control.store = unknow_type_cur_control_store;
 
 		if (!desc->sysfs[i].externally_control || !chargers_externally_control)
 			chargers_externally_control = 0;
@@ -7254,6 +7336,14 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	return 0;
 }
 
+static void cm_charge_mode_shutdown_handle(struct charger_manager *cm)
+{
+	if (is_charger_mode) {
+		dev_info(cm->dev, "%s: charge mode shutdown\n", __func__);
+		kernel_power_off();
+	}
+}
+
 static void cm_shutdown_handle(struct charger_manager *cm)
 {
 	dev_dbg(cm->dev, "%s: shutdown mode = %d\n", __func__, cm->desc->uvlo_shutdown_mode);
@@ -7270,6 +7360,7 @@ static void cm_shutdown_handle(struct charger_manager *cm)
 		cancel_delayed_work_sync(&cm->cap_update_work);
 		cm->desc->cap = 0;
 		power_supply_changed(cm->charger_psy);
+		cm_charge_mode_shutdown_handle(cm);
 		break;
 
 	default:
@@ -7284,6 +7375,11 @@ static void cm_uvlo_check_work(struct work_struct *work)
 	struct charger_manager *cm = container_of(dwork,
 				struct charger_manager, uvlo_work);
 	int batt_uV, ret;
+
+	if (unlikely(cm->shutdown_flag)) {
+		dev_info(cm->dev, "don't check uvlo when shutdown\n");
+		return;
+	}
 
 	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret || batt_uV < 0) {
@@ -7338,8 +7434,6 @@ static int cm_get_charging_works_cycle(struct charger_manager *cm,
 	 * one_cap_time = mas_one_percent / ibat_avg_ma.
 	 * one_cap_time represents 1% battery capacity the fastest update time(unit/s).
 	 */
-	cm->desc->cap_one_time = cm->desc->default_cap_one_time;
-	one_cap_time = cm->desc->cap_one_time;
 	total_mah = total_uah / 1000;
 	mas_one_percent = total_mah * 3600 / 100;
 	one_cap_time = DIV_ROUND_CLOSEST(mas_one_percent, ibat_avg_ma);
@@ -7389,6 +7483,8 @@ static int cm_get_discharging_works_cycle(struct charger_manager *cm,
 static int cm_calc_batt_works_cycle(struct charger_manager *cm, int uisoc)
 {
 	int ibat_avg_ua, ret = 0, bat_soc, work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S, bat_temp;
+
+	cm->desc->cap_one_time = cm->desc->default_cap_one_time;
 
 	ret = get_ibat_avg_uA(cm, &ibat_avg_ua);
 	if (ret) {
@@ -8247,6 +8343,7 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);
 	cancel_delayed_work_sync(&cm->cap_update_work);
+	cancel_delayed_work_sync(&cm->uvlo_work);
 }
 
 static const struct platform_device_id charger_manager_id[] = {

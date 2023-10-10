@@ -246,6 +246,10 @@
 	};
 };
 
+&pmic_typec {
+	no_support_typec_analog_earphone;
+};
+
 &ddr_dfs {
 	sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 		"camhigh", "camveryhigh", "top", "boot-opt";

@@ -599,6 +599,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 
 	ufs_sprd_reset_pre(host);
 
+	ufs_sprd_get_gic_reg(hba);
 	ufs_sprd_dbg_regs_hist_register(hba, L6_UFS_DBG_REGS_MAX, l6_dbg_regs_name);
 	ufs_sprd_debug_init(hba);
 

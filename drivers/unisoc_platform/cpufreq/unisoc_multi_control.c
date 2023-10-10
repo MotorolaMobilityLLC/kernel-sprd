@@ -20,7 +20,6 @@ static ssize_t show_high_level_freq_max(struct cpufreq_policy *policy, char *buf
 	}
 
 	return -EINVAL;
-
 }
 
 static ssize_t show_high_level_freq_min(struct cpufreq_policy *policy, char *buf)
@@ -33,7 +32,6 @@ static ssize_t show_high_level_freq_min(struct cpufreq_policy *policy, char *buf
 	}
 
 	return -EINVAL;
-
 }
 
 static ssize_t
@@ -82,11 +80,13 @@ static ssize_t store_scaling_fixed_freq(struct cpufreq_policy *policy,
 
 		if (fix_freq > policy->cpuinfo.max_freq || fix_freq < policy->cpuinfo.min_freq)
 			return -EINVAL;
+
 		cpufreq_for_each_valid_entry(pos, table) {
 			freq = pos->frequency;
 			if (freq == fix_freq)
 				break;
 		}
+
 		if (freq != fix_freq)
 			return -EINVAL;
 	}
@@ -118,7 +118,7 @@ store_high_level_freq_control_enable(struct cpufreq_policy *policy,
 
 	ret = kstrtouint(buf, 10, &val);
 
-	if (ret != 0)
+	if (ret)
 		return -EINVAL;
 
 	list_for_each_entry(sprd_mc, &sprd_mc_list, node) {
@@ -149,16 +149,16 @@ static ssize_t store_high_level_freq_max(struct cpufreq_policy *policy,
 	int ret;
 
 	ret = kstrtouint(buf, 10, &val);
-	if (ret != 0)
+	if (ret)
+		return -EINVAL;
+
+	if (val > policy->cpuinfo.max_freq || val < policy->cpuinfo.min_freq)
 		return -EINVAL;
 
 	if (val) {
 		struct cpufreq_frequency_table *table = policy->freq_table;
 		struct cpufreq_frequency_table *pos;
 		unsigned int freq = 0;
-
-		if (val > policy->cpuinfo.max_freq || val < policy->cpuinfo.min_freq)
-			return -EINVAL;
 
 		cpufreq_for_each_valid_entry(pos, table) {
 			freq = pos->frequency;
@@ -170,9 +170,7 @@ static ssize_t store_high_level_freq_max(struct cpufreq_policy *policy,
 	}
 
 	list_for_each_entry(sprd_mc, &sprd_mc_list, node) {
-
 		if (sprd_mc->policy == policy) {
-
 			if (val < sprd_mc->high_level_limit_min)
 				return -EINVAL;
 
@@ -203,13 +201,13 @@ static ssize_t store_high_level_freq_min(struct cpufreq_policy *policy,
 	if (ret != 0)
 		return -EINVAL;
 
+	if (val > policy->cpuinfo.max_freq || val < policy->cpuinfo.min_freq)
+		return -EINVAL;
+
 	if (val) {
 		struct cpufreq_frequency_table *table = policy->freq_table;
 		struct cpufreq_frequency_table *pos;
 		unsigned int freq = 0;
-
-		if (val > policy->cpuinfo.max_freq || val < policy->cpuinfo.min_freq)
-			return -EINVAL;
 
 		cpufreq_for_each_valid_entry(pos, table) {
 			freq = pos->frequency;
@@ -221,9 +219,7 @@ static ssize_t store_high_level_freq_min(struct cpufreq_policy *policy,
 	}
 
 	list_for_each_entry(sprd_mc, &sprd_mc_list, node) {
-
 		if (sprd_mc->policy == policy) {
-
 			if (val > sprd_mc->high_level_limit_max)
 				return -EINVAL;
 
@@ -239,6 +235,7 @@ static ssize_t store_high_level_freq_min(struct cpufreq_policy *policy,
 			return count;
 		}
 	}
+
 	return -EINVAL;
 }
 
@@ -255,9 +252,6 @@ static struct sprd_multi_control *sprd_mc_alloc(void)
 	struct sprd_multi_control *sprd_mc;
 
 	sprd_mc = kzalloc(sizeof(*sprd_mc), GFP_KERNEL);
-
-	if (!sprd_mc)
-		return NULL;
 
 	return sprd_mc;
 }
@@ -295,7 +289,6 @@ static void trace_cpufreq_target(void *data, struct cpufreq_policy *policy,
 			break;
 		}
 #endif
-
 		if (sprd_mc->policy == policy && sprd_mc->hl_control_enabled) {
 			*target_freq = clamp_val(old_target,
 					sprd_mc->high_level_limit_min,
@@ -413,17 +406,14 @@ static int __init sprd_multi_control_init(void)
 	return 0;
 
 create_files_failed:
-
 	for_each_cpu(i, sprd_mc->policy->related_cpus)
 		per_cpu(sprd_mc_data, i) = NULL;
 	kfree(sprd_mc);
 
 mem_failed:
-
 	multi_control_failed();
 
 	return ret;
-
 }
 
 static void __exit sprd_multi_control_exit(void)

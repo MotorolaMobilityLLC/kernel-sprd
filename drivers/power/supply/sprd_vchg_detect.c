@@ -134,8 +134,6 @@ static int sprd_vchg_change(struct notifier_block *nb, unsigned long limit, void
 	return NOTIFY_OK;
 }
 
-#define SPRD_VCHG_EXTCON_SINK		3
-
 static void sprd_vchg_detect_status(struct sprd_vchg_info *info)
 {
 	int state = 0;

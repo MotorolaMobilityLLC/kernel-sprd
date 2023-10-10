@@ -817,17 +817,6 @@ static void walt_find_busiest_group(void *data, struct sched_group *busiest,
 
 }
 
-/*
- * static void walt_find_busiest_queue(void *data, int dst_cpu,
- *                                     struct sched_group *group,
- *                                     struct cpumask *env_cpus,
- *                                     struct rq **busiest, int *done)
- * {
- *         if (static_branch_unlikely(&uni_sched_disabled))
- *                 return;
- * }
- */
-
 static void walt_nohz_balancer_kick(void *data, struct rq *rq,
 					unsigned int *flags, int *done)
 {
@@ -1039,9 +1028,6 @@ static void walt_cpu_overutilzed(void *data, int cpu, int *overutilized)
 static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 					     struct rq *rq, bool *need_update)
 {
-	struct uni_task_struct *uni_tsk;
-	struct uni_rq *uni_rq;
-
 	if (unlikely(uni_sched_disabled))
 		return;
 
@@ -1051,9 +1037,6 @@ static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 		rq->misfit_task_load = 0;
 		return;
 	}
-
-	uni_rq = (struct uni_rq *) rq->android_vendor_data1;
-	uni_tsk = (struct uni_task_struct *) p->android_vendor_data1;
 
 	if (is_max_capacity_cpu(cpu_of(rq)) ||
 	    task_fits_capacity(p, capacity_orig_of(cpu_of(rq)), cpu_of(rq))) {
@@ -1071,17 +1054,22 @@ static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 static void android_rvh_place_entity(void *data, struct cfs_rq *cfs_rq,
 				struct sched_entity *se, int initial, u64 *vruntime)
 {
+	struct cfs_rq *se_cfs_rq;
 	u64 sleep_time;
 
-	/*
-	 * Pull vruntime of the entity being placed to the base level of
-	 * cfs_rq, to prevent boosting it if placed backwards.  If the entity
-	 * slept for a long time, don't even try to compare its vruntime with
-	 * the base as it may be too far off and the comparison may get
-	 * inversed due to s64 overflow.
-	 */
-	sleep_time = rq_clock_task(rq_of(cfs_rq)) - se->exec_start;
-	if ((s64)sleep_time > 60LL * NSEC_PER_SEC)
+	if (se->exec_start == 0)
+		return;
+
+	se_cfs_rq = cfs_rq_of(se);
+
+	sleep_time = rq_clock_task(rq_of(se_cfs_rq));
+
+	/* Happen while migrating because of clock task divergence */
+	if (sleep_time <= se->exec_start)
+		return;
+
+	sleep_time -= se->exec_start;
+	if (sleep_time > 60LL * NSEC_PER_SEC)
 		se->vruntime = *vruntime;
 }
 #endif

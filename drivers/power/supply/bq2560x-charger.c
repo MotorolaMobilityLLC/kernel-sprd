@@ -1773,7 +1773,6 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	struct device_node *regmap_np;
 	struct platform_device *regmap_pdev;
 	int ret;
-	bool bat_present;
 
 	if (!adapter) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -1860,8 +1859,6 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		return -ENODEV;
 	}
 
-	bat_present = bq2560x_charger_is_bat_present(info);
-
 	mutex_init(&info->lock);
 	mutex_init(&info->input_limit_cur_lock);
 	init_completion(&info->probe_init);
@@ -1890,7 +1887,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 		goto err_psy_usb;
 	}
 
-	bq2560x_charger_stop_charge(info, bat_present);
+	bq2560x_charger_stop_charge(info, true);
 	bq2560x_charger_check_power_path_status(info);
 
 	device_init_wakeup(info->dev, true);

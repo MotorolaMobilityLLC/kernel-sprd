@@ -9,7 +9,7 @@
 &sc2721_pmic {
 	power-controller@c00 {
 		compatible = "sprd,sc2731-regulator", "sprd,sc2721-regulator";
-		/* regulator-debugfs-enable; */
+		regulator-debugfs-enable;
 
 		vddcpu: DCDC_CPU {
 			regulator-name = "vddcpu";

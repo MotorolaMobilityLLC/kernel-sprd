@@ -11,8 +11,9 @@
 
 static void encode_caller_id(void *a, u32 *caller_id)
 {
-	*caller_id = CALLER_ENCODED | task_pid_nr(current) |
-		     raw_smp_processor_id() << CALLER_THREAD_SHIFT;
+	if (in_task())
+		*caller_id = CALLER_ENCODED | task_pid_nr(current) |
+			raw_smp_processor_id() << CALLER_THREAD_SHIFT;
 }
 
 static void

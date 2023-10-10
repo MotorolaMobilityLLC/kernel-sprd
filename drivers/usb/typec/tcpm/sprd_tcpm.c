@@ -116,6 +116,14 @@ int sprd_tcpm_charger_ops_register(struct sprd_charger_ops *ops)
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_charger_ops_register);
 
+void sprd_tcpm_set_support_accessory_mode(struct sprd_tcpm_port *port)
+{
+	if (port->can_power_data_role_swap && g_sprd_typec_device_ops &&
+	    g_sprd_typec_device_ops->set_support_accessory_mode)
+		g_sprd_typec_device_ops->set_support_accessory_mode(port->typec_port);
+}
+EXPORT_SYMBOL_GPL(sprd_tcpm_set_support_accessory_mode);
+
 static void sprd_tcpm_set_pr_swap_flag(enum sprd_tcpm_typec_pd_swap flag)
 {
 	if (g_sprd_typec_device_ops &&

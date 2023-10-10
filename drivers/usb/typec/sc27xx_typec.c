@@ -22,6 +22,8 @@
 #include <linux/usb/sprd_tcpm.h>
 #include <linux/usb/sprd_commonphy.h>
 
+#include "class.h"
+
 /* registers definitions for controller REGS_TYPEC */
 #define SC27XX_EN			0x00
 #define SC27XX_MODE			0x04
@@ -280,6 +282,7 @@ struct sc27xx_typec {
 	/* delayed work for handling vbus_only */
 	struct delayed_work vbus_only_work;
 	bool use_pdhub_c2c;
+	bool is_support_typec_analog_earphone;
 };
 #if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
 struct sprd_typec_device_ops sc27xx_typec_ops;
@@ -556,6 +559,7 @@ static void sc27xx_disconnect_set_status_use_pdhubc2c(struct sc27xx_typec *sc)
 	default:
 		break;
 	}
+	sc->pre_state = SC27XX_DETACHED_SNK;
 
 }
 
@@ -586,6 +590,7 @@ static void sc27xx_disconnect_set_status_no_pdhubc2c(struct sc27xx_typec *sc)
 	default:
 		break;
 	}
+	sc->pre_state = SC27XX_DETACHED_SNK;
 }
 
 static void sc27xx_typec_disconnect(struct sc27xx_typec *sc, u32 status)
@@ -1060,6 +1065,17 @@ static int sc27xx_typec_set_rp_rd(enum sprd_typec_cc_status cc)
 	return 0;
 }
 
+static void sc27xx_typec_set_support_accessory_mode(struct typec_port *port)
+{
+	struct sc27xx_typec *sc = typec_sc;
+	struct typec_capability	*cap = (struct typec_capability	*)port->cap;
+
+	if (sc->is_support_typec_analog_earphone)
+		cap->accessory[0] = TYPEC_ACCESSORY_AUDIO;
+	else
+		cap->accessory[0] = TYPEC_ACCESSORY_NONE;
+}
+
 #if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
 static int sc27xx_typec_register_ops(void)
 {
@@ -1075,6 +1091,7 @@ static int sc27xx_typec_register_ops(void)
 	sc27xx_typec_ops.typec_set_pd_swap_event = sc27xx_typec_set_pd_swap_event;
 	sc27xx_typec_ops.set_typec_rp_rd = sc27xx_typec_set_rp_rd;
 	sc27xx_typec_ops.set_typec_rp_level = sc27xx_typec_set_rp_level;
+	sc27xx_typec_ops.set_support_accessory_mode = sc27xx_typec_set_support_accessory_mode;
 
 	sprd_tcpm_typec_device_ops_register(&sc27xx_typec_ops);
 
@@ -1210,8 +1227,10 @@ static void sc27xx_typec_handle_vbus(struct sc27xx_typec *sc)
 	dev_info(sc->dev, "%s event %d", __func__, sc->vbus_connect_value);
 	if (sc->vbus_connect_value) {
 		do {
-			/* typec has attach,not vbusonly */
-			if (sc->partner_connected) {
+			/* typec has attach,not vbusonly, notify charging when analog headphone
+			 *  have vbus connection
+			 */
+			if (sc->partner_connected && sc->pre_state != SC27XX_AUDIO_CABLE) {
 				dev_info(sc->dev, "typec connect, not vbusonly\n");
 				return;
 			}
@@ -1222,7 +1241,7 @@ static void sc27xx_typec_handle_vbus(struct sc27xx_typec *sc)
 			}
 
 		} while (--timeout > 0);
-		/* vbus attach and 1s no typec attch,
+		/* vbus attach and 500ms no typec attch,
 		 * attach cable recognize vbusonly cable.
 		 */
 		sc->vbus_only_connect = true;
@@ -1311,6 +1330,8 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 	}
 
 	sc->use_pdhub_c2c = of_property_read_bool(node, "use_pdhub_c2c");
+	sc->is_support_typec_analog_earphone = !of_property_read_bool(node,
+					"no_support_typec_analog_earphone");
 
 	if (mode < TYPEC_PORT_DFP || mode > TYPEC_PORT_DRP
 	    || mode == TYPEC_PORT_UFP) {
@@ -1337,6 +1358,10 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 	}
 
 	typec_sc = sc;
+
+	if (!sc->use_pdhub_c2c)
+		sc27xx_typec_set_support_accessory_mode(sc->port);
+
 	spin_lock_init(&sc->lock);
 	spin_lock_init(&sc->vbus_lock);
 	sc27xx_set_dr_swap_executing(0);

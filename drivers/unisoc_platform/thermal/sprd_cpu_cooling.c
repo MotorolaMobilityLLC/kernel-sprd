@@ -32,7 +32,15 @@
 #endif
 #include <trace/events/thermal.h>
 
+#if IS_ENABLED(CONFIG_UNISOC_SCHED)
 #include "../sched/uni_sched.h"
+#else
+enum pause_reason {
+	PAUSE_CORE_CTL	= 0x01,
+	PAUSE_THERMAL	= 0x02,
+	PAUSE_HYP	= 0x04,
+};
+#endif
 
 #define MAX_SENSOR_NUMBER	8
 #define GOV_NAME "power_allocator"
@@ -248,6 +256,26 @@ static int cpu_get_cur_state(struct thermal_cooling_device *cdev,
 	return 0;
 }
 
+static void update_idle_cpus(struct cpu_cooling_device *cpu_cdev)
+{
+	int cpu, first, ncpus;
+
+	first = cpumask_first(&cpu_cdev->allowed_cpus);
+	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
+
+	cpu = first;
+	for_each_cpu(cpu, &cpu_cdev->allowed_cpus) {
+#ifdef CONFIG_UNISOC_SCHED_PAUSE_CPU
+		if (is_cpu_paused_fun(cpu))
+#else
+		if (!cpu_online(cpu))
+#endif
+			cpumask_set_cpu(cpu, &cpu_cdev->idle_cpus);
+		else
+			cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
+	}
+}
+
 static DEFINE_MUTEX(core_ctl_lock);
 static int cpu_down_cpus(struct cpu_cooling_device *cpu_cdev,
 			u32 cur_cpus, u32 target_cpus)
@@ -264,11 +292,20 @@ static int cpu_down_cpus(struct cpu_cooling_device *cpu_cdev,
 			first, cur_cpus - target_cpus, cur_cpus, target_cpus);
 		cpumask_clear(&mask);
 		for (cpu = (first + ncpus - 1); cpu >= first; cpu--) {
+			/*at least keep 2 core*/
+			if (first == 0 && cur_cpus <= 2)
+				break;
 			if (cur_cpus == target_cpus || !cpu)
 				break;
-			if ((target_cpus < cur_cpus) && !is_cpu_paused_fun(cpu)) {
-				cpumask_set_cpu(cpu, &mask);
-				cur_cpus--;
+			if (target_cpus < cur_cpus) {
+				if (!is_cpu_paused_fun(cpu)) {
+					cpumask_set_cpu(cpu, &mask);
+					cur_cpus--;
+				} else if (!cpumask_test_cpu(cpu, &cpu_cdev->idle_cpus)) {
+					/*found paused by other programs and update bit*/
+					cpumask_set_cpu(cpu, &cpu_cdev->idle_cpus);
+					cur_cpus--;
+				}
 			}
 		}
 
@@ -289,18 +326,25 @@ static int cpu_down_cpus(struct cpu_cooling_device *cpu_cdev,
 		pr_info("cpu%d hotplug out cpus:%d curr_cpus:%u target_cpus:%u\n",
 			first, cur_cpus - target_cpus, cur_cpus, target_cpus);
 		for (cpu = (first + ncpus - 1); cpu >= first; cpu--) {
+			/*at least keep 2 core*/
+			if (first == 0 && cur_cpus <= 2)
+				break;
 			if (cur_cpus == target_cpus || !cpu)
 				break;
-			if ((target_cpus < cur_cpus) && cpu_online(cpu)) {
-				ret = remove_cpu(cpu);
-				if (!ret && !cpu_online(cpu)) {
+			if (target_cpus < cur_cpus) {
+				if (cpu_online(cpu)) {
+					ret = remove_cpu(cpu);
+					if (!ret && !cpu_online(cpu)) {
+						cur_cpus--;
+						cpumask_set_cpu(cpu, &cpu_cdev->idle_cpus);
+					}
+				} else if (!cpumask_test_cpu(cpu, &cpu_cdev->idle_cpus)) {
+					/*found down by other programs and update bit*/
+					cpumask_set_cpu(cpu, &cpu_cdev->idle_cpus);
 					cur_cpus--;
-					cpumask_set_cpu(cpu,
-						&cpu_cdev->idle_cpus);
 				}
 			}
 		}
-
 	}
 
 	return ret;
@@ -323,9 +367,15 @@ static int cpu_up_cpus(struct cpu_cooling_device *cpu_cdev,
 		for (cpu = first; cpu < first + ncpus; cpu++) {
 			if (cur_cpus == target_cpus)
 				break;
-			if ((target_cpus > cur_cpus) && is_cpu_paused_fun(cpu)) {
-				cpumask_set_cpu(cpu, &mask);
-				cur_cpus++;
+			if (target_cpus > cur_cpus) {
+				if (is_cpu_paused_fun(cpu)) {
+					cpumask_set_cpu(cpu, &mask);
+					cur_cpus++;
+				} else if (cpumask_test_cpu(cpu, &cpu_cdev->idle_cpus)) {
+					/*found resumed by other programs and update bit*/
+					cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
+					cur_cpus++;
+				}
 			}
 		}
 		if (!cpumask_empty(&mask)) {
@@ -347,9 +397,15 @@ static int cpu_up_cpus(struct cpu_cooling_device *cpu_cdev,
 		for_each_cpu(cpu, &cpu_cdev->allowed_cpus) {
 			if (cur_cpus == target_cpus)
 				break;
-			if ((target_cpus > cur_cpus) && !cpu_online(cpu)) {
-				ret = add_cpu(cpu);
-				if (!ret && cpu_online(cpu)) {
+			if (target_cpus > cur_cpus) {
+				if (!cpu_online(cpu)) {
+					ret = add_cpu(cpu);
+					if (!ret && cpu_online(cpu)) {
+						cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
+						cur_cpus++;
+					}
+				} else if (cpumask_test_cpu(cpu, &cpu_cdev->idle_cpus)) {
+					/*found up by other programs and update bit*/
 					cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
 					cur_cpus++;
 				}
@@ -367,7 +423,7 @@ static void cpu_update_target_cpus(struct cpu_cooling_device *cpu_cdev)
 	unsigned long state;
 
 	state = cpu_cdev->target_state;
-
+	update_idle_cpus(cpu_cdev);
 	cpumask_andnot(&run_cpus, &cpu_cdev->allowed_cpus,
 			&cpu_cdev->idle_cpus);
 	cpu_cdev->run_cpus = cpumask_weight(&run_cpus);
@@ -407,7 +463,7 @@ static int cpu_set_cur_state(struct thermal_cooling_device *cdev,
 	struct thermal_governor *governor = cpu_tz->governor;
 
 	/* the cpu_tz governor should be the same as GOV_NAME */
-	if (unlikely(strncmp(governor->name, GOV_NAME, sizeof(GOV_NAME))))
+	if (strncmp(governor->name, GOV_NAME, sizeof(GOV_NAME)))
 		return -EINVAL;
 
 	/* Request state should be less than max_level */
@@ -861,6 +917,9 @@ static ssize_t sprd_cpu_store_min_core_num(struct device *dev,
 
 	if (id < 0 || kstrtoul(buf, 10, &val))
 		return -EINVAL;
+
+	if (val > cpu_cdev->max_level)
+		val = cpu_cdev->max_level;
 
 	cluster_data[id].min_cpunum = val;
 
@@ -1435,9 +1494,8 @@ static struct cpu_power_ops power_ops = {
 static int create_cpu_cooling_device(void)
 {
 	struct device_node *np, *child;
+	int cpu;
 	int ret = 0;
-	int cpu = 0;
-	int result = 0;
 	struct cpumask cpu_online_check;
 	struct device *dev = NULL;
 	struct thermal_cooling_device *cool_dev = NULL;
@@ -1453,10 +1511,8 @@ static int create_cpu_cooling_device(void)
 
 	cluster_data = kcalloc(counts,
 		sizeof(struct cluster_power_coefficients), GFP_KERNEL);
-	if (cluster_data == NULL) {
-		ret = -ENOMEM;
-		goto ERR_RET;
-	}
+	if (cluster_data == NULL)
+		return -ENOMEM;
 
 	for_each_child_of_node(np, child) {
 		int cluster_id_n;
@@ -1517,17 +1573,16 @@ static int create_cpu_cooling_device(void)
 			pr_err("No cpu cooling devices!\n");
 	}
 
-	result = register_pm_notifier(&cpu_cooling_pm_nb);
-	if (result)
-		pr_warn("Thermal: Can not register suspend notifier, return %d\n",
-			result);
+	ret = register_pm_notifier(&cpu_cooling_pm_nb);
+	if (ret)
+		pr_warn("Cpu cdev: Can not register suspend notifier, return %d\n",
+			ret);
 
-	return ret;
+	return 0;
 
 free_cluster:
 	kfree(cluster_data);
 	cluster_data = NULL;
-ERR_RET:
 	return ret;
 }
 

@@ -2057,6 +2057,8 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	host->mmc->max_current_300 = SDHCI_SPRD_MAX_CUR;
 	host->mmc->max_current_180 = SDHCI_SPRD_MAX_CUR;
 
+	host->mmc->caps2 |= MMC_CAP2_NO_PRESCAN_POWERUP;
+
 	sprd_host->flags = host->flags;
 	sprd_host->tuning_merged = true;
 

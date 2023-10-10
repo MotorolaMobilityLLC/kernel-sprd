@@ -16,6 +16,8 @@
 #define UNI_NR_CPUS	8
 #define MAX_CLUSTERS	3
 
+#define SCENE_LAUNCH 1
+
 extern bool uni_sched_disabled;
 
 static inline struct task_group *css_tg(struct cgroup_subsys_state *css)
@@ -226,6 +228,7 @@ extern unsigned int sysctl_sched_uclamp_min_to_boost;
 extern unsigned int sysctl_cpu_multi_thread_opt;
 extern unsigned int sysctl_multi_thread_heavy_load_runtime;
 extern unsigned int sysctl_force_newidle_balance;
+extern unsigned int sysctl_sched_custom_scene;
 
 extern unsigned int min_max_possible_capacity;
 extern unsigned int max_possible_capacity;
@@ -263,6 +266,11 @@ static inline int same_cluster(int src_cpu, int dst_cpu)
 	struct uni_rq *dest_uni_rq = (struct uni_rq *) cpu_rq(dst_cpu)->android_vendor_data1;
 
 	return src_uni_rq->cluster == dest_uni_rq->cluster;
+}
+
+static inline bool sched_custom_scene(int scene)
+{
+	return sysctl_sched_custom_scene == scene;
 }
 
 extern void rt_init(void);

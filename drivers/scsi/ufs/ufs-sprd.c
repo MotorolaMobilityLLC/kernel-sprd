@@ -198,6 +198,85 @@ static void ufs_sprd_vh_send_uic_cmd(void *data, struct ufs_hba *hba,
 	ufs_sprd_uic_cmd_record(hba, ucmd, str);
 }
 
+bool ufs_sprd_wb_current(struct ufs_hba *hba)
+{
+	int ret;
+	u8 allocation_unit_size = 0;
+	u32 avail_buf = 0, cur_buf = 0, segment_size = 0;
+
+	if (!ufshcd_is_wb_allowed(hba))
+		return false;
+
+	ufs_perf.wb_avail_buf = 0;
+	ufs_perf.wb_cur_buf = 0;
+
+	if (!ufs_perf.b_allocation_unit_size || !ufs_perf.b_segment_size) {
+		ret = ufshcd_read_desc_param(hba, QUERY_DESC_IDN_GEOMETRY, 0,
+			GEOMETRY_DESC_PARAM_ALLOC_UNIT_SIZE, &allocation_unit_size,
+			sizeof(allocation_unit_size));
+		if (ret) {
+			dev_err(hba->dev, "%s b_allocation_unit_size read failed %d\n",
+				__func__, ret);
+			goto out;
+		}
+		ret = ufshcd_read_desc_param(hba, QUERY_DESC_IDN_GEOMETRY, 0,
+			GEOMETRY_DESC_PARAM_SEG_SIZE, (u8 *)(&segment_size),
+			sizeof(segment_size));
+		if (ret) {
+			dev_err(hba->dev, "%s b_segment_size read failed %d\n",
+				__func__, ret);
+			goto out;
+		}
+		ufs_perf.b_allocation_unit_size = allocation_unit_size;
+		ufs_perf.b_segment_size = be32_to_cpu(segment_size);
+		ufs_perf.index = ufshcd_wb_get_query_index(hba);
+
+		pr_err("ufs_lat(wb) b_allocation_unit_size:0x%lx,b_segment_size:0x%lx\n",
+				ufs_perf.b_allocation_unit_size, ufs_perf.b_segment_size);
+	}
+
+	ret = ufshcd_query_attr_retry(hba, UPIU_QUERY_OPCODE_READ_ATTR,
+			QUERY_ATTR_IDN_CURR_WB_BUFF_SIZE,
+			ufs_perf.index, 0, &cur_buf);
+	if (ret) {
+		dev_err(hba->dev, "%s dCurWriteBoosterBufferSize read failed %d\n",
+				__func__, ret);
+		goto out;
+	}
+
+	ret = ufshcd_query_attr_retry(hba, UPIU_QUERY_OPCODE_READ_ATTR,
+			QUERY_ATTR_IDN_AVAIL_WB_BUFF_SIZE,
+			ufs_perf.index, 0, &avail_buf);
+	if (ret) {
+		dev_warn(hba->dev, "%s dAvailableWriteBoosterBufferSize read failed %d\n",
+				__func__, ret);
+		goto out;
+	}
+	ufs_perf.wb_avail_buf = avail_buf;
+	ufs_perf.wb_cur_buf = cur_buf;
+	return true;
+out:
+	return false;
+}
+
+static void ufshcd_wb_size_work_handler(struct work_struct *work)
+{
+	struct ufs_hba *hba = hba_tmp;
+	unsigned long unit_size;
+	unsigned long unit_nums;
+
+	if (hba != NULL && ufs_sprd_wb_current(hba)) {
+		unit_nums = ((ufs_perf.wb_avail_buf*PER_100)/B_WB_AVAIL_BUF_ALL)
+							* ufs_perf.wb_cur_buf;
+		unit_size = ufs_perf.b_allocation_unit_size*ufs_perf.b_segment_size*SEGMENT_SIZE;
+		pr_err("ufs_lat(wb) wb_avail_buf:0x%lx,wb_cur_buf:0x%lx,curr_size:%lu(Mbyte)\n",
+			ufs_perf.wb_avail_buf, ufs_perf.wb_cur_buf,
+			unit_nums * unit_size / SIZE_1K / SIZE_1K / PER_100);
+	}
+	ufs_perf.wb_avail_buf = 0;
+	ufs_perf.wb_cur_buf = 0;
+}
+
 static void ufs_sprd_vh_compl_cmd(void *data,
 				  struct ufs_hba *hba,
 				  struct ufshcd_lrb *lrbp)
@@ -211,7 +290,8 @@ static void ufs_sprd_vh_compl_cmd(void *data,
 	}
 
 	if (lrbp->cmd &&
-		((lrbp->cmd->cmnd[0] == READ_10) || (lrbp->cmd->cmnd[0] == WRITE_10))) {
+		((lrbp->cmd->cmnd[0] == READ_10) || (lrbp->cmd->cmnd[0] == WRITE_10)
+		|| (lrbp->cmd->cmnd[0] == UNMAP))) {
 		int s2c_idx;
 		unsigned int lat;
 
@@ -221,16 +301,21 @@ static void ufs_sprd_vh_compl_cmd(void *data,
 		/* Current in hba->host->host_lock */
 		if (lrbp->cmd->cmnd[0] == READ_10)
 			++ufs_perf.r_d2c[s2c_idx];
-		else
+		else if (lrbp->cmd->cmnd[0] == WRITE_10)
 			++ufs_perf.w_d2c[s2c_idx];
+		else if (lrbp->cmd->cmnd[0] == UNMAP)
+			ufs_perf.unmap_cmd_nums++;
 
 		if (lrbp->compl_time_stamp >
 			(ufs_perf.start + 10000000000ULL/* 10s */)) {
 			ufs_perf.start = lrbp->compl_time_stamp;
 			ufs_lat_log(ufs_perf.r_d2c, "ufs_lat(r)");
 			ufs_lat_log(ufs_perf.w_d2c, "ufs_lat(w)");
+			schedule_work(&ufs_perf.wb_size_work);
+			pr_err("ufs_lat(unmap) unmap_cmd_nums:0x%lx\n", ufs_perf.unmap_cmd_nums);
 			memset(ufs_perf.r_d2c, 0, sizeof(ufs_perf.r_d2c));
 			memset(ufs_perf.w_d2c, 0, sizeof(ufs_perf.w_d2c));
+			ufs_perf.unmap_cmd_nums = 0;
 		}
 	}
 
@@ -351,6 +436,7 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 	ufs_sprd_rpmb_add(hba);
 	sprd_ufs_proc_init(hba);
 	ufs_sprd_sysfs_add_health_device_nodes(hba);
+	INIT_WORK(&ufs_perf.wb_size_work, ufshcd_wb_size_work_handler);
 out:
 	return err;
 }
@@ -359,6 +445,7 @@ static void ufs_sprd_shutdown(struct platform_device *pdev)
 {
 	struct ufs_hba *hba =  platform_get_drvdata(pdev);
 
+	cancel_work_sync(&ufs_perf.wb_size_work);
 	sprd_ufs_proc_exit();
 	ufs_sprd_rpmb_remove(hba);
 	ufshcd_pltfrm_shutdown(pdev);
@@ -368,6 +455,7 @@ static int ufs_sprd_remove(struct platform_device *pdev)
 {
 	struct ufs_hba *hba =  platform_get_drvdata(pdev);
 
+	cancel_work_sync(&ufs_perf.wb_size_work);
 	pm_runtime_get_sync(&(pdev)->dev);
 	sprd_ufs_proc_exit();
 	ufs_sprd_rpmb_remove(hba);
@@ -399,6 +487,8 @@ static int ufs_sprd_system_suspend(struct device *dev)
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 	bool vcc_aon = hba->vreg_info.vcc->reg->always_on;
 	int ret;
+
+	flush_work(&ufs_perf.wb_size_work);
 
 	if (host->check_stat_after_suspend) {
 		ret = host->check_stat_after_suspend(hba, PRE_CHANGE);

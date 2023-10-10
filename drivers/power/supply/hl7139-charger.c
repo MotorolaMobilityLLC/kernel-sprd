@@ -1990,6 +1990,7 @@ static int hl7139_charger_is_writeable(struct power_supply *psy,
 	switch (prop) {
 	case POWER_SUPPLY_PROP_CALIBRATE:
 	case POWER_SUPPLY_PROP_PRESENT:
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
 		ret = 1;
 		break;
 	default:
@@ -2331,8 +2332,7 @@ static int hl7139_resume(struct device *dev)
 		mutex_unlock(&hl->irq_complete);
 	}
 
-	power_supply_changed(hl->fc2_psy);
-	dev_err(dev, "Resume successfully!");
+	dev_info(dev, "Resume successfully!");
 
 	return 0;
 }

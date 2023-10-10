@@ -471,6 +471,10 @@
 	};
 };
 
+&pmic_typec {
+	no_support_typec_analog_earphone;
+};
+
 &hsphy{
 	vdd-supply = <&vddusb33>;
 	extcon = <&extcon_gpio>;

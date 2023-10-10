@@ -147,6 +147,7 @@
 	phys = <&ssphy>;
 	pd-extcon-enable;
 	extcon = <&pmic_typec>, <&pmic_pd>;
+	use-typec-extcon;
 };
 
 &i2c6 {
@@ -159,6 +160,7 @@
 		reg = <0x6b>;
 		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
+		use-typec-extcon;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
@@ -210,6 +212,8 @@
 	sprd,capacity-sleep-calibration;
 
 	sprd,capacity-boot-calibration;
+	use-typec-extcon;
+	extcon = <&pmic_typec>;
 };
 
 &pmic_fchg {
@@ -219,6 +223,8 @@
 
 &pmic_pd {
 	status = "okay";
+	vbus-supply = <&vddvbus>;
+	use-pdhub-c2c;
 	sprd,syscon-aon-apb = <&aon_apb_regs>;
 	usb_con: connector {
 		compatible = "usb-c-connector";

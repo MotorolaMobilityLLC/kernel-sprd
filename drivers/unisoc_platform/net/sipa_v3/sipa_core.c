@@ -1477,7 +1477,7 @@ static int sipa_init(struct device *dev)
 	/* init sipa hal */
 	ret = sipa_hal_init(dev);
 	if (ret)
-		return ret;
+		goto ram_fail;
 
 	/* init sipa eps */
 	ret = sipa_create_eps(dev);
@@ -1521,6 +1521,8 @@ cons_fail:
 	sipa_rm_exit();
 ep_fail:
 	sipa_destroy_eps(dev);
+ram_fail:
+	sipa_hal_free_tx_rx_fifo_buf(dev);
 
 	return ret;
 }

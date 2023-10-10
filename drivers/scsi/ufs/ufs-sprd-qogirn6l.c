@@ -1020,16 +1020,6 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 		}
 
 		if (cmd == UIC_CMD_DME_HIBER_EXIT) {
-			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
-				   priv->ufsdev_refclk_en.reg,
-				   priv->ufsdev_refclk_en.mask,
-				   priv->ufsdev_refclk_en.mask);
-
-			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
-				   priv->usb31pllv_ref2mphy_en.reg,
-				   priv->usb31pllv_ref2mphy_en.mask,
-				   priv->usb31pllv_ref2mphy_en.mask);
-
 			clk_set_parent(priv->hclk, priv->hclk_source);
 			ufshcd_writel(hba, 0x100, REG_HCLKDIV);
 		}
@@ -1041,19 +1031,6 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 			set |= UIC_COMMAND_COMPL;
 			ufshcd_writel(hba, set, REG_INTERRUPT_ENABLE);
 			spin_unlock_irqrestore(hba->host->host_lock, flags);
-		}
-
-		if (cmd == UIC_CMD_DME_HIBER_ENTER) {
-			usleep_range(1000, 1100);
-			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
-					   priv->ufsdev_refclk_en.reg,
-					   priv->ufsdev_refclk_en.mask,
-					   0);
-
-			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
-					   priv->usb31pllv_ref2mphy_en.reg,
-					   priv->usb31pllv_ref2mphy_en.mask,
-					   0);
 		}
 		break;
 	default:
@@ -1107,11 +1084,50 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 {
 	int err = 0;
 	struct ufs_clk_dbg clk_tmp = {};
+	struct ufs_sprd_ums9621_data *priv = NULL;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	if (host != NULL)
+		priv = (struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
 
 	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
 		clk_tmp.status = status;
 		clk_tmp.on = on;
 		ufshcd_common_trace(hba, UFS_TRACE_CLK_GATE, &clk_tmp);
+	}
+
+	switch (status) {
+	case PRE_CHANGE:
+		/* synopsys spec requires that refclk must be opened before cfg_eb */
+		if ((priv != NULL) && ufshcd_is_link_hibern8(hba) && (on == true)) {
+			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
+				priv->ufsdev_refclk_en.reg,
+				priv->ufsdev_refclk_en.mask,
+				priv->ufsdev_refclk_en.mask);
+
+			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
+				priv->usb31pllv_ref2mphy_en.reg,
+				priv->usb31pllv_ref2mphy_en.mask,
+				priv->usb31pllv_ref2mphy_en.mask);
+		}
+
+		if ((priv != NULL) && ufshcd_is_link_hibern8(hba) && (on == false)) {
+			usleep_range(100, 110);
+			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
+				priv->ufsdev_refclk_en.reg,
+				priv->ufsdev_refclk_en.mask,
+				0);
+
+			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
+				priv->usb31pllv_ref2mphy_en.reg,
+				priv->usb31pllv_ref2mphy_en.mask,
+				0);
+		}
+		break;
+	case POST_CHANGE:
+		break;
+	default:
+		break;
 	}
 
 	return err;

@@ -564,6 +564,7 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	hba->host->hostt->compat_ioctl = ufshcd_sprd_ioctl;
 #endif
 
+	ufs_sprd_get_gic_reg(hba);
 	ufs_sprd_dbg_regs_hist_register(hba, N6P_UFS_DBG_REGS_MAX, n6p_dbg_regs_name);
 	ufs_sprd_debug_init(hba);
 

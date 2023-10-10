@@ -348,6 +348,10 @@
 	};
 };
 
+&pmic_typec {
+	no_support_typec_analog_earphone;
+};
+
 &panel {
 	sprd,backlight = <&pwm_backlight>;
 	reset-gpio = <&ap_gpio 50 GPIO_ACTIVE_HIGH>;

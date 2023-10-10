@@ -178,7 +178,7 @@ static struct sprd_pmic_wdt_data ump9620_data = {
 
 static int sprd_pmic_wdt_on(struct sprd_pmic_wdt *pmic_wdt)
 {
-	int nwrite, len, retry_cnt = 0;
+	int nwrite, len, retry_cnt;
 	int timeout = 100;
 	char *p_cmd = "NULL";
 	u32 val = 0, i;
@@ -197,6 +197,7 @@ static int sprd_pmic_wdt_on(struct sprd_pmic_wdt *pmic_wdt)
 			else
 				p_cmd = "dswdt off";
 		}
+		retry_cnt = 0;
 		len = strlen(p_cmd) + 1;
 		while (retry_cnt < RETRY_CNT_MAX) {
 			nwrite = sbuf_write(SIPC_ID_PM_SYS, SMSG_CH_TTY, 0, p_cmd, len,
