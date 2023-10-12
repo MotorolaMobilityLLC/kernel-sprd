@@ -196,16 +196,24 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_ldo, debugfs_voltage_get, debugfs_voltage_set, "%ll
 
 static void ump9621_regulator_debugfs_init(struct regulator_dev *rdev)
 {
-	debugfs_root = debugfs_create_dir(rdev->desc->name, NULL);
+	struct dentry *debugfs;
 
 	if (IS_ERR_OR_NULL(debugfs_root)) {
-		dev_warn(&rdev->dev, "Failed to create debugfs directory\n");
-		rdev->debugfs = NULL;
+		debugfs_root = debugfs_create_dir("sprd_regulator", NULL);
+		if (IS_ERR_OR_NULL(debugfs_root)) {
+			dev_warn(&rdev->dev, "Failed to recreate debugfs directory\n");
+			return;
+		}
+	}
+
+	debugfs = debugfs_create_dir(rdev->desc->name, debugfs_root);
+	if (IS_ERR_OR_NULL(debugfs)) {
+		dev_warn(&rdev->dev, "Failed to create %s directory\n", rdev->desc->name);
 		return;
 	}
 
-	debugfs_create_file("enable", 0644, debugfs_root, rdev, &fops_enable);
-	debugfs_create_file("voltage", 0644, debugfs_root, rdev, &fops_ldo);
+	debugfs_create_file("enable", 0644, debugfs, rdev, &fops_enable);
+	debugfs_create_file("voltage", 0644, debugfs, rdev, &fops_ldo);
 }
 
 static int ump9621_regulator_unlock(struct regmap *regmap)
@@ -219,7 +227,6 @@ static int ump9621_regulator_probe(struct platform_device *pdev)
 	struct regmap *regmap;
 	struct regulator_config config = { };
 	struct regulator_dev *rdev;
-	bool debugfs_en;
 
 	regmap = dev_get_regmap(pdev->dev.parent, NULL);
 	if (!regmap) {
@@ -236,18 +243,18 @@ static int ump9621_regulator_probe(struct platform_device *pdev)
 	config.dev = &pdev->dev;
 	config.regmap = regmap;
 
-	debugfs_en = device_property_read_bool(&pdev->dev, "regulator-debugfs-enable");
+	debugfs_root = debugfs_create_dir("sprd_regulator", NULL);
+	if (IS_ERR(debugfs_root))
+		dev_warn(&pdev->dev, "Failed to create debugfs directory\n");
+
 	for (i = 0; i < ARRAY_SIZE(regulators); i++) {
 		rdev = devm_regulator_register(&pdev->dev, &regulators[i], &config);
 		if (IS_ERR(rdev)) {
 			dev_err(&pdev->dev, "failed to register regulator %s\n",
 				regulators[i].name);
-			return PTR_ERR(rdev);
+			continue;
 		}
-		if (debugfs_en)
-			ump9621_regulator_debugfs_init(rdev);
-		else
-			dev_err(&pdev->dev, "regulator debugfs is disabled\n");
+		ump9621_regulator_debugfs_init(rdev);
 	}
 
 	return 0;
