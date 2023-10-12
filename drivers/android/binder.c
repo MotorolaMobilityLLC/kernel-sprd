@@ -2989,11 +2989,11 @@ static void binder_transaction(struct binder_proc *proc,
 	uint32_t return_error_line = 0;
 	binder_size_t last_fixup_obj_off = 0;
 	binder_size_t last_fixup_min_off = 0;
-	bool is_nested = false;
 	struct binder_context *context = proc->context;
 	int t_debug_id = atomic_inc_return(&binder_last_id);
 	char *secctx = NULL;
 	u32 secctx_sz = 0;
+	bool is_nested = false;
 	struct list_head sgc_head;
 	struct list_head pf_head;
 	const void __user *user_buffer = (const void __user *)
