@@ -42,6 +42,7 @@
 		mmc2 = &sdio1;
 		mmc3 = &sdio2;
 		spi4 = &adi_bus;
+		pmic_pwroff = &pmic_pwroff;
 	};
 
 	chosen: chosen {
@@ -124,6 +125,14 @@
 		compatible = "pmem-region";
 		reg = <0x0 0xfff70000 0x0 0x00010000>;
 	};
+};
+
+&adi_bus {
+	sprd,psci-reboot = <1>;
+};
+
+&pmic_pwroff {
+	sprd,psci-poweroff = <1>;
 };
 
 &uart0 {

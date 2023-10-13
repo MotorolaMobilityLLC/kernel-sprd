@@ -30,6 +30,7 @@
 		mmc0 = &sdio3;
 		mmc1 = &sdio0;
 		mmc2 = &sdio1;
+		pmic_pwroff = &pmic_pwroff;
 	};
 
 	memory@80000000 {
@@ -268,6 +269,14 @@
 		sprd,pinctrl = <&pin_controller>;
 	};
 
+};
+
+&adi_bus {
+	sprd,psci-reboot = <1>;
+};
+
+&pmic_pwroff {
+	sprd,psci-poweroff = <1>;
 };
 
 &uart0 {
