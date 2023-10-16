@@ -46,6 +46,13 @@
 	};
 };
 
+&adi_bus {
+	sprd,psci-reboot = <1>;
+};
+
+&pmic_pwroff {
+	sprd,psci-poweroff = <1>;
+};
 
 &i2c7 {
 	status = "okay";

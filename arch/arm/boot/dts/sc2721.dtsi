@@ -328,7 +328,7 @@
 			sprd,smpl-timer-threshold = <250>;
 		};
 
-		poweroff@c20 {
+		pmic_pwroff: poweroff@c20 {
 			compatible = "sprd,sc27xx-poweroff", "sprd,sc2721-poweroff";
 			reg = <0xc20>;
 		};
