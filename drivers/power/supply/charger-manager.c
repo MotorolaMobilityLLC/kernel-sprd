@@ -5161,13 +5161,25 @@ static int cm_get_battery_technology(struct charger_manager *cm, union power_sup
 
 static void cm_get_uisoc(struct charger_manager *cm, int *uisoc)
 {
+	int fake_uisoc = 0;
+	int ibat_avg = 0;
+
 	if (!is_batt_present(cm)) {
 		/* There is no battery. Assume 100% */
 		*uisoc = 100;
 		return;
 	}
 
-	*uisoc = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
+	fake_uisoc = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
+	if(100 == fake_uisoc && cm->desc->charger_type == CM_CHARGER_TYPE_DCP && cm->desc->charger_status == POWER_SUPPLY_STATUS_CHARGING){
+		get_ibat_avg_uA(cm, &ibat_avg);
+		if(ibat_avg <= 850000)
+			*uisoc = 100;
+		else
+			*uisoc = 99;
+	}else
+		*uisoc = fake_uisoc;
+
 	if (*uisoc > 100)
 		*uisoc = 100;
 	else if (*uisoc < 0)
