@@ -43,7 +43,7 @@
 		bootargs = "earlycon console=ttyS1,921600n8
 			    loop.max_part=7 loglevel=1 log_buf_len=1M kpti=0
 			    firmware_class.path=/odm/firmware,/vendor/firmware
-			    init=/init root=/dev/ram0 rw printk.devkmsg=on
+			    init=/init root=/dev/ram0 rw printk.devkmsg=on ftrace_dump_on_oops
 			    swiotlb=1 dummy_hcd.num=0 rcupdate.rcu_expedited=1 rcu_nocbs=0-7";
 	};
 
