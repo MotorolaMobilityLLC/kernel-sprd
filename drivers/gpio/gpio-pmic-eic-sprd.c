@@ -92,6 +92,7 @@ static int sprd_pmic_eic_read(struct gpio_chip *chip, unsigned int offset,
 static int sprd_pmic_eic_request(struct gpio_chip *chip, unsigned int offset)
 {
 	sprd_pmic_eic_update(chip, offset, SPRD_PMIC_EIC_DMSK, 1);
+
 	return 0;
 }
 
@@ -133,6 +134,7 @@ static int sprd_pmic_eic_set_debounce(struct gpio_chip *chip,
 
 	value &= ~SPRD_PMIC_EIC_DBNC_MASK;
 	value |= (debounce / 1000) & SPRD_PMIC_EIC_DBNC_MASK;
+
 	return regmap_write(pmic_eic->map, pmic_eic->offset + reg, value);
 }
 
@@ -365,6 +367,7 @@ static int sprd_pmic_eic_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, pmic_eic);
+
 	return 0;
 }
 

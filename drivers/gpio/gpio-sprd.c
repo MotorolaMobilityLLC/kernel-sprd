@@ -54,6 +54,11 @@ static void sprd_gpio_update(struct gpio_chip *chip, unsigned int offset,
 	unsigned long flags;
 	u32 tmp;
 
+	if (offset > SPRD_GPIO_NR) {
+		dev_err(chip->parent, "gpio number exceeds maximum.\n");
+		return;
+	}
+
 	spin_lock_irqsave(&sprd_gpio->lock, flags);
 	tmp = readl_relaxed(base + reg);
 
@@ -72,12 +77,18 @@ static int sprd_gpio_read(struct gpio_chip *chip, unsigned int offset, u16 reg)
 	void __iomem *base = sprd_gpio_bank_base(sprd_gpio,
 						 offset / SPRD_GPIO_BANK_NR);
 
+	if (offset > SPRD_GPIO_NR) {
+		dev_err(chip->parent, "gpio number exceeds maximum.\n");
+		return -EINVAL;
+	}
+
 	return !!(readl_relaxed(base + reg) & BIT(SPRD_GPIO_BIT(offset)));
 }
 
 static int sprd_gpio_request(struct gpio_chip *chip, unsigned int offset)
 {
 	sprd_gpio_update(chip, offset, SPRD_GPIO_DMSK, 1);
+
 	return 0;
 }
 
@@ -91,6 +102,7 @@ static int sprd_gpio_direction_input(struct gpio_chip *chip,
 {
 	sprd_gpio_update(chip, offset, SPRD_GPIO_DIR, 0);
 	sprd_gpio_update(chip, offset, SPRD_GPIO_INEN, 1);
+
 	return 0;
 }
 
@@ -100,6 +112,7 @@ static int sprd_gpio_direction_output(struct gpio_chip *chip,
 	sprd_gpio_update(chip, offset, SPRD_GPIO_DIR, 1);
 	sprd_gpio_update(chip, offset, SPRD_GPIO_INEN, 0);
 	sprd_gpio_update(chip, offset, SPRD_GPIO_DATA, value);
+
 	return 0;
 }
 
@@ -190,12 +203,14 @@ static void sprd_gpio_irq_handler(struct irq_desc *desc)
 	struct irq_chip *ic = irq_desc_get_chip(desc);
 	struct sprd_gpio *sprd_gpio = gpiochip_get_data(chip);
 	u32 bank, n, girq;
+	unsigned long reg;
+	void __iomem *base;
 
 	chained_irq_enter(ic, desc);
 
 	for (bank = 0; bank * SPRD_GPIO_BANK_NR < chip->ngpio; bank++) {
-		void __iomem *base = sprd_gpio_bank_base(sprd_gpio, bank);
-		unsigned long reg = readl_relaxed(base + SPRD_GPIO_MIS) &
+		base = sprd_gpio_bank_base(sprd_gpio, bank);
+		reg = readl_relaxed(base + SPRD_GPIO_MIS) &
 			SPRD_GPIO_BANK_MASK;
 
 		for_each_set_bit(n, &reg, SPRD_GPIO_BANK_NR) {
@@ -266,6 +281,7 @@ static int sprd_gpio_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, sprd_gpio);
+
 	return 0;
 }
 

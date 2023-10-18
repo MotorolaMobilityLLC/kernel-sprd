@@ -10,6 +10,8 @@
 #include "ufs-sprd.h"
 #include "ufs-sprd-ioctl.h"
 
+#define uptr64(val) ((void __user *)(uintptr_t)(val))
+
 /**
  * ufs_sprd_ffu_send_cmd - sends WRITE BUFFER command to do FFU
  * @hba: per adapter instance
@@ -19,7 +21,7 @@
  * Returns non-zero if failed to do ffu
  */
 static int sprd_ufs_ffu_send_cmd(struct scsi_device *dev,
-	struct ufs_ioctl_ffu_data *idata)
+	struct ufs_ioctl_ffu_data *idata, void *buf_ptr)
 {
 	struct ufs_hba *hba;
 	unsigned char cmd[10] = {0};
@@ -81,7 +83,7 @@ static int sprd_ufs_ffu_send_cmd(struct scsi_device *dev,
 		 */
 
 		ret = scsi_execute(dev, cmd, DMA_TO_DEVICE,
-				   idata->buf_ptr + buf_offset, write_buf_count, NULL, &sshdr,
+				   buf_ptr + buf_offset, write_buf_count, NULL, &sshdr,
 				   msecs_to_jiffies(1000), 0, 0, RQF_PM, NULL);
 		if (ret) {
 			sdev_printk(KERN_ERR, dev,
@@ -113,7 +115,7 @@ int sprd_ufs_ioctl_ffu(struct scsi_device *dev, void __user *buf_user)
 	struct ufs_hba *hba = shost_priv(dev->host);
 	struct ufs_sprd_host *sprd_ufs = ufshcd_get_variant(hba);
 	struct ufs_ioctl_ffu_data *idata = NULL;
-	struct ufs_ioctl_ffu_data *idata_user = NULL;
+	void *buf_ptr = NULL;
 	int rst_retries = 5;
 	int err = 0;
 	u32 attr = 0;
@@ -124,13 +126,7 @@ int sprd_ufs_ioctl_ffu(struct scsi_device *dev, void __user *buf_user)
 		goto out;
 	}
 
-	idata_user = kzalloc(sizeof(struct ufs_ioctl_ffu_data), GFP_KERNEL);
-	if (!idata_user) {
-		err = -ENOMEM;
-		goto out;
-	}
-
-	err = copy_from_user(idata_user, buf_user, sizeof(struct ufs_ioctl_ffu_data));
+	err = copy_from_user(idata, buf_user, sizeof(struct ufs_ioctl_ffu_data));
 	if (err) {
 		dev_err(hba->dev,
 			"%s: failed copying buffer from user, err %d\n",
@@ -138,23 +134,21 @@ int sprd_ufs_ioctl_ffu(struct scsi_device *dev, void __user *buf_user)
 		goto out;
 	}
 
-	if (idata_user->buf_byte > UFS_IOCTL_FFU_MAX_FW_SIZE) {
+	if (idata->buf_byte > UFS_IOCTL_FFU_MAX_FW_SIZE) {
 		dev_err(hba->dev,
 			"%s: fw size(%d) exceeds max limit 2MB, stop FFU!\n",
-			__func__, idata_user->buf_byte);
+			__func__, idata->buf_byte);
 		err = -EFBIG;
 		goto out;
 	}
 
-	memcpy(idata, idata_user, sizeof(struct ufs_ioctl_ffu_data));
-	idata->buf_ptr = kzalloc(idata->buf_byte, GFP_KERNEL);
-	if (!idata->buf_ptr) {
+	buf_ptr = kzalloc(idata->buf_byte, GFP_KERNEL);
+	if (!buf_ptr) {
 		err = -ENOMEM;
 		goto out;
 	}
 
-	err = copy_from_user(idata->buf_ptr,
-		(void __user *)idata_user->buf_ptr, idata->buf_byte);
+	err = copy_from_user(buf_ptr, uptr64(idata->buf_ptr), idata->buf_byte);
 	if (err) {
 		dev_err(hba->dev,
 			"%s: failed copying FW from user, err %d\n",
@@ -164,7 +158,7 @@ int sprd_ufs_ioctl_ffu(struct scsi_device *dev, void __user *buf_user)
 
 	sprd_ufs->ffu_is_process = TRUE;
 
-	err = sprd_ufs_ffu_send_cmd(dev, idata);
+	err = sprd_ufs_ffu_send_cmd(dev, idata, buf_ptr);
 	if (err)
 		dev_err(hba->dev, "%s: ffu failed, err 0x%x\n", __func__, err);
 	else
@@ -209,10 +203,8 @@ int sprd_ufs_ioctl_ffu(struct scsi_device *dev, void __user *buf_user)
 	}
 
 out:
-	if (idata)
-		kfree(idata->buf_ptr);
+	kfree(buf_ptr);
 	kfree(idata);
-	kfree(idata_user);
 
 	/*
 	 * UFS might not be used normally after FFU.

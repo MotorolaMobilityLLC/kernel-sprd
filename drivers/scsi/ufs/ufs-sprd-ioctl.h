@@ -54,7 +54,7 @@ struct ufs_ioctl_ffu_data {
 	 * will copy
 	 * the data.
 	 */
-	__u8 *buf_ptr;
+	__u64 buf_ptr;
 };
 
 /**

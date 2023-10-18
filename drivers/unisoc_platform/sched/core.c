@@ -456,6 +456,23 @@ static void sched_init_existing_task(struct task_struct *p)
 
 }
 
+#ifdef CONFIG_UNISOC_WORKAROUND_L3_HANG
+static struct timer_list stop_machine_timer;
+static bool stop_machine_init;
+
+static void stop_machine_time_out(struct timer_list *t)
+{
+	int cpu;
+
+	for_each_online_cpu(cpu) {
+		if (cpu != smp_processor_id()) {
+			pr_warn("send ipi resched to cpu:%d\n", cpu);
+			smp_send_reschedule(cpu);
+		}
+	}
+}
+#endif
+
 static int sched_init_stop_handler(void *data)
 {
 	int cpu;
@@ -465,6 +482,13 @@ static int sched_init_stop_handler(void *data)
 #endif
 
 	raw_spin_lock(&init_lock);
+
+#ifdef CONFIG_UNISOC_WORKAROUND_L3_HANG
+	if (!stop_machine_init) {
+		stop_machine_init = true;
+		del_timer(&stop_machine_timer);
+	}
+#endif
 
 	if (!uni_sched_disabled)
 		goto unlock;
@@ -595,6 +619,11 @@ static __init int sched_module_init(void)
 	register_trace_android_vh_update_topology_flags_workfn(
 			android_vh_update_topology_flags_workfn, NULL);
 
+#ifdef CONFIG_UNISOC_WORKAROUND_L3_HANG
+	timer_setup(&stop_machine_timer, stop_machine_time_out, TIMER_DEFERRABLE);
+	stop_machine_timer.expires = jiffies + msecs_to_jiffies(10000);
+	add_timer(&stop_machine_timer);
+#endif
 	if (topology_update_done)
 		schedule_work(&sched_init_work);
 #ifdef CONFIG_UNISOC_SCHED_OPTIMIC_ON_A7

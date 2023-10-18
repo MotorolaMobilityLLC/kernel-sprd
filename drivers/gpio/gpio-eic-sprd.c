@@ -170,6 +170,7 @@ static int sprd_eic_read(struct gpio_chip *chip, unsigned int offset, u16 reg)
 static int sprd_eic_request(struct gpio_chip *chip, unsigned int offset)
 {
 	sprd_eic_update(chip, offset, SPRD_EIC_DBNC_DMSK, 1);
+
 	return 0;
 }
 
@@ -513,10 +514,11 @@ static void sprd_eic_handle_one_type(struct gpio_chip *chip)
 {
 	struct sprd_eic *sprd_eic = gpiochip_get_data(chip);
 	u32 bank, n, girq;
+	void __iomem *base;
+	unsigned long reg;
 
 	for (bank = 0; bank * SPRD_EIC_PER_BANK_NR < chip->ngpio; bank++) {
-		void __iomem *base = sprd_eic_offset_base(sprd_eic, bank);
-		unsigned long reg;
+		base = sprd_eic_offset_base(sprd_eic, bank);
 
 		switch (sprd_eic->type) {
 		case SPRD_EIC_DEBOUNCE:
@@ -665,6 +667,7 @@ static int sprd_eic_probe(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, sprd_eic);
+
 	return 0;
 }
 
