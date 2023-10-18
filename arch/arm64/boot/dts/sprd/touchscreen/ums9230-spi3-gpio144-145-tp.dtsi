@@ -42,7 +42,7 @@
                 chipone,rst-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
                 chipone,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
                 chipone,x-res = <720>;
-                chipone,y-res = <1600>;
+                chipone,y-res = <1612>;
 		/* Charger detect */
                 chipone,touch-charger-detect-enable;
                 chipone,touch-charger-detect-type = "notify"; /* notify, poll */
@@ -57,22 +57,23 @@
                 chipone,touch-earjack-state-filepath = "/sys/bus/platform/drivers/Accdet_Driver/state";
                 chipone,touch-earjack-poll-interval = <1000>;
                 /* For tp selftest */
+				/*xuwei comment: M173 chipone MP testdata confirmed as follow on sept.25*/
                 chipone,test-reset-pin;
                 chipone,test-int-pin;
                 chipone,test-rawdata;
                 chipone,test-rawdata-frames      = <1>;
-                chipone,rawdata-min              = <100>;
-                chipone,rawdata-max              = <10000>;
+                chipone,rawdata-min              = <1202>;
+                chipone,rawdata-max              = <2903>;
                 chipone,test-noise;
                 chipone,test-noise-frames        = <50>;
-                chipone,noise-max                = <1000>;
+                chipone,noise-max                = <99>;
                 chipone,test-open;
-                chipone,open-min                 = <200>;
+                chipone,open-min                 = <1700>;
                 chipone,test-short;
-                chipone,short-min                = <200>;
+                chipone,short-min                = <1700>;
                 chipone,test-compensate-cap;
                 chipone,compensate-cap-min       = <1>;
-                chipone,compensate-cap-max       = <127>;
+                chipone,compensate-cap-max       = <126>;
                 /* gesture data test */
                 chipone,test-gesture-rawdata;
                 chipone,test-gesture-rawdata-frames = <1>;
