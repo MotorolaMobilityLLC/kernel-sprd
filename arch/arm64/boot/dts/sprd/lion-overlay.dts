@@ -130,14 +130,10 @@
 					debounce-interval = <2>;
 					wakeup-source;
 				};
-
-				key-antcheck {
-                                        label = "antcheck";
-                                        linux,code = <KEY_ANT>;
-                                        gpios = <&ap_gpio 122 GPIO_ACTIVE_HIGH>;
-                                        debounce-interval = <2>;
-                                        //wakeup-source;
-                                };
+			};
+			ant_check_div {
+				compatible = "ant_check_div";
+				ant_check_div_gpio = <&ap_gpio 122 GPIO_ACTIVE_HIGH>;
 			};
 			front_sensor: front-sensor {
 				compatible = "sprd,shell-thermal";

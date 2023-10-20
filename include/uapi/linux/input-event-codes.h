@@ -273,7 +273,11 @@
 #define KEY_F22			192
 #define KEY_F23			193
 #define KEY_F24			194
-#define KEY_ANT                 195
+
+#define DIV_ANT_CONNECT		0x294 	/* key for sar ant div check*/
+#define DIV_ANT_UNCONNECT		0x295 	/* key for sar ant div check*/
+
+
 
 #define KEY_PLAYCD		200
 #define KEY_PAUSECD		201
