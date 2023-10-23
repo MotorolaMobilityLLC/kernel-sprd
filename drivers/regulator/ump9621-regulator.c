@@ -82,6 +82,7 @@ static int regulator_set_voltage_sel_sprd(struct regulator_dev *rdev, unsigned i
 					      rdev->desc->name, rdev->desc->vsel_reg, sel);
 			pr_str[1] = NULL;
 			kobject_uevent_env(&rdev->dev.kobj, KOBJ_CHANGE, pr_str);
+			kfree(pr_str[0]);
 		}
 	}
 	return regulator_set_voltage_sel_regmap(rdev, sel);
