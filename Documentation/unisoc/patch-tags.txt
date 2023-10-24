@@ -143,6 +143,7 @@ Makefile:
 media:platform:sprd-jpg:
 media:platform:sprd-vsp:
 media:platform:sprd-vpu:
+md:
 mfd:
 mfd:sprd:
 misc:audio:
