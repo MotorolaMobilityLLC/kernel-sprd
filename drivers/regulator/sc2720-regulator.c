@@ -304,11 +304,14 @@ static int debugfs_voltage_get(void *data, u64 *val)
 	int sel, ret;
 	struct regulator_dev *rdev = data;
 
+	if (!rdev || !rdev->desc->ops->get_voltage_sel || !rdev->desc->ops->list_voltage)
+		return -EINVAL;
+
 	sel = rdev->desc->ops->get_voltage_sel(rdev);
 	if (sel < 0)
 		return sel;
-	ret = rdev->desc->ops->list_voltage(rdev, sel);
 
+	ret = rdev->desc->ops->list_voltage(rdev, sel);
 	*val = ret / 1000;
 
 	return 0;
@@ -319,10 +322,19 @@ static int debugfs_voltage_set(void *data, u64 val)
 	int selector;
 	struct regulator_dev *rdev = data;
 
+	if (!rdev || !rdev->desc->ops->set_voltage_sel)
+		return -EINVAL;
+
 	val = val * 1000;
+	if (val < rdev->desc->min_uV)
+		return -EINVAL;
+
 	selector = regulator_map_voltage_linear(rdev,
 						val - rdev->desc->uV_step / 2,
 						val + rdev->desc->uV_step / 2);
+
+	if (selector < 0)
+		return selector;
 
 	return rdev->desc->ops->set_voltage_sel(rdev, selector);
 }
