@@ -47,8 +47,8 @@
 				<96484 1650>, <83710 1700>, <72772 1750>,
 				<63423 1800>,<55444 1850>,<48599 1900>;
 
-	capacity-temp-table = <45 96>, <25 100>, <10 100>, <0 87>, <(-10) 60>;
-	resistance-temp-table = <45 95>, <25 100>, <10 143>, <0 861>, <(-10) 957>;
+	capacity-temp-table = <45 96>, <25 100>, <10 94>, <0 87>, <(-10) 60>;
+	resistance-temp-table = <45 95>, <25 100>, <10 118>, <0 861>, <(-10) 957>;
 	charge-sdp-current-microamp = <500000 500000>;
 	charge-dcp-current-microamp = <3200000 3200000>;
 	charge-cdp-current-microamp = <1500000 1500000>;
@@ -110,8 +110,8 @@
 				<96484 1650>, <83710 1700>, <72772 1750>,
 				<63423 1800>,<55444 1850>,<48599 1900>;
 
-	capacity-temp-table = <45 95>, <25 100>, <10 100>, <0 85>, <(-10) 57>;
-	resistance-temp-table = <45 76>, <25 100>, <10 200>, <0 759>, <(-10) 851>;
+	capacity-temp-table = <45 95>, <25 100>, <10 96>, <0 85>, <(-10) 57>;
+	resistance-temp-table = <45 76>, <25 100>, <10 270>, <0 759>, <(-10) 851>;
 	charge-sdp-current-microamp = <500000 500000>;
 	charge-dcp-current-microamp = <3200000 3200000>;
 	charge-cdp-current-microamp = <1500000 1500000>;
@@ -173,8 +173,8 @@
 				<96484 1650>, <83710 1700>, <72772 1750>,
 				<63423 1800>,<55444 1850>,<48599 1900>;
 
-	capacity-temp-table = <45 95>, <25 100>, <10 100>, <0 81>, <(-10) 43>;
-	resistance-temp-table = <45 80>, <25 100>, <10 143>, <0 800>, <(-10) 933>;
+	capacity-temp-table = <45 95>, <25 100>, <10 94>, <0 81>, <(-10) 43>;
+	resistance-temp-table = <45 80>, <25 100>, <10 102>, <0 800>, <(-10) 933>;
 	charge-sdp-current-microamp = <500000 500000>;
 	charge-dcp-current-microamp = <3200000 3200000>;
 	charge-cdp-current-microamp = <1500000 1500000>;
