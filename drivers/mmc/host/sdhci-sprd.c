@@ -2066,8 +2066,8 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	sdhci_sprd_init_config(host);
 	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
-	sprd_host->version = ((host->version & SDHCI_VENDOR_VER_MASK) >>
-			       SDHCI_VENDOR_VER_SHIFT);
+	sprd_host->version = ((host->version & SDHCI_SPEC_VER_MASK) >>
+			       SDHCI_SPEC_VER_SHIFT);
 
 	if (of_device_is_compatible(np, "sprd,sdhci-r10"))
 		sprd_host->ip_ver = SDHCI_IP_VER_R10;
