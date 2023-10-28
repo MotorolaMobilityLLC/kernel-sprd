@@ -44,6 +44,18 @@ static const char *const dbg_type_name[DBG_TYPE_NUM][2] = {
 	{"CMDQ_WORK_FINISH", "cmdq_sleep"},
 };
 
+struct fixup_mmc_device {
+	unsigned int manfid;
+	char name[8];
+};
+
+/* these devices currently have problems in cmdq mode */
+static struct fixup_mmc_device fixup_device[] = {
+	{CID_MANFID_SAMSUNG, "GX6BAB"},
+	{CID_MANFID_SAMSUNG, "GX6BMB"},
+	{CID_MANFID_SAMSUNG, "QE63BB"},
+	{CID_MANFID_SAMSUNG, "QE63MB"},
+};
 /**************debug log*******************/
 #ifdef CONFIG_SPRD_DEBUG
 #define SWCQ_ARRAY_SIZE 14	/* 2^(14-2) = 4096ms */
@@ -1956,6 +1968,19 @@ static void mmc_swcq_disable(struct mmc_host *mmc)
 	swcq->enabled = false;
 	spin_unlock_irqrestore(&swcq->lock, flags);
 }
+
+static bool fixup_device_judge(struct mmc_card *card)
+{
+	int i;
+
+	for (i = 0; i < ARRAY_SIZE(fixup_device); i++)
+		if (card->cid.manfid == fixup_device[i].manfid &&
+			!strcmp(card->cid.prod_name, fixup_device[i].name))
+			return true;
+
+	return false;
+}
+
 /*mmc-card-init, cqe_enable, add card, mmc_init_queue */
 static int mmc_swcq_enable(struct mmc_host *mmc, struct mmc_card *card)
 {
@@ -1967,9 +1992,11 @@ static int mmc_swcq_enable(struct mmc_host *mmc, struct mmc_card *card)
 	if (!swcq->initialized && card) {
 		swcq->initialized = true;
 		swcq->cmdq_depth = card->ext_csd.cmdq_depth;
-		swcq->cmdq_support = card->ext_csd.cmdq_support;
+		swcq->cmdq_support = fixup_device_judge(card) ?
+			false : card->ext_csd.cmdq_support;
 		if (!swcq->cmdq_support)
-			pr_info("%s : emmc not support CMDQ!\n", mmc_hostname(mmc));
+			pr_err("%s : emmc not support CMDQ! manfid= 0x%06x, name= %s\n",
+				mmc_hostname(mmc), card->cid.manfid, card->cid.prod_name);
 		card->reenable_cmdq = false;
 	}
 
@@ -2218,7 +2245,7 @@ static ssize_t sprd_swcq_cmdqmode_write(struct file *file,
 	struct mmc_swcq *swcq = g_swcq;
 	char val;
 
-	if (count > 0) {
+	if (swcq->cmdq_support && count > 0) {
 		if (get_user(val, buffer))
 			return -EFAULT;
 
