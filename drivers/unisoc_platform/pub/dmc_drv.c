@@ -148,8 +148,9 @@ static const char *const ddr_type_to_str[] = {
 	"LPDDR3",
 	"LPDDR4",
 	"LPDDR4X",
-	"LPDDR4Y",
+	"DDR4",
 	"LPDDR5",
+	"LPDDR5X",
 };
 
 static u32 g_ddr_cur_freq;
