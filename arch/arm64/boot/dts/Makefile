@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
+ifdef CONFIG_DTB_ORIGINAL
 subdir-y += actions
 subdir-y += allwinner
 subdir-y += altera
@@ -30,3 +31,6 @@ subdir-y += synaptics
 subdir-y += ti
 subdir-y += toshiba
 subdir-y += xilinx
+else
+subdir-y += sprd
+endif

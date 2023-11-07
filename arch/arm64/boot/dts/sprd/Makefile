@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
+ifdef CONFIG_DTB_ORIGINAL
 
 ifeq ($(BSP_BUILD_DT_OVERLAY),y)
 
@@ -110,3 +111,7 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 			ums512-1h10.dtb
 
 endif #//BSP_BUILD_DT_OVERLAY
+else
+dtb-$(CONFIG_ARCH_SPRD) := ums9620-2h10-overlay.dtbo
+ums9620-2h10-overlay.dtbo-base := ums9620-base.dtb
+endif # CONFIG_DTB_ORIGINAL
