@@ -1702,6 +1702,7 @@ static int prepare_exception_info(struct pt_regs *regs,
 		memcpy(sprd_minidump_info->exception_info.exception_kernel_version,
 			unisoc_linux_banner,
 			strlen(unisoc_linux_banner));
+	strcat(minidump_info_g.exception_info.exception_kernel_version, VERSION_OF);
 
 	if (sprd_virt_addr_valid(reason))
 		memcpy(sprd_minidump_info->exception_info.exception_panic_reason,
