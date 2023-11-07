@@ -41,6 +41,7 @@
 #include <linux/delayacct.h>
 #include <linux/psi.h>
 #include <linux/ramfs.h>
+#include <linux/spinlock.h>
 #include "internal.h"
 
 #define CREATE_TRACE_POINTS
@@ -223,6 +224,35 @@ static void unaccount_page_cache_page(struct address_space *mapping,
 		account_page_cleaned(page, mapping, inode_to_wb(mapping->host));
 }
 
+static void mm_filemap_inode_info(struct page *page)
+{
+	struct inode *inode = page->mapping->host;
+	struct dentry *dentry;
+	char *name_buffer, *name;
+	dev_t s_dev;
+
+	name_buffer = kmalloc(PATH_MAX, GFP_KERNEL_ACCOUNT);
+	if (!name_buffer) {
+		trace_printk("Allocation failed\n");
+		return;
+	}
+
+	spin_lock(&inode->i_lock);
+	hlist_for_each_entry(dentry, &inode->i_dentry, d_u.d_alias) {
+		memset(name_buffer, 0, PATH_MAX);
+		name = dentry_path_raw(dentry, name_buffer, PATH_MAX);
+		if (inode->i_sb)
+			s_dev = inode->i_sb->s_dev;
+		else
+			s_dev = inode->i_rdev;
+		if (!IS_ERR(name))
+			trace_printk("dev %d:%d ino %x name %s\n",
+				     MAJOR(s_dev), MINOR(s_dev), inode->i_ino, name);
+	}
+	spin_unlock(&inode->i_lock);
+	kfree(name_buffer);
+}
+
 /*
  * Delete a page from the page cache and free it. Caller has to make
  * sure the page is locked and that nobody else uses it - or that usage
@@ -233,6 +263,9 @@ void __delete_from_page_cache(struct page *page, void *shadow)
 	struct address_space *mapping = page->mapping;
 
 	trace_mm_filemap_delete_from_page_cache(page);
+
+	if (trace_mm_filemap_delete_from_page_cache_enabled())
+		mm_filemap_inode_info(page);
 
 	unaccount_page_cache_page(mapping, page);
 	page_cache_delete(mapping, page, shadow);
@@ -351,6 +384,9 @@ void delete_from_page_cache_batch(struct address_space *mapping,
 	xa_lock_irqsave(&mapping->i_pages, flags);
 	for (i = 0; i < pagevec_count(pvec); i++) {
 		trace_mm_filemap_delete_from_page_cache(pvec->pages[i]);
+
+		if (trace_mm_filemap_delete_from_page_cache_enabled())
+			mm_filemap_inode_info(pvec->pages[i]);
 
 		unaccount_page_cache_page(mapping, pvec->pages[i]);
 	}
@@ -921,6 +957,10 @@ unlock:
 	if (!huge)
 		mem_cgroup_commit_charge(page, memcg, false, false);
 	trace_mm_filemap_add_to_page_cache(page);
+
+	if (trace_mm_filemap_add_to_page_cache_enabled())
+		mm_filemap_inode_info(page);
+
 	return 0;
 error:
 	page->mapping = NULL;
