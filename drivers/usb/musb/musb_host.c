@@ -3299,6 +3299,9 @@ int musb_host_setup(struct musb *musb, int power_budget)
 		return ret;
 
 	device_wakeup_enable(hcd->self.controller);
+	if (musb->support_remotewakeup)
+		device_init_wakeup(&hcd->self.root_hub->dev, 1);
+
 	return 0;
 }
 

@@ -2173,6 +2173,7 @@ musb_init_controller(struct device *dev, int nIrq, void __iomem *ctrl)
 	musb->min_power = plat->min_power;
 	musb->ops = plat->platform_ops;
 	musb->port_mode = plat->mode;
+	musb->support_remotewakeup = *(bool *)(plat->board_data);
 
 	/*
 	 * Initialize the default IO functions. At least omap2430 needs

@@ -732,6 +732,7 @@
 				phy-names = "usb";
 				dr-mode = "peripheral";
 				sprd,usb-data-enable = <1>;
+				support-remotewakeup;
 			};
 
 			sdio3: sdio@20600000 {
