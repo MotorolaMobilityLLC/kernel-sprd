@@ -55,6 +55,12 @@
 #define WAIT_TIME_1S	1000
 #define REBOOT_WAIT_VBUS_TIME (20*WAIT_TIME_1S)
 
+enum vbus_state {
+	VBUS_INACTIVE,
+	VBUS_ACTIVE,
+	VBUS_UNKNOWN,
+};
+
 struct sprd_glue {
 	struct device		*dev;
 	struct platform_device		*musb;
@@ -68,6 +74,8 @@ struct sprd_glue {
 
 	enum usb_dr_mode		dr_mode;
 	enum usb_dr_mode		wq_mode;
+	enum vbus_state			vbus_active;
+	enum vbus_state			pre_vbus_active;
 	int		vbus_irq;
 	int		usbid_irq;
 	spinlock_t		lock;
@@ -82,7 +90,6 @@ struct sprd_glue {
 	struct notifier_block		audio_nb;
 
 	bool		bus_active;
-	bool		vbus_active;
 	bool		charging_mode;
 	bool		power_always_on;
 	bool		is_suspend;
@@ -489,7 +496,7 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 	if (event) {
 		spin_lock_irqsave(&glue->lock, flags);
 		if (glue->use_pdhub_c2c) {
-			if (glue->vbus_active == 1) {
+			if (glue->vbus_active == VBUS_ACTIVE) {
 				spin_unlock_irqrestore(&glue->lock, flags);
 				dev_info(glue->dev,
 					"ignore device connection detected from VBUS GPIO.\n");
@@ -503,14 +510,14 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 				return 0;
 			}
 		} else {
-			if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_HOST) {
+			if (glue->vbus_active == VBUS_ACTIVE || glue->dr_mode == USB_DR_MODE_HOST) {
 				spin_unlock_irqrestore(&glue->lock, flags);
 				dev_info(glue->dev,
 					"ignore device connection detected from VBUS GPIO.\n");
 				return 0;
 			}
 		}
-		glue->vbus_active = 1;
+		glue->vbus_active = VBUS_ACTIVE;
 		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
 		spin_unlock_irqrestore(&glue->lock, flags);
@@ -519,7 +526,7 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 	} else {
 		spin_lock_irqsave(&glue->lock, flags);
 		if (glue->use_pdhub_c2c) {
-			if (glue->vbus_active == 0) {
+			if (glue->vbus_active == VBUS_INACTIVE) {
 				spin_unlock_irqrestore(&glue->lock, flags);
 				dev_info(glue->dev,
 					"ignore device disconnect detected from VBUS GPIO.\n");
@@ -533,7 +540,7 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 				return 0;
 			}
 		} else {
-			if (glue->vbus_active == 0 || glue->dr_mode == USB_DR_MODE_HOST) {
+			if (glue->vbus_active == VBUS_INACTIVE || glue->dr_mode == USB_DR_MODE_HOST) {
 				spin_unlock_irqrestore(&glue->lock, flags);
 				dev_info(glue->dev,
 					"ignore device disconnect detected from VBUS GPIO.\n");
@@ -541,7 +548,7 @@ static int musb_sprd_vbus_notifier(struct notifier_block *nb,
 			}
 		}
 
-		glue->vbus_active = 0;
+		glue->vbus_active = VBUS_INACTIVE;
 		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
 		spin_unlock_irqrestore(&glue->lock, flags);
@@ -572,7 +579,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 	if (event) {
 		spin_lock_irqsave(&glue->lock, flags);
 		if (glue->use_pdhub_c2c) {
-			if (glue->vbus_active == 1) {
+			if (glue->vbus_active == VBUS_ACTIVE) {
 				spin_unlock_irqrestore(&glue->lock, flags);
 				dev_info(glue->dev,
 					"ignore host connection detected from ID GPIO.\n");
@@ -586,7 +593,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 				return 0;
 			}
 		} else {
-			if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
+			if (glue->vbus_active == VBUS_ACTIVE || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
 				spin_unlock_irqrestore(&glue->lock, flags);
 				dev_info(glue->dev,
 					"ignore host connection detected from ID GPIO.\n");
@@ -594,7 +601,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 			}
  		}
 
-		glue->vbus_active = 1;
+		glue->vbus_active = VBUS_ACTIVE;
 		glue->wq_mode = USB_DR_MODE_HOST;
 		queue_work(system_unbound_wq, &glue->work);
 		spin_unlock_irqrestore(&glue->lock, flags);
@@ -603,7 +610,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 	} else {
 		spin_lock_irqsave(&glue->lock, flags);
 		if (glue->use_pdhub_c2c) {
-			if (glue->vbus_active == 0) {
+			if (glue->vbus_active == VBUS_INACTIVE) {
 				spin_unlock_irqrestore(&glue->lock, flags);
 				dev_info(glue->dev,
 					"ignore host disconnect detected from ID GPIO.\n");
@@ -617,7 +624,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 				return 0;
 			}
 		} else {
-			if (glue->vbus_active == 0 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
+			if (glue->vbus_active == VBUS_INACTIVE || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
 				spin_unlock_irqrestore(&glue->lock, flags);
 				dev_info(glue->dev,
 					"ignore host disconnect detected from ID GPIO.\n");
@@ -625,7 +632,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 			}
  		}
 
-		glue->vbus_active = 0;
+		glue->vbus_active = VBUS_INACTIVE;
 		glue->wq_mode = USB_DR_MODE_HOST;
 		queue_work(system_unbound_wq, &glue->work);
 		spin_unlock_irqrestore(&glue->lock, flags);
@@ -646,13 +653,13 @@ static int musb_sprd_audio_notifier(struct notifier_block *nb,
 
 	if (event) {
 		spin_lock_irqsave(&glue->lock, flags);
-		if (glue->vbus_active == 1 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
+		if (glue->vbus_active == VBUS_ACTIVE || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
 			spin_unlock_irqrestore(&glue->lock, flags);
 			dev_info(glue->dev, "ignore host connection detected from audio.\n");
 			return 0;
 		}
 
-		glue->vbus_active = 1;
+		glue->vbus_active = VBUS_ACTIVE;
 		glue->wq_mode = USB_DR_MODE_HOST;
 		queue_work(system_unbound_wq, &glue->work);
 		spin_unlock_irqrestore(&glue->lock, flags);
@@ -660,13 +667,13 @@ static int musb_sprd_audio_notifier(struct notifier_block *nb,
 			"host connection detected from audio.\n");
 	} else {
 		spin_lock_irqsave(&glue->lock, flags);
-		if (glue->vbus_active == 0 || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
+		if (glue->vbus_active == VBUS_INACTIVE || glue->dr_mode == USB_DR_MODE_PERIPHERAL) {
 			spin_unlock_irqrestore(&glue->lock, flags);
 			dev_info(glue->dev, "ignore host disconnect detected from audio.\n");
 			return 0;
 		}
 
-		glue->vbus_active = 0;
+		glue->vbus_active = VBUS_INACTIVE;
 		glue->wq_mode = USB_DR_MODE_HOST;
 		queue_work(system_unbound_wq, &glue->work);
 		spin_unlock_irqrestore(&glue->lock, flags);
@@ -684,25 +691,25 @@ static void musb_sprd_detect_cable(struct sprd_glue *glue)
 
 	spin_lock_irqsave(&glue->lock, flags);
 	if (extcon_get_state(id_ext, EXTCON_USB_HOST) == true) {
-		if (glue->vbus_active == 1) {
+		if (glue->vbus_active == VBUS_ACTIVE) {
 			spin_unlock_irqrestore(&glue->lock, flags);
 			dev_info(glue->dev,
 				"ignore device connection detected from ID GPIO.\n");
 			return;
 		}
 
-		glue->vbus_active = 1;
+		glue->vbus_active = VBUS_ACTIVE;
 		glue->wq_mode = USB_DR_MODE_HOST;
 		queue_work(system_unbound_wq, &glue->work);
 	} else if (extcon_get_state(glue->edev, EXTCON_USB) == true) {
-		if (glue->vbus_active == 1) {
+		if (glue->vbus_active == VBUS_ACTIVE) {
 			spin_unlock_irqrestore(&glue->lock, flags);
 			dev_info(glue->dev,
 				"ignore host connection detected from VBUS GPIO.\n");
 			return;
 		}
 
-		glue->vbus_active = 1;
+		glue->vbus_active = VBUS_ACTIVE;
 		glue->wq_mode = USB_DR_MODE_PERIPHERAL;
 		queue_work(system_unbound_wq, &glue->work);
 	}
@@ -881,11 +888,11 @@ static void sprd_musb_recover_work(struct work_struct *work)
 	dev_info(glue->dev, "try to recover musb controller\n");
 	if (!glue->vbus_active || !is_host_active(musb))
 		return;
-	glue->vbus_active = 0;
+	glue->vbus_active = VBUS_INACTIVE;
 	glue->wq_mode = USB_DR_MODE_HOST;
 	schedule_work(&glue->work);
 	msleep(300);
-	glue->vbus_active = 1;
+	glue->vbus_active = VBUS_ACTIVE;
 	glue->wq_mode = USB_DR_MODE_HOST;
 	schedule_work(&glue->work);
 }
@@ -917,12 +924,21 @@ static void sprd_musb_work(struct work_struct *work)
 	dev_info(glue->dev, "%s enter!\n", __func__);
 	spin_lock_irqsave(&glue->lock, flags);
 	current_mode = glue->wq_mode;
-	current_state = (glue->vbus_active && glue->usb_data_enabled);
+	if (glue->usb_data_enabled)
+		current_state = glue->vbus_active;
+	else
+		current_state = VBUS_INACTIVE;
 	glue->wq_mode = USB_DR_MODE_UNKNOWN;
 	spin_unlock_irqrestore(&glue->lock, flags);
 	if (current_mode == USB_DR_MODE_UNKNOWN)
 		return;
 
+	if (glue->pre_vbus_active == current_state) {
+		dev_err(glue->dev, "same vbus_active, state %d mode %d\n",
+				current_state, current_mode);
+		return;
+	}
+	glue->pre_vbus_active = current_state;
 	/*
 	 * There is a hidden danger, when system is going to suspend.
 	 * if plug in/out usb deives, add this work to queue in interrupt
@@ -1160,7 +1176,7 @@ static void sprd_musb_work(struct work_struct *work)
 		musb->offload_used = 0;
 
 		pm_runtime_mark_last_busy(musb->controller);
-		ret = pm_runtime_put_autosuspend(musb->controller);
+		pm_runtime_put_autosuspend(musb->controller);
 
 		cnt = 250;
 		while (!pm_runtime_suspended(musb->controller) && --cnt > 0)
@@ -1527,6 +1543,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 
 	/*  GPIOs now */
 	glue->dev = &pdev->dev;
+	glue->pre_vbus_active = VBUS_UNKNOWN;
 
 	/* get vbus/id gpios extcon device */
 	if (of_property_read_bool(node, "extcon")) {
