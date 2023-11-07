@@ -7802,9 +7802,9 @@ static void cm_batt_works(struct work_struct *work)
 				else if (cm->desc->cap < 960)
 					fuel_cap = cm->desc->cap + 5;
 				else if (cm->desc->cap < 990)
-					fuel_cap = cm->desc->cap + 3;
+					fuel_cap = cm->desc->cap + 5;
 				else
-					fuel_cap = cm->desc->cap + 1;
+					fuel_cap = cm->desc->cap + 5;
 			}
 		}
 
