@@ -31,6 +31,7 @@
 #include <linux/compiler.h>
 #include <linux/moduleparam.h>
 #include <linux/wakeup_reason.h>
+#include <linux/rtc.h>
 
 #include "power.h"
 
@@ -61,6 +62,61 @@ static DECLARE_SWAIT_QUEUE_HEAD(s2idle_wait_head);
 
 enum s2idle_states __read_mostly s2idle_state;
 static DEFINE_RAW_SPINLOCK(s2idle_lock);
+
+const char *suspend_state_name[] = {
+"ON",
+"TO IDLE",
+"STANDBY",
+"MEM",
+"MIN",
+"MAX",
+};
+
+
+#if 0 // TODO
+void ktime_get_ts64(struct timespec64 *ts)；       //CLOCK_MONOTONIC
+void ktime_get_real_ts64(struct timespec64 *)；    //CLOCK_REALTIME
+void ktime_get_boottime_ts64(struct timespec64 *)；//CLOCK_BOOTTIME
+void ktime_get_raw_ts64(struct timespec64 *)；     //CLOCK_MONOTONIC_RAW
+
+ktime_get_boottime_ts64(&ts_end);
+ts_delta = timespec64_sub(ts_end, ts_start);// 计算时间差
+u64 diff =timespec64_to_ns(&ts_delta)；
+printk(“time consumed------------ = %lld ns\n”, diff);
+diff =(u32) diff /(u32) 1000UL;
+printk(“time consumed------------ = %lld us\n”, diff);
+diff =(u32) diff /(u32) 1000000UL;
+printk(“time consumed------------ = %lld ms\n”, diff);
+
+#endif
+
+void print_time(bool running)
+{
+	static struct timespec64  boottime0 = {0, 0};
+	struct timespec64 boottime, delta, ts;
+	struct tm tm;
+	char sign = '+';
+	int tz_min = sys_tz.tz_minuteswest;
+
+	ktime_get_boottime_ts64(&boottime);
+        delta = timespec64_sub(boottime, boottime0);
+	boottime0 = boottime;
+
+	ktime_get_real_ts64(&ts);
+	ts.tv_sec -= tz_min * 60;
+	time64_to_tm(ts.tv_sec, 0, &tm);
+
+	if (tz_min < 0)
+		tz_min = -tz_min;
+	else
+		sign = '-';
+
+	pr_err("realtime: %u-%02u-%02u %02u:%02u:%02u.%06u UTC%c%02d:%02d  boottime: %5lu.%06u  %s: %lu\n",
+		tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday,
+		tm.tm_hour, tm.tm_min, tm.tm_sec, (int)(ts.tv_nsec / 1000),
+		sign, tz_min / 60, tz_min % 60,
+		(long)boottime.tv_sec, (int)boottime.tv_nsec/ 1000, running ? "running" : "sleep", delta.tv_sec);
+}
 
 /**
  * pm_suspend_default_s2idle - Check if suspend-to-idle is the default suspend.
@@ -120,7 +176,7 @@ static void s2idle_enter(void)
 
 static void s2idle_loop(void)
 {
-	pm_pr_dbg("suspend-to-idle\n");
+	pr_err("suspend-to-idle\n");
 
 	/*
 	 * Suspend-to-idle equals:
@@ -143,7 +199,7 @@ static void s2idle_loop(void)
 		s2idle_enter();
 	}
 
-	pm_pr_dbg("resume from suspend-to-idle\n");
+	pr_err("resume from suspend-to-idle\n");
 }
 
 void s2idle_wake(void)
@@ -325,7 +381,7 @@ static int suspend_test(int level)
 {
 #ifdef CONFIG_PM_DEBUG
 	if (pm_test_level == level) {
-		pr_info("suspend debug: Waiting for %d second(s).\n",
+		pr_err("suspend debug: Waiting for %d second(s).\n",
 				pm_test_delay);
 		mdelay(pm_test_delay * 1000);
 		return 1;
@@ -622,7 +678,9 @@ int pm_suspend(suspend_state_t state)
 	if (state <= PM_SUSPEND_ON || state >= PM_SUSPEND_MAX)
 		return -EINVAL;
 
-	pr_info("suspend entry (%s)\n", mem_sleep_labels[state]);
+	pr_err("suspend entry (%s) state=%d (%s)\n", mem_sleep_labels[state], state,
+		state < ARRAY_SIZE(suspend_state_name) ? suspend_state_name[state] : "unknow");
+	print_time(true);
 	error = enter_state(state);
 	if (error) {
 		suspend_stats.fail++;
@@ -630,7 +688,8 @@ int pm_suspend(suspend_state_t state)
 	} else {
 		suspend_stats.success++;
 	}
-	pr_info("suspend exit\n");
+	pr_err("suspend exit err=%d success=%d fail=%d\n", error, suspend_stats.success, suspend_stats.fail);
+	print_time(false);
 	return error;
 }
 EXPORT_SYMBOL(pm_suspend);
