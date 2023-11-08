@@ -405,7 +405,7 @@
 
 &sprd_headset {
 	status = "okay";
-	sprd,3pole-adc-threshold = <112>;
+	sprd,3pole-adc-threshold = <2950>;
 };
 
 &pdm_dmic {
