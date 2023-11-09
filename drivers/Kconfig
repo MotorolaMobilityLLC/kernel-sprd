@@ -85,6 +85,8 @@ source "drivers/moto_ko/moto_mm/Kconfig"
 
 source "drivers/moto_ko/moto_swap/Kconfig"
 
+source "drivers/moto_mmap/Kconfig"
+
 source "drivers/hwmon/Kconfig"
 
 source "drivers/thermal/Kconfig"
