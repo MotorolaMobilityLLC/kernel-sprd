@@ -17,7 +17,7 @@
 	voltage-min-design-microvolt = <3457000>;
 
 	fast-charge-threshold-microvolt = <4100000>;
-	fullbatt-voltage = <4448000>;
+	fullbatt-voltage = <4428000>;
 	fullbatt-current = <533000>;
 	first-fullbatt-current = <150000>;
 	fullbatt-track-end-vol = <4443000>;
@@ -80,7 +80,7 @@
 	voltage-min-design-microvolt = <3457000>;
 
 	fast-charge-threshold-microvolt = <4100000>;
-	fullbatt-voltage = <4430000>;
+	fullbatt-voltage = <4410000>;
 	fullbatt-current = <533000>;
 	first-fullbatt-current = <150000>;
 	fullbatt-track-end-vol = <4425000>;
@@ -143,7 +143,7 @@
 	voltage-min-design-microvolt = <3457000>;
 
 	fast-charge-threshold-microvolt = <4100000>;
-	fullbatt-voltage = <4430000>;
+	fullbatt-voltage = <4410000>;
 	fullbatt-current = <533000>;
 	first-fullbatt-current = <150000>;
 	fullbatt-track-end-vol = <4425000>;
