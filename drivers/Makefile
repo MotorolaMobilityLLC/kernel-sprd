@@ -189,3 +189,6 @@ obj-$(CONFIG_COUNTER)		+= counter/
 obj-$(CONFIG_MOST)		+= most/
 obj-$(CONFIG_TRUSTY)		+= trusty/
 obj-$(CONFIG_ARCH_SPRD)		+= unisoc_platform/
+
+# Ontim module
+obj-y += ontim/
