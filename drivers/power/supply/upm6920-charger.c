@@ -144,6 +144,20 @@
 
 #define UPM6920_REG_NUM                 21
 
+#define UPM6920_REG_A9              0xA9
+#define REGA9_MODE_ENTER            0x6E
+#define REGA9_MODE_EXIT             0x00
+
+#define UPM6920_REG_C9              0xC9
+#define REGC9_BT_MASK               0x40
+#define REGC9_BT_SHIFT              6
+#define REGC9_BT_VALUE              1
+
+#define UPM6920_REG_D3              0xD3
+#define REGD3_OC_MASK               0xE0
+#define REGD3_OC_SHIFT              5
+#define REGD3_OC_VALUE              0x04
+
 #define UPM6920_BATTERY_NAME            "sc27xx-fgu"
 #define BIT_DP_DM_BC_ENB                BIT(0)
 
@@ -484,13 +498,15 @@ static int upm6920_charger_increase_ocp_current(struct upm6920_charger_info *inf
 {
 	int ret = 0;
 
-	ret = upm6920_write(info, 0xa9, 0x6e);
+	ret = upm6920_write(info, UPM6920_REG_A9, REGA9_MODE_ENTER);
 	if (ret)
         dev_err(info->dev, "upm6920 write reg_a9 6e failed, ret:%d\n", ret);
-	ret = upm6920_update_bits(info, 0xd3, 0xe0, 0x80);
+
+	ret = upm6920_update_bits(info, UPM6920_REG_D3, REGD3_OC_MASK, REGD3_OC_VALUE << REGD3_OC_SHIFT);
 	if (ret)
         dev_err(info->dev, "upm6920 write reg_d3 failed, ret:%d\n", ret);
-	ret = upm6920_write(info, 0xa9, 0x00);
+
+	ret = upm6920_write(info, UPM6920_REG_A9, REGA9_MODE_EXIT);
 	if (ret)
         dev_err(info->dev, "upm6920 write reg_a9 00 failed, ret:%d\n", ret);
 
@@ -753,6 +769,8 @@ static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
 static int upm6920_enter_hiz_mode(struct upm6920_charger_info *info)
 {
     int ret;
+	
+	dev_err(info->dev, "%s\n", __func__);
 
     ret = upm6920_update_bits(info, UPM6920_REG_0,
                 REG00_EN_HIZ_MASK, REG00_EN_HIZ << REG00_EN_HIZ_SHIFT);
@@ -765,6 +783,8 @@ static int upm6920_enter_hiz_mode(struct upm6920_charger_info *info)
 static int upm6920_exit_hiz_mode(struct upm6920_charger_info *info)
 {
     int ret;
+	
+	dev_err(info->dev, "%s\n", __func__);
 
     ret = upm6920_update_bits(info, UPM6920_REG_0,
                 REG00_EN_HIZ_MASK, REG00_EXIT_HIZ << REG00_EN_HIZ_SHIFT);
@@ -890,6 +910,22 @@ static void upm6920_charger_stop_charge(struct upm6920_charger_info *info, bool 
     ret = upm6920_charger_set_wd_timer(info, 0);
     if (ret)
         dev_err(info->dev, "Failed to disable upm6920 watchdog\n");
+
+    msleep(10);
+
+	ret = upm6920_enter_hiz_mode(info);
+    if (ret)
+        dev_err(info->dev, "Failed to enter hiz mode\n");
+
+    ret = upm6920_enter_hiz_mode(info);
+    if (ret)
+        dev_err(info->dev, "Failed to enter hiz mode\n");
+
+    msleep(140);
+
+    ret = upm6920_exit_hiz_mode(info);
+    if (ret)
+        dev_err(info->dev, "Failed to exit hiz mode\n");
 }
 
 static int upm6920_charger_set_current(struct upm6920_charger_info *info,
@@ -2339,6 +2375,10 @@ static void upm6920_charger_shutdown(struct i2c_client *client)
             dev_err(info->dev,
                 "enable charger detection function failed ret = %d\n", ret);
     }
+
+    upm6920_enter_hiz_mode(info);
+	upm6920_enter_hiz_mode(info);
+    msleep(500);
 	info->shutdown_flag = true;
 }
 
