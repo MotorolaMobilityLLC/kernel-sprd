@@ -729,7 +729,8 @@ void musb_rx_dma_sprd(struct dma_channel *dma_channel,
 
 	/* protocol/endpoint, interval/NAKlimit, i/o size */
 	musb_writeb(hw_ep->regs, MUSB_RXTYPE, qh->type_reg);
-
+	if (urb->dev->speed == USB_SPEED_FULL)
+		musb_writeb(hw_ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
 	/* NOTE: bulk combining rewrites high bits of maxpacket */
 	/* Set RXMAXP with the FIFO size of the endpoint
 	 * to disable double buffer mode.
