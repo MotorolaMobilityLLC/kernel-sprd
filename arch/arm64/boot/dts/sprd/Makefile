@@ -72,6 +72,7 @@ dtb-$(CONFIG_ARCH_SPRD) += \
 	ums9610-haps-overlay.dtbo \
 	ums9610-zebu-flash-overlay.dtbo \
 	ums9621-1h10-overlay.dtbo \
+	ums9621-1h10_uob-overlay.dtbo \
 	ums9610-zebu-overlay.dtbo
 
 ums9610-haps-overlay.dtbo-base := ums9610-base.dtb
