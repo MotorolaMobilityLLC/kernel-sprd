@@ -1289,8 +1289,7 @@ static void do_tx_queue_work(struct vser_dev *dev)
 	if (!max_pkts_per_xfer)
 		max_pkts_per_xfer = 1;
 
-	if ((!list_empty(&dev->tx_pass_buf_q) && !dev->dl_tx_req_status
-			&& !dev->dl_tx_work_status)
+	if ((!list_empty(&dev->tx_pass_buf_q) && !dev->dl_tx_req_status)
 		|| (!dev->dl_tx_work_status
 		&& (dev->dl_tx_pass_buf_qlen) >= max_pkts_per_xfer)) {
 		spin_unlock_irqrestore(&dev->lock, flags);
