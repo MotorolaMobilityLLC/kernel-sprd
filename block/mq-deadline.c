@@ -31,11 +31,13 @@
  */
 static const int read_expire = HZ / 2;  /* max time before a read is submitted. */
 static const int write_expire = 5 * HZ; /* ditto for writes, these limits are SOFT! */
+#ifndef CONFIG_SPRD_DEBUG
 /*
  * Time after which to dispatch lower priority requests even if higher
  * priority requests are pending.
  */
 static const int prio_aging_expire = 10 * HZ;
+#endif
 static const int writes_starved = 2;    /* max times reads can starve a write */
 static const int fifo_batch = 16;       /* # of sequential requests treated as one
 				     by the above parameters. For throughput. */
@@ -101,7 +103,9 @@ struct deadline_data {
 	int writes_starved;
 	int front_merges;
 	u32 async_depth;
+#ifndef CONFIG_SPRD_DEBUG
 	int prio_aging_expire;
+#endif
 
 	spinlock_t lock;
 	spinlock_t zone_lock;
@@ -402,6 +406,7 @@ deadline_next_request(struct deadline_data *dd, struct dd_per_prio *per_prio,
 	return rq;
 }
 
+#ifndef CONFIG_SPRD_DEBUG
 /*
  * Returns true if and only if @rq started after @latest_start where
  * @latest_start is in jiffies.
@@ -416,13 +421,18 @@ static bool started_after(struct deadline_data *dd, struct request *rq,
 	return time_after(start_time, latest_start);
 }
 
+#endif
 /*
  * deadline_dispatch_requests selects the best request according to
  * read/write expire, fifo_batch, etc and with a start time <= @latest_start.
  */
 static struct request *__dd_dispatch_request(struct deadline_data *dd,
+#ifndef CONFIG_SPRD_DEBUG
 					     struct dd_per_prio *per_prio,
 					     unsigned long latest_start)
+#else
+					     struct dd_per_prio *per_prio)
+#endif
 {
 	struct request *rq, *next_rq;
 	enum dd_data_dir data_dir;
@@ -434,8 +444,10 @@ static struct request *__dd_dispatch_request(struct deadline_data *dd,
 	if (!list_empty(&per_prio->dispatch)) {
 		rq = list_first_entry(&per_prio->dispatch, struct request,
 				      queuelist);
+#ifndef CONFIG_SPRD_DEBUG
 		if (started_after(dd, rq, latest_start))
 			return NULL;
+#endif
 		list_del_init(&rq->queuelist);
 		goto done;
 	}
@@ -513,9 +525,11 @@ dispatch_find_request:
 	dd->batching = 0;
 
 dispatch_request:
+#ifndef CONFIG_SPRD_DEBUG
 	if (started_after(dd, rq, latest_start))
 		return NULL;
 
+#endif
 	/*
 	 * rq is the selected appropriate request.
 	 */
@@ -533,6 +547,7 @@ done:
 	return rq;
 }
 
+#ifndef CONFIG_SPRD_DEBUG
 /*
  * Check whether there are any requests with priority other than DD_RT_PRIO
  * that were inserted more than prio_aging_expire jiffies ago.
@@ -561,6 +576,7 @@ static struct request *dd_dispatch_prio_aged_requests(struct deadline_data *dd,
 	return NULL;
 }
 
+#endif
 /*
  * Called from blk_mq_run_hw_queue() -> __blk_mq_sched_dispatch_requests().
  *
@@ -572,11 +588,14 @@ static struct request *dd_dispatch_prio_aged_requests(struct deadline_data *dd,
 static struct request *dd_dispatch_request(struct blk_mq_hw_ctx *hctx)
 {
 	struct deadline_data *dd = hctx->queue->elevator->elevator_data;
+#ifndef CONFIG_SPRD_DEBUG
 	const unsigned long now = jiffies;
+#endif
 	struct request *rq;
 	enum dd_prio prio;
 
 	spin_lock(&dd->lock);
+#ifndef CONFIG_SPRD_DEBUG
 	rq = dd_dispatch_prio_aged_requests(dd, now);
 	if (rq)
 		goto unlock;
@@ -585,13 +604,21 @@ static struct request *dd_dispatch_request(struct blk_mq_hw_ctx *hctx)
 	 * Next, dispatch requests in priority order. Ignore lower priority
 	 * requests if any higher priority requests are pending.
 	 */
+#endif
 	for (prio = 0; prio <= DD_PRIO_MAX; prio++) {
+#ifndef CONFIG_SPRD_DEBUG
 		rq = __dd_dispatch_request(dd, &dd->per_prio[prio], now);
 		if (rq || dd_queued(dd, prio))
+#else
+		rq = __dd_dispatch_request(dd, &dd->per_prio[prio]);
+		if (rq)
+#endif
 			break;
 	}
+#ifndef CONFIG_SPRD_DEBUG
 
 unlock:
+#endif
 	spin_unlock(&dd->lock);
 
 	return rq;
@@ -697,7 +724,9 @@ static int dd_init_sched(struct request_queue *q, struct elevator_type *e)
 	dd->front_merges = 1;
 	dd->last_dir = DD_WRITE;
 	dd->fifo_batch = fifo_batch;
+#ifndef CONFIG_SPRD_DEBUG
 	dd->prio_aging_expire = prio_aging_expire;
+#endif
 	spin_lock_init(&dd->lock);
 	spin_lock_init(&dd->zone_lock);
 
@@ -935,7 +964,9 @@ static ssize_t __FUNC(struct elevator_queue *e, char *page)		\
 #define SHOW_JIFFIES(__FUNC, __VAR) SHOW_INT(__FUNC, jiffies_to_msecs(__VAR))
 SHOW_JIFFIES(deadline_read_expire_show, dd->fifo_expire[DD_READ]);
 SHOW_JIFFIES(deadline_write_expire_show, dd->fifo_expire[DD_WRITE]);
+#ifndef CONFIG_SPRD_DEBUG
 SHOW_JIFFIES(deadline_prio_aging_expire_show, dd->prio_aging_expire);
+#endif
 SHOW_INT(deadline_writes_starved_show, dd->writes_starved);
 SHOW_INT(deadline_front_merges_show, dd->front_merges);
 SHOW_INT(deadline_async_depth_show, dd->async_depth);
@@ -965,7 +996,9 @@ static ssize_t __FUNC(struct elevator_queue *e, const char *page, size_t count)	
 	STORE_FUNCTION(__FUNC, __PTR, MIN, MAX, msecs_to_jiffies)
 STORE_JIFFIES(deadline_read_expire_store, &dd->fifo_expire[DD_READ], 0, INT_MAX);
 STORE_JIFFIES(deadline_write_expire_store, &dd->fifo_expire[DD_WRITE], 0, INT_MAX);
+#ifndef CONFIG_SPRD_DEBUG
 STORE_JIFFIES(deadline_prio_aging_expire_store, &dd->prio_aging_expire, 0, INT_MAX);
+#endif
 STORE_INT(deadline_writes_starved_store, &dd->writes_starved, INT_MIN, INT_MAX);
 STORE_INT(deadline_front_merges_store, &dd->front_merges, 0, 1);
 STORE_INT(deadline_async_depth_store, &dd->async_depth, 1, INT_MAX);
@@ -984,7 +1017,9 @@ static struct elv_fs_entry deadline_attrs[] = {
 	DD_ATTR(front_merges),
 	DD_ATTR(async_depth),
 	DD_ATTR(fifo_batch),
+#ifndef CONFIG_SPRD_DEBUG
 	DD_ATTR(prio_aging_expire),
+#endif
 	__ATTR_NULL
 };
 
