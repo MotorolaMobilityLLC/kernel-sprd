@@ -934,7 +934,7 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 
 		break;
 	case POST_CHANGE:
-		hba->clk_gating.delay_ms = 10;
+		hba->clk_gating.delay_ms = 150;
 		break;
 	default:
 		err = -EINVAL;
