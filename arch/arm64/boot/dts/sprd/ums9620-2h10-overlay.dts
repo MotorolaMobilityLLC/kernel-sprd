@@ -631,3 +631,17 @@
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
 };
+
+&soc {
+        usb_cable: usb_cable {
+                compatible = "sprd,usb_cable_eint";
+                interrupt-parent = <&ap_gpio>;
+                interrupts = <168 IRQ_TYPE_LEVEL_LOW>,
+                                <169 IRQ_TYPE_LEVEL_LOW>;
+                usbcable-gpio = <168>;
+                usbcable-gpio1 = <169>;
+                debounce = <256000>;
+                status = "okay";
+        };
+};
+
