@@ -139,6 +139,7 @@
 	sprd,support-fchg;
 	sprd,support-pd-pps;
 	sprd,pd-fixed-max-microwatt = <18000000>;
+	sprd,customized-fchg-psy ="bq2560xpe_charger";
 
 	monitored-battery = <&bat>;
 	cm-capacity-track;
@@ -165,6 +166,11 @@
 			regulator-name = "vddvbus";
 		};
 	};
+	bq2560xpe_chg: charger@6c {
+		compatible = "ti,bq2560xpe_chg";
+		reg = <0x6c>;
+	};
+	
 };
 
 &i2c3 {
@@ -191,8 +197,8 @@
 
 		ti,bq2597x,bat-ucp-alarm-threshold = <1000>;
 
-		ti,bq2597x,bat-therm-threshold = <0x15>;
-		ti,bq2597x,bus-therm-threshold = <0x15>;
+		ti,bq2597x,bat-therm-threshold = <0x0>;
+		ti,bq2597x,bus-therm-threshold = <0x0>;
 		ti,bq2597x,die-therm-threshold = <0xc8>;
 
 		ti,bq2597x,ac-ovp-threshold = <13>;

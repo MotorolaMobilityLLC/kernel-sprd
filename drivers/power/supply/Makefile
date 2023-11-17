@@ -114,6 +114,7 @@ obj-$(CONFIG_BATTERY_ACER_A500)	+= acer_a500_battery.o
 obj-$(CONFIG_BATTERY_SURFACE)	+= surface_battery.o
 obj-$(CONFIG_CHARGER_SURFACE)	+= surface_charger.o
 obj-$(CONFIG_CHARGER_BQ2560X)	+= bq2560x-charger.o
+obj-y	+= bq2560x-pe-charger.o
 obj-$(CONFIG_CHARGER_BQ2597X)	+= bq2597x-charger.o
 obj-$(CONFIG_CHARGER_HL7139)	+= hl7139-charger.o
 obj-$(CONFIG_CHARGER_SC8549)	+= sc8549-charger.o

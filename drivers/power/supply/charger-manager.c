@@ -3420,16 +3420,16 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	}
 
 	cm_cp_charger_enable(cm, false);
-	cm_primary_charger_enable(cm, false);
+	//cm_primary_charger_enable(cm, false);
 	cm_ir_compensation_enable(cm, false);
 
-	if (cm_check_primary_charger_enabled(cm)) {
-		if (primary_charger_dis_retry++ > CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT) {
-			cm_cp_state_change(cm, CM_CP_STATE_EXIT);
-			primary_charger_dis_retry = 0;
-		}
-		return;
-	}
+//	if (cm_check_primary_charger_enabled(cm)) {
+//		if (primary_charger_dis_retry++ > CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT) {
+//			cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+//			primary_charger_dis_retry = 0;
+//		}
+//		return;
+//	}
 
 	if (cm_get_fchg_adapter_max_voltage(cm, &cp->adapter_max_vbus)) {
 		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
@@ -4234,6 +4234,7 @@ static void cm_check_charge_voltage(struct charger_manager *cm)
 	struct charger_desc *desc = cm->desc;
 	int ret, charge_vol;
 
+		return;
 	if (!desc->charge_voltage_max || !desc->charge_voltage_drop)
 		return;
 

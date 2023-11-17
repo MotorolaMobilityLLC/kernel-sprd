@@ -751,7 +751,8 @@ static void sprd_fchg_work(struct work_struct *data)
 		info->pps_active = false;
 		info->pd_enable = false;
 		info->sfcp_enable = false;
-		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
+//		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
+		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_ADAPTIVE;
 		mutex_unlock(&info->lock);
 		cm_notify_event(info->psy, CM_EVENT_FAST_CHARGE, NULL);
 		goto out1;
