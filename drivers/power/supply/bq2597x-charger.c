@@ -1764,7 +1764,7 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 				       const union power_supply_propval *val)
 {
 	struct bq2597x_charger_info *bq = power_supply_get_drvdata(psy);
-	int ret, value;
+	int ret=0, value;
 
 	if (!bq) {
 		pr_err("%s[%d], NULL pointer!!!\n", __func__, __LINE__);
@@ -1793,13 +1793,13 @@ static int bq2597x_charger_set_property(struct power_supply *psy,
 			bq2597x_set_present(bq, true);
 		break;
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
-		ret = bq2597x_set_batovp_th(bq, val->intval / 1000);
+		//ret = bq2597x_set_batovp_th(bq, val->intval / 1000);
 		if (ret)
 			dev_err(bq->dev, "%s, failed to set bat ovp th %d mv, ret = %d\n",
 				__func__, val->intval / 1000, ret);
 
 		value = val->intval / 1000 - bq->cfg->bat_delta_volt;
-		ret = bq2597x_set_batovp_alarm_th(bq, value);
+		//ret = bq2597x_set_batovp_alarm_th(bq, value);
 		if (ret)
 			dev_err(bq->dev, "%s, failed to set bat ovp alm th %d mv, ret = %d\n",
 				__func__, value, ret);

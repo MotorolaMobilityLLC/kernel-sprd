@@ -95,7 +95,7 @@
 #define BQ2560X_ROLE_MASTER_DEFAULT		1
 #define BQ2560X_ROLE_SLAVE			2
 
-#define BQ2560X_FCHG_OVP_6V			6000
+#define BQ2560X_FCHG_OVP_6V			9000
 #define BQ2560X_FCHG_OVP_9V			9000
 #define BQ2560X_FCHG_OVP_14V			14000
 #define BQ2560X_FAST_CHARGER_VOLTAGE_MAX	10500000
@@ -475,6 +475,12 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 				  0x0 << BQ2560X_DISABLE_BATFET_RST_SHIFT);
 	if (ret)
 		dev_err(info->dev, "disable batfet_rst_en failed\n");
+
+
+	ret = bq2560x_update_bits(info, BQ2560X_REG_A,
+				  0x03,
+				  0x03);
+
 
 	info->current_charge_limit_cur = BQ2560X_REG_ICHG_LSB * 1000;
 	info->current_input_limit_cur = BQ2560X_REG_IINDPM_LSB * 1000;
