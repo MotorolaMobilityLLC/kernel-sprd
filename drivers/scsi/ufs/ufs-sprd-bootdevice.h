@@ -10,6 +10,7 @@
 #define UFS_MAX_SN_LEN 12
 #define UFS_CID_LEN 4
 #define UFS_PROC_NAME_LEN 32
+#define UFS_MANF_NAME_LEN 16
 #define UFS_REV_LEN 32
 
 struct ufs_bootdevice {
@@ -26,6 +27,7 @@ struct ufs_bootdevice {
 	u8 type;
 	u16 specversion;
 	u8 wb_enable;
+	char manufacturer_name[UFS_MANF_NAME_LEN + 1];
 };
 
 struct ufs_device_identification {
