@@ -28,7 +28,7 @@
 					sprd,video-lp-cmd-enable = <1>;
 					sprd,hporch-lp-disable = <1>;
 					sprd,esd-check-enable = <1>;
-					sprd,esd-check-mode = <0>;
+					sprd,esd-check-mode = <1>;
 					sprd,esd-check-period = <2000>;
 					sprd,esd-check-regs = <0xA>;
 					sprd,esd-return-code = <0x9c>;
@@ -101,10 +101,10 @@
 							clock-frequency = <153600000>;
 							hactive = <720>;
 							vactive = <1612>;
-							hfront-porch = <48>;
+							hfront-porch = <36>;
 							hback-porch = <40>;
 							hsync-len = <40>;
-							vfront-porch = <370>;
+							vfront-porch = <404>;
 							vback-porch = <30>;
 							vsync-len = <2>;
 						};
@@ -112,10 +112,10 @@
 							clock-frequency = <153600000>;
 							hactive = <720>;
 							vactive = <1612>;
-							hfront-porch = <48>;
+							hfront-porch = <36>;
 							hback-porch = <40>;
 							hsync-len = <40>;
-							vfront-porch = <1378>;
+							vfront-porch = <1400>;
 							vback-porch = <30>;
 							vsync-len = <2>;
 						};
