@@ -107,7 +107,7 @@
 #define SPRD_THM_RDYST_POLLING_TIME	10
 #define SPRD_THM_RDYST_TIMEOUT		700
 #define SPRD_THM_TEMP_READY_POLL_TIME	10000
-#define SPRD_THM_TEMP_READY_TIMEOUT	600000
+#define SPRD_THM_TEMP_READY_TIMEOUT	800000
 
 struct sprd_thermal_sensor {
 	struct thermal_zone_device *thmzone_dev;
@@ -138,10 +138,11 @@ struct sprd_thermal_data {
 	struct clk *clk;
 	struct list_head senlist;
 	void __iomem *regbase;
+	struct delayed_work wait_temp_ready_work;
 	int ratio_off;
 	u32 ratio_sign;
 	const struct sprd_thm_variant_data *var_data;
-	bool disable_clk_flag;
+	atomic_t quit_worker_flag;
 };
 
 /*
@@ -252,7 +253,7 @@ static int sprd_temp_to_rawdata_v1(int temp, struct sprd_thermal_sensor *sen)
 static int sprd_thm_temp_read(void *devdata, int *temp)
 {
 	struct sprd_thermal_sensor *sen = devdata;
-	int sensor_temp;
+	int sensor_temp = 0;
 
 	if (sen->ready) {
 		sen->rawdata = readl(sen->base + sen->temp) & SPRD_THM_RAW_READ_MSK;
@@ -269,7 +270,7 @@ static int sprd_thm_temp_read(void *devdata, int *temp)
 static int sprd_thm_poll_ready_status(struct sprd_thermal_data *thm)
 {
 	u32 thm_ctl_val;
-	int ret;
+	int ret = 0;
 
 	/* Judge the state of SET_RDY_ST, When SET_RDY_ST is 0, SET_RDY can set to 1 */
 	ret = readl_poll_timeout(thm->regbase + SPRD_THM_CTL,
@@ -282,19 +283,33 @@ static int sprd_thm_poll_ready_status(struct sprd_thermal_data *thm)
 
 	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, SPRD_THM_MON_EN, SPRD_THM_MON_EN);
 	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, SPRD_THM_SET_RDY, SPRD_THM_SET_RDY);
-	return ret;
+	return 0;
 }
 
-static int sprd_thm_wait_temp_ready(struct sprd_thermal_data *thm)
+static void sprd_thm_wait_temp_ready_work(struct work_struct *work)
 {
-	u32 thm_intern_val;
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct sprd_thermal_data *thm = container_of(dwork, struct sprd_thermal_data,
+						     wait_temp_ready_work);
+	struct sprd_thermal_sensor *sen, *temp;
+	u32 val = 0;
+	int ret = 0;
 
-	/* Wait for first temperature data ready before get temperature */
-	return readl_poll_timeout(thm->regbase + SPRD_THM_INTERNAL_STS1,
-				  thm_intern_val,
-				  (thm_intern_val & SPRD_THM_TEMPER_RDY),
-				  SPRD_THM_TEMP_READY_POLL_TIME,
-				  SPRD_THM_TEMP_READY_TIMEOUT);
+	/* Wait for first temperature data ready before reading temperature */
+	ret = readl_poll_timeout(thm->regbase + SPRD_THM_INTERNAL_STS1, val,
+				 (val & SPRD_THM_TEMPER_RDY) | atomic_read(&thm->quit_worker_flag),
+				 SPRD_THM_TEMP_READY_POLL_TIME,
+				 SPRD_THM_TEMP_READY_TIMEOUT);
+	if (ret == 0) {
+		if (atomic_read(&thm->quit_worker_flag))
+			return;
+		list_for_each_entry_safe(sen, temp, &thm->senlist, node)
+			sen->ready = true;
+	} else {
+		pr_err("temp ready maybe time out 800ms\n");
+		list_for_each_entry_safe(sen, temp, &thm->senlist, node)
+			sen->ready = false;
+	}
 }
 
 static void sprd_thm_sen_threshold_config(struct sprd_thermal_sensor *sen)
@@ -412,10 +427,9 @@ static int sprd_thm_probe(struct platform_device *pdev)
 	struct device_node *sen_child;
 	struct sprd_thermal_data *thm;
 	struct sprd_thermal_sensor *sen;
-	struct sprd_thermal_sensor *temp, *pos;
 	struct resource *res;
 	const struct sprd_thm_variant_data *pdata;
-	int ret;
+	int ret = 0;
 
 	pdata = of_device_get_match_data(&pdev->dev);
 	if (!pdata) {
@@ -447,7 +461,6 @@ static int sprd_thm_probe(struct platform_device *pdev)
 
 	INIT_LIST_HEAD(&thm->senlist);
 	sprd_thm_para_config(thm);
-	thm->disable_clk_flag = false;
 
 	ret = sprd_thm_cal_read(np, "thm_ratio_cal", &thm->ratio_off);
 	if (ret)
@@ -457,18 +470,18 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		sen = devm_kzalloc(&pdev->dev, sizeof(*sen), GFP_KERNEL);
 		if (!sen) {
 			ret = -ENOMEM;
-			goto disable_clk;
+			goto of_put;
 		}
 
 		ret = of_property_read_u32(sen_child, "reg", &sen->id);
 		if (ret) {
 			dev_err(&pdev->dev, "get sensor reg failed");
-			goto disable_clk;
+			goto of_put;
 		}
 
 		ret = sprd_thm_sen_config(sen);
 		if (ret)
-			goto disable_clk;
+			goto of_put;
 
 		sen->ready = false;
 		sen->base = thm->regbase;
@@ -478,7 +491,7 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		ret = sprd_thm_sen_efuse_cal(sen_child, thm, sen);
 		if (ret) {
 			dev_err(&pdev->dev, "efuse cal analysis failed");
-			goto disable_clk;
+			goto of_put;
 		}
 
 		sprd_thm_sen_threshold_config(sen);
@@ -489,45 +502,52 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		if (IS_ERR_OR_NULL(sen->thmzone_dev)) {
 			dev_err(&pdev->dev, "register thermal zone failed %d\n", sen->id);
 			ret = PTR_ERR(sen->thmzone_dev);
-			goto disable_clk;
+			goto of_put;
 		}
 
 		list_add_tail(&sen->node, &thm->senlist);
 	}
 
-	sprd_thm_set_ready(thm);
-	ret = sprd_thm_wait_temp_ready(thm);
-	if (ret)
-		goto disable_clk;
-
-	list_for_each_entry_safe(pos, temp, &thm->senlist, node)
-		pos->ready = true;
-
 	platform_set_drvdata(pdev, thm);
+	ret = sprd_thm_set_ready(thm);
+	if (ret)
+		goto of_put;
+
+	INIT_DELAYED_WORK(&thm->wait_temp_ready_work, sprd_thm_wait_temp_ready_work);
+	schedule_delayed_work(&thm->wait_temp_ready_work, 0);
+
 	return 0;
 
+of_put:
+	of_node_put(sen_child);
 disable_clk:
 	clk_disable_unprepare(thm->clk);
 	return ret;
 }
 
-static void sprd_thm_hw_suspend(struct sprd_thermal_data *thm)
+static int sprd_thm_suspend(struct platform_device *pdev, pm_message_t state)
 {
+	struct sprd_thermal_data *thm = dev_get_drvdata(&pdev->dev);
 	struct sprd_thermal_sensor *sen, *temp;
 
-	if (thm->disable_clk_flag)
-		return;
+	atomic_set(&thm->quit_worker_flag, 1);
+	cancel_delayed_work_sync(&thm->wait_temp_ready_work);
+
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node) {
+		sen->ready = false;
 		sprd_thm_update_bits(sen->base + SPRD_THM_CTL, sen->enable, 0x0);
 	}
 
-	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, SPRD_THM_EN, 0x0);
+	/* Bug 1550142 Deepsleep AVDD1V8 power consumption is too high */
+	writel(0x00, thm->regbase + SPRD_THM_CTL);
+
+	return 0;
 }
 
 static int sprd_thm_hw_resume(struct sprd_thermal_data *thm)
 {
 	struct sprd_thermal_sensor *sen, *temp;
-	int ret;
+	int ret = 0;
 
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node) {
 		sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, sen->enable, sen->enable);
@@ -539,49 +559,22 @@ static int sprd_thm_hw_resume(struct sprd_thermal_data *thm)
 
 	writel(SPRD_INT_CLR, thm->regbase + SPRD_THM_INT_CLR);
 	sprd_thm_update_bits(thm->regbase + SPRD_THM_CTL, SPRD_THM_EN, SPRD_THM_EN);
-	return sprd_thm_wait_temp_ready(thm);
-}
-
-static int sprd_thm_suspend(struct platform_device *pdev, pm_message_t state)
-{
-	struct sprd_thermal_data *thm = dev_get_drvdata(&pdev->dev);
-	struct sprd_thermal_sensor *sen, *temp;
-
-	list_for_each_entry_safe(sen, temp, &thm->senlist, node)
-		sen->ready = false;
-
-	sprd_thm_hw_suspend(thm);
-
-	writel(0x00, thm->regbase + SPRD_THM_CTL);
-	udelay(2000);
-
-	clk_disable_unprepare(thm->clk);
-
 	return 0;
 }
 
 static int sprd_thm_resume(struct platform_device *pdev)
 {
 	struct sprd_thermal_data *thm = dev_get_drvdata(&pdev->dev);
-	struct sprd_thermal_sensor *sen, *temp;
-	int ret;
-
-	ret = clk_prepare_enable(thm->clk);
-	if (ret)
-		return ret;
+	int ret = 0;
 
 	ret = sprd_thm_hw_resume(thm);
 	if (ret)
-		goto disable_clk;
+		return ret;
 
-	list_for_each_entry_safe(sen, temp, &thm->senlist, node)
-		sen->ready = true;
+	atomic_set(&thm->quit_worker_flag, 0);
+	schedule_delayed_work(&thm->wait_temp_ready_work, 0);
+
 	return 0;
-
-disable_clk:
-	clk_disable_unprepare(thm->clk);
-	thm->disable_clk_flag = true;
-	return ret;
 }
 
 static int sprd_thm_remove(struct platform_device *pdev)
@@ -589,12 +582,14 @@ static int sprd_thm_remove(struct platform_device *pdev)
 	struct sprd_thermal_data *thm = platform_get_drvdata(pdev);
 	struct sprd_thermal_sensor *sen, *temp;
 
+	atomic_set(&thm->quit_worker_flag, 1);
+	cancel_delayed_work_sync(&thm->wait_temp_ready_work);
+
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node) {
 		devm_thermal_zone_of_sensor_unregister(&pdev->dev, sen->thmzone_dev);
 	}
 
 	clk_disable_unprepare(thm->clk);
-
 	return 0;
 }
 
