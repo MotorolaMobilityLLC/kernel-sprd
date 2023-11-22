@@ -41,6 +41,34 @@ const char *hwinfo_get_prop(const char *prop_name)
 }
 EXPORT_SYMBOL(hwinfo_get_prop);
 
+static ssize_t RF_GPIO_show(struct kobject *dev, struct kobj_attribute *attr, char *buf)
+{
+	int val = 0;
+	const char *msg = "unknown";
+
+	val = gpio_get_value(393);
+	if(0 == val)
+		val = gpio_get_value(446);
+	pr_info("%s: val = %d\n", __func__, val);
+	msg = val ? "1" : "0";
+
+	return sysfs_emit(buf, "%s\n", msg);
+}
+static KOBJ_ATTR_RO(RF_GPIO);
+
+static ssize_t cable_gpio_show(struct kobject *dev, struct kobj_attribute *attr, char *buf)
+{
+	int val = 0;
+	const char *msg = "unknown";
+
+	val = gpio_get_value(393);
+	pr_info("%s: val = %d\n", __func__, val);
+	msg = val ? "0" : "1";
+
+	return sysfs_emit(buf, "%s\n", msg);
+}
+static KOBJ_ATTR_RO(cable_gpio);
+
 static ssize_t card_present_show(struct kobject *dev, struct kobj_attribute *attr, char *buf)
 {
 	struct device_node *dn;
@@ -125,6 +153,8 @@ static KOBJ_ATTR_RW(gpio);
 static struct attribute * hwinfo_attrs[] = {
 	&dev_attr_card_present.attr,
 	&dev_attr_gpio.attr,
+	&dev_attr_RF_GPIO.attr,
+	&dev_attr_cable_gpio.attr,
 	NULL,
 };
 
