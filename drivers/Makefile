@@ -6,6 +6,10 @@
 # Rewritten to use lists instead of if-statements.
 #
 
+ifeq ($(BUILD_SMT),YES)
+subdir-ccflags-y += -DSMT_VERSION
+endif
+
 obj-y				+= irqchip/
 obj-y				+= bus/
 
