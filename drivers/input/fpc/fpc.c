@@ -361,7 +361,15 @@ static ssize_t hw_reset_set(struct device *dev,
         int rc;
         rc = hw_reset(fpc);
         return rc ? rc : count;
-    }
+    } else if(!strncmp(buf, "wakelock", strlen("wakelock"))){
+	    fpsensor_log(DEBUG_LOG, "fpc wakeup 35s %s cmd=%s\n", __func__, buf);
+        __pm_wakeup_event(&fpc->ttw_wl, (35 * FPC_TTW_HOLD_TIME));
+        return count;
+	} else if(!strncmp(buf, "wakeunlock", strlen("wakeunlock"))){
+	    fpsensor_log(DEBUG_LOG, "fpc donot wakeup unlock %s cmd=%s\n", __func__, buf);
+        //__pm_relax(&fpc->ttw_wl);
+        return count;
+	}
     else
         return -EINVAL;
 }
