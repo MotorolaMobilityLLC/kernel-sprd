@@ -475,6 +475,11 @@
 				compatible  = "sprd,ufshc-ums9230";
 				vcc-supply = <&vddemmccore>;
 				vcc-fixed-regulator;
+				vdd-vddgen0-supply = <&vddgen0>;
+				vdd-avdd12-supply = <&avdd12>;
+				vdd-avdd18-supply = <&avdd18>;
+				vdd-vddcore-supply = <&vddcore>;
+				vdd-vddmodem-supply = <&vddmodem>;
 				clock-names = "ufs_reg_eb", "ufs_en",
 					      "ufs_pclk", "ufs_hclk";
 				clocks = <&apapb_gate CLK_UFS_REG_EB>,
