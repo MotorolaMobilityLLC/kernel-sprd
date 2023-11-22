@@ -39,6 +39,41 @@ enum SPRD_L6_UFS_DBG_INDEX {
 	L6_UFS_AP_DCO_CAL_RESULT,
 	L6_UFS_AP_DCO_CNT_RESULT,
 
+	/* CBLane: Ls Mode */
+	L6_UFS_AP_CBLANE_LS_MODE,
+
+	/* TX Lane0: Ls Sleep */
+	L6_UFS_AP_TX_LANE0_LS_SLEEP_1,
+	L6_UFS_AP_TX_LANE0_LS_SLEEP_2,
+	L6_UFS_AP_TX_LANE0_LS_SLEEP_3,
+
+	/* RX Lane0: LS sleep */
+	L6_UFS_AP_RX_LANE0_LS_SLEEP_1,
+	L6_UFS_AP_RX_LANE0_LS_SLEEP_2,
+	L6_UFS_AP_RX_LANE0_LS_SLEEP_3,
+
+	/* TX Lane1: Hibern8 */
+	L6_UFS_AP_TX_LANE1_LS_SLEEP_1,
+	L6_UFS_AP_TX_LANE1_LS_SLEEP_2,
+	L6_UFS_AP_TX_LANE1_LS_SLEEP_3,
+
+	/* RX Lane1: Hibern8 */
+	L6_UFS_AP_RX_LANE1_LS_SLEEP_1,
+	L6_UFS_AP_RX_LANE1_LS_SLEEP_2,
+	L6_UFS_AP_RX_LANE1_LS_SLEEP_3,
+
+	L6_UFS_UNIPRO_UIC_D094,
+	L6_UFS_UNIPRO_UIC_D095,
+	L6_UFS_UNIPRO_UIC_D097,
+
+	/* Regulator */
+	L6_UFS_VDD1V85_VOLTAGE,
+	L6_UFS_AVDD1V2_UFS_VOLTAGE,
+	L6_UFS_AVDD1V8_UFS_VOLTAGE,
+	L6_UFS_VDDEMMCCORE_VOLTAGE,
+	L6_UFS_VDDCORE_UFS_VOLTAGE,
+	L6_UFS_VDDMODEM_UFS_VOLTAGE,
+
 	L6_UFS_DBG_REGS_MAX
 };
 
@@ -63,7 +98,68 @@ static const char *l6_dbg_regs_name[L6_UFS_DBG_REGS_MAX] = {
 	"[DCO]AP_DCO_CAL_RESULT",
 	/* L6_UFS_AP_DCO_CNT_RESULT */
 	"[DCO]AP_DCO_CNT_RESULT",
+
+	/* CBLane: Ls Mode */
+	"[DBGPHY]L6_UFS_AP_CBLANE_LS_MODE",
+
+	/* TX Lane0: Ls Sleep */
+	"[DBGPHY]L6_UFS_AP_TX_LANE0_LS_SLEEP_1",
+	"[DBGPHY]L6_UFS_AP_TX_LANE0_LS_SLEEP_2",
+	"[DBGPHY]L6_UFS_AP_TX_LANE0_LS_SLEEP_3",
+
+	/* RX Lane0: LS sleep */
+	"[DBGPHY]L6_UFS_AP_RX_LANE0_LS_SLEEP_1",
+	"[DBGPHY]L6_UFS_AP_RX_LANE0_LS_SLEEP_2",
+	"[DBGPHY]L6_UFS_AP_RX_LANE0_LS_SLEEP_3",
+
+	/* TX Lane1: Hibern8 */
+	"[DBGPHY]L6_UFS_AP_TX_LANE1_LS_SLEEP_1",
+	"[DBGPHY]L6_UFS_AP_TX_LANE1_LS_SLEEP_2",
+	"[DBGPHY]L6_UFS_AP_TX_LANE1_LS_SLEEP_3",
+
+	/* RX Lane1: Hibern8 */
+	"[DBGPHY]L6_UFS_AP_RX_LANE1_LS_SLEEP_1",
+	"[DBGPHY]L6_UFS_AP_RX_LANE1_LS_SLEEP_2",
+	"[DBGPHY]L6_UFS_AP_RX_LANE1_LS_SLEEP_3",
+
+	/* L6_UFS_UNIPRO_UIC_D094] */
+	"[UIC][D094]VS_DebugInvalidByteEnable",
+	/* L6_UFS_UNIPRO_UIC_D095] */
+	"[UIC][D095]VS_DebugLinkStartup",
+	/* L6_UFS_UNIPRO_UIC_D097] */
+	"[UIC][D097]VS_DebugStates",
+
+	/* Regulator */
+	/* vddgen0 VDD1V85 */
+	"[V]L6_UFS_VDD1V85_VOLTAGE",
+	/* avdd12  AVDD1V2_UFS */
+	"[V]L6_UFS_AVDD1V2_UFS_VOLTAGE",
+	/* avdd18  AVDD1V8_UFS */
+	"[V]L6_UFS_AVDD1V8_UFS_VOLTAGE",
+	/* vddemmccore  VDDEMMCCORE */
+	"[V]L6_UFS_VDDEMMCCORE_VOLTAGE",
+	/* vddcore  VDDCORE */
+	"[V]L6_UFS_VDDCORE_UFS_VOLTAGE",
+	/* vddmodem  VDDMODEM */
+	"[V]L6_UFS_VDDMODEM_UFS_VOLTAGE"
 };
+
+/*
+ * ufs_sprd_rmwl - read modify write into a register
+ * @base - base address
+ * @mask - mask to apply on read value
+ * @val - actual value to write
+ * @reg - register address
+ */
+static inline void ufs_sprd_rmwl(void __iomem *base, u32 mask, u32 val, u32 reg)
+{
+	u32 tmp;
+
+	tmp = readl((base) + (reg));
+	tmp &= ~mask;
+	tmp |= (val & mask);
+	writel(tmp, (base) + (reg));
+}
 
 static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt, void *data)
 {
@@ -121,10 +217,108 @@ static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt
 	v[L6_UFS_AP_DCO_CNT_RESULT] =
 			(readl((priv->ufs_analog_reg) + MPHY_DIG_CFG66_LANE0) >> 18) & 0x1FF;
 
-	if (!preempt_count())
+	/* CBLane: Ls Mode */
+	//0x6456_C0C0[7:0] write 0x01, Read 0x6456_0064[7:0]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(7, 0),
+			0x1 << 0, MPHY_DIG_CFG48_LANE0);
+	v[L6_UFS_AP_CBLANE_LS_MODE] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG) >> 0) & 0xFF;
+	/* TX Lane0: Ls Sleep */
+	//0x6456_C0C0[15:8] write 0x01,  Read 0x6456_0064[23:16]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(15, 8),
+			0x1 << 8, MPHY_DIG_CFG48_LANE0);
+	v[L6_UFS_AP_TX_LANE0_LS_SLEEP_1] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG) >> 16) & 0xFF;
+	//0x6456_C0C0[15:8] write 0x02, Read 0x6456_0064[23:16]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(15, 8),
+			0x2 << 8, MPHY_DIG_CFG48_LANE0);
+	v[L6_UFS_AP_TX_LANE0_LS_SLEEP_2] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG) >> 16) & 0xFF;
+	//0x6456_C0C0[15:8] write 0x03, Read 0x6456_0064[23:16]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(15, 8),
+			0x3 << 8, MPHY_DIG_CFG48_LANE0);
+	v[L6_UFS_AP_TX_LANE0_LS_SLEEP_3] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG) >> 16) & 0xFF;
+
+	/* RX Lane0: LS sleep */
+	//0x6456_C0C0[23:16] write 0x10, Read 0x6456_0064[15:8]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(23, 16),
+			0x10 << 16, MPHY_DIG_CFG48_LANE0);
+	v[L6_UFS_AP_RX_LANE0_LS_SLEEP_1] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG) >> 8) & 0xFF;
+	//0x6456_C0C0[23:16] write 0x11, Read 0x6456_0064[15:8]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(23, 16),
+			0x11 << 16, MPHY_DIG_CFG48_LANE0);
+	v[L6_UFS_AP_RX_LANE0_LS_SLEEP_2] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG) >> 8) & 0xFF;
+	//0x6456_C0C0[23:16] write 0x12, Read 0x6456_0064[15:8]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(23, 16),
+			0x12 << 16, MPHY_DIG_CFG48_LANE0);
+	v[L6_UFS_AP_RX_LANE0_LS_SLEEP_3] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG) >> 8) & 0xFF;
+
+	/* TX Lane1: Hibern8 */
+	//0x6456_C8C0[15:8] write 0x01,  Read 0x6456_0068[19:12]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(15, 8),
+			0x1 << 8, MPHY_DIG_CFG48_LANE1);
+	v[L6_UFS_AP_TX_LANE1_LS_SLEEP_1] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG1) >> 12) & 0xFF;
+	//0x6456_C8C0[15:8] write 0x02,  Read 0x6456_0068[19:12]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(15, 8),
+			0x2 << 8, MPHY_DIG_CFG48_LANE1);
+	v[L6_UFS_AP_TX_LANE1_LS_SLEEP_2] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG1) >> 12) & 0xFF;
+	//0x6456_C8C0[15:8] write 0x03,  Read 0x6456_0068[19:12]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(15, 8),
+			0x3 << 8, MPHY_DIG_CFG48_LANE1);
+	v[L6_UFS_AP_TX_LANE1_LS_SLEEP_3] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG1) >> 12) & 0xFF;
+
+	/* RX Lane1: Hibern8 */
+	//0x6456_C8C0[23:16] write 0x10, Read 0x6456_0068[11:4]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(23, 16),
+			0x10 << 16, MPHY_DIG_CFG48_LANE1);
+	v[L6_UFS_AP_RX_LANE1_LS_SLEEP_1] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG1) >> 4) & 0xFF;
+	//0x6456_C8C0[23:16] write 0x11, Read 0x6456_0068[11:4]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(23, 16),
+			0x11 << 16, MPHY_DIG_CFG48_LANE1);
+	v[L6_UFS_AP_RX_LANE1_LS_SLEEP_2] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG1) >> 4) & 0xFF;
+	//0x6456_C8C0[23:16] write 0x12, Read 0x6456_0068[11:4]
+	ufs_sprd_rmwl(priv->ufs_analog_reg, GENMASK(23, 16),
+			0x12 << 16, MPHY_DIG_CFG48_LANE1);
+	v[L6_UFS_AP_RX_LANE1_LS_SLEEP_3] =
+			(readl((priv->ufs_analog_reg) + MPHY_2T2R_APB_REG1) >> 4) & 0xFF;
+
+	if (!preempt_count()) {
 		p->preempt = false;
-	else
+
+		if (!hba->active_uic_cmd) {
+			p->active_uic_cmd = false;
+
+			/* read unipro attr START */
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd094), &v[L6_UFS_UNIPRO_UIC_D094]);
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd095), &v[L6_UFS_UNIPRO_UIC_D095]);
+			ufshcd_dme_get(hba, UIC_ARG_MIB(0xd097), &v[L6_UFS_UNIPRO_UIC_D097]);
+			/* read unipro attr END */
+		} else {
+			p->active_uic_cmd = true;
+		}
+
+		/* read VOLTAGE START */
+		v[L6_UFS_VDD1V85_VOLTAGE] = regulator_get_voltage(priv->vddgen0);
+		v[L6_UFS_AVDD1V2_UFS_VOLTAGE] = regulator_get_voltage(priv->avdd12);
+		v[L6_UFS_AVDD1V8_UFS_VOLTAGE] = regulator_get_voltage(priv->avdd18);
+		v[L6_UFS_VDDEMMCCORE_VOLTAGE] = regulator_get_voltage(hba->vreg_info.vcc->reg);
+		v[L6_UFS_VDDCORE_UFS_VOLTAGE] = regulator_get_voltage(priv->vddcore);
+		v[L6_UFS_VDDMODEM_UFS_VOLTAGE] = regulator_get_voltage(priv->vddmodem);
+		/* read VOLTAGE END */
+
+	} else {
 		p->preempt = true;
+	}
+
 }
 
 int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
@@ -195,23 +389,6 @@ static inline int ufs_sprd_mask(void __iomem *base, u32 mask, u32 reg)
 		return 1;
 	else
 		return 0;
-}
-
-/*
- * ufs_sprd_rmwl - read modify write into a register
- * @base - base address
- * @mask - mask to apply on read value
- * @val - actual value to write
- * @reg - register address
- */
-static inline void ufs_sprd_rmwl(void __iomem *base, u32 mask, u32 val, u32 reg)
-{
-	u32 tmp;
-
-	tmp = readl((base) + (reg));
-	tmp &= ~mask;
-	tmp |= (val & mask);
-	writel(tmp, (base) + (reg));
 }
 
 static void ufs_remap_or(struct syscon_ufs *sysconufs)
@@ -287,6 +464,36 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 	if (IS_ERR(priv->dbg_apb_reg)) {
 		pr_err("error to ioremap ufs debug bus base.\n");
 		priv->dbg_apb_reg = NULL;
+	}
+
+	priv->vddgen0 = devm_regulator_get(dev, "vdd-vddgen0");
+	if (IS_ERR(priv->vddgen0)) {
+		dev_err(&pdev->dev, "get vdd-vddgen0 regulator failed\n");
+		return -ENODEV;
+	}
+
+	priv->avdd12 = devm_regulator_get(dev, "vdd-avdd12");
+	if (IS_ERR(priv->avdd12)) {
+		dev_err(&pdev->dev, "get vdd-avdd12 regulator failed\n");
+		return -ENODEV;
+	}
+
+	priv->avdd18 = devm_regulator_get(dev, "vdd-avdd18");
+	if (IS_ERR(priv->avdd18)) {
+		dev_err(&pdev->dev, "get vdd-avdd18 regulator failed\n");
+		return -ENODEV;
+	}
+
+	priv->vddcore = devm_regulator_get(dev, "vdd-vddcore");
+	if (IS_ERR(priv->vddcore)) {
+		dev_err(&pdev->dev, "get vdd-vddcore regulator failed\n");
+		return -ENODEV;
+	}
+
+	priv->vddmodem = devm_regulator_get(dev, "vdd-vddmodem");
+	if (IS_ERR(priv->vddmodem)) {
+		dev_err(&pdev->dev, "get vdd-vddmodem regulator failed\n");
+		return -ENODEV;
 	}
 
 	return 0;
