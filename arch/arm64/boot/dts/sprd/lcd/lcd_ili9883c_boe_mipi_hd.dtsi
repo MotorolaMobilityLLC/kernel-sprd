@@ -18,15 +18,15 @@
 					sprd,dsi-lane-number = <4>;
 					sprd,dsi-color-format = "rgb888";
 
-					sprd,phy-bit-clock = <921600>;	/* kbps */
+					sprd,phy-bit-clock = <1105000>;	/* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
 					sprd,vrr-enable;  /*90hz 60hz*/
 					//sprd,power-gpio-delay = <20>; ms
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
-					sprd,dpi-clk-div = <6>;
-					sprd,video-lp-cmd-enable = <1>;
-					sprd,hporch-lp-disable = <1>;
+					//sprd,dpi-clk-div = <6>;
+					//sprd,video-lp-cmd-enable = <1>;
+					//sprd,hporch-lp-disable = <1>;
 					sprd,esd-check-enable = <1>;
 					sprd,esd-check-mode = <1>;
 					sprd,esd-check-period = <2000>;
@@ -101,10 +101,10 @@
 							clock-frequency = <153600000>;
 							hactive = <720>;
 							vactive = <1612>;
-							hfront-porch = <36>;
-							hback-porch = <40>;
-							hsync-len = <40>;
-							vfront-porch = <404>;
+							hfront-porch = <64>;
+							hback-porch = <64>;
+							hsync-len = <4>;
+							vfront-porch = <370>;
 							vback-porch = <30>;
 							vsync-len = <2>;
 						};
@@ -112,10 +112,10 @@
 							clock-frequency = <153600000>;
 							hactive = <720>;
 							vactive = <1612>;
-							hfront-porch = <36>;
-							hback-porch = <40>;
-							hsync-len = <40>;
-							vfront-porch = <1400>;
+							hfront-porch = <64>;
+							hback-porch = <64>;
+							hsync-len = <4>;
+							vfront-porch = <1360>;
 							vback-porch = <30>;
 							vsync-len = <2>;
 						};
