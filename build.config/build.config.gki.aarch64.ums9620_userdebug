@@ -79,6 +79,7 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/codec/sprd/pdm_r2p0
 ../modules/kernel5.15/audio/sprd/dai/tdm
 ../modules/kernel5.15/audio/sprd/dai/sprd_dai
+../modules/kernel5.15/input/misc/rf_cable
 "
 fi
 #camera module version config
