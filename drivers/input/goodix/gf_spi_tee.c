@@ -519,7 +519,7 @@ static irqreturn_t gf_irq(int irq, void *handle)
 	struct gf_device *gf_dev = (struct gf_device *)handle;
 	FUNC_ENTRY();
 
-	//__pm_wakeup_event(&gf_dev->fp_wakesrc, WAKELOCK_HOLD_TIME);
+	__pm_wakeup_event(&gf_dev->fp_wakesrc, WAKELOCK_HOLD_TIME);
 	gf_netlink_send(gf_dev, GF_NETLINK_IRQ);
 	gf_dev->sig_count++;
 
@@ -535,7 +535,7 @@ static long gf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	gf_nav_event_t nav_event = GF_NAV_NONE;
 	uint32_t nav_input = 0;
 	uint32_t key_input = 0;
-
+    uint32_t wake_sec = 0;
 	int retval = 0;
 	u8  buf    = 0;
 	u8 netlink_route = GF_NETLINK_ROUTE;
@@ -626,7 +626,17 @@ static long gf_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		gf_debug(INFO_LOG, "%s: mode 0x%x\n", __func__, info.mode);
 		gf_debug(INFO_LOG, "%s: operation 0x%x\n", __func__, info.operation);
 		break;
-
+		
+	case GF_IOC_SET_WAKELOCK:
+		gf_debug(INFO_LOG, "%s: GF_IOC_SET_WAKELOCK ======\n", __func__);
+		if (copy_from_user(&wake_sec, (uint32_t *)arg, sizeof(uint32_t))) {
+			retval = -EFAULT;
+			break;
+		}
+		gf_debug(INFO_LOG, "%s: wakelock sec = %u\n", __func__, wake_sec);
+		__pm_wakeup_event(&gf_dev->fp_wakesrc, wake_sec*1000);
+		break;
+		
 	case GF_IOC_EXIT:
 		gf_debug(INFO_LOG, "%s: GF_IOC_EXIT ======\n", __func__);
 		gf_disable_irq(gf_dev);
@@ -1096,7 +1106,7 @@ static int gf_platform_probe(struct platform_device *pldev)
 		mutex_unlock(&gf_dev->release_lock);
 		goto err_input;
 	}
-	//wakeup_source_add(&gf_dev->fp_wakesrc);
+	wakeup_source_add(&gf_dev->fp_wakesrc);
 
 	gf_dev->probe_finish = 1;
 	gf_dev->is_sleep_mode = 0;
@@ -1146,7 +1156,7 @@ static int gf_platform_remove(struct platform_device *pldev)
 
 	FUNC_ENTRY();
 
-	//wakeup_source_remove(&gf_dev->fp_wakesrc);
+	wakeup_source_remove(&gf_dev->fp_wakesrc);
 	/* make sure ops on existing fds can abort cleanly */
 	if (gf_dev->irq) {
 		free_irq(gf_dev->irq, gf_dev);
