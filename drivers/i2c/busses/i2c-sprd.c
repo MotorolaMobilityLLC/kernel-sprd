@@ -919,6 +919,8 @@ static int sprd_i2c_probe(struct platform_device *pdev)
 	if (IS_ERR(i2c_dev->rst)) {
 		dev_err(i2c_dev->dev, "can't get i2c reset node\n");
 		i2c_dev->rst = NULL;
+	} else {
+		reset_control_reset(i2c_dev->rst);
 	}
 
 	ret = sprd_i2c_dma_request(i2c_dev);
