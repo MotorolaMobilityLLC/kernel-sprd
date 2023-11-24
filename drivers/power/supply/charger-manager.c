@@ -129,6 +129,7 @@
 #define CM_CHARGER_TYPE_WORK_TIME_MS		500
 #define CM_CHARGER_TYPE_TIME_OUT_CNT		20
 
+#define CM_CAP_ONE_TIME_30S			30
 #define CM_CAP_ONE_TIME_16S			16
 #define CM_CAP_ONE_TIME_8S			8
 #define CM_CAP_ONE_TIME_4S			4
@@ -7529,8 +7530,8 @@ static int cm_calc_batt_works_cycle(struct charger_manager *cm, int uisoc)
 	if (bat_temp < CM_CAP_CALC_BATT_WORKS_LOW_TEMP || uisoc < CM_CAP_CALC_BATT_WORKS_LOW_CAP ||
 	    abs(ibat_avg_ua) > CM_CAP_CALC_BATT_WORKS_BIG_CUR_UA ||
 	    abs(bat_soc - uisoc) > CM_CAP_CALC_BATT_WORKS_SOC_GAP) {
-		cm->desc->cap_one_time = CM_CAP_ONE_TIME_16S;
-		work_cycle = CM_CAP_CYCLE_TRACK_TIME_8S;
+		cm->desc->cap_one_time = CM_CAP_ONE_TIME_30S;
+		work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
 	}
 
 out:
