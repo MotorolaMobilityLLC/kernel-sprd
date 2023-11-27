@@ -213,7 +213,7 @@ static const struct proc_ops sprd_ddr_info_fops = {
 	.proc_release = single_release,
 };
 
-static int sprd_ddr_proc_creat(struct dmc_drv_data *pdrv_data)
+static int sprd_ddr_proc_create(struct dmc_drv_data *pdrv_data)
 {
 	if (!pdrv_data)
 		return -EINVAL;
@@ -590,20 +590,24 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 		    readl_relaxed(io_addr + pdata->mr_offset[i]);
 		iounmap(io_addr);
 #ifdef CONFIG_PROC_FS
-		result = sprd_ddr_proc_creat(&drv_data);
+		result = sprd_ddr_proc_create(&drv_data);
 		if (result)
-			dev_err(&pdev->dev, "sprd_ddr_proc creat fail\n");
+			dev_err(&pdev->dev, "sprd_ddr_proc create fail\n");
 #endif
 	}
 
 	if (pdata->mon_res != INVALID_RES_IDX) {
 		res = platform_get_resource(pdev, IORESOURCE_MEM,
 			pdata->mon_res);
-		if (!res)
-			return -ENODEV;
+		if (!res) {
+			result = -ENODEV;
+			goto free_proc_create;
+		}
 		drv_data.mon_base = devm_ioremap_resource(&pdev->dev, res);
-		if (IS_ERR(drv_data.mon_base))
-			return (int)PTR_ERR(drv_data.mon_base);
+		if (IS_ERR(drv_data.mon_base)) {
+			result = (int)PTR_ERR(drv_data.mon_base);
+			goto free_proc_create;
+		}
 #ifdef CONFIG_PROC_FS
 		result = sprd_pub_monitor_proc_create(&drv_data);
 		if (result)
@@ -613,9 +617,28 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 
 	result = sprd_dmc_register_debug_init(pdata, pdev);
 	if (result)
-		return result;
+		dev_info(&pdev->dev, "dmc register debug init fail\n");
 
 	return 0;
+
+free_proc_create:
+#ifdef CONFIG_PROC_FS
+	if (drv_data.property) {
+		remove_proc_entry(DDR_PROPERTY_NAME, drv_data.proc_dir);
+		drv_data.property = NULL;
+	}
+
+	if (drv_data.info) {
+		remove_proc_entry(DDR_INFO_NAME, drv_data.proc_dir);
+		drv_data.info = NULL;
+	}
+
+	if (drv_data.proc_dir) {
+		remove_proc_entry(DMC_PROC_NAME, NULL);
+		drv_data.proc_dir = NULL;
+	}
+#endif
+	return result;
 }
 
 static int sprd_dmc_remove(struct platform_device *pdev)
