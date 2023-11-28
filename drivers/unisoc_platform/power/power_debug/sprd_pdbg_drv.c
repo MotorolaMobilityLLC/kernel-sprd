@@ -79,33 +79,91 @@ int pdbg_notifier_call_chain(unsigned long val, void *v)
 	return blocking_notifier_call_chain(&pdbg_nb_chain, val, v);
 }
 
-int sprd_pdbg_regs_get_once(u32 info_type, u64 *r_value, u64 *r_value_h)
+void smccc_res_to_u64_array(struct arm_smccc_res *src, u64 *dst, u64 *merge)
 {
-	u64 ret;
 	int i;
+
+	dst[0] = src->a0;
+	dst[1] = src->a1;
+	dst[2] = src->a2;
+	dst[3] = src->a3;
+
+	if (!merge)
+		return;
+
+	for (i = 0; i < PDBG_INFO_NUM; i++)
+		merge[i] = (merge[i] | (dst[i] << 32));
+}
+
+int sprd_pdbg_regs_get_once(u32 info_type, u64 *ret_vals)
+{
+	u64 ret, ret_vals_h[PDBG_INFO_NUM] = {0};
+	struct arm_smccc_res ret_l, ret_h;
 	struct power_debug *pdbg = sprd_pdbg_get_instance();
 
-	if (!pdbg) {
+	if (!pdbg || !pdbg->power_ops) {
 		SPRD_PDBG_ERR("pdbg null!!!\n");
 		return -EINVAL;
 	}
 
-	ret = pdbg->power_ops->get_pdbg_info(info_type, PDBG_PHASE0, &r_value[0],
-					     &r_value[1], &r_value[2], &r_value[3]);
+	ret = pdbg->power_ops->pdbg_info_trans(info_type, PDBG_PHASE0, 0, 0, &ret_l);
 	if (ret == ERROR_MAGIC) {
-		SPRD_PDBG_ERR("Get pdbg info: %d error\n", info_type);
+		SPRD_PDBG_ERR("Get pdbg info ret_l: %d error\n", info_type);
+		return -EINVAL;
+	}
+	smccc_res_to_u64_array(&ret_l, ret_vals, NULL);
+
+	if (pdbg->is_32b_machine) {
+		ret = pdbg->power_ops->pdbg_info_trans(info_type, PDBG_PHASE1, 0, 0, &ret_h);
+		if (ret == ERROR_MAGIC) {
+			SPRD_PDBG_ERR("Get pdbg info ret_h: %d error\n", info_type);
+			return -EINVAL;
+		}
+		smccc_res_to_u64_array(&ret_h, ret_vals_h, ret_vals);
+	}
+
+	return 0;
+}
+
+int sprd_pdbg_ws_info_trans(u32 *major, u32 *domain_id, u32 *hwirq)
+{
+	u64 ret;
+	struct arm_smccc_res ret_vals = {0};
+
+	struct power_debug *pdbg = sprd_pdbg_get_instance();
+
+	if (!pdbg || !pdbg->power_ops) {
+		SPRD_PDBG_ERR("pdbg null!!!\n");
 		return -EINVAL;
 	}
 
-	if (pdbg->is_32b_machine && info_type < PDBG_WS) {
-		ret = pdbg->power_ops->get_pdbg_info(info_type, PDBG_PHASE1, &r_value_h[0],
-						     &r_value_h[1], &r_value_h[2], &r_value_h[3]);
-		if (ret == ERROR_MAGIC) {
-			SPRD_PDBG_ERR("Get pdbg info: %d error\n", info_type);
-			return -EINVAL;
-		}
-		for (i = 0; i < PDBG_INFO_NUM; i++)
-			r_value[i] = (r_value[i] | (r_value_h[i] << 32));
+	ret = pdbg->power_ops->pdbg_info_trans(PDBG_WS, 0, 0, 0, &ret_vals);
+	if (ret == ERROR_MAGIC) {
+		SPRD_PDBG_ERR("Get ws info: %d error\n");
+		return -EINVAL;
+	}
+
+	*major = (u32)ret_vals.a0;
+	*domain_id = (u32)ret_vals.a1;
+	*hwirq = (u32)ret_vals.a2;
+
+	return 0;
+}
+
+int sprd_pdbg_misc_trans(u32 cmd, u32 priv, struct arm_smccc_res *ret_vals)
+{
+	u64 ret;
+	struct power_debug *pdbg = sprd_pdbg_get_instance();
+
+	if (!pdbg || !pdbg->power_ops) {
+		SPRD_PDBG_ERR("pdbg null!!!\n");
+		return -EINVAL;
+	}
+
+	ret = pdbg->power_ops->pdbg_info_trans(PDBG_MISC, cmd, priv, 0, ret_vals);
+	if (ret == ERROR_MAGIC) {
+		SPRD_PDBG_ERR("misc info trans: [%u %u] error\n", cmd, priv);
+		return -EINVAL;
 	}
 
 	return 0;
@@ -322,6 +380,16 @@ static int sprd_pdbg_proc_create(struct power_debug *pdbg)
 	return 0;
 }
 
+static int sprd_pdbg_late_init(struct power_debug *pdbg)
+{
+	if (sprd_pdbg_misc_trans(PDBG_MISC_APSYS_PD_SET, pdbg->misc_data->engpc_boot_mode, NULL)) {
+		SPRD_PDBG_ERR("apsys_pd_disable set failed\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
 static int sprd_pdbg_probe(struct platform_device *pdev)
 {
 	int ret;
@@ -382,6 +450,12 @@ static int sprd_pdbg_probe(struct platform_device *pdev)
 	}
 
 	g_pdbg = pdbg;
+
+	ret = sprd_pdbg_late_init(pdbg);
+	if (ret) {
+		SPRD_PDBG_ERR("pdbg late inti failed\n");
+		return ret;
+	}
 
 	return 0;
 }
