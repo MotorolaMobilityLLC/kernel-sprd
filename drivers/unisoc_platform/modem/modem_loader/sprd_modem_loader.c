@@ -1002,6 +1002,8 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case MODEM_ASSERT_CMD:
+		if (strcmp(current->comm, "modem_control"))
+			return -EPERM;
 		ret = modem_assert(modem);
 		break;
 
