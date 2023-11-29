@@ -965,11 +965,12 @@ static ssize_t ffs_epfile_io(struct file *file, struct ffs_io_data *io_data)
 	if (!ep) {
 		if (file->f_flags & O_NONBLOCK)
 			return -EAGAIN;
-
-		ret = wait_event_interruptible(
-				epfile->ffs->wait, (ep = epfile->ep));
-		if (ret)
+		ret = wait_event_interruptible_timeout(
+				epfile->ffs->wait, (ep = epfile->ep), msecs_to_jiffies(600));
+		if (ret <= 0) {
+			pr_err("xzy after wait_event_interruptible_timeout ret = %d", ret);
 			return -EINTR;
+		}
 	}
 
 	/* Do we halt? */
