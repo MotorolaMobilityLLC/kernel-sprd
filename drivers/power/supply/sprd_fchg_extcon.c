@@ -1113,6 +1113,8 @@ static int sprd_fchg_extcon_init(struct sprd_fchg_info *info,
 				 struct power_supply *psy)
 {
 	int ret;
+	int i = 0, num_cfchgs = 0;
+	struct power_supply *p;
 
 	if (!info) {
 		pr_err("%s[%d], info is NULL pointer!!!\n", __func__, __LINE__);
@@ -1142,12 +1144,30 @@ static int sprd_fchg_extcon_init(struct sprd_fchg_info *info,
 	info->support_sfcp = device_property_read_bool(info->dev, "sprd,support-sfcp");
 	info->support_pd_pps = device_property_read_bool(info->dev, "sprd,support-pd-pps");
 
-	ret = of_property_read_string(info->dev->of_node,
-				      "sprd,customized-fchg-psy",
-				      &info->customized_fchg_psy);
-	if (!ret)
-		dev_info(info->dev, "%s, support customized fchg psy: %s\n",
-			__func__, info->customized_fchg_psy);
+
+	num_cfchgs = of_property_count_strings(info->dev->of_node, "sprd,customized-fchg-psy");
+	if (num_cfchgs > 0) {
+
+		for (i = 0; i < num_cfchgs; i++)
+		{
+			of_property_read_string_index(info->dev->of_node, "sprd,customized-fchg-psy", i,
+						      &info->customized_fchg_psy);
+			p = power_supply_get_by_name(info->customized_fchg_psy);
+			if (p) {
+					power_supply_put(p);
+					dev_info(info->dev, "%s find customized_fchg_psy %s;\n",__func__,info->customized_fchg_psy);
+					break;
+			}
+		}
+	}
+
+
+//	ret = of_property_read_string(info->dev->of_node,
+//				      "sprd,customized-fchg-psy",
+//				      &info->customized_fchg_psy);
+//	if (!ret)
+//		dev_info(info->dev, "%s, support customized fchg psy: %s\n",
+//			__func__, info->customized_fchg_psy);
 
 	mutex_init(&info->lock);
 	INIT_DELAYED_WORK(&info->fixed_fchg_handshake_work, sprd_fixed_fchg_handshake_work);

@@ -74,6 +74,12 @@
 #define I_500MA 500000
 #define I_100MA 100000
 
+enum chip_type{
+	CHIP_NONE=0,
+	CHIP_SGM41511,
+	CHIP_SGM41542,
+};
+
 
 struct bq2560xpe_charger_info {
 	struct i2c_client *client;
@@ -93,7 +99,9 @@ struct bq2560xpe_charger_info {
 	u32 state;
 	u32 charger_online;
 	bool detected;
+	char charge_ic_vendor_name[50];
 };
+
 
 static int bq2560xpe_charger_get_limit_current(struct bq2560xpe_charger_info *info,
 	                     u32 *limit_cur)
@@ -661,7 +669,6 @@ static const struct power_supply_desc bq2560xpe_charger_desc = {
 	.property_is_writeable	= bq2560xpe_charger_property_is_writeable,
 };
 
-
 static int bq2560xpe_charger_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
@@ -671,6 +678,21 @@ static int bq2560xpe_charger_probe(struct i2c_client *client,
 	struct device_node *regmap_np;
 	struct platform_device *regmap_pdev;
 	int ret;
+	struct power_supply *psy;
+	union power_supply_propval val;
+
+	psy = power_supply_get_by_name("bq2560x_charger");
+		if (!psy) {
+			dev_err(dev, "%s Cannot find power supply \"bq2560x_charger\"\n",__func__);
+			return -EPROBE_DEFER;
+		}
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_ONLINE,
+					&val);
+
+	power_supply_put(psy);
+
+	if(val.intval != CHIP_SGM41511)
+		return -ENODEV;
 
 	info = devm_kzalloc(dev, sizeof(*info), GFP_KERNEL);
 	if (!info)
@@ -678,6 +700,7 @@ static int bq2560xpe_charger_probe(struct i2c_client *client,
 
 	info->client = client;
 	info->dev = dev;
+
 	
 	i2c_set_clientdata(client, info);
 

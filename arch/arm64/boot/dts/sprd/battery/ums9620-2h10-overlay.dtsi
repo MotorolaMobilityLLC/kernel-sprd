@@ -139,7 +139,7 @@
 	sprd,support-fchg;
 	sprd,support-pd-pps;
 	sprd,pd-fixed-max-microwatt = <18000000>;
-	sprd,customized-fchg-psy ="bq2560xpe_charger";
+	sprd,customized-fchg-psy ="bq2560xpe_charger","bq2560xqc_charger";
 
 	monitored-battery = <&bat>;
 	cm-capacity-track;
@@ -170,13 +170,16 @@
 		compatible = "ti,bq2560xpe_chg";
 		reg = <0x6c>;
 	};
-	
+	bq2560xqc_chg: charger@6d {
+		compatible = "ti,bq2560xqc_chg";
+		reg = <0x6d>;
+	};
 };
 
 &i2c3 {
 	status = "okay";
 	clock-frequency = <400000>;
-	
+
 	bq2597x_chg: charger@65 {
 		compatible = "ti,bq2597x-standalone";
 		reg = <0x65>;

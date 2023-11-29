@@ -134,7 +134,11 @@ struct bq2560x_charge_current {
 	int fchg_limit;
 	int fchg_cur;
 };
-
+enum chip_type{
+	CHIP_NONE=0,
+	CHIP_SGM41511,
+	CHIP_SGM41542,
+};
 struct bq2560x_charger_info {
 	struct i2c_client *client;
 	struct device *dev;
@@ -175,6 +179,9 @@ struct bq2560x_charger_info {
 	bool probe_initialized;
 	bool use_typec_extcon;
 	bool shutdown_flag;
+
+	char charge_ic_vendor_name[50];
+	int chip_type;
 };
 
 struct bq2560x_charger_reg_tab {
@@ -287,7 +294,10 @@ static int bq2560x_read(struct bq2560x_charger_info *info, u8 reg, u8 *data)
 
 	ret = i2c_smbus_read_byte_data(info->client, reg);
 	if (ret < 0)
+	{
+		dev_info(info->dev, "%s: %d", __func__, ret);
 		return ret;
+		}
 
 	*data = ret;
 	return 0;
@@ -295,7 +305,14 @@ static int bq2560x_read(struct bq2560x_charger_info *info, u8 reg, u8 *data)
 
 static int bq2560x_write(struct bq2560x_charger_info *info, u8 reg, u8 data)
 {
-	return i2c_smbus_write_byte_data(info->client, reg, data);
+	int ret;
+
+	ret = i2c_smbus_write_byte_data(info->client, reg, data);
+
+	if (ret < 0)
+		dev_info(info->dev, "%s: %d", __func__, ret);
+
+	return ret;
 }
 
 static int bq2560x_update_bits(struct bq2560x_charger_info *info, u8 reg,
@@ -1103,6 +1120,10 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 		}
 
 		break;
+	case POWER_SUPPLY_PROP_ONLINE:
+			val->intval = info->chip_type;
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -1273,6 +1294,7 @@ static enum power_supply_property bq2560x_usb_props[] = {
 	POWER_SUPPLY_PROP_HEALTH,
 	POWER_SUPPLY_PROP_CALIBRATE,
 	POWER_SUPPLY_PROP_TYPE,
+	POWER_SUPPLY_PROP_ONLINE,
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {
@@ -1779,6 +1801,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 	struct device_node *regmap_np;
 	struct platform_device *regmap_pdev;
 	int ret;
+	unsigned char val = 0;
 
 	if (!adapter) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -1796,6 +1819,27 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 
 	info->client = client;
 	info->dev = dev;
+
+	ret = bq2560x_read(info,BQ2560X_REG_B, &val);
+	dev_info(dev, "%s;BQ2560X_REG_B:0x%x;ret:%d;addr:0x%x\n",__func__,val,ret,info->client->addr);
+	if (ret >=0 && ((val & 0x7c) == 0x14))
+	{
+		strncpy(info->charge_ic_vendor_name,"SGM41511",20);
+		info->chip_type = CHIP_SGM41511;
+	}
+	else
+	{
+		info->client->addr = 0x3b;
+		ret = bq2560x_read(info,BQ2560X_REG_B, &val);
+		dev_info(dev, "%s;BQ2560X_REG_B:0x%x;ret:%d;addr:0x%x\n",__func__,val,ret,info->client->addr);
+		if ( ret >=0 && ((val & 0x7c) == 0x6c))
+		{
+			strncpy(info->charge_ic_vendor_name,"SGM41542",20);
+			info->chip_type = CHIP_SGM41542;
+		}
+		else
+			return -ENODEV;
+	}
 
 	i2c_set_clientdata(client, info);
 	power_path_control(info);
