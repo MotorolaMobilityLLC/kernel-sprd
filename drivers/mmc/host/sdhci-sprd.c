@@ -44,10 +44,8 @@
 #include "sdhci-sprd-health.h"
 #include "sdhci-sprd-health.c"
 
-#ifdef CONFIG_SPRD_DEBUG
 #include "sdhci-sprd-debugfs.h"
 #include "sdhci-sprd-debugfs.c"
-#endif
 
 #define DRIVER_NAME "sprd-sdhci"
 #define SDHCI_SPRD_DUMP(f, x...) \
@@ -2199,6 +2197,7 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 #ifdef CONFIG_SPRD_DEBUG
 	sdhci_sprd_add_host_debugfs(host);
 #endif
+	sdhci_sprd_add_host_debug(host);
 
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);

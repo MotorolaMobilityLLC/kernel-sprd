@@ -4,6 +4,12 @@
 //
 // Copyright (C) 2021 UNISOC, Inc.
 // Author: Zhongwu Zhu <zhongwu.zhu@unisoc.com>
+#include "sdhci-sprd-debugfs.h"
+#ifndef CONFIG_SPRD_DEBUG
+#include "sdhci-sprd-debug.h"
+#include "sdhci-sprd-debug.c"
+#endif
+
 #define _DRIVER_NAME "sprd-sdhci-swcq"
 #define DBG(f, x...) \
 	pr_debug("%s: " _DRIVER_NAME ": " f, mmc_hostname(host->mmc), ## x)
@@ -1389,6 +1395,9 @@ static irqreturn_t sdhci_sprd_irq(int irq, void *dev_id)
 
 #ifdef CONFIG_SPRD_DEBUG
 		mmc_debug_update(host, NULL, intmask);
+#else
+		if (true == debug_en)
+			mmc_debug_update(host, NULL, intmask);
 #endif
 		if (intmask & SDHCI_INT_BUS_POWER)
 			pr_err("%s: Card is consuming too much power!\n",
@@ -1531,6 +1540,9 @@ static irqreturn_t raw_sdhci_irq(int irq, void *dev_id)
 
 #ifdef CONFIG_SPRD_DEBUG
 		mmc_debug_update(host, NULL, intmask);
+#else
+		if (true == debug_en)
+			mmc_debug_update(host, NULL, intmask);
 #endif
 		if (intmask & SDHCI_INT_BUS_POWER)
 			pr_err("%s: Card is consuming too much power!\n",
@@ -2054,6 +2066,9 @@ static bool sdhci_sprd_send_command(struct sdhci_host *host, struct mmc_command 
 		mod_timer(&host->debug_timer, jiffies + 256);
 		host->cnt_time = ktime_to_ms(ktime_get());
 	}
+#else
+	if (true == debug_en)
+		mmc_debug_update(host, cmd, 0);
 #endif
 
 	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->opcode, flags), SDHCI_COMMAND);
