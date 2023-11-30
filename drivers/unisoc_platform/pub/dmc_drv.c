@@ -317,7 +317,9 @@ static int sprd_pub_monitor_status_show(struct seq_file *m, void *v)
 		seq_printf(m, "F%d time: %llu ns\n", i, fx_time[i]);
 	seq_printf(m, "dfs_cnt: %d\n", (drv_data.reg_val.dfs_cnt & 0x3ff));
 	seq_printf(m, "total_time:%lldns, sts_time:%lldns\n", total_tm, sts_tm);
-	sprd_pub_monitor_enable(1);
+
+	if (sprd_pub_monitor_enable(1))
+		return -ENOMEM;
 
 	return 0;
 }
