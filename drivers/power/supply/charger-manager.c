@@ -5174,7 +5174,7 @@ static void cm_get_uisoc(struct charger_manager *cm, int *uisoc)
 	fake_uisoc = DIV_ROUND_CLOSEST(cm->desc->cap, 10);
 	if(100 == fake_uisoc && cm->desc->charger_type == CM_CHARGER_TYPE_DCP && cm->desc->charger_status == POWER_SUPPLY_STATUS_CHARGING){
 		get_ibat_avg_uA(cm, &ibat_avg);
-		if(ibat_avg <= 850000)
+		if(ibat_avg <= 930000)
 			*uisoc = 100;
 		else
 			*uisoc = 99;
