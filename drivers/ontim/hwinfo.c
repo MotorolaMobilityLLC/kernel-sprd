@@ -24,9 +24,25 @@
 #define pr_fmt(fmt) "hwinfo: " fmt
 
 struct kobject *hwinfo = NULL;
+EXPORT_SYMBOL(hwinfo);
 
 static char* version_of_hwinfo = VERSION_OF;
 module_param(version_of_hwinfo, charp, 0444);
+
+int is_manila_dts(void)
+{
+	struct device_node *node;
+	const char *prop;
+	static int rc = -1;
+
+	if (rc >= 0) return rc;
+	rc = 0;
+	if (!(node = of_find_node_by_path("/"))) return rc; 
+	if (of_property_read_string(node, "sprd,sc-id", &prop)) return rc;
+	rc = !!strstr(prop, "manila");
+	return rc;
+}
+EXPORT_SYMBOL(is_manila_dts);
 
 const char *hwinfo_get_prop(const char *prop_name)
 {

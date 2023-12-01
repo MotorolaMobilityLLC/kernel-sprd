@@ -7,6 +7,7 @@
 
 extern struct kobject *hwinfo;
 
+int is_manila_dts(void);
 const char *hwinfo_get_prop(const char *prop_name);
 
 #endif

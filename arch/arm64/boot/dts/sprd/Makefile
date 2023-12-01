@@ -112,6 +112,8 @@ dtb-$(CONFIG_ARCH_SPRD) += sc9836-openphone.dtb \
 
 endif #//BSP_BUILD_DT_OVERLAY
 else
-dtb-$(CONFIG_ARCH_SPRD) := ums9620-2h10-overlay.dtbo
+dtb-$(CONFIG_ARCH_SPRD) := ums9620-2h10-overlay.dtbo ums9620-2h10_manila-overlay.dtbo
 ums9620-2h10-overlay.dtbo-base := ums9620-base.dtb
+ums9620-2h10_manila-overlay.dtbo-base := ums9620-base.dtb
+
 endif # CONFIG_DTB_ORIGINAL
