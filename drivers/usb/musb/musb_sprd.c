@@ -886,6 +886,7 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 		glue->xceiv->last_event = USB_EVENT_ID;
 	} else {
 		glue->chg_state = USB_CHG_STATE_UNDETECT;
+		glue->vbus_active = false;
 		glue->charging_mode = false;
 		glue->retry_chg_detect_count = 0;
 		glue->xceiv->last_event = USB_EVENT_NONE;
@@ -2010,15 +2011,15 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 	case DRD_STATE_HOST:
 		if (test_bit(ID, &glue->inputs)) {
 			dev_dbg(glue->dev, "id\n");
-			musb_sprd_otg_start_host(glue, 0);
 			glue->drd_state = DRD_STATE_RUNTIME_SUSPENDING;
+			musb_sprd_otg_start_host(glue, 0);
 			glue->start_host_retry_count = 0;
 			rework = true;
 		} else if (test_bit(A_RECOVER, &glue->inputs)) {
 			dev_dbg(glue->dev, "A Recover!\n");
 			clear_bit(A_RECOVER, &glue->inputs);
-			musb_sprd_otg_start_host(glue, 0);
 			glue->drd_state = DRD_STATE_RUNTIME_SUSPENDING;
+			musb_sprd_otg_start_host(glue, 0);
 			glue->start_host_retry_count = 0;
 			rework = true;
 		}
