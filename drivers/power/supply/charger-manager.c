@@ -7680,6 +7680,10 @@ static void cm_batt_works(struct work_struct *work)
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
 		last_fuel_cap = fuel_cap;
+		recharge_uv = cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV - 50000;
+		if (batt_ocV < recharge_uv) {
+			cm->desc->force_set_full = false;
+		}
 		if (fuel_cap < cm->desc->cap) {
 			if (batt_uA >= 0) {
 				fuel_cap = cm->desc->cap;
