@@ -90,6 +90,7 @@
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>;
+		spi_ports = <&swdispc_port>;
 		gsp = <&gsp>;
 	};
 
@@ -306,6 +307,14 @@
 	sprd,widevine-use-fastcall;
 
 	status = "okay";
+};
+
+&sw_dispc {
+	status = "okay";
+};
+
+&connector_spi{
+	status ="okay";
 };
 
 &iommu_dispc {
