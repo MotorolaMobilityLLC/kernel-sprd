@@ -686,6 +686,45 @@
 				};
 			};
 
+			sw_dispc: sw-dispc {
+				compatible = "sprd,sw-dpu";
+				status = "disabled";
+
+				te-gpio = <&ap_gpio 83 GPIO_ACTIVE_LOW>;
+
+				swdispc_port: port {
+					swdispc_out: endpoint {
+						remote-endpoint = <&spi_connector_in>;
+					};
+				};
+			};
+
+			connector_spi: spi-connector {
+				compatible = "sprd,spi-interface";
+				status = "disabled";
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					port@0 {
+						reg = <0>;
+						spi_connector_out: endpoint {
+							remote-endpoint = <&spi_panel_in>;
+						};
+					};
+
+					port@1 {
+						reg = <1>;
+						spi_connector_in: endpoint {
+							remote-endpoint = <&swdispc_out>;
+						};
+					};
+				};
+			};
+
 			gsp_core0: gsp@31001000 {
 				compatible = "sprd,gsp-core";
 				reg = <0 0x31001000 0 0x2000>;
@@ -1215,6 +1254,26 @@
 	clock-names = "enable", "spi", "source";
 	clocks = <&apapb_gate CLK_SPI0_EB>,
 		<&ap_clk CLK_AP_SPI0>, <&pll1 CLK_TWPLL_192M>;
+
+	spi-panel {
+		compatible = "sprd,generic-spi-panel";
+		status = "disabled";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		reg = <0x0>;
+		spi-max-frequency = <24000000>;
+		reset-gpio = <&ap_gpio 82 GPIO_ACTIVE_HIGH>;
+		cd-gpio = <&ap_gpio 92 GPIO_ACTIVE_HIGH>;
+		sprd,backlight = <&pwm_backlight>;
+
+		port {
+			reg = <1>;
+			spi_panel_in: endpoint {
+				remote-endpoint = <&spi_connector_out>;
+			};
+		};
+	};
 };
 
 &spi1 {
