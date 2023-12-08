@@ -104,6 +104,14 @@ enum cm_cp_state {
 	CM_CP_STATE_EXIT,
 };
 
+enum cm_ffc_state {
+	CM_FFC_STATE_UNKNOWN,
+	CM_FFC_STATE_CHECK_ENTRY_IBAT,
+	CM_FFC_STATE_ENTRY_FFC,
+	CM_FFC_STATE_CHECK_EXIT_IBAT,
+	CM_FFC_STATE_EXIT,
+};
+
 enum cm_charge_status {
 	CM_CHARGE_TEMP_OVERHEAT = BIT(0),
 	CM_CHARGE_TEMP_COLD = BIT(1),
@@ -437,6 +445,20 @@ struct cm_charge_pump_status {
 	struct cm_alarm_status alm;
 };
 
+#define CM_TEMP_BUFF_CNT	6
+
+struct cm_charge_ffc_status {
+	bool ffc_state_running;
+	bool is_ffc_mode;
+	int retry_ffc_detect_count;
+	int retry_normal_detect_count;
+	int ffc_state;
+	int ibat_buff[CM_TEMP_BUFF_CNT];
+	int ibat_index;
+	int ibat_sum;
+	int ibat_average;
+};
+
 struct cm_charge_current {
 	int sdp_limit;
 	int sdp_cur;
@@ -695,6 +717,7 @@ struct charger_desc {
 	u32 max_current_jeita_index[SPRD_BATTERY_JEITA_MAX];
 	struct sprd_battery_jeita_table *jeita_tab;
 	u32 jeita_tab_size;
+	int end_current;
 	int force_jeita_status;
 	bool jeita_disabled;
 	struct cm_jeita_info jeita_info;
@@ -737,6 +760,7 @@ struct charger_desc {
 	int fchg_ocv_threshold;
 
 	struct cm_charge_pump_status cp;
+	struct cm_charge_ffc_status ffc;
 	struct cm_ir_compensation ir_comp;
 
 	struct cm_charge_current cur;
@@ -807,6 +831,7 @@ struct charger_manager {
 	struct delayed_work ir_compensation_work;
 	struct delayed_work fixed_fchg_work;
 	struct delayed_work cp_work;
+	struct delayed_work ffc_work;
 	struct delayed_work charger_type_update_work;
 	int emergency_stop;
 

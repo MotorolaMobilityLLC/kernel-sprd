@@ -65,6 +65,11 @@
 #define REG05_ITC_MAX                   1024
 #define REG05_ITERM_MASK                GENMASK(3, 0)
 #define REG05_ITERM_SHIFT               0
+#define REG05_ITERM_256MA               256
+#define REG05_ITERM_448MA               448
+#define REG05_ITERM_512MA               512
+#define REG05_ITERM_579MA               579
+#define REG05_ITERM_832MA               832
 #define REG05_ITERM_BASE                64
 #define REG05_ITERM_LSB                 64
 #define REG05_ITERM_MIN                 64
@@ -553,12 +558,18 @@ static int upm6920_charger_set_termina_cur(struct upm6920_charger_info *info,
 {
     u8 reg_val;
 
-    if (curr < REG05_ITERM_MIN)
-        curr = REG05_ITERM_MIN;
-    else if (curr > REG05_ITERM_MAX)
-        curr = REG05_ITERM_MAX;
+    if (curr <= 300000)
+        curr = REG05_ITERM_256MA;
+    else if (curr <= 500000)
+        curr = REG05_ITERM_448MA;
+    else if (curr <= 550000)
+        curr = REG05_ITERM_512MA;
+    else if (curr <= 650000)
+        curr = REG05_ITERM_579MA;
+    else
+        curr = REG05_ITERM_832MA;
     
-    reg_val = (curr - REG05_ITERM_BASE) / REG05_ITERM_LSB;
+    reg_val = curr / REG05_ITERM_LSB;
 
     return upm6920_update_bits(info, UPM6920_REG_5,
                 REG05_ITERM_MASK, reg_val << REG05_ITERM_SHIFT);
@@ -657,7 +668,7 @@ static int upm6920_charger_set_otg_en(struct upm6920_charger_info *info,
 static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
 {
 	struct sprd_battery_info bat_info = {};
-	int voltage_max_microvolt, termination_cur;
+	int voltage_max_microvolt;
 	int ret;
 
 	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info);
@@ -691,8 +702,6 @@ static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
 
         voltage_max_microvolt =
             bat_info.constant_charge_voltage_max_uv / 1000;
-        termination_cur = bat_info.charge_term_current_ua / 1000;
-        info->termination_cur = termination_cur;
         sprd_battery_put_battery_info(info->psy_usb, &bat_info);
 	}
 
@@ -734,12 +743,6 @@ static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
     ret = upm6920_charger_set_termina_vol(info, voltage_max_microvolt);
     if (ret) {
         dev_err(info->dev, "set upm6920 terminal vol failed\n");
-        return ret;
-    }
-
-    ret = upm6920_charger_set_termina_cur(info, termination_cur);
-    if (ret) {
-        dev_err(info->dev, "set upm6920 terminal cur failed\n");
         return ret;
     }
 
@@ -856,15 +859,9 @@ static int upm6920_charger_start_charge(struct upm6920_charger_info *info)
 
     ret = upm6920_charger_set_limit_current(info,
                         info->last_limit_cur, false);
-    if (ret) {
+    if (ret) 
         dev_err(info->dev, "failed to set limit current\n");
         return ret;
-    }
-
-    ret = upm6920_charger_set_termina_cur(info, info->termination_cur);
-    if (ret)
-        dev_err(info->dev, "set upm6920 terminal cur failed\n");
-    return ret;
 }
 
 static void upm6920_charger_stop_charge(struct upm6920_charger_info *info, bool present)
@@ -1456,6 +1453,11 @@ static int upm6920_charger_usb_set_property(struct power_supply *psy,
 			info->actual_limit_cur = 0;
 			cancel_delayed_work_sync(&info->wdt_work);
 		}
+		break;
+    case POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT:
+        ret = upm6920_charger_set_termina_cur(info,val->intval);
+		if (ret < 0)
+			dev_err(info->dev, "failed to set terminate current\n");
 		break;
     default:
         ret = -EINVAL;

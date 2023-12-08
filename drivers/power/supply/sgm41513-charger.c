@@ -224,6 +224,25 @@ static int sgm41513_update_bits(struct sgm41513_charger_info *info, u8 reg, u8 m
 	return sgm41513_write(info, reg, v);
 }
 
+static int sgm41513_charger_set_termina_current(struct sgm41513_charger_info *info,int full_end_current){
+	u8 reg_val;
+
+	if (full_end_current <= 300000)
+		reg_val = SGM41513_ITERM_240MA;
+	else if (full_end_current <= 500000)
+		reg_val = SGM41513_ITERM_480MA;
+	else if (full_end_current <= 550000)
+		reg_val = SGM41513_ITERM_540MA;
+	else if (full_end_current <= 650000)
+		reg_val = SGM41513_ITERM_600MA;
+	else
+		reg_val = SGM41513_ITERM_780MA;
+
+	return sgm41513_update_bits(info,SGM41513_REG_03,
+				SGM41513_ITERM_MASK,
+				reg_val);
+}
+
 static u32 sgm41513_charger_get_limit_current(struct sgm41513_charger_info *info,
 					      u32 *limit_cur)
 {
@@ -1027,6 +1046,11 @@ static int sgm41513_charger_usb_set_property(struct power_supply *psy,
 			info->actual_limit_cur = 0;
 			cancel_delayed_work_sync(&info->wdt_work);
 		}
+		break;
+	case POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT:
+		ret = sgm41513_charger_set_termina_current(info,val->intval);
+		if (ret < 0)
+			dev_err(info->dev, "failed to set terminate current\n");
 		break;
 	default:
 		ret = -EINVAL;

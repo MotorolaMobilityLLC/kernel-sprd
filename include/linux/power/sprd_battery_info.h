@@ -20,6 +20,7 @@
 
 enum sprd_battery_jeita_types {
 	SPRD_BATTERY_JEITA_DCP = 0,
+	SPRD_BATTERY_JEITA_DCP_FFC,
 	SPRD_BATTERY_JEITA_SDP,
 	SPRD_BATTERY_JEITA_CDP,
 	SPRD_BATTERY_JEITA_UNKNOWN,
@@ -35,6 +36,7 @@ static const char * const sprd_battery_jeita_type_names[] = {
 	[SPRD_BATTERY_JEITA_SDP] = "sdp-jeita-temp-table",
 	[SPRD_BATTERY_JEITA_CDP] = "cdp-jeita-temp-table",
 	[SPRD_BATTERY_JEITA_DCP] = "dcp-jeita-temp-table",
+	[SPRD_BATTERY_JEITA_DCP_FFC] = "dcp-ffc-jeita-temp-table",
 	[SPRD_BATTERY_JEITA_FCHG] = "fchg-jeita-temp-table",
 	[SPRD_BATTERY_JEITA_FLASH] = "flash-jeita-temp-table",
 	[SPRD_BATTERY_JEITA_WL_BPP] = "wl-bpp-jeita-temp-table",
@@ -46,6 +48,7 @@ struct sprd_battery_jeita_table {
 	int recovery_temp;
 	int current_ua;
 	int term_volt;
+	int full_end_current;
 };
 
 struct sprd_battery_step_chg_table {
