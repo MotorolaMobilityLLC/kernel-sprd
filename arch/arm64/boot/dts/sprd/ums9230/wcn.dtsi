@@ -72,6 +72,13 @@
 					/*sipc region <maped-addr size>*/
 					reg = <0x0 0x87380000 0x0 0x00280000>;
 				};
+				/* Custom Channel Argument For Sipc-Sblock
+				 * index tx-blksize tx-blknum rx-blksize rx-blknum
+				 */
+				wcn-sblk-reset-bus-chn {
+					sprd,wcn-wifi-data0-tx = <18 64 512 896 512>;
+					sprd,wcn-wifi-data0-rx = <19 64 512 896 512>;
+				};
 
 			};
 
