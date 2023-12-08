@@ -614,6 +614,8 @@ static int sprd_battery_init_jeita_table(struct sprd_battery_info *info,
 		table[i].recovery_temp = be32_to_cpu(*list++) - 1000;
 		table[i].current_ua = be32_to_cpu(*list++);
 		table[i].term_volt = be32_to_cpu(*list++);
+		table[i].full_end_current = be32_to_cpu(*list++);
+		pr_err("unisoc: %d, %d, %d, %d, %d\n", table[i].temp, table[i].recovery_temp, table[i].current_ua, table[i].term_volt, table[i].full_end_current);
 		if (max_current_ua < table[i].current_ua) {
 			info->max_current_jeita_index[jeita_num] = i;
 			max_current_ua = table[i].current_ua;

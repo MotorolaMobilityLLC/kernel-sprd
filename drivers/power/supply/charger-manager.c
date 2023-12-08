@@ -142,6 +142,9 @@
 #define CM_CAP_CALC_BATT_WORKS_BIG_CUR_UA	3000000
 #define CM_CAP_CALC_BATT_WORKS_SOC_GAP		50
 #define CM_INIT_BOARD_TEMP			250
+#define CM_START_FFC_CAP	750
+#define CM_START_FFC_IBAT	2000000
+#define CM_EXIT_FFC_IBAT	1800000
 
 /* Google limit power transfer support */
 
@@ -1281,6 +1284,11 @@ static bool is_charging(struct charger_manager *cm)
 	if (!is_ext_pwr_online(cm))
 		return charging;
 
+	if (cm->desc->ffc.ffc_state == CM_FFC_STATE_EXIT) {
+		pr_info("unisoc:line%d: is_charging\n", __LINE__);
+		return true;
+	}
+
 	/* If at least one of the charger is charging, return yes */
 	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
 		/* 1. The charger sholuld not be DISABLED */
@@ -1419,7 +1427,7 @@ static bool is_full_charged(struct charger_manager *cm)
 					if (desc->trigger_cnt == 2)
 						adjust_fuel_cap(cm, CM_FORCE_SET_FUEL_CAP_FULL);
 					is_full = true;
-				} else {
+				} else if(uA < 200000){
 					is_full = false;
 					adjust_fuel_cap(cm, CM_FORCE_SET_FUEL_CAP_FULL);
 					if (desc->trigger_cnt == 2)
@@ -1574,12 +1582,13 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->charge_limit_cur = desc->cur.dcp_cur;
 		desc->input_limit_cur = desc->cur.dcp_limit;
 		thm_info->adapter_default_charge_vol = 5;
-		if (desc->jeita_size[SPRD_BATTERY_JEITA_DCP]) {
-			desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_DCP];
-			desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_DCP];
+		if (desc->jeita_size[SPRD_BATTERY_JEITA_DCP_FFC]) {
+			pr_info("ffc:line%d:\n", __LINE__);
+			desc->jeita_tab = desc->jeita_tab_array[SPRD_BATTERY_JEITA_DCP_FFC];
+			desc->jeita_tab_size = desc->jeita_size[SPRD_BATTERY_JEITA_DCP_FFC];
 			desc->force_jeita_status =
-				desc->max_current_jeita_index[SPRD_BATTERY_JEITA_DCP];
-		}
+				desc->max_current_jeita_index[SPRD_BATTERY_JEITA_DCP_FFC];
+		} 
 		if (desc->normal_charge_voltage_max)
 			desc->charge_voltage_max = desc->normal_charge_voltage_max;
 		if (desc->normal_charge_voltage_drop)
@@ -4379,8 +4388,10 @@ static void cm_check_charge_health(struct charger_manager *cm)
 static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_status)
 {
 	struct charger_desc *desc = cm->desc;
-	int term_volt, target_cur;
-
+	int term_volt, target_cur, full_end_current, ret;
+	union power_supply_propval val;
+	struct power_supply *psy;
+  
 	if (jeita_status > desc->jeita_tab_size)
 		jeita_status = desc->jeita_tab_size;
 
@@ -4400,6 +4411,7 @@ static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_stat
 
 	term_volt = desc->jeita_tab[jeita_status].term_volt;
 	target_cur = desc->jeita_tab[jeita_status].current_ua;
+	full_end_current = desc->jeita_tab[jeita_status].full_end_current;
 
 	if(jeita_status == 2 && vbat_now > 4250000)
 		target_cur = 1000000;
@@ -4416,8 +4428,8 @@ static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_stat
 		goto exit;
 	}
 
-	dev_info(cm->dev, "target terminate voltage = %d, target current = %d\n",
-		 term_volt, target_cur);
+	dev_info(cm->dev, "target terminate voltage = %d, target current = %d, full_end_current = %d\n",
+		 term_volt, target_cur, full_end_current);
 
 	cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
 				 SPRD_VOTE_TYPE_IBAT,
@@ -4429,6 +4441,10 @@ static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_stat
 				 SPRD_VOTE_TYPE_CCCV_ID_JEITA,
 				 SPRD_VOTE_CMD_MIN,
 				 term_volt, cm);
+	
+	psy = power_supply_get_by_name(cm->desc->psy_charger_stat[0]);
+	val.intval = full_end_current;
+	ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT, &val);
 
 exit:
 	cm->charging_status &= ~(CM_CHARGE_TEMP_OVERHEAT | CM_CHARGE_TEMP_COLD);
@@ -4593,6 +4609,83 @@ static void cm_charger_type_update_work(struct work_struct *work)
 	cm_charger_type_update_check_start(cm);
 }
 
+static void cm_get_ffc_ibat(struct cm_charge_ffc_status *ffc, int batt_uA)
+{
+	if (ffc->ibat_index >= 6)
+		ffc->ibat_index = 0;
+
+	ffc->ibat_sum += batt_uA - ffc->ibat_buff[ffc->ibat_index];
+	ffc->ibat_buff[ffc->ibat_index] = batt_uA;
+	ffc->ibat_average = ffc->ibat_sum / 6;
+	ffc->ibat_index++;
+	pr_info("ffc: %d %d %d %d %d %d\n", ffc->ibat_buff[0], ffc->ibat_buff[1], ffc->ibat_buff[2], ffc->ibat_buff[3], ffc->ibat_buff[4], ffc->ibat_buff[5]);
+	pr_info("ffc: %d\n", ffc->ibat_average);
+}
+
+static void cm_clear_ffc_ibat(struct cm_charge_ffc_status *ffc)
+{
+	int i;
+
+	if (ffc->ibat_sum != 0) {
+		for (i = 0; i < CM_TEMP_BUFF_CNT; i++)
+			ffc->ibat_buff[i] = 0;
+		ffc->ibat_sum = 0;
+	}
+}
+
+static bool cm_is_need_start_ffc_mode(struct charger_manager *cm)
+{
+	struct cm_charge_ffc_status *ffc = &cm->desc->ffc;
+	int ret = 0, batt_uA = 0;
+
+	if (cm->desc->cap < CM_START_FFC_CAP || cm->desc->cp.cp_running || cm->desc->fixed_fchg_running)
+		return false;
+
+	switch (cm->desc->charger_type) {
+	case CM_CHARGER_TYPE_FAST:
+	case CM_CHARGER_TYPE_ADAPTIVE:
+	case CM_CHARGER_TYPE_CDP:
+	case CM_CHARGER_TYPE_DCP:
+		break;
+	case CM_CHARGER_TYPE_SDP:
+	default:
+		return false;
+	}
+
+	ret = get_ibat_now_uA(cm, &batt_uA);
+	if (ret) {
+		dev_err(cm->dev, "get batt_uA error.\n");
+		return false;
+	}
+
+	cm_get_ffc_ibat(ffc, batt_uA);
+
+	if (ffc->ibat_average >= CM_START_FFC_IBAT)
+		return true;
+
+	return false;
+}
+
+static bool cm_is_need_exit_ffc_mode(struct charger_manager *cm)
+{
+	struct cm_charge_ffc_status *ffc = &cm->desc->ffc;
+	int ret = 0, batt_uA = 0;
+
+	ret = get_ibat_now_uA(cm, &batt_uA);
+	if (ret) {
+		dev_err(cm->dev, "get batt_uA error.\n");
+		return false;
+	}
+
+	cm_get_ffc_ibat(ffc, batt_uA);
+
+	if (ffc->ibat_average < CM_EXIT_FFC_IBAT)
+		return true;
+
+	return false;
+
+}
+
 /**
  * cm_get_target_status - Check current status and get next target status.
  * @cm: the Charger Manager representing the battery.
@@ -4661,6 +4754,125 @@ static int cm_get_target_status(struct charger_manager *cm)
 	return POWER_SUPPLY_STATUS_CHARGING;
 }
 
+static void cm_start_ffc_state_machine(struct charger_manager *cm, bool start)
+{
+	struct cm_charge_ffc_status *ffc = &cm->desc->ffc;
+
+	if (!ffc->ffc_state_running && start) {
+		dev_info(cm->dev, "ffc:%s, reach ffc threshold\n", __func__);
+		ffc->ffc_state_running = start;
+		ffc->ffc_state = CM_FFC_STATE_CHECK_ENTRY_IBAT;
+		schedule_delayed_work(&cm->ffc_work, 0);
+	}
+}
+
+static int cm_ffc_state_machine(struct charger_manager *cm)
+{
+	struct cm_charge_ffc_status *ffc = &cm->desc->ffc;
+
+	dev_info(cm->dev, "%s, state %d\n", __func__, ffc->ffc_state);
+
+	switch (ffc->ffc_state) {
+	case CM_FFC_STATE_CHECK_ENTRY_IBAT:
+		if (ffc->retry_ffc_detect_count >= 6) {
+			ffc->retry_ffc_detect_count = 0;
+			ffc->ffc_state = CM_FFC_STATE_EXIT;
+			pr_info("ffc:line%d:\n", __LINE__);
+			fallthrough;
+		} else if (cm_is_need_start_ffc_mode(cm)) {
+			ffc->retry_ffc_detect_count = 0;
+			ffc->ffc_state = CM_FFC_STATE_ENTRY_FFC;
+			pr_info("ffc:line%d:\n", __LINE__);
+			fallthrough;
+		} else {
+			pr_info("ffc:line%d:\n", __LINE__);
+			ffc->retry_ffc_detect_count++;
+			schedule_delayed_work(&cm->ffc_work, HZ * 10);
+			break;
+		}
+	case CM_FFC_STATE_ENTRY_FFC:
+		pr_info("ffc:line%d:\n", __LINE__);
+		ffc->is_ffc_mode = true;
+		cm_update_charge_info(cm, CM_CHARGE_INFO_JEITA_LIMIT);
+		ffc->ffc_state = CM_FFC_STATE_CHECK_EXIT_IBAT;
+		schedule_delayed_work(&cm->ffc_work, HZ * 10);
+		break;
+	case CM_FFC_STATE_CHECK_EXIT_IBAT:
+		if (cm_is_need_exit_ffc_mode(cm)) {
+			pr_info("ffc:line%d:\n", __LINE__);
+			ffc->is_ffc_mode = false;
+			cm_update_charge_info(cm, CM_CHARGE_INFO_JEITA_LIMIT);
+			ffc->ffc_state = CM_FFC_STATE_EXIT;
+			mod_delayed_work(cm_wq, &cm_monitor_work, 0);
+			schedule_delayed_work(&cm->ffc_work, HZ * 5);
+		} else {
+			pr_info("ffc:line%d:\n", __LINE__);
+			schedule_delayed_work(&cm->ffc_work, HZ * 10);
+		}
+		break;
+	case CM_FFC_STATE_EXIT:
+		pr_info("ffc:line%d:\n", __LINE__);
+		ffc->ffc_state_running = false;
+		ffc->ffc_state = CM_FFC_STATE_UNKNOWN;
+		cm_clear_ffc_ibat(ffc);
+		mod_delayed_work(cm_wq, &cm_monitor_work, 0);
+		break;
+	case CM_FFC_STATE_UNKNOWN:
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+static void cm_ffc_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct charger_manager *cm = container_of(dwork,
+						  struct charger_manager,
+						  ffc_work);
+
+	if (cm->desc->ffc.ffc_state_running)
+		cm_ffc_state_machine(cm);
+}
+
+static bool cm_is_need_start_ffc_state_machine(struct charger_manager *cm)
+{
+	int ret = 0, batt_uA = 0;
+
+	if (cm->desc->cap < CM_START_FFC_CAP || cm->desc->cp.cp_running || cm->desc->fixed_fchg_running)
+		return false;
+
+	switch (cm->desc->charger_type) {
+		case CM_CHARGER_TYPE_FAST:
+		case CM_CHARGER_TYPE_ADAPTIVE:
+		case CM_CHARGER_TYPE_CDP:
+		case CM_CHARGER_TYPE_DCP:
+			break;
+	case CM_CHARGER_TYPE_SDP:
+	default:
+		return false;
+	}
+
+	ret = get_ibat_now_uA(cm, &batt_uA);
+	if (ret) {
+		dev_err(cm->dev, "get batt_uA error.\n");
+		return false;
+	}
+	if (batt_uA >= 2000000)
+		return true;
+
+	return false;
+}
+
+static void ffc_info_init(struct cm_charge_ffc_status *ffc)
+{
+	pr_info("ffc:ffc_info_init:line%d:\n", __LINE__);
+	ffc->ffc_state_running = false;
+	ffc->ffc_state = CM_FFC_STATE_UNKNOWN;
+	ffc->is_ffc_mode = false;
+}
+
 /**
  * _cm_monitor - Monitor the temperature and return true for exceptions.
  * @cm: the Charger Manager representing the battery.
@@ -4686,18 +4898,25 @@ static bool _cm_monitor(struct charger_manager *cm)
 	if (target == POWER_SUPPLY_STATUS_CHARGING) {
 		cm->emergency_stop = 0;
 		cm->charging_status = 0;
-		try_charger_enable(cm, true);
+		if (cm->desc->ffc.ffc_state_running && cm->desc->ffc.ffc_state == CM_FFC_STATE_EXIT) {
+			pr_info("unisoc:_cm_monitor:line%d:\n", __LINE__);
+			try_charger_enable(cm, false);
+		} else {
+			try_charger_enable(cm, true);
 
-		if (!cm->desc->cp.cp_running && !cm_check_primary_charger_enabled(cm)
-		    && !cm->desc->force_set_full) {
-			dev_info(cm->dev, "%s, primary charger does not enable,enable it\n", __func__);
-			cm_primary_charger_enable(cm, true);
+			if (!cm->desc->cp.cp_running && !cm_check_primary_charger_enabled(cm)
+				&& !cm->desc->force_set_full) {
+				dev_info(cm->dev, "%s, primary charger does not enable,enable it\n", __func__);
+				cm_primary_charger_enable(cm, true);
+			}
+
+			if (cm_is_need_start_cp(cm))
+				cm_start_cp_state_machine(cm, true);
+			else if (!cm->desc->cp.cp_running && cm_is_need_start_fixed_fchg(cm))
+				cm_start_fixed_fchg(cm, true);
+			else if (!cm->desc->ffc.ffc_state_running && cm_is_need_start_ffc_state_machine(cm))
+				cm_start_ffc_state_machine(cm, true);
 		}
-
-		if (cm_is_need_start_cp(cm))
-			cm_start_cp_state_machine(cm, true);
-		else if (!cm->desc->cp.cp_running && cm_is_need_start_fixed_fchg(cm))
-			cm_start_fixed_fchg(cm, true);
 	} else {
 		try_charger_enable(cm, false);
 	}
@@ -5068,6 +5287,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm_set_charger_present(cm, false);
 		cancel_delayed_work_sync(&cm_monitor_work);
 		cancel_delayed_work_sync(&cm->cp_work);
+		cancel_delayed_work_sync(&cm->ffc_work);
 		cancel_delayed_work_sync(&cm->charger_type_update_work);
 		_cm_monitor(cm);
 
@@ -5090,7 +5310,8 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->charging_status = 0;
 		cm->desc->jeita_tab_size = 0;
 		jeita_info_init(&cm->desc->jeita_info);
-
+		cm_clear_ffc_ibat(&cm->desc->ffc);
+		ffc_info_init(&cm->desc->ffc);
 		cm->desc->thm_info.thm_adjust_cur = -EINVAL;
 		cm->desc->thm_info.thm_pwr = 0;
 		cm->desc->thm_info.adapter_default_charge_vol = 5;
@@ -8175,6 +8396,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&cm->cap_update_work, cm_batt_works);
 	INIT_DELAYED_WORK(&cm->fixed_fchg_work, cm_fixed_fchg_work);
 	INIT_DELAYED_WORK(&cm->cp_work, cm_cp_work);
+	INIT_DELAYED_WORK(&cm->ffc_work, cm_ffc_work);
 	INIT_DELAYED_WORK(&cm->ir_compensation_work, cm_ir_compensation_works);
 	INIT_DELAYED_WORK(&cm->charger_type_update_work, cm_charger_type_update_work);
 
