@@ -101,7 +101,6 @@ struct sprd_glue {
 	int		usb_data_enabled;
 	enum usb_dr_mode		last_mode;
 	bool		use_pdhub_c2c;
-	bool		support_remotewakeup;
 };
 
 static int boot_charging;

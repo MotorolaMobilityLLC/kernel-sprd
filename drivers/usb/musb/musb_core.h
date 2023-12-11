@@ -436,7 +436,6 @@ struct musb {
 #endif
 	bool			restore_complete;
 	struct	musb_host_ops	hops;
-	bool		support_remotewakeup;
 };
 
 /* This must be included after struct musb is defined */
