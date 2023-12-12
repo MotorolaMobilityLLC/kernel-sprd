@@ -503,9 +503,15 @@ config SPRD_DEDICATE_THERMAL
 
 config SPRD_SHELL_THERMAL
 	tristate "sprd shell thermal"
-	depends on THERMAL && SPRD_THERMAL
+	depends on THERMAL
 	help
 	  this driver belongs to thermal module, We use it to monitor virtua shell's temperature
+
+config SPRD_SKIN_THERMAL
+	tristate "sprd virt thermal"
+	depends on THERMAL
+	help
+	  this driver belongs to thermal module, We use it to get max skin temp
 
 config SC27XX_TSENSOR_THERMAL
 	tristate "Spreadtrum SC27xx Tsensor Thermal Support"
