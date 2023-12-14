@@ -51,6 +51,7 @@
 #define PROC_RW_PERMS 0666
 #define PROC_RO_PERMS 0444
 
+#define FN_NUM		(8)
 #define DMC_DUMP_OFFSET 0x480
 #define PHY_DUMP_OFFSET 0x640
 #define INFO_LEN_MAX 128
@@ -69,7 +70,7 @@ struct pub_monitor_dbg {
 	u32 sref_time;		/* clk 128M */
 	u32 light_time;		/* clk 6.5M */
 	u32 st_ls_cnt;
-	u32 fx_time[8];
+	u32 fx_time[FN_NUM];
 	u32 dfs_cnt;
 };
 
@@ -160,6 +161,7 @@ static char *g_dmc_reg_dump;
 static int sprd_ddr_size_show(struct seq_file *m, void *v)
 {
 	seq_printf(m, "%llu\n", (long long)(drv_data.size / 1024 / 1024));
+
 	return 0;
 }
 
@@ -191,13 +193,13 @@ static int sprd_ddr_info_show(struct seq_file *m, void *v)
 	seq_printf(m, "CS_NUM:%d\n", cs_num);
 
 	for (i = 0; i < cs_num; i++) {
-		seq_printf(m,
-			   "CS%d MR Value: MR5=0x%x,MR6=0x%x, MR7=0x%x,MR8=0x%x\n",
+		seq_printf(m, "CS%d MR Value: MR5=0x%x,MR6=0x%x, MR7=0x%x,MR8=0x%x\n",
 			   i, (drv_data.mr_val[i] & 0xff),
 			   ((drv_data.mr_val[i] >> 8) & 0xff),
 			   ((drv_data.mr_val[i] >> 16) & 0xff),
 			   ((drv_data.mr_val[i] >> 24) & 0xff));
 	}
+
 	return 0;
 }
 
@@ -250,8 +252,8 @@ static void sprd_pub_monitor_reg_get(void)
 	u32 i;
 
 	for (i = 0; i < sizeof(drv_data.reg_val) / sizeof(u32); i++) {
-		*ptr = readl_relaxed(drv_data.mon_base
-			+ PUB_STATUS_MON_CTRL_OFFSET + i * 4);
+		*ptr = readl_relaxed(drv_data.mon_base +
+				     PUB_STATUS_MON_CTRL_OFFSET + i * 4);
 		ptr++;
 	}
 }
@@ -260,6 +262,7 @@ static int sprd_pub_monitor_enable(int enable)
 {
 	if (!drv_data.mon_base)
 		return -ENOMEM;
+
 	if (enable) {
 		writel_relaxed(0x307,
 			       drv_data.mon_base + PUB_STATUS_MON_CTRL_OFFSET);
@@ -267,6 +270,7 @@ static int sprd_pub_monitor_enable(int enable)
 		writel_relaxed(0x0,
 			       drv_data.mon_base + PUB_STATUS_MON_CTRL_OFFSET);
 	}
+
 	return 0;
 }
 
@@ -274,34 +278,38 @@ static int sprd_pub_monitor_status_show(struct seq_file *m, void *v)
 {
 	u32 i;
 	u64 idle_time, write_time, read_time, sref_time, light_time;
-	u64 fx_time[8], total_tm, sts_tm;
+	u64 fx_time[FN_NUM], total_tm, sts_tm;
 	u32 light_cnt, sref_cnt;
+	int ret;
 
 	if (!drv_data.pub_mon_enabled)
 		return -ENODATA;
 
-	if (sprd_pub_monitor_enable(0))
-		return -ENOMEM;
+	ret = sprd_pub_monitor_enable(0);
+	if (ret) {
+		pr_err("pub_monitor disable fail\n");
+		return ret;
+	}
 
 	sprd_pub_monitor_reg_get();
 
 	idle_time = div64_u64((u64)drv_data.reg_val.idle_time * 1000ULL,
 			      PUB_MONITOR_CLK);
 	write_time = div64_u64((u64)drv_data.reg_val.write_time * 1000ULL,
-			      PUB_MONITOR_CLK);
+			       PUB_MONITOR_CLK);
 	read_time = div64_u64((u64)drv_data.reg_val.read_time * 1000ULL,
 			      PUB_MONITOR_CLK);
 	sref_time = div64_u64((u64)drv_data.reg_val.sref_time * 1000ULL,
 			      PUB_MONITOR_CLK);
 	light_time = div64_u64((u64)drv_data.reg_val.light_time * 10000ULL,
-			      PUB_DFS_MONITOR_CLK);
+			       PUB_DFS_MONITOR_CLK);
 	light_cnt = drv_data.reg_val.st_ls_cnt & 0xffff;
 	sref_cnt = (drv_data.reg_val.st_ls_cnt >> 16) & 0xffff;
 	sts_tm = idle_time + write_time + read_time + sref_time + light_time;
 
-	for (i = 0, total_tm = 0; i < 8; i++) {
+	for (i = 0, total_tm = 0; i < FN_NUM; i++) {
 		fx_time[i] = div64_u64((u64)drv_data.reg_val.fx_time[i] * 10000ULL,
-					PUB_DFS_MONITOR_CLK);
+				       PUB_DFS_MONITOR_CLK);
 		total_tm += fx_time[i];
 	}
 
@@ -313,19 +321,19 @@ static int sprd_pub_monitor_status_show(struct seq_file *m, void *v)
 	seq_printf(m, "light_cnt: %d\n", light_cnt);
 	seq_printf(m, "sref_cnt: %d\n", sref_cnt);
 
-	for (i = 0; i < 8; i++)
+	for (i = 0; i < FN_NUM; i++)
 		seq_printf(m, "F%d time: %llu ns\n", i, fx_time[i]);
 	seq_printf(m, "dfs_cnt: %d\n", (drv_data.reg_val.dfs_cnt & 0x3ff));
 	seq_printf(m, "total_time:%lldns, sts_time:%lldns\n", total_tm, sts_tm);
 
-	if (sprd_pub_monitor_enable(1))
-		return -ENOMEM;
+	ret = sprd_pub_monitor_enable(1);/*re-enable for obtain next status*/
+	if (ret)
+		pr_err("pub_monitor re-enable fail\n");
 
-	return 0;
+	return ret;
 }
 
-static int sprd_pub_monitor_status_open(struct inode *inodep,
-					struct file *filep)
+static int sprd_pub_monitor_status_open(struct inode *inodep, struct file *filep)
 {
 	return single_open(filep, sprd_pub_monitor_status_show, NULL);
 }
@@ -344,8 +352,7 @@ static int sprd_pub_monitor_enable_show(struct seq_file *m, void *v)
 	return 0;
 }
 
-static int sprd_pub_monitor_enable_open(struct inode *inodep,
-					struct file *filep)
+static int sprd_pub_monitor_enable_open(struct inode *inodep, struct file *filep)
 {
 	return single_open(filep, sprd_pub_monitor_enable_show, NULL);
 }
@@ -364,17 +371,15 @@ static ssize_t sprd_pub_monitor_enable_write(struct file *filep,
 		return -EFAULT;
 
 	if (buf_tmp[0] == '1' || buf_tmp[0] == 1) {
-		reg = readl_relaxed(drv_data.mon_base
-			+ DMC_DDR_CLK_CTRL_OFFSET);
-		if (!(reg & 1<<PUB_CLK_DMC_REF_EB)
-		    || !(reg & 1<<PUB_CLK_DFS_EB)) {
-			if (!(reg & 1<<PUB_CLK_DMC_REF_EB))
-				drv_data.reg_clk_ctrl |= 1<<PUB_CLK_DMC_REF_EB;
-			if (!(reg & 1<<PUB_CLK_DFS_EB))
-				drv_data.reg_clk_ctrl |= 1<<PUB_CLK_DFS_EB;
+		reg = readl_relaxed(drv_data.mon_base + DMC_DDR_CLK_CTRL_OFFSET);
+		if (!(reg & 1 << PUB_CLK_DMC_REF_EB) ||
+		    !(reg & 1 << PUB_CLK_DFS_EB)) {
+			if (!(reg & 1 << PUB_CLK_DMC_REF_EB))
+				drv_data.reg_clk_ctrl |= 1 << PUB_CLK_DMC_REF_EB;
+			if (!(reg & 1 << PUB_CLK_DFS_EB))
+				drv_data.reg_clk_ctrl |= 1 << PUB_CLK_DFS_EB;
 			reg = reg | drv_data.reg_clk_ctrl;
-			writel_relaxed(reg, drv_data.mon_base
-				+ DMC_DDR_CLK_CTRL_OFFSET);
+			writel_relaxed(reg, drv_data.mon_base + DMC_DDR_CLK_CTRL_OFFSET);
 		}
 		drv_data.pub_mon_enabled = 1;
 		ret = sprd_pub_monitor_enable(0);
@@ -385,11 +390,9 @@ static ssize_t sprd_pub_monitor_enable_write(struct file *filep,
 			return ret;
 	} else if (buf_tmp[0] == '0' || buf_tmp[0] == 0) {
 		if (drv_data.reg_clk_ctrl) {
-			reg = readl_relaxed(drv_data.mon_base
-					+ DMC_DDR_CLK_CTRL_OFFSET);
+			reg = readl_relaxed(drv_data.mon_base + DMC_DDR_CLK_CTRL_OFFSET);
 			reg = reg & ~(drv_data.reg_clk_ctrl);
-			writel_relaxed(reg, drv_data.mon_base
-					+ DMC_DDR_CLK_CTRL_OFFSET);
+			writel_relaxed(reg, drv_data.mon_base + DMC_DDR_CLK_CTRL_OFFSET);
 			drv_data.reg_clk_ctrl = 0;
 		}
 		drv_data.pub_mon_enabled = 0;
@@ -399,6 +402,7 @@ static ssize_t sprd_pub_monitor_enable_write(struct file *filep,
 	} else {
 		return -EINVAL;
 	}
+
 	return len;
 }
 
@@ -442,7 +446,8 @@ static int sprd_pub_monitor_proc_create(struct dmc_drv_data *pdrv_data)
 
 #endif
 
-static void sprd_dmc_dump_reg(void __iomem *base, u64 phy_addr, u32 offset, u32 len, ssize_t *count)
+static void sprd_dmc_dump_reg(void __iomem *base, u64 phy_addr,
+			      u32 offset, u32 len, ssize_t *count)
 {
 	u32 reg_val;
 	void __iomem *address;
@@ -466,7 +471,7 @@ static void sprd_dmc_dump_reg(void __iomem *base, u64 phy_addr, u32 offset, u32 
 }
 
 static int sprd_dmc_panic_handler(struct notifier_block *nb,
-				 unsigned long action, void *data)
+				  unsigned long action, void *data)
 {
 	ssize_t count = 0;
 	int i = 0;
@@ -521,7 +526,8 @@ static void sprd_dmc_register_debug(struct device *dev)
 	}
 }
 
-static int sprd_dmc_register_debug_init(const struct dmc_data *pdata, struct platform_device *pdev)
+static int sprd_dmc_register_debug_init(const struct dmc_data *pdata,
+					struct platform_device *pdev)
 {
 	struct resource *res = NULL;
 	u32 i, len = 0;
@@ -577,20 +583,22 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 		return -EINVAL;
 	}
 	if (pdata->proc_res != INVALID_RES_IDX) {
-		res = platform_get_resource(pdev, IORESOURCE_MEM,
-			pdata->proc_res);
+		res = platform_get_resource(pdev, IORESOURCE_MEM, pdata->proc_res);
 		if (!res)
 			return -ENODEV;
+
 		io_addr = devm_ioremap_resource(&pdev->dev, res);
 		if (IS_ERR(io_addr))
 			return (int)PTR_ERR(io_addr);
-		drv_data.size = readl_relaxed(io_addr + pdata->size_l_offset)
-		  + ((u64) readl_relaxed(io_addr + pdata->size_h_offset) << 32);
+
+		drv_data.size = readl_relaxed(io_addr + pdata->size_l_offset) +
+			((u64) readl_relaxed(io_addr + pdata->size_h_offset) << 32);
 		drv_data.type = readl_relaxed(io_addr + pdata->type_offset);
+
 		for (i = 0; i < DDR_MAX_SUPPORT_CS_NUM; i++)
-			drv_data.mr_val[i] =
-		    readl_relaxed(io_addr + pdata->mr_offset[i]);
+			drv_data.mr_val[i] = readl_relaxed(io_addr + pdata->mr_offset[i]);
 		iounmap(io_addr);
+
 #ifdef CONFIG_PROC_FS
 		result = sprd_ddr_proc_create(&drv_data);
 		if (result)
@@ -599,17 +607,18 @@ static int sprd_dmc_probe(struct platform_device *pdev)
 	}
 
 	if (pdata->mon_res != INVALID_RES_IDX) {
-		res = platform_get_resource(pdev, IORESOURCE_MEM,
-			pdata->mon_res);
+		res = platform_get_resource(pdev, IORESOURCE_MEM, pdata->mon_res);
 		if (!res) {
 			result = -ENODEV;
 			goto free_proc_create;
 		}
+
 		drv_data.mon_base = devm_ioremap_resource(&pdev->dev, res);
 		if (IS_ERR(drv_data.mon_base)) {
 			result = (int)PTR_ERR(drv_data.mon_base);
 			goto free_proc_create;
 		}
+
 #ifdef CONFIG_PROC_FS
 		result = sprd_pub_monitor_proc_create(&drv_data);
 		if (result)
