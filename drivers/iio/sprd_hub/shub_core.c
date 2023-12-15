@@ -33,12 +33,14 @@
 #include <linux/uaccess.h>
 #include <uapi/linux/sched/types.h>
 #include <linux/reboot.h>
+#include <linux/gpio.h>
 
 #include "shub_common.h"
 #include "shub_core.h"
 #include "shub_opcode.h"
 #include "shub_protocol.h"
 
+#define PL_ELDO_EN 242
 #define MAX_SENSOR_HANDLE 200
 static u8 sensor_status[MAX_SENSOR_HANDLE];
 
@@ -1345,6 +1347,7 @@ static int shub_probe(struct platform_device *pdev)
 	struct shub_data *mcu;
 	struct iio_dev *indio_dev;
 	int error;
+	int ret = -1;
 	indio_dev = iio_device_alloc(&pdev->dev, sizeof(*mcu));
 	if (!indio_dev) {
 		dev_err(&pdev->dev, " iio_device_alloc failed\n");
@@ -1440,6 +1443,23 @@ static int shub_probe(struct platform_device *pdev)
 	register_pm_notifier(&mcu->early_suspend);
 	mcu->shub_reboot_notifier.notifier_call = shub_reboot_notifier_fn;
 	register_reboot_notifier(&mcu->shub_reboot_notifier);
+
+        ret = gpio_is_valid(PL_ELDO_EN);
+        if (!ret) {
+                dev_err(&pdev->dev, "%s: Invalid gpio: %d\n", __func__, PL_ELDO_EN);
+        }
+        ret = gpio_request(PL_ELDO_EN, "pl_eldo");
+        switch (ret) {
+        case -EBUSY:
+                dev_err(&pdev->dev, "%s: GPIO %d is already requested\n", __func__, PL_ELDO_EN);
+                break;
+        case 0:
+                break;
+        default:
+                dev_err(&pdev->dev, "%s: Failed to request GPIO %d, ret=%d\n", __func__, PL_ELDO_EN, ret);
+        }
+        ret = gpio_direction_output(PL_ELDO_EN, 1);
+        dev_err(&pdev->dev, "%s: set ret=%d\n", __func__, ret);
 
 	return 0;
 
