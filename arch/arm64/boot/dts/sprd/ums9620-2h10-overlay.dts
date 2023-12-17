@@ -593,10 +593,14 @@
         usb_cable: usb_cable {
                 compatible = "sprd,usb_cable_eint";
                 interrupt-parent = <&ap_gpio>;
-                interrupts = <168 IRQ_TYPE_LEVEL_LOW>,
-                                <169 IRQ_TYPE_LEVEL_LOW>;
-                usbcable-gpio = <168>;
-                usbcable-gpio1 = <169>;
+                interrupts = <188 IRQ_TYPE_LEVEL_LOW>,
+				<226 IRQ_TYPE_LEVEL_LOW>,
+				<227 IRQ_TYPE_LEVEL_LOW>,
+                                <228 IRQ_TYPE_LEVEL_LOW>;
+                usbcable-gpio = <188>;
+                usbcable-gpio1 = <226>;
+		usbcable-gpio2 = <227>;
+                usbcable-gpio3 = <228>;
                 debounce = <256000>;
                 status = "okay";
         };
