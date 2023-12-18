@@ -149,6 +149,11 @@
 		memory-region = <&fd_reserved>;
 	};
 
+	protected-reserved {
+		label = "protected";
+		memory-region = <&protected_reserved>;
+	};
+
 };
 
 &pin_controller {

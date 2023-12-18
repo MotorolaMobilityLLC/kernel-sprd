@@ -20,6 +20,12 @@
  */
 
 &reserved_memory {
+
+	/*Increase support for protected_heap*/
+	protected_reserved: protected-mem@80003000 {
+		reg = <0x0 0x80003000 0x0 0x00002000>;
+	};
+
 	/* Encrypt and decrypt widevine video */
 	oemcrypto_reserved: oemcrypto@b4100000 {
 		reg = <0x0 0xb4100000 0x0 0x01100000>;
