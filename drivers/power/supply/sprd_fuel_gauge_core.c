@@ -76,7 +76,7 @@
 #define SPRD_FGU_CAPACITY_TRACK_15S			15
 #define SPRD_FGU_CAPACITY_TRACK_100S			100
 #define SPRD_FGU_WORK_MS				msecs_to_jiffies(15000)
-#define SPRD_FGU_PROBE_TIMEOUT				msecs_to_jiffies(3000)
+#define SPRD_FGU_PROBE_TIMEOUT				msecs_to_jiffies(500)
 /* unuse cap */
 #define SPRD_FGU_RESIST_ALG_REIST_CNT			40
 #define SPRD_FGU_RESIST_ALG_OCV_GAP_UV			20000
@@ -1883,6 +1883,11 @@ static int sprd_fgu_get_property(struct power_supply *psy,
 	}
 	fgu_info = data->fgu_info;
 
+	if (unlikely(!psy->initialized && atomic_read(&psy->use_cnt) > 0)) {
+		dev_err(data->dev, "%s psy is not ready\n", __func__);
+		return -ENODEV;
+	}
+
 	if (!sprd_fgu_probe_is_ready(data)) {
 		dev_err(data->dev, "%s wait probe timeout\n", __func__);
 		return -EINVAL;
@@ -2040,6 +2045,11 @@ static int sprd_fgu_set_property(struct power_supply *psy,
 		return -EINVAL;
 	}
 	fgu_info = data->fgu_info;
+
+	if (unlikely(!psy->initialized && atomic_read(&psy->use_cnt) > 0)) {
+		dev_err(data->dev, "%s psy is not ready\n", __func__);
+		return -ENODEV;
+	}
 
 	if (!sprd_fgu_probe_is_ready(data)) {
 		dev_err(data->dev, "%s wait probe timeout\n", __func__);

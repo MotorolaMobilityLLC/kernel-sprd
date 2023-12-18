@@ -8,6 +8,7 @@
  *	    Sebastian Andrzej Siewior <bigeasy@linutronix.de>
  */
 
+#include <linux/iopoll.h>
 #include <linux/clk.h>
 #include <linux/version.h>
 #include <linux/module.h>
@@ -671,16 +672,13 @@ static int dwc3_phy_setup(struct dwc3 *dwc)
 	 * will be '0' when the core is reset. Application needs to set it
 	 * to '1' after the core initialization is completed.
 	 */
-	if (!DWC3_VER_IS_WITHIN(DWC3, ANY, 194A))
-		reg |= DWC3_GUSB3PIPECTL_SUSPHY;
+	reg |= DWC3_GUSB3PIPECTL_SUSPHY;
 
 	/*
 	 * For DRD controllers, GUSB3PIPECTL.SUSPENDENABLE must be cleared after
 	 * power-on reset, and it can be set after core initialization, which is
 	 * after device soft-reset during initialization.
 	 */
-	if (hw_mode == DWC3_GHWPARAMS0_MODE_DRD)
-		reg &= ~DWC3_GUSB3PIPECTL_SUSPHY;
 
 	if (dwc->u2ss_inp3_quirk)
 		reg |= DWC3_GUSB3PIPECTL_U2SSINP3OK;
@@ -761,16 +759,13 @@ static int dwc3_phy_setup(struct dwc3 *dwc)
 	 * be '0' when the core is reset. Application needs to set it to
 	 * '1' after the core initialization is completed.
 	 */
-	if (!DWC3_VER_IS_WITHIN(DWC3, ANY, 194A))
-		reg |= DWC3_GUSB2PHYCFG_SUSPHY;
+	reg |= DWC3_GUSB2PHYCFG_SUSPHY;
 
 	/*
 	 * For DRD controllers, GUSB2PHYCFG.SUSPHY must be cleared after
 	 * power-on reset, and it can be set after core initialization, which is
 	 * after device soft-reset during initialization.
 	 */
-	if (hw_mode == DWC3_GHWPARAMS0_MODE_DRD)
-		reg &= ~DWC3_GUSB2PHYCFG_SUSPHY;
 
 	if (dwc->dis_u2_susphy_quirk)
 		reg &= ~DWC3_GUSB2PHYCFG_SUSPHY;
@@ -827,7 +822,7 @@ static bool dwc3_core_is_valid(struct dwc3 *dwc)
 
 static void dwc3_core_setup_global_control(struct dwc3 *dwc)
 {
-//	u32 hwparams4 = dwc->hwparams.hwparams4;
+	u32 hwparams4 = dwc->hwparams.hwparams4;
 	u32 reg;
 
 	reg = dwc3_readl(dwc->regs, DWC3_GCTL);
@@ -854,7 +849,7 @@ static void dwc3_core_setup_global_control(struct dwc3 *dwc)
 		else
 			reg &= ~DWC3_GCTL_DSBLCLKGTNG;
 		break;
-#ifdef SUPPORT_HIB
+
 	case DWC3_GHWPARAMS1_EN_PWROPT_HIB:
 		/* enable hibernation here */
 		dwc->nr_scratch = DWC3_GHWPARAMS4_HIBER_SCRATCHBUFS(hwparams4);
@@ -864,8 +859,9 @@ static void dwc3_core_setup_global_control(struct dwc3 *dwc)
 		 * will work. Device-mode hibernation is not yet implemented.
 		 */
 		reg |= DWC3_GCTL_GBLHIBERNATIONEN;
+		reg |= DWC3_GCTL_DSBLCLKGTNG;
 		break;
-#endif
+
 	default:
 		/* nothing */
 		break;
@@ -1059,21 +1055,6 @@ static int dwc3_core_init(struct dwc3 *dwc)
 	ret = dwc3_core_soft_reset(dwc);
 	if (ret)
 		goto err1;
-
-	if (hw_mode == DWC3_GHWPARAMS0_MODE_DRD &&
-	    !DWC3_VER_IS_WITHIN(DWC3, ANY, 194A)) {
-		if (!dwc->dis_u3_susphy_quirk) {
-			reg = dwc3_readl(dwc->regs, DWC3_GUSB3PIPECTL(0));
-			reg |= DWC3_GUSB3PIPECTL_SUSPHY;
-			dwc3_writel(dwc->regs, DWC3_GUSB3PIPECTL(0), reg);
-		}
-
-		if (!dwc->dis_u2_susphy_quirk) {
-			reg = dwc3_readl(dwc->regs, DWC3_GUSB2PHYCFG(0));
-			reg |= DWC3_GUSB2PHYCFG_SUSPHY;
-			dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), reg);
-		}
-	}
 
 	dwc3_core_setup_global_control(dwc);
 	dwc3_core_num_eps(dwc);
@@ -1503,6 +1484,9 @@ static void dwc3_get_properties(struct dwc3 *dwc)
 	dwc->dis_metastability_quirk = device_property_read_bool(dev,
 				"snps,dis_metastability_quirk");
 
+	dwc->has_hibernation = device_property_read_bool(dev,
+				"snps,has_hibernation");
+
 	dwc->dis_split_quirk = device_property_read_bool(dev,
 				"snps,dis-split-quirk");
 
@@ -1870,8 +1854,9 @@ static int dwc3_suspend_common(struct dwc3 *dwc, pm_message_t msg)
 		dwc3_core_exit(dwc);
 		break;
 	case DWC3_GCTL_PRTCAP_HOST:
+		/* do nothing on suspend. */
 		if (!PMSG_IS_AUTO(msg)) {
-			dwc3_core_exit(dwc);
+			/* dwc3_core_exit(dwc); */
 			break;
 		}
 
@@ -1931,7 +1916,8 @@ static int dwc3_resume_common(struct dwc3 *dwc, pm_message_t msg)
 		spin_unlock_irqrestore(&dwc->lock, flags);
 		break;
 	case DWC3_GCTL_PRTCAP_HOST:
-		if (!PMSG_IS_AUTO(msg)) {
+		/* do every thing on runtime. */
+		if (PMSG_IS_AUTO(msg)) {
 			ret = dwc3_core_init_for_resume(dwc);
 			if (ret)
 				return ret;
@@ -1948,8 +1934,8 @@ static int dwc3_resume_common(struct dwc3 *dwc, pm_message_t msg)
 
 		dwc3_writel(dwc->regs, DWC3_GUSB2PHYCFG(0), reg);
 
-		phy_pm_runtime_get_sync(dwc->usb2_generic_phy);
-		phy_pm_runtime_get_sync(dwc->usb3_generic_phy);
+		/* phy_pm_runtime_get_sync(dwc->usb2_generic_phy); */
+		/* phy_pm_runtime_get_sync(dwc->usb3_generic_phy); */
 		break;
 	case DWC3_GCTL_PRTCAP_OTG:
 		/* nothing to do on runtime_resume */
@@ -2076,11 +2062,6 @@ static int dwc3_suspend(struct device *dev)
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
 
-	if (pm_runtime_enabled(dev)) {
-		dev_info(dev, "pm_runtime_enabled when suspend\n");
-		return 0;
-	}
-
 	ret = dwc3_suspend_common(dwc, PMSG_SUSPEND);
 	if (ret)
 		return ret;
@@ -2094,11 +2075,6 @@ static int dwc3_resume(struct device *dev)
 {
 	struct dwc3	*dwc = dev_get_drvdata(dev);
 	int		ret;
-
-	if (pm_runtime_enabled(dev)) {
-		dev_info(dev, " resume pm_runtime_enabled when resume\n");
-		return 0;
-	}
 
 	pinctrl_pm_select_default_state(dev);
 

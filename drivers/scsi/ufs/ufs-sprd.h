@@ -71,11 +71,14 @@ struct ufs_perf_s {
 	unsigned long unmap_cmd_nums;
 	unsigned long wb_avail_buf;
 	unsigned long wb_cur_buf;
+	unsigned long wb_lifetimeest;
 	unsigned long b_allocation_unit_size;
 	unsigned long b_segment_size;
 	struct work_struct wb_size_work;
 	unsigned long r_d2c[UFS_PERF_ARRAY_SIZE];
 	unsigned long w_d2c[UFS_PERF_ARRAY_SIZE];
+	unsigned long h8_enter2exit[UFS_PERF_ARRAY_SIZE];
+	ktime_t h8_enter_compl_time_stamp;
 };
 
 /*

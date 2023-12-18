@@ -139,6 +139,8 @@
 				coeff-offset = <4000>;
 				temp-const = <837>;
 				const-offset = <4000>;
+				temp-diff = <350 250 300>;
+				virt-temp-diff = <200>;
 			};
 
 			sprd-uid {
@@ -456,12 +458,6 @@
 &lcd_g40396_truly_mipi_fhd {
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
-
-	sprd,phy-bit-clock = <1106000>;
-	sprd,dpi-clk-pixelpll;
-	sprd,dpi-clk-div = <0>;
-	sprd,video-lp-cmd-enable = <0>;
-	sprd,hporch-lp-disable = <0>;
 };
 
 &amoled_g3655fp103ff_visionox_mipi_fhd {

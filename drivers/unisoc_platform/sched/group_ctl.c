@@ -204,7 +204,7 @@ static void init_tg_params(struct task_group *tg)
 
 	uni_tg->boost = 0;
 #if IS_ENABLED(CONFIG_SCHED_WALT)
-	if (uni_tg->idx == TOP_APP)
+	if (uni_tg->idx == TOP_APP || uni_tg->idx == CAMERA_DAEMON)
 		uni_tg->account_wait_time = 1;
 	else
 		uni_tg->account_wait_time = 0;

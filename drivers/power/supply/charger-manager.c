@@ -1990,9 +1990,12 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 	}
 
 	if (cm->desc->adapter_max_vbus <= CM_PPS_5V_PROG_MAX) {
-		dev_dbg(cm->dev, "no need to require voltage, %d\n", cm->desc->adapter_max_vbus);
 		if (++cm->desc->fchg_voltage_check_count > CM_FAST_CHARGE_VOLTAGE_CHECK_COUNT)
 			cm->desc->fchg_voltage_check_count = CM_FAST_CHARGE_VOLTAGE_CHECK_COUNT;
+		else
+			dev_info(cm->dev, "%s, adapter max vol %duV lower than th %duV, cnt: %d\n",
+				 __func__, cm->desc->adapter_max_vbus, CM_PPS_5V_PROG_MAX,
+				 cm->desc->fchg_voltage_check_count);
 
 		return false;
 	}
@@ -4537,6 +4540,9 @@ static int cm_charger_type_polling(struct charger_manager *cm)
 	u32 type;
 
 	if (!is_ext_usb_pwr_online(cm))
+		return 0;
+
+	if (cm->desc->is_fast_charge)
 		return 0;
 
 	if (cm->desc->charger_type != POWER_SUPPLY_USB_TYPE_UNKNOWN)
@@ -7303,14 +7309,6 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	return 0;
 }
 
-static void cm_charge_mode_shutdown_handle(struct charger_manager *cm)
-{
-	if (is_charger_mode) {
-		dev_info(cm->dev, "%s: charge mode shutdown\n", __func__);
-		kernel_power_off();
-	}
-}
-
 static void cm_shutdown_handle(struct charger_manager *cm)
 {
 	dev_dbg(cm->dev, "%s: shutdown mode = %d\n", __func__, cm->desc->uvlo_shutdown_mode);
@@ -7327,7 +7325,6 @@ static void cm_shutdown_handle(struct charger_manager *cm)
 		cancel_delayed_work_sync(&cm->cap_update_work);
 		cm->desc->cap = 0;
 		power_supply_changed(cm->charger_psy);
-		cm_charge_mode_shutdown_handle(cm);
 		break;
 
 	default:
@@ -8249,7 +8246,7 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 	cancel_delayed_work_sync(&cm_monitor_work);
 	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);
 	cancel_delayed_work_sync(&cm->cap_update_work);
-	cancel_delayed_work_sync(&cm->uvlo_work);
+	cancel_delayed_work(&cm->uvlo_work);
 }
 
 static const struct platform_device_id charger_manager_id[] = {

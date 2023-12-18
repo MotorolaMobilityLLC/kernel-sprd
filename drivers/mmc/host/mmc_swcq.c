@@ -43,7 +43,6 @@ static const char *const dbg_type_name[DBG_TYPE_NUM][2] = {
 	{"PUMP_RQ_EXCEPTION", "pump_exception"},
 	{"CMDQ_WORK_FINISH", "cmdq_sleep"},
 };
-
 /**************debug log*******************/
 #ifdef CONFIG_SPRD_DEBUG
 #define SWCQ_ARRAY_SIZE 14	/* 2^(14-2) = 4096ms */
@@ -1995,6 +1994,7 @@ static void mmc_swcq_disable(struct mmc_host *mmc)
 	swcq->enabled = false;
 	spin_unlock_irqrestore(&swcq->lock, flags);
 }
+
 /*mmc-card-init, cqe_enable, add card, mmc_init_queue */
 static int mmc_swcq_enable(struct mmc_host *mmc, struct mmc_card *card)
 {
@@ -2008,7 +2008,8 @@ static int mmc_swcq_enable(struct mmc_host *mmc, struct mmc_card *card)
 		swcq->cmdq_depth = card->ext_csd.cmdq_depth;
 		swcq->cmdq_support = card->ext_csd.cmdq_support;
 		if (!swcq->cmdq_support)
-			pr_info("%s : emmc not support CMDQ!\n", mmc_hostname(mmc));
+			pr_err("%s : emmc not support CMDQ! manfid= 0x%06x, name= %s\n",
+				mmc_hostname(mmc), card->cid.manfid, card->cid.prod_name);
 		card->reenable_cmdq = false;
 	}
 
@@ -2257,7 +2258,7 @@ static ssize_t sprd_swcq_cmdqmode_write(struct file *file,
 	struct mmc_swcq *swcq = g_swcq;
 	char val;
 
-	if (count > 0) {
+	if (swcq->cmdq_support && count > 0) {
 		if (get_user(val, buffer))
 			return -EFAULT;
 
@@ -2338,6 +2339,12 @@ static void mmc_swcq_status(void *data, const struct blk_mq_queue_data *bd, int 
 		q->limits.max_hw_discard_sectors = UINT_MAX;
 		q->limits.max_discard_sectors = UINT_MAX;
 		queue_flag = true;
+	}
+
+	if (!strcmp(mmc_hostname(mmc), "mmc1")) {
+		q->limits.discard_granularity = card->pref_erase << 9;
+		q->limits.max_hw_discard_sectors = UINT_MAX;
+		q->limits.max_discard_sectors = UINT_MAX;
 	}
 
 	req->cmd_flags &= ~REQ_FUA;

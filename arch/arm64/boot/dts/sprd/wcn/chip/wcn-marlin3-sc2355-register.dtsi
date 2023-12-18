@@ -48,7 +48,7 @@
 						* According to the parse script,
 						* ram should at offset 0x30 in head.
 						*/
-						sprd,btwf-ram = <0x100000 0xE7400 0x40400000 BSP>;
+						sprd,btwf-ram = <0x100000 0xF0C00 0x40400000 BSP>;
 					};
 
 					gnss-dump {

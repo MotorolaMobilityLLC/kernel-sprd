@@ -105,6 +105,7 @@ fi
 FILES="${FILES}
 arch/arm64/boot/dts/sprd/ums9621-base.dtb
 arch/arm64/boot/dts/sprd/ums9621-1h10-overlay.dtbo
+arch/arm64/boot/dts/sprd/ums9621-1h10_uob-overlay.dtbo
 vmlinux
 "
 #KMI_SYMBOL_LIST=android/abi_gki_aarch64_unisoc

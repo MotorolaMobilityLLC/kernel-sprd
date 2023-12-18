@@ -1766,7 +1766,7 @@ static void __sdhci_sprd_set_timeout(struct sdhci_host *host, struct mmc_command
 		sdhci_sprd_set_data_timeout_irq(host, true);
 	}
 
-	sdhci_writeb(host, count, SDHCI_TIMEOUT_CONTROL);
+	sdhci_writeb(host, count >= 3 ? count - 3 : count, SDHCI_TIMEOUT_CONTROL);
 }
 
 static void sdhci_sprd_set_timeout(struct sdhci_host *host, struct mmc_command *cmd)

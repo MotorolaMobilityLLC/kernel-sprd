@@ -269,6 +269,7 @@ static void sprd_get_bc1p2_type(struct sprd_bc1p2_priv *bc1p2_info)
 	switch (bc1p2->detect_state) {
 	case CHG_STATE_UNDETECT:
 		dev_info(x->dev, "bc1p2:chg entry\n");
+		x->chg_type = UNKNOWN_TYPE;
 		bc1p2->detect_state = CHG_STATE_DETECT;
 		if (x->flags & CHARGER_DETECT_DONE)
 			bc1p2->detect_state = CHG_STATE_DETECTED;
@@ -516,6 +517,8 @@ static int sprd_bc1p2_probe(struct platform_device *pdev)
 		dev_err(dev, "no matching driver data found\n");
 		return -EINVAL;
 	}
+
+	bc1p2->detect_state = CHG_STATE_UNDETECT;
 
 	bc1p2->regmap = dev_get_regmap(dev->parent, NULL);
 	if (!bc1p2->regmap) {

@@ -167,6 +167,7 @@ void ufs_sprd_uic_cmd_record(struct ufs_hba *hba, struct uic_command *ucmd, int 
 		    str == UFS_CMD_COMP &&
 		    ufs_sprd_is_acc_forbid_after_h8_ee(hba) == TRUE) {
 			uic_tmp.dwc_hc_ee_h8_compl = true;
+			ufs_perf.h8_enter_compl_time_stamp = ktime_get();
 			ufshcd_common_trace(hba, UFS_TRACE_UIC_CMPL, &uic_tmp);
 			return;
 		} else if (hba->uic_async_done && str == UFS_CMD_COMP) {
@@ -182,6 +183,16 @@ void ufs_sprd_uic_cmd_record(struct ufs_hba *hba, struct uic_command *ucmd, int 
 			ufshcd_common_trace(hba, UFS_TRACE_UIC_SEND, &uic_tmp);
 		} else {
 			uic_tmp.cmd = ufshcd_readl(hba, REG_UIC_COMMAND);
+			if (uic_tmp.cmd == UIC_CMD_DME_HIBER_ENTER) {
+				ufs_perf.h8_enter_compl_time_stamp = ktime_get();
+			} else if (uic_tmp.cmd == UIC_CMD_DME_HIBER_EXIT) {
+				unsigned int lat;
+				int s2c_idx;
+
+				lat = ktime_to_ms(ktime_get() - ufs_perf.h8_enter_compl_time_stamp);
+				s2c_idx = ms_to_index(lat);
+				++ufs_perf.h8_enter2exit[s2c_idx];
+			}
 			ufshcd_common_trace(hba, UFS_TRACE_UIC_CMPL, &uic_tmp);
 		}
 	}
@@ -202,7 +213,7 @@ bool ufs_sprd_wb_current(struct ufs_hba *hba)
 {
 	int ret;
 	u8 allocation_unit_size = 0;
-	u32 avail_buf = 0, cur_buf = 0, segment_size = 0;
+	u32 avail_buf = 0, cur_buf = 0, segment_size = 0, wb_lifetimeest = 0;
 
 	if (!ufshcd_is_wb_allowed(hba))
 		return false;
@@ -227,12 +238,22 @@ bool ufs_sprd_wb_current(struct ufs_hba *hba)
 				__func__, ret);
 			goto out;
 		}
+
+		ret = ufshcd_query_attr_retry(hba, UPIU_QUERY_OPCODE_READ_ATTR,
+				QUERY_ATTR_IDN_WB_BUFF_LIFE_TIME_EST,
+				ufs_perf.index, 0, &wb_lifetimeest);
+		if (ret) {
+			dev_err(hba->dev, "%s bWriteBoosterBufferLifeTimeEst read failed %d\n",
+					__func__, ret);
+			goto out;
+		}
+		ufs_perf.wb_lifetimeest = wb_lifetimeest;
 		ufs_perf.b_allocation_unit_size = allocation_unit_size;
 		ufs_perf.b_segment_size = be32_to_cpu(segment_size);
 		ufs_perf.index = ufshcd_wb_get_query_index(hba);
-
-		pr_err("ufs_lat(wb) b_allocation_unit_size:0x%lx,b_segment_size:0x%lx\n",
-				ufs_perf.b_allocation_unit_size, ufs_perf.b_segment_size);
+		pr_err("ufs_lat(wb) b_unit_size:0x%lx,b_seg_size:0x%lx,b_lifetime:0x%lx\n",
+				ufs_perf.b_allocation_unit_size, ufs_perf.b_segment_size,
+				ufs_perf.wb_lifetimeest);
 	}
 
 	ret = ufshcd_query_attr_retry(hba, UPIU_QUERY_OPCODE_READ_ATTR,
@@ -252,8 +273,10 @@ bool ufs_sprd_wb_current(struct ufs_hba *hba)
 				__func__, ret);
 		goto out;
 	}
+
 	ufs_perf.wb_avail_buf = avail_buf;
 	ufs_perf.wb_cur_buf = cur_buf;
+
 	return true;
 out:
 	return false;
@@ -278,8 +301,7 @@ static void ufshcd_wb_size_work_handler(struct work_struct *work)
 }
 
 static void ufs_sprd_vh_compl_cmd(void *data,
-				  struct ufs_hba *hba,
-				  struct ufshcd_lrb *lrbp)
+				struct ufs_hba *hba, struct ufshcd_lrb *lrbp)
 {
 	if (sprd_ufs_debug_is_supported(hba) == TRUE) {
 		if (lrbp->cmd)
@@ -311,10 +333,12 @@ static void ufs_sprd_vh_compl_cmd(void *data,
 			ufs_perf.start = lrbp->compl_time_stamp;
 			ufs_lat_log(ufs_perf.r_d2c, "ufs_lat(r)");
 			ufs_lat_log(ufs_perf.w_d2c, "ufs_lat(w)");
+			ufs_lat_log(ufs_perf.h8_enter2exit, "ufs_lat(h8_enter2exit)");
 			schedule_work(&ufs_perf.wb_size_work);
 			pr_err("ufs_lat(unmap) unmap_cmd_nums:0x%lx\n", ufs_perf.unmap_cmd_nums);
 			memset(ufs_perf.r_d2c, 0, sizeof(ufs_perf.r_d2c));
 			memset(ufs_perf.w_d2c, 0, sizeof(ufs_perf.w_d2c));
+			memset(ufs_perf.h8_enter2exit, 0, sizeof(ufs_perf.h8_enter2exit));
 			ufs_perf.unmap_cmd_nums = 0;
 		}
 	}

@@ -329,7 +329,6 @@ struct sc27xx_pd {
 	struct sprd_tcpm_port *sprd_tcpm_port;
 	struct delayed_work typec_detect_work;
 	struct delayed_work  read_msg_work;
-	struct delayed_work  power_role_swap_work;
 	struct workqueue_struct *pd_wq;
 	struct regmap *regmap;
 	struct regmap *aon_apb;
@@ -473,9 +472,7 @@ static int sc27xx_pd_set_typec_roles(struct tcpc_dev *tcpc,
 				     enum typec_data_role data)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
-	u32 mask0 = SC27XX_TYPEC_TRY_SINK_EN;
-	u32 mask1 = SC27XX_TYPEC_TRY_SRC_EN;
-	int ret;
+	int ret = 0;
 
 	if (!pd->use_pdhub_c2c) {
 		sprd_pd_log(pd, "not use_pdhub_c2c data %d, role %d", data, role);
@@ -484,83 +481,36 @@ static int sc27xx_pd_set_typec_roles(struct tcpc_dev *tcpc,
 
 	mutex_lock(&pd->lock);
 	if (role == TYPEC_PORT_SNK) {
-		ret = regmap_update_bits(pd->regmap, pd->typec_base + SC27XX_TYPEC_EN,
-					 mask1, ~mask1);
-		if (ret < 0) {
-			sprd_pd_log(pd, "%d:failed to clear src en, ret = %d", __LINE__, ret);
-			goto done;
-		}
-
-		ret = regmap_update_bits(pd->regmap, pd->typec_base + SC27XX_TYPEC_EN,
-					 mask0, mask0);
-		if (ret < 0) {
-			sprd_pd_log(pd, "%d:failed to set snk en, ret = %d", __LINE__, ret);
-			goto done;
-		}
-
 		pd->role_swap = true;
-		queue_delayed_work(pd->pd_wq, &pd->power_role_swap_work, msecs_to_jiffies(5000));
-
 		sprd_pd_log(pd, "try sink en");
 	} else if (role == TYPEC_PORT_SRC) {
-		ret = regmap_update_bits(pd->regmap, pd->typec_base + SC27XX_TYPEC_EN,
-					 mask0, ~mask0);
-		if (ret < 0) {
-			sprd_pd_log(pd, "%d:failed to clear snk en, ret = %d", __LINE__, ret);
-			goto done;
-		}
-
-		ret = regmap_update_bits(pd->regmap, pd->typec_base + SC27XX_TYPEC_EN,
-					 mask1, mask1);
-		if (ret < 0) {
-			sprd_pd_log(pd, "%d:failed to set src en, ret = %d", __LINE__, ret);
-			goto done;
-		}
-
 		pd->role_swap = true;
-		queue_delayed_work(pd->pd_wq, &pd->power_role_swap_work, msecs_to_jiffies(5000));
-
 		sprd_pd_log(pd, "try source en");
 	} else {
-		ret = regmap_update_bits(pd->regmap, pd->typec_base + SC27XX_TYPEC_EN,
-					 mask1, ~mask1);
-		if (ret < 0) {
-			sprd_pd_log(pd, "%d:failed to clear src en, ret = %d", __LINE__, ret);
-			goto done;
-		}
-
-		ret = regmap_update_bits(pd->regmap, pd->typec_base + SC27XX_TYPEC_EN,
-					 mask0, ~mask0);
-		if (ret < 0) {
-			sprd_pd_log(pd, "%d:failed to clear snk en, ret = %d", __LINE__, ret);
-			goto done;
-		}
-
 		pd->role_swap = false;
-		cancel_delayed_work(&pd->power_role_swap_work);
 		sprd_pd_log(pd, "clear try source and sink en");
 	}
 
-done:
 	mutex_unlock(&pd->lock);
 	return ret;
 }
 
-static int sc27xx_pd_set_swap(struct tcpc_dev *tcpc, bool en, bool role)
+static int sc27xx_pd_force_switch_rp_rd(struct tcpc_dev *tcpc, enum typec_role pwr_role)
 {
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
 	int ret = 0;
 
 	if (!pd->use_pdhub_c2c) {
-		sprd_pd_log(pd, "not use_pdhub_c2c en %d, role %d", en, role);
+		sprd_pd_log(pd, "%s, not use_pdhub_c2c, role: %s",
+			    __func__, pwr_role == TYPEC_SINK ? "source" : "sink");
 		return 0;
 	}
 
-	sprd_pd_log(pd, "swap en %d, role %d", en, role);
+	sprd_pd_log(pd, "%s, power role: %s",
+		    __func__, pwr_role == TYPEC_SINK ? "source" : "sink");
 
-	if (role)
-		ret = regmap_update_bits(pd->regmap, pd->typec_base + SC27XX_TYPEC_WC_REG,
-					 SC27XX_TYPEC_PD_PR_SWAP, SC27XX_TYPEC_PD_PR_SWAP);
+	ret = regmap_update_bits(pd->regmap, pd->typec_base + SC27XX_TYPEC_WC_REG,
+				 SC27XX_TYPEC_PD_PR_SWAP, SC27XX_TYPEC_PD_PR_SWAP);
 
 	return ret;
 }
@@ -2331,7 +2281,7 @@ static void sc27xx_init_tcpc_dev(struct sc27xx_pd *pd)
 	pd->tcpc.get_current_limit = sc27xx_pd_get_current_limit;
 	pd->tcpc.set_cc = sc27xx_pd_set_cc;
 	pd->tcpc.get_cc = sc27xx_pd_get_cc;
-	pd->tcpc.set_swap = sc27xx_pd_set_swap;
+	pd->tcpc.force_swich_rp_rd = sc27xx_pd_force_switch_rp_rd;
 	pd->tcpc.set_typec_role = sc27xx_pd_set_typec_roles;
 	pd->tcpc.set_polarity = sc27xx_pd_set_polarity;
 	pd->tcpc.set_vconn = sc27xx_pd_set_vconn;
@@ -2395,21 +2345,6 @@ static int sc27xx_pd_cal(struct sc27xx_pd *pd)
 	}
 
 	return 0;
-}
-
-static void sc27xx_pd_power_role_swap_work(struct work_struct *work)
-{
-	struct delayed_work *dwork = to_delayed_work(work);
-	struct sc27xx_pd *pd = container_of(dwork, struct sc27xx_pd,
-					    power_role_swap_work);
-
-	mutex_lock(&pd->lock);
-
-	sprd_pd_log(pd, "work role swap flag = %d", pd->role_swap);
-	if (pd->role_swap)
-		pd->role_swap = false;
-
-	mutex_unlock(&pd->lock);
 }
 
 static void sc27xx_pd_read_msg_work(struct work_struct *work)
@@ -2618,7 +2553,6 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 
 	INIT_DELAYED_WORK(&pd->typec_detect_work, sc27xx_pd_detect_typec_work);
 	INIT_DELAYED_WORK(&pd->read_msg_work, sc27xx_pd_read_msg_work);
-	INIT_DELAYED_WORK(&pd->power_role_swap_work, sc27xx_pd_power_role_swap_work);
 	INIT_WORK(&pd->pd_work, sc27xx_pd_work);
 
 	platform_set_drvdata(pdev, pd);

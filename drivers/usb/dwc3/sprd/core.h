@@ -479,6 +479,7 @@
 
 /* Device Status Register */
 #define DWC3_DSTS_DCNRD			BIT(29)
+#define DWC3_DSTS_SRE			BIT(28)
 
 /* This applies for core versions 1.87a and earlier */
 #define DWC3_DSTS_PWRUPREQ		BIT(24)

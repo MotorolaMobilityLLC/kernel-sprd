@@ -22,6 +22,7 @@
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
 
+					sprd,hw-vrr-en;
 					sprd,vrr-enabled;
 					sprd,vrr-max-layers = <2>;
 

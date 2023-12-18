@@ -36,6 +36,7 @@
 					sprd,width-mm = <68>;
 					sprd,height-mm = <152>;
 
+					sprd,hw-vrr-en;
 					sprd,vrr-enabled;
 
 					sprd,slice-width = <540>;

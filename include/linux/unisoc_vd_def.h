@@ -73,6 +73,7 @@ struct uni_task_struct {
 	u64			total_exec;
 	int			vip_level;
 	u8			vip_params;
+	int			binder_from_cpu;
 #endif
 	/*
 	 * for debug iowait;
@@ -87,6 +88,10 @@ struct uni_task_struct {
 	struct task_struct	*percpu_tsk;
 	struct list_head	percpu_kthread_node;
 	cpumask_t		cpus_requested;
+#endif
+
+#ifdef CONFIG_UNISOC_BINDER_SCHED
+	int unibinder_feature_flags;
 #endif
 };
 

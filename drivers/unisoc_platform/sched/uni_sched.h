@@ -59,12 +59,14 @@ struct pd_cache {
 #define SCHED_ANIMATOR_TYPE	0x02
 #define SCHED_LL_CAMERA_TYPE	0x04
 #define SCHED_AUDIO_TYPE	0x08
+#define SCHED_BINDER_TYPE	0x10
 
 #define SCHED_VIP_TASK_TYPE	(SCHED_UI_THREAD_TYPE | SCHED_ANIMATOR_TYPE | \
-				 SCHED_LL_CAMERA_TYPE | SCHED_AUDIO_TYPE)
+				 SCHED_LL_CAMERA_TYPE | SCHED_AUDIO_TYPE | SCHED_BINDER_TYPE)
 
 #define SCHED_VIP_SLICE		4000000U
 #define SCHED_VIP_LIMIT		(4 * SCHED_VIP_SLICE)
+#define SCHED_VIP_LAUNCH_LIMIT	(20 * SCHED_VIP_SLICE)
 
 #define SCHED_NOT_VIP		0
 #define SCHED_UI_VIP		1
@@ -73,6 +75,7 @@ struct pd_cache {
 #define SCHED_CAMERA_VIP	4
 #define SCHED_CAMERA_UI_VIP	5
 #define SCHED_AUDIO_VIP		6
+#define SCHED_BINDER_VIP	7
 
 extern void enqueue_cfs_vip_task(struct rq *rq, struct task_struct *p);
 extern void dequeue_cfs_vip_task(struct rq *rq, struct task_struct *p);
@@ -82,19 +85,29 @@ extern void check_parent_vip_status(struct task_struct *p);
 static inline void check_parent_vip_status(struct task_struct *p) {}
 #endif
 
-
 static inline bool test_vip_task(struct task_struct *tsk)
 {
 	struct uni_task_struct *uni_tsk = (struct uni_task_struct *) tsk->android_vendor_data1;
 
 	return (uni_tsk->vip_params & SCHED_VIP_TASK_TYPE);
 }
+static inline int num_vip_tasks_of_cpu(int cpu)
+{
+	struct rq *rq = cpu_rq(cpu);
+	struct uni_rq *uni_rq = (struct uni_rq *) rq->android_vendor_data1;
+
+	return uni_rq->num_vip_tasks;
+}
 
 #else
 static inline void enqueue_cfs_vip_task(struct rq *rq, struct task_struct *p) {}
 static inline void dequeue_cfs_vip_task(struct rq *rq, struct task_struct *p) {}
 static inline void check_parent_vip_status(struct task_struct *p) {}
-#define test_vip_task(uni_task) false
+#define test_vip_task(task) false
+static inline int num_vip_tasks_of_cpu(int cpu)
+{
+	return 0;
+}
 
 #endif
 

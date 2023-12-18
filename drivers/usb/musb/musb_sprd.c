@@ -240,6 +240,8 @@ static void sprd_musb_disable(struct musb *musb)
 	struct sprd_glue *glue = dev_get_drvdata(musb->controller->parent);
 
 	dev_info(glue->dev, "%s: enter\n", __func__);
+	if (is_slave)
+		musb_writeb(musb->mregs, MUSB_DEVCTL, 0);
 	/* for test mode plug out/plug in */
 	musb_writeb(musb->mregs, MUSB_TESTMODE, 0x0);
 }
@@ -598,7 +600,11 @@ static int sprd_musb_recover(struct musb *musb)
 }
 
 static const struct musb_platform_ops sprd_musb_ops = {
+#if IS_ENABLED(CONFIG_SPRD_USBM)
+	.quirks = MUSB_DMA_SPRD | MUSB_PRESERVE_SESSION,
+#else
 	.quirks = MUSB_DMA_SPRD,
+#endif
 	.init = sprd_musb_init,
 	.exit = sprd_musb_exit,
 	.enable = sprd_musb_enable,

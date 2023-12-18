@@ -232,7 +232,7 @@
 
 			i2s0: i2s@70d00000  {
 				compatible = "unisoc,i2s";
-				#sound-dai-cells = <0>;
+				#sound-dai-cells = <1>;
 				reg = <0x70d00000 0x100000>;
 				sprd,dai_name = "i2s_bt_sco0";
 				sprd,hw_port = <0>;

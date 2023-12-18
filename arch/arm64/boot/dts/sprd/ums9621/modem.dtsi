@@ -49,8 +49,11 @@
 		syscon2	= <&aon_apb_regs 0x0174 0x3000>;
 		syscon3 = <&aon_apb_regs 0xff 0x0>;
 		syscon4	= <&aon_apb_regs 0xff 0x0>;
-		syscon-names = "shutdown", "deepsleep", "corereset",
-					"sysreset", "getstatus";
+		syscon5 = <&pmu_apb_regs 0xff 0x0>;
+		syscon6	= <&pmu_apb_regs 0xff 0x0>;
+		syscon7	= <&pmu_apb_regs 0x0330 0x1000000>;
+		syscon-names = "shutdown", "deepsleep", "corereset", "sysreset",
+					"dspreset", "getstatus", "fshutdown", "autoshutdown";
 		sprd,version = <0x04>;
 	};
 

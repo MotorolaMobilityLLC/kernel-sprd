@@ -210,6 +210,7 @@ unisoc_platform:
 unisoc_platform:net:
 unisoc_platform:soc:
 unisoc_platform:audio:
+unisoc_platform:binder:
 unisoc_platform:cpufreq:
 unisoc_platform:gnss:
 unisoc_platform:io:

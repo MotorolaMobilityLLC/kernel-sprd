@@ -3707,6 +3707,7 @@ int musb_host_setup(struct musb *musb, int power_budget)
 		return ret;
 
 	device_wakeup_enable(hcd->self.controller);
+	device_wakeup_enable(&hcd->self.root_hub->dev);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(musb_host_setup);

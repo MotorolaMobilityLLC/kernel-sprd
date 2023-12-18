@@ -156,7 +156,7 @@ struct tcpc_dev {
 	int (*set_cc)(struct tcpc_dev *dev, enum sprd_typec_cc_status cc);
 	int (*get_cc)(struct tcpc_dev *dev, enum sprd_typec_cc_status *cc1,
 		      enum sprd_typec_cc_status *cc2);
-	int (*set_swap)(struct tcpc_dev *dev, bool en, bool role);
+	int (*force_swich_rp_rd)(struct tcpc_dev *dev, enum typec_role pwr_role);
 	int (*set_typec_role)(struct tcpc_dev *tcpc,
 			      enum typec_port_type role,
 			      enum typec_data_role data);
@@ -190,6 +190,7 @@ struct sprd_typec_device_ops {
 	int (*set_typec_rp_rd)(enum sprd_typec_cc_status cc);
 	int (*set_typec_rp_level)(enum sprd_typec_cc_status cc);
 	void (*set_support_accessory_mode)(struct typec_port *port);
+	int (*typec_pr_swap_no_chk_detach)(bool on);
 };
 
 struct sprd_charger_ops {
@@ -555,7 +556,6 @@ struct sprd_tcpm_port {
 	struct kthread_work state_machine;
 	struct hrtimer vdm_state_machine_timer;
 	struct kthread_work vdm_state_machine;
-	struct delayed_work role_swap_work;
 	bool state_machine_running;
 
 	struct completion tx_complete;
@@ -566,6 +566,8 @@ struct sprd_tcpm_port {
 	bool non_pd_role_swap;
 	struct completion swap_complete;
 	int swap_status;
+
+	bool try_pr_swap;
 
 	unsigned int negotiated_rev;
 	unsigned int message_id;
@@ -648,8 +650,6 @@ struct sprd_tcpm_port {
 
 	/* power or data role swap */
 	bool role_swap_flag;
-	bool disable_typec_int;
-	bool swap_notify_typec;
 	bool power_role_swap;
 	bool data_role_swap;
 	bool drs_not_vdm;

@@ -35,7 +35,7 @@
 #define FAN54015_REG_6					0x6
 #define FAN54015_REG_10					0x10
 
-#define FAN54015_PROBE_TIMEOUT				msecs_to_jiffies(3000)
+#define FAN54015_PROBE_TIMEOUT				msecs_to_jiffies(500)
 #define BIT_DP_DM_BC_ENB				BIT(0)
 #define FAN54015_OTG_VALID_MS				500
 #define FAN54015_FEED_WATCHDOG_VALID_MS			50
@@ -575,6 +575,11 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 		return -EINVAL;
 	}
 
+	if (unlikely(!psy->initialized && atomic_read(&psy->use_cnt) > 0)) {
+		dev_err(info->dev, "%s psy is not ready\n", __func__);
+		return -ENODEV;
+	}
+
 	if (unlikely(!info->probe_initialized)) {
 		timeout = wait_for_completion_timeout(&info->probe_init, FAN54015_PROBE_TIMEOUT);
 		if (!timeout) {
@@ -655,6 +660,11 @@ fan54015_charger_usb_set_property(struct power_supply *psy,
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return -EINVAL;
+	}
+
+	if (unlikely(!psy->initialized && atomic_read(&psy->use_cnt) > 0)) {
+		dev_err(info->dev, "%s psy is not ready\n", __func__);
+		return -ENODEV;
 	}
 
 	if (unlikely(!info->probe_initialized)) {

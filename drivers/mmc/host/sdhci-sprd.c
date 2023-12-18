@@ -57,6 +57,7 @@
 					== (MMC_CAP2_NO_MMC | MMC_CAP2_NO_SDIO))
 
 #define SEND_SD_SWITCH		6
+#define SEND_SD_READ_EXTR_SINGLE		48
 #define SEND_TUNING_BLOCK		19
 #define SEND_TUNING_BLOCK_HS200		21
 
@@ -84,6 +85,9 @@
 
 #define SDHCI_SPRD_ADMA_BUF_PROCESS_L	0x220
 #define SDHCI_SPRD_ADMA_BUF_PROCESS_H	0x224
+
+#define SDHCI_SPRD_BLK_CNT_BUF	0x228
+#define SDHCI_SPRD_BLK_CNT_IO	0x22c
 
 #define SDHCI_SPRD_ADMA_PROCESS_L	0x240
 #define SDHCI_SPRD_ADMA_PROCESS_H	0x244
@@ -232,6 +236,21 @@ static const struct sdhci_sprd_phy_cfg sdhci_sprd_phy_cfgs[] = {
 
 #define TO_SPRD_HOST(host) sdhci_pltfm_priv(sdhci_priv(host))
 
+/*
+ * convert mask to offset in 32bits,
+ * like convert 0x1E to 1, 0x00FF0000 to 16
+ */
+static int mask_to_offset(u32 mask)
+{
+	int offset;
+
+	for (offset = 0; offset < 32; offset++)
+		if ((mask >> offset) & BIT(0))
+			return offset;
+
+	return 0;
+}
+
 static void sdhci_sprd_health_and_powp(void *data, struct mmc_card *card)
 {
 	int err;
@@ -326,8 +345,8 @@ static inline void sdhci_sprd_writeb(struct sdhci_host *host, u8 val, int reg)
 	 * executions of tuning command, and therefore data timeout value should
 	 * be shorter than before for single tuning commond in Spreadtrum's platform.
 	 */
-	if (unlikely(reg == SDHCI_TIMEOUT_CONTROL) &&
-	   (host->cmd->opcode == SEND_TUNING_BLOCK || host->cmd->opcode == SEND_TUNING_BLOCK))
+	if (unlikely(reg == SDHCI_TIMEOUT_CONTROL) && host->cmd &&
+	   (host->cmd->opcode == SEND_TUNING_BLOCK || host->cmd->opcode == SEND_TUNING_BLOCK_HS200))
 		val = 0x4;
 
 	if (unlikely(reg == SDHCI_SOFTWARE_RESET)) {
@@ -1118,7 +1137,7 @@ static void sdhci_sprd_fast_hotplug_enable(struct sdhci_sprd_host *sprd_host)
 	regmap_update_bits(sprd_host->reg_debounce_cn.regmap,
 		sprd_host->reg_debounce_cn.reg,
 		sprd_host->reg_debounce_cn.mask,
-		debounce_counter << 16);
+		debounce_counter << mask_to_offset(sprd_host->reg_debounce_cn.mask));
 	if (sprd_host->detect_gpio_polar)
 		regmap_update_bits(sprd_host->reg_detect_polar.regmap,
 			sprd_host->reg_detect_polar.reg,
@@ -1215,6 +1234,33 @@ static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 	}
 
 	sprd_host->power_mode = mmc->ios.power_mode;
+}
+
+static void sdhci_sprd_disable_sd_cache(struct sdhci_host *host)
+{
+	/*
+	 * Although some sd cards support cache feature, they have problems when
+	 * used in practice, so here we turn off the cache feature by modifying
+	 * the data returned by the device.
+	 */
+	if ((sdhci_readl(host, SDHCI_ARGUMENT) == 0x100001ff) &&
+		(SDHCI_GET_CMD(sdhci_readw(host, SDHCI_COMMAND)) == SEND_SD_READ_EXTR_SINGLE) &&
+		(sdhci_readl(host, SDHCI_SPRD_BLK_CNT_BUF) == 1)) {
+		u64 buf_paddr;
+		void *buf_vaddr;
+
+		/*
+		 * SD_READ_EXTR_SINGLE command's receiving data buffer's address can be
+		 * obtained from the ADMA_BUF_PROCESS registers in Spreadtrum's platform,
+		 * but it needs to shift 512 bytes ahead of that.
+		 */
+		buf_paddr = (u64)sdhci_sprd_readl(host, SDHCI_SPRD_ADMA_BUF_PROCESS_H) << 32;
+		buf_paddr |= sdhci_sprd_readl(host, SDHCI_SPRD_ADMA_BUF_PROCESS_L);
+		buf_paddr -= 0x200;
+
+		buf_vaddr = __va(buf_paddr);
+		*(u32 *)(buf_vaddr + 4) &= (u32)0xfffffffe;
+	}
 }
 
 static void sdhci_sprd_dump_adma_info(struct sdhci_host *host)
@@ -1337,6 +1383,8 @@ static u32 sdhci_sprd_cqe_irq(struct sdhci_host *host, u32 intmask)
 
 	if (intmask & SDHCI_INT_ERROR_MASK)
 		sdhci_sprd_dump_vendor_regs(host);
+	else if ((host->mmc->index == 1) && (intmask & SDHCI_INT_DATA_END))
+		sdhci_sprd_disable_sd_cache(host);
 
 	if (sprd_host->tuning_flag)
 		sprd_host_tuning_info_update_intstatus(host);
@@ -1855,6 +1903,12 @@ static void mmc_hsq_status(void *data, const struct blk_mq_queue_data *bd, int *
 		q->limits.max_hw_discard_sectors = UINT_MAX;
 		q->limits.max_discard_sectors = UINT_MAX;
 		queue_flag = true;
+	}
+
+	if (!strcmp(mmc_hostname(mmc), "mmc1")) {
+		q->limits.discard_granularity = card->pref_erase << 9;
+		q->limits.max_hw_discard_sectors = UINT_MAX;
+		q->limits.max_discard_sectors = UINT_MAX;
 	}
 
 	req->cmd_flags &= ~REQ_FUA;

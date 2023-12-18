@@ -15,7 +15,7 @@
 					sprd,dsi-lane-number = <4>;
 					sprd,dsi-color-format = "rgb888";
 
-					sprd,phy-bit-clock = <1592208>;  /* kbps */
+					sprd,phy-bit-clock = <1592400>;  /* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
 
 					sprd,dpi-clk-div = <6>;
@@ -30,7 +30,7 @@
 
 					sprd,umb9230s-dsi-work-mode = <1>; /* video burst mode*/
 					sprd,umb9230s-dsi-color-format = "dsc";
-					sprd,umb9230s-phy-bit-clock = <796104>;  /* kbps */
+					sprd,umb9230s-phy-bit-clock = <796200>;  /* kbps */
 					sprd,umb9230s-dsc-enable = <1>;
 					sprd,umb9230s-slice-width = <540>;
 					sprd,umb9230s-slice-height = <8>;
@@ -400,19 +400,19 @@
 						native-mode = <&nt36672e_truly_umb9230s_timing0>;
 
 						nt36672e_truly_umb9230s_timing0: timing0 {
-							clock-frequency = <265368000>;
+							clock-frequency = <265400000>;
 							hactive = <1080>;
 							vactive = <2408>; /*2408*/
 							hback-porch = <88>;
 							hfront-porch = <84>;
 							vback-porch = <24>;
-							vfront-porch = <1000>;
+							vfront-porch = <1002>;
 							hsync-len = <32>;
 							vsync-len = <10>;
 						};
 
 						nt36672e_truly_umb9230s_timing1: timing1 {
-							clock-frequency = <265368000>;
+							clock-frequency = <265400000>;
 							hactive = <1080>;
 							vactive = <2408>; /*2408*/
 							hback-porch = <32>;

@@ -461,22 +461,21 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 			regmap_update_bits(phy->hsphy_glb,
 				REG_AON_APB_MIPI_CSI_POWER_CTRL, msk, reg);
 		}
+	}
+	/* usb cgm ref */
+	msk = MASK_AON_APB_CGM_OTG_REF_EN |
+		MASK_AON_APB_CGM_DPHY_REF_EN;
+	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, 0);
 
-		/* usb cgm ref */
-		msk = MASK_AON_APB_CGM_OTG_REF_EN |
-			MASK_AON_APB_CGM_DPHY_REF_EN;
-		regmap_update_bits(phy->hsphy_glb, REG_AON_APB_CGM_REG1, msk, 0);
+	/* disable analog:0x64900004 */
+	msk = MASK_AON_APB_AON_USB2_TOP_EB | MASK_AON_APB_OTG_PHY_EB;
+	regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, 0);
 
-		/*disable analog:0x64900004*/
-		msk = MASK_AON_APB_AON_USB2_TOP_EB | MASK_AON_APB_OTG_PHY_EB;;
-		regmap_update_bits(phy->hsphy_glb, REG_AON_APB_APB_EB1, msk, 0);
-
-		if (phy->refclk_cfg.regmap_ptr) {
-			reg = msk = phy->refclk_cfg.args[1] | phy->refclk_cfg.args[2];
-			regmap_update_bits(phy->refclk_cfg.regmap_ptr,
-					phy->refclk_cfg.args[0],
-					msk, ~reg);
-		}
+	if (phy->refclk_cfg.regmap_ptr) {
+		reg = msk = phy->refclk_cfg.args[1] | phy->refclk_cfg.args[2];
+		regmap_update_bits(phy->refclk_cfg.regmap_ptr,
+				phy->refclk_cfg.args[0],
+				msk, ~reg);
 	}
 
 	if (regulator_is_enabled(phy->vdd))

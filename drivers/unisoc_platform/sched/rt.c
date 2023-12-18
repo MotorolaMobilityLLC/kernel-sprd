@@ -184,7 +184,7 @@ static void walt_rt_filter_energy_cpu(void *data, struct task_struct *task,
 
 	/* fast path for prev_cpu */
 	if (cpumask_test_cpu(prev_cpu, lowest_mask) && is_idle_cpu(prev_cpu) &&
-	    is_min_capacity_cpu(prev_cpu)) {
+	    is_min_capacity_cpu(prev_cpu) && !num_vip_tasks_of_cpu(prev_cpu)) {
 		*best_cpu = prev_cpu;
 		return;
 	}
@@ -198,6 +198,9 @@ static void walt_rt_filter_energy_cpu(void *data, struct task_struct *task,
 			continue;
 
 		if (walt_cpu_high_irqload(cpu))
+			continue;
+
+		if (num_vip_tasks_of_cpu(cpu))
 			continue;
 
 		cpu_util = walt_cpu_util(cpu) + task_util;

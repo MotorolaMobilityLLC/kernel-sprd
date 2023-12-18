@@ -21,6 +21,7 @@
 #include <linux/kernel.h>
 #include <linux/kobject.h>
 #include <linux/module.h>
+#include <linux/mfd/syscon.h>
 #include <linux/of.h>
 #include <linux/gpio/consumer.h>
 #include <linux/of_platform.h>
@@ -37,6 +38,10 @@
 #include <linux/regmap.h>
 #include <linux/usb/sprd_usbm.h>
 #include <linux/usb/role.h>
+#include <dt-bindings/soc/sprd,qogirn6pro-mask.h>
+#include <dt-bindings/soc/sprd,qogirn6pro-regs.h>
+#include <dt-bindings/mfd/sprd,ump9620-mask.h>
+#include <dt-bindings/mfd/sprd,ump9620-regs.h>
 
 #include "sprd/core.h"
 #include "sprd/gadget.h"
@@ -144,6 +149,7 @@ struct dwc3_sprd {
 	bool			in_restart;
 	bool			host_recover;
 	bool			use_pdhub_c2c;
+	bool			vddgen1_cleared;
 
 	atomic_t		runtime_suspended;
 	atomic_t		pm_suspended;
@@ -162,6 +168,14 @@ struct dwc3_sprd {
 	struct usb_role_switch *dev_role_sw;
 	struct dev_pm_ops	dwc3_pm_ops;
 	struct dev_pm_ops	xhci_pm_ops;
+
+	struct regmap		*pmic;
+	struct regmap		*pmu_apb;
+	struct regmap		*ipa_apb;
+	struct regmap		*ipa_dispc1_glb_apb;
+	struct gpio_desc	*gpiod_pme_wakeup;
+	int			wakeup_irq;
+	bool			support_suspend;
 };
 
 #define DWC3_SUSPEND_COUNT	100
@@ -583,9 +597,10 @@ static int dwc3_sprd_otg_start_peripheral(struct dwc3_sprd *sdwc, int on)
 	struct dwc3 *dwc = platform_get_drvdata(sdwc->dwc3);
 
 	if (on) {
-		dev_info(sdwc->dev, "%s: turn on gadget %s\n",
+		dev_info(sdwc->dev, "%s: turn on gadget %s, keep-awake in peripheral\n",
 					__func__, dwc->gadget->name);
 
+		__pm_stay_awake(sdwc->wake_lock);
 		usb_phy_vbus_off(sdwc->ss_phy);
 		msleep(100);
 		pm_runtime_get_sync(dwc->dev);
@@ -607,6 +622,7 @@ static int dwc3_sprd_otg_start_peripheral(struct dwc3_sprd *sdwc, int on)
 		dev_info(sdwc->dev, "%s: turn off gadget %s\n",
 					__func__, dwc->gadget->name);
 
+		__pm_relax(sdwc->wake_lock);
 		/* phy set vbus disconnected */
 		usb_phy_notify_disconnect(sdwc->ss_phy, 0);
 		/* dwc3 has enough get a disconnect irq*/
@@ -1279,10 +1295,22 @@ int dwc3_sprd_probe_finish(void)
 }
 EXPORT_SYMBOL_GPL(dwc3_sprd_probe_finish);
 
+static irqreturn_t dwc3_sprd_pme_wakeup_irq(int irq, void *data)
+{
+	struct dwc3_sprd *sdwc = data;
+	struct dwc3 *dwc;
+
+	dwc = platform_get_drvdata(sdwc->dwc3);
+	dev_info(sdwc->dev, "usb3 pme wakeup came.\n");
+	return IRQ_HANDLED;
+}
+
 static int dwc3_sprd_probe(struct platform_device *pdev)
 {
 	struct device_node *node = pdev->dev.of_node, *dwc3_node;
 
+	struct device_node *regmap_np;
+	struct platform_device *regmap_pdev;
 	struct device *dev = &pdev->dev;
 	struct dwc3_sprd *sdwc;
 	struct dwc3 *dwc;
@@ -1297,6 +1325,43 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 	sdwc = devm_kzalloc(dev, sizeof(*sdwc), GFP_KERNEL);
 	if (!sdwc)
 		return -ENOMEM;
+
+	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,ump962x-syscon");
+	if (!regmap_np) {
+		dev_info(dev, "unable to get syscon node\n");
+	} else {
+		regmap_pdev = of_find_device_by_node(regmap_np);
+		if (!regmap_pdev) {
+			of_node_put(regmap_np);
+			dev_warn(dev, "unable to get syscon platform device\n");
+			sdwc->pmic = NULL;
+		} else {
+			sdwc->pmic = dev_get_regmap(regmap_pdev->dev.parent, NULL);
+			if (!sdwc->pmic)
+				dev_warn(dev, "unable to get pmic regmap device\n");
+		}
+	}
+
+	sdwc->pmu_apb = syscon_regmap_lookup_by_phandle(dev->of_node,
+							"sprd,syscon-pmu-apb");
+	if (IS_ERR(sdwc->pmu_apb)) {
+		dev_err(dev, "failed to map pmu apb registers (via syscon)\n");
+		sdwc->pmu_apb = NULL;
+	}
+
+	sdwc->ipa_apb = syscon_regmap_lookup_by_phandle(dev->of_node,
+						       "sprd,syscon-ipa-apb");
+	if (IS_ERR(sdwc->ipa_apb)) {
+		dev_err(dev, "failed to map ipa apb registers (via syscon)\n");
+		sdwc->ipa_apb = NULL;
+	}
+
+	sdwc->ipa_dispc1_glb_apb = syscon_regmap_lookup_by_phandle(dev->of_node,
+						       "sprd,syscon-ipa-dispc1-glb-apb");
+	if (IS_ERR(sdwc->ipa_apb)) {
+		dev_err(dev, "failed to map ipa dispc1 registers (via syscon)\n");
+		sdwc->ipa_dispc1_glb_apb = NULL;
+	}
 
 	ret = dma_coerce_mask_and_coherent(dev, DMA_BIT_MASK(BITS_PER_LONG));
 	if (ret)
@@ -1521,6 +1586,30 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 			 sdwc->id_state == DWC3_ID_GROUND ? "HOST" : "DEVICE");
 	}
 
+	sdwc->gpiod_pme_wakeup = devm_gpiod_get_index(dev, "pme-wakeup", 0, GPIOD_IN);
+	if (IS_ERR(sdwc->gpiod_pme_wakeup)) {
+		dev_warn(dev, "get gpiod_pme_wakeup error.\n");
+		goto err_extcon_id;
+	} else {
+		sdwc->support_suspend = true;
+		sdwc->wakeup_irq = gpiod_to_irq(sdwc->gpiod_pme_wakeup);
+		if (sdwc->wakeup_irq < 0) {
+			dev_warn(dev, "cannot get usb wakeup irq.\n");
+			goto err_extcon_id;
+		}
+
+		ret = devm_request_threaded_irq(dev, sdwc->wakeup_irq,
+						dwc3_sprd_pme_wakeup_irq,
+						NULL,
+						IRQF_TRIGGER_RISING,
+						"usb3_pme_wakeup", sdwc);
+		if (ret < 0) {
+			dev_warn(dev, "cannot request usb pme wakeup irq.\n");
+			goto err_extcon_id;
+		}
+		enable_irq_wake(sdwc->wakeup_irq);
+	}
+
 	sdwc->audio_nb.notifier_call = dwc3_sprd_audio_notifier;
 	ret = register_sprd_usbm_notifier(&sdwc->audio_nb, SPRD_USBM_EVENT_HOST_DWC3);
 	if (ret) {
@@ -1682,7 +1771,8 @@ static int dwc3_sprd_suspend(struct dwc3_sprd *sdwc)
 
 	dwc3_sprd_disable(sdwc);
 
-	__pm_relax(sdwc->wake_lock);
+	if (!sdwc->support_suspend)
+		__pm_relax(sdwc->wake_lock);
 	atomic_set(&sdwc->runtime_suspended, 1);
 	mutex_unlock(&sdwc->suspend_resume_mutex);
 
@@ -1700,7 +1790,8 @@ static int dwc3_sprd_resume(struct dwc3_sprd *sdwc)
 		return 0;
 	}
 
-	__pm_stay_awake(sdwc->wake_lock);
+	if (!sdwc->support_suspend)
+		__pm_stay_awake(sdwc->wake_lock);
 
 	dwc3_sprd_enable(sdwc);
 
@@ -1712,23 +1803,62 @@ static int dwc3_sprd_resume(struct dwc3_sprd *sdwc)
 #ifdef CONFIG_PM_SLEEP
 static int dwc3_sprd_pm_suspend(struct device *dev)
 {
-	int ret = 0;
+	u32 reg = 0;
+	int ret = 0, retry = 10;
+	u32 msk = MASK_PMU_APB_CURRENT_POWER_STATE_U2PMU |
+		MASK_PMU_APB_CURRENT_POWER_STATE_U3PMU;
 	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
 
 	dev_info(dev, "%s: enter\n", __func__);
-
-	if (sdwc->vbus_active && sdwc->glue_dr_mode == USB_DR_MODE_PERIPHERAL) {
-		dev_info(sdwc->dev, "Abort PM suspend in device mode!!\n");
-		return -EBUSY;
-	}
-
-	if (sdwc->glue_dr_mode == USB_DR_MODE_HOST &&
-	    !atomic_read(&sdwc->runtime_suspended)) {
-		dev_info(sdwc->dev, "Abort PM suspend in host mode when power always on\n");
-		return -EBUSY;
-	}
-
+	/* advance to flush */
 	flush_workqueue(sdwc->dwc3_wq);
+	if (atomic_read(&sdwc->runtime_suspended))
+		goto runtime_suspended;
+
+	if (!sdwc->pmu_apb || !sdwc->pmic) {
+		dev_err(dev, "sdwc->pmu_apb & sdwc->pmic are NULL!\n");
+		goto runtime_suspended;
+	}
+
+	ret |= regmap_read(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, &reg);
+	reg |= MASK_PMU_APB_SNPS_USBC_HIBER_REQ;
+	reg &= ~MASK_PMU_APB_SNPS_USBC_HIBER_STAT_BYP;
+	ret |= regmap_write(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, reg);
+	do {
+		ret |= regmap_read(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, &reg);
+		msleep(20);
+		dev_err(dev, "USBC_SLP_CTRL 0x%4x\n", reg);
+	} while (((reg & msk) != msk) && --retry);
+	if (retry == 0) {
+		dev_err(dev, "enter hibernation fail, check host SRE bit.\n");
+		ret |= regmap_read(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, &reg);
+		reg &= ~MASK_PMU_APB_SNPS_USBC_HIBER_REQ;
+		reg |= MASK_PMU_APB_SNPS_USBC_HIBER_STAT_BYP;
+		ret |= regmap_write(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, reg);
+		return -ETIMEDOUT;
+	}
+
+	clk_disable_unprepare(sdwc->ref_clk);
+	clk_disable_unprepare(sdwc->core_clk);
+	usb_clk_prepare_disable(sdwc);
+
+	/*
+	 * set usb ref clock to default when dwc3 was not used,
+	 * or else the clock can't be really switch to another
+	 * parent within dwc3_sprd_enable.
+	 */
+	if (sdwc->ipa_usb_ref_clk && sdwc->ipa_usb_ref_default)
+		clk_set_parent(sdwc->ipa_usb_ref_clk, sdwc->ipa_usb_ref_default);
+
+	/* vddgen1, check it everytime we try to sleep. */
+	ret |= regmap_read(sdwc->pmic, REG_ANA_SLP_DCDC_PD_CTRL, &reg);
+	if (reg & MASK_ANA_SLP_DCDCGEN1_PD_EN) {
+		reg &= ~MASK_ANA_SLP_DCDCGEN1_PD_EN;
+		ret |= regmap_write(sdwc->pmic, REG_ANA_SLP_DCDC_PD_CTRL, reg);
+		sdwc->vddgen1_cleared = 1;
+	}
+
+runtime_suspended:
 	atomic_set(&sdwc->pm_suspended, 1);
 
 	return ret;
@@ -1736,24 +1866,94 @@ static int dwc3_sprd_pm_suspend(struct device *dev)
 
 static int dwc3_sprd_pm_resume(struct device *dev)
 {
+	u32 reg = 0;
+	int ret = 0, retry = 10;
+	u32 msk = MASK_PMU_APB_CURRENT_POWER_STATE_U2PMU |
+		MASK_PMU_APB_CURRENT_POWER_STATE_U3PMU;
 	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
 
 	dev_info(dev, "%s: enter\n", __func__);
+	if (atomic_read(&sdwc->runtime_suspended))
+		goto is_runtime_suspended;
 
-	atomic_set(&sdwc->pm_suspended, 0);
-	pm_runtime_disable(dev);
-	pm_runtime_use_autosuspend(dev);
-	pm_runtime_set_autosuspend_delay(dev, DWC3_AUTOSUSPEND_DELAY);
-	pm_runtime_enable(dev);
+	if (!sdwc->pmu_apb || !sdwc->pmic || !sdwc->ipa_apb) {
+		dev_err(dev, "sdwc->pmu_apb & sdwc->pmic are NULL!\n");
+		goto is_runtime_suspended;
+	}
 
+	do {
+		ret |= regmap_read(sdwc->pmu_apb, REG_PMU_APB_PLL_CTRL_STATE_3, &reg);
+		usleep_range(10, 20);
+	} while (((reg & MASK_PMU_APB_ST_USB31PLLV_STATE) != 0x40) && --retry);
+	if (retry == 0)
+		dev_err(dev, "USB31PLL did not open, error.\n");
+
+	if (usb_clk_prepare_enable(sdwc))
+		dev_err(sdwc->dev, "usb clk enable error.\n");
+	if (sdwc->ipa_usb_ref_clk && sdwc->ipa_usb_ref_parent)
+		clk_set_parent(sdwc->ipa_usb_ref_clk, sdwc->ipa_usb_ref_parent);
+	if (clk_prepare_enable(sdwc->core_clk))
+		dev_err(dev, "core-clock enable failed\n");
+	if (clk_prepare_enable(sdwc->ref_clk))
+		dev_err(dev, "ref-clock enable failed\n");
+
+	ret = regmap_read(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, &reg);
+	reg &= ~(MASK_PMU_APB_SNPS_USBC_HIBER_REQ | MASK_PMU_APB_SNPS_USBC_HIBER_STAT_BYP);
+	ret = regmap_write(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, reg);
+
+	retry = 20;
+	do {
+		ret |= regmap_read(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, &reg);
+		usleep_range(20, 40);
+		dev_info(dev, "USBC_SLP_CTRL 0x%4x\n", reg);
+	} while (((reg & msk) != 0) && --retry);
+	if (!retry) {
+		/* make a reset pulse to make sure we could exit from hibernation */
+		ret |= regmap_read(sdwc->ipa_apb, REG_IPA_APB_IPA_RST, &reg);
+		reg |= MASK_IPA_APB_USB_SOFT_RST;
+		ret |= regmap_write(sdwc->ipa_apb, REG_IPA_APB_IPA_RST, reg);
+		usleep_range(100, 200);
+		reg &= ~MASK_IPA_APB_USB_SOFT_RST;
+		ret |= regmap_write(sdwc->ipa_apb, REG_IPA_APB_IPA_RST, reg);
+		retry = 30;
+		do {
+			ret |= regmap_read(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, &reg);
+			usleep_range(100, 200);
+			dev_info(dev, "USBC_SLP_CTRL 0x%4x\n", reg);
+		} while ((reg & msk) && --retry);
+
+		ret |= regmap_read(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, &reg);
+		if ((reg & msk) != 0)
+			dev_err(dev, "exit from hibernation error, can't recovery.\n");
+	}
+	ret |= regmap_read(sdwc->ipa_apb, REG_IPA_APB_USB_CTL1, &reg);
+	reg |= MASK_IPA_APB_USB31_BUS_CLK_BYPASS;
+	ret |= regmap_write(sdwc->ipa_apb, REG_IPA_APB_USB_CTL1, reg);
+	msleep(20);
+	/* make sure we could deep when runtime suspended, write back hiber bypass bit */
+	ret |= regmap_read(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, &reg);
+	reg |= MASK_PMU_APB_SNPS_USBC_HIBER_STAT_BYP;
+	ret |= regmap_write(sdwc->pmu_apb, REG_PMU_APB_SNPS_USBC_SLP_CTRL, reg);
+
+	/* recovery vddgen1 config */
+	if (sdwc->vddgen1_cleared) {
+		ret |= regmap_read(sdwc->pmic, REG_ANA_SLP_DCDC_PD_CTRL, &reg);
+		reg |= MASK_ANA_SLP_DCDCGEN1_PD_EN;
+		ret |= regmap_write(sdwc->pmic, REG_ANA_SLP_DCDC_PD_CTRL, reg);
+		sdwc->vddgen1_cleared = 0;
+	}
+
+is_runtime_suspended:
 	/* kick in hotplug state machine */
 	queue_work(sdwc->dwc3_wq, &sdwc->evt_prepare_work);
-	return 0;
+	atomic_set(&sdwc->pm_suspended, 0);
+
+	return ret;
 }
 
 static int dwc3_host_prepare(struct device *dev)
 {
-	if (pm_runtime_enabled(dev))
+	if (pm_runtime_suspended(dev))
 		return 1;
 
 	return 0;
@@ -1761,7 +1961,7 @@ static int dwc3_host_prepare(struct device *dev)
 
 static int dwc3_core_prepare(struct device *dev)
 {
-	if (pm_runtime_enabled(dev))
+	if (pm_runtime_suspended(dev))
 		return 1;
 
 	return 0;

@@ -110,6 +110,8 @@
 /* SC2730_TYPEC_PD_CFG */
 #define SC27XX_VCONN_LDO_EN		BIT(13)
 #define SC27XX_VCONN_LDO_RDY		BIT(12)
+#define SC27XX_PD_NO_CHK_DETATACH_MASK	BIT(9)
+#define SC27XX_PD_NO_CHK_DETATACH_SHIFT	9
 
 /* pmic name string */
 #define SC2721				0x01
@@ -839,6 +841,24 @@ int sc27xx_set_typec_int_clear(void)
 	return 0;
 }
 
+int sc27xx_typec_pr_swap_no_chk_detach(bool on)
+{
+	struct sc27xx_typec *sc = typec_sc;
+	int ret = 0;
+
+	dev_info(sc->dev, "%s, on = %d\n", __func__, on);
+	ret = regmap_update_bits(sc->regmap,
+				sc->base + SC2730_TYPEC_PD_CFG,
+				SC27XX_PD_NO_CHK_DETATACH_MASK,
+				on << SC27XX_PD_NO_CHK_DETATACH_SHIFT);
+
+	if (ret)
+		dev_err(sc->dev, "%s, faile to set TYPEC_PD_CFG[0x%2x], ret=%d\n",
+			__func__, SC2730_TYPEC_PD_CFG, ret);
+
+	return ret;
+}
+
 int sc27xx_set_typec_int_disable(void)
 {
 	struct sc27xx_typec *sc = typec_sc;
@@ -1092,6 +1112,7 @@ static int sc27xx_typec_register_ops(void)
 	sc27xx_typec_ops.set_typec_rp_rd = sc27xx_typec_set_rp_rd;
 	sc27xx_typec_ops.set_typec_rp_level = sc27xx_typec_set_rp_level;
 	sc27xx_typec_ops.set_support_accessory_mode = sc27xx_typec_set_support_accessory_mode;
+	sc27xx_typec_ops.typec_pr_swap_no_chk_detach = sc27xx_typec_pr_swap_no_chk_detach;
 
 	sprd_tcpm_typec_device_ops_register(&sc27xx_typec_ops);
 

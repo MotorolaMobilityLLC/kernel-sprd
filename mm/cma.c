@@ -551,11 +551,16 @@ struct page *cma_alloc(struct cma *cma, unsigned long count,
 	int ret = -ENOMEM;
 	int num_attempts = 0;
 	int max_retries = 5;
-
 #ifdef CONFIG_SPRD_CMA_DEBUG
 	struct timespec64 cma_alloc_start, cma_alloc_end, cma_alloc_cost;
 	unsigned long cma_alloc_time;
 #endif
+	bool bypass = false;
+
+	trace_android_vh_cma_alloc_bypass(cma, count, align, no_warn,
+				&page, &bypass);
+	if (bypass)
+		return page;
 
 	if (!cma || !cma->count || !cma->bitmap)
 		goto out;

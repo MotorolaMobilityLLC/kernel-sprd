@@ -141,7 +141,7 @@ static int sprd_get_pd_adapter_voltage_max(struct sprd_fchg_info *info, u32 *max
 	struct power_supply *psy_tcpm;
 	struct sprd_tcpm_port *port;
 	enum sprd_pd_pdo_type pd_pdo_type = SPRD_PDO_TYPE_FIXED;
-	int i, adptor_max_vbus = 0;
+	int i, adptor_max_vbus_mv = 0;
 
 	psy_tcpm = power_supply_get_by_name(SPRD_FCHG_TCPM_PD_NAME);
 	if (!psy_tcpm) {
@@ -164,13 +164,24 @@ static int sprd_get_pd_adapter_voltage_max(struct sprd_fchg_info *info, u32 *max
 	if (info->pps_enable && !info->pps_active)
 		pd_pdo_type = SPRD_PDO_TYPE_APDO;
 
+	/*
+	 * In the 10.2.2 Normative Voltages and Current section of the
+	 * pd standard protocol requires that the power of non-5V fixed
+	 * or dynamic voltage ranges is at least 15W. For detailed
+	 * requirements, please refer to Table 10-7 Programmable Power
+	 * Supply PDOs and APDOs based on the PDP.
+	 */
 	for (i = 0; i < info->pd_source_cap.nr_source_caps; i++) {
 		if (info->pd_source_cap.type[i] == pd_pdo_type &&
-		    adptor_max_vbus < info->pd_source_cap.max_mv[i])
-			adptor_max_vbus = info->pd_source_cap.max_mv[i];
+		    adptor_max_vbus_mv < info->pd_source_cap.max_mv[i] &&
+		    (info->pd_source_cap.max_mv[i] * 1000 <= SPRD_FCHG_5V_FIXED_PROG_MAX ||
+		     (info->pd_source_cap.max_mv[i] * 1000 > SPRD_FCHG_5V_FIXED_PROG_MAX &&
+		      info->pd_source_cap.max_mv[i] * info->pd_source_cap.ma[i] >
+		      SPRD_FCHG_NON_5V_FIXED_PROG_MIN_UW)))
+			adptor_max_vbus_mv = info->pd_source_cap.max_mv[i];
 	}
 
-	*max_vol = adptor_max_vbus * 1000;
+	*max_vol = adptor_max_vbus_mv * 1000;
 
 	return 0;
 }

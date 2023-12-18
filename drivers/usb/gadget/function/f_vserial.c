@@ -954,6 +954,7 @@ static void vser_function_unbind(struct usb_configuration *c,
 {
 	struct vser_dev	*dev = func_to_vser(f);
 
+	dev->online = 0;
 	vser_free_all_request(dev);
 
 #if IS_ENABLED(CONFIG_USB_F_VSERIAL_BYPASS_USER)
@@ -989,7 +990,6 @@ static void vser_function_unbind(struct usb_configuration *c,
 	del_timer(&dev->log_print_timer);
 #endif
 
-	dev->online = 0;
 	dev->wr_error = 1;
 	dev->rd_error = 1;
 }
@@ -1033,9 +1033,9 @@ static void vser_function_disable(struct usb_function *f)
 	dev->online = 0;
 	dev->wr_error = 1;
 	dev->rd_error = 1;
+
 	usb_ep_disable(dev->ep_in);
 	usb_ep_disable(dev->ep_out);
-
 	/* readers may be blocked waiting for us to go online */
 	wake_up(&dev->read_wq);
 	wake_up(&dev->write_wq);
@@ -1289,8 +1289,7 @@ static void do_tx_queue_work(struct vser_dev *dev)
 	if (!max_pkts_per_xfer)
 		max_pkts_per_xfer = 1;
 
-	if ((!list_empty(&dev->tx_pass_buf_q) && !dev->dl_tx_req_status
-			&& !dev->dl_tx_work_status)
+	if ((!list_empty(&dev->tx_pass_buf_q) && !dev->dl_tx_req_status)
 		|| (!dev->dl_tx_work_status
 		&& (dev->dl_tx_pass_buf_qlen) >= max_pkts_per_xfer)) {
 		spin_unlock_irqrestore(&dev->lock, flags);
@@ -1363,25 +1362,25 @@ static void tx_complete(struct usb_ep *ep, struct usb_request *req)
 static void process_tx_w(struct work_struct *work)
 {
 	struct vser_dev *dev = container_of(work, struct vser_dev, tx_work);
-	struct usb_ep *in = NULL;
 	unsigned long flags;
 	struct usb_request *req;
 	struct pass_buf *pbuf = NULL;
 	struct sg_ctx *sg_ctx;
 	int count, ret = 0;
 
-	spin_lock_irqsave(&dev->lock, flags);
-	in = dev->ep_in;
-	if (!in) {
-		spin_unlock_irqrestore(&dev->lock, flags);
+	if (!dev || !dev->online)
 		return;
-	}
+	spin_lock_irqsave(&dev->lock, flags);
 	dev->dl_tx_work_status = 1;
 	spin_unlock_irqrestore(&dev->lock, flags);
 
-	while (in && !list_empty(&dev->tx_pass_idle) && !list_empty(&dev->tx_pass_buf_q)) {
-		req = vser_req_get(dev, &dev->tx_pass_idle);
-		pbuf = vser_pbuf_get(dev, &dev->tx_pass_buf_q);
+	spin_lock_irqsave(&dev->req_lock, flags);
+	while (dev->online && !list_empty(&dev->tx_pass_idle) &&
+		(pbuf = vser_pbuf_get(dev, &dev->tx_pass_buf_q))) {
+		req = list_first_entry(&dev->tx_pass_idle, struct usb_request, list);
+		list_del(&req->list);
+		tx_req_count--;
+		spin_unlock_irqrestore(&dev->req_lock, flags);
 
 		req->num_sgs = 0;
 		req->zero = 0;
@@ -1392,17 +1391,8 @@ static void process_tx_w(struct work_struct *work)
 
 		count = 1;
 		do {
-			sg_set_buf(&req->sg[req->num_sgs], pbuf->buf, pbuf->len);
-			req->num_sgs++;
-			req->length += pbuf->len;
-			vser_pbuf_put(dev, &sg_ctx->list, pbuf);
-
-			pbuf = vser_pbuf_get(dev, &dev->tx_pass_buf_q);
-			if (!pbuf)
-				break;
-
-			if ((req->length + pbuf->len) >= dev->size_in ||
-					count >= dev->dl_max_pkts_per_xfer) {
+			if ((req->length + pbuf->len) > dev->size_in ||
+					count > dev->dl_max_pkts_per_xfer) {
 				spin_lock_irqsave(&dev->lock, flags);
 				list_add(&pbuf->list, &dev->tx_pass_buf_q);
 				dev->dl_tx_pass_buf_qlen++;
@@ -1410,37 +1400,68 @@ static void process_tx_w(struct work_struct *work)
 				break;
 			}
 
+			sg_set_buf(&req->sg[req->num_sgs], pbuf->buf, pbuf->len);
+			req->num_sgs++;
+			req->length += pbuf->len;
+			vser_pbuf_put(dev, &sg_ctx->list, pbuf);
 			count++;
-		} while (true);
+		} while (dev->online && (pbuf = vser_pbuf_get(dev, &dev->tx_pass_buf_q)));
 
+		if (!dev->online) {
+			while (!list_empty(&sg_ctx->list)) {
+				pbuf = list_first_entry(&sg_ctx->list, struct pass_buf, list);
+				list_del(&pbuf->list);
+				kfree(pbuf);
+				pbuf = NULL;
+			}
+			kfree(req->buf);
+			kfree(req->context);
+			kfree(req->sg);
+			usb_ep_free_request(dev->ep_in, req);
+			dev->dl_tx_work_status = 0;
+			return;
+		}
 		sg_mark_end(&req->sg[req->num_sgs - 1]);
 
-		if ((req->length % in->maxpacket) == 0)
+		if ((req->length % dev->ep_in->maxpacket) == 0)
 			req->zero = 1;
 
-		spin_lock_irqsave(&dev->lock, flags);
+		spin_lock_irqsave(&dev->req_lock, flags);
 		dev->dl_tx_req_status++;
-		spin_unlock_irqrestore(&dev->lock, flags);
+		spin_unlock_irqrestore(&dev->req_lock, flags);
 
 		sg_ctx->q_time = ktime_get();
-		ret = usb_ep_queue(in, req, GFP_ATOMIC);
+		ret = usb_ep_queue(dev->ep_in, req, GFP_ATOMIC);
+
+		spin_lock_irqsave(&dev->req_lock, flags);
 		if (ret) {
-			pr_err("tx usb_ep_queue ERROR!!!\n");
+			pr_err("tx usb_ep_queue ERROR!!!, ret = %d\n", ret);
 
 			dev->dl_sent_failed_packet_count++;
-			spin_lock_irqsave(&dev->lock, flags);
 			dev->wr_error = 1;
 			if (dev->dl_tx_req_status > 0)
 				dev->dl_tx_req_status--;
-			spin_unlock_irqrestore(&dev->lock, flags);
 
-			while ((pbuf = vser_pbuf_get(dev, &sg_ctx->list)))
+			while (!list_empty(&sg_ctx->list)) {
+				pbuf = list_first_entry(&sg_ctx->list, struct pass_buf, list);
+				list_del(&pbuf->list);
 				kfree(pbuf);
+				pbuf = NULL;
+			}
 
-			vser_req_put(dev, &dev->tx_pass_idle, req);
+			if (!dev->online) {
+				kfree(req->buf);
+				kfree(req->context);
+				kfree(req->sg);
+				usb_ep_free_request(dev->ep_in, req);
+			} else {
+				list_add_tail(&req->list,  &dev->tx_pass_idle);
+				tx_req_count++;
+			}
 			break;
 		}
 	}
+	spin_unlock_irqrestore(&dev->req_lock, flags);
 	dev->dl_tx_work_status = 0;
 }
 

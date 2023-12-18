@@ -59,6 +59,7 @@
 
 #undef CREATE_TRACE_POINTS
 #include <trace/hooks/signal.h>
+#include <trace/hooks/dtask.h>
 /*
  * SLAB caches for signal bits.
  */
@@ -994,6 +995,7 @@ static void complete_signal(int sig, struct task_struct *p, enum pid_type type)
 {
 	struct signal_struct *signal = p->signal;
 	struct task_struct *t;
+	bool wake;
 
 	/*
 	 * Now find a thread we can wake up to take the signal off the queue.
@@ -1053,7 +1055,10 @@ static void complete_signal(int sig, struct task_struct *p, enum pid_type type)
 				trace_android_vh_exit_signal(t);
 				task_clear_jobctl_pending(t, JOBCTL_PENDING_MASK);
 				sigaddset(&t->pending.signal, SIGKILL);
-				signal_wake_up(t, 1);
+				wake = true;
+				trace_android_vh_exit_signal_whether_wake(t, &wake);
+				if (wake)
+					signal_wake_up(t, 1);
 			} while_each_thread(p, t);
 			return;
 		}
@@ -1079,17 +1084,6 @@ static int __send_signal(int sig, struct kernel_siginfo *info, struct task_struc
 	struct sigqueue *q;
 	int override_rlimit;
 	int ret = 0, result;
-
-#ifdef CONFIG_SPRD_SIGNAL_DEBUG
-	if ((sig == SIGKILL || sig == SIGTERM) && (!strcmp(t->comm, "system_server")
-					|| !strcmp(t->comm, "surfaceflinger")
-					|| !strcmp(t->comm, "netd")
-					|| !strcmp(t->comm, "inputflinger")
-					|| !strcmp(t->comm, "servicemanager"))) {
-		pr_warn("Signal_Debug: Req_process is %s, pid=%d, Tar_process is%s, pid=%d, sig=%d\n",
-			current->comm, task_pid_nr(current), t->comm, task_pid_nr(t), sig);
-	}
-#endif
 
 	assert_spin_locked(&t->sighand->siglock);
 

@@ -139,9 +139,9 @@
 };
 
 &ddr_dfs {
-		sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+		sprd-scene = "boost", "lcd-high", "lcdon", "lcdoff", "camlow",
 			"camhigh", "camveryhigh", "faceid", "top", "boot-opt";
-		sprd-freq = <1244 768 384 1536 1536 1866 1244 2133 2133>;
+		sprd-freq = <1244 1244 768 384 1536 1536 1866 1244 2133 2133>;
 };
 
 &dptx {

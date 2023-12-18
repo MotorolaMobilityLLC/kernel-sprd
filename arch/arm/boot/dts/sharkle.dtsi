@@ -288,7 +288,7 @@
 				sprd,dai_name = "i2s_bt_sco0";
 				sprd,hw_port = <0>;
 				sprd,syscon-ap-apb = <&ap_apb_regs>;
-				#sound-dai-cells = <0>;
+				#sound-dai-cells = <1>;
 				status = "disable";
 				clock-names ="clk_iis0", "clk_twpll_128m", "clk_twpll_153m6";
 				clocks = <&ap_clk CLK_IIS0>,
@@ -1091,6 +1091,10 @@
 				top_force_shutdown = <&pmu_apb_regs
 					REG_PMU_APB_PD_GPU_TOP_CFG
 					MASK_PMU_APB_PD_GPU_TOP_FORCE_SHUTDOWN>;
+
+				gpu_top_state = <&pmu_apb_regs
+					REG_PMU_APB_PWR_STATUS3_DBG
+					MASK_PMU_APB_PD_GPU_TOP_STATE>;
 
 				interrupts = <GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>,
 					<GIC_SPI 39 IRQ_TYPE_LEVEL_HIGH>,

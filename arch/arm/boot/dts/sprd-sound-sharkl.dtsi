@@ -93,6 +93,7 @@
 		sprd-audio-card,codec-replace-adc-rate = <48000>;
 		/* dai-links */
 		sprd-audio-card,dai-link@0 {
+			ignore-suspend = <0>;
 			plat {
 				sound-dai = <&sprd_pcm>;
 			};
@@ -106,6 +107,7 @@
 			};
 		};
 		sprd-audio-card,dai-link@1 {
+			ignore-suspend = <0>;
 			plat {
 				sound-dai = <&sprd_pcm>;
 			};
@@ -119,6 +121,7 @@
 			};
 		};
 		sprd-audio-card,dai-link@2 {
+			ignore-suspend = <0>;
 			plat {
 				sound-dai = <&sprd_pcm>;
 			};
@@ -132,6 +135,7 @@
 			};
 		};
 		sprd-audio-card,dai-link@3 {
+			ignore-suspend = <0>;
 			plat {
 				sound-dai = <&sprd_pcm>;
 			};
@@ -145,6 +149,7 @@
 			};
 		};
 		sprd-audio-card,dai-link@4 {
+			ignore-suspend = <0>;
 			ops = <0>;
 			plat {
 				sound-dai = <&sprd_pcm>;
@@ -159,6 +164,7 @@
 			};
 		};
 		sprd-audio-card,dai-link@5 {
+			ignore-suspend = <0>;
 			plat {
 				sound-dai = <&sprd_pcm>;
 			};
@@ -183,7 +189,7 @@
 				sound-dai = <&sprd_pcm_iis>;
 			};
 			cpu {
-				sound-dai = <&i2s0>;
+				sound-dai = <&i2s0 0>;
 			};
 			codec {
 				sound-dai = <0 0>;

@@ -23,7 +23,7 @@
 		};
 
 		led-controller@180 {
-			compatible = "sprd,sc2731-bltc", "sprd,sc2721-bltc";
+			compatible = "sprd,sc2721-bltc";
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <0x180>;

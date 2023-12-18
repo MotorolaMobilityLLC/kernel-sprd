@@ -53,41 +53,33 @@ struct fuse_in_postfilter_header {
  *
  */
 
-#if BITS_PER_LONG == 32
 /** One input argument of a request */
 struct fuse_bpf_in_arg {
 	uint32_t size;
-	uint32_t padding1;
-	const void *value;
-	uint32_t padding2;
-	const void *end_offset;
-	uint32_t padding3;
+	uint32_t padding;
+	union {
+		const void *value;
+		uint64_t padding2;
+	};
+	union {
+		const void *end_offset;
+		uint64_t padding3;
+	};
 };
 
 /** One output argument of a request */
 struct fuse_bpf_arg {
 	uint32_t size;
-	uint32_t padding1;
-	void *value;
-	uint32_t padding2;
-	void *end_offset;
-	uint32_t padding3;
+	uint32_t padding;
+	union {
+		void *value;
+		uint64_t padding2;
+	};
+	union {
+		void *end_offset;
+		uint64_t padding3;
+	};
 };
-#else
-/** One input argument of a request */
-struct fuse_bpf_in_arg {
-	uint32_t size;
-	const void *value;
-	const void *end_offset;
-};
-
-/** One output argument of a request */
-struct fuse_bpf_arg {
-	uint32_t size;
-	void *value;
-	void *end_offset;
-};
-#endif
 
 #define FUSE_MAX_IN_ARGS 5
 #define FUSE_MAX_OUT_ARGS 3
@@ -95,7 +87,6 @@ struct fuse_bpf_arg {
 #define FUSE_BPF_FORCE (1 << 0)
 #define FUSE_BPF_OUT_ARGVAR (1 << 6)
 
-#if BITS_PER_LONG == 32
 struct fuse_bpf_args {
 	uint64_t nodeid;
 	uint32_t opcode;
@@ -107,18 +98,6 @@ struct fuse_bpf_args {
 	struct fuse_bpf_in_arg in_args[FUSE_MAX_IN_ARGS];
 	struct fuse_bpf_arg out_args[FUSE_MAX_OUT_ARGS];
 };
-#else
-struct fuse_bpf_args {
-	uint64_t nodeid;
-	uint32_t opcode;
-	uint32_t error_in;
-	uint32_t in_numargs;
-	uint32_t out_numargs;
-	uint32_t flags;
-	struct fuse_bpf_in_arg in_args[FUSE_MAX_IN_ARGS];
-	struct fuse_bpf_arg out_args[FUSE_MAX_OUT_ARGS];
-};
-#endif
 
 #define FUSE_BPF_USER_FILTER	1
 #define FUSE_BPF_BACKING	2

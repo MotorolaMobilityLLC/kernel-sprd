@@ -55,6 +55,9 @@
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges;
+		sprd,syscon-pmu-apb = <&pmu_apb_regs>;
+		sprd,syscon-ipa-apb = <&ipa_apb_regs>;
+		sprd,syscon-ipa-dispc1-glb-apb = <&ipa_dispc_regs>;
 
 		clocks = <&ipaapb_gate CLK_USB_EB>,
 			<&ipaapb_gate CLK_USB_REF_EB>,
@@ -78,7 +81,7 @@
 		"ipa_usb_ref_default";
 		usb-phy = <&dummyphy>, <&ssphy>;
 		power-domains = <&pd_ipa_sys>;
-
+		pme-wakeup-gpios = <&eic_async 42 GPIO_ACTIVE_HIGH>;
 		dwc3@25100000 {
 			compatible = "snps,sprd-dwc3";
 			reg = <0 0x25100000 0 0x100000>;
@@ -89,9 +92,8 @@
 			phy_type = "utmi";
 			usb-role-switch;
 			linux,sysdev_is_parent;
-			snps,dis_u3_susphy_quirk;
-			snps,dis_u2_susphy_quirk;
 			snps,usb2-gadget-lpm-disable;
+			snps,has_hibernation;
 		};
 	};
 
@@ -116,6 +118,7 @@
 		reg-names = "phy_glb_regs";
 		#phy-cells = <0>;
 		power-domains = <&pd_ipa_sys>;
+		sprd,syscon-pmu-apb = <&pmu_apb_regs>;
 		sprd,syscon-aon-apb = <&aon_apb_regs>;
 		sprd,syscon-ana-g0l = <&anlg_phy_g0l_regs>;
 		sprd,syscon-ipa-apb = <&ipa_apb_regs>;
