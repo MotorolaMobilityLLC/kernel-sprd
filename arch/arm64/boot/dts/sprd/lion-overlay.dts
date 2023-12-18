@@ -553,6 +553,12 @@
 		label = "carveout_fd";
 		memory-region = <&fd_reserved>;
 	};
+
+
+	protected-reserved {
+		label = "protected";
+		memory-region = <&protected_reserved>;
+	};
 };
 
 &adi_bus {
