@@ -358,6 +358,11 @@
 		label = "uncached_carveout_oem";
 		memory-region = <&oemcrypto_reserved>;
 	};
+
+	protected-reserved {
+		label = "protected";
+		memory-region = <&protected_reserved>;
+	};
 };
 
 &sdio0 {
