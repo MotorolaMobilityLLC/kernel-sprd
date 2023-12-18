@@ -297,6 +297,12 @@
 							     124872 43 >;
 			};
 
+			skin_sensor: skin-sensor {
+				compatible = "sprd, skin-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "board-thmzone";
+			};
+
 			gpio-keys {
 				compatible = "gpio-keys";
 				pinctrl-names = "gpio_124";
@@ -381,6 +387,10 @@
 &pa_thmzone {
 	status = "disabled";
 	thermal-sensors = <&pa_thermistor>;
+};
+
+&skin_thmzone {
+	thermal-sensors = <&skin_sensor>;
 };
 
 &i2c0 {
