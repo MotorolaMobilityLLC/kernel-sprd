@@ -144,6 +144,11 @@
 			thermal-sensors = <&ap_thm2 4>;
 		};
 
+		skin_thmzone: skin-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+		};
+
 		osctsen_thmzone: osctsen-thmzone {
 			 polling-delay-passive = <0>;
 			 polling-delay = <0>;
