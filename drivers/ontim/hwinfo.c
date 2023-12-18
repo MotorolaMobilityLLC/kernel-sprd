@@ -57,27 +57,66 @@ const char *hwinfo_get_prop(const char *prop_name)
 }
 EXPORT_SYMBOL(hwinfo_get_prop);
 
-static ssize_t RF_GPIO_show(struct kobject *dev, struct kobj_attribute *attr, char *buf)
+static ssize_t RF_GPIO140_show(struct kobject *dev, struct kobj_attribute *attr, char *buf)
 {
 	int val = 0;
 	const char *msg = "unknown";
 
-	val = gpio_get_value(393);
-	if(0 == val)
-		val = gpio_get_value(446);
+	val = gpio_get_value(188);
 	pr_info("%s: val = %d\n", __func__, val);
 	msg = val ? "1" : "0";
 
 	return sysfs_emit(buf, "%s\n", msg);
 }
-static KOBJ_ATTR_RO(RF_GPIO);
+static KOBJ_ATTR_RO(RF_GPIO140);
+
+static ssize_t RF_GPIO178_show(struct kobject *dev, struct kobj_attribute *attr, char *buf)
+{
+        int val = 0;
+        const char *msg = "unknown";
+
+        val = gpio_get_value(226);
+        pr_info("%s: val = %d\n", __func__, val);
+        msg = val ? "1" : "0";
+
+        return sysfs_emit(buf, "%s\n", msg);
+}
+static KOBJ_ATTR_RO(RF_GPIO178);
+
+static ssize_t RF_GPIO179_show(struct kobject *dev, struct kobj_attribute *attr, char *buf)
+{
+        int val = 0;
+        const char *msg = "unknown";
+
+        val = gpio_get_value(227);
+        pr_info("%s: val = %d\n", __func__, val);
+        msg = val ? "1" : "0";
+
+        return sysfs_emit(buf, "%s\n", msg);
+}
+static KOBJ_ATTR_RO(RF_GPIO179);
+
+static ssize_t RF_GPIO180_show(struct kobject *dev, struct kobj_attribute *attr, char *buf)
+{
+        int val = 0;
+        const char *msg = "unknown";
+
+        val = gpio_get_value(228);
+        pr_info("%s: val = %d\n", __func__, val);
+        msg = val ? "1" : "0";
+
+        return sysfs_emit(buf, "%s\n", msg);
+}
+static KOBJ_ATTR_RO(RF_GPIO180);
 
 static ssize_t cable_gpio_show(struct kobject *dev, struct kobj_attribute *attr, char *buf)
 {
 	int val = 0;
 	const char *msg = "unknown";
 
-	val = gpio_get_value(393);
+	val = gpio_get_value(226);
+	if(0 == val)
+		gpio_get_value(227);
 	pr_info("%s: val = %d\n", __func__, val);
 	msg = val ? "0" : "1";
 
@@ -169,7 +208,10 @@ static KOBJ_ATTR_RW(gpio);
 static struct attribute * hwinfo_attrs[] = {
 	&dev_attr_card_present.attr,
 	&dev_attr_gpio.attr,
-	&dev_attr_RF_GPIO.attr,
+	&dev_attr_RF_GPIO140.attr,
+	&dev_attr_RF_GPIO178.attr,
+	&dev_attr_RF_GPIO179.attr,
+	&dev_attr_RF_GPIO180.attr,
 	&dev_attr_cable_gpio.attr,
 	NULL,
 };
