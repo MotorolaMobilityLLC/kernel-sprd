@@ -49,6 +49,9 @@ EXT_MODULES="
 ../modules/common/camera/power
 ../modules/common/camera/cam_sys
 ../modules/common/camera/cpp
+../modules/common/camera/qvga/qvga_core
+../modules/common/camera/qvga/ov8856
+../modules/common/camera/qvga/ov8856_shine
 ../modules/common/camera/flash/ocp8137
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/sensor
