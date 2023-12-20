@@ -12,7 +12,7 @@
 
 	/* Novatek device tree node */
 	touchpanel@0 {
-		compatible = "omnivision,tcm-spi";
+		compatible = "omnivision,tcm-spi","tchip,ilitek";
 		reg = <0>; //Same as CS ID
 		status = "ok";
 		spi-max-frequency = <8000000>;	//4800000,9600000,15000000,19200000
@@ -30,6 +30,11 @@
 		omnivision,block-delay-us = <0>;
 		omnivision,ubl-max-freq = <3000000>;
 		omnivision,ubl-byte-delay-us = <20>;
+
+		/*ilitek start*/
+		touch,irq-gpio = <&ap_gpio 13 GPIO_ACTIVE_HIGH>;
+		touch,reset-gpio = <&ap_gpio 14 GPIO_ACTIVE_HIGH>;
+		/*ilitek end*/
 
 		/*------------------focaltech_ft8756------------------*/
 		focaltech,max-touch-number = <5>;

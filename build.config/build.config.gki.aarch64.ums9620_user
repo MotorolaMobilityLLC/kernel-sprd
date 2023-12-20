@@ -32,8 +32,10 @@ EXT_MODULES="
 ../modules/kernel5.15/touchscreen/novatek_nt36xxx
 ../modules/kernel5.15/touchscreen/synaptics_td4320_spi
 ../modules/kernel5.15/input/touchscreen/td4375_ts
+../modules/kernel5.15/input/touchscreen/ilitek_v3
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
+../modules/kernel5.15/video/backlight
 ../modules/kernel5.15/display/gsp
 ../modules/kernel5.15/display/dispc
 ../modules/kernel5.15/dmabufheap
