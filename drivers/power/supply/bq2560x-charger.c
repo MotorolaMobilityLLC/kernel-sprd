@@ -331,6 +331,11 @@ static int bq2560x_update_bits(struct bq2560x_charger_info *info, u8 reg,
 	return bq2560x_write(info, reg, v);
 }
 
+static int bq2560x_set_reg(struct bq2560x_charger_info *info, int reg)
+{
+	return bq2560x_write(info,(reg>>8) & 0xff, reg & 0xff);
+}
+
 static int
 bq2560x_charger_set_vindpm(struct bq2560x_charger_info *info, u32 vol)
 {
@@ -1266,6 +1271,10 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 			cancel_delayed_work_sync(&info->wdt_work);
 		}
 		break;
+	case POWER_SUPPLY_PROP_TECHNOLOGY:
+		ret = bq2560x_set_reg(info, val->intval);
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -1286,6 +1295,7 @@ static int bq2560x_charger_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TYPE:
 	case POWER_SUPPLY_PROP_STATUS:
 	case POWER_SUPPLY_PROP_PRESENT:
+	case POWER_SUPPLY_PROP_TECHNOLOGY:
 		ret = 1;
 		break;
 
@@ -1304,10 +1314,11 @@ static enum power_supply_property bq2560x_usb_props[] = {
 	POWER_SUPPLY_PROP_CALIBRATE,
 	POWER_SUPPLY_PROP_TYPE,
 	POWER_SUPPLY_PROP_ONLINE,
+	POWER_SUPPLY_PROP_TECHNOLOGY,
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {
-	.name			= "bq2560x_charger",
+	.name			= "charger",
 	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties		= bq2560x_usb_props,
 	.num_properties		= ARRAY_SIZE(bq2560x_usb_props),
@@ -1334,22 +1345,19 @@ static ssize_t bq2560x_register_value_show(struct device *dev,
 		container_of(attr, struct bq2560x_charger_sysfs,
 			     attr_bq2560x_reg_val);
 	struct  bq2560x_charger_info *info =  bq2560x_sysfs->info;
-	u8 val;
-	int ret;
+	unsigned char i, reg_val;
+	ssize_t len = 0;
 
 	if (!info)
 		return snprintf(buf, PAGE_SIZE, "%s  bq2560x_sysfs->info is null\n", __func__);
 
-	ret = bq2560x_read(info, reg_tab[info->reg_id].addr, &val);
-	if (ret) {
-		dev_err(info->dev, "fail to get  BQ2560X_REG_0x%.2x value, ret = %d\n",
-			reg_tab[info->reg_id].addr, ret);
-		return snprintf(buf, PAGE_SIZE, "fail to get  BQ2560X_REG_0x%.2x value\n",
-			       reg_tab[info->reg_id].addr);
+	for (i = 0; i < 0x10; i++) {
+		bq2560x_read(info, i, &reg_val);
+		len += snprintf(buf + len, PAGE_SIZE - len,
+				"reg:0x%02x=0x%02x\n", i, reg_val);
 	}
 
-	return snprintf(buf, PAGE_SIZE, "BQ2560X_REG_0x%.2x = 0x%.2x\n",
-			reg_tab[info->reg_id].addr, val);
+	return len;
 }
 
 static ssize_t bq2560x_register_value_store(struct device *dev,
@@ -1360,29 +1368,21 @@ static ssize_t bq2560x_register_value_store(struct device *dev,
 		container_of(attr, struct bq2560x_charger_sysfs,
 			     attr_bq2560x_reg_val);
 	struct bq2560x_charger_info *info = bq2560x_sysfs->info;
-	u8 val;
-	int ret;
+	unsigned int databuf[2];
 
 	if (!info) {
 		dev_err(dev, "%s bq2560x_sysfs->info is null\n", __func__);
 		return count;
 	}
 
-	ret =  kstrtou8(buf, 16, &val);
-	if (ret) {
-		dev_err(info->dev, "fail to get addr, ret = %d\n", ret);
-		return count;
+
+	if (sscanf(buf, "%x %x", &databuf[0], &databuf[1]) == 2) {
+		bq2560x_write(info, (unsigned char)databuf[0],
+			     (unsigned char)databuf[1]);
 	}
 
-	ret = bq2560x_write(info, reg_tab[info->reg_id].addr, val);
-	if (ret) {
-		dev_err(info->dev, "fail to wite 0x%.2x to REG_0x%.2x, ret = %d\n",
-				val, reg_tab[info->reg_id].addr, ret);
-		return count;
-	}
-
-	dev_info(info->dev, "wite 0x%.2x to REG_0x%.2x success\n", val, reg_tab[info->reg_id].addr);
 	return count;
+
 }
 
 static ssize_t bq2560x_register_id_store(struct device *dev,
@@ -1516,7 +1516,7 @@ static int bq2560x_register_sysfs(struct bq2560x_charger_info *info)
 	bq2560x_sysfs->attr_bq2560x_sel_reg_id.store = bq2560x_register_id_store;
 
 	sysfs_attr_init(&bq2560x_sysfs->attr_bq2560x_reg_val.attr);
-	bq2560x_sysfs->attr_bq2560x_reg_val.attr.name = "bq2560x_reg_val";
+	bq2560x_sysfs->attr_bq2560x_reg_val.attr.name = "reg";
 	bq2560x_sysfs->attr_bq2560x_reg_val.attr.mode = 0644;
 	bq2560x_sysfs->attr_bq2560x_reg_val.show = bq2560x_register_value_show;
 	bq2560x_sysfs->attr_bq2560x_reg_val.store = bq2560x_register_value_store;
@@ -1847,7 +1847,10 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 			info->chip_type = CHIP_SGM41542;
 		}
 		else
+		{
+			dev_err(dev, "%s;exit;\n",__func__);
 			return -ENODEV;
+		}
 	}
 
 	i2c_set_clientdata(client, info);

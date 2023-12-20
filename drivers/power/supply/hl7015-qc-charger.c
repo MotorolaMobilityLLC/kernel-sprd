@@ -2,7 +2,7 @@
 // Copyright (c) 2021 unisoc.
 
 /*
- * Driver for the TI bq2560xqc charger.
+ * Driver for the TI hl7015qc charger.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -28,37 +28,37 @@
 #include <linux/pm_wakeup.h>
 #include <linux/iio/consumer.h>
 
-#define BQ2560XQC_REG_0				0x0
-#define BQ2560XQC_REG_1				0x1
-#define BQ2560XQC_REG_2				0x2
-#define BQ2560XQC_REG_3				0x3
-#define BQ2560XQC_REG_4				0x4
-#define BQ2560XQC_REG_5				0x5
-#define BQ2560XQC_REG_6				0x6
-#define BQ2560XQC_REG_7				0x7
-#define BQ2560XQC_REG_8				0x8
-#define BQ2560XQC_REG_9				0x9
-#define BQ2560XQC_REG_A				0xa
-#define BQ2560XQC_REG_B				0xb
-#define BQ2560XQC_REG_NUM				12
+#define HL7015QC_REG_0				0x0
+#define HL7015QC_REG_1				0x1
+#define HL7015QC_REG_2				0x2
+#define HL7015QC_REG_3				0x3
+#define HL7015QC_REG_4				0x4
+#define HL7015QC_REG_5				0x5
+#define HL7015QC_REG_6				0x6
+#define HL7015QC_REG_7				0x7
+#define HL7015QC_REG_8				0x8
+#define HL7015QC_REG_9				0x9
+#define HL7015QC_REG_A				0xa
+#define HL7015QC_REG_B				0xb
+#define HL7015QC_REG_NUM				12
 
 
-#define BQ2560XQC_REG_OVP_MASK			GENMASK(7, 6)
-#define BQ2560XQC_REG_OVP_SHIFT			6
+#define HL7015QC_REG_OVP_MASK			GENMASK(7, 6)
+#define HL7015QC_REG_OVP_SHIFT			6
 
-#define BQ2560XQC_REG_IINLIM_BASE			100
-#define BQ2560XQC_REG_LIMIT_CURRENT_MASK		GENMASK(4, 0)
-
-
-#define BQ2560XQC_LIMIT_CURRENT_MAX		3200000
-#define BQ2560XQC_LIMIT_CURRENT_OFFSET		100000
-
-#define BQ2560XQC_WAKE_UP_MS			1000
+#define HL7015QC_REG_IINLIM_BASE			100
+#define HL7015QC_REG_LIMIT_CURRENT_MASK		GENMASK(4, 0)
 
 
-#define BQ2560XQC_BATTERY_NAME			"sc27xx-fgu"
-#define BQ2560XQC_MAIN_NAME			"charger"
-#define BQ2560XQC_CP_NAME			 "bq2597x-standalone"
+#define HL7015QC_LIMIT_CURRENT_MAX		3200000
+#define HL7015QC_LIMIT_CURRENT_OFFSET		100000
+
+#define HL7015QC_WAKE_UP_MS			1000
+
+
+#define HL7015QC_BATTERY_NAME			"sc27xx-fgu"
+#define HL7015QC_MAIN_NAME			"charger"
+#define HL7015QC_CP_NAME			 "bq2597x-standalone"
 
 #define VBUS_12V 12000000
 #define VBUS_9V 9000000
@@ -73,7 +73,7 @@
 
 enum chip_type{
 	CHIP_NONE=0,
-	CHIP_SGM41542=2,
+	CHIP_HL7015=3,
 };
 
 enum adjust_voltage_direct
@@ -82,7 +82,7 @@ enum adjust_voltage_direct
 	ADJUST_DOWN,
 };
 
-struct bq2560xqc_charger_info {
+struct hl7015qc_charger_info {
 	struct i2c_client *client;
 	struct device *dev;
 	struct power_supply *psy_usb;
@@ -101,33 +101,33 @@ struct bq2560xqc_charger_info {
 	u32 charger_online;
 	bool detected;
 	char charge_ic_vendor_name[50];
-	struct power_supply *psy_bq2560x;
+	struct power_supply *psy_hl7015;
 	struct power_supply *psy_fgu;
 	unsigned int dpdm_gpio;
 
 };
 
-static int bq2560xqc_write(struct bq2560xqc_charger_info *info, int reg, int data)
+static int hl7015qc_write(struct hl7015qc_charger_info *info, int reg, int data)
 {
 	union power_supply_propval val;
 	int ret;
 
 	val.intval = (reg << 8) | data;
 
-	ret = power_supply_set_property(info->psy_bq2560x, POWER_SUPPLY_PROP_TECHNOLOGY,
+	ret = power_supply_set_property(info->psy_hl7015, POWER_SUPPLY_PROP_TECHNOLOGY,
 					&val);
 	return ret;
 
 }
 
-static int bq2560xqc_charger_get_limit_current(struct bq2560xqc_charger_info *info,
+static int hl7015qc_charger_get_limit_current(struct hl7015qc_charger_info *info,
 	                     u32 *limit_cur)
 {
 	union power_supply_propval val;
 	int ret;
 
 
-	ret = power_supply_get_property(info->psy_bq2560x,
+	ret = power_supply_get_property(info->psy_hl7015,
 					POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
 					&val);
 	if (ret == 0)
@@ -138,7 +138,7 @@ static int bq2560xqc_charger_get_limit_current(struct bq2560xqc_charger_info *in
 
 	return ret;
 }
-static int bq2560xqc_check_qc(struct bq2560xqc_charger_info *info)
+static int hl7015qc_check_qc(struct hl7015qc_charger_info *info)
 {
 //				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
 //				io-channel-names = "dp", "dm";
@@ -185,7 +185,7 @@ static int bq2560xqc_check_qc(struct bq2560xqc_charger_info *info)
 	return info->state;
 }
 
-static int bq2560xqc_charger_set_limit_current(struct bq2560xqc_charger_info *info,
+static int hl7015qc_charger_set_limit_current(struct hl7015qc_charger_info *info,
 					     u32 limit_cur)
 {
 	union power_supply_propval val;
@@ -194,13 +194,13 @@ static int bq2560xqc_charger_set_limit_current(struct bq2560xqc_charger_info *in
 
 	info->last_limit_cur = limit_cur;
 	val.intval = limit_cur;
-	ret = power_supply_set_property(info->psy_bq2560x, POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
+	ret = power_supply_set_property(info->psy_hl7015, POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT,
 					&val);
 
 	return ret;
 }
 
-static int bq2560xqc_hsphy_set_dpdm(struct bq2560xqc_charger_info *info ,  int on)
+static int hl7015qc_hsphy_set_dpdm(struct hl7015qc_charger_info *info ,  int on)
 {
 	int ret = 0;
 	int cnt=5;
@@ -279,13 +279,13 @@ static int bq2560xqc_hsphy_set_dpdm(struct bq2560xqc_charger_info *info ,  int o
 	return ret;
 }
 
-static int bq2560xqc_fgu_get_vbus(struct bq2560xqc_charger_info *info)
+static int hl7015qc_fgu_get_vbus(struct hl7015qc_charger_info *info)
 {
 	struct power_supply *psy;
 	union power_supply_propval val;
 	int ret;
 
-	psy = power_supply_get_by_name(BQ2560XQC_BATTERY_NAME);
+	psy = power_supply_get_by_name(HL7015QC_BATTERY_NAME);
 	if (!psy) {
 		dev_err(info->dev, "Failed to get psy of sc27xx_fgu\n");
 		return false;
@@ -302,7 +302,7 @@ static int bq2560xqc_fgu_get_vbus(struct bq2560xqc_charger_info *info)
 // 3.3 3.3   20v
 // 0.6 hz   5v
 
-static int bq2560xqc_set_qc(struct bq2560xqc_charger_info *info,int voltage)
+static int hl7015qc_set_qc(struct hl7015qc_charger_info *info,int voltage)
 {
 
 	dev_info(info->dev, "%s;%d;%d;\n",__func__,info->current_vbus,voltage);
@@ -310,42 +310,42 @@ static int bq2560xqc_set_qc(struct bq2560xqc_charger_info *info,int voltage)
 	info->current_vbus = voltage;
 
 	if(info->current_vbus == VBUS_5V)
-		bq2560xqc_write(info, 0x0d, 0x10);      //d+ 0.6
+		hl7015qc_write(info, 0x0f, 0x80);      //d+ 0.6
 	else if(info->current_vbus == VBUS_9V)	
-		bq2560xqc_write(info, 0x0d, 0x1c);      //d+ 3.3 , d- 0.6
+		hl7015qc_write(info, 0x0f, 0xe0);      //d+ 3.3 , d- 0.6
 	else if(info->current_vbus == VBUS_12V)	
-		bq2560xqc_write(info, 0x0d, 0x14);      //d+ 0.6  d- 0.6
+		hl7015qc_write(info, 0x0f, 0xa0);      //d+ 0.6  d- 0.6
 
 	return 0;	
 }
-static int bq2560xqc_set_qc_continue(struct bq2560xqc_charger_info *info,int step,int direction)
+static int hl7015qc_set_qc_continue(struct hl7015qc_charger_info *info,int step,int direction)
 {
 	int i;
 	
-	bq2560xqc_write(info, 0x0d, 0x15);      //d+ 0.6, d- 3.3  enter continue mode
+	hl7015qc_write(info, 0x0f, 0xb0);      //d+ 0.6, d- 3.3  enter continue mode
 	msleep(500);
 
 	for(i=0;i< step;i++)
 	{
 		if(direction == ADJUST_UP)
 		{
-			bq2560xqc_write(info, 0x0d, 0x1e);      //d+ 3.3, d- 3.3  up
+			hl7015qc_write(info, 0x0f, 0xf0);      //d+ 3.3, d- 3.3  up
 			msleep(50);
 		}		
 		else
 		{
-			bq2560xqc_write(info, 0x0d, 0x14);      //d+ 0.6, d- 0.6  down
+			hl7015qc_write(info, 0x0f, 0xa0);      //d+ 0.6, d- 0.6  down
 			msleep(50);
 		}
 			
-		bq2560xqc_write(info, 0x0d, 0x1e);      //d+ 0.6, d- 3.3 back to continue mode
+		hl7015qc_write(info, 0x0f, 0xb0);      //d+ 0.6, d- 3.3 back to continue mode
 		msleep(30);
 	}
 
 	return 0;
 }
 
-static int bq2560xqc_fchg_adjust_voltage(struct bq2560xqc_charger_info *info, u32 input_vol)
+static int hl7015qc_fchg_adjust_voltage(struct hl7015qc_charger_info *info, u32 input_vol)
 {
 	#define CM_CP_VSTEP 200000
 	int vbus_step = 0, delta_vbus_uV;
@@ -359,41 +359,41 @@ static int bq2560xqc_fchg_adjust_voltage(struct bq2560xqc_charger_info *info, u3
 	{
 		delta_vbus_uV = input_vol - info->current_vbus;		
 		vbus_step = delta_vbus_uV /CM_CP_VSTEP;
-		bq2560xqc_set_qc_continue(info, vbus_step, ADJUST_UP);
+		hl7015qc_set_qc_continue(info, vbus_step, ADJUST_UP);
 	}
 	else
 	{
 		delta_vbus_uV = info->current_vbus - input_vol;		
 		vbus_step = delta_vbus_uV /CM_CP_VSTEP;
-		bq2560xqc_set_qc_continue(info, vbus_step, ADJUST_DOWN);
+		hl7015qc_set_qc_continue(info, vbus_step, ADJUST_DOWN);
 	}
 
 
 	return 0;
 }
 
-static int bq2560xqc_first_check_qc(struct bq2560xqc_charger_info *info)
+static int hl7015qc_first_check_qc(struct hl7015qc_charger_info *info)
 {
 	int vol;
 	int try_count=0;
 	int last_limit_current;
 	
-	bq2560xqc_check_qc(info);
+	hl7015qc_check_qc(info);
 
 	msleep(2500);
 	
-//	bq2560xqc_charger_set_ovp(info, BQ2560XQC_FCHG_OVP_9V);
-	bq2560xqc_charger_get_limit_current(info, &last_limit_current);
-	bq2560xqc_charger_set_limit_current(info, I_100MA);
+//	hl7015qc_charger_set_ovp(info, HL7015QC_FCHG_OVP_9V);
+	hl7015qc_charger_get_limit_current(info, &last_limit_current);
+	hl7015qc_charger_set_limit_current(info, I_100MA);
 
-	bq2560xqc_set_qc(info, VBUS_5V);
+	hl7015qc_set_qc(info, VBUS_5V);
 	msleep(2500);
-	bq2560xqc_set_qc(info, VBUS_9V);
+	hl7015qc_set_qc(info, VBUS_9V);
 	
 	do{
 		msleep(2500);
 		
-		vol=bq2560xqc_fgu_get_vbus(info);
+		vol=hl7015qc_fgu_get_vbus(info);
 		dev_info(info->dev, "%s;%d;%d;\n",__func__,vol,try_count);
 
 		if(vol < VBUS_1V)
@@ -404,7 +404,7 @@ static int bq2560xqc_first_check_qc(struct bq2560xqc_charger_info *info)
 		{
 			info->state = POWER_SUPPLY_CHARGE_TYPE_FAST;
 			 //check qc ok ,and back to 5v
-			bq2560xqc_set_qc(info, VBUS_5V);  
+			hl7015qc_set_qc(info, VBUS_5V);  
 		}
 		dev_info(info->dev, "%s;up; count %d;\n",__func__,try_count);
 			
@@ -416,17 +416,17 @@ static int bq2560xqc_first_check_qc(struct bq2560xqc_charger_info *info)
 
 first_check_qc:
 	if(info->last_limit_cur == I_100MA)
-		bq2560xqc_charger_set_limit_current(info, last_limit_current);
+		hl7015qc_charger_set_limit_current(info, last_limit_current);
 
 
 	return info->state;
 		
 }
 
-static void bq2560xqc_work(struct work_struct *data)
+static void hl7015qc_work(struct work_struct *data)
 {
 	struct delayed_work *dwork = to_delayed_work(data);
-	struct bq2560xqc_charger_info *info = container_of(dwork, struct bq2560xqc_charger_info, work);
+	struct hl7015qc_charger_info *info = container_of(dwork, struct hl7015qc_charger_info, work);
 
 	mutex_lock(&info->qc_handshake_lock);
 	if (!info->charger_online) {
@@ -435,14 +435,14 @@ static void bq2560xqc_work(struct work_struct *data)
 	} else if (!info->detected && !info->shutdown_flag) {
 		info->detected = true;
 
-		if (bq2560xqc_first_check_qc(info) == POWER_SUPPLY_CHARGE_TYPE_FAST) {
+		if (hl7015qc_first_check_qc(info) == POWER_SUPPLY_CHARGE_TYPE_FAST) {
 			/*
 			 * Must release info->qc_handshake_lock before send fast charge event
 			 * to charger manager, otherwise it will cause deadlock.
 			 */
 			gpio_direction_output(info->dpdm_gpio, 1); //analogy swtich
-			bq2560xqc_hsphy_set_dpdm(info, 0); //pmic D+ D- high impedance
-			bq2560xqc_set_qc(info, VBUS_5V);
+			hl7015qc_hsphy_set_dpdm(info, 0); //pmic D+ D- high impedance
+			hl7015qc_set_qc(info, VBUS_5V);
 			 
 			mutex_unlock(&info->qc_handshake_lock);
 			power_supply_changed(info->psy_usb);
@@ -455,11 +455,11 @@ static void bq2560xqc_work(struct work_struct *data)
 	mutex_unlock(&info->qc_handshake_lock);
 }
 
-static int bq2560xqc_charger_usb_get_property(struct power_supply *psy,
+static int hl7015qc_charger_usb_get_property(struct power_supply *psy,
 					    enum power_supply_property psp,
 					    union power_supply_propval *val)
 {
-	struct bq2560xqc_charger_info *info = power_supply_get_drvdata(psy);
+	struct hl7015qc_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
 
 	if (!info) {
@@ -486,15 +486,15 @@ static int bq2560xqc_charger_usb_get_property(struct power_supply *psy,
 	mutex_unlock(&info->lock);
 	return ret;
 }
-static int bq2560xqc_charger_usb_set_property(struct power_supply *psy,
+static int hl7015qc_charger_usb_set_property(struct power_supply *psy,
 					    enum power_supply_property psp,
 					    const union power_supply_propval *val)
 {
-	struct bq2560xqc_charger_info *info = power_supply_get_drvdata(psy);
+	struct hl7015qc_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
 	struct power_supply *psy_cp;
 
-	psy_cp = power_supply_get_by_name(BQ2560XQC_CP_NAME);
+	psy_cp = power_supply_get_by_name(HL7015QC_CP_NAME);
 
 
 	if (!info) {
@@ -511,9 +511,9 @@ static int bq2560xqc_charger_usb_set_property(struct power_supply *psy,
 			schedule_delayed_work(&info->work, 0);
 			break;
 		} else if (val->intval == false) {
-			bq2560xqc_write(info, 0x0d, 0x00);      //sgm41542 d+ d-  high impedance
+			hl7015qc_write(info, 0x0d, 0x00);      //sgm41542 d+ d-  high impedance
 			gpio_direction_output(info->dpdm_gpio, 0); //analogy swtich
-			bq2560xqc_hsphy_set_dpdm(info, 1); //pimc D+ D- connect to bc1.2
+			hl7015qc_hsphy_set_dpdm(info, 1); //pimc D+ D- connect to bc1.2
 			info->charger_online = 0;
 			info->current_vbus = 0;
 			cancel_delayed_work(&info->work);
@@ -525,14 +525,14 @@ static int bq2560xqc_charger_usb_set_property(struct power_supply *psy,
 
 		if(psy_cp)
 		{
-			ret = bq2560xqc_fchg_adjust_voltage(info, val->intval);
+			ret = hl7015qc_fchg_adjust_voltage(info, val->intval);
 		}
 		else
 		{
 			if(val->intval <= VBUS_9V)
-				ret = bq2560xqc_set_qc(info, VBUS_5V);
+				ret = hl7015qc_set_qc(info, VBUS_5V);
 			else
-				ret = bq2560xqc_set_qc(info, VBUS_9V);
+				ret = hl7015qc_set_qc(info, VBUS_9V);
 		}
 		if (ret)
 			dev_err(info->dev, "failed to adjust qc vol\n");
@@ -548,7 +548,7 @@ static int bq2560xqc_charger_usb_set_property(struct power_supply *psy,
 	return ret;
 }
 
-static int bq2560xqc_charger_property_is_writeable(struct power_supply *psy,
+static int hl7015qc_charger_property_is_writeable(struct power_supply *psy,
 						 enum power_supply_property psp)
 {
 	int ret;
@@ -567,43 +567,43 @@ static int bq2560xqc_charger_property_is_writeable(struct power_supply *psy,
 	return ret;
 }
 
-static enum power_supply_property bq2560xqc_usb_props[] = {
+static enum power_supply_property hl7015qc_usb_props[] = {
 	POWER_SUPPLY_PROP_VOLTAGE_MAX,
 	POWER_SUPPLY_PROP_CHARGE_TYPE,
 };
 
-static const struct power_supply_desc bq2560xqc_charger_desc = {
-	.name			= "bq2560xqc_charger",
+static const struct power_supply_desc hl7015qc_charger_desc = {
+	.name			= "hl7015qc_charger",
 	.type			= POWER_SUPPLY_TYPE_UNKNOWN,
-	.properties		= bq2560xqc_usb_props,
-	.num_properties		= ARRAY_SIZE(bq2560xqc_usb_props),
-	.get_property		= bq2560xqc_charger_usb_get_property,
-	.set_property		= bq2560xqc_charger_usb_set_property,
-	.property_is_writeable	= bq2560xqc_charger_property_is_writeable,
+	.properties		= hl7015qc_usb_props,
+	.num_properties		= ARRAY_SIZE(hl7015qc_usb_props),
+	.get_property		= hl7015qc_charger_usb_get_property,
+	.set_property		= hl7015qc_charger_usb_set_property,
+	.property_is_writeable	= hl7015qc_charger_property_is_writeable,
 };
 
-static int bq2560xqc_charger_probe(struct i2c_client *client,
+static int hl7015qc_charger_probe(struct i2c_client *client,
 		const struct i2c_device_id *id)
 {
 	struct device *dev = &client->dev;
 	struct power_supply_config charger_cfg = { };
-	struct bq2560xqc_charger_info *info;
+	struct hl7015qc_charger_info *info;
 	struct device_node *regmap_np;
 	struct platform_device *regmap_pdev;
 	int ret;
 	struct power_supply *psy;
 	union power_supply_propval val;
 
-	psy = power_supply_get_by_name(BQ2560XQC_MAIN_NAME);
+	psy = power_supply_get_by_name(HL7015QC_MAIN_NAME);
 		if (!psy) {
-			dev_err(dev, "%s Cannot find power supply \"bq2560x_charger\"\n",__func__);
+			dev_err(dev, "%s Cannot find power supply \"hl7015_charger\"\n",__func__);
 			return -EPROBE_DEFER;
 		}
 	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_ONLINE,
 					&val);
 
 
-	if(val.intval != CHIP_SGM41542)
+	if(val.intval != CHIP_HL7015)
 	{
 		dev_err(dev, "%s;%d;exit;\n",__func__,val.intval);
 		return -ENODEV;
@@ -615,7 +615,7 @@ static int bq2560xqc_charger_probe(struct i2c_client *client,
 
 	info->client = client;
 	info->dev = dev;
-	info->psy_bq2560x = psy;
+	info->psy_hl7015 = psy;
 
 	i2c_set_clientdata(client, info);
 
@@ -659,7 +659,7 @@ static int bq2560xqc_charger_probe(struct i2c_client *client,
 	charger_cfg.of_node = dev->of_node;
 
 	info->psy_usb = devm_power_supply_register(dev,
-						   &bq2560xqc_charger_desc,
+						   &hl7015qc_charger_desc,
 						   &charger_cfg);
 
 	if (IS_ERR(info->psy_usb)) {
@@ -673,7 +673,7 @@ static int bq2560xqc_charger_probe(struct i2c_client *client,
 
 	info->state = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
 
-	INIT_DELAYED_WORK(&info->work, bq2560xqc_work);
+	INIT_DELAYED_WORK(&info->work, hl7015qc_work);
 
 	dev_err(info->dev, "%s;probe ok;\n",__func__);
 
@@ -687,45 +687,45 @@ err_regmap_exit:
 
 
 
-static int bq2560xqc_charger_remove(struct i2c_client *client)
+static int hl7015qc_charger_remove(struct i2c_client *client)
 {
-	struct bq2560xqc_charger_info *info = i2c_get_clientdata(client);
+	struct hl7015qc_charger_info *info = i2c_get_clientdata(client);
 
 	cancel_delayed_work_sync(&info->work);
 	return 0;
 }
 
-static void bq2560xqc_charger_shutdown(struct i2c_client *client)
+static void hl7015qc_charger_shutdown(struct i2c_client *client)
 {
-	struct bq2560xqc_charger_info *info = i2c_get_clientdata(client);
+	struct hl7015qc_charger_info *info = i2c_get_clientdata(client);
 
 	info->shutdown_flag = true;
 	cancel_delayed_work_sync(&info->work);
 }
 
-static const struct i2c_device_id bq2560xqc_i2c_id[] = {
-	{"bq2560xqc_chg", 0},
+static const struct i2c_device_id hl7015qc_i2c_id[] = {
+	{"hl7015qc_chg", 0},
 	{}
 };
 
-static const struct of_device_id bq2560xqc_charger_of_match[] = {
-	{ .compatible = "ti,bq2560xqc_chg", },
+static const struct of_device_id hl7015qc_charger_of_match[] = {
+	{ .compatible = "hl,hl7015qc_chg", },
 	{ }
 };
 
-MODULE_DEVICE_TABLE(of, bq2560xqc_charger_of_match);
+MODULE_DEVICE_TABLE(of, hl7015qc_charger_of_match);
 
-static struct i2c_driver bq2560xqc_charger_driver = {
+static struct i2c_driver hl7015qc_charger_driver = {
 	.driver = {
-		.name = "bq2560xqc_chg",
-		.of_match_table = bq2560xqc_charger_of_match,
+		.name = "hl7015qc_chg",
+		.of_match_table = hl7015qc_charger_of_match,
 	},
-	.probe = bq2560xqc_charger_probe,
-	.shutdown = bq2560xqc_charger_shutdown,
-	.remove = bq2560xqc_charger_remove,
-	.id_table = bq2560xqc_i2c_id,
+	.probe = hl7015qc_charger_probe,
+	.shutdown = hl7015qc_charger_shutdown,
+	.remove = hl7015qc_charger_remove,
+	.id_table = hl7015qc_i2c_id,
 };
 
-module_i2c_driver(bq2560xqc_charger_driver);
-MODULE_DESCRIPTION("BQ2560XQC Charger Driver");
+module_i2c_driver(hl7015qc_charger_driver);
+MODULE_DESCRIPTION("HL7015QC Charger Driver");
 MODULE_LICENSE("GPL v2");

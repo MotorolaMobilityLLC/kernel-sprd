@@ -56,7 +56,7 @@
 
 
 #define BQ2560XPE_BATTERY_NAME			"sc27xx-fgu"
-#define BQ2560XPE_CHARGER_NAME			"bq2560x_charger"
+#define BQ2560XPE_MAIN_NAME			"charger"
 #define BQ2560XPE_FCHG_OVP_5V			5000
 #define BQ2560XPE_FCHG_OVP_6V			6000
 #define BQ2560XPE_FCHG_OVP_9V			9000
@@ -77,7 +77,6 @@
 enum chip_type{
 	CHIP_NONE=0,
 	CHIP_SGM41511,
-	CHIP_SGM41542,
 };
 
 
@@ -110,7 +109,7 @@ static int bq2560xpe_charger_get_limit_current(struct bq2560xpe_charger_info *in
 	union power_supply_propval val;
 	int ret;
 
-	psy = power_supply_get_by_name(BQ2560XPE_CHARGER_NAME);
+	psy = power_supply_get_by_name(BQ2560XPE_MAIN_NAME);
 	if (!psy) {
 		dev_err(info->dev, "Failed to get psy of bq2560x_charger\n");
 		return false;
@@ -136,7 +135,7 @@ static int bq2560xpe_charger_set_limit_current(struct bq2560xpe_charger_info *in
 	union power_supply_propval val;
 	int ret;
 
-	psy = power_supply_get_by_name(BQ2560XPE_CHARGER_NAME);
+	psy = power_supply_get_by_name(BQ2560XPE_MAIN_NAME);
 	if (!psy) {
 		dev_err(info->dev, "Failed to get psy of bq2560x_charger\n");
 		return false;
@@ -149,6 +148,48 @@ static int bq2560xpe_charger_set_limit_current(struct bq2560xpe_charger_info *in
 	power_supply_put(psy);
 
 	return ret;
+}
+
+#include <linux/iio/consumer.h>
+static int bq2560xpe_check_qc(struct bq2560xpe_charger_info *info)
+{
+//				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
+//				io-channel-names = "dp", "dm";
+	struct iio_channel	*dp;
+	struct iio_channel	*dm;
+	int dm_voltage, dp_voltage;
+#define SC2730_CHARGE_DET_FGU_CTRL	0x3A0
+//#define SC2730_ADC_OFFSET		0x1800
+#define UMP9620_ADC_OFFSET		0x2000
+#define BIT_DP_DM_AUX_EN		BIT(1)
+#define BIT_DP_DM_BC_ENB		BIT(0)
+#define VOLT_LO_LIMIT			1200
+#define VOLT_HI_LIMIT			600
+
+	dp = devm_iio_channel_get(info->dev, "dp");
+	dm = devm_iio_channel_get(info->dev, "dm");
+	if (!dm || !dp) {
+		dev_err(info->dev, " dp:%p, dm:%p\n",
+			dp, dm);
+		return UNKNOWN_TYPE;
+	}
+
+	regmap_update_bits(info->pmic,
+		UMP9620_ADC_OFFSET | SC2730_CHARGE_DET_FGU_CTRL,
+		BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB,
+		BIT_DP_DM_AUX_EN);
+
+	msleep(1500);
+	iio_read_channel_processed(dp, &dp_voltage);
+	iio_read_channel_processed(dm, &dm_voltage);
+
+	dev_info(info->dev, "%s;%d;%d;\n",__func__,dp_voltage*28/10,dm_voltage*28/10);
+
+	regmap_update_bits(info->pmic,
+		UMP9620_ADC_OFFSET | SC2730_CHARGE_DET_FGU_CTRL,
+		BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB, 0);
+
+	return 0;
 }
 
 static int bq2560xpe_hsphy_set_dpdm(struct bq2560xpe_charger_info *info ,  int on)
@@ -367,6 +408,7 @@ static int bq2560xped_set_ta_current_pattern(struct bq2560xpe_charger_info *info
 
 	return status;
 }
+
 static int bq2560xpe_first_check_pe(struct bq2560xpe_charger_info *info)
 {
 	int vol;
@@ -374,6 +416,7 @@ static int bq2560xpe_first_check_pe(struct bq2560xpe_charger_info *info)
 	int last_limit_current;
 	u32 vbus;
 	
+	bq2560xpe_check_qc(info);
 
 	bq2560xpe_hsphy_set_dpdm(info, 0);
 	
@@ -681,7 +724,7 @@ static int bq2560xpe_charger_probe(struct i2c_client *client,
 	struct power_supply *psy;
 	union power_supply_propval val;
 
-	psy = power_supply_get_by_name("bq2560x_charger");
+	psy = power_supply_get_by_name(BQ2560XPE_MAIN_NAME);
 		if (!psy) {
 			dev_err(dev, "%s Cannot find power supply \"bq2560x_charger\"\n",__func__);
 			return -EPROBE_DEFER;
@@ -692,7 +735,10 @@ static int bq2560xpe_charger_probe(struct i2c_client *client,
 	power_supply_put(psy);
 
 	if(val.intval != CHIP_SGM41511)
+	{
+		dev_err(dev, "%s;%d;exit;\n",__func__,val.intval);
 		return -ENODEV;
+	}
 
 	info = devm_kzalloc(dev, sizeof(*info), GFP_KERNEL);
 	if (!info)

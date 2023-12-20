@@ -139,7 +139,7 @@
 	sprd,support-fchg;
 	sprd,support-pd-pps;
 	sprd,pd-fixed-max-microwatt = <18000000>;
-	sprd,customized-fchg-psy ="bq2560xpe_charger","bq2560xqc_charger";
+	sprd,customized-fchg-psy ="bq2560xpe_charger","bq2560xqc_charger","hl7015qc_charger";
 
 	monitored-battery = <&bat>;
 	cm-capacity-track;
@@ -151,7 +151,7 @@
 	use-typec-extcon;
 };
 
-&i2c2 {
+&i2c6 {
 	#address-cells = <1>;
 	#size-cells = <0>;
 
@@ -162,9 +162,9 @@
 		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
-		vddvbus:otg-vbus {
+/*		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
-		};
+		}; */
 	};
 	bq2560xpe_chg: charger@6c {
 		compatible = "ti,bq2560xpe_chg";
@@ -185,9 +185,9 @@
 		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
-	/*	vddvbus:otg-vbus {
+		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
-		}; */
+		};
 	};
 	hl7017qc_chg: charger@6f {
 		compatible = "hl,hl7015qc_chg";
@@ -198,11 +198,11 @@
 	};
 };
 
-&i2c3 {
+&i2c6 {
 	status = "okay";
 	clock-frequency = <400000>;
 
-	bq2597x_chg: charger@65 {
+	bq2597x_chg: charger@6a {
 		compatible = "ti,bq2597x-standalone";
 		reg = <0x65>;
 		irq-gpio = <&ap_gpio 193 GPIO_ACTIVE_LOW>;

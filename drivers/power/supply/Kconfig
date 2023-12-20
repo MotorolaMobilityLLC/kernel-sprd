@@ -677,6 +677,15 @@ config CHARGER_BQ256XX
 	  charge management and system power path management devices for single
 	  cell Li-ion and Li-polymer batteries.
 
+config CHARGER_HL7015
+	tristate "HL7015 battery charger driver"
+	depends on I2C
+	depends on GPIOLIB || COMPILE_TEST
+	select REGMAP_I2C
+	help
+	  Say Y to enable support for the HL7015 battery chargers.
+
+
 config CHARGER_SMB347
 	tristate "Summit Microelectronics SMB3XX Battery Charger"
 	depends on I2C

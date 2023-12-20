@@ -705,6 +705,9 @@ static void sprd_fchg_work(struct work_struct *data)
 		container_of(data, struct sprd_fchg_info, fchg_work);
 	union power_supply_propval val;
 	int ret = 0;
+	struct power_supply *psy_cp;
+
+	psy_cp = power_supply_get_by_name("bq2597x-standalone");
 
 	if (!info->psy_fchg) {
 		dev_err(info->dev, "%s, psy_fchg is NULL!!!\n", __func__);
@@ -762,8 +765,10 @@ static void sprd_fchg_work(struct work_struct *data)
 		info->pps_active = false;
 		info->pd_enable = false;
 		info->sfcp_enable = false;
-//		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
+		if(psy_cp)
 		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_ADAPTIVE;
+		else
+		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
 		mutex_unlock(&info->lock);
 		cm_notify_event(info->psy, CM_EVENT_FAST_CHARGE, NULL);
 		goto out1;
