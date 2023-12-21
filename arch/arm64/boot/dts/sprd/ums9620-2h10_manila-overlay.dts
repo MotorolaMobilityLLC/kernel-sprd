@@ -271,6 +271,7 @@
 &dptx {
 	dp-gpios = <&ap_gpio 61 GPIO_ACTIVE_HIGH>,
 			<&ap_gpio 62 GPIO_ACTIVE_HIGH>;
+	status = "disabled";
 };
 
 &vddwpa {
@@ -464,6 +465,7 @@
 		flash-chip-en-gpios = <&ap_gpio 119 0>;
 		flash-en-gpios = <&ap_gpio 111 0>;
 		flash-sync-gpios = <&ap_gpio 59 0>;
+		status = "disabled";
 	};
 
 	stm_vl53l0: vl53l0@52 {
