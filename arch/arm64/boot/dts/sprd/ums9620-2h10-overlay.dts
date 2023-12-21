@@ -204,7 +204,14 @@
 				compatible = "fpc,fpc1553";
 				fpc,rst_gpio    = <&ap_gpio 110 0>;
 				fpc,irq_gpio    = <&eic_async 29 0>;
-  			};
+			};
+
+			fingerprint_goodix {
+				compatible = "sprd,goodix-fp";
+				gfrst-gpio = <&ap_gpio 110 0>;
+				gfirq-gpio = <&eic_async 29 0>;
+				//gfvdd-gpio = <&eic_async 29 0>;
+			};
 
 			sprd-uid {
 				compatible = "sprd,uid";
