@@ -82,6 +82,8 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/dai/tdm
 ../modules/kernel5.15/audio/sprd/dai/sprd_dai
 ../modules/kernel5.15/input/misc/rf_cable
+../modules/kernel5.15/input/misc/sx9375
+../modules/kernel5.15/input/misc/aw_sar
 "
 fi
 #camera module version config

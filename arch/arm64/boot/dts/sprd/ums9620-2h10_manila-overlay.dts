@@ -611,12 +611,117 @@
         usb_cable: usb_cable {
                 compatible = "sprd,usb_cable_eint";
                 interrupt-parent = <&ap_gpio>;
-                interrupts = <168 IRQ_TYPE_LEVEL_LOW>,
-                                <169 IRQ_TYPE_LEVEL_LOW>;
-                usbcable-gpio = <168>;
-                usbcable-gpio1 = <169>;
+                interrupts = <188 IRQ_TYPE_LEVEL_LOW>,
+				<226 IRQ_TYPE_LEVEL_LOW>,
+				<227 IRQ_TYPE_LEVEL_LOW>,
+                                <228 IRQ_TYPE_LEVEL_LOW>;
+                usbcable-gpio = <188>;
+                usbcable-gpio1 = <226>;
+		usbcable-gpio2 = <227>;
+                usbcable-gpio3 = <228>;
                 debounce = <256000>;
                 status = "okay";
         };
 };
 
+&i2c3 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	smtc_sar_sx937x:smtc_sar_sx937x@2c {
+		compatible = "semtech,sx937x";
+		reg = <0x2c>;
+		status = "okay";
+		semtech,nirq-gpio = <&ap_gpio 190 GPIO_ACTIVE_HIGH>;
+		/*
+		semtech,nirq-gpio = <&pio 3 0>;
+		pinctrl-names = "smtc_pins_default", "smtc_sar_int_active";
+		pinctrl-0 = <&smtc_pins_default>;
+		pinctrl-1 = <&smtc_sar_int_active>;
+		*/
+		/*main-phases: Phases(aka CH) connected to the antenas for measurement
+		ref-phases: Phases used as temperature reference correction
+		Each bit represents a corresponding phase is for this usage(1) or not(0)
+		Example: 0xF = 0b1 1111, indicates PH0/1/2/3/4 are used as main phase.
+				 0x30 = 0b0110 0000 indicates PH5/6 are used as reference phase.
+		*/
+		semtech,main-phases = <0x27>;
+		semtech,ref-phases = <0x50>;
+
+		semtech,reg-init = <
+			0x8024 0x7F00
+			0x4004 0x70
+			0x4008 0x8
+			0x8020 0x32
+			0x8028 0x85E
+			0x8034 0x85E
+			0x8040 0x85E
+			0x804C 0x85E
+			0x8058 0x85E
+			0x8064 0x85E
+			0x8070 0x85E
+			0x807C 0x85E
+			0x8030 0x924925
+			0x803C 0x92492C
+			0x8048 0x924964
+			0x8054 0x924925
+			0x8060 0x925924
+			0x806C 0x92C924
+			0x8078 0x964924
+			0x8084 0xB24924
+			0x8098 0xC88E
+			0x80B8 0xC88E
+			0x80D8 0xC88E
+			0x80F8 0xC88E
+			0x8118 0xC88E
+			0x8138 0xC88E
+			0x8158 0xC88E
+			0x8178 0xC88E
+			0x8090 0x54AC5000
+			0x80B0 0x54AC5000
+			0x80D0 0x54AC5000
+			0x80F0 0x54AC5000
+			0x8110 0x54AC5000
+			0x8130 0x54AC5000
+			0x8150 0x54AC5000
+			0x8170 0x54AC5000
+			0x8088 0x3100000
+			0x80A8 0x3100000
+			0x80C8 0x3100000
+			0x80E8 0x3100000
+			0x8108 0x3100000
+			0x8128 0x3100000
+			0x8148 0x3100000
+			0x8168 0x3100000
+			0x808C 0x60200030
+			0x80AC 0x60200030
+			0x80CC 0x60200030
+			0x80EC 0x60200030
+			0x810C 0x60200030
+			0x812C 0x60200030
+			0x814C 0x60200030
+			0x816C 0x60200030
+			0x8274 0x2E040000
+			0x8024 0x7f20
+		>;
+	};
+
+	awinic_sar:awinic_sar@12 {
+		compatible = "awinic,aw_sar";
+		reg = <0x12>;
+		sar-num = < 0 >;
+		irq-gpio = <&ap_gpio 190 GPIO_ACTIVE_HIGH>;
+		/*
+		interrupt-parent = < &tlmm >;
+		interrupts = <72 0>;
+		irq-gpio = <&tlmm 72 0>;
+		*/
+		//vcc0-supply = <&pm660l_l4>;
+		channel_use_flag = <0xfb>;
+		aw_sar,update_fw;
+		/* private node belongs to aw963xx */
+		start-mode = < 1 >; // 0: start in rom  1: start in ram
+		irq-mux = < 2 >; // set csx as irq pin. config this field when connect to aw96308/aw96310
+		status = "okay";
+	};
+};
