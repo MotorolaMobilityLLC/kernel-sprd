@@ -144,7 +144,7 @@ static int bq2560xqc_check_qc(struct bq2560xqc_charger_info *info)
 //				io-channel-names = "dp", "dm";
 	struct iio_channel	*dp;
 	struct iio_channel	*dm;
-	int dm_voltage, dp_voltage;
+	int dm_voltage=0, dp_voltage=0;
 #define SC2730_CHARGE_DET_FGU_CTRL	0x3A0
 //#define SC2730_ADC_OFFSET		0x1800
 #define UMP9620_ADC_OFFSET		0x2000
@@ -156,9 +156,9 @@ static int bq2560xqc_check_qc(struct bq2560xqc_charger_info *info)
 	dp = devm_iio_channel_get(info->dev, "dp");
 	dm = devm_iio_channel_get(info->dev, "dm");
 	if (!dm || !dp) {
-		dev_err(info->dev, " dp:%p, dm:%p\n",
+		dev_err(info->dev, "%s; dp:%p, dm:%p\n",__func__,
 			dp, dm);
-		return UNKNOWN_TYPE;
+		return POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
 	}
 
 	regmap_update_bits(info->pmic,
@@ -170,16 +170,16 @@ static int bq2560xqc_check_qc(struct bq2560xqc_charger_info *info)
 	iio_read_channel_processed(dp, &dp_voltage);
 	iio_read_channel_processed(dm, &dm_voltage);
 
-	dp_voltage = dp_voltage*28/10;
-	dm_voltage = dm_voltage*28/10;
+	dp_voltage = dp_voltage*15/10;
+	dm_voltage = dm_voltage*15/10;
 	
-	dev_info(info->dev, "%s;%d;%d;\n",__func__,dp_voltage,dm_voltage);
+	dev_err(info->dev, "%s;%d;%d;\n",__func__,dp_voltage,dm_voltage);
 
 	regmap_update_bits(info->pmic,
 		UMP9620_ADC_OFFSET | SC2730_CHARGE_DET_FGU_CTRL,
 		BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB, 0);
 
-	if(dp_voltage>500 && abs(dp_voltage -dm_voltage)<100)
+	if(dp_voltage>500 && dm_voltage<100)
 		info->state = POWER_SUPPLY_CHARGE_TYPE_FAST;
 
 	return info->state;
@@ -321,6 +321,8 @@ static int bq2560xqc_set_qc(struct bq2560xqc_charger_info *info,int voltage)
 static int bq2560xqc_set_qc_continue(struct bq2560xqc_charger_info *info,int step,int direction)
 {
 	int i;
+
+	dev_info(info->dev, "%s;step:%d;direction=%d;\n",__func__,step,direction);
 	
 	bq2560xqc_write(info, 0x0d, 0x15);      //d+ 0.6, d- 3.3  enter continue mode
 	msleep(500);
@@ -379,6 +381,7 @@ static int bq2560xqc_first_check_qc(struct bq2560xqc_charger_info *info)
 	int last_limit_current;
 	
 	bq2560xqc_check_qc(info);
+	return info->state;
 
 	msleep(2500);
 	
@@ -529,7 +532,7 @@ static int bq2560xqc_charger_usb_set_property(struct power_supply *psy,
 		}
 		else
 		{
-			if(val->intval <= VBUS_9V)
+			if(val->intval < VBUS_9V)
 				ret = bq2560xqc_set_qc(info, VBUS_5V);
 			else
 				ret = bq2560xqc_set_qc(info, VBUS_9V);

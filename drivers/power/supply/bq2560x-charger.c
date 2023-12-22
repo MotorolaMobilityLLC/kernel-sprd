@@ -2009,6 +2009,7 @@ static int bq2560x_charger_probe(struct i2c_client *client,
 
 	bq2560x_dump_register(info);
 	dev_info(dev, "use_typec_extcon = %d\n", info->use_typec_extcon);
+	dev_err(info->dev, "%s;probe ok;\n",__func__);
 
 	return 0;
 
