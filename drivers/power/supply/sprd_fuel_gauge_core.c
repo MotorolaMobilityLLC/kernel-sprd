@@ -1927,6 +1927,7 @@ static int sprd_fgu_get_property(struct power_supply *psy,
 
 			ret = 0;
 			val->intval = value;
+			val->intval = 200;
 		}
 
 		break;
