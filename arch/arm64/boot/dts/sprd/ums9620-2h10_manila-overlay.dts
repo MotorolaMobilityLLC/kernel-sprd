@@ -222,6 +222,16 @@
 				nvmem-cell-names = "uid_start", "uid_end";
 			};
 
+			usb_cable: usb_cable {
+                		compatible = "sprd,usb_cable_eint";
+                		usbcable-gpio = <&ap_gpio 140 GPIO_ACTIVE_LOW>;
+                		usbcable-gpio1 = <&ap_gpio 178 GPIO_ACTIVE_LOW>;
+                		usbcable-gpio2 = <&ap_gpio 179 GPIO_ACTIVE_LOW>;
+                		usbcable-gpio3 = <&ap_gpio 180 GPIO_ACTIVE_LOW>;
+                		debounce = <256000>;
+                		status = "okay";
+        		};
+
 		};
 	};
 };
@@ -605,23 +615,6 @@
 &lcd_g40396_truly_mipi_fhd {
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
-};
-
-&soc {
-        usb_cable: usb_cable {
-                compatible = "sprd,usb_cable_eint";
-                interrupt-parent = <&ap_gpio>;
-                interrupts = <188 IRQ_TYPE_LEVEL_LOW>,
-				<226 IRQ_TYPE_LEVEL_LOW>,
-				<227 IRQ_TYPE_LEVEL_LOW>,
-                                <228 IRQ_TYPE_LEVEL_LOW>;
-                usbcable-gpio = <188>;
-                usbcable-gpio1 = <226>;
-		usbcable-gpio2 = <227>;
-                usbcable-gpio3 = <228>;
-                debounce = <256000>;
-                status = "okay";
-        };
 };
 
 &i2c3 {
