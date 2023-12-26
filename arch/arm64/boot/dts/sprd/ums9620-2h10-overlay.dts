@@ -204,6 +204,7 @@
 				compatible = "fpc,fpc1553";
 				fpc,rst_gpio    = <&ap_gpio 110 0>;
 				fpc,irq_gpio    = <&eic_async 29 0>;
+				vdd_io-supply   = <&vddldo3>;
 			};
 
 			fingerprint_goodix {
