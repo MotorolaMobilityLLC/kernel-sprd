@@ -61,6 +61,7 @@
 #define HL7015QC_CP_NAME			 "bq2597x-standalone"
 
 #define VBUS_12V 12000000
+#define VBUS_11V 11000000
 #define VBUS_9V 9000000
 #define VBUS_7V 7000000
 #define VBUS_5V 5000000
@@ -104,6 +105,7 @@ struct hl7015qc_charger_info {
 	struct power_supply *psy_hl7015;
 	struct power_supply *psy_fgu;
 	unsigned int dpdm_gpio;
+	struct power_supply *psy_cp;
 
 };
 
@@ -296,6 +298,24 @@ static int hl7015qc_fgu_get_vbus(struct hl7015qc_charger_info *info)
 
 	return val.intval;
 }
+static int hl7015qc_cp_get_vbus(struct hl7015qc_charger_info *info)
+{
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret;
+
+	psy = power_supply_get_by_name(HL7015QC_CP_NAME);
+	if (!psy) {
+		dev_err(info->dev, "Failed to get psy of sc27xx_fgu\n");
+		return false;
+	}
+	ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
+					&val);
+	power_supply_put(psy);
+
+	return val.intval;
+}
+
 // 0.6 0.6  12v
 // 3.3 0.6  9v
 // 0.6 3.3  contimuous mode
@@ -323,25 +343,28 @@ static int hl7015qc_set_qc_continue(struct hl7015qc_charger_info *info,int step,
 	int i;
 
 	dev_info(info->dev, "%s;step:%d;direction=%d;\n",__func__,step,direction);
+	if(step == 0)
+		return 0;
 	
 	hl7015qc_write(info, 0x0f, 0xb0);      //d+ 0.6, d- 3.3  enter continue mode
-	msleep(500);
+	msleep(200);
 
 	for(i=0;i< step;i++)
 	{
 		if(direction == ADJUST_UP)
 		{
 			hl7015qc_write(info, 0x0f, 0xf0);      //d+ 3.3, d- 3.3  up
-			msleep(50);
+			msleep(5);
 		}		
 		else
 		{
 			hl7015qc_write(info, 0x0f, 0xa0);      //d+ 0.6, d- 0.6  down
-			msleep(50);
+			msleep(5);
 		}
 			
 		hl7015qc_write(info, 0x0f, 0xb0);      //d+ 0.6, d- 3.3 back to continue mode
-		msleep(30);
+		hl7015qc_write(info, 0x0f, 0xb0);      //d+ 0.6, d- 3.3 back to continue mode
+		msleep(5);
 	}
 
 	return 0;
@@ -351,11 +374,18 @@ static int hl7015qc_fchg_adjust_voltage(struct hl7015qc_charger_info *info, u32 
 {
 	#define CM_CP_VSTEP 200000
 	int vbus_step = 0, delta_vbus_uV;
+	int fgu_vbus,cp_vbus;
 
 	dev_info(info->dev, "%s;%d;%d;\n",__func__,info->current_vbus,input_vol);
 
 	if(info->current_vbus == 0)
 		info->current_vbus = VBUS_5V;
+
+	fgu_vbus=hl7015qc_fgu_get_vbus(info);
+	cp_vbus=hl7015qc_cp_get_vbus(info);
+
+	dev_info(info->dev, "%s;fgu%d;cp%d;\n",__func__,fgu_vbus,cp_vbus);
+	info->current_vbus = cp_vbus;
 
 	if(input_vol > info->current_vbus)
 	{
@@ -369,6 +399,20 @@ static int hl7015qc_fchg_adjust_voltage(struct hl7015qc_charger_info *info, u32 
 		vbus_step = delta_vbus_uV /CM_CP_VSTEP;
 		hl7015qc_set_qc_continue(info, vbus_step, ADJUST_DOWN);
 	}
+	fgu_vbus=hl7015qc_fgu_get_vbus(info);
+	cp_vbus=hl7015qc_cp_get_vbus(info);
+
+	if(0)//input_vol > 7000000  && cp_vbus <= 5000000)
+	{
+		dev_info(info->dev, "%s ;dp dm reset;\n",__func__);
+		hl7015qc_write(info, 0x0f, 0x00);      //d+ 0.0
+		msleep(1000);
+		hl7015qc_write(info, 0x0f, 0x80);      //d+ 0.6
+		msleep(1000);
+		
+	}
+
+	dev_info(info->dev, "%s exit;fgu%d;cp%d;\n",__func__,fgu_vbus,cp_vbus);
 
 
 	return 0;
@@ -443,9 +487,9 @@ static void hl7015qc_work(struct work_struct *data)
 			 * Must release info->qc_handshake_lock before send fast charge event
 			 * to charger manager, otherwise it will cause deadlock.
 			 */
+			hl7015qc_set_qc(info, VBUS_5V);
 			gpio_direction_output(info->dpdm_gpio, 1); //analogy swtich
 			hl7015qc_hsphy_set_dpdm(info, 0); //pmic D+ D- high impedance
-			hl7015qc_set_qc(info, VBUS_5V);
 			 
 			mutex_unlock(&info->qc_handshake_lock);
 			power_supply_changed(info->psy_usb);
@@ -477,7 +521,10 @@ static int hl7015qc_charger_usb_get_property(struct power_supply *psy,
 		val->intval = info->state;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
-		val->intval = VBUS_9V;
+		if(info->psy_cp)
+			val->intval = VBUS_11V;
+		else
+			val->intval = VBUS_9V;
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_MAX:
 		val->intval = I_3A;
@@ -495,10 +542,6 @@ static int hl7015qc_charger_usb_set_property(struct power_supply *psy,
 {
 	struct hl7015qc_charger_info *info = power_supply_get_drvdata(psy);
 	int ret = 0;
-	struct power_supply *psy_cp;
-
-	psy_cp = power_supply_get_by_name(HL7015QC_CP_NAME);
-
 
 	if (!info) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
@@ -509,14 +552,15 @@ static int hl7015qc_charger_usb_set_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
+		info->psy_cp = power_supply_get_by_name(HL7015QC_CP_NAME);
 		if (val->intval == true) {
 			info->charger_online = 1;
 			schedule_delayed_work(&info->work, 0);
 			break;
 		} else if (val->intval == false) {
-			hl7015qc_write(info, 0x0d, 0x00);      //sgm41542 d+ d-  high impedance
-			gpio_direction_output(info->dpdm_gpio, 0); //analogy swtich
 			hl7015qc_hsphy_set_dpdm(info, 1); //pimc D+ D- connect to bc1.2
+			gpio_direction_output(info->dpdm_gpio, 0); //analogy swtich
+			hl7015qc_write(info, 0x0f, 0x00);      //sgm41542 d+ d-  high impedance
 			info->charger_online = 0;
 			info->current_vbus = 0;
 			cancel_delayed_work(&info->work);
@@ -526,7 +570,7 @@ static int hl7015qc_charger_usb_set_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_MAX:
 
-		if(0)//psy_cp)
+		if(info->psy_cp)
 		{
 			ret = hl7015qc_fchg_adjust_voltage(info, val->intval);
 		}

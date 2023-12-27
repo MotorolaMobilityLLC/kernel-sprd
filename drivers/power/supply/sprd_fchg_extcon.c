@@ -766,7 +766,7 @@ static void sprd_fchg_work(struct work_struct *data)
 		info->pd_enable = false;
 		info->sfcp_enable = false;
 		if(psy_cp)
-		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
+		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_ADAPTIVE;
 		else
 		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
 		mutex_unlock(&info->lock);
