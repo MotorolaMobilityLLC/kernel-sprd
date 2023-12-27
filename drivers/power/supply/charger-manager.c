@@ -349,7 +349,33 @@ static bool is_ext_pwr_online(struct charger_manager *cm)
 
 	return online;
 }
+ /**
+  * get_ibat_now_uA - Get the current level of the battery
+  * @cm: the Charger Manager representing the battery.
+  * @uA: the current level returned.
+  *
+  * Returns 0 if there is no error.
+  * Returns a negative value on error.
+  */
+static int get_ibat_now_uA(struct charger_manager *cm, int *uA)
+{
+	union power_supply_propval val;
+	struct power_supply *fuel_gauge;
+	int ret;
 
+	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
+	if (!fuel_gauge)
+		return -ENODEV;
+
+	val.intval = 0;
+	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CURRENT_NOW, &val);
+	power_supply_put(fuel_gauge);
+	if (ret)
+		return ret;
+
+	*uA = val.intval;
+	return 0;
+}
 /**
  * get_cp_ibat_uA - Get the charge current of the battery from charge pump
  * @cm: the Charger Manager representing the battery.
@@ -368,7 +394,8 @@ static int get_cp_ibat_uA(struct charger_manager *cm, int *uA)
 		return ret;
 
 	*uA = 0;
-
+	get_ibat_now_uA(cm,uA);
+	return 0;
 	for (i = 0; cm->desc->psy_cp_stat[i]; i++) {
 		cp_psy = power_supply_get_by_name(cm->desc->psy_cp_stat[i]);
 		if (!cp_psy) {
@@ -553,33 +580,7 @@ static int get_ibat_avg_uA(struct charger_manager *cm, int *uA)
 	return 0;
 }
 
- /**
-  * get_ibat_now_uA - Get the current level of the battery
-  * @cm: the Charger Manager representing the battery.
-  * @uA: the current level returned.
-  *
-  * Returns 0 if there is no error.
-  * Returns a negative value on error.
-  */
-static int get_ibat_now_uA(struct charger_manager *cm, int *uA)
-{
-	union power_supply_propval val;
-	struct power_supply *fuel_gauge;
-	int ret;
 
-	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
-	if (!fuel_gauge)
-		return -ENODEV;
-
-	val.intval = 0;
-	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CURRENT_NOW, &val);
-	power_supply_put(fuel_gauge);
-	if (ret)
-		return ret;
-
-	*uA = val.intval;
-	return 0;
-}
 
 /**
  *
@@ -2919,9 +2920,9 @@ static void cm_update_cp_charger_status(struct charger_manager *cm)
 		}
 	}
 
-	dev_dbg(cm->dev, "%s, %s, batt_uV = %duV, vbus_uV = %duV, batt_uA = %duA, ibus_uA = %duA\n",
+	dev_info(cm->dev, "%s, %s, batt_uV = %dmV, vbus_uV = %dmV, batt_uA = %dmA, ibus_uA = %dmA\n",
 	       __func__, is_cp_val ? "charge pump" : "Primary charger",
-	       cp->vbat_uV, cp->vbus_uV, cp->ibat_uA, cp->ibus_uA);
+	       cp->vbat_uV/1000, cp->vbus_uV/1000, cp->ibat_uA/1000, cp->ibus_uA/1000);
 }
 
 static void cm_cp_check_vbus_status(struct charger_manager *cm)
@@ -3334,16 +3335,16 @@ static void cm_cp_tune_algo(struct charger_manager *cm)
 					  vbus_step), ibus_step), alarm_step);
 	cm_check_target_vbus(cm);
 
-	dev_info(cm->dev, "%s, cp = [%duV %duA %duV %duA], ir_drop = %duV, ucp_cnt = %d\n",
-		 __func__, cp->vbus_uV, cp->ibus_uA, cp->vbat_uV, cp->ibat_uA,
+	dev_info(cm->dev, "%s, cp = [%dmV %dmA %dmV %dmA], ir_drop = %duV, ucp_cnt = %d\n",
+		 __func__, cp->vbus_uV/1000, cp->ibus_uA/1000, cp->vbat_uV/1000, cp->ibat_uA/1000,
 		 cm->desc->ir_comp.ir_drop, cp->cp_ibat_ucp_cnt);
 
-	dev_info(cm->dev, "%s, cp_target = [%duV %duA %duV %duA], jeita_status = %d\n",
-		 __func__, cp->cp_target_vbus, cp->cp_target_ibus, cp->cp_target_vbat,
-		 cp->cp_target_ibat, cp->jeita_status);
+	dev_info(cm->dev, "%s, cp_target = [%dmV %dmA %dmV %dmA], jeita_status = %d\n",
+		 __func__, cp->cp_target_vbus/1000, cp->cp_target_ibus/1000, cp->cp_target_vbat/1000,
+		 cp->cp_target_ibat/1000, cp->jeita_status);
 
 	 dev_info(cm->dev, "%s, tune_step = [%d %d %d %d %d]\n",
-		  __func__, vbus_step, ibus_step, vbat_step, ibat_step, alarm_step);
+		  __func__, vbus_step/1000, ibus_step/1000, vbat_step/1000, ibat_step/1000, alarm_step/1000);
 
 	if (cp->cp_last_target_vbus != cp->cp_target_vbus) {
 		if (cm_adjust_fchg_voltage(cm, cp->cp_target_vbus)) {
@@ -3423,16 +3424,16 @@ static void cm_cp_state_entry(struct charger_manager *cm)
 	}
 
 	cm_cp_charger_enable(cm, false);
-	//cm_primary_charger_enable(cm, false);
+	cm_primary_charger_enable(cm, false);
 	cm_ir_compensation_enable(cm, false);
 
-//	if (cm_check_primary_charger_enabled(cm)) {
-//		if (primary_charger_dis_retry++ > CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT) {
-//			cm_cp_state_change(cm, CM_CP_STATE_EXIT);
-//			primary_charger_dis_retry = 0;
-//		}
-//		return;
-//	}
+	if (cm_check_primary_charger_enabled(cm)) {
+		if (primary_charger_dis_retry++ > CM_CP_PRIMARY_CHARGER_DIS_TIMEOUT) {
+			cm_cp_state_change(cm, CM_CP_STATE_EXIT);
+			primary_charger_dis_retry = 0;
+		}
+		return;
+	}
 
 	if (cm_get_fchg_adapter_max_voltage(cm, &cp->adapter_max_vbus)) {
 		cm_cp_state_change(cm, CM_CP_STATE_EXIT);
@@ -5523,6 +5524,7 @@ static void cm_set_charge_control_limit(struct charger_manager *cm, int power)
 		return;
 	}
 	cm->desc->thm_info.thm_pwr = power;
+
 	cm_update_charge_info(cm, CM_CHARGE_INFO_THERMAL_LIMIT);
 
 	if (cm->desc->cp.cp_running)

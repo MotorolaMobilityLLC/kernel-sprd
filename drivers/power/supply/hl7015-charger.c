@@ -744,11 +744,11 @@ static void hl7015_dump_register(struct hl7015_charger_info *info)
 
 	memset(buf, '\0', sizeof(buf));
 	for (i = 0; i < HL7015_REG_NUM; i++) {
-		ret = hl7015_read(info,  reg_tab[i].addr, &reg_val);
+		ret = hl7015_read(info,  i, &reg_val);
 		if (ret == 0) {
 			len = snprintf(buf + idx, sizeof(buf) - idx,
 				       "[REG_0x%.2x]=0x%.2x  ",
-				       reg_tab[i].addr, reg_val);
+				       i, reg_val);
 			idx += len;
 		}
 	}
@@ -1502,7 +1502,7 @@ hl7015_charger_feed_watchdog_work(struct work_struct *work)
 							 struct hl7015_charger_info,
 							 wdt_work);
 	int ret;
-
+	hl7015_dump_register(info);
 	ret = hl7015_charger_feed_watchdog(info);
 	if (ret)
 		schedule_delayed_work(&info->wdt_work, HZ * 1);

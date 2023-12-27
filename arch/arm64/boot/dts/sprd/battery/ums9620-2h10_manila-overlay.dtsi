@@ -202,7 +202,7 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
-	bq2597x_chg: charger@6a {
+	bq2597x_chg: charger@65 {
 		compatible = "ti,bq2597x-standalone";
 		reg = <0x65>;
 		irq-gpio = <&ap_gpio 193 GPIO_ACTIVE_LOW>;
@@ -235,6 +235,43 @@
 		ti,bq2597x,vdrop-deglitch = <5000>;
 		ti,bq2597x,ss-timeout = <100000>;
 		ti,bq2597x,watchdog-timer = <30000>;
+	};
+	sc8541_chg: charger@6a {
+		compatible = "sc,sc8541-standalone";
+		reg = <0x6a>;
+		irq-gpio = <&ap_gpio 193 GPIO_ACTIVE_LOW>;
+
+		sc,sc8541,bus-therm-disable = <1>;
+		sc,sc8541,regulation-disable = <1>;
+
+		sc,sc8541,bat-ocp-disable = <1>;
+		sc,sc8541,bat-ocp-alarm-disable= <1>;
+
+		sc,sc8541,bat-ovp-threshold = <4700>;
+		sc,sc8541,bat-ovp-alarm-threshold = <4670>;
+		sc,sc8541,bat-ocp-threshold = <6300>;
+		sc,sc8541,bat-ocp-alarm-threshold = <5900>;
+
+		sc,sc8541,bus-ovp-threshold = <11500>;
+		sc,sc8541,bus-ovp-alarm-threshold = <10500>;
+		sc,sc8541,bus-ocp-threshold = <3250>;
+		sc,sc8541,bus-ocp-alarm-threshold = <3100>;
+
+		sc,sc8541,bat-ucp-alarm-threshold = <1000>;
+
+		sc,sc8541,bat-therm-threshold = <0x0>;
+		sc,sc8541,bus-therm-threshold = <0x0>;
+		sc,sc8541,die-therm-threshold = <0xc8>;
+
+		sc,sc8541,ac-ovp-threshold = <13>;
+		sc,sc8541,sense-resistor-mohm = <5>;
+		sc,sc8541,adc-sample-bits = <12>;
+		sc,sc8541,ibat-regulation-threshold = <300>;
+		sc,sc8541,vbat-regulation-threshold = <100>;
+		sc,sc8541,vdrop-threshold = <400>;
+		sc,sc8541,vdrop-deglitch = <5000>;
+		sc,sc8541,ss-timeout = <100000>;
+		sc,sc8541,watchdog-timer = <30000>;
 	};
 };
 
