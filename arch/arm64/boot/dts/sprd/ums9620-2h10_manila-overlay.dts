@@ -414,7 +414,7 @@
 	};
 };
 
-&i2c9 {
+&i2c5 {
 	status = "okay";
 	clock-frequency = <400000>;
 
