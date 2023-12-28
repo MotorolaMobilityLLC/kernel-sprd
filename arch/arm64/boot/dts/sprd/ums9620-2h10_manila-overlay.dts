@@ -229,7 +229,6 @@
                 		usbcable-gpio = <&ap_gpio 140 GPIO_ACTIVE_LOW>;
                 		usbcable-gpio1 = <&ap_gpio 178 GPIO_ACTIVE_LOW>;
                 		usbcable-gpio2 = <&ap_gpio 179 GPIO_ACTIVE_LOW>;
-                		usbcable-gpio3 = <&ap_gpio 180 GPIO_ACTIVE_LOW>;
                 		debounce = <256000>;
                 		status = "okay";
         		};
