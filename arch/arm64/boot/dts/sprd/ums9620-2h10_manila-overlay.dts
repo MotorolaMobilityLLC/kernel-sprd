@@ -215,7 +215,7 @@
 				compatible = "sprd,goodix-fp";
 				gfrst-gpio = <&ap_gpio 110 0>;
 				gfirq-gpio = <&eic_async 29 0>;
-				//gfvdd-gpio = <&eic_async 29 0>;
+				vdd_io-supply = <&vddldo3>;
 			};
 
 			sprd-uid {
