@@ -110,6 +110,14 @@ const char *musb_drd_state_string(enum musb_drd_state state)
 	return state_names[state];
 }
 
+struct sprd_usb_udc {
+	struct usb_gadget_driver	*driver;
+	struct usb_gadget		*gadget;
+	struct device			dev;
+	struct list_head		list;
+	bool				vbus;
+	bool				started;
+};
 
 struct musb_reg_info {
 	struct regmap		*regmap_ptr;
@@ -1416,12 +1424,15 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		usb_gadget_set_state(&musb->g, USB_STATE_ATTACHED);
 		glue->dr_mode = USB_DR_MODE_PERIPHERAL;
 	} else {
+		struct sprd_usb_udc *sprd_udc = (struct sprd_usb_udc *)musb->g.udc;
+		struct usb_gadget *gadget = &musb->g;
 		dev_info(glue->dev, "%s: turn off gadget %s\n", __func__, musb->g.name);
 
-		if (musb_sprd_is_udc_start(glue)) {
-			usb_udc_vbus_handler(&musb->g, false);
-			flush_delayed_work(&musb->gadget_work);
-		}
+		if (sprd_udc)
+			sprd_udc->vbus = false;
+
+		gadget->ops->pullup(gadget, 0);
+		flush_delayed_work(&musb->gadget_work);
 
 		musb_sprd_release_all_request(musb);
 		usb_gadget_set_state(&musb->g, USB_STATE_NOTATTACHED);
