@@ -733,7 +733,7 @@
 		irq-gpio = <&tlmm 72 0>;
 		*/
 		//vcc0-supply = <&pm660l_l4>;
-		channel_use_flag = <0xfb>;
+		channel_use_flag = <0x1f>;
 		aw_sar,update_fw;
 		/* private node belongs to aw963xx */
 		start-mode = < 1 >; // 0: start in rom  1: start in ram
