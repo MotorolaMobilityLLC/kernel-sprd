@@ -104,6 +104,12 @@
 				sprd,dumpmem-info = <0x50800000 0x10000>;
 			};
 
+			skin_sensor: skin-sensor {
+				compatible = "sprd, skin-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "board-thmzone";
+			};
+
 			pwm_backlight: sprd_backlight {
 				compatible = "pwm-backlight";
 				pwms = <&pwms 1 20000>;
@@ -298,6 +304,10 @@
 
 &chosen {
 	bootargs_ext = "dummy_hcd.num=0";
+};
+
+&skin_thmzone {
+	thermal-sensors = <&skin_sensor>;
 };
 
 &reserved_memory {
@@ -527,6 +537,7 @@
 &sdio0 {
 	cd-gpios = <&ap_gpio 2 1>;
 };
+
 
 &thm_zone {
 	bd_thmzone: board-thmzone {

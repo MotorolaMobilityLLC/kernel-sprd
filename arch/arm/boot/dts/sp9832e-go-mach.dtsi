@@ -100,6 +100,11 @@
 			polling-delay = <0>;
 			thermal-sensors = <&gpu_thm 0>;
 		};
+
+		skin_thmzone: skin-thmzone {
+			polling-delay-passive = <0>;
+			polling-delay = <0>;
+		};
 	};
 
 	cooling-devices {

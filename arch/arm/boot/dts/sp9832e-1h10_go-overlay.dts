@@ -90,6 +90,12 @@
 								124872 43 >;
 			};
 
+			skin_sensor: skin-sensor {
+				compatible = "sprd, skin-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "board-thmzone";
+			};
+
 			fingerprint@0 {
 				compatible = "microarray,afs121";
 				fpint-gpios = <&eic_async 13 0>;
@@ -292,6 +298,10 @@
 	fd_reserved: faceid-mem@bfa70000 {
 		reg = <0xbfa70000 0x00500000>;
 	};
+};
+
+&skin_thmzone {
+	thermal-sensors = <&skin_sensor>;
 };
 
 &thm_zone {
