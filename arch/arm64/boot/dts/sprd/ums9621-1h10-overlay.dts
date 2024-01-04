@@ -142,6 +142,13 @@
 				temp-diff = <350 250 300>;
 				virt-temp-diff = <200>;
 			};
+ 
+			skin_sensor: skin-sensor {
+				compatible = "sprd, skin-thermal";
+				#thermal-sensor-cells = <0>;
+				sensor-names = "front-thmzone",
+						"back-thmzone";
+			};
 
 			sprd-uid {
 				compatible = "sprd,uid";
@@ -161,6 +168,10 @@
 
 &chosen {
 	bootargs_ext = "";
+};
+ 
+&skin_thmzone {
+	thermal-sensors = <&skin_sensor>;
 };
 
 &front_thmzone {
