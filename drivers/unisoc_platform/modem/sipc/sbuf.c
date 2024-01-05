@@ -218,9 +218,15 @@ static void sbuf_skip_old_data(struct sbuf_mgr *sbuf)
 		hd_op = &ring->header_op;
 
 		/* clean sbuf tx ring , sbuf tx ring no need to clear */
-		/* *(hd_op->tx_wt_p) = *(hd_op->tx_rd_p); */
+		if (sbuf->dst == SIPC_ID_PM_SYS) {
+			mutex_lock(&ring->txlock);
+			*(hd_op->tx_wt_p) = *(hd_op->tx_rd_p);
+			mutex_unlock(&ring->txlock);
+		}
 		/* clean sbuf rx ring */
+		mutex_lock(&ring->rxlock);
 		*(hd_op->rx_rd_p) = *(hd_op->rx_wt_p);
+		mutex_unlock(&ring->rxlock);
 		/* restore write mask. */
 		spin_lock_irqsave(&ring->poll_lock, flags);
 		ring->poll_mask = POLLOUT | POLLWRNORM;
@@ -892,12 +898,14 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 			rval = -EBUSY;
 		}
 	} else if (timeout < 0) {
+		mutex_unlock(&ring->txlock);
 		/* wait forever */
 		rval = wait_event_interruptible(
 			ring->txwait,
 			(int)(*(hd_op->tx_wt_p) - *(hd_op->tx_rd_p)) <
 			hd_op->tx_size ||
 			sbuf->state == SBUF_STATE_IDLE);
+		mutex_lock(&ring->txlock);
 		if (rval < 0)
 			pr_debug("wait interrupted!\n");
 
@@ -906,6 +914,7 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 			rval = -EIO;
 		}
 	} else {
+		mutex_unlock(&ring->txlock);
 		/* wait timeout */
 		rval = wait_event_interruptible_timeout(
 			ring->txwait,
@@ -913,6 +922,7 @@ int sbuf_write(u8 dst, u8 channel, u32 bufid,
 			hd_op->tx_size ||
 			sbuf->state == SBUF_STATE_IDLE,
 			timeout);
+		mutex_lock(&ring->txlock);
 		if (rval < 0) {
 			pr_debug("wait interrupted!\n");
 		} else if (rval == 0) {
@@ -1112,11 +1122,13 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 				 dst, channel, bufid);
 			rval = -ENODATA;
 		} else if (timeout < 0) {
+			mutex_unlock(&ring->rxlock);
 			/* wait forever */
 			rval = wait_event_interruptible(
 				ring->rxwait,
 				*(hd_op->rx_wt_p) != *(hd_op->rx_rd_p) ||
 				sbuf->state == SBUF_STATE_IDLE);
+			mutex_lock(&ring->rxlock);
 			if (rval < 0)
 				pr_debug("wait interrupted!\n");
 
@@ -1125,11 +1137,13 @@ int sbuf_read(u8 dst, u8 channel, u32 bufid,
 				rval = -EIO;
 			}
 		} else {
+			mutex_unlock(&ring->rxlock);
 			/* wait timeout */
 			rval = wait_event_interruptible_timeout(
 				ring->rxwait,
 				*(hd_op->rx_wt_p) != *(hd_op->rx_rd_p) ||
 				sbuf->state == SBUF_STATE_IDLE, timeout);
+			mutex_lock(&ring->rxlock);
 			if (rval < 0) {
 				pr_debug("wait interrupted!\n");
 			} else if (rval == 0) {
