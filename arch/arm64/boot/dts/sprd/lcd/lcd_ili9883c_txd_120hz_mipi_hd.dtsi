@@ -22,7 +22,7 @@
 					sprd,hporch-lp-disable = <1>;
 
 					sprd,reset-on-sequence = <1 15>, <0 5>, <1 15>;
-					sprd,reset-off-sequence = <0 10>;
+					sprd,reset-off-sequence = <1 10>;
 
 					sprd,initial-command = [
 						39 00 00 04 FF 98 83 00
