@@ -81,7 +81,6 @@ enum chip_type{
 
 
 struct bq2560xpe_charger_info {
-	struct i2c_client *client;
 	struct device *dev;
 	struct power_supply *psy_usb;
 	struct mutex lock;
@@ -712,10 +711,9 @@ static const struct power_supply_desc bq2560xpe_charger_desc = {
 	.property_is_writeable	= bq2560xpe_charger_property_is_writeable,
 };
 
-static int bq2560xpe_charger_probe(struct i2c_client *client,
-		const struct i2c_device_id *id)
+static int bq2560xpe_charger_probe(struct platform_device *pdev)
 {
-	struct device *dev = &client->dev;
+	struct device *dev = &pdev->dev;
 	struct power_supply_config charger_cfg = { };
 	struct bq2560xpe_charger_info *info;
 	struct device_node *regmap_np;
@@ -744,12 +742,9 @@ static int bq2560xpe_charger_probe(struct i2c_client *client,
 	if (!info)
 		return -ENOMEM;
 
-	info->client = client;
 	info->dev = dev;
-
 	
-	i2c_set_clientdata(client, info);
-
+	platform_set_drvdata(pdev, info);
 
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
 	if (!regmap_np)
@@ -808,26 +803,22 @@ err_regmap_exit:
 
 
 
-static int bq2560xpe_charger_remove(struct i2c_client *client)
+static int bq2560xpe_charger_remove(struct platform_device *pdev)
 {
-	struct bq2560xpe_charger_info *info = i2c_get_clientdata(client);
+	struct bq2560xpe_charger_info *info = platform_get_drvdata(pdev);
 
 	cancel_delayed_work_sync(&info->work);
 	return 0;
 }
 
-static void bq2560xpe_charger_shutdown(struct i2c_client *client)
+static void bq2560xpe_charger_shutdown(struct platform_device *pdev)
 {
-	struct bq2560xpe_charger_info *info = i2c_get_clientdata(client);
+	struct bq2560xpe_charger_info *info = platform_get_drvdata(pdev);
 
 	info->shutdown_flag = true;
 	cancel_delayed_work_sync(&info->work);
 }
 
-static const struct i2c_device_id bq2560xpe_i2c_id[] = {
-	{"bq2560xpe_chg", 0},
-	{}
-};
 
 static const struct of_device_id bq2560xpe_charger_of_match[] = {
 	{ .compatible = "ti,bq2560xpe_chg", },
@@ -836,7 +827,7 @@ static const struct of_device_id bq2560xpe_charger_of_match[] = {
 
 MODULE_DEVICE_TABLE(of, bq2560xpe_charger_of_match);
 
-static struct i2c_driver bq2560xpe_charger_driver = {
+static struct platform_driver bq2560xpe_charger_driver = {
 	.driver = {
 		.name = "bq2560xpe_chg",
 		.of_match_table = bq2560xpe_charger_of_match,
@@ -844,9 +835,8 @@ static struct i2c_driver bq2560xpe_charger_driver = {
 	.probe = bq2560xpe_charger_probe,
 	.shutdown = bq2560xpe_charger_shutdown,
 	.remove = bq2560xpe_charger_remove,
-	.id_table = bq2560xpe_i2c_id,
 };
 
-module_i2c_driver(bq2560xpe_charger_driver);
+module_platform_driver(bq2560xpe_charger_driver);
 MODULE_DESCRIPTION("BQ2560XPE Charger Driver");
 MODULE_LICENSE("GPL v2");

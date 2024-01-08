@@ -191,7 +191,7 @@
 #define SC8541_REG_0B					0x0B
 #define SC8541_TDIE_ALM_MASK				0xFF
 #define SC8541_TDIE_ALM_SHIFT				0
-#define SC8541_TDIE_ALM_BASE				30
+#define SC8541_TDIE_ALM_BASE				25
 
 /*careful multiply is used for calc*/
 #define SC8541_TDIE_ALM_LSB				2

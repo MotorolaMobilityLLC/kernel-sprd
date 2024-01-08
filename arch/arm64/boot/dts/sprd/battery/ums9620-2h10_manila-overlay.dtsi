@@ -139,7 +139,7 @@
 	sprd,support-fchg;
 	sprd,support-pd-pps;
 	sprd,pd-fixed-max-microwatt = <18000000>;
-	sprd,customized-fchg-psy ="bq2560xpe_charger","bq2560xqc_charger","hl7015qc_charger";
+	sprd,customized-fchg-psy ="bq2560xpe_charger","bq2560xqc_charger","hl7015qc_charger","upm6920qc_charger";
 
 	monitored-battery = <&bat>;
 	cm-capacity-track;
@@ -162,22 +162,9 @@
 		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
-/*		vddvbus:otg-vbus {
+		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
-		}; */
-	};
-	bq2560xpe_chg: charger@6c {
-		compatible = "ti,bq2560xpe_chg";
-		reg = <0x6c>;
-		io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
-		io-channel-names = "dp", "dm";
-	};
-	bq2560xqc_chg: charger@6d {
-		compatible = "ti,bq2560xqc_chg";
-		reg = <0x6d>;
-		io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
-		io-channel-names = "dp", "dm";
-		dpdm-gpio = <&ap_gpio 149 GPIO_ACTIVE_LOW>;
+		};
 	};
 	hl7015_chg: charger@6e {
 		compatible = "hl,hl7015_chg";
@@ -185,16 +172,19 @@
 		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
-		vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
+		vddvbus1:otg-vbus {
+			regulator-name = "vddvbus1";
 		};
 	};
-	hl7017qc_chg: charger@6f {
-		compatible = "hl,hl7015qc_chg";
-		reg = <0x6f>;
-		io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
-		io-channel-names = "dp", "dm";
-		dpdm-gpio = <&ap_gpio 149 GPIO_ACTIVE_LOW>;
+	upm6920_chg: charger@6a {
+		compatible = "uni,upm6920_chg";
+		reg = <0x6a>;
+		monitored-battery = <&bat>;
+		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
+		use-typec-extcon;
+		vddvbus2:otg-vbus {
+			regulator-name = "vddvbus2";
+		};
 	};
 };
 
@@ -236,11 +226,12 @@
 		ti,bq2597x,ss-timeout = <100000>;
 		ti,bq2597x,watchdog-timer = <30000>;
 	};
-	sc8541_chg: charger@6a {
+	sc8541_chg: charger@6c {
 		compatible = "sc,sc8541-standalone";
-		reg = <0x6a>;
+		reg = <0x6c>;
 		irq-gpio = <&ap_gpio 193 GPIO_ACTIVE_LOW>;
 
+		sc,sc8541,bat-therm-disable = <1>;
 		sc,sc8541,bus-therm-disable = <1>;
 		sc,sc8541,regulation-disable = <1>;
 
@@ -261,7 +252,7 @@
 
 		sc,sc8541,bat-therm-threshold = <0x0>;
 		sc,sc8541,bus-therm-threshold = <0x0>;
-		sc,sc8541,die-therm-threshold = <0xc8>;
+		sc,sc8541,die-therm-threshold = <152>;
 
 		sc,sc8541,ac-ovp-threshold = <13>;
 		sc,sc8541,sense-resistor-mohm = <5>;
@@ -301,6 +292,8 @@
 &pmic_pd {
 	status = "okay";
 	vbus-supply = <&vddvbus>;
+	vbus1-supply = <&vddvbus1>;
+	vbus2-supply = <&vddvbus2>;
 	use-pdhub-c2c;
 	sprd,syscon-aon-apb = <&aon_apb_regs>;
 	usb_con: connector {

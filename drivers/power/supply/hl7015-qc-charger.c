@@ -84,7 +84,6 @@ enum adjust_voltage_direct
 };
 
 struct hl7015qc_charger_info {
-	struct i2c_client *client;
 	struct device *dev;
 	struct power_supply *psy_usb;
 	struct mutex lock;
@@ -629,10 +628,9 @@ static const struct power_supply_desc hl7015qc_charger_desc = {
 	.property_is_writeable	= hl7015qc_charger_property_is_writeable,
 };
 
-static int hl7015qc_charger_probe(struct i2c_client *client,
-		const struct i2c_device_id *id)
+static int hl7015qc_charger_probe(struct platform_device *pdev)
 {
-	struct device *dev = &client->dev;
+	struct device *dev = &pdev->dev;
 	struct power_supply_config charger_cfg = { };
 	struct hl7015qc_charger_info *info;
 	struct device_node *regmap_np;
@@ -660,12 +658,11 @@ static int hl7015qc_charger_probe(struct i2c_client *client,
 	if (!info)
 		return -ENOMEM;
 
-	info->client = client;
 	info->dev = dev;
 	info->psy_hl7015 = psy;
 
-	i2c_set_clientdata(client, info);
 
+	platform_set_drvdata(pdev, info);
 
 	regmap_np = of_find_compatible_node(NULL, NULL, "sprd,sc27xx-syscon");
 	if (!regmap_np)
@@ -734,26 +731,22 @@ err_regmap_exit:
 
 
 
-static int hl7015qc_charger_remove(struct i2c_client *client)
+static int hl7015qc_charger_remove(struct platform_device *pdev)
 {
-	struct hl7015qc_charger_info *info = i2c_get_clientdata(client);
+	struct hl7015qc_charger_info *info = platform_get_drvdata(pdev);
 
 	cancel_delayed_work_sync(&info->work);
 	return 0;
 }
 
-static void hl7015qc_charger_shutdown(struct i2c_client *client)
+static void hl7015qc_charger_shutdown(struct platform_device *pdev)
 {
-	struct hl7015qc_charger_info *info = i2c_get_clientdata(client);
+	struct hl7015qc_charger_info *info = platform_get_drvdata(pdev);
 
 	info->shutdown_flag = true;
 	cancel_delayed_work_sync(&info->work);
 }
 
-static const struct i2c_device_id hl7015qc_i2c_id[] = {
-	{"hl7015qc_chg", 0},
-	{}
-};
 
 static const struct of_device_id hl7015qc_charger_of_match[] = {
 	{ .compatible = "hl,hl7015qc_chg", },
@@ -762,7 +755,7 @@ static const struct of_device_id hl7015qc_charger_of_match[] = {
 
 MODULE_DEVICE_TABLE(of, hl7015qc_charger_of_match);
 
-static struct i2c_driver hl7015qc_charger_driver = {
+static struct platform_driver hl7015qc_charger_driver = {
 	.driver = {
 		.name = "hl7015qc_chg",
 		.of_match_table = hl7015qc_charger_of_match,
@@ -770,9 +763,8 @@ static struct i2c_driver hl7015qc_charger_driver = {
 	.probe = hl7015qc_charger_probe,
 	.shutdown = hl7015qc_charger_shutdown,
 	.remove = hl7015qc_charger_remove,
-	.id_table = hl7015qc_i2c_id,
 };
 
-module_i2c_driver(hl7015qc_charger_driver);
+module_platform_driver(hl7015qc_charger_driver);
 MODULE_DESCRIPTION("HL7015QC Charger Driver");
 MODULE_LICENSE("GPL v2");

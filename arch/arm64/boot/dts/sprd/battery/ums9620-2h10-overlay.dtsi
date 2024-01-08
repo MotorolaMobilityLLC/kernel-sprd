@@ -166,19 +166,7 @@
 			regulator-name = "vddvbus";
 		};
 	};
-	bq2560xpe_chg: charger@6c {
-		compatible = "ti,bq2560xpe_chg";
-		reg = <0x6c>;
-		io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
-		io-channel-names = "dp", "dm";
-	};
-	bq2560xqc_chg: charger@6d {
-		compatible = "ti,bq2560xqc_chg";
-		reg = <0x6d>;
-		io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
-		io-channel-names = "dp", "dm";
-		dpdm-gpio = <&ap_gpio 149 GPIO_ACTIVE_LOW>;
-	};
+
 	hl7015_chg: charger@6e {
 		compatible = "hl,hl7015_chg";
 		reg = <0x6e>;
@@ -188,13 +176,6 @@
 	/*	vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		}; */
-	};
-	hl7017qc_chg: charger@6f {
-		compatible = "hl,hl7015qc_chg";
-		reg = <0x6f>;
-		io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
-		io-channel-names = "dp", "dm";
-		dpdm-gpio = <&ap_gpio 149 GPIO_ACTIVE_LOW>;
 	};
 };
 
