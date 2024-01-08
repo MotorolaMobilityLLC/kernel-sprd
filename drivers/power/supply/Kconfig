@@ -685,6 +685,13 @@ config CHARGER_HL7015
 	help
 	  Say Y to enable support for the HL7015 battery chargers.
 
+config CHARGER_UPM6920
+	tristate "UPM6920 battery charger driver"
+	depends on I2C
+	depends on GPIOLIB || COMPILE_TEST
+	select REGMAP_I2C
+	help
+	  Say Y to enable support for the UPM6920 battery chargers.
 
 config CHARGER_SMB347
 	tristate "Summit Microelectronics SMB3XX Battery Charger"

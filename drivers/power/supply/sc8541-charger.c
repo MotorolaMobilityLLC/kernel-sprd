@@ -1122,7 +1122,7 @@ static int sc8541_detect_device(struct sc8541_charger_info *bq)
 		bq->part_no = (data & SC8541_DEV_ID_MASK);
 		bq->part_no >>= SC8541_DEV_ID_SHIFT;
 	}
-	dev_err(bq->dev, "%s;%x;\n",__func__,bq->part_no);
+	dev_err(bq->dev, "%s;%x;%x;\n",__func__,bq->part_no,bq->client->addr);
 	if(bq->part_no != 0x41)
 		ret = -ENODEV;
 	return ret;
@@ -1902,10 +1902,10 @@ static void sc8541_dump_reg(struct sc8541_charger_info *bq)
 	u8 val;
 	u8 addr;
 
-	for (addr = 0x00; addr < 0x2F; addr++) {
+	for (addr = 0x00; addr < 0x39; addr++) {
 		ret = sc8541_read_byte(bq, addr, &val);
 		if (!ret)
-			dev_err(bq->dev, "Reg[%02X] = 0x%02X\n", addr, val);
+			dev_err(bq->dev, "[%02X] = 0x%02X\n", addr, val);
 	}
 }
 
@@ -2136,8 +2136,12 @@ static int sc8541_charger_probe(struct i2c_client *client,
 
 	ret = sc8541_detect_device(bq);
 	if (ret) {
-		dev_err(bq->dev, "No sc8541 device found!\n");
-		return -ENODEV;
+		bq->client->addr = 0x6a;
+		ret = sc8541_detect_device(bq);
+		if (ret) {
+			dev_err(bq->dev, "No sc8541 device found!\n");
+			return -ENODEV;
+		}
 	}
 
 	match = of_match_node(sc8541_charger_match_table, node);

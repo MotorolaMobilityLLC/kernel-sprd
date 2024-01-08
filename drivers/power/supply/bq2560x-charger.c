@@ -470,7 +470,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		}
 	}
 
-	ret = bq2560x_charger_set_vindpm(info, voltage_max_microvolt);
+	ret = bq2560x_charger_set_vindpm(info, 4500);
 	if (ret) {
 		dev_err(info->dev, "set bq2560x vindpm vol failed\n");
 		return ret;
@@ -645,9 +645,9 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info, bool 
 	}
 
 	if (info->disable_power_path) {
-		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
-					  BQ2560X_REG_EN_HIZ_MASK,
-					  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
+	//	ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+	//				  BQ2560X_REG_EN_HIZ_MASK,
+	//				  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
 		if (ret)
 			dev_err(info->dev, "Failed to disable power path\n");
 	}
@@ -771,7 +771,7 @@ static void bq2560x_dump_register(struct bq2560x_charger_info *info)
 		ret = bq2560x_read(info,  reg_tab[i].addr, &reg_val);
 		if (ret == 0) {
 			len = snprintf(buf + idx, sizeof(buf) - idx,
-				       "[REG_0x%.2x]=0x%.2x  ",
+				       "[REG_0x%.2x]=%.2x  ",
 				       reg_tab[i].addr, reg_val);
 			idx += len;
 		}
@@ -2039,7 +2039,7 @@ static void bq2560x_charger_shutdown(struct i2c_client *client)
 		if (ret)
 			dev_err(info->dev, "disable bq2560x otg failed ret = %d\n", ret);
 
-		ret = bq2560x_charger_set_power_path_status(info, false);
+//		ret = bq2560x_charger_set_power_path_status(info, false);
 		if (ret)
 			dev_err(info->dev, "Failed to disable power path\n");
 

@@ -234,6 +234,29 @@
                 		status = "okay";
         		};
 
+			bq2560xpe_chg: bq2560xpe {
+				compatible = "ti,bq2560xpe_chg";
+				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
+				io-channel-names = "dp", "dm";
+			};
+			bq2560xqc_chg: bq2560xqc {
+				compatible = "ti,bq2560xqc_chg";
+				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
+				io-channel-names = "dp", "dm";
+				dpdm-gpio = <&ap_gpio 149 GPIO_ACTIVE_LOW>;
+			};
+			hl7015qc_chg: hl7015qc {
+				compatible = "hl,hl7015qc_chg";
+				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
+				io-channel-names = "dp", "dm";
+				dpdm-gpio = <&ap_gpio 149 GPIO_ACTIVE_LOW>;
+			};
+			upm6920qc_chg: upm6920qc {
+				compatible = "uni,upm6920qc_chg";
+				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
+				io-channel-names = "dp", "dm";
+				dpdm-gpio = <&ap_gpio 149 GPIO_ACTIVE_LOW>;
+			};
 		};
 	};
 };
@@ -548,6 +571,8 @@
 &usb3 {
 	extcon = <&pmic_typec>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
+	vbus1-supply = <&vddvbus1>;
+	vbus2-supply = <&vddvbus2>;
 	status = "okay";
 	use_pdhub_c2c;
 };

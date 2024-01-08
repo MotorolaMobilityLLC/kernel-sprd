@@ -468,7 +468,7 @@ static int hl7015_charger_hw_init(struct hl7015_charger_info *info)
 		}
 	}
 
-	ret = hl7015_charger_set_vindpm(info, voltage_max_microvolt);
+	ret = hl7015_charger_set_vindpm(info, 4500);
 	if (ret) {
 		dev_err(info->dev, "set hl7015 vindpm vol failed\n");
 		return ret;
@@ -632,9 +632,9 @@ static void hl7015_charger_stop_charge(struct hl7015_charger_info *info, bool pr
 	}
 
 	if (info->disable_power_path) {
-		ret = hl7015_update_bits(info, HL7015_REG_0,
-					  HL7015_REG_EN_HIZ_MASK,
-					  0x01 << HL7015_REG_EN_HIZ_SHIFT);
+	//	ret = hl7015_update_bits(info, HL7015_REG_0,
+	//				  HL7015_REG_EN_HIZ_MASK,
+	//				  0x01 << HL7015_REG_EN_HIZ_SHIFT);
 		if (ret)
 			dev_err(info->dev, "Failed to disable power path\n");
 	}
@@ -747,7 +747,7 @@ static void hl7015_dump_register(struct hl7015_charger_info *info)
 		ret = hl7015_read(info,  i, &reg_val);
 		if (ret == 0) {
 			len = snprintf(buf + idx, sizeof(buf) - idx,
-				       "[REG_0x%.2x]=0x%.2x  ",
+				       "[%.2x]=%.2x  ",
 				       i, reg_val);
 			idx += len;
 		}
@@ -1999,7 +1999,7 @@ static void hl7015_charger_shutdown(struct i2c_client *client)
 		if (ret)
 			dev_err(info->dev, "disable hl7015 otg failed ret = %d\n", ret);
 
-		ret = hl7015_charger_set_power_path_status(info, false);
+//		ret = hl7015_charger_set_power_path_status(info, false);
 		if (ret)
 			dev_err(info->dev, "Failed to disable power path\n");
 
