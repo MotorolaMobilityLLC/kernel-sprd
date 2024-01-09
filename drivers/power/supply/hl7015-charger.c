@@ -490,6 +490,13 @@ static int hl7015_charger_hw_init(struct hl7015_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "set hl7015 limit current failed\n");
 
+	ret = hl7015_update_bits(info, HL7015_REG_5,
+				  0x08,
+				  0);
+	ret = hl7015_update_bits(info, HL7015_REG_5,     //WATCHDOG
+				  0x30,
+				  0);
+
 
 	info->current_charge_limit_cur = HL7015_REG_ICHG_LSB * 1000;
 	info->current_input_limit_cur = HL7015_REG_IINDPM_LSB * 1000;
