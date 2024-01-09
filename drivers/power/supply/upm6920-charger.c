@@ -489,6 +489,24 @@ upm6920_charger_set_termina_cur(struct upm6920_charger_info *info, u32 cur)
 
 }
 
+static int upm6920_charger_enable_wdg(struct upm6920_charger_info *info,
+				      bool en)
+{
+	int ret;
+
+	if (en)
+		ret = upm6920_update_bits(info, UPM6920_REG_7,
+					  UPM6920_REG_WATCHDOG_TIMER_MASK,
+					  0x01 << UPM6920_REG_WATCHDOG_TIMER_SHIFT);
+	else
+		ret = upm6920_update_bits(info, UPM6920_REG_7,
+					  UPM6920_REG_WATCHDOG_TIMER_MASK, 0);
+	if (ret)
+		dev_err(info->dev, "%s:Failed to update %d\n", __func__, en);
+
+	return ret;
+}
+
 static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
 {
 	struct sprd_battery_info bat_info = {};
@@ -573,6 +591,9 @@ static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
 	ret = upm6920_update_bits(info, UPM6920_REG_0, 0x40,0x00);
 	ret = upm6920_update_bits(info, UPM6920_REG_2, 0x01,0x00);
 
+	ret = upm6920_update_bits(info, UPM6920_REG_7, 0x08, 0);
+
+	ret = upm6920_charger_enable_wdg(info, false);
 
 	info->current_charge_limit_cur = UPM6920_REG_ICHG_LSB * 1000;
 	info->current_input_limit_cur = UPM6920_REG_IINDPM_LSB * 1000;
@@ -609,23 +630,6 @@ upm6920_charger_get_charge_voltage(struct upm6920_charger_info *info,
 	return 0;
 }
 
-static int upm6920_charger_enable_wdg(struct upm6920_charger_info *info,
-				      bool en)
-{
-	int ret;
-
-	if (en)
-		ret = upm6920_update_bits(info, UPM6920_REG_5,
-					  UPM6920_REG_WATCHDOG_TIMER_MASK,
-					  0x01 << UPM6920_REG_WATCHDOG_TIMER_SHIFT);
-	else
-		ret = upm6920_update_bits(info, UPM6920_REG_5,
-					  UPM6920_REG_WATCHDOG_TIMER_MASK, 0);
-	if (ret)
-		dev_err(info->dev, "%s:Failed to update %d\n", __func__, en);
-
-	return ret;
-}
 
 static int upm6920_charger_start_charge(struct upm6920_charger_info *info)
 {
@@ -785,6 +789,8 @@ static int upm6920_charger_set_limit_current(struct upm6920_charger_info *info,
 	}
 
 	reg_val = limit_cur / REG00_IINDPM_LSB;
+
+	ret = upm6920_update_bits(info, UPM6920_REG_0, 0x40,0x00);
 
 	ret = upm6920_update_bits(info, UPM6920_REG_0, REG00_IINDPM_MASK,
 	            reg_val << REG00_IINDPM_SHIFT);

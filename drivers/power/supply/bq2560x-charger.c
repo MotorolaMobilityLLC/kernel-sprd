@@ -503,6 +503,16 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 				  0x03,
 				  0x03);
 
+	ret = bq2560x_update_bits(info, BQ2560X_REG_5,
+				  0x08,
+				  0);
+	ret = bq2560x_update_bits(info, BQ2560X_REG_5,     //WATCHDOG
+				  0x30,
+				  0);
+	ret = bq2560x_update_bits(info, BQ2560X_REG_4,   //TOPOFF_TIMER
+				  0x06,
+				  0);
+
 
 	info->current_charge_limit_cur = BQ2560X_REG_ICHG_LSB * 1000;
 	info->current_input_limit_cur = BQ2560X_REG_IINDPM_LSB * 1000;
