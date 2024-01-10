@@ -276,7 +276,9 @@ static ssize_t hbm_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
 	int rc;
+#ifndef SMT_VERSION
 	struct backlight_device *bd = to_backlight_device(dev);
+#endif
 	pr_info("pls echo Y/y/1/0/N/n,hbm user buf:%s\n", buf);
 
 #ifdef SMT_VERSION
