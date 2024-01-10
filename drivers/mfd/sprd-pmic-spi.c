@@ -254,24 +254,19 @@ static int sprd_pmic_spi_write(void *context, const void *data, size_t count)
 	struct spi_device *spi = to_spi_device(dev);
 	const struct sprd_pmic_data *pdata;
 	int ret;
-	u32 mdata1[2];
-	u32 *pmdata2;
+	u32 mdata[2];
 
+	/* The pmic only supports operation of 16bit data and 16bit addr*/
+	if (count > 8) {
+		dev_err(&spi->dev, "data count exceed!\n");
+		return -EINVAL;
+	}
 	pdata = ((struct sprd_pmic *)spi_get_drvdata(spi))->pdata;
 
-	if (count <= 8) {
-		memcpy(mdata1, data, count);
-		*mdata1 += pdata->slave_id;
-		ret = spi_write(spi, (const void *)mdata1, count);
-	} else {
-		pmdata2 = kzalloc(count, GFP_KERNEL);
-		if (!pmdata2)
-			return -ENOMEM;
-		memcpy(pmdata2, data, count);
-		*pmdata2 += pdata->slave_id;
-		ret = spi_write(spi, (const void *)pmdata2, count);
-		kfree(pmdata2);
-	}
+	mdata[0] = *((u32 *)data);
+	mdata[1] = *((u32 *)data + 1);
+	*mdata += pdata->slave_id;
+	ret = spi_write(spi, (const void *)mdata, count);
 
 	if (ret)
 		pr_err("pmic mfd write failed!\n");
