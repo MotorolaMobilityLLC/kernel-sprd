@@ -571,8 +571,6 @@
 &usb3 {
 	extcon = <&pmic_typec>, <&pmic_typec>;
 	vbus-supply = <&vddvbus>;
-	vbus1-supply = <&vddvbus1>;
-	vbus2-supply = <&vddvbus2>;
 	status = "okay";
 	use_pdhub_c2c;
 };

@@ -151,6 +151,12 @@
 	use-typec-extcon;
 };
 
+&power_controller {
+	vddvbus:otg-vbus {
+		regulator-name = "vddvbus";
+	};
+};
+
 &i2c2 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -162,9 +168,6 @@
 		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
-		vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
-		};
 	};
 
 	hl7015_chg: charger@6e {
@@ -173,9 +176,6 @@
 		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
-	/*	vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
-		}; */
 	};
 };
 

@@ -151,6 +151,12 @@
 	use-typec-extcon;
 };
 
+&power_controller {
+	vddvbus:otg-vbus {
+		regulator-name = "vddvbus";
+	};
+};
+
 &i2c6 {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -162,9 +168,6 @@
 		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
-		vddvbus:otg-vbus {
-			regulator-name = "vddvbus";
-		};
 	};
 	hl7015_chg: charger@6e {
 		compatible = "hl,hl7015_chg";
@@ -172,9 +175,6 @@
 		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
-		vddvbus1:otg-vbus {
-			regulator-name = "vddvbus1";
-		};
 	};
 	upm6920_chg: charger@6a {
 		compatible = "uni,upm6920_chg";
@@ -182,9 +182,6 @@
 		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
-		vddvbus2:otg-vbus {
-			regulator-name = "vddvbus2";
-		};
 	};
 };
 
@@ -292,8 +289,6 @@
 &pmic_pd {
 	status = "okay";
 	vbus-supply = <&vddvbus>;
-	vbus1-supply = <&vddvbus1>;
-	vbus2-supply = <&vddvbus2>;
 	use-pdhub-c2c;
 	sprd,syscon-aon-apb = <&aon_apb_regs>;
 	usb_con: connector {
