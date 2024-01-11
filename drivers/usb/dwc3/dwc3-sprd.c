@@ -659,13 +659,8 @@ static int dwc3_sprd_otg_start_host(struct dwc3_sprd *sdwc, int on)
 	struct dwc3 *dwc = platform_get_drvdata(sdwc->dwc3);
 
 	if (!sdwc->vbus) {
-		if (!IS_ERR_OR_NULL(sdwc->vbus= devm_regulator_get(sdwc->dev, "vbus"))) 
-			ret=0;
-		else if (!IS_ERR_OR_NULL(sdwc->vbus= devm_regulator_get(sdwc->dev, "vbus1"))) 
-			ret=0;
-		else if (!IS_ERR_OR_NULL(sdwc->vbus= devm_regulator_get(sdwc->dev, "vbus2"))) 
-			ret=0;
-		else	{
+		sdwc->vbus= devm_regulator_get(sdwc->dev, "vbus");
+		if (IS_ERR_OR_NULL(sdwc->vbus)){
 			if (!sdwc->vbus)
 				return -EPERM;
 			else
@@ -1417,17 +1412,7 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 	if (IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE) ||
 		IS_ENABLED(CONFIG_USB_DWC3_HOST)) {
 		sdwc->vbus = devm_regulator_get(dev, "vbus");
-		if (!IS_ERR(sdwc->vbus = devm_regulator_get(dev, "vbus"))) {
-			dev_warn(dev, "unable to get vbus supply\n");
-		}
-		else if (!IS_ERR(sdwc->vbus = devm_regulator_get(dev, "vbus1"))) {
-			dev_warn(dev, "unable to get vbus1 supply\n");
-		}
-		else if (!IS_ERR(sdwc->vbus = devm_regulator_get(dev, "vbus2"))) {
-			dev_warn(dev, "unable to get vbus2 supply\n");
-		}
-		else
-		{
+		if (IS_ERR(sdwc->vbus)){
 			dev_warn(dev, "unable to get vbus supply\n");
 			sdwc->vbus = NULL;
 		}

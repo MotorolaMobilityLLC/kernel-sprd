@@ -1789,14 +1789,44 @@ bq2560x_charger_register_vbus_regulator(struct bq2560x_charger_info *info)
 	struct regulator_config cfg = { };
 	struct regulator_dev *reg;
 	int ret = 0;
+	struct device_node *otg_nd;
+	struct device_node *otg_parent_nd;
+	struct platform_device *otg_parent_nd_pdev;
 
-	cfg.dev = info->dev;
+	/*
+	 * only master to support otg
+	 */
+	if (info->role != BQ2560X_ROLE_MASTER_DEFAULT)
+		return 0;
+
+	otg_nd = of_find_node_by_name(NULL, "otg-vbus");
+	if (!otg_nd) {
+		dev_warn(info->dev, "%s, unable to get otg node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd = of_get_parent(otg_nd);
+	of_node_put(otg_nd);
+	if (!otg_parent_nd) {
+		dev_warn(info->dev, "%s, unable to get otg parent node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd_pdev = of_find_device_by_node(otg_parent_nd);
+	of_node_put(otg_parent_nd);
+	if (!otg_parent_nd_pdev) {
+		dev_warn(info->dev, "%s, unable to get otg parent node device\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	cfg.dev = &otg_parent_nd_pdev->dev;
+	platform_device_put(otg_parent_nd_pdev);
 	cfg.driver_data = info;
-	reg = devm_regulator_register(info->dev,
-				      &bq2560x_charger_vbus_desc, &cfg);
+	reg = devm_regulator_register(cfg.dev, &bq2560x_charger_vbus_desc, &cfg);
 	if (IS_ERR(reg)) {
 		ret = PTR_ERR(reg);
-		dev_err(info->dev, "Can't register regulator:%d\n", ret);
+		dev_warn(info->dev, "%s, failed to register vddvbus regulator:%d\n",
+			 __func__, ret);
 	}
 
 	return ret;

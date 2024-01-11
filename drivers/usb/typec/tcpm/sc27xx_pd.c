@@ -2495,13 +2495,8 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 	}
 	sc27xx_init_tcpc_dev(pd);
 
-	if (!IS_ERR(pd->vbus = devm_regulator_get(pd->dev, "vbus"))) 
-		ret = 0;
-	else if (!IS_ERR(pd->vbus = devm_regulator_get(pd->dev, "vbus1"))) 
-		ret = 0;
-	else if (!IS_ERR(pd->vbus = devm_regulator_get(pd->dev, "vbus2"))) 
-		ret = 0;
-	else{
+	pd->vbus = devm_regulator_get(pd->dev, "vbus");
+	if (IS_ERR(pd->vbus)){
 		dev_err(&pdev->dev, "pd failed to get vbus\n");
 		return PTR_ERR(pd->vbus);
 	}

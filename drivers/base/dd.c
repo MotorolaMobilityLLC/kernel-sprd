@@ -554,12 +554,6 @@ static int really_probe(struct device *dev, struct device_driver *drv)
 	}
 
 	ret = device_links_check_suppliers(dev);
-	if(!strcmp(drv->name,"musb-sprd")  && !strcmp(dev_name(dev),"64a00000.usb"))
-		ret =0;
-	else if(!strcmp(drv->name,"dwc3-sprd")  && !strcmp(dev_name(dev),"25100000.usb3"))
-		ret =0;
-	else if(!strcmp(drv->name,"sc27xx-typec-pd")  && !strcmp(dev_name(dev),"64400000.spi:pmic@0:pd@e00"))
-		ret =0;
 	if (ret)
 		return ret;
 
