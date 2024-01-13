@@ -21,6 +21,7 @@
 #ifdef CONFIG_PMAC_BACKLIGHT
 #include <asm/backlight.h>
 #endif
+
 /**
  * DOC: overview
  *
@@ -266,68 +267,6 @@ static ssize_t brightness_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(brightness);
 
-#ifdef CONFIG_HBM_SUPPORT
-bool g_hbm_enable = false;
-EXPORT_SYMBOL(g_hbm_enable);
-u16 g_last_level = 32;
-EXPORT_SYMBOL(g_last_level);
-
-static ssize_t hbm_store(struct device *dev,
-		struct device_attribute *attr, const char *buf, size_t count)
-{
-	int rc;
-	struct backlight_device *bd = to_backlight_device(dev);
-	pr_info("pls echo Y/y/1/0/N/n,hbm user buf:%s\n", buf);
-
-#ifdef SMT_VERSION
-	pr_info("SMT version,No hbm");
-	rc = 0;
-#else
-	switch (buf[0]){
-		case 'n':
-		case 'N':
-		case '0':
-			if (!g_hbm_enable) {
-				pr_info("Have been disabled hbm, exit!\n");
-				rc = 0;
-				break;
-			}
-			g_hbm_enable = false;
-			rc = backlight_device_set_brightness(bd, g_last_level);
-			break;
-		case 'y':
-		case 'Y':
-		case '1':
-			if (g_hbm_enable) {
-				pr_info("Have been enabled hbm, exit!\n");
-				rc = 0;
-				break;
-			}
-			g_hbm_enable = true;
-			rc = backlight_device_set_brightness(bd, 255);
-			break;
-		default:
-			rc = 0;
-			break;
-	}
-#endif
-	return rc ? rc : count;
-}
-
-static ssize_t hbm_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
-{
-	char hbm_str_st[8] = {0};
-	if (g_hbm_enable){
-	    strcpy(hbm_str_st, "hbm:on");
-	}else{
-	    strcpy(hbm_str_st, "hbm:off");
-	}
-	return sprintf(buf,"%s\n",hbm_str_st);
-}
-static DEVICE_ATTR_RW(hbm);
-#endif
-
 static ssize_t type_show(struct device *dev, struct device_attribute *attr,
 		char *buf)
 {
@@ -459,9 +398,6 @@ static struct attribute *bl_device_attrs[] = {
 	&dev_attr_max_brightness.attr,
 	&dev_attr_scale.attr,
 	&dev_attr_type.attr,
-#ifdef CONFIG_HBM_SUPPORT
-	&dev_attr_hbm.attr,
-#endif
 	NULL,
 };
 ATTRIBUTE_GROUPS(bl_device);
