@@ -481,6 +481,25 @@
 	status = "okay";
 	clock-frequency = <400000>;
 
+	stm_vl53l0: vl53l0@52 {
+		compatible = "st,stmvl53l0";
+		reg = <0x52>;
+		reset_gpios = <258>;
+		irq_gpios = <213>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <169 IRQ_TYPE_LEVEL_LOW>;
+	};
+
+	btn38003a: btn38003a_redriver@30 {
+		compatible = "sprd,ptn38003a redriver";
+		reg = <0x30>;
+	};
+};
+
+&i2c4 {
+	status = "okay";
+	clock-frequency = <400000>;
+
 	flash_ic: flash-ic@63 {
 		compatible = "sprd,flash-aw36514","sprd,flash-ocp81375";
 		reg = <0x63>;
@@ -496,20 +515,6 @@
 		flash-chip-en-gpios = <&ap_gpio 119 0>;
 		//flash-en-gpios = <&ap_gpio 111 0>;
 		flash-sync-gpios = <&ap_gpio 177 0>;
-	};
-
-	stm_vl53l0: vl53l0@52 {
-		compatible = "st,stmvl53l0";
-		reg = <0x52>;
-		reset_gpios = <258>;
-		irq_gpios = <213>;
-		interrupt-parent = <&ap_gpio>;
-		interrupts = <169 IRQ_TYPE_LEVEL_LOW>;
-	};
-
-	btn38003a: btn38003a_redriver@30 {
-		compatible = "sprd,ptn38003a redriver";
-		reg = <0x30>;
 	};
 
 	aw99703-bl@36 {
