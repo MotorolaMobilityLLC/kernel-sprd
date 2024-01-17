@@ -8,10 +8,11 @@
 					sprd,dsi-work-mode = <1>; /* video burst mode*/
 					sprd,dsi-lane-number = <4>;
 					sprd,dsi-color-format = "rgb888";
-					sprd,phy-bit-clock = <1194000>;
+					sprd,phy-bit-clock = <1134000>;
 					sprd,phy-escape-clock = <20000>;/* kHz */
 					sprd,width-mm = <69>;
 					sprd,height-mm = <155>;
+					sprd,vrr-enabled;
 					sprd,esd-check-enable = <1>;
 					sprd,esd-check-mode = <0>;
 					sprd,esd-check-period = <2000>;
@@ -25,6 +26,29 @@
 					sprd,reset-off-sequence = <1 10>;
 
 					sprd,initial-command = [
+						39 00 00 04 FF 98 83 06
+						39 00 00 02 3E E2
+						39 00 00 04 FF 98 83 02
+						39 00 00 02 06 41
+						39 00 00 02 0A 1B
+						39 00 00 02 0D 84
+						39 00 00 02 0E 1A
+						39 00 00 02 39 41
+						39 00 00 02 3A 84
+						39 00 00 02 3B 1B
+						39 00 00 02 3C 7E
+						39 00 00 04 FF 98 83 0B
+						39 00 00 02 9A 84
+						39 00 00 02 9B 20
+						39 00 00 02 9C 03
+						39 00 00 02 9D 03
+						39 00 00 02 9E 67
+						39 00 00 02 9F 67
+						39 00 00 04 FF 98 83 0E
+						39 00 00 02 11 4D
+						39 00 00 02 13 80
+						39 00 00 02 14 0F
+						39 00 00 02 51 01
 						39 00 00 04 FF 98 83 00
 						39 00 00 03 51 07 FF
 						39 00 00 02 53 2C
@@ -48,37 +72,37 @@
 					display-timings {
 						native-mode = <&ili9883c_txd_timing0>;
 						ili9883c_txd_timing0: timing0 {
-							clock-frequency = <199000000>;
+							clock-frequency = <189000000>;
 							hactive = <720>;
 							vactive = <1604>;
 							hback-porch = <20>;
-							hfront-porch = <20>;
-							vback-porch = <28>;
-							vfront-porch = <2660>;
+							hfront-porch = <28>;
+							vback-porch = <384>;
+							vfront-porch = <2046>;
 							hsync-len = <12>;
 							vsync-len = <4>;
 						};
 
 						ili9883c_txd_timing1: timing1 {
-							clock-frequency = <199000000>;
+							clock-frequency = <189000000>;
 							hactive = <720>;
 							vactive = <1604>;
 							hback-porch = <20>;
-							hfront-porch = <20>;
-							vback-porch = <28>;
-							vfront-porch = <1228>;
+							hfront-porch = <28>;
+							vback-porch = <384>;
+							vfront-porch = <700>;
 							hsync-len = <12>;
 							vsync-len = <4>;
 						};
 
 						ili9883c_txd_timing2: timing2 {
-							clock-frequency = <199000000>;
+							clock-frequency = <189000000>;
 							hactive = <720>;
 							vactive = <1604>;
 							hback-porch = <20>;
-							hfront-porch = <20>;
-							vback-porch = <28>;
-							vfront-porch = <512>;
+							hfront-porch = <28>;
+							vback-porch = <384>;
+							vfront-porch = <27>;
 							hsync-len = <12>;
 							vsync-len = <4>;
 						};
