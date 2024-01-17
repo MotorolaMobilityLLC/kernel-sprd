@@ -35,6 +35,7 @@ struct userlog_log {
 	size_t				w_off;
 	size_t				head;
 	size_t				size;
+	size_t				free;
 };
 
 struct userlog_reader {
@@ -172,7 +173,9 @@ static ssize_t userlog_write_iter(struct kiocb *iocb, struct iov_iter *from)
 {
 	struct userlog_log *log = glog;
 	struct userlog_entry header;
-	size_t len, count, w_off;
+	struct userlog_reader *reader;
+	size_t len, count, w_off, oldhead;
+	ssize_t entry_size;
 
 	count = min_t(size_t, iov_iter_count(from), USERLOG_ENTRY_MAX_PAYLOAD);
 
@@ -184,6 +187,22 @@ static ssize_t userlog_write_iter(struct kiocb *iocb, struct iov_iter *from)
 		return 0;
 
 	mutex_lock(&log->mutex);
+
+	/* rollover messages until the free space is enough */
+	while (sizeof(header) + count + 1 > log->free) {
+		/* calculate the entry size at the head location */
+		entry_size = sizeof(struct userlog_entry) + get_entry_msg_len(log, log->head);
+		oldhead = log->head;
+
+		/* update the head offset */
+		log->head = userlog_offset(log, log->head + entry_size);
+		log->free += entry_size;
+
+		/* update the read offset of all readers */
+		list_for_each_entry(reader, &log->readers, list)
+			if (reader->r_off == oldhead)
+				reader->r_off = log->head;
+	}
 
 	/* write userlog header message */
 
@@ -209,6 +228,7 @@ static ssize_t userlog_write_iter(struct kiocb *iocb, struct iov_iter *from)
 
 	/* get write offset */
 	log->w_off = userlog_offset(log, w_off + count);
+	log->free -= sizeof(header) + count;
 
 	mutex_unlock(&log->mutex);
 
@@ -230,6 +250,7 @@ static int userlog_open(struct inode *inode, struct file *file)
 	reader->log = glog;
 	mutex_lock(&glog->mutex);
 	reader->r_off = glog->head;
+	list_add(&reader->list, &glog->readers);
 	mutex_unlock(&glog->mutex);
 	file->private_data = reader;
 
@@ -242,6 +263,9 @@ static int userlog_release(struct inode *ignored, struct file *file)
 {
 	struct userlog_reader *reader = file->private_data;
 
+	mutex_lock(&glog->mutex);
+	list_del(&reader->list);
+	mutex_unlock(&glog->mutex);
 	kfree(reader);
 
 	pr_info("userlog_release\n");
@@ -290,11 +314,14 @@ static int __init create_userlog(char *log_name, int size)
 	init_waitqueue_head(&glog->wq);
 	/* init mutex */
 	mutex_init(&glog->mutex);
+	/* init list */
+	INIT_LIST_HEAD(&glog->readers);
 
 	/* init log w_off,head,size */
 	glog->w_off = 0;
 	glog->head = 0;
 	glog->size = size;
+	glog->free = size;
 
 	/* register misc device for this log dev */
 	ret = misc_register(&glog->logdev);
