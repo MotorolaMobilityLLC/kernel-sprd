@@ -685,7 +685,7 @@ static void unisoc_dump_regs(struct pt_regs *regs)
 	}
 	if (!user_mode(regs)) {
 		SEQ_printf(unisoc_sr_seq_buf, "pc : %pS\n", (void *)regs->pc);
-		SEQ_printf(unisoc_sr_seq_buf, "lr : %pS\n", (void *)lr);
+		SEQ_printf(unisoc_sr_seq_buf, "lr : %pS\n", (void *)ptrauth_strip_insn_pac(lr));
 	} else {
 		SEQ_printf(unisoc_sr_seq_buf, "pc : %016llx\n", regs->pc);
 		SEQ_printf(unisoc_sr_seq_buf, "lr : %016llx\n", lr);
@@ -884,7 +884,6 @@ void unisoc_dump_stack_reg(int cpu, struct pt_regs *pregs)
 #endif
 	}
 
-	flush_cache_all();
 	SEQ_printf(unisoc_sr_seq_buf, "\n-----cpu%d regs info-----\n", cpu);
 
 	unisoc_dump_regs(pregs);
