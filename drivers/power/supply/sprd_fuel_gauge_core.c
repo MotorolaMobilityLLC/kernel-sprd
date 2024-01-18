@@ -575,6 +575,7 @@ static int sprd_fgu_init_cap_remap_table(struct sprd_fgu_data *data)
 static int sprd_fgu_capacity_remap(struct sprd_fgu_data *data, int fuel_cap)
 {
 	int i, temp, cap = 0;
+	return fuel_cap;
 
 	if (!data->cap_remap_table)
 		return fuel_cap;

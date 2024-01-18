@@ -271,7 +271,8 @@ struct charger_sysfs_ctl_item {
 	struct device_attribute attr_support_fast_charge;
 	struct device_attribute attr_support_step_chg;
 	struct device_attribute attr_unknow_type_cur_control;
-	struct attribute *attrs[13];
+	struct device_attribute attr_soc_control;
+	struct attribute *attrs[14];
 
 	struct charger_manager *cm;
 };

@@ -112,7 +112,6 @@
 #define UPM6920_REG_8				0x8
 #define UPM6920_REG_9				0x9
 #define UPM6920_REG_A				0xa
-#define UPM6920_REG_B				0xb
 #define UPM6920_REG_C				0xc
 #define UPM6920_REG_E				0xe
 #define UPM6920_REG_F				0xf
@@ -175,6 +174,11 @@
 #define REG06_VRECHG_SHIFT              0
 #define REG06_VRECHG_100MV              0
 #define REG06_VRECHG_200MV              1
+
+#define UPM6920_REG_B				0xb
+#define REG0B_CHG_STS_MASK		GENMASK(4, 3)
+#define REG0B_CHG_STS_SHIFT		3
+
 
 #define UPM6920_REG_D                   0x0D
 #define REG0D_FORCEVINDPM_MASK          BIT(7)
@@ -887,6 +891,24 @@ static irqreturn_t upm6920_int_handler(int irq, void *dev_id)
 
 	return IRQ_HANDLED;
 }
+static bool upm6920_charge_done(struct upm6920_charger_info *info)
+{
+	if (info->charging)
+	{
+		unsigned char val = 0;
+
+		upm6920_read(info, UPM6920_REG_B, &val);
+
+		val = ( val & REG0B_CHG_STS_MASK)>> REG0B_CHG_STS_SHIFT ;
+
+		if(val == 0x3)
+			return true;
+		else
+			return false;
+	}
+	else
+		return false;
+}
 
 static int upm6920_charger_get_status(struct upm6920_charger_info *info)
 {
@@ -1189,6 +1211,9 @@ static int upm6920_charger_usb_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_ONLINE:
 			val->intval = info->chip_type;
 		break;
+	case POWER_SUPPLY_PROP_CHARGE_FULL:
+			val->intval = upm6920_charge_done(info);
+		break;
 
 	default:
 		ret = -EINVAL;
@@ -1367,6 +1392,7 @@ static enum power_supply_property upm6920_usb_props[] = {
 	POWER_SUPPLY_PROP_TYPE,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
+	POWER_SUPPLY_PROP_CHARGE_FULL,
 };
 
 static const struct power_supply_desc upm6920_charger_desc = {

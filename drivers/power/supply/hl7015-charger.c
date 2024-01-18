@@ -95,6 +95,9 @@
 #define HL7015_DISABLE_PIN_MASK		BIT(0)
 #define HL7015_DISABLE_PIN_MASK_2721		BIT(15)
 
+#define HL7015_REG_CHG_STS_MASK			GENMASK(5, 4)
+#define HL7015_REG_CHG_STS_SHIFT		4
+
 #define HL7015_OTG_VALID_MS			500
 #define HL7015_FEED_WATCHDOG_VALID_MS		50
 #define HL7015_OTG_RETRY_TIMES			10
@@ -468,7 +471,7 @@ static int hl7015_charger_hw_init(struct hl7015_charger_info *info)
 		}
 	}
 
-	ret = hl7015_charger_set_vindpm(info, 4500);
+	ret = hl7015_charger_set_vindpm(info, 4520);
 	if (ret) {
 		dev_err(info->dev, "set hl7015 vindpm vol failed\n");
 		return ret;
@@ -809,6 +812,25 @@ static irqreturn_t hl7015_int_handler(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 
+static bool hl7015_charge_done(struct hl7015_charger_info *info)
+{
+	if (info->charging)
+	{
+		unsigned char val = 0;
+
+		hl7015_read(info, HL7015_REG_8, &val);
+
+		val = ( val & HL7015_REG_CHG_STS_MASK)>> HL7015_REG_CHG_STS_SHIFT ;
+
+		if(val == 0x3)
+			return true;
+		else
+			return false;
+	}
+	else
+		return false;
+}
+
 static int hl7015_charger_get_status(struct hl7015_charger_info *info)
 {
 	if (info->charging)
@@ -1110,6 +1132,9 @@ static int hl7015_charger_usb_get_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_ONLINE:
 			val->intval = info->chip_type;
 		break;
+	case POWER_SUPPLY_PROP_CHARGE_FULL:
+			val->intval = hl7015_charge_done(info);
+		break;
 
 	default:
 		ret = -EINVAL;
@@ -1288,6 +1313,7 @@ static enum power_supply_property hl7015_usb_props[] = {
 	POWER_SUPPLY_PROP_TYPE,
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
+	POWER_SUPPLY_PROP_CHARGE_FULL,
 };
 
 static const struct power_supply_desc hl7015_charger_desc = {
