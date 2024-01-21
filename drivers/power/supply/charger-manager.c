@@ -153,6 +153,7 @@ static int ontim_runin_onoff_control = 1;
 #else
 static int ontim_runin_onoff_control = -200;
 #endif
+static bool runin_stop_chg = false;
 
 static const char * const cm_cp_state_names[] = {
 	[CM_CP_STATE_UNKNOWN] = "Charge pump state: UNKNOWN",
@@ -4046,10 +4047,6 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 {
 	int err = 0, ret = 0;
 
-	if(ontim_charge_onoff_control  !=  1)
-	{
-		enable = false;
-	}
 	/* Ignore if it's redundant command */
 	if (enable == cm->charger_enabled)
 		return 0;
@@ -4065,6 +4062,12 @@ static int try_charger_enable(struct charger_manager *cm, bool enable)
 		 */
 		if (!is_batt_present(cm) && !allow_charger_enable)
 			return 0;
+
+		if(ontim_charge_onoff_control  !=  1)
+			return 0;
+		if(runin_stop_chg)
+			return 0;
+
 		/*
 		 * Save start time of charging to limit
 		 * maximum possible charging time.
@@ -4689,6 +4692,12 @@ static int cm_get_target_status(struct charger_manager *cm)
 		dev_warn(cm->dev, "Errors orrurs when adjusting charging current\n");
 
 	if (!is_batt_present(cm) && !allow_charger_enable)
+		return POWER_SUPPLY_STATUS_DISCHARGING;
+
+	if(runin_stop_chg)
+		return POWER_SUPPLY_STATUS_DISCHARGING;
+
+	if(ontim_charge_onoff_control  !=  1)
 		return POWER_SUPPLY_STATUS_DISCHARGING;
 
 	if (cm_check_thermal_status(cm)) {
@@ -7648,8 +7657,7 @@ static void cm_smt_sm(struct charger_manager *cm)
 	};
 	static int current_status= SMT_CHARGE;
 
-   if( cm->battery_status == POWER_SUPPLY_STATUS_CHARGING &&
-	ontim_runin_onoff_control == 1)
+   if( ontim_runin_onoff_control == 1)
 	{
 
 		switch (current_status) {
@@ -7657,33 +7665,39 @@ static void cm_smt_sm(struct charger_manager *cm)
 			if(cm->desc->cap >= 750)
 			{
 				current_status = SMT_DISCHARGE;
-				dev_info(cm->dev, "%s;SMT_DISCHARGE;\n");
+				dev_info(cm->dev, "%s;SMT_DISCHARGE;\n",__func__);
 			}
 			else if(cm->desc->cap >= 700)
 			{
 				current_status = SMT_STOP_CHARGE;
-				dev_info(cm->dev, "%s;SMT_STOP_CHARGE;\n");
+				dev_info(cm->dev, "%s;SMT_STOP_CHARGE;\n",__func__);
 			}
 		break;
 		case SMT_STOP_CHARGE:
 			try_charger_enable(cm, false);
+			runin_stop_chg = true;
 			current_status = SMT_STOP_CHARGE_CHK;
 		break;
 		case SMT_STOP_CHARGE_CHK:
 			if(cm->desc->cap <= 650)
 			{
+				runin_stop_chg = false;
 				try_charger_enable(cm, true);
 				current_status = SMT_CHARGE;
-				dev_info(cm->dev, "%s;SMT_STOP_CHARGE_CHK;\n");
+				dev_info(cm->dev, "%s;SMT_STOP_CHARGE_CHK;\n",__func__);
 			}
 		break;
 		case SMT_DISCHARGE:
+			try_charger_enable(cm, false);
+			runin_stop_chg = true;
 			cm_power_path_enable(cm, CM_POWER_PATH_DISABLE_CMD);
 			current_status = SMT_DISCHARGE_CHK;
 		break;
 		case SMT_DISCHARGE_CHK:
 			if(cm->desc->cap <= 700)
 			{
+				runin_stop_chg = false;
+				try_charger_enable(cm, true);
 				cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
 				current_status = SMT_CHARGE;
 				dev_info(cm->dev, "%s;SMT_DISCHARGE_CHK;\n");
@@ -7695,6 +7709,7 @@ static void cm_smt_sm(struct charger_manager *cm)
 	}
    else
 	{
+		runin_stop_chg = false;
    		if(current_status == SMT_DISCHARGE || current_status == SMT_DISCHARGE_CHK)
 			cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
 
