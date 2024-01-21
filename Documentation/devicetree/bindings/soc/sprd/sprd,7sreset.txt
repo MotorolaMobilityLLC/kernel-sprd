@@ -8,12 +8,20 @@ Required properties:
   -"sprd,sc2721-7sreset" for SC2721 7sreset
   -"sprd,sc2730-7sreset" for SC2730 7sreset
   -"sprd,sc2731-7sreset" for SC2731 7sreset
+  -"sprd,ump9622-7sreset" for UMP9622 7sreset
 
 - reg: Specifies the physical address of the SWRST_CTL0 and POR_7S_CTL register.
+- regsw: Specifies the physical address of the refout control register.
+- refnum: The number of pmic refout.
 
 Example:
 hw-reset@1bc0 {
 	compatible = "sprd,sc2730-7sreset";
 	reg = <0x1bf8>, <0x1bc0>;
+};
+refout@2000 {
+	compatible = "sprd,ump9622-refout";
+	regsw = <0x2080>;
+	refnum = <4>;
 };
 

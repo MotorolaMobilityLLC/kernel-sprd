@@ -409,7 +409,6 @@
 		csi = <&csi1>;
 	};
 };
-
 &i2c1 {
 	status = "okay";
 	clock-frequency = <400000>;
@@ -457,6 +456,24 @@
 		//power-down-gpios = <&ap_gpio 48 0>;
 		sprd,phyid = <6>;
 		csi = <&csi3>;
+	};
+};
+&i2c2{
+    status = "okay";
+	st21nfc: st21nfc@08 {
+		compatible = "st,st21nfc";
+		reg = <0x08>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <111  0>;
+		reset-gpios = <&ap_gpio 186 0x00>;
+		irq-gpios = <&ap_gpio 111 0x00>;
+		// pidle-gpios = <&tlmm 48 0x00>;
+		clkreq-gpios = <&ap_gpio 147 0x00>;
+	//	clock-names = "nfc_clk","source","enable";
+	//	clocks = <&aonapb_clk CLK_AUX2>, <&ext_26m>, <&aonapb_gate CLK_AUX2_EB>;
+		st,clk_pinctrl;
+		// i2c-retry = <0>;
+		status = "ok";
 	};
 };
 

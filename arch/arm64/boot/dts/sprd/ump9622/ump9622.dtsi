@@ -19,6 +19,12 @@
 			compatible = "sprd,ump9622-syscon";
 			reg = <0x2000>;
 		};
+		refout@2000 {
+			compatible = "sprd,ump9622-refout";
+			regsw = <0x2080>;
+			regdiv = <0x20B8>;
+			refnum = <4>;
+		};
 		pmic_tsensor: tsensor@20f8 {
 			compatible = "sprd,ump9622-tsensor";
 			#thermal-sensor-cells = <1>;

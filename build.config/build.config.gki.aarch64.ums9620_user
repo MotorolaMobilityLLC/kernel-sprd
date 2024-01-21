@@ -26,7 +26,7 @@ EXT_MODULES="
 ../modules/kernel5.15/wcn/wlan/wlan_combo
 ../modules/kernel5.15/sample
 ../modules/kernel5.15/gpu/natt
-../modules/kernel5.15/nfc/SN4V
+../modules/kernel5.15/nfc/st21nfc
 ../modules/kernel5.15/npu/vdsp
 ../modules/kernel5.15/touchscreen/focaltech_ft8756_spi
 ../modules/kernel5.15/touchscreen/novatek_nt36xxx
