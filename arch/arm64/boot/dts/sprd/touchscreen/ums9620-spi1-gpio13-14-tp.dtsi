@@ -12,7 +12,7 @@
 
 	/* Novatek device tree node */
 	touchpanel@0 {
-		compatible = "omnivision,tcm-spi","tchip,ilitek";
+		compatible = "omnivision,tcm-spi","tchip,ilitek","novatek,NVT-ts-spi";
 		reg = <0>; //Same as CS ID
 		status = "ok";
 		spi-max-frequency = <8000000>;	//4800000,9600000,15000000,19200000
