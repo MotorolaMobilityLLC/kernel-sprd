@@ -224,7 +224,7 @@ static int sprd_regulator_disable_regmap(struct regulator_dev *rdev)
 	id = rdev_get_id(rdev);
 	if (id == SC2730_LDO_VDDSDCORE || id == SC2730_LDO_VDDSDIO) {
 		ret = regulator_disable_regmap(rdev);
-		usleep_range(10 * 1000, 10 * 1250);
+		usleep_range(30 * 1000, 30 * 1250);
 		return ret;
 	} else {
 		return regulator_disable_regmap(rdev);
