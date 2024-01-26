@@ -349,6 +349,7 @@ out:
 static int sc8541_enable_charge(struct sc8541_charger_info *bq, bool enable)
 {
 	u8 val;
+	dev_err(bq->dev, "%s; %d\n", __func__,enable);
 
 	if (enable)
 		val = SC8541_CHG_ENABLE;
@@ -1518,7 +1519,6 @@ static int sc8541_init_device(struct sc8541_charger_info *bq)
 	sc8541_init_int_src(bq);
 
 	sc8541_init_regulation(bq);
-
 	return 0;
 }
 
@@ -1548,7 +1548,7 @@ static ssize_t sc8541_show_registers(struct device *dev,
 	int ret;
 
 	idx = snprintf(buf, PAGE_SIZE, "%s:\n", "sc8541");
-	for (addr = 0x0; addr <= 0x2A; addr++) {
+	for (addr = 0x0; addr <= 0x42; addr++) {
 		ret = sc8541_read_byte(bq, addr, &val);
 		if (ret == 0) {
 			len = snprintf(tmpbuf, PAGE_SIZE - idx,
@@ -1578,12 +1578,22 @@ static ssize_t sc8541_store_register(struct device *dev,
 
 static DEVICE_ATTR(registers, 0644, sc8541_show_registers, sc8541_store_register);
 
+static ssize_t vendor_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%s\n", "SC8541");
+}
+
+static DEVICE_ATTR_RO(vendor);
+
 static struct attribute *sc8541_attributes[] = {
 	&dev_attr_registers.attr,
+	&dev_attr_vendor.attr,
 	NULL,
 };
 
 static const struct attribute_group sc8541_attr_group = {
+	.name = "debug",
 	.attrs = sc8541_attributes,
 };
 
@@ -1902,7 +1912,7 @@ static void sc8541_dump_reg(struct sc8541_charger_info *bq)
 	u8 val;
 	u8 addr;
 
-	for (addr = 0x00; addr < 0x39; addr++) {
+	for (addr = 0x00; addr <= 0x42; addr++) {
 		ret = sc8541_read_byte(bq, addr, &val);
 		if (!ret)
 			dev_err(bq->dev, "[%02X] = 0x%02X\n", addr, val);
@@ -1941,7 +1951,7 @@ static void sc8541_check_alarm_status(struct sc8541_charger_info *bq)
 
 	ret = sc8541_read_byte(bq, SC8541_REG_15, &stat);
 	if (!ret && stat != bq->prev_present) {
-		dev_err(bq->dev, "INT_STAT[%s02X] = 0X%02x\n", SC8541_REG_15, stat);
+		dev_err(bq->dev, "INT_STAT[%02X] = 0X%02x\n", SC8541_REG_15, stat);
 		bq->prev_present = stat;
 		bq->batt_present  = !!(stat & VBAT_INSERT);
 		bq->vbus_present  = !!(stat & VBUS_INSERT);
@@ -2044,7 +2054,7 @@ static int show_registers(struct seq_file *m, void *data)
 	int ret;
 	u8 val;
 
-	for (addr = 0x0; addr <= 0x2B; addr++) {
+	for (addr = 0x0; addr <= 0x42; addr++) {
 		ret = sc8541_read_byte(bq, addr, &val);
 		if (!ret)
 			seq_printf(m, "Reg[%02X] = 0x%02X\n", addr, val);
@@ -2199,7 +2209,7 @@ static int sc8541_charger_probe(struct i2c_client *client,
 	device_init_wakeup(bq->dev, 1);
 	create_debugfs_entry(bq);
 
-	ret = sysfs_create_group(&bq->dev->kobj, &sc8541_attr_group);
+	ret = sysfs_create_group(&bq->sc8541_psy->dev.kobj, &sc8541_attr_group);
 	if (ret) {
 		dev_err(bq->dev, "failed to register sysfs. err: %d\n", ret);
 		return ret;

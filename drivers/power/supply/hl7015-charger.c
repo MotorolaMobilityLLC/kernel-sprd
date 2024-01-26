@@ -499,7 +499,9 @@ static int hl7015_charger_hw_init(struct hl7015_charger_info *info)
 	ret = hl7015_update_bits(info, HL7015_REG_5,     //WATCHDOG
 				  0x30,
 				  0);
-
+	ret = hl7015_update_bits(info, HL7015_REG_4,   //recharge  0:100mv 1:300mv
+				  0x01,
+				  0);
 
 	info->current_charge_limit_cur = HL7015_REG_ICHG_LSB * 1000;
 	info->current_input_limit_cur = HL7015_REG_IINDPM_LSB * 1000;
@@ -1429,7 +1431,7 @@ static ssize_t hl7015_register_id_show(struct device *dev,
 	if (!info)
 		return snprintf(buf, PAGE_SIZE, "%s hl7015_sysfs->info is null\n", __func__);
 
-	return snprintf(buf, PAGE_SIZE, "Curent register id = %d\n", info->reg_id);
+	return snprintf(buf, PAGE_SIZE, "%s\n", info->charge_ic_vendor_name);
 }
 
 static ssize_t hl7015_register_table_show(struct device *dev,
@@ -1509,7 +1511,7 @@ static int hl7015_register_sysfs(struct hl7015_charger_info *info)
 	hl7015_sysfs->attr_hl7015_lookup_reg.show = hl7015_register_table_show;
 
 	sysfs_attr_init(&hl7015_sysfs->attr_hl7015_sel_reg_id.attr);
-	hl7015_sysfs->attr_hl7015_sel_reg_id.attr.name = "hl7015_sel_reg_id";
+	hl7015_sysfs->attr_hl7015_sel_reg_id.attr.name = "vendor";
 	hl7015_sysfs->attr_hl7015_sel_reg_id.attr.mode = 0644;
 	hl7015_sysfs->attr_hl7015_sel_reg_id.show = hl7015_register_id_show;
 	hl7015_sysfs->attr_hl7015_sel_reg_id.store = hl7015_register_id_store;
