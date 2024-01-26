@@ -596,6 +596,7 @@ static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
 	ret = upm6920_update_bits(info, UPM6920_REG_2, 0x01,0x00);
 
 	ret = upm6920_update_bits(info, UPM6920_REG_7, 0x08, 0);
+	ret = upm6920_update_bits(info, UPM6920_REG_6, 0x01, 0); //recharge  0:100mv 1:200mv
 
 	ret = upm6920_charger_enable_wdg(info, false);
 
@@ -1508,7 +1509,7 @@ static ssize_t upm6920_register_id_show(struct device *dev,
 	if (!info)
 		return snprintf(buf, PAGE_SIZE, "%s upm6920_sysfs->info is null\n", __func__);
 
-	return snprintf(buf, PAGE_SIZE, "Curent register id = %d\n", info->reg_id);
+	return snprintf(buf, PAGE_SIZE, "%s\n", info->charge_ic_vendor_name);
 }
 
 static ssize_t upm6920_register_table_show(struct device *dev,
@@ -1588,7 +1589,7 @@ static int upm6920_register_sysfs(struct upm6920_charger_info *info)
 	upm6920_sysfs->attr_upm6920_lookup_reg.show = upm6920_register_table_show;
 
 	sysfs_attr_init(&upm6920_sysfs->attr_upm6920_sel_reg_id.attr);
-	upm6920_sysfs->attr_upm6920_sel_reg_id.attr.name = "upm6920_sel_reg_id";
+	upm6920_sysfs->attr_upm6920_sel_reg_id.attr.name = "vendor";
 	upm6920_sysfs->attr_upm6920_sel_reg_id.attr.mode = 0644;
 	upm6920_sysfs->attr_upm6920_sel_reg_id.show = upm6920_register_id_show;
 	upm6920_sysfs->attr_upm6920_sel_reg_id.store = upm6920_register_id_store;

@@ -513,7 +513,9 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 				  0x06,
 				  0);
 
-
+	ret = bq2560x_update_bits(info, BQ2560X_REG_4,   //sgm41542 recharge  0:100mv 1:200mv
+				  0x01,
+				  0);
 	info->current_charge_limit_cur = BQ2560X_REG_ICHG_LSB * 1000;
 	info->current_input_limit_cur = BQ2560X_REG_IINDPM_LSB * 1000;
 
@@ -1460,7 +1462,7 @@ static ssize_t bq2560x_register_id_show(struct device *dev,
 	if (!info)
 		return snprintf(buf, PAGE_SIZE, "%s bq2560x_sysfs->info is null\n", __func__);
 
-	return snprintf(buf, PAGE_SIZE, "Curent register id = %d\n", info->reg_id);
+	return snprintf(buf, PAGE_SIZE, "%s\n", info->charge_ic_vendor_name);
 }
 
 static ssize_t bq2560x_register_table_show(struct device *dev,
@@ -1540,7 +1542,7 @@ static int bq2560x_register_sysfs(struct bq2560x_charger_info *info)
 	bq2560x_sysfs->attr_bq2560x_lookup_reg.show = bq2560x_register_table_show;
 
 	sysfs_attr_init(&bq2560x_sysfs->attr_bq2560x_sel_reg_id.attr);
-	bq2560x_sysfs->attr_bq2560x_sel_reg_id.attr.name = "bq2560x_sel_reg_id";
+	bq2560x_sysfs->attr_bq2560x_sel_reg_id.attr.name = "vendor";
 	bq2560x_sysfs->attr_bq2560x_sel_reg_id.attr.mode = 0644;
 	bq2560x_sysfs->attr_bq2560x_sel_reg_id.show = bq2560x_register_id_show;
 	bq2560x_sysfs->attr_bq2560x_sel_reg_id.store = bq2560x_register_id_store;
