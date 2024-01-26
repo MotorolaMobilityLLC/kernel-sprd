@@ -32,7 +32,7 @@ struct virtual_thm_data {
 static int virtual_thm_get_temp(void *devdata, int *temp)
 {
 	int i, ret = 0;
-	int max_temp = 0;
+	int max_temp = INT_MIN;
 	struct thermal_zone_device *tz = NULL;
 	struct real_tz_list *tz_list = NULL;
 	struct virtual_thm_data *thm_data = devdata;
