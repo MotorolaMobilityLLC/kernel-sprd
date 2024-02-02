@@ -40,6 +40,7 @@ enum calib_cmd {
 	CALIB_DATA_READ,
 	CALIB_FLASH_WRITE,
 	CALIB_FLASH_READ,
+	CHECK_ID_STATUS = 5,
 };
 
 enum calib_type {
