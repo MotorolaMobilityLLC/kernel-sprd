@@ -6378,6 +6378,16 @@ static ssize_t ontim_limit_soc_store(struct device *dev,
 	return size;
 }
 
+static ssize_t battery_name_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct charger_sysfs_ctl_item *sysfs = container_of(attr, struct charger_sysfs_ctl_item,
+							    attr_battery_name);
+	struct charger_manager *cm;
+	cm = sysfs->cm;
+	return sprintf(buf, "%s\n", cm->desc->battery_name);
+}
+
 static ssize_t
 charge_pump_present_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
@@ -7005,8 +7015,9 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		sysfs->attrs[9] = &sysfs->attr_support_fast_charge.attr;
 		sysfs->attrs[10] = &sysfs->attr_support_step_chg.attr;
 		sysfs->attrs[11] = &sysfs->attr_unknow_type_cur_control.attr;
-                sysfs->attrs[12] = &sysfs->attr_soc_control.attr;
-		sysfs->attrs[13] = NULL;
+              sysfs->attrs[12] = &sysfs->attr_soc_control.attr;
+              sysfs->attrs[13] = &sysfs->attr_battery_name.attr;
+		sysfs->attrs[14] = NULL;
 
 		sysfs->attr_grp.name = name;
 		sysfs->attr_grp.attrs = sysfs->attrs;
@@ -7089,6 +7100,12 @@ static int charger_manager_prepare_sysfs(struct charger_manager *cm)
 		sysfs->attr_soc_control.attr.mode = 0644;
 		sysfs->attr_soc_control.show = ontim_limit_soc_show;
 		sysfs->attr_soc_control.store = ontim_limit_soc_store;
+
+		/* add battery_name*/
+		sysfs_attr_init(&sysfs->attr_battery_name.attr);
+		sysfs->attr_battery_name.attr.name = "vendor";
+		sysfs->attr_battery_name.attr.mode = 0444;
+		sysfs->attr_battery_name.show = battery_name_show;
 
 
 		if (!desc->sysfs[i].externally_control || !chargers_externally_control)
@@ -7425,6 +7442,7 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	cm->desc->fullbatt_uV = info.fullbatt_voltage_uv;
 	cm->desc->fullbatt_uA = info.fullbatt_current_uA;
 	cm->desc->first_fullbatt_uA = info.first_fullbatt_current_uA;
+	strcpy(cm->desc->battery_name,info.battery_name[0]);
 
 	dev_info(cm->dev, "SPRD_BATTERY_INFO: internal_resist= %d, us= %d, constant_charge_voltage_max_uv= %d, fchg_ocv_threshold= %d, cp_max_ibat= %d, cp_max_ibus= %d, sdp_limit= %d, sdp_cur= %d, dcp_limit= %d, dcp_cur= %d, cdp_limit= %d, cdp_cur= %d unknown_limit= %d, unknown_cur= %d, fchg_limit= %d, fchg_cur= %d, flash_limit= %d, flash_cur= %d, wl_bpp_limit= %d, wl_bpp_cur= %d, wl_epp_limit= %d, wl_epp_cur= %d, fullbatt_uV= %d, fullbatt_uA= %d, cm->desc->first_fullbatt_uA= %d, us_upper_limit= %d, rc= %d, cp_upper_limit_offset= %d\n",
 		 cm->desc->internal_resist, cm->desc->ir_comp.us,

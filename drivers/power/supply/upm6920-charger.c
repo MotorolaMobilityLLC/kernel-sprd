@@ -570,7 +570,7 @@ static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
 		}
 	}
 
-	ret = upm6920_charger_set_vindpm(info, 4500);
+	ret = upm6920_charger_set_vindpm(info, 4600);
 	if (ret) {
 		dev_err(info->dev, "set upm6920 vindpm vol failed\n");
 		return ret;

@@ -24,13 +24,15 @@
 &bat {
 	compatible = "simple-battery";
 	status = "okay";
-	charge-full-design-microamp-hours = <4850000>;
-	charge-term-current-microamp = <180000>;
-	constant-charge-voltage-max-microvolt = <4450000>;
+	battery_name ="QG50-SB18E23377-ATL-5000mAh","QG50-SB18E21836-ATL-5000mAh";
+
+	charge-full-design-microamp-hours = <4950000>;
+	charge-term-current-microamp = <256000>;
+	constant-charge-voltage-max-microvolt = <4500000>;
 	factory-internal-resistance-micro-ohms = <115000>;
 	voltage-min-design-microvolt = <3400000>;
 
-	fast-charge-threshold-microvolt = <4100000>;
+	fast-charge-threshold-microvolt = <4200000>;
 	fullbatt-voltage = <4400000>;
 	fullbatt-current = <250000>;
 	first-fullbatt-current = <270000>;
@@ -40,11 +42,11 @@
 	first-calib-capacity = <50>;
 
 	ir-cv-offset-microvolt = <100000>;
-	ir-rc-micro-ohms = <20000>;
-	ir-us-upper-limit-microvolt = <4500000>;
+	ir-rc-micro-ohms = <10000>;
+	ir-us-upper-limit-microvolt = <4530000>;
 
-	ocv-capacity-celsius = <20>;
-	ocv-capacity-table-0 = <4313000 100>, <4254000 95>, <4201000 90>,
+	ocv-capacity-celsius = <25>;
+	ocv-capacity-table-0 = <4383000 100>, <4254000 95>, <4201000 90>,
 				<4151000 85>, <4102000 80>, <4060000 75>,
 				<4006000 70>, <3973000 65>, <3930000 60>,
 				<3882000 55>, <3851000 50>, <3829000 45>,
@@ -59,8 +61,8 @@
 	      <129000 1550>, <111000 1600>, <96000 1650> , <83000 1700>,<63000 1800>;
 	capacity-temp-table = <45 100>, <25 100>, <10 100>, <0 95>, <(-10) 90>;
 	resistance-temp-table = <45 53>, <25 100>, <10 395>, <0 567>, <(-10) 793>;
-	charge-sdp-current-microamp = <500000 500000>;
-	charge-dcp-current-microamp = <2000000 3000000>;
+	charge-sdp-current-microamp = <540000 500000>;
+	charge-dcp-current-microamp = <2200000 2100000>;
 	charge-cdp-current-microamp = <1500000 1500000>;
 	charge-unknown-current-microamp = <1000000 1000000>;
 	charge-fchg-current-microamp = <4000000 2000000>;
@@ -69,20 +71,147 @@
 	cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
 	cap-track-energy-density-ocv-table = <3400000 3722000>;
 
-	dcp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
-		<1450 1420 2000000 4450000>, <1600 1570 1000000 4100000>;
-	sdp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 500000 4340000>,
-		<1450 1420 500000 4450000>, <1600 1570 500000 4100000>;
-	cdp-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
-		<1450 1420 1500000 4450000>, <1600 1570 1000000 4100000>;
-	unknown-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
-		<1450 1420 1000000 4450000>, <1600 1570 700000 4100000>;
-	fchg-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 700000 4340000>,
-		<1450 1420 4000000 4450000>, <1600 1570 1000000 4100000>;
-	flash-jeita-temp-table = <1000 1030 0 4340000>, <1150 1180 1000000 4340000>,
-		<1450 1420 6000000 4450000>, <1600 1570 1000000 4100000>;
+	dcp-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 2200000 4500000>,
+		<1450 1420 2200000 4500000>, <1550 1520 2200000 4200000>;
+	sdp-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 540000 4500000>,
+		<1450 1420 540000 4500000>, <1550 1520 540000 4200000>;
+	cdp-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 1500000 4500000>,
+		<1450 1420 1500000 4500000>, <1550 1520 1500000 4200000>;
+	unknown-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 1000000 4500000>,
+		<1450 1420 1000000 4500000>, <1550 1520 1000000 4200000>;
+	fchg-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 2500000 4500000>,
+		<1450 1420 4000000 4500000>, <1550 1520 4000000 4200000>;
+	flash-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 2500000 4500000>,
+		<1450 1420 6000000 4500000>, <1550 1520 4000000 4200000>;
 };
 
+&bat2 {
+	compatible = "simple-battery";
+	status = "okay";
+	battery_name ="QG50-SB18E23379-SWD-5000mAh","QG50-SB18E21837-SWD-5000mAh";
+
+	charge-full-design-microamp-hours = <4950000>;
+	charge-term-current-microamp = <256000>;
+	constant-charge-voltage-max-microvolt = <4500000>;
+	factory-internal-resistance-micro-ohms = <115000>;
+	voltage-min-design-microvolt = <3400000>;
+
+	fast-charge-threshold-microvolt = <4200000>;
+	fullbatt-voltage = <4400000>;
+	fullbatt-current = <250000>;
+	first-fullbatt-current = <270000>;
+	fullbatt-track-end-vol = <4295000>;
+	fullbatt-track-end-cur = <130000>;
+	first-calib-voltage = <3580000>;
+	first-calib-capacity = <50>;
+
+	ir-cv-offset-microvolt = <100000>;
+	ir-rc-micro-ohms = <10000>;
+	ir-us-upper-limit-microvolt = <4530000>;
+
+	ocv-capacity-celsius = <25>;
+	ocv-capacity-table-0 = <4383000 100>, <4254000 95>, <4201000 90>,
+				<4151000 85>, <4102000 80>, <4060000 75>,
+				<4006000 70>, <3973000 65>, <3930000 60>,
+				<3882000 55>, <3851000 50>, <3829000 45>,
+				<3810000 40>, <3795000 35>, <3781000 30>,
+				<3765000 25>, <3746000 20>, <3722000 15>,
+				<3694000 10>, <3682000 5>, <3400000 0>;
+	voltage-temp-table = <1307000 700>, <1203000 750>, <1095000 800>, <986000 850>, <878000 900>,
+	      <775000 950>, <678000 1000>, <590000 1050>,
+	      <510000 1100>, <440000 1150>, <378000 1200>,
+	      <324000 1250>, <278000 1300>, <238000 1350>,
+	      <204000 1400>, <175000 1450>, <150000 1500>,
+	      <129000 1550>, <111000 1600>, <96000 1650> , <83000 1700>,<63000 1800>;
+	capacity-temp-table = <45 100>, <25 100>, <10 100>, <0 95>, <(-10) 90>;
+	resistance-temp-table = <45 53>, <25 100>, <10 395>, <0 567>, <(-10) 793>;
+	charge-sdp-current-microamp = <540000 500000>;
+	charge-dcp-current-microamp = <2200000 2100000>;
+	charge-cdp-current-microamp = <1500000 1500000>;
+	charge-unknown-current-microamp = <1000000 1000000>;
+	charge-fchg-current-microamp = <4000000 2000000>;
+	charge-flash-current-microamp = <6000000 3000000>;
+
+	cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
+	cap-track-energy-density-ocv-table = <3400000 3722000>;
+
+	dcp-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 2200000 4500000>,
+		<1450 1420 2200000 4500000>, <1550 1520 2200000 4200000>;
+	sdp-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 540000 4500000>,
+		<1450 1420 540000 4500000>, <1550 1520 540000 4200000>;
+	cdp-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 1500000 4500000>,
+		<1450 1420 1500000 4500000>, <1550 1520 1500000 4200000>;
+	unknown-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 1000000 4500000>,
+		<1450 1420 1000000 4500000>, <1550 1520 1000000 4200000>;
+	fchg-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 2500000 4500000>,
+		<1450 1420 4000000 4500000>, <1550 1520 4000000 4200000>;
+	flash-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 2500000 4500000>,
+		<1450 1420 6000000 4500000>, <1550 1520 4000000 4200000>;
+};
+
+&bat3 {
+	compatible = "simple-battery";
+	status = "okay";
+	battery_name ="QG50-SB18E23377-JIADE-5000mAh","QG50-SB18E21836-JIADE-5000mAh";
+
+	charge-full-design-microamp-hours = <4950000>;
+	charge-term-current-microamp = <256000>;
+	constant-charge-voltage-max-microvolt = <4500000>;
+	factory-internal-resistance-micro-ohms = <115000>;
+	voltage-min-design-microvolt = <3400000>;
+
+	fast-charge-threshold-microvolt = <4200000>;
+	fullbatt-voltage = <4400000>;
+	fullbatt-current = <250000>;
+	first-fullbatt-current = <270000>;
+	fullbatt-track-end-vol = <4295000>;
+	fullbatt-track-end-cur = <130000>;
+	first-calib-voltage = <3580000>;
+	first-calib-capacity = <50>;
+
+	ir-cv-offset-microvolt = <100000>;
+	ir-rc-micro-ohms = <10000>;
+	ir-us-upper-limit-microvolt = <4530000>;
+
+	ocv-capacity-celsius = <25>;
+	ocv-capacity-table-0 = <4383000 100>, <4254000 95>, <4201000 90>,
+				<4151000 85>, <4102000 80>, <4060000 75>,
+				<4006000 70>, <3973000 65>, <3930000 60>,
+				<3882000 55>, <3851000 50>, <3829000 45>,
+				<3810000 40>, <3795000 35>, <3781000 30>,
+				<3765000 25>, <3746000 20>, <3722000 15>,
+				<3694000 10>, <3682000 5>, <3400000 0>;
+	voltage-temp-table = <1307000 700>, <1203000 750>, <1095000 800>, <986000 850>, <878000 900>,
+	      <775000 950>, <678000 1000>, <590000 1050>,
+	      <510000 1100>, <440000 1150>, <378000 1200>,
+	      <324000 1250>, <278000 1300>, <238000 1350>,
+	      <204000 1400>, <175000 1450>, <150000 1500>,
+	      <129000 1550>, <111000 1600>, <96000 1650> , <83000 1700>,<63000 1800>;
+	capacity-temp-table = <45 100>, <25 100>, <10 100>, <0 95>, <(-10) 90>;
+	resistance-temp-table = <45 53>, <25 100>, <10 395>, <0 567>, <(-10) 793>;
+	charge-sdp-current-microamp = <540000 500000>;
+	charge-dcp-current-microamp = <2200000 2100000>;
+	charge-cdp-current-microamp = <1500000 1500000>;
+	charge-unknown-current-microamp = <1000000 1000000>;
+	charge-fchg-current-microamp = <4000000 2000000>;
+	charge-flash-current-microamp = <6000000 3000000>;
+
+	cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
+	cap-track-energy-density-ocv-table = <3400000 3722000>;
+
+	dcp-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 2200000 4500000>,
+		<1450 1420 2200000 4500000>, <1550 1520 2200000 4200000>;
+	sdp-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 540000 4500000>,
+		<1450 1420 540000 4500000>, <1550 1520 540000 4200000>;
+	cdp-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 1500000 4500000>,
+		<1450 1420 1500000 4500000>, <1550 1520 1500000 4200000>;
+	unknown-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 1000000 4500000>,
+		<1450 1420 1000000 4500000>, <1550 1520 1000000 4200000>;
+	fchg-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 2500000 4500000>,
+		<1450 1420 4000000 4500000>, <1550 1520 4000000 4200000>;
+	flash-jeita-temp-table = <1000 1030 0 4200000>, <1150 1180 2500000 4500000>,
+		<1450 1420 6000000 4500000>, <1550 1520 4000000 4200000>;
+};
 &cm {
 	compatible = "charger-manager";
 	status = "okay";
@@ -141,7 +270,7 @@
 	sprd,pd-fixed-max-microwatt = <18000000>;
 	sprd,customized-fchg-psy ="bq2560xpe_charger","bq2560xqc_charger","hl7015qc_charger","upm6920qc_charger";
 
-	monitored-battery = <&bat>;
+	monitored-battery = <&bat>,<&bat2>,<&bat3>;
 	cm-capacity-track;
 	cm-keep-awake;
 
@@ -165,21 +294,21 @@
 	bq2560x_chg: charger@6b {
 		compatible = "ti,bq2560x_chg";
 		reg = <0x6b>;
-		monitored-battery = <&bat>;
+		monitored-battery = <&bat>,<&bat2>,<&bat3>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
 	};
 	hl7015_chg: charger@6e {
 		compatible = "hl,hl7015_chg";
 		reg = <0x6e>;
-		monitored-battery = <&bat>;
+		monitored-battery = <&bat>,<&bat2>,<&bat3>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
 	};
 	upm6920_chg: charger@6a {
 		compatible = "uni,upm6920_chg";
 		reg = <0x6a>;
-		monitored-battery = <&bat>;
+		monitored-battery = <&bat>,<&bat2>,<&bat3>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
 	};
@@ -264,7 +393,7 @@
 };
 
 &pmic_fgu {
-	monitored-battery = <&bat>;
+	monitored-battery = <&bat>,<&bat2>,<&bat3>;
 	fgu-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 	sprd,calib-resistance-micro-ohms = <4850>;
 	sprd,comp-resistance-mohm = <11>;

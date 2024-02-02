@@ -810,9 +810,18 @@ typec_cc_polarity_role_show(struct device *dev, struct device_attribute *attr,
 	return snprintf(buf, 5, "%s\n", sprd_typec_cc_polarity_roles[sc->cc_polarity]);
 }
 static DEVICE_ATTR_RO(typec_cc_polarity_role);
+static ssize_t
+typec_cc_vendor_show(struct device *dev, struct device_attribute *attr,
+		char *buf)
+{
+
+	return snprintf(buf, 8, "%s\n", "UMP9620");
+}
+static DEVICE_ATTR_RO(typec_cc_vendor);
 
 static struct attribute *sc27xx_typec_attrs[] = {
 	&dev_attr_typec_cc_polarity_role.attr,
+	&dev_attr_typec_cc_vendor.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(sc27xx_typec);

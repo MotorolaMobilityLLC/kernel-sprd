@@ -272,7 +272,8 @@ struct charger_sysfs_ctl_item {
 	struct device_attribute attr_support_step_chg;
 	struct device_attribute attr_unknow_type_cur_control;
 	struct device_attribute attr_soc_control;
-	struct attribute *attrs[14];
+	struct device_attribute attr_battery_name;
+	struct attribute *attrs[15];
 
 	struct charger_manager *cm;
 };
@@ -752,6 +753,7 @@ struct charger_desc {
 
 	u32 pd_port_partner;
 	u32 charge_type_poll_count;
+	char battery_name[64];
 };
 
 #define PSY_NAME_MAX	30

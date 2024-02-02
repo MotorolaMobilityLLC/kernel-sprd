@@ -470,7 +470,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		}
 	}
 
-	ret = bq2560x_charger_set_vindpm(info, 4500);
+	ret = bq2560x_charger_set_vindpm(info, 4600);
 	if (ret) {
 		dev_err(info->dev, "set bq2560x vindpm vol failed\n");
 		return ret;
