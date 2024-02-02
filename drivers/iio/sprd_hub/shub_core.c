@@ -715,6 +715,9 @@ static ssize_t calibrator_data_show(struct device *dev,
 	if (sensor->cal_cmd == CALIB_CHECK_STATUS)
 		return sprintf(buf, "%d\n", sensor->cali_store.udata[0]);
 
+	if (sensor->cal_cmd == CHECK_ID_STATUS)
+                return sprintf(buf, "%d\n", sensor->cali_store.udata[0]);
+
 	for (i = 0; i < CALIBRATION_DATA_LENGTH; i++)
 		n += sprintf(buf + n, "%d ", sensor->cali_store.udata[i]);
 	return n;
