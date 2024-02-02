@@ -1347,8 +1347,9 @@ static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
 static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 				 enum ufs_notify_change_status status)
 {
-	int err = 0;
 	struct ufs_clk_dbg clk_tmp = {};
+	struct ufs_sprd_ums9230_data *priv = NULL;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
 	if (sprd_ufs_debug_is_supported(hba)) {
 		clk_tmp.status = status;
@@ -1356,7 +1357,20 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 		ufshcd_common_trace(hba, UFS_TRACE_CLK_GATE, &clk_tmp);
 	}
 
-	return err;
+	if (on == false && status == PRE_CHANGE) {
+		if (host != NULL)
+			priv = (struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
+
+		if (!ufshcd_is_link_hibern8(hba) || priv == NULL) {
+			dev_err(hba->dev, "%s during ufs init or setup clock not in h8", __func__);
+			return 0;
+		}
+
+		/* mphy requires delay between h8 enter and close cfg clk */
+		usleep_range(200, 210);
+	}
+
+	return 0;
 }
 
 static void ufs_sprd_update_evt_hist(struct ufs_hba *hba,
