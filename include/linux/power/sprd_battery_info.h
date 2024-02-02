@@ -190,6 +190,7 @@ struct sprd_battery_info {
 	u32 sprd_battery_step_chg_size;
 
 	struct sprd_battery_ir_compensation ir;
+	const char ** battery_name;
 };
 
 extern void sprd_battery_put_battery_info(struct power_supply *psy,

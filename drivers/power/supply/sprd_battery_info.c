@@ -83,7 +83,7 @@ int sprd_battery_parse_battery_id(struct power_supply *psy)
 				ret, result);
 		}
 	}
-	dev_info(&psy->dev, "Batteryid = %d\n", id);
+	dev_info(&psy->dev, "Batteryid = %x\n", id);
 
 	return id;
 }
@@ -700,7 +700,7 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 {
 	struct device_node *battery_np;
 	const char *value;
-	int err, index, battery_id;
+	int err, index, battery_id,battery_id_child;
 
 	info->charge_full_design_uah         = -EINVAL;
 	info->voltage_min_design_uv          = -EINVAL;
@@ -757,6 +757,8 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 	}
 
 	battery_id = sprd_battery_parse_battery_id(psy);
+	battery_id_child  = (battery_id & 0xf0) >> 4;
+	battery_id &= 0x0f;
 
 	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", battery_id);
 	if (!battery_np) {
@@ -770,6 +772,17 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 
 	if (strcmp("simple-battery", value))
 		return -ENODEV;
+	info->battery_name = devm_kcalloc(&psy->dev,
+					       1,
+					      sizeof(char *),
+					      GFP_KERNEL);
+	if (!info->battery_name)
+		return -ENOMEM;
+
+	of_property_read_string_index(battery_np, "battery_name", battery_id_child,
+				      &info->battery_name[0]);
+	dev_err(&psy->dev, "%s; %s;%d;%d;\n", __func__,info->battery_name[0],
+		             battery_id,battery_id_child);
 
 	of_property_read_u32(battery_np, "charge-full-design-microamp-hours",
 			     &info->charge_full_design_uah);

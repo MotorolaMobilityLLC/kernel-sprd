@@ -471,7 +471,7 @@ static int hl7015_charger_hw_init(struct hl7015_charger_info *info)
 		}
 	}
 
-	ret = hl7015_charger_set_vindpm(info, 4520);
+	ret = hl7015_charger_set_vindpm(info, 4600);
 	if (ret) {
 		dev_err(info->dev, "set hl7015 vindpm vol failed\n");
 		return ret;

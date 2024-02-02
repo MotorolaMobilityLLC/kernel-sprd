@@ -25,6 +25,16 @@
 		status = "disabled";
 	};
 
+	bat2: battery2 {
+		compatible = "simple-battery";
+		status = "disabled";
+	};
+
+	bat3: battery3 {
+		compatible = "simple-battery";
+		status = "disabled";
+	};
+
 	cm: charger-manager {
 		compatible = "charger-manager";
 		status = "disabled";
