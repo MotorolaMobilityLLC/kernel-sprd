@@ -1704,7 +1704,6 @@ musb_gadget_set_self_powered(struct usb_gadget *gadget, int is_selfpowered)
 static void musb_pullup(struct musb *musb, int is_on)
 {
 	u8 power;
-	void __iomem *musb_base = musb->mregs;
 
 	power = musb_readb(musb->mregs, MUSB_POWER);
 	if (is_on)
@@ -1720,13 +1719,6 @@ static void musb_pullup(struct musb *musb, int is_on)
 		is_on ? "on" : "off");
 	musb_writeb(musb->mregs, MUSB_POWER, power);
 
-	if (!is_on) {
-		if (!is_host_active(musb))
-			musb->xceiv->otg->state = OTG_STATE_UNDEFINED;
-	} else {
-		musb_writeb(musb_base, MUSB_INTRUSBE, 0xf7);
-		musb->shutdowning = 0;
-	}
 }
 
 #if 0
