@@ -580,7 +580,7 @@ static int get_freq_table(unsigned long *data, unsigned int sel)
 		return -EINVAL;
 
 	if (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE) {
-		err = dvfs_msg(&freq_data, sel, DVFS_CMD_INQ_DDR_TABLE, 500);
+		err = dvfs_msg(&freq_data, sel, DVFS_CMD_INQ_DDR_TABLE, 2000);
 		*data = (unsigned long)freq_data;
 	} else {
 		*data = g_dvfs_data->freq_table[sel];
