@@ -558,15 +558,23 @@ static void android_rvh_set_cpus_allowed_by_task(void *unused,
 						    struct task_struct *p,
 						    unsigned int *dest_cpu)
 {
-	cpumask_t allowed_cpus;
-
 	if (unlikely(uni_sched_disabled))
 		return;
 
+	/* allow kthreads to change affinity regardless of halt status of dest_cpu */
+	if (p->flags & PF_KTHREAD)
+		return;
+
 	if (cpu_halted(*dest_cpu) && !p->migration_disabled) {
+		cpumask_t allowed_cpus;
+
 		/* remove halted cpus from the valid mask, and store locally */
 		cpumask_andnot(&allowed_cpus, cpu_valid_mask, cpu_halt_mask);
-		*dest_cpu = cpumask_any_and_distribute(&allowed_cpus, new_mask);
+		cpumask_and(&allowed_cpus, &allowed_cpus, new_mask);
+
+		/* do not modify dest_cpu if there are no cpus to choose from */
+		if (!cpumask_empty(&allowed_cpus))
+			*dest_cpu = cpumask_any_and_distribute(&allowed_cpus, new_mask);
 	}
 }
 
@@ -584,9 +592,38 @@ static void android_rvh_is_cpu_allowed(void *unused, struct task_struct *p, int 
 		return;
 
 	if (cpumask_test_cpu(cpu, cpu_halt_mask)) {
+		cpumask_t cpus_allowed;
 
 		/* default reject for any halted cpu */
 		*allowed = false;
+
+		/*
+		 * for cfs threads, active cpus in the affinity are allowed
+		 * but halted cpus are not allowed
+		 */
+		cpumask_and(&cpus_allowed, cpu_active_mask, p->cpus_ptr);
+		cpumask_andnot(&cpus_allowed, &cpus_allowed, cpu_halt_mask);
+
+		if (!(p->flags & PF_KTHREAD)) {
+			if (cpumask_empty(&cpus_allowed)) {
+				/*
+				 * All affined cpus are inactive or halted.
+				 * Allow this cpu for user threads
+				 */
+				*allowed = true;
+			}
+			return;
+		}
+
+		if (p->flags & PF_KTHREAD) {
+			if (cpumask_empty(&cpus_allowed)) {
+				/*
+				 * All affined cpus inactive or halted or dying.
+				 * Allow this cpu for kthreads
+				 */
+				*allowed = true;
+			}
+		}
 	}
 }
 
@@ -632,6 +669,7 @@ static void android_rvh_sched_setaffinity(void *unused, struct task_struct *p,
 	if (!(p->flags & PF_KTHREAD))
 		cpumask_and(&wts->cpus_requested, in_mask, cpu_possible_mask);
 }
+
 void core_pause_init(void)
 {
 	struct sched_param param = { .sched_priority = MAX_RT_PRIO-1 };
