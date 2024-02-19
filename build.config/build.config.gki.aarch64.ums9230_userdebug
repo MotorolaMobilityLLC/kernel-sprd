@@ -36,11 +36,11 @@ EXT_MODULES="
 ../modules/common/camera/actuator_noise_reduction
 ../modules/common/camera/sensor
 ../modules/common/camera/mmdvfs
-../modules/kernel5.15/wcn/fm/driver
-../modules/kernel5.15/wcn/bluetooth/driver
 ../modules/common/io/block
 ../modules/common/io/iowait
 ../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
+../modules/kernel5.15/wcn/fm/driver
+../modules/kernel5.15/wcn/bluetooth/driver
 ../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_common_ctl
 ../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_dbg
 ../modules/kernel5.15/wcn/gnss/unisoc_gnss/gnss_pmnotify_ctl

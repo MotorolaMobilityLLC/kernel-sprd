@@ -88,6 +88,10 @@ struct uni_task_struct {
 	struct list_head	percpu_kthread_node;
 	cpumask_t		cpus_requested;
 #endif
+
+#ifdef CONFIG_UNISOC_BINDER_SCHED
+	int unibinder_feature_flags;
+#endif
 };
 
 struct sched_cluster {
