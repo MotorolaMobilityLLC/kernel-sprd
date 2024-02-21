@@ -373,20 +373,18 @@ hl7015_charger_set_ovp(struct hl7015_charger_info *info, u32 vol)
 static int
 hl7015_charger_set_termina_vol(struct hl7015_charger_info *info, u32 vol)
 {
-	u8 reg_val,reg_remain;
+	u8 reg_val;
 
 
 	if (vol < 3504)
 		vol = 3504;
+	if (vol > 4512)
+		vol = 4512;
 
 	reg_val = (vol - 3504) / 16;
-	reg_remain = (vol - 3504) % 16;
 
 
-	if( reg_remain >8 )
-		reg_val ++;
-
-	dev_info(info->dev, "%s;%d;%d;%d;\n",__func__,vol,reg_val,reg_remain);
+	dev_info(info->dev, "%s;%d;%d;\n",__func__,vol,reg_val);
 
 	return hl7015_update_bits(info, HL7015_REG_4,
 				   HL7015_REG_TERMINAL_VOLTAGE_MASK,
