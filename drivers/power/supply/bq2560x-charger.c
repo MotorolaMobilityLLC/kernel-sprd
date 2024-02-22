@@ -676,12 +676,13 @@ static int bq2560x_charger_set_current(struct bq2560x_charger_info *info, u32 cu
 	dev_dbg(info->dev, "%s:line%d: set ibat cur = %d\n", __func__, __LINE__, cur);
 
 	cur = cur / 1000;
-	if (cur > 3000) {
-		reg_val = 0x32;
-	} else {
-		reg_val = cur / BQ2560X_REG_ICHG_LSB;
-		reg_val &= BQ2560X_REG_ICHG_MASK;
-	}
+	if( info->chip_type == CHIP_SGM41542 && cur > 3780)
+		cur	= 3780;
+	else if( info->chip_type == CHIP_SGM41511 && cur > 3000)
+		cur	= 3000;
+
+	reg_val = cur / BQ2560X_REG_ICHG_LSB;
+	reg_val &= BQ2560X_REG_ICHG_MASK;
 
 	return bq2560x_update_bits(info, BQ2560X_REG_2,
 				   BQ2560X_REG_ICHG_MASK,
@@ -1568,6 +1569,8 @@ bq2560x_charger_feed_watchdog_work(struct work_struct *work)
 							 struct bq2560x_charger_info,
 							 wdt_work);
 	int ret;
+
+	bq2560x_dump_register(info);
 
 	ret = bq2560x_charger_feed_watchdog(info);
 	if (ret)
