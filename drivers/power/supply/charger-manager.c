@@ -1803,7 +1803,8 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 		desc->jeita_info.jeita_changed = true;
 
 	mutex_unlock(&cm->desc->charge_info_mtx);
-
+	
+	thm_info->adapter_default_charge_vol = 5;
 	if (thm_info->thm_pwr && thm_info->adapter_default_charge_vol)
 		thm_info->thm_adjust_cur = (int)(thm_info->thm_pwr /
 			thm_info->adapter_default_charge_vol) * 1000;

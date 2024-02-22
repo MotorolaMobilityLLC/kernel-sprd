@@ -26,10 +26,10 @@
 	status = "okay";
 	battery_name ="QG50-SB18E23377-ATL-5000mAh","QG50-SB18E21836-ATL-5000mAh";
 
-	charge-full-design-microamp-hours = <4950000>;
+	charge-full-design-microamp-hours = <4989000>;
 	charge-term-current-microamp = <256000>;
 	constant-charge-voltage-max-microvolt = <4500000>;
-	factory-internal-resistance-micro-ohms = <115000>;
+	factory-internal-resistance-micro-ohms = <109000>;
 	voltage-min-design-microvolt = <3400000>;
 
 	fast-charge-threshold-microvolt = <4200000>;
@@ -46,21 +46,21 @@
 	ir-us-upper-limit-microvolt = <4530000>;
 
 	ocv-capacity-celsius = <25>;
-	ocv-capacity-table-0 = <4383000 100>, <4254000 95>, <4201000 90>,
-				<4151000 85>, <4102000 80>, <4060000 75>,
-				<4006000 70>, <3973000 65>, <3930000 60>,
-				<3882000 55>, <3851000 50>, <3829000 45>,
-				<3810000 40>, <3795000 35>, <3781000 30>,
-				<3765000 25>, <3746000 20>, <3722000 15>,
-				<3694000 10>, <3682000 5>, <3400000 0>;
+	ocv-capacity-table-0 = <4449000 100>, <4382000 95>, <4328000 90>,
+				<4270000 85>, <4210000 80>, <4151000 75>,
+				<4095000 70>, <4043000 65>, <3997000 60>,
+				<3948000 55>, <3890000 50>, <3859000 45>,
+				<3835000 40>, <3815000 35>, <3799000 30>,
+				<3779000 25>, <3755000 20>, <3731000 15>,
+				<3698000 10>, <3689000 5>, <3400000 0>;
 	voltage-temp-table = <1307000 700>, <1203000 750>, <1095000 800>, <986000 850>, <878000 900>,
 	      <775000 950>, <678000 1000>, <590000 1050>,
 	      <510000 1100>, <440000 1150>, <378000 1200>,
 	      <324000 1250>, <278000 1300>, <238000 1350>,
 	      <204000 1400>, <175000 1450>, <150000 1500>,
 	      <129000 1550>, <111000 1600>, <96000 1650> , <83000 1700>,<63000 1800>;
-	capacity-temp-table = <45 100>, <25 100>, <10 100>, <0 95>, <(-10) 90>;
-	resistance-temp-table = <45 53>, <25 100>, <10 395>, <0 567>, <(-10) 793>;
+	capacity-temp-table = <45 100>, <25 100>, <10 100>, <0 92>, <(-10) 84>;
+	resistance-temp-table = <45 86>, <25 100>, <10 165>, <0 1067>, <(-10) 1184>;
 	charge-sdp-current-microamp = <540000 500000>;
 	charge-dcp-current-microamp = <2200000 2100000>;
 	charge-cdp-current-microamp = <1500000 1500000>;
@@ -273,6 +273,7 @@
 	monitored-battery = <&bat>,<&bat2>,<&bat3>;
 	cm-capacity-track;
 	cm-keep-awake;
+	cm-support-linear-charge;
 
 	phys = <&ssphy>;
 	pd-extcon-enable;
