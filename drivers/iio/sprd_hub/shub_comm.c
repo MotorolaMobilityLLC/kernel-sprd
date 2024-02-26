@@ -63,6 +63,7 @@ static void shub_get_data(struct cmd_data *packet)
 		break;
 
 	case SHUB_SET_TIMESYNC_SUBTYPE:
+	case SHUB_GET_SENSORHUB_ASSERT_SUBTYPE:
 		g_sensor->cm4_read_callback(g_sensor,
 			packet->subtype,
 			packet->buff,
