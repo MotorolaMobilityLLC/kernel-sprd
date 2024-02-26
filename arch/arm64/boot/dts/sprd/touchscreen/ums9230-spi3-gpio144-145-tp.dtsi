@@ -94,6 +94,9 @@
 		touch,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_HIGH>;
 		touch,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_HIGH>;
 		touch,eic-irq-gpio = <&eic_async 16 GPIO_ACTIVE_HIGH>;
+		pinctrl-names = "tp_extconf0","tp_extconf1";
+		pinctrl-0 = <&tp_extconf0>;
+		pinctrl-1 = <&tp_extconf1>;
 		/***************omnivision*****************/
 		omnivision,reset-gpio = <&ap_gpio 145 GPIO_ACTIVE_LOW>;
 		omnivision,irq-gpio = <&ap_gpio 144 GPIO_ACTIVE_LOW>;
@@ -124,5 +127,15 @@
 		//novatek,mp-support-dt;
 
 		#include "nvt-touchscreen-novatek-nt36xxx-spi.dtsi"
+	};
+};
+&pin_controller {
+	tp_extconf0: extint0 {
+		pins = "QOGIRL6_EXTINT0";
+		function = "func1";
+	};
+	tp_extconf1: gpio {
+		pins = "QOGIRL6_EXTINT0";
+		function = "func4";
 	};
 };
