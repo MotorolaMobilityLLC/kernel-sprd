@@ -22,7 +22,7 @@
 					sprd,video-lp-cmd-enable = <1>;
 					sprd,hporch-lp-disable = <1>;
 
-					sprd,reset-on-sequence = <1 15>, <0 5>, <1 15>;
+					sprd,reset-on-sequence = <0 5>, <1 10>, <0 5>, <1 15>;
 					sprd,reset-off-sequence = <1 10>;
 
 					sprd,initial-command = [
