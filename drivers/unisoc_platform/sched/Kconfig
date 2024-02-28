@@ -149,6 +149,16 @@ config UNISOC_CPU_NETLINK
 	  If you do not use unisoc android framework, or you do not want to receive
 	  the messege, turn off it.
 
+config UNISOC_INPUT_BOOST
+	bool "Support input cpufreq boost"
+	depends on UNISOC_SCHED && CPU_FREQ
+	default n
+	help
+	  Support input boost feature.
+	  If enable this feature, the cpu minimum frequency would be fixed as the
+	  user setting when there are input signal from screen touch, and it would
+	  restore to the original value after a while.
+
 config UNISOC_WORKAROUND_L3_HANG
 	bool "workaround sharkl3 32b cpu hang"
 	depends on UNISOC_SCHED && ARM

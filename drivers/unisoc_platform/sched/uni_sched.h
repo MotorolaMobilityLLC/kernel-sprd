@@ -242,6 +242,11 @@ extern unsigned int sysctl_cpu_multi_thread_opt;
 extern unsigned int sysctl_multi_thread_heavy_load_runtime;
 extern unsigned int sysctl_force_newidle_balance;
 extern unsigned int sysctl_sched_custom_scene;
+#ifdef CONFIG_UNISOC_INPUT_BOOST
+extern unsigned int sysctl_input_boost_ms;
+extern unsigned int sysctl_input_boost_freq[8];
+extern unsigned int sysctl_input_boost_enable;
+#endif
 
 extern unsigned int min_max_possible_capacity;
 extern unsigned int max_possible_capacity;
@@ -317,6 +322,15 @@ static inline void core_pause_init(void)
 }
 
 static inline int core_ctl_init(void)
+{
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_UNISOC_INPUT_BOOST
+extern int input_boost_init(void);
+#else
+static inline int input_boost_init(void)
 {
 	return 0;
 }
