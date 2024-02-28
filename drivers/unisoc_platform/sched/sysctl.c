@@ -33,6 +33,12 @@ unsigned int sysctl_cpu_multi_thread_opt;
 unsigned int sysctl_multi_thread_heavy_load_runtime = 1000;
 unsigned int sysctl_force_newidle_balance = 1;
 unsigned int sysctl_sched_custom_scene;
+#ifdef CONFIG_UNISOC_INPUT_BOOST
+static int one_hundred_thousand = 100000;
+unsigned int sysctl_input_boost_ms = 200;
+unsigned int sysctl_input_boost_freq[8];
+unsigned int sysctl_input_boost_enable;
+#endif
 
 /*up cap margin default value: ~20%*/
 static unsigned int sysctl_sched_cap_margin_up_pct[MAX_CLUSTERS] = {
@@ -558,6 +564,35 @@ struct ctl_table sched_table[] = {
 		.procname	= "group_ctl",
 		.mode		= 0555,
 		.child		= boost_table,
+	},
+#endif
+#ifdef CONFIG_UNISOC_INPUT_BOOST
+	{
+		.procname	= "input_boost_ms",
+		.data		= &sysctl_input_boost_ms,
+		.maxlen		= sizeof(unsigned int),
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= &one_hundred_thousand,
+	},
+	{
+		.procname	= "input_boost_freq",
+		.data		= &sysctl_input_boost_freq,
+		.maxlen		= sizeof(unsigned int) * 8,
+		.mode		= 0644,
+		.proc_handler	= proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_INT_MAX,
+	},
+	{
+		.procname       = "input_boost_enable",
+		.data           = &sysctl_input_boost_enable,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
 	},
 #endif
 	{ }
