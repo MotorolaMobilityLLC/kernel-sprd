@@ -20,6 +20,8 @@
 #include <linux/fs.h>
 #include <linux/seq_file.h>
 #include <trace/hooks/mmc.h>
+#define CREATE_TRACE_POINTS
+#include "trace_mmc_swcq.h"
 
 #define SCHED_WORK(x) queue_work(system_unbound_wq, x)
 #define SCHED_PUMP_WORK(x, t) queue_delayed_work(system_unbound_wq, x, t)
@@ -1770,6 +1772,8 @@ bool mmc_swcq_finalize_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	struct mmc_swcq *swcq = mmc->cqe_private;
 	unsigned long flags;
 
+	trace_mmc_request_end(mmc, mrq);
+
 	spin_lock_irqsave(&swcq->lock, flags);
 	if (swcq->enabled && (atomic_read(&swcq->work_on) ||
 	atomic_read(&swcq->cmdq_cnt) || atomic_read(&swcq->busy))) {
@@ -1871,6 +1875,7 @@ static int mmc_swcq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	struct mmc_swcq *swcq = mmc->cqe_private;
 	int tag = mrq->tag;
 	unsigned long flags;
+	struct mmc_blk_data *main_md = NULL;
 
 	spin_lock_irqsave(&swcq->lock, flags);
 	if (!swcq->enabled) {
@@ -1903,6 +1908,13 @@ static int mmc_swcq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	dbg_add_host_log(mmc, MMC_SWCQ_RQ, 0, 0, mrq);
 
 	spin_unlock_irqrestore(&swcq->lock, flags);
+
+	if (mmc->card != NULL) {
+		main_md = dev_get_drvdata(&mmc->card->dev);
+		if (main_md != NULL && main_md->disk != NULL)
+			trace_mmc_request_begin(mmc, main_md->disk, mrq);
+	}
+
 	mmc_swcq_pump_requests(swcq);
 
 	return 0;
