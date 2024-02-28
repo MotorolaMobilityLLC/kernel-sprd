@@ -47,6 +47,9 @@
 #include "sdhci-sprd-debugfs.h"
 #include "sdhci-sprd-debugfs.c"
 
+#define CREATE_TRACE_POINTS
+#include "trace_mmc_sprd.h"
+
 #define DRIVER_NAME "sprd-sdhci"
 #define SDHCI_SPRD_DUMP(f, x...) \
 	pr_err("%s: " DRIVER_NAME ": " f, mmc_hostname(host->mmc), ## x)
@@ -749,6 +752,8 @@ static void sdhci_sprd_request_done(struct sdhci_host *host,
 				    struct mmc_request *mrq)
 {
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+
+	trace_mmc_cmd_done(host->mmc, mrq);
 
 	/* Validate if the request was from software queue firstly. */
 	if (HOST_IS_EMMC_TYPE(host->mmc) && sprd_host->support_swcq) {
@@ -1562,13 +1567,38 @@ static void sdhci_sprd_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	sdhci_request(mmc, mrq);
 }
 
+static struct mmc_request *get_mrq_in_swcq(struct mmc_host *mmc, struct mmc_request *mrq)
+{
+	struct mmc_request *p_mrq = NULL;
+	struct sdhci_host *host = mmc_priv(mmc);
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	struct mmc_swcq *swcq = mmc->cqe_private;
+	int index;
+
+	if (!sprd_host->support_swcq || !swcq->cmdq_mode)
+		return p_mrq;
+
+	for (index = 0; index < swcq->cmdq_depth; index++) {
+		if (swcq->cmdq_slot[index].ext_mrq == mrq) {
+			p_mrq = swcq->cmdq_slot[index].mrq;
+			break;
+		}
+	}
+
+	return p_mrq;
+}
+
 static int sdhci_sprd_request_atomic(struct mmc_host *mmc,
 				      struct mmc_request *mrq)
 {
 	struct sdhci_host *host = mmc_priv(mmc);
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	struct mmc_blk_data *main_md = dev_get_drvdata(&mmc->card->dev);
+	struct mmc_request *p_mrq = get_mrq_in_swcq(mmc, mrq);
 
 	sdhci_sprd_check_auto_cmd23(mmc, mrq);
+
+	trace_mmc_cmd_send(mmc, main_md->disk, mrq, p_mrq);
 
 	if (sprd_host->support_swcq) {
 		if (HOST_IS_EMMC_TYPE(mmc) && mmc->card && mmc_card_cmdq(mmc->card))
