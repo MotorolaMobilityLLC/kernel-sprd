@@ -599,6 +599,8 @@ static void uni_sched_init(struct work_struct *work)
 
 	core_pause_init();
 	core_ctl_init();
+
+	input_boost_init();
 }
 
 static DECLARE_WORK(sched_init_work, uni_sched_init);
