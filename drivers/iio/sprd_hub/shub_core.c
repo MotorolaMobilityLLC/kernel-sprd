@@ -821,10 +821,13 @@ static ssize_t raw_data_ps_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
-	u8 data[2];
-	u16 *ptr = (u16 *)data;
+	u8 data[6];
+	u16 *ptr, *ptr1, *ptr2;
 	int err;
 
+	ptr = (u16 *)data;
+        ptr1 = (u16 *)&data[2];
+        ptr2 = (u16 *)&data[4];
 	if (sensor->mcu_mode <= SHUB_CALIDOWNLOAD) {
 		dev_err(&sensor->sensor_pdev->dev, "mcu_mode == SHUB_BOOT!\n");
 		return -EINVAL;
@@ -836,7 +839,7 @@ static ssize_t raw_data_ps_show(struct device *dev,
 			"read RegMapR_GetProximityRawData failed!\n");
 		return err;
 	}
-	return sprintf(buf, "%d\n", ptr[0]);
+	return sprintf(buf, "%d,%d,%d\n", ptr[0], ptr1[0], ptr2[0]);
 }
 static DEVICE_ATTR_RO(raw_data_ps);
 
