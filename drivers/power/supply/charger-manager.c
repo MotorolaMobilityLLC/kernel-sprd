@@ -5389,7 +5389,14 @@ static int cm_get_charge_control_limit(struct charger_manager *cm,
 				cm->desc->psy_charger_stat[i]);
 			continue;
 		}
-
+		if (cm->desc->thm_info.need_calib_charge_lmt) {
+			ret = power_supply_get_property(psy,
+							POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
+							val);
+			if (!ret)
+				break;
+		}
+		else{
 		ret = power_supply_get_property(psy, POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT, val);
 		power_supply_put(psy);
 		if (!ret) {
@@ -5398,12 +5405,8 @@ static int cm_get_charge_control_limit(struct charger_manager *cm,
 
 			break;
 		}
+	   }
 
-		ret = power_supply_get_property(psy,
-						POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT,
-						val);
-		if (!ret)
-			break;
 	}
 
 	return ret;
