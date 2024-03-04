@@ -1,4 +1,5 @@
 obj-$(CONFIG_SPRD_LOOK_AT)	+= sprd_lookat.o
+obj-$(CONFIG_SPRD_DEBUG)	+= data_collector/
 obj-$(CONFIG_SPRD_DEBUG)	+= cpu_usage/
 obj-$(CONFIG_SPRD_UNDEF_HOOK)	+= sprd_undef_hook/
 obj-y	+= busmonitor/

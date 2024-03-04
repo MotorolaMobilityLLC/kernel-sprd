@@ -93,6 +93,12 @@ struct uni_task_struct {
 #ifdef CONFIG_UNISOC_BINDER_SCHED
 	int unibinder_feature_flags;
 #endif
+
+#if IS_ENABLED(CONFIG_SPRD_DATA_COLLECTOR)
+	u64 dr_thread_timestamp_start;
+	u64 dr_thread_duration;
+	u64 dr_thread_in_statistic;
+#endif /* CONFIG_UNISOC_DATA_COLLECTOR */
 };
 
 struct sched_cluster {

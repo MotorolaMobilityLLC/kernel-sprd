@@ -24,6 +24,7 @@ config SPRD_DEBUG_GIC
 	  all irqs
 
 source "drivers/unisoc_platform/debug/busmonitor/Kconfig"
+source "drivers/unisoc_platform/debug/data_collector/Kconfig"
 source "drivers/unisoc_platform/debug/djtag/Kconfig"
 source "drivers/unisoc_platform/debug/dmc_mpu/Kconfig"
 source "drivers/unisoc_platform/debug/apb_prot/Kconfig"
