@@ -370,6 +370,20 @@ hl7015_charger_set_ovp(struct hl7015_charger_info *info, u32 vol)
 	return 0;
 }
 
+hl7015_charger_get_termina_vol(struct hl7015_charger_info *info, u32 *vol)
+{
+    int ret;
+    u8 reg_val;
+
+	ret = hl7015_read(info, HL7015_REG_4, &reg_val);
+	if (ret < 0)
+		return ret;
+
+	reg_val = (reg_val & HL7015_REG_TERMINAL_VOLTAGE_MASK) >> HL7015_REG_TERMINAL_VOLTAGE_SHIFT;
+	*vol = reg_val * 16 + 3504;
+
+	return 0;
+}
 static int
 hl7015_charger_set_termina_vol(struct hl7015_charger_info *info, u32 vol)
 {
@@ -1053,7 +1067,7 @@ static int hl7015_charger_usb_get_property(struct power_supply *psy,
 					    union power_supply_propval *val)
 {
 	struct hl7015_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur = 0, health, enabled = 0;
+	u32 cur = 0, health,vol, enabled = 0;
 	int ret = 0;
 
 	if (!info) {
@@ -1134,6 +1148,10 @@ static int hl7015_charger_usb_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 			val->intval = hl7015_charge_done(info);
+		break;
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
+		ret = hl7015_charger_get_termina_vol(info, &vol);
+		val->intval = vol *1000;
 		break;
 
 	default:

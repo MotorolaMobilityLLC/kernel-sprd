@@ -449,6 +449,21 @@ upm6920_charger_set_ovp(struct upm6920_charger_info *info, u32 vol)
 }
 
 static int
+upm6920_charger_get_termina_vol(struct upm6920_charger_info *info, u32 *vol)
+{
+    int ret;
+    u8 reg_val;
+
+	ret = upm6920_read(info, UPM6920_REG_6, &reg_val);
+	if (ret < 0)
+		return ret;
+
+	reg_val = (reg_val & REG06_VREG_MASK) >> REG06_VREG_SHIFT;
+	*vol = reg_val * REG06_VREG_LSB + REG06_VREG_BASE;
+
+	return 0;
+}
+
 upm6920_charger_set_termina_vol(struct upm6920_charger_info *info, u32 vol)
 {
     int ret;
@@ -1133,7 +1148,7 @@ static int upm6920_charger_usb_get_property(struct power_supply *psy,
 					    union power_supply_propval *val)
 {
 	struct upm6920_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur = 0, health, enabled = 0;
+	u32 cur = 0, health,vol, enabled = 0;
 	int ret = 0;
 
 	if (!info) {
@@ -1214,6 +1229,10 @@ static int upm6920_charger_usb_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 			val->intval = upm6920_charge_done(info);
+		break;
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
+		ret = upm6920_charger_get_termina_vol(info, &vol);
+		val->intval = vol *1000;
 		break;
 
 	default:
