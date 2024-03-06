@@ -39,7 +39,7 @@
 #define BQ2560X_REG_9				0x9
 #define BQ2560X_REG_A				0xa
 #define BQ2560X_REG_B				0xb
-#define BQ2560X_REG_NUM				12
+#define BQ2560X_REG_NUM				0x10
 
 #define BQ2560X_BATTERY_NAME			"sc27xx-fgu"
 #define BIT_DP_DM_BC_ENB			BIT(0)
@@ -374,18 +374,74 @@ bq2560x_charger_set_ovp(struct bq2560x_charger_info *info, u32 vol)
 }
 
 static int
-bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
+bq2560x_charger_get_termina_vol(struct bq2560x_charger_info *info, u32 *vol)
 {
+       int ret;
 	u8 reg_val;
 
-	dev_dbg(info->dev, "%s:line%d: set termina vol = %d\n", __func__, __LINE__, vol);
+	ret = bq2560x_read(info, BQ2560X_REG_4, &reg_val);
+	if (ret < 0)
+		return ret;
 
-	if (vol < 3500)
-		reg_val = 0x0;
-	else if (vol >= 4440)
-		reg_val = 0x2e;
+	reg_val = (reg_val & BQ2560X_REG_TERMINAL_VOLTAGE_MASK) >> BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT;
+	*vol = reg_val * 32 + 3856;
+
+	ret = bq2560x_read(info, 0x0f, &reg_val);
+
+	if((reg_val & 0xc0) == 0x40)
+		*vol += 8;
+	else if((reg_val & 0xc0) == 0x80)
+		*vol -= 8;
+	else if((reg_val & 0xc0) == 0xc0)
+		*vol -= 16;
+
+	return 0;
+}
+#define  termina_vol_add0(info)  bq2560x_update_bits(info, 0x0f,0xc0,0x00)
+#define  termina_vol_add8(info)  bq2560x_update_bits(info, 0x0f,0xc0,0x40)
+#define  termina_vol_dec8(info)  bq2560x_update_bits(info,  0x0f,0xc0,0x80)
+#define  termina_vol_dec16(info) bq2560x_update_bits(info, 0x0f,0xc0,0xc0)
+
+static int
+bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
+{
+	u8 reg_val,reg_remain;
+
+
+	if (vol < 3856)
+		vol = 3856;
+	else if (vol >= 4624)
+		vol = 4624;
+
+	reg_val = (vol - 3856) / 32;
+
+	reg_remain =(vol - 3856) % 32;
+
+	if(reg_remain >16)
+	{
+
+		if(reg_remain >24)
+			reg_val ++;
+	       else		
+		{
+			reg_val ++;
+			termina_vol_dec8(info);		
+		}
+	}
 	else
-		reg_val = (vol - 3856) / 32;
+	{
+		if(reg_remain >8)
+		{
+			reg_val ++;
+			termina_vol_dec16(info);
+		}
+	else
+			termina_vol_add8(info);
+				
+	}
+
+
+	dev_err(info->dev, "%s;%d;%d;%d;\n",__func__,vol,reg_val,reg_remain);
 
 	return bq2560x_update_bits(info, BQ2560X_REG_4,
 				   BQ2560X_REG_TERMINAL_VOLTAGE_MASK,
@@ -781,11 +837,11 @@ static void bq2560x_dump_register(struct bq2560x_charger_info *info)
 
 	memset(buf, '\0', sizeof(buf));
 	for (i = 0; i < BQ2560X_REG_NUM; i++) {
-		ret = bq2560x_read(info,  reg_tab[i].addr, &reg_val);
+		ret = bq2560x_read(info, i, &reg_val);
 		if (ret == 0) {
 			len = snprintf(buf + idx, sizeof(buf) - idx,
-				       "[REG_0x%.2x]=%.2x  ",
-				       reg_tab[i].addr, reg_val);
+				       "[%.2x]=%.2x  ",
+				       i, reg_val);
 			idx += len;
 		}
 	}
@@ -1078,7 +1134,7 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 					    union power_supply_propval *val)
 {
 	struct bq2560x_charger_info *info = power_supply_get_drvdata(psy);
-	u32 cur = 0, health, enabled = 0;
+	u32 cur = 0, health,vol, enabled = 0;
 	int ret = 0;
 
 	if (!info) {
@@ -1164,6 +1220,10 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
 			val->intval = bq2560x_charge_done(info);
+		break;
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX:
+		ret = bq2560x_charger_get_termina_vol(info, &vol);
+		val->intval = vol *1000;
 		break;
 	default:
 		ret = -EINVAL;

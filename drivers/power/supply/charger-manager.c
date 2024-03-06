@@ -1093,6 +1093,34 @@ static int get_charger_input_current(struct charger_manager *cm, int *cur)
 
 	return ret;
 }
+static int get_charger_term_voltage(struct charger_manager *cm, int *vol)
+{
+	union power_supply_propval val;
+	struct power_supply *psy;
+	int i, ret = -ENODEV;
+
+	/* If at least one of them has one, it's yes. */
+	for (i = 0; cm->desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(cm->desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				cm->desc->psy_charger_stat[i]);
+			continue;
+		}
+
+		ret = power_supply_get_property(psy,
+						POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE_MAX,
+						&val);
+		power_supply_put(psy);
+		if (ret == 0) {
+			*vol = val.intval;
+			break;
+		}
+	}
+
+	return ret;
+}
+
 static void cm_set_charger_present(struct charger_manager *cm, bool present)
 {
 	int ret, i;
@@ -4693,15 +4721,18 @@ static int cm_get_target_status(struct charger_manager *cm)
 	if (!is_normal)
 		dev_warn(cm->dev, "Errors orrurs when adjusting charging current\n");
 
-	if (!is_batt_present(cm) && !allow_charger_enable)
+	if (!is_batt_present(cm) && !allow_charger_enable){
+		dev_warn(cm->dev, "%s;allow_charger_enable false;\n",__func__);
 		return POWER_SUPPLY_STATUS_DISCHARGING;
-
-	if(runin_stop_chg)
+	}
+	if(runin_stop_chg){
+		dev_warn(cm->dev, "%s;runin_stop_chg true;\n",__func__);
 		return POWER_SUPPLY_STATUS_DISCHARGING;
-
-	if(ontim_charge_onoff_control  !=  1)
+	}
+	if(ontim_charge_onoff_control  !=  1){
+		dev_warn(cm->dev, "%s;ontim_charge_onoff_control  !=  1;\n",__func__);
 		return POWER_SUPPLY_STATUS_DISCHARGING;
-
+	}
 	if (cm_check_thermal_status(cm)) {
 		dev_warn(cm->dev, "board temperature is still abnormal\n");
 		return POWER_SUPPLY_STATUS_NOT_CHARGING;
@@ -7758,6 +7789,7 @@ static void cm_batt_works(struct work_struct *work)
 #define CHARGE_SOC_VALUE_FACTOR 1031
 	static bool charge_done=false;
 	int fuel_cap_buf = 0;
+	int term_vol;
 
 	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
@@ -7812,6 +7844,8 @@ static void cm_batt_works(struct work_struct *work)
 	if (ret)
 		dev_warn(cm->dev, "get chg_vol error.\n");
 
+	get_charger_term_voltage(cm, &term_vol);
+	
 	ret = cm_get_battery_temperature(cm, &cur_temp);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery temperature\n");
@@ -7875,15 +7909,15 @@ static void cm_batt_works(struct work_struct *work)
 	else
 		cm->desc->charger_status = cm->battery_status;
 
-	dev_info(cm->dev, "vbat: %d, vbat_avg: %d, OCV: %d, ibat: %d, ibat_avg: %d, ibus: %d,"
-		 " vbus: %d, soc:%d,%d,chg_sts: %d, frce_full: %d, chg_lmt_cur: %d,"
+	dev_info(cm->dev, "vbat:%d,OCV:%d,ibat:%d,ibus:%d,"
+		 "vbus:%d,soc:%d,%d,chg_sts:%d,chg_lmt_cur:%d,"
 		 " inpt_lmt_cur: %d, chgr_type: %d, Tboard: %d, Tbatt: %d, thm_cur: %d,"
-		 " thm_pwr: %d, is_fchg: %d, fchg_en: %d, tflush: %d, tperiod: %d\n",
-		 batt_uV, vbat_avg, batt_ocV, batt_uA, ibat_avg, input_cur, chg_vol, fuel_cap,cm->desc->cap,
-		 cm->desc->charger_status, cm->desc->force_set_full, chg_cur, chg_limit_cur,
+		 "thm_pwr:%d,is_fchg:%d,fchg_en:%d,term_vol:%d\n",
+		 batt_uV/1000,  batt_ocV/1000, batt_uA/1000, input_cur/1000, chg_vol/1000, fuel_cap,cm->desc->cap,
+		 cm->desc->charger_status, chg_cur/1000, chg_limit_cur/1000,
 		 cm->desc->charger_type, board_temp, cur_temp,
-		 cm->desc->thm_info.thm_adjust_cur, cm->desc->thm_info.thm_pwr,
-		 cm->desc->is_fast_charge, cm->desc->enable_fast_charge, flush_time, period_time);
+		 cm->desc->thm_info.thm_adjust_cur/1000, cm->desc->thm_info.thm_pwr/1000,
+		 cm->desc->is_fast_charge, cm->desc->enable_fast_charge, term_vol/1000);
 #if 0
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
@@ -8035,7 +8069,7 @@ static void cm_batt_works(struct work_struct *work)
 		fuel_cap_buf = (fuel_cap * CHARGE_SOC_VALUE_FACTOR) / 1000;
 	}
 
-	if( (!charge_done)  &&  check_charge_done(cm)  )
+	if( (!charge_done)  &&  check_charge_done(cm)  && term_vol>=4400000)
 	{
 		charge_done = true;
 		dev_err(cm->dev, "%s;full;fuel_cap=%d,%d,\n", __func__,
