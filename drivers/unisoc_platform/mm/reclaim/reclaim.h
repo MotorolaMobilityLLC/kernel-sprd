@@ -42,4 +42,12 @@ static inline int unisoc_enhance_reclaim_init(void)
 static inline void unisoc_enhance_reclaim_exit(void) { }
 #endif
 
+#if IS_ENABLED(CONFIG_UNISOC_MM_SHRINK_ANON)
+void shrink_anon_init(void);
+void shrink_anon_exit(void);
+#else
+static inline void shrink_anon_init(void) { }
+static inline void shrink_anon_exit(void) { }
+#endif
+
 #endif

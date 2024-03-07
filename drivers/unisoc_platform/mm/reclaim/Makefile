@@ -14,3 +14,8 @@ endif
 ifeq ($(CONFIG_UNISOC_MM_DIRECT_SWAPPINESS),y)
 unisoc_mm_reclaim-objs += direct_swappiness.o
 endif
+
+ifeq ($(CONFIG_UNISOC_MM_SHRINK_ANON),y)
+unisoc_mm_reclaim-objs += shrink_anon.o
+unisoc_mm_reclaim-objs += shrink_anon_notifier.o
+endif
