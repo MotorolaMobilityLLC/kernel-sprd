@@ -291,6 +291,7 @@ struct sprd_adc_data {
 	u32 base;
 	int irq;
 	struct sprd_adc_channel_data ch_data[SPRD_ADC_CHANNEL_MAX];
+	int data_cache[SPRD_ADC_CHANNEL_MAX];
 	const struct sprd_adc_variant_data *var_data;
 	struct sprd_adc_pm_data pm_data;
 };
@@ -1024,6 +1025,13 @@ static int sprd_adc_disable(struct sprd_adc_data *data, int channel)
 	int ret = 0, volreq = data->ch_data[channel].volreq;
 	u32 reg_read = 0;
 
+	ret = regmap_update_bits(data->regmap, data->base + SPRD_ADC_CTL,
+				 SPRD_ADC_CHN_RUN, 0);
+	if (ret) {
+		dev_err(data->dev, "failed to disable SPRD_ADC_CHN_RUN\n");
+		return ret;
+	}
+
 	ret = regmap_update_bits(data->regmap, data->base + SPRD_ADC_CTL, SPRD_ADC_EN, 0);
 	if (ret) {
 		SPRD_ADC_ERR("failed to reset SPRD_ADC_EN\n");
@@ -1129,8 +1137,9 @@ static int sprd_adc_read(struct sprd_adc_data *data, int channel, int scale, int
 				       (status & SPRD_ADC_IRQ_RAW), SPRD_ADC_POLL_RAW_STATUS,
 				       SPRD_ADC_RDY_TIMEOUT);
 	if (ret) {
-		SPRD_ADC_ERR("read adc timeout 0x%x\n", status);
+		dev_err(data->dev, "read adc timeout, return %d\n", data->data_cache[channel]);
 		sprd_adc_regs_dump(data, channel, scale, "t_bef");
+		sprd_adc_disable(data, channel);
 		sprd_adc_hw_enable(data);
 		sprd_adc_soft_rst(data);
 		sprd_adc_regs_dump(data, channel, scale, "t_aft");
@@ -1147,7 +1156,10 @@ static int sprd_adc_read(struct sprd_adc_data *data, int channel, int scale, int
 		rawdata &= SPRD_ADC_DATA_MASK;
 	}
 disable_adc:
-	ret = sprd_adc_disable(data, channel);
+	if (sprd_adc_disable(data, channel))
+		dev_err(data->dev, "adc disable failed\n");
+
+	*val = (rawdata & SPRD_ADC_DATA_MASK);
 
 	hwspin_unlock_raw(data->hwlock);
 
@@ -1199,19 +1211,19 @@ static int sprd_adc_calculate_volt_by_ratio(struct sprd_adc_data *data, int chan
 	return vol_final;
 }
 
-static int sprd_adc_read_processed(struct sprd_adc_data *data, int channel, int scale, int *val)
+static void sprd_adc_read_processed(struct sprd_adc_data *data, int channel, int scale, int *val)
 {
 	int ret, raw_adc, vol_graph;
 
 	ret = sprd_adc_read(data, channel, scale, &raw_adc);
-
-	if (ret)
-		return ret;
+	if (ret) {
+		*val = data->data_cache[channel];
+		return;
+	}
 
 	vol_graph = sprd_adc_calculate_volt_by_graph(data, channel, scale, raw_adc);
 	*val = sprd_adc_calculate_volt_by_ratio(data, channel, scale, vol_graph);
-
-	return 0;
+	data->data_cache[channel] = *val;
 }
 
 static int sprd_adc_ch_data_encode(struct sprd_adc_data *data, int ch)
@@ -1246,31 +1258,21 @@ static int sprd_adc_read_raw(struct iio_dev *indio_dev, struct iio_chan_spec con
 {
 	struct sprd_adc_data *data = iio_priv(indio_dev);
 	int scale = data->ch_data[chan->channel].scale;
-	int ret, tmp;
 
 	switch (mask) {
 	case IIO_CHAN_INFO_RAW:
 		mutex_lock(&indio_dev->mlock);
-		ret = sprd_adc_read(data, chan->channel, scale, &tmp);
+		if (sprd_adc_read(data, chan->channel, scale, val))
+			*val = data->data_cache[chan->channel];
 		mutex_unlock(&indio_dev->mlock);
 
-		if (ret)
-			return ret;
-
-		*val = tmp;
 		return IIO_VAL_INT;
-
 	case IIO_CHAN_INFO_PROCESSED:
 		mutex_lock(&indio_dev->mlock);
-		ret = sprd_adc_read_processed(data, chan->channel, scale, &tmp);
+		sprd_adc_read_processed(data, chan->channel, scale, val);
 		mutex_unlock(&indio_dev->mlock);
 
-		if (ret)
-			return ret;
-
-		*val = tmp;
 		return IIO_VAL_INT;
-
 	case IIO_CHAN_INFO_SCALE:
 		*val = sprd_adc_ch_data_encode(data, chan->channel);
 		return IIO_VAL_INT;
@@ -1306,7 +1308,7 @@ static int sprd_adc_soft_rst(struct sprd_adc_data *data)
 	if (ret)
 		return ret;
 
-	udelay(10);
+	usleep_range(100, 200);
 
 	reg_addr = GET_REG_ADDR(data, REG_SOFT_RST);
 	mask = data->var_data->reg_list[REG_SOFT_RST].mask;
