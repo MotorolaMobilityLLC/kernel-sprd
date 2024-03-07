@@ -448,8 +448,11 @@
 	mic-gpios = <&ap_gpio 62 GPIO_ACTIVE_HIGH>;
 	lr-gpios = <&ap_gpio 61 GPIO_ACTIVE_HIGH>;
 	sprd,3pole-adc-threshold = <112>;
-	nvmem-cells = <&headset_adc_fir_1>, <&headset_adc_fir_2>,<&headset_adc_sec>;
-	nvmem-cell-names = "hp_adc_fir_calib_1","hp_adc_fir_calib_2", "hp_adc_sec_calib";
+	nvmem-cells = <&headset_adc_fir_1>, <&headset_adc_fir_2>,<&headset_adc_sec>,
+		<&pdref_calib>, <&aud_pabst_vcal>, <&neg_cp_efuse>, <&fgu_calib>;
+	nvmem-cell-names = "hp_adc_fir_calib_1","hp_adc_fir_calib_2", "hp_adc_sec_calib",
+		"aud_impd_cal2", "aud_impd_cal0", "aud_impd_cal1", "impd_sel";
+	sprd,impd-en = <0>;
 };
 
 &sound_vbc_v4_sprd_codec {
