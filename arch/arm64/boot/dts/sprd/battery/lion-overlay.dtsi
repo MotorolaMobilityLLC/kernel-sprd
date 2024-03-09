@@ -53,7 +53,7 @@
 	charge-dcp-current-microamp = <3200000 3200000>;
 	charge-cdp-current-microamp = <1500000 1500000>;
 	charge-unknown-current-microamp = <1050000 1050000>;
-	charge-fchg-current-microamp = <3480000 3000000>;
+	charge-fchg-current-microamp = <3480000 2000000>;
 
 	cap-calib-energy-density-ocv-table = <3350000 3680000>, <4130000 4500000>;
 	cap-track-energy-density-ocv-table = <3400000 3687000>;
@@ -118,7 +118,7 @@
 	charge-dcp-current-microamp = <3200000 3200000>;
 	charge-cdp-current-microamp = <1500000 1500000>;
 	charge-unknown-current-microamp = <1050000 1050000>;
-	charge-fchg-current-microamp = <3480000 3000000>;
+	charge-fchg-current-microamp = <3480000 2000000>;
 
 	cap-calib-energy-density-ocv-table = <3350000 3680000>, <4130000 4500000>;
 	cap-track-energy-density-ocv-table = <3400000 3686000>;
@@ -183,7 +183,7 @@
 	charge-dcp-current-microamp = <3200000 3200000>;
 	charge-cdp-current-microamp = <1500000 1500000>;
 	charge-unknown-current-microamp = <1050000 1050000>;
-	charge-fchg-current-microamp = <3480000 3000000>;
+	charge-fchg-current-microamp = <3480000 2000000>;
 
 	cap-calib-energy-density-ocv-table = <3350000 3680000>, <4130000 4500000>;
 	cap-track-energy-density-ocv-table = <3400000 3686000>;
