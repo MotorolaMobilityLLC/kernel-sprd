@@ -8065,7 +8065,9 @@ static void cm_batt_works(struct work_struct *work)
 
 	if (fuel_cap >= CHARGE_FULL_SOC_VALUE) {
 		fuel_cap_buf = 1000;
-	} else {
+	}else if (fuel_cap < 50)
+		fuel_cap_buf = fuel_cap;
+	else {
 		fuel_cap_buf = (fuel_cap * CHARGE_SOC_VALUE_FACTOR) / 1000;
 	}
 
@@ -8095,7 +8097,7 @@ static void cm_batt_works(struct work_struct *work)
 		}
 
 		cm->desc->cap = fuel_cap_buf;
-		if (cm->desc->uvlo_trigger_cnt < CM_UVLO_CALIBRATION_CNT_THRESHOLD)
+	//	if (cm->desc->uvlo_trigger_cnt < CM_UVLO_CALIBRATION_CNT_THRESHOLD)
 			set_batt_cap(cm, cm->desc->cap);
 	}
 
