@@ -197,6 +197,8 @@ static int sblock_recover(u8 dst, u8 channel)
 	if (channel == SMSG_CH_PLOG) {
 		sb_prepare_list_info[dst_index].first_recv_flag = 1;
 		sb_prepare_list_info[dst_index].first_release_flag = 1;
+		sb_prepare_list_info[dst_index].receive_not_continue_cnt = 0;
+		sb_prepare_list_info[dst_index].release_not_continue_cnt = 0;
 		for (i = 0, j = 0; i < poolhd_op->rx_count; i++) {
 			ring->p_rxblks[j].addr = i * sblock->rxblksz +
 						 poolhd_op->rx_addr;
@@ -1612,11 +1614,14 @@ int sblock_receive(u8 dst, u8 channel,
 			    sb_prepare_list_info[dst_index].recv_last_addr != ringhd_op->rx_size) &&
 			    (sb_prepare_list_info[dst_index].recv_last_addr -
 			    ring->r_rxblks[rxpos].addr != ringhd_op->rx_size *
-			    (ringhd_op->rx_count-1))) {
+			    (ringhd_op->rx_count-1)) &&
+			    (sb_prepare_list_info[dst_index].receive_not_continue_cnt <
+			     MAX_NOT_CONTINUE_CNT)) {
 				pr_err("receive %s sblock is not continuous, addr: 0x%x, recv last addr: 0x%x\n",
 					sb_prepare_list_info[dst_index].name,
 					ring->r_rxblks[rxpos].addr,
 					sb_prepare_list_info[dst_index].recv_last_addr);
+				sb_prepare_list_info[dst_index].receive_not_continue_cnt++;
 			} else if (sb_prepare_list_info[dst_index].first_recv_flag) {
 				sb_prepare_list_info[dst_index].first_recv_flag = 0;
 				pr_info("receive first %s sblock, addr: 0x%x, recv last addr: 0x%x\n",
@@ -1922,12 +1927,14 @@ int sblock_release(u8 dst, u8 channel, struct sblock *blk)
 					sb_prepare_list_info[dst_index].release_last_addr -
 					sblock->smem_virt + sblock->stored_smem_addr);
 			}
-		} else {
+		} else if (sb_prepare_list_info[dst_index].release_not_continue_cnt <
+			   MAX_NOT_CONTINUE_CNT) {
 			pr_err("release %s sblock is not continuous, addr: 0x%lx, release last addr: 0x%lx\n",
 				sb_prepare_list_info[dst_index].name,
 				blk->addr - sblock->smem_virt + sblock->stored_smem_addr,
 				sb_prepare_list_info[dst_index].release_last_addr -
 				sblock->smem_virt + sblock->stored_smem_addr);
+			sb_prepare_list_info[dst_index].release_not_continue_cnt++;
 		}
 	}
 	rxpos = sblock_get_ringpos(*(poolhd_op->rx_wt_p), poolhd_op->rx_count);

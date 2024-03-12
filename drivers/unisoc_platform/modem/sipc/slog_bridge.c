@@ -680,6 +680,8 @@ static int slog_bridge_probe(struct platform_device *pdev)
 		sb_prepare_list_info[thread_count].name = slog_cfg[thread_count].sys_name;
 		sb_prepare_list_info[thread_count].first_recv_flag = 1;
 		sb_prepare_list_info[thread_count].first_release_flag = 1;
+		sb_prepare_list_info[thread_count].receive_not_continue_cnt = 0;
+		sb_prepare_list_info[thread_count].release_not_continue_cnt = 0;
 	}
 
 	return 0;
