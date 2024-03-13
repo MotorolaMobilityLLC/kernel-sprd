@@ -186,6 +186,7 @@ struct drm_gsp_lite_r2p0_cfg_user {
 	__u32 size;
 	__u32 num;
 	bool split;
+	char version[32];
 	struct gsp_lite_r2p0_cfg_user *config;
 };
 

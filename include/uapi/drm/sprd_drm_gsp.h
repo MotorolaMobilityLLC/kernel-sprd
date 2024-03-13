@@ -18,12 +18,14 @@ struct drm_gsp_cfg_user {
 	__u32 size;
 	__u32 num;
 	bool split;
+	char version[32];
 	void *config;
 };
 
 struct drm_gsp_capability {
 	__u8 gsp_id;
 	__u32 size;
+	char version[32];
 	void *cap;
 };
 
