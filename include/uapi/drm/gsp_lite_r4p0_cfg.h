@@ -1,14 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
 /*
- * Copyright (C) 2018 Spreadtrum Communications Inc.
- *
- * This software is licensed under the terms of the GNU General Public
- * License version 2, as published by the Free Software Foundation, and
- * may be copied, distributed, and modified under those terms.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
+ * Copyright (C) 2020 Unisoc Inc.
  */
 
 #ifndef _UAPI_VIDEO_GSP_LITE_R4P0_CFG_H_
@@ -201,6 +193,7 @@ struct drm_gsp_lite_r4p0_cfg_user {
 	__u32 size;
 	__u32 num;
 	bool split;
+	char version[32];
 	struct gsp_lite_r4p0_cfg_user *config;
 };
 
@@ -232,5 +225,4 @@ struct gsp_lite_r4p0_capability {
 	__u32 max_gspmmu_size;
 	__u32 max_gsp_bandwidth;
 };
-
 #endif
