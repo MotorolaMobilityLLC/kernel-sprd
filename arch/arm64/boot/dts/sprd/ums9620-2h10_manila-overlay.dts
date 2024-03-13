@@ -448,10 +448,10 @@
 			<&g5l_pll CLK_TGPLL_51M2>,<&g5l_pll CLK_TGPLL_48M>,<&ext_26m>;
 		vddio-supply = <&vddcamio>;
 		vddcama-supply = <&vddcama2>;
-		//vddcamd-supply = <&vddcamd2>;
+		vddcamd-supply = <&vddcamd2>;
 		reset-gpios = <&ap_gpio 41 0>;
 		//power-down-gpios = <&ap_gpio 48 0>;
-		sprd,phyid = <6>;
+		sprd,phyid = <3>;
 		csi = <&csi3>;
 	};
 };
