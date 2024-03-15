@@ -769,13 +769,10 @@ static ssize_t hsphy_device_eye_pattern_show(struct device *dev,
 				struct device_attribute *attr,
 				char *buf)
 {
-	struct usb_phy *x = dev_get_drvdata(dev);
-	struct sprd_ssphy *phy;
+	struct sprd_ssphy *phy = dev_get_drvdata(dev);
 
-	if (!x)
+	if (!phy)
 		return -EINVAL;
-
-	phy = container_of(x, struct sprd_ssphy, phy);
 
 	return sprintf(buf, "0x%x\n", phy->device_eye_pattern);
 }
@@ -784,13 +781,11 @@ static ssize_t hsphy_device_eye_pattern_store(struct device *dev,
 			       struct device_attribute *attr,
 			       const char *buf, size_t size)
 {
-	struct usb_phy *x = dev_get_drvdata(dev);
-	struct sprd_ssphy *phy;
+	struct sprd_ssphy *phy = dev_get_drvdata(dev);
 
-	if (!x)
+	if (!phy)
 		return -EINVAL;
 
-	phy = container_of(x, struct sprd_ssphy, phy);
 	if (kstrtouint(buf, 16, &phy->device_eye_pattern) < 0)
 		return -EINVAL;
 
@@ -802,13 +797,10 @@ static ssize_t hsphy_host_eye_pattern_show(struct device *dev,
 				struct device_attribute *attr,
 				char *buf)
 {
-	struct usb_phy *x = dev_get_drvdata(dev);
-	struct sprd_ssphy *phy;
+	struct sprd_ssphy *phy = dev_get_drvdata(dev);
 
-	if (!x)
+	if (!phy)
 		return -EINVAL;
-
-	phy = container_of(x, struct sprd_ssphy, phy);
 
 	return sprintf(buf, "0x%x\n", phy->host_eye_pattern);
 }
@@ -817,13 +809,11 @@ static ssize_t hsphy_host_eye_pattern_store(struct device *dev,
 			       struct device_attribute *attr,
 			       const char *buf, size_t size)
 {
-	struct usb_phy *x = dev_get_drvdata(dev);
-	struct sprd_ssphy *phy;
+	struct sprd_ssphy *phy = dev_get_drvdata(dev);
 
-	if (!x)
+	if (!phy)
 		return -EINVAL;
 
-	phy = container_of(x, struct sprd_ssphy, phy);
 	if (kstrtouint(buf, 16, &phy->host_eye_pattern) < 0)
 		return -EINVAL;
 
@@ -835,13 +825,10 @@ static ssize_t vdd_voltage_show(struct device *dev,
 				struct device_attribute *attr,
 				char *buf)
 {
-	struct usb_phy *x = dev_get_drvdata(dev);
-	struct sprd_ssphy *phy;
+	struct sprd_ssphy *phy = dev_get_drvdata(dev);
 
-	if (!x)
+	if (!phy)
 		return -EINVAL;
-
-	phy = container_of(x, struct sprd_ssphy, phy);
 
 	return sprintf(buf, "%d\n", phy->vdd_vol);
 }
@@ -850,14 +837,12 @@ static ssize_t vdd_voltage_store(struct device *dev,
 				 struct device_attribute *attr,
 				 const char *buf, size_t size)
 {
-	struct usb_phy *x = dev_get_drvdata(dev);
-	struct sprd_ssphy *phy;
+	struct sprd_ssphy *phy = dev_get_drvdata(dev);
 	u32 vol;
 
-	if (!x)
+	if (!phy)
 		return -EINVAL;
 
-	phy = container_of(x, struct sprd_ssphy, phy);
 	if (kstrtouint(buf, 16, &vol) < 0)
 		return -EINVAL;
 
