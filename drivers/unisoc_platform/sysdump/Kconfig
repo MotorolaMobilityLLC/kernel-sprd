@@ -67,7 +67,7 @@ config SPRD_CLOSE_CRASH_KEY
 
 config SPRD_MODULES_NOTIFY
 	tristate "monitor every modules loading time"
-	depends on ARCH_SPRD && MODULES
+	depends on ARCH_SPRD && MODULES && ANDROID_KABI_RESERVE
 	help
 	  Say y here to enable Debug support.
 	  When in doubt, say n
