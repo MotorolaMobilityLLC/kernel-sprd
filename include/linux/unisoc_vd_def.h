@@ -170,4 +170,12 @@ struct uni_task_group {
 };
 #endif
 
+#if IS_ENABLED(CONFIG_UNISOC_SCHED)
+extern unsigned int sched_get_cpu_util_pct(int cpu);
+#else
+static inline unsigned int sched_get_cpu_util_pct(int cpu)
+{
+	return 0;
+}
+#endif
 #endif
