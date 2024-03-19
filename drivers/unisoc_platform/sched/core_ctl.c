@@ -78,13 +78,55 @@ ATOMIC_NOTIFIER_HEAD(core_ctl_notifier);
 static unsigned int get_active_cpu_count(const struct cluster_data *cluster);
 
 /* ========================= sysfs interface =========================== */
+static ssize_t store_bcl_pause_cpu(struct cluster_data *state,
+					const char *buf, size_t count)
+{
+	unsigned int val;
+	cpumask_t cpus = { CPU_BITS_NONE };
+
+	if (kstrtouint(buf, 10, &val))
+		return -EINVAL;
+
+	if (val >= state->first_cpu &&
+	    val <= state->first_cpu + state->num_cpus - 1 &&
+	    !cpu_halted(val)) {
+		cpumask_set_cpu(val, &cpus);
+		pause_cpus(&cpus, PAUSE_HYP);
+
+		return count;
+	}
+
+	return -EINVAL;
+}
+
+static ssize_t store_bcl_resume_cpu(struct cluster_data *state,
+					const char *buf, size_t count)
+{
+	unsigned int val;
+	cpumask_t cpus;
+
+	if (kstrtouint(buf, 10, &val))
+		return -EINVAL;
+
+	if (val >= state->first_cpu &&
+	    val <= state->first_cpu + state->num_cpus - 1 &&
+	    cpu_halted(val)) {
+		cpumask_clear(&cpus);
+		cpumask_set_cpu(val, &cpus);
+		resume_cpus(&cpus, PAUSE_HYP);
+
+		return count;
+	}
+
+	return -EINVAL;
+}
 
 static ssize_t store_pause_cpu(struct cluster_data *state,
 					const char *buf, size_t count)
 {
 	unsigned int val;
 
-	if (sscanf(buf, "%u\n", &val) != 1)
+	if (kstrtouint(buf, 10, &val))
 		return -EINVAL;
 
 	if (val >= state->first_cpu &&
@@ -111,7 +153,7 @@ static ssize_t store_resume_cpu(struct cluster_data *state,
 {
 	unsigned int val;
 
-	if (sscanf(buf, "%u\n", &val) != 1)
+	if (kstrtouint(buf, 10, &val))
 		return -EINVAL;
 
 	if (val >= state->first_cpu &&
@@ -211,11 +253,17 @@ __ATTR(_name, 0444, show_##_name, NULL)
 static struct core_ctl_attr _name =		\
 __ATTR(_name, 0644, show_##_name, store_##_name)
 
+#define core_ctl_attr_wo(_name)		\
+static struct core_ctl_attr _name =	\
+__ATTR(_name, 0200, NULL, store_##_name)
+
 core_ctl_attr_ro(active_cpu);
 core_ctl_attr_ro(active_cpus);
 core_ctl_attr_ro(global_state);
 core_ctl_attr_rw(pause_cpu);
 core_ctl_attr_rw(resume_cpu);
+core_ctl_attr_wo(bcl_pause_cpu);
+core_ctl_attr_wo(bcl_resume_cpu);
 
 static struct attribute *default_attrs[] = {
 	&active_cpu.attr,
@@ -223,6 +271,8 @@ static struct attribute *default_attrs[] = {
 	&global_state.attr,
 	&pause_cpu.attr,
 	&resume_cpu.attr,
+	&bcl_pause_cpu.attr,
+	&bcl_resume_cpu.attr,
 	NULL
 };
 
