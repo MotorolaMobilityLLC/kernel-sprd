@@ -2146,12 +2146,12 @@ static int sc8541_charger_probe(struct i2c_client *client,
 
 	ret = sc8541_detect_device(bq);
 	if (ret) {
-		bq->client->addr = 0x6a;
-		ret = sc8541_detect_device(bq);
-		if (ret) {
+	//	bq->client->addr = 0x6a;
+	//	ret = sc8541_detect_device(bq);
+	//	if (ret) {
 			dev_err(bq->dev, "No sc8541 device found!\n");
 			return -ENODEV;
-		}
+	//	}
 	}
 
 	match = of_match_node(sc8541_charger_match_table, node);
