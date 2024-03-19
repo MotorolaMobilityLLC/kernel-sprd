@@ -2081,7 +2081,7 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 {
 	int ret, adapter_max_vbus, batt_ocv, batt_uA, fchg_ocv_threshold, thm_cur;
 	int cur_jeita_status, target_cur;
-
+	int term_vol;
 	/*
 	 * Eg: Failure to obtain the voltage of the charging device for
 	 *     the first time when the charging type changes.
@@ -2117,6 +2117,16 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 
 	if (get_ibat_now_uA(cm, &batt_uA)) {
 		dev_err(cm->dev, "get_ibat_now_uA error.\n");
+		return false;
+	}
+	if(get_charger_term_voltage(cm, &term_vol))
+	{
+		dev_err(cm->dev, "get_charger_term_voltage error.\n");
+		return false;
+	}
+	if(cm->desc->fast_charger_type == CM_CHARGER_TYPE_FAST && term_vol < 4400000)
+	{
+		dev_err(cm->dev, "%s; term_vol =%d;\n",__func__,term_vol/1000);
 		return false;
 	}
 
