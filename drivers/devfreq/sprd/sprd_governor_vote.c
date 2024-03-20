@@ -30,6 +30,10 @@ static ssize_t scaling_request_ddr_freq_show(struct device *dev,
 	if (err < 0)
 		data = 0;
 	count = sprintf(buf, "%u\n", data);
+
+	if (err)
+		return err;
+
 	return count;
 }
 
@@ -53,11 +57,13 @@ static ssize_t scaling_request_ddr_freq_store(struct device *dev,
 		return count;
 	}
 	err = send_freq_request(request_freq);
-	if (err)
-		dev_err(dev, "request freq fail: %d", err);
 
 	gov_callback->ddr_dfs_step_add(send_freq_request_t,
 				err, NULL, request_freq, task_pid_nr(current), call_time);
+	if (err) {
+		dev_err(dev, "request freq fail: %d\n", err);
+		return err;
+	}
 
 	return count;
 }
@@ -117,6 +123,10 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(scaling_force_ddr_freq,
 				err, NULL, force_freq, task_pid_nr(current), call_time);
+
+	if (err)
+		return err;
+
 	return count;
 }
 static DEVICE_ATTR_RW(scaling_force_ddr_freq);
@@ -149,6 +159,9 @@ static ssize_t scaling_overflow_show(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(get_overflow_t,
 				0, NULL, freq_num, task_pid_nr(current), call_time);
+
+	if (err)
+		return err;
 
 	return count;
 }
@@ -193,6 +206,11 @@ static ssize_t scaling_overflow_store(struct device *dev,
 	gov_callback->ddr_dfs_step_add(set_overflow_t,
 				err, arg, name_len, task_pid_nr(current), call_time);
 	kfree(arg);
+	arg = NULL;
+
+	if (err)
+		return err;
+
 	return count;
 }
 static DEVICE_ATTR_RW(scaling_overflow);
@@ -226,6 +244,9 @@ static ssize_t scaling_underflow_show(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(get_underflow_t,
 				0, NULL, freq_num, task_pid_nr(current), call_time);
+	if (err)
+		return err;
+
 	return count;
 }
 
@@ -271,6 +292,11 @@ static ssize_t scaling_underflow_store(struct device *dev,
 				err, arg, name_len, task_pid_nr(current), call_time);
 
 	kfree(arg);
+	arg = NULL;
+
+	if (err)
+		return err;
+
 	return count;
 }
 static DEVICE_ATTR_RW(scaling_underflow);
@@ -297,6 +323,10 @@ static ssize_t dfs_on_off_show(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(get_dvfs_status_t,
 				err, NULL, data, task_pid_nr(current), call_time);
+
+	if (err)
+		return err;
+
 	return count;
 }
 
@@ -325,11 +355,13 @@ static ssize_t dfs_on_off_store(struct device *dev,
 	else
 		err = -EINVAL;
 
-	if (err)
-		dev_err(dev->parent, "ddr dfs enable[%u] fail: %d", enable, err);
-
 	gov_callback->ddr_dfs_step_add(dfs_on_off,
 				err, NULL, enable, task_pid_nr(current), call_time);
+
+	if (err) {
+		dev_err(dev->parent, "ddr dfs enable[%u] fail: %d", enable, err);
+		return err;
+	}
 
 	return count;
 }
@@ -357,6 +389,8 @@ static ssize_t auto_dfs_on_off_show(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(get_dvfs_auto_status_t,
 				err, NULL, data, task_pid_nr(current), call_time);
+	if (err)
+		return err;
 
 	return count;
 }
@@ -385,17 +419,19 @@ static ssize_t auto_dfs_on_off_store(struct device *dev,
 		err = gov_callback->dvfs_auto_disable();
 	else
 		err = -EINVAL;
-	if (err)
-		dev_err(dev->parent,
-			"ddr auto dfs enable[%u] fail: %d, PID: %d",
-			enable, err, task_pid_nr(current));
-	else
-		dev_info(dev->parent,
-			 "ddr auto dfs enable[%u], PID: %d",
-			 enable, task_pid_nr(current));
 
 	gov_callback->ddr_dfs_step_add(auto_dfs_on_off,
 				err, NULL, enable, task_pid_nr(current), call_time);
+	if (err) {
+		dev_err(dev->parent,
+			"ddr auto dfs enable[%u] fail: %d, PID: %d",
+			enable, err, task_pid_nr(current));
+		return err;
+	}
+	dev_info(dev->parent,
+		 "ddr auto dfs enable[%u], PID: %d",
+		 enable, task_pid_nr(current));
+
 	return count;
 }
 static DEVICE_ATTR_RW(auto_dfs_on_off);
@@ -422,6 +458,9 @@ static ssize_t ddrinfo_cur_freq_show(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(get_cur_freq_t,
 				err, NULL, data, task_pid_nr(current), call_time);
+	if (err)
+		return err;
+
 	return count;
 }
 static DEVICE_ATTR_RO(ddrinfo_cur_freq);
@@ -452,6 +491,8 @@ static ssize_t ddrinfo_freq_table_show(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(get_freq_table_t,
 				0, NULL, freq_num, task_pid_nr(current), call_time);
+	if (err)
+		return err;
 
 	return count;
 }
@@ -489,7 +530,13 @@ static ssize_t scenario_dfs_store(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(scenario_dfs_enter,
 				err, arg, name_len, task_pid_nr(current), call_time);
+
 	kfree(arg);
+	arg = NULL;
+
+	if (err)
+		return err;
+
 	return count;
 }
 static DEVICE_ATTR_WO(scenario_dfs);
@@ -526,7 +573,13 @@ static ssize_t exit_scene_store(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(exit_scene,
 				err, arg, name_len, task_pid_nr(current), call_time);
+
 	kfree(arg);
+	arg = NULL;
+
+	if (err)
+		return err;
+
 	return count;
 }
 static DEVICE_ATTR_WO(exit_scene);
@@ -573,6 +626,11 @@ static ssize_t scene_freq_set_store(struct device *dev,
 				err, arg, name_len, task_pid_nr(current), call_time);
 
 	kfree(arg);
+	arg = NULL;
+
+	if (err)
+		return err;
+
 	return count;
 }
 static DEVICE_ATTR_WO(scene_freq_set);
@@ -630,10 +688,6 @@ static ssize_t scene_boost_dfs_store(struct device *dev,
 	} else {
 		err = -EINVAL;
 	}
-	if (err)
-		dev_err(dev->parent, "scene boost freq %u enter[%u] fail: %d",
-			freq, enable, err);
-
 out:
 	if (enable == 1)
 		gov_callback->ddr_dfs_step_add(scene_boost_enter,
@@ -641,6 +695,12 @@ out:
 	else
 		gov_callback->ddr_dfs_step_add(scene_boost_enter,
 					err, NULL, enable, task_pid_nr(current), call_time);
+	if (err) {
+		dev_err(dev->parent, "scene boost freq %u enter[%u] fail: %d",
+			freq, enable, err);
+		return err;
+	}
+
 	return count;
 }
 static DEVICE_ATTR_WO(scene_boost_dfs);
@@ -679,16 +739,17 @@ static ssize_t backdoor_store(struct device *dev,
 		err = gov_callback->governor_unvote("top");
 	else
 		err = -EINVAL;
+	gov_callback->ddr_dfs_step_add(set_backdoor,
+				err, NULL, backdoor, task_pid_nr(current), call_time);
 	if (err) {
 		dev_err(dev->parent, "set backdoor %d fail: %d, PID: %d",
 			backdoor, err, task_pid_nr(current));
-	} else {
-		backdoor_status  = backdoor;
-		dev_info(dev->parent, "set backdoor %d, PID: %d",
-			 backdoor, task_pid_nr(current));
+		return err;
 	}
-	gov_callback->ddr_dfs_step_add(set_backdoor,
-				err, NULL, backdoor, task_pid_nr(current), call_time);
+	backdoor_status = backdoor;
+	dev_info(dev->parent, "set backdoor %d, PID: %d",
+		 backdoor, task_pid_nr(current));
+
 	return count;
 }
 static DEVICE_ATTR_RW(backdoor);
