@@ -630,6 +630,9 @@ struct sprd_tcpm_port {
 	u8 vdo_count;
 	/* VDO to retry if UFP responder replied busy */
 	u32 vdo_retry;
+	u32 vdm_discovery_id_retry;
+	struct delayed_work dp_work;
+	u32 dp_status;
 
 	/* PPS */
 	struct sprd_pd_pps_data pps_data;

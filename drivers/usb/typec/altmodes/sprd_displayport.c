@@ -8,6 +8,8 @@
  * DisplayPort is trademark of VESA (www.vesa.org)
  */
 
+//This file has been modified by Unisoc (Shanghai) Technologies Co., Ltd in 2023.
+
 #include <linux/delay.h>
 #include <linux/mutex.h>
 #include <linux/module.h>
@@ -100,6 +102,19 @@ static int sprd_dp_altmode_configure(struct sprd_dp_altmode *dp, u8 con)
 		break;
 	}
 
+	pr_info("%s, alt->vdo = 0x%x, port->vdo = 0x%x\n", __func__, dp->alt->vdo, dp->port->vdo);
+	pr_info("%s, pin_assign = 0x%x, con = %d, conf = 0x%x\n", __func__, pin_assign, con, conf);
+
+	if (pin_assign != BIT(DP_PIN_ASSIGN_C) && pin_assign != BIT(DP_PIN_ASSIGN_D) &&
+	    pin_assign != BIT(DP_PIN_ASSIGN_E)) {
+		if (pin_assign & BIT(DP_PIN_ASSIGN_D))
+			pin_assign = BIT(DP_PIN_ASSIGN_D);
+		else if (pin_assign & BIT(DP_PIN_ASSIGN_C))
+			pin_assign = BIT(DP_PIN_ASSIGN_C);
+		else if (pin_assign & BIT(DP_PIN_ASSIGN_E))
+			pin_assign = BIT(DP_PIN_ASSIGN_E);
+	}
+
 	/* Determining the initial pin assignment. */
 	if (!DP_CONF_GET_PIN_ASSIGN(dp->data.conf)) {
 		/* Is USB together with DP preferred */
@@ -115,6 +130,7 @@ static int sprd_dp_altmode_configure(struct sprd_dp_altmode *dp, u8 con)
 		conf |= DP_CONF_SET_PIN_ASSIGN(pin_assign);
 	}
 
+	pr_info("%s:, pin_assign = 0x%x, conf = 0x%x\n", __func__, pin_assign, conf);
 	dp->data.conf = conf;
 
 	return 0;

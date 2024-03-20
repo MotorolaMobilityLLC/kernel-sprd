@@ -715,10 +715,26 @@ static int sc27xx_pd_dp_altmode_notify(struct tcpc_dev *tcpc, u32 vdo)
 	extcon_sync(pd->edev, EXTCON_DISP_DP);
 	return 0;
 }
+
+static void sc27xx_pd_extcon_notify_dp(struct sc27xx_pd *pd)
+{
+	union extcon_property_value hpd_status;
+
+	hpd_status.intval = SC27XX_DP_TYPE_DISCONNECT;
+	extcon_set_state(pd->edev, EXTCON_DISP_DP, true);
+	extcon_set_property(pd->edev, EXTCON_DISP_DP, EXTCON_PROP_DISP_HPD, hpd_status);
+	extcon_sync(pd->edev, EXTCON_DISP_DP);
+	dev_info(pd->dev, "%s:hpd_status = %d\n", __func__, hpd_status.intval);
+}
 #else
 static int sc27xx_pd_dp_altmode_notify(struct tcpc_dev *tcpc, u32 vdo)
 {
 	return 0;
+}
+
+static void sc27xx_pd_extcon_notify_dp(struct sc27xx_pd *pd)
+{
+	dev_info(pd->dev, "%s: not enable dp\n", __func__);
 }
 #endif
 
@@ -2185,15 +2201,7 @@ static int sc27xx_pd_extcon_event(struct notifier_block *nb,
 {
 	struct sc27xx_pd *pd = container_of(nb, struct sc27xx_pd, extcon_nb);
 	int sink_state, source_state;
-#if IS_ENABLED(CONFIG_SPRD_TYPEC_DP_ALTMODE)
-	union extcon_property_value hpd_status;
 
-	hpd_status.intval = SC27XX_DP_TYPE_DISCONNECT;
-	extcon_set_state(pd->edev, EXTCON_DISP_DP, true);
-	extcon_set_property(pd->edev, EXTCON_DISP_DP, EXTCON_PROP_DISP_HPD, hpd_status);
-	extcon_sync(pd->edev, EXTCON_DISP_DP);
-	dev_info(pd->dev, "%s:hpd_status = %d\n", __func__, hpd_status.intval);
-#endif
 	dev_info(pd->dev, "typec in or out, pd attached = %d\n", pd->pd_attached);
 	if (pd->use_pdhub_c2c) {
 		if (!pd->pd_attached)
@@ -2221,11 +2229,13 @@ static int sc27xx_pd_extcon_event(struct notifier_block *nb,
 				dev_info(pd->dev, "sc27xx pd power role swap true attach\n");
 			}
 		} else {
+			sc27xx_pd_extcon_notify_dp(pd);
 			sprd_pd_log(pd, "sc27xx pd power role swap false");
 			dev_info(pd->dev, "sc27xx pd power role swap false\n");
 			schedule_work(&pd->pd_work);
 		}
 	} else {
+		sc27xx_pd_extcon_notify_dp(pd);
 		if (pd->pd_attached)
 			schedule_work(&pd->pd_work);
 	}
