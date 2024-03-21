@@ -21,6 +21,8 @@
 #define TIMEOUT_PRINT_CNT 40
 #define CMDQ_TIMEOUT_PRINT_CNT 80
 
+#define RANDOM_BLKS 8
+
 enum mmc_dbg_type {
 	MMC_SEND_CMD,
 	MMC_CMD_RSP,
@@ -100,8 +102,8 @@ struct mmc_swcq {
 	bool recovery_halt;/*recovery when halt*/
 	/*******FOR CMDQ******/
 	atomic_t		cmdq_cnt;/*cmdq request numbers in cmdq_slot*/
-	atomic_t		read_cnt;/*read cnt in slot(only for random read)*/
-	atomic_t		write_cnt;/*write count in slot*/
+	atomic_t		random_cnt;/*record 4k random rq*/
+	atomic_t		sequential_cnt; /*record non-4k sequential rq*/
 	spinlock_t		cmd_que_lock;/*lock for operating on cmd que*/
 	spinlock_t		rqlist_lock;/*lock for rqlist operating*/
 	spinlock_t		data_que_lock;/*lock for data queue operating*/
