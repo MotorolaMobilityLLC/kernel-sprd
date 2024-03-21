@@ -144,12 +144,12 @@
 			bits = <0 8>;
 		};
 
-		uid_end: uid-end@e8{
-			reg = <0xc8 0x4>;
+		uid_end: uid-end@c4{
+			reg = <0xc4 0x4>;
 		};
 
-		uid_start: uid-start@ec{
-			reg = <0xc4 0x4>;
+		uid_start: uid-start@c8{
+			reg = <0xc8 0x4>;
 		};
 
 	};
