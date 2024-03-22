@@ -874,7 +874,7 @@ int dvfs_core_init(struct platform_device *pdev)
 
 	err = of_property_read_u32(dev->of_node, "freq-num", &freq_num);
 	if (err != 0) {
-		dev_warn(dev, "failed read freqnum\n");
+		dev_warn(dev, "could not detect freq-num, use default 8\n");
 		freq_num = 8;
 	}
 
@@ -910,13 +910,13 @@ int dvfs_core_init(struct platform_device *pdev)
 		err = of_property_read_u32_index(node, "overflow",
 						 i, &g_dvfs_data->paras[i].overflow);
 		if (err != 0) {
-			dev_warn(dev, "failed parse freq overflow\n");
+			dev_warn(dev, "could not parse freq overflow, use default settings\n");
 			break;
 		}
 		err = of_property_read_u32_index(node, "underflow",
 						 i, &g_dvfs_data->paras[i].underflow);
 		if (err != 0) {
-			dev_warn(dev, "failed parse freq underflow\n");
+			dev_warn(dev, "could not parse freq underflow, use default settings\n");
 			break;
 		}
 	}
