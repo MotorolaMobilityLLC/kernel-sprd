@@ -779,6 +779,8 @@
 		//vcc0-supply = <&pm660l_l4>;
 		channel_use_flag = <0x1f>;
 		aw_sar,update_fw;
+                aw_sar,use_plug_cail;
+                aw_sar,use_headset_plug_cail;
 		/* private node belongs to aw963xx */
 		start-mode = < 1 >; // 0: start in rom  1: start in ram
 		irq-mux = < 2 >; // set csx as irq pin. config this field when connect to aw96308/aw96310
