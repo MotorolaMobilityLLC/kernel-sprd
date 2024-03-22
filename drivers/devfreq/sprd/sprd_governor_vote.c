@@ -737,7 +737,6 @@ static ssize_t ddrinfo_dfs_step_show(struct device *dev,
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 
-	mutex_lock(&devfreq->lock);
 	do {
 		err = gov_callback->ddrinfo_dfs_step_show(&arg, &step_status,
 							  &scene, &buff, &pid, &comm, &time, i);
@@ -755,7 +754,7 @@ static ssize_t ddrinfo_dfs_step_show(struct device *dev,
 		if (i >= PAGE_SIZE / INFO_LEN_MAX) // make sure count <= 4096
 			break;
 	} while (!err);
-	mutex_unlock(&devfreq->lock);
+
 	return count;
 }
 static DEVICE_ATTR_RO(ddrinfo_dfs_step);

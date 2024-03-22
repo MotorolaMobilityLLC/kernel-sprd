@@ -109,7 +109,7 @@ static char *g_ddr_dvfs_dump;
 struct ddr_dfs_step_list_t *ddr_step_list_init(struct ddr_dfs_step_list_t ddr_step_arr[],
 					       u32 node_num)
 {
-	u32 i = 0;
+	u32 i;
 	struct ddr_dfs_step_list_t *head = ddr_step_arr;
 	struct ddr_dfs_step_list_t *p = head;
 
@@ -247,7 +247,6 @@ static int ddr_dvfs_panic_handler(struct notifier_block *self, unsigned long val
 	int err = 0, pid = -1;
 	int buff = 0;
 	ktime_t time = 0;
-	struct devfreq *devfreq = g_dvfs_data->devfreq;
 
 	if (g_dvfs_data == NULL)
 		return NOTIFY_DONE;
@@ -258,7 +257,6 @@ static int ddr_dvfs_panic_handler(struct notifier_block *self, unsigned long val
 	}
 
 	if (g_ddr_dvfs_dump) {
-		mutex_lock(&devfreq->lock);
 		do {
 			err = ddrinfo_dfs_step_show(&arg, &step_status, &scene,
 						    &buff, &pid, &comm, &time, i);
@@ -273,7 +271,6 @@ static int ddr_dvfs_panic_handler(struct notifier_block *self, unsigned long val
 						  arg, step_status, scene, pid, comm, time);
 			i++;
 		} while (!err);
-		mutex_unlock(&devfreq->lock);
 	}
 
 	return NOTIFY_DONE;
