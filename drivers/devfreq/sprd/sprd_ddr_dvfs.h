@@ -36,12 +36,16 @@ enum DDR_DFS_STATE_STEP {
 };
 
 #define DDR_DB_NODE_NUM 32
+#define INFO_LEN_MAX 128
+#define DDR_DUMP_BUFFER (DDR_DB_NODE_NUM * INFO_LEN_MAX)
 #define SCENE_MAX 25
+#define COMM_MAX 25
 struct DDR_DFS_STEP_T {
 	enum DDR_DFS_STATE_STEP step;
 	int status;
 	u32 buff;
 	char scene[SCENE_MAX];
+	char comm[COMM_MAX];
 	int pid;
 	ktime_t time;
 };
@@ -69,10 +73,10 @@ struct governor_callback {
 	int (*dvfs_auto_disable)(void);
 	int (*get_cur_freq)(unsigned int *data);
 	int (*get_freq_table)(unsigned long *data, unsigned int sel);
-	int (*ddrinfo_dfs_step_show)(char **arg, char **step_status,
-				     char **scene, u32 *buff, int *pid, ktime_t *time, u32 i);
+	int (*ddrinfo_dfs_step_show)(char **arg, char **step_status, char **scene, u32 *buff,
+				     int *pid, char **comm, ktime_t *time, u32 i);
 	void (*ddr_dfs_step_add)(enum DDR_DFS_STATE_STEP cur_step, int status,
-				 char *scene, u32 buff, int pid, ktime_t time);
+				 char *scene, u32 buff, int pid, char *comm, ktime_t time);
 };
 
 /*functions supportd by dvfs core to specific drivers*/

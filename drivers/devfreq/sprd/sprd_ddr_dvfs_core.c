@@ -13,12 +13,14 @@
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/of_device.h>
+#include <linux/panic_notifier.h>
 #include <linux/platform_device.h>
 #include <linux/pm_wakeup.h>
 #include <linux/slab.h>
 #include <linux/suspend.h>
 #include <linux/sipc.h>
 #include "sprd_ddr_dvfs.h"
+#include <../drivers/unisoc_platform/sysdump/unisoc_sysdump.h>
 
 enum dvfs_master_cmd {
 	DVFS_CMD_NORMAL		= 0x0000,
@@ -102,6 +104,7 @@ static char *default_governor = "sprd-governor";
 
 struct ddr_dfs_step_list_t *ddr_cur_step_g;
 struct ddr_dfs_step_list_t ddr_step_arr[DDR_DB_NODE_NUM] = {0};
+static char *g_ddr_dvfs_dump;
 
 struct ddr_dfs_step_list_t *ddr_step_list_init(struct ddr_dfs_step_list_t ddr_step_arr[],
 					       u32 node_num)
@@ -111,15 +114,18 @@ struct ddr_dfs_step_list_t *ddr_step_list_init(struct ddr_dfs_step_list_t ddr_st
 	struct ddr_dfs_step_list_t *p = head;
 
 	for (i = 1; i < node_num; i++) {
+		snprintf(p->data.comm, COMM_MAX, "NONE");
 		p->next = ddr_step_arr + i;
 		p = p->next;
 	}
+
+	snprintf(p->data.comm, COMM_MAX, "NONE");
 	p->next = head;
 	return p;
 }
 
 void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene,
-		      u32 buff, int pid, ktime_t time)
+		      u32 buff, int pid, char *comm, ktime_t time)
 {
 	mutex_lock(&g_dvfs_data->dfs_step_mutex);
 	ddr_cur_step_g = ddr_cur_step_g->next;
@@ -128,12 +134,14 @@ void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene,
 	ddr_cur_step_g->data.status = status;
 
 	memset(ddr_cur_step_g->data.scene, 0, SCENE_MAX);
+	memset(ddr_cur_step_g->data.comm, 0, COMM_MAX);
 	if (scene != NULL) {
 		if (buff >= SCENE_MAX)
 			memcpy(ddr_cur_step_g->data.scene, scene, SCENE_MAX - 1);
 		else
 			memcpy(ddr_cur_step_g->data.scene, scene, buff);
 	}
+	snprintf(ddr_cur_step_g->data.comm, COMM_MAX, "%s", comm);
 	ddr_cur_step_g->data.buff = buff;
 	ddr_cur_step_g->data.pid = pid;
 	ddr_cur_step_g->data.time = time;
@@ -141,7 +149,7 @@ void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene,
 }
 
 static int ddrinfo_dfs_step_show(char **arg, char **step_status, char **scene,
-				 u32 *buff, int *pid, ktime_t *time, u32 i)
+				 u32 *buff, int *pid, char **comm, ktime_t *time, u32 i)
 {
 	if (i == 0)
 		mutex_lock(&g_dvfs_data->dfs_step_mutex);
@@ -217,6 +225,7 @@ static int ddrinfo_dfs_step_show(char **arg, char **step_status, char **scene,
 	else
 		*step_status = "fail";
 	*buff = ddr_cur_step_g->data.buff;
+	*comm = ddr_cur_step_g->data.comm;
 	*pid = ddr_cur_step_g->data.pid;
 	*time = ddr_cur_step_g->data.time;
 	if (i >= (DDR_DB_NODE_NUM - 1)) {
@@ -224,6 +233,65 @@ static int ddrinfo_dfs_step_show(char **arg, char **step_status, char **scene,
 		return 1;
 	} else {
 		return 0;
+	}
+}
+
+static int ddr_dvfs_panic_handler(struct notifier_block *self, unsigned long val, void *reason)
+{
+	ssize_t count = 0;
+	unsigned int i = 0;
+	char *arg = "NONE_STEP";
+	char *step_status = "NONE_STATUS";
+	char *scene = NULL;
+	char *comm = NULL;
+	int err = 0, pid = -1;
+	int buff = 0;
+	ktime_t time = 0;
+	struct devfreq *devfreq = g_dvfs_data->devfreq;
+
+	if (g_dvfs_data == NULL)
+		return NOTIFY_DONE;
+
+	if (g_dvfs_data->init_done != 1) {
+		dev_info(g_dvfs_data->dev, "ddr dvfs driver not ready, no need dump dvfs step\n");
+		return NOTIFY_DONE;
+	}
+
+	if (g_ddr_dvfs_dump) {
+		mutex_lock(&devfreq->lock);
+		do {
+			err = ddrinfo_dfs_step_show(&arg, &step_status, &scene,
+						    &buff, &pid, &comm, &time, i);
+
+			if (scene == NULL)
+				count += snprintf(&g_ddr_dvfs_dump[count], INFO_LEN_MAX,
+						  "DDR_DFS_STEP: %s %s, buff: %u, pid: %d, comm: %s, time: %lld ms\n",
+						  arg, step_status, buff, pid, comm, time);
+			else
+				count += snprintf(&g_ddr_dvfs_dump[count], INFO_LEN_MAX,
+						  "DDR_DFS_STEP: %s %s, scene: %s, pid: %d, comm: %s, time: %lld ms\n",
+						  arg, step_status, scene, pid, comm, time);
+			i++;
+		} while (!err);
+		mutex_unlock(&devfreq->lock);
+	}
+
+	return NOTIFY_DONE;
+}
+
+static struct notifier_block ddr_dvfs_event_nb = {
+	.notifier_call  = ddr_dvfs_panic_handler,
+	.priority       = INT_MAX,
+};
+
+static void ddrinfo_dfs_step_debug_init(void)
+{
+	g_ddr_dvfs_dump = devm_kzalloc(g_dvfs_data->dev, DDR_DUMP_BUFFER, GFP_KERNEL);
+	if (g_ddr_dvfs_dump) {
+		atomic_notifier_chain_register(&panic_notifier_list, &ddr_dvfs_event_nb);
+		if (minidump_save_extend_information("ddr_dvfs_history", __pa(g_ddr_dvfs_dump),
+						     __pa(g_ddr_dvfs_dump + DDR_DUMP_BUFFER)))
+			dev_err(g_dvfs_data->dev, "fail to link ddr_dvfs_history to minidump\n");
 	}
 }
 
@@ -872,6 +940,8 @@ int dvfs_core_init(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, g_dvfs_data);
+	ddrinfo_dfs_step_debug_init();
+
 	return 0;
 
 err_device:
@@ -885,6 +955,7 @@ int dvfs_core_clear(struct platform_device *pdev)
 	devfreq_remove_device(g_dvfs_data->devfreq);
 	sprd_dvfs_del_governor();
 	devm_kfree(&pdev->dev, g_dvfs_data);
+	atomic_notifier_chain_unregister(&panic_notifier_list, &ddr_dvfs_event_nb);
 	return 0;
 }
 
