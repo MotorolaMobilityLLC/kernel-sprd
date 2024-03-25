@@ -189,7 +189,7 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 int sipa_sys_do_power_off_cb_v3(void *priv)
 {
 	int ret = 0;
-	struct sipa_sys_register *reg_info;
+	//struct sipa_sys_register *reg_info;
 	struct sipa_sys_pd_drv *drv = (struct sipa_sys_pd_drv *)priv;
 
 	if (!drv)
@@ -205,7 +205,7 @@ int sipa_sys_do_power_off_cb_v3(void *priv)
 		clk_disable_unprepare(drv->clk_ipa_ckg_eb);
 	}
 
-	reg_info = &drv->regs[IPA_SYS_DSLPEN];
+/*	reg_info = &drv->regs[IPA_SYS_DSLPEN];
 	if (reg_info->rmap) {
 		ret = regmap_update_bits(reg_info->rmap,
 					 reg_info->reg,
@@ -214,9 +214,9 @@ int sipa_sys_do_power_off_cb_v3(void *priv)
 		if (ret < 0)
 			dev_warn(drv->dev, "set dslp en bits fail\n");
 	}
-
+*/
 	/* disable ipa_access eb bit */
-	reg_info = &drv->regs[IPA_SYS_ACCESSEN];
+/*	reg_info = &drv->regs[IPA_SYS_ACCESSEN];
 	if (reg_info->rmap) {
 		ret = regmap_update_bits(reg_info->rmap,
 					 reg_info->reg,
@@ -225,7 +225,7 @@ int sipa_sys_do_power_off_cb_v3(void *priv)
 		if (ret < 0)
 			dev_warn(drv->dev, "update access en fail\n");
 	}
-
+*/
 	return ret;
 }
 
