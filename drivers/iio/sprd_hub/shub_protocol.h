@@ -54,6 +54,8 @@ enum shub_subtype_id {
 	SHUB_GET_MAG_OFFSET = 12,
 	/* other sprd define */
 	SHUB_CM4_OPERATE = 14,
+
+	SHUB_PS_OPERATE = 16,
 	/* 3rdAlgo define */
 	SHUB_SET_CALIBRATION_DATA_SUBTYPE        = THIRDALGO_START_SUBTYPE,
 	SHUB_SET_CALIBRATION_CMD_SUBTYPE = 0xc3,

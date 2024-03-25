@@ -529,6 +529,34 @@ static ssize_t enable_store(struct device *dev,
 }
 static DEVICE_ATTR_WO(enable);
 
+static ssize_t ps_operation_store(struct device *dev,
+                struct device_attribute *attr,
+                const char *buf, size_t count)
+{
+    struct shub_data *sensor = dev_get_drvdata(dev);
+    int handle;
+
+    dev_info(&sensor->sensor_pdev->dev, "ps op buf=%s\n", buf);
+
+    if (sensor->mcu_mode <= SHUB_CALIDOWNLOAD) {
+        dev_info(&sensor->sensor_pdev->dev,
+             "[%s]mcu_mode == %d!\n", __func__, sensor->mcu_mode);
+        return -EAGAIN;
+    }
+
+    if (sscanf(buf, "%d %d\n", &handle, &sensor->cal_cmd) != 2)
+        return -EINVAL;
+
+
+    if (shub_send_command(sensor, handle, SHUB_PS_OPERATE, (char *)&sensor->cal_cmd, sizeof(sensor->cal_cmd)) < 0) {
+        dev_err(&sensor->sensor_pdev->dev, "%s Fail\n", __func__);
+        return -EINVAL;
+    }
+
+    return count;
+}
+static DEVICE_ATTR_WO(ps_operation);
+
 static ssize_t batch_store(struct device *dev, struct device_attribute *attr,
 			   const char *buf, size_t count)
 {
@@ -1106,6 +1134,7 @@ static struct attribute *sensorhub_attrs[] = {
 	&dev_attr_raw_data_als.attr,
 	&dev_attr_raw_data_ps.attr,
 	&dev_attr_sensor_info.attr,
+        &dev_attr_ps_operation.attr,
 	&dev_attr_sensorlist.attr,
 	&dev_attr_virtual_handle.attr,
 	&dev_attr_cm4_operate.attr,
