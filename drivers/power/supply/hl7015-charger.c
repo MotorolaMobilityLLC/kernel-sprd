@@ -619,7 +619,7 @@ static void hl7015_charger_stop_charge(struct hl7015_charger_info *info, bool pr
 {
 	int ret;
 
-	dev_info(info->dev, "%s:line%d: stop charge\n", __func__, __LINE__);
+	dev_info(info->dev, "%s:line%d: stop charge1\n", __func__, __LINE__);
 
 	if (info->role == HL7015_ROLE_MASTER_DEFAULT) {
 		if (0){//!present || info->need_disable_Q1) {
@@ -656,9 +656,9 @@ static void hl7015_charger_stop_charge(struct hl7015_charger_info *info, bool pr
 	}
 
 	if (info->disable_power_path) {
-	//	ret = hl7015_update_bits(info, HL7015_REG_0,
-	//				  HL7015_REG_EN_HIZ_MASK,
-	//				  0x01 << HL7015_REG_EN_HIZ_SHIFT);
+		ret = hl7015_update_bits(info, HL7015_REG_0,
+					  HL7015_REG_EN_HIZ_MASK,
+					  0x01 << HL7015_REG_EN_HIZ_SHIFT);
 		if (ret)
 			dev_err(info->dev, "Failed to disable power path\n");
 	}

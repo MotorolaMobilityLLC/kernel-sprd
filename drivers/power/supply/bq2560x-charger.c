@@ -676,7 +676,7 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info, bool 
 {
 	int ret;
 
-	dev_info(info->dev, "%s:line%d: stop charge\n", __func__, __LINE__);
+	dev_info(info->dev, "%s:line%d: stop charge1\n", __func__, __LINE__);
 
 	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
 		if (!present || info->need_disable_Q1) {
@@ -713,9 +713,9 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info, bool 
 	}
 
 	if (info->disable_power_path) {
-	//	ret = bq2560x_update_bits(info, BQ2560X_REG_0,
-	//				  BQ2560X_REG_EN_HIZ_MASK,
-	//				  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
+		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
+					  BQ2560X_REG_EN_HIZ_MASK,
+					  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
 		if (ret)
 			dev_err(info->dev, "Failed to disable power path\n");
 	}
