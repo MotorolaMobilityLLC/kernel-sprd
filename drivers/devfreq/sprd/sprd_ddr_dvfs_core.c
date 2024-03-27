@@ -486,6 +486,11 @@ static int force_freq_request(unsigned int freq)
 	return err;
 }
 
+unsigned long get_min_freq(void)
+{
+	return g_dvfs_data->devfreq->scaling_min_freq;
+}
+
 unsigned long get_max_freq(void)
 {
 	return g_dvfs_data->devfreq->scaling_max_freq;

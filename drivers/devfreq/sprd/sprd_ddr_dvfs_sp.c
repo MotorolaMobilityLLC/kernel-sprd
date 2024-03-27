@@ -66,6 +66,7 @@ static void reset_freq(struct vote_data *point, unsigned int freq)
 static int check_and_vote(unsigned int target_freq)
 {
 	static unsigned int last_freq;
+	unsigned int min_freq;
 	struct vote_data *point;
 	int err, i;
 
@@ -80,6 +81,9 @@ static int check_and_vote(unsigned int target_freq)
 		point++;
 	}
 
+	min_freq = (unsigned int)get_min_freq();
+	if (target_freq < min_freq)
+		target_freq = min_freq;
 	if (target_freq != last_freq) {
 		err = send_vote_request(target_freq);
 		if (err)

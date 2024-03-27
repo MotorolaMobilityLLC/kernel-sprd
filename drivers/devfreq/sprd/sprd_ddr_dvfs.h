@@ -84,6 +84,7 @@ int dvfs_core_init(struct platform_device *pdev);
 int dvfs_core_clear(struct platform_device *pdev);
 void dvfs_core_hw_callback_register(struct dvfs_hw_callback *hw_callback);
 void dvfs_core_hw_callback_clear(struct dvfs_hw_callback *hw_callback);
+unsigned long get_min_freq(void);
 unsigned long get_max_freq(void);
 int send_freq_request(unsigned int freq);
 int get_request_freq(unsigned int *data);
