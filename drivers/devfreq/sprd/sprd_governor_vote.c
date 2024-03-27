@@ -78,7 +78,7 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 	const char *buf, size_t count)
 {
 	int err;
-	unsigned int i, freq_num = 0;
+	unsigned int i, freq_num = 0, status = 0;
 	unsigned long  data = 0;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
@@ -108,14 +108,17 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 			}
 	}
 
-	if ((i == freq_num) || err)
+	if ((i == freq_num) || err) {
 		dev_err(dev->parent, "force freq %u fail: %d, pid: %d, comm: %s\n",
 			force_freq, err, task_pid_nr(current), current->comm);
-	else
+
+		status = 1;
+	} else {
 		dev_info(dev->parent, "force ddr freq %u, pid: %d, comm: %s\n",
 			 force_freq, task_pid_nr(current), current->comm);
+	}
 
-	gov_callback->ddr_dfs_step_add(SCALING_FORCE_DDR_FREQ, err, NULL, force_freq,
+	gov_callback->ddr_dfs_step_add(SCALING_FORCE_DDR_FREQ, status, NULL, force_freq,
 				       task_pid_nr(current), current->comm, call_time);
 	return count;
 }
