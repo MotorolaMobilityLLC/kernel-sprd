@@ -1098,6 +1098,12 @@ static void rndis_unbind(struct usb_configuration *c, struct usb_function *f)
 	struct f_rndis		*rndis = func_to_rndis(f);
 	unsigned long flags;
 
+	/* The purpose is that set dev->port_usb to NULL,
+	 * otherwise it will lead to wild pointer and
+	 * system crash
+	 */
+	sprd_gether_disconnect(&rndis->port);
+
 	spin_lock_irqsave(&rndis->lock, flags);
 	kfree(f->os_desc_table);
 	f->os_desc_n = 0;
