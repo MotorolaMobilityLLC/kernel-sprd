@@ -918,6 +918,9 @@ int dvfs_core_init(struct platform_device *pdev)
 			dev_warn(dev, "could not parse freq overflow, use default settings\n");
 			break;
 		}
+	}
+
+	for (i = 0; i < g_dvfs_data->freq_num; i++) {
 		err = of_property_read_u32_index(node, "underflow",
 						 i, &g_dvfs_data->paras[i].underflow);
 		if (err != 0) {
