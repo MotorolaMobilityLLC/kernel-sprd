@@ -1211,6 +1211,12 @@ static int eth_stop(struct net_device *net)
 		in = link->in_ep->desc;
 		out = link->out_ep->desc;
 
+		/* it maybe crash if in/out is null since abnormal disconnect */
+		if (!in || !out) {
+			spin_unlock_irqrestore(&dev->lock, flags);
+			return 0;
+		}
+
 		usb_ep_disable(link->in_ep);
 		usb_ep_disable(link->out_ep);
 		if (netif_carrier_ok(net)) {
