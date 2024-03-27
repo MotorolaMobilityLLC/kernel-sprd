@@ -73,8 +73,8 @@ struct governor_callback {
 	int (*dvfs_auto_disable)(void);
 	int (*get_cur_freq)(unsigned int *data);
 	int (*get_freq_table)(unsigned long *data, unsigned int sel);
-	int (*ddrinfo_dfs_step_show)(char **arg, char **step_status, char **scene, u32 *buff,
-				     int *pid, char **comm, ktime_t *time, u32 i);
+	int (*ddrinfo_dfs_step_parse)(char **arg, char **step_status, char **scene, u32 *buff,
+				      int *pid, char **comm, ktime_t *time, u32 i);
 	void (*ddr_dfs_step_add)(enum DDR_DFS_STATE_STEP cur_step, int status,
 				 char *scene, u32 buff, int pid, char *comm, ktime_t time);
 };

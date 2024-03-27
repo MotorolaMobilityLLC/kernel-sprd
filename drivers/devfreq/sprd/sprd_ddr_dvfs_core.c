@@ -148,8 +148,8 @@ void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene,
 	mutex_unlock(&g_dvfs_data->dfs_step_mutex);
 }
 
-static int ddrinfo_dfs_step_show(char **arg, char **step_status, char **scene,
-				 u32 *buff, int *pid, char **comm, ktime_t *time, u32 i)
+static int ddrinfo_dfs_step_parse(char **arg, char **step_status, char **scene,
+				  u32 *buff, int *pid, char **comm, ktime_t *time, u32 i)
 {
 	if (i == 0)
 		mutex_lock(&g_dvfs_data->dfs_step_mutex);
@@ -258,8 +258,8 @@ static int ddr_dvfs_panic_handler(struct notifier_block *self, unsigned long val
 
 	if (g_ddr_dvfs_dump) {
 		do {
-			err = ddrinfo_dfs_step_show(&arg, &step_status, &scene,
-						    &buff, &pid, &comm, &time, i);
+			err = ddrinfo_dfs_step_parse(&arg, &step_status, &scene,
+						     &buff, &pid, &comm, &time, i);
 
 			if (scene == NULL)
 				count += snprintf(&g_ddr_dvfs_dump[count], INFO_LEN_MAX,
@@ -685,7 +685,7 @@ struct governor_callback g_gov_callback = {
 	.dvfs_auto_disable = dvfs_auto_disable,
 	.get_cur_freq = get_cur_freq,
 	.get_freq_table = get_freq_table,
-	.ddrinfo_dfs_step_show = ddrinfo_dfs_step_show,
+	.ddrinfo_dfs_step_parse = ddrinfo_dfs_step_parse,
 	.ddr_dfs_step_add = ddr_dfs_step_add,
 };
 
