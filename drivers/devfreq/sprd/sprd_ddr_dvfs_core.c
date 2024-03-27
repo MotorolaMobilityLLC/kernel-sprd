@@ -777,7 +777,7 @@ static int ddr_freq_overflow_set(struct dvfs_data *data, u32 fn)
 	int err;
 	struct device *dev = data->dev;
 
-	if (data->paras[fn].overflow != 0) {
+	if (data->paras[fn].overflow != PARSE_FLOW_ERR) {
 		err = set_overflow(data->paras[fn].overflow, fn);
 		if (err < 0)
 			dev_err(dev, "failed to set overflow %d\n", data->paras[fn].overflow);
@@ -795,7 +795,7 @@ static int ddr_freq_underflow_set(struct dvfs_data *data, u32 fn)
 	int err;
 	struct device *dev = data->dev;
 
-	if (data->paras[fn].underflow != 0) {
+	if (data->paras[fn].underflow != PARSE_FLOW_ERR) {
 		err = set_underflow(data->paras[fn].underflow, fn);
 		if (err < 0)
 			dev_err(dev, "failed to set underflow %d\n", data->paras[fn].underflow);
@@ -948,7 +948,7 @@ int dvfs_core_init(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct device_node *node = dev->of_node;
 	unsigned int i;
-	int err;
+	int err, err_uf = 0;
 
 	if (g_dvfs_data != NULL) {
 		dev_err(dev, "dvfs core can used by single device only\n");
@@ -976,23 +976,24 @@ int dvfs_core_init(struct platform_device *pdev)
 	mutex_init(&g_dvfs_data->dfs_step_mutex);
 	ddr_cur_step_g = ddr_step_list_init(DDR_DB_NODE_NUM);
 
+	err = 0;
 	for (i = 0; i < g_dvfs_data->freq_num; i++) {
-		err = of_property_read_u32_index(node, "overflow",
-						 i, &g_dvfs_data->paras[i].overflow);
-		if (err != 0) {
-			dev_warn(dev, "could not parse freq overflow, use default settings\n");
-			break;
-		}
-	}
+		g_dvfs_data->paras[i].overflow = PARSE_FLOW_ERR;
+		if (err == 0)
+			err = of_property_read_u32_index(node, "overflow",
+							 i, &g_dvfs_data->paras[i].overflow);
 
-	for (i = 0; i < g_dvfs_data->freq_num; i++) {
-		err = of_property_read_u32_index(node, "underflow",
-						 i, &g_dvfs_data->paras[i].underflow);
-		if (err != 0) {
-			dev_warn(dev, "could not parse freq underflow, use default settings\n");
-			break;
-		}
+		g_dvfs_data->paras[i].underflow = PARSE_FLOW_ERR;
+		if (err_uf == 0)
+			err_uf = of_property_read_u32_index(node, "underflow",
+							    i, &g_dvfs_data->paras[i].underflow);
 	}
+	if (err)
+		dev_warn(dev, "could not parse freq overflow, use default settings\n");
+
+	if (err_uf)
+		dev_warn(dev, "could not parse freq underflow, use default settings\n");
+
 
 	INIT_DELAYED_WORK(&g_dvfs_data->topfreq_unvote_work, topfreq_unvote_work_handler);
 
