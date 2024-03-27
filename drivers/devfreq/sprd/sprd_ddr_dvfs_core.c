@@ -207,6 +207,9 @@ static int ddrinfo_dfs_step_parse(char **arg, char **step_status, char **scene,
 	case GET_DVFS_AUTO_STATUS_T:
 		*arg = "get_dvfs_auto_status_t";
 		break;
+	case GET_DVFS_FORCE_FREQ_T:
+		*arg = "get_dvfs_force_freq_t";
+		break;
 	case GET_CUR_FREQ_T:
 		*arg = "get_cur_freq_t";
 		break;

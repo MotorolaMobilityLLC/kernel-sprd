@@ -68,8 +68,29 @@ static ssize_t scaling_force_ddr_freq_show(struct device *dev,
 	char *buf)
 {
 	ssize_t count;
+	unsigned int data;
+	struct devfreq *devfreq = to_devfreq(dev);
+	struct governor_callback *gov_callback =
+		(struct governor_callback *)devfreq->last_status.private_data;
+	int err;
+	ktime_t call_time;
+
+	call_time = ktime_to_ms(ktime_get());
+
+	err = gov_callback->get_dvfs_auto_status(&data);
+	if (err < 0) {
+		data = 0;
+		dev_err(dev->parent, "get ddr auto dfs status fail: %d\n", err);
+	}
+
+	if (data == 1)
+		force_freq = 0;
 
 	count = sprintf(buf, "%u\n", force_freq);
+
+	gov_callback->ddr_dfs_step_add(GET_DVFS_FORCE_FREQ_T, err, NULL, data,
+				       task_pid_nr(current), current->comm, call_time);
+
 	return count;
 }
 
