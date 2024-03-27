@@ -848,6 +848,7 @@ static int dvfs_smsg_thread(void *value)
 	}
 	wait_for_completion(&data->reg_callback_done);
 	data->init_done = 1;
+	dev_info(dev, "ddr dvfs driver probe ok\n");
 
 	scene_dfs_request("boot-opt");
 	dev_info(dev, "dfs_init scene set boot-opt\n");
