@@ -254,7 +254,7 @@ static int ddr_dvfs_panic_handler(struct notifier_block *self, unsigned long val
 	if (g_dvfs_data == NULL)
 		return NOTIFY_DONE;
 
-	if (g_dvfs_data->init_done != 1) {
+	if (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE) {
 		dev_info(g_dvfs_data->dev, "ddr dvfs driver not ready, no need dump dvfs step\n");
 		return NOTIFY_DONE;
 	}
@@ -479,7 +479,7 @@ static int force_freq_request(unsigned int freq)
 	unsigned int data;
 	int err;
 
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE))
 		return -EINVAL;
 	mutex_lock(&g_dvfs_data->sync_mutex);
 	err = dvfs_msg(&data, freq, DVFS_CMD_SET_DDR_FREQ, 500);
@@ -505,7 +505,7 @@ static int send_freq_request(unsigned int freq)
 	int err;
 	unsigned long data;
 
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE))
 		return -EINVAL;
 	for (i = g_dvfs_data->freq_num - 1; i >= 0; i--) {
 		err = g_dvfs_data->gov_callback->get_freq_table(&data, i);
@@ -527,7 +527,7 @@ static int send_freq_request(unsigned int freq)
 
 static int get_force_freq(unsigned int *data)
 {
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE))
 		return -EINVAL;
 	*data = g_dvfs_data->force_freq;
 	return 0;
@@ -535,7 +535,7 @@ static int get_force_freq(unsigned int *data)
 
 static int get_request_freq(unsigned int *data)
 {
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE))
 		return -EINVAL;
 	*data = g_dvfs_data->request_freq;
 	return 0;
@@ -546,7 +546,7 @@ int send_vote_request(unsigned int freq)
 	int err;
 	unsigned int data;
 
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE))
 		return -EINVAL;
 	mutex_lock(&g_dvfs_data->sync_mutex);
 	err = dvfs_msg(&data, freq, DVFS_CMD_NORMAL, 500);
@@ -561,7 +561,7 @@ static int get_freq_table(unsigned long *data, unsigned int sel)
 
 	if (g_dvfs_data == NULL)
 		return -EINVAL;
-	if (g_dvfs_data->init_done != 1) {
+	if (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE) {
 		err = dvfs_msg(&freq_data, sel, DVFS_CMD_INQ_DDR_TABLE, 500);
 		*data = (unsigned long)freq_data;
 	} else {
@@ -587,10 +587,12 @@ static int get_overflow(unsigned int *data, unsigned int sel)
 
 	if (g_dvfs_data == NULL)
 		return -EINVAL;
-	if (g_dvfs_data->init_done != 1) {
+	if (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE) {
 		err = dvfs_msg(data, sel, DVFS_CMD_INQ_OVERFLOW, 500);
 	} else {
+		mutex_lock(&g_dvfs_data->sync_mutex);
 		*data = g_dvfs_data->paras[sel].overflow;
+		mutex_unlock(&g_dvfs_data->sync_mutex);
 		err = 0;
 	}
 	return err;
@@ -602,10 +604,12 @@ static int get_underflow(unsigned int *data, unsigned int sel)
 
 	if (g_dvfs_data == NULL)
 		return -EINVAL;
-	if (g_dvfs_data->init_done != 1) {
+	if (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE) {
 		err = dvfs_msg(data, sel, DVFS_CMD_INQ_UNDERFLOW, 500);
 	} else {
+		mutex_lock(&g_dvfs_data->sync_mutex);
 		*data = g_dvfs_data->paras[sel].underflow;
+		mutex_unlock(&g_dvfs_data->sync_mutex);
 		err = 0;
 	}
 	return err;
@@ -651,21 +655,21 @@ static int get_freq_num(unsigned int *data)
 
 static int gov_vote(const char *name)
 {
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE))
 		return -EINVAL;
 	return g_dvfs_data->hw_callback->hw_dvfs_vote(name);
 }
 
 static int gov_unvote(const char *name)
 {
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE))
 		return -EINVAL;
 	return g_dvfs_data->hw_callback->hw_dvfs_unvote(name);
 }
 
 static int gov_change_point(const char *name, unsigned int freq)
 {
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != DDR_DVFS_INIT_DONE))
 		return -EINVAL;
 	return g_dvfs_data->hw_callback->hw_dvfs_set_point(name, freq);
 }
