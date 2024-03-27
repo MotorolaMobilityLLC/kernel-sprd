@@ -247,7 +247,7 @@ static int ddr_dvfs_panic_handler(struct notifier_block *self, unsigned long val
 	char *step_status = "NONE_STATUS";
 	char *scene = NULL;
 	char *comm = NULL;
-	int err = 0, pid = -1;
+	int err, pid = -1;
 	int buff = 0;
 	ktime_t time = 0;
 
@@ -397,7 +397,7 @@ static int dvfs_msg_parse_ret(struct smsg *msg)
 static int dvfs_msg(unsigned int *data, unsigned int value,
 						unsigned int cmd, unsigned int wait)
 {
-	int err = 0;
+	int err;
 	struct smsg msg;
 
 	__pm_stay_awake(g_dvfs_data->wake_lock);
@@ -418,7 +418,7 @@ ret:
 
 static int dvfs_enable(void)
 {
-	int err = 0;
+	int err;
 	unsigned int data;
 
 	err = dvfs_msg(&data, 0, DVFS_CMD_ENABLE, 2000);
@@ -428,7 +428,7 @@ static int dvfs_enable(void)
 
 static int dvfs_disable(void)
 {
-	int err = 0;
+	int err;
 	unsigned int data;
 
 	err = dvfs_msg(&data, 0, DVFS_CMD_DISABLE, 2000);
@@ -437,7 +437,7 @@ static int dvfs_disable(void)
 
 static int dvfs_auto_enable(void)
 {
-	int err = 0;
+	int err;
 	unsigned int data;
 
 	err = dvfs_msg(&data, 0, DVFS_CMD_AUTO_ENABLE, 2000);
@@ -446,7 +446,7 @@ static int dvfs_auto_enable(void)
 
 static int dvfs_auto_disable(void)
 {
-	int err = 0;
+	int err;
 	unsigned int data;
 
 	err = dvfs_msg(&data, 0, DVFS_CMD_AUTO_DISABLE, 2000);

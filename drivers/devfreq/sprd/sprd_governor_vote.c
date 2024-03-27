@@ -108,8 +108,8 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 	const char *buf, size_t count)
 {
 	int err;
-	unsigned int i, freq_num = 0, status = 0;
-	unsigned long  data = 0;
+	unsigned int i, freq_num = 0, status;
+	unsigned long data = 0;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
@@ -146,6 +146,7 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 	} else {
 		dev_info(dev->parent, "force ddr freq %u, pid: %d, comm: %s\n",
 			 force_freq, task_pid_nr(current), current->comm);
+		status = 0;
 	}
 
 	gov_callback->ddr_dfs_step_add(SCALING_FORCE_DDR_FREQ, status, NULL, force_freq,
@@ -763,7 +764,7 @@ static ssize_t ddrinfo_dfs_step_show(struct device *dev,
 	char *step_status = "NONE_STATUS";
 	char *scene = NULL;
 	char *comm = NULL;
-	int err = 0, pid = -1;
+	int err, pid = -1;
 	int buff = 0;
 	ktime_t time = 0;
 	struct devfreq *devfreq = to_devfreq(dev);
