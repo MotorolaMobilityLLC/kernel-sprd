@@ -109,6 +109,7 @@ static int dvfs_freq_request(unsigned int freq)
 static int dvfs_vote(const char *name)
 {
 	struct vote_data *point;
+	int err;
 
 	if (g_vote_data == NULL)
 		return -EINVAL;
@@ -118,12 +119,17 @@ static int dvfs_vote(const char *name)
 
 	set_flag(point);
 
-	return check_and_vote(request_freq);
+	err = check_and_vote(request_freq);
+	if (err != 0)
+		reset_flag(point);
+
+	return err;
 }
 
 static int dvfs_unvote(const char *name)
 {
 	struct vote_data *point;
+	int err;
 
 	if (g_vote_data == NULL)
 		return -EINVAL;
@@ -133,22 +139,33 @@ static int dvfs_unvote(const char *name)
 
 	reset_flag(point);
 
-	return check_and_vote(request_freq);
+	err = check_and_vote(request_freq);
+	if (err != 0)
+		set_flag(point);
+
+	return err;
 }
 
 static int dvfs_set_point(const char *name, unsigned int freq)
 {
 	struct vote_data *point;
+	int err;
+	unsigned int used_freq;
 
 	if (g_vote_data == NULL)
 		return -EINVAL;
 	point = find_point(name);
 	if (point == NULL)
 		return -EINVAL;
+	used_freq = point->freq;
 
 	reset_freq(point, freq);
 
-	return check_and_vote(request_freq);
+	err = check_and_vote(request_freq);
+	if (err != 0)
+		reset_freq(point, used_freq);
+
+	return err;
 }
 
 static int dvfs_get_point_info(char **name, unsigned int *freq, unsigned int *flag, int index)
