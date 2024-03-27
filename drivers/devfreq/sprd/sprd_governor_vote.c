@@ -22,7 +22,7 @@ static ssize_t scaling_request_ddr_freq_show(struct device *dev,
 	struct device_attribute *attr,
 	char *buf)
 {
-	ssize_t count = 0;
+	ssize_t count;
 	unsigned int data;
 	int err;
 
@@ -67,7 +67,7 @@ static ssize_t scaling_force_ddr_freq_show(struct device *dev,
 	struct device_attribute *attr,
 	char *buf)
 {
-	ssize_t count = 0;
+	ssize_t count;
 
 	count = sprintf(buf, "%u\n", force_freq);
 	return count;
@@ -278,7 +278,7 @@ static DEVICE_ATTR_RW(scaling_underflow);
 static ssize_t dfs_on_off_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
-	ssize_t count = 0;
+	ssize_t count;
 	unsigned int data;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
@@ -338,7 +338,7 @@ static DEVICE_ATTR_RW(dfs_on_off);
 static ssize_t auto_dfs_on_off_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
-	ssize_t count = 0;
+	ssize_t count;
 	unsigned int data;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
@@ -403,7 +403,7 @@ static DEVICE_ATTR_RW(auto_dfs_on_off);
 static ssize_t ddrinfo_cur_freq_show(struct device *dev,
 				     struct device_attribute *attr, char *buf)
 {
-	ssize_t count = 0;
+	ssize_t count;
 	unsigned int data;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
