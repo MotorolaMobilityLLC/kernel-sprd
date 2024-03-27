@@ -110,6 +110,14 @@ const char *musb_drd_state_string(enum musb_drd_state state)
 	return state_names[state];
 }
 
+struct sprd_usb_udc {
+	struct usb_gadget_driver	*driver;
+	struct usb_gadget		*gadget;
+	struct device			dev;
+	struct list_head		list;
+	bool				vbus;
+	bool				started;
+};
 
 struct musb_reg_info {
 	struct regmap		*regmap_ptr;
@@ -1416,12 +1424,15 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		usb_gadget_set_state(&musb->g, USB_STATE_ATTACHED);
 		glue->dr_mode = USB_DR_MODE_PERIPHERAL;
 	} else {
+		struct sprd_usb_udc *sprd_udc = (struct sprd_usb_udc *)musb->g.udc;
+		struct usb_gadget *gadget = &musb->g;
 		dev_info(glue->dev, "%s: turn off gadget %s\n", __func__, musb->g.name);
 
-		if (musb_sprd_is_udc_start(glue)) {
-			usb_udc_vbus_handler(&musb->g, false);
-			flush_delayed_work(&musb->gadget_work);
-		}
+		if (sprd_udc)
+			sprd_udc->vbus = false;
+
+		gadget->ops->pullup(gadget, 0);
+		flush_delayed_work(&musb->gadget_work);
 
 		musb_sprd_release_all_request(musb);
 		usb_gadget_set_state(&musb->g, USB_STATE_NOTATTACHED);
@@ -2062,11 +2073,14 @@ static int musb_sprd_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct device_node *node = pdev->dev.of_node;
+	struct device_node *cmdline_node;
 	struct musb_hdrc_platform_data pdata;
 	struct platform_device_info pinfo;
 	struct sprd_glue *glue;
+	const char *cmdline;
 	u32 buf[2];
 	int ret;
+	bool mode;
 
 	if (sprd_usbmux_check_mode() == MUX_MODE) {
 		dev_info(&pdev->dev, "musb driver stop probe since usb mux jtag\n");
@@ -2186,6 +2200,25 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		pdata.config = &sprd_musb_hdrc_config;
 		glue->use_singlefifo = false;
 	}
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmdline);
+	if (ret) {
+		dev_err(&pdev->dev, "Can't not parse bootargs\n");
+		goto err_core_clk;
+	}
+
+	mode = (strstr(cmdline, "androidboot.mode=cali") != NULL) ||
+	       (strstr(cmdline, "androidboot.mode=autotest") != NULL) ||
+	       (strstr(cmdline, "sprdboot.mode=cali") != NULL) ||
+	       (strstr(cmdline, "sprdboot.mode=autotest") != NULL);
+	if (mode) {
+		if (glue->use_singlefifo)
+			sprd_musb_hdrc_config_single.maximum_speed = USB_SPEED_FULL;
+		else
+			sprd_musb_hdrc_config.maximum_speed = USB_SPEED_FULL;
+	}
+
 	glue->enable_pm_suspend_in_host = of_property_read_bool(node, "wakeup-source");
 	pdata.board_data = &glue->enable_pm_suspend_in_host;
 	atomic_set(&glue->pm_suspended, 0);
