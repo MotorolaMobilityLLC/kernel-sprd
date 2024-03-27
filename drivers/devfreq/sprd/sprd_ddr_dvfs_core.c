@@ -97,6 +97,7 @@ struct dvfs_data {
 	unsigned int init_done;
 	struct mutex dfs_step_mutex;
 	struct delayed_work topfreq_unvote_work;
+	unsigned int dvfs_smsg_thread_process;
 	struct wakeup_source *wake_lock;
 };
 static struct dvfs_data *g_dvfs_data;
@@ -106,8 +107,7 @@ struct ddr_dfs_step_list_t *ddr_cur_step_g;
 struct ddr_dfs_step_list_t ddr_step_arr[DDR_DB_NODE_NUM] = {0};
 static char *g_ddr_dvfs_dump;
 
-struct ddr_dfs_step_list_t *ddr_step_list_init(struct ddr_dfs_step_list_t ddr_step_arr[],
-					       u32 node_num)
+static struct ddr_dfs_step_list_t *ddr_step_list_init(u32 node_num)
 {
 	u32 i;
 	struct ddr_dfs_step_list_t *head = ddr_step_arr;
@@ -124,8 +124,8 @@ struct ddr_dfs_step_list_t *ddr_step_list_init(struct ddr_dfs_step_list_t ddr_st
 	return p;
 }
 
-void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene,
-		      u32 buff, int pid, char *comm, ktime_t time)
+static void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene,
+			     u32 buff, int pid, char *comm, ktime_t time)
 {
 	mutex_lock(&g_dvfs_data->dfs_step_mutex);
 	ddr_cur_step_g = ddr_cur_step_g->next;
@@ -750,7 +750,7 @@ static void dvfs_exit(struct device *dev)
 		dev_err(dev, "disable fail: %d\n", err);
 }
 
-void topfreq_unvote_work_handler(struct work_struct *work)
+static void topfreq_unvote_work_handler(struct work_struct *work)
 {
 	struct device *dev = g_dvfs_data->dev;
 
@@ -772,6 +772,42 @@ static void set_profile(struct devfreq_dev_profile *profile)
 	profile->exit = dvfs_exit;
 }
 
+static int ddr_freq_overflow_set(struct dvfs_data *data, u32 fn)
+{
+	int err;
+	struct device *dev = data->dev;
+
+	if (data->paras[fn].overflow != 0) {
+		err = set_overflow(data->paras[fn].overflow, fn);
+		if (err < 0)
+			dev_err(dev, "failed to set overflow %d\n", data->paras[fn].overflow);
+	} else {
+		err = get_overflow(&data->paras[fn].overflow, fn);
+		if (err < 0)
+			dev_err(dev, "failed to get overflow index: %d\n", fn);
+	}
+
+	return err;
+}
+
+static int ddr_freq_underflow_set(struct dvfs_data *data, u32 fn)
+{
+	int err;
+	struct device *dev = data->dev;
+
+	if (data->paras[fn].underflow != 0) {
+		err = set_underflow(data->paras[fn].underflow, fn);
+		if (err < 0)
+			dev_err(dev, "failed to set underflow %d\n", data->paras[fn].underflow);
+	} else {
+		err = get_underflow(&data->paras[fn].underflow, fn);
+		if (err < 0)
+			dev_err(dev, "get_underflow err\n");
+	}
+
+	return err;
+}
+
 static int dvfs_smsg_thread(void *value)
 {
 	struct dvfs_data *data = (struct dvfs_data *)value;
@@ -779,11 +815,19 @@ static int dvfs_smsg_thread(void *value)
 	char *temp_name;
 	int i, err, effective_freq_count = 0;
 
-	while (smsg_ch_open(SIPC_ID_PM_SYS, SMSG_CH_PM_CTRL, -1))
+	data->dvfs_smsg_thread_process = 1;
+	while (smsg_ch_open(SIPC_ID_PM_SYS, SMSG_CH_PM_CTRL, -1)) {
+		if (kthread_should_stop())
+			return 0;
 		msleep(500);
+	}
+
 	dev_err(dev, "smsg_ch_open finish!\n");
-	while (dvfs_enable())
+	while (dvfs_enable()) {
+		if (kthread_should_stop())
+			return 0;
 		msleep(500);
+	}
 
 	for (i = 0; i < data->freq_num; i++) {
 		err = get_freq_table(&data->freq_table[i], i);
@@ -791,45 +835,26 @@ static int dvfs_smsg_thread(void *value)
 			data->freq_table_display[effective_freq_count++] = data->freq_table[i];
 		if (err < 0) {
 			dev_err(dev, "failed to get frequence index: %d\n", i);
-			return 0;
+			goto remove_thread;
 		}
-		if (data->paras[i].overflow != 0) {
-			err = set_overflow(data->paras[i].overflow, i);
-			if (err < 0) {
-				dev_err(dev, "failed to set overflow %d\n",
-					data->paras[i].overflow);
-				return 0;
-			}
-		} else {
-			err = get_overflow(&data->paras[i].overflow, i);
-			if (err < 0) {
-				dev_err(dev, "failed to get overflow index: %d\n", i);
-				return 0;
-			}
-		}
-		if (data->paras[i].underflow != 0) {
-			err = set_underflow(data->paras[i].underflow, i);
-			if (err < 0) {
-				dev_err(dev, "failed to set underflow %d\n",
-					data->paras[i].underflow);
-				return 0;
-			}
-		} else {
-			err = get_underflow(&data->paras[i].underflow, i);
-			if (err < 0) {
-				dev_err(dev, "get_underflow err\n");
-				return 0;
-			}
-		}
+
+		err = ddr_freq_overflow_set(data, i);
+		if (err < 0)
+			goto remove_thread;
+
+		err = ddr_freq_underflow_set(data, i);
+		if (err < 0)
+			goto remove_thread;
+
 		/*fix me : now we do not have interface for vol*/
 		if (data->paras[i].vol == 0)
-			data->paras[i].vol = 750;
+			data->paras[i].vol = DEFAULT_VOL;
 		if (data->freq_table[i] != 0 && data->freq_table[i] != 0xff) {
 			err = dev_pm_opp_add(dev, data->freq_table[i], data->paras[i].vol);
 			if (err < 0) {
 				dev_err(dev, "failed to add opp: %luMHZ-%uuv\n",
 					data->freq_table[i], data->paras[i].vol);
-				return 0;
+				goto remove_thread;
 			}
 		}
 	}
@@ -839,13 +864,13 @@ static int dvfs_smsg_thread(void *value)
 	err = get_cur_freq((unsigned int *)(&data->profile->initial_freq));
 	if (err < 0) {
 		dev_err(dev, "failed to get initial freq\n");
-		return 0;
+		goto remove_thread;
 	}
 
 	err = sprd_dvfs_add_governor();
 	if (err < 0) {
 		dev_err(dev, "failed to add governor\n");
-		return 0;
+		goto remove_thread;
 	}
 	err = of_property_read_string(dev->of_node, "governor", (const char **)&temp_name);
 	if (err != 0) {
@@ -873,13 +898,48 @@ static int dvfs_smsg_thread(void *value)
 	//delay 30s to cancel topfreq vote
 	schedule_delayed_work(&g_dvfs_data->topfreq_unvote_work, msecs_to_jiffies(30000));
 
+	data->dvfs_smsg_thread_process = 0;
 	return 0;
 
 remove_device:
 	devfreq_remove_device(data->devfreq);
 remove_governor:
 	sprd_dvfs_del_governor();
+remove_thread:
+	data->dvfs_smsg_thread_process = 0;
 	return 0;
+}
+
+static struct dvfs_data *dvfs_mem_alloc(struct device *dev, unsigned int freq_num)
+{
+	struct dvfs_data *driver_data;
+
+	driver_data = devm_kzalloc(dev, sizeof(struct dvfs_data), GFP_KERNEL);
+	if (driver_data == NULL)
+		goto err;
+
+	driver_data->profile = devm_kzalloc(dev, sizeof(struct devfreq_dev_profile), GFP_KERNEL);
+	if (driver_data->profile == NULL)
+		goto err;
+
+	driver_data->freq_table_display = devm_kzalloc(dev, (sizeof(unsigned long)) * freq_num,
+						       GFP_KERNEL);
+	if (driver_data->freq_table_display == NULL)
+		goto err;
+
+
+	driver_data->freq_table = devm_kzalloc(dev, (sizeof(unsigned long)) * freq_num, GFP_KERNEL);
+	if (driver_data->freq_table == NULL)
+		goto err;
+
+	driver_data->paras = devm_kzalloc(dev, sizeof(struct freq_para)*freq_num, GFP_KERNEL);
+	if (driver_data->paras == NULL)
+		goto err;
+
+	return driver_data;
+
+err:
+	return NULL;
 }
 
 int dvfs_core_init(struct platform_device *pdev)
@@ -888,7 +948,6 @@ int dvfs_core_init(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct device_node *node = dev->of_node;
 	unsigned int i;
-	void *p;
 	int err;
 
 	if (g_dvfs_data != NULL) {
@@ -902,24 +961,11 @@ int dvfs_core_init(struct platform_device *pdev)
 		freq_num = 8;
 	}
 
-	p = devm_kzalloc(dev, sizeof(struct dvfs_data)+sizeof(struct devfreq_dev_profile)
-			 +(sizeof(unsigned long))*(freq_num * 2)+sizeof(struct freq_para)*freq_num,
-			 GFP_KERNEL);
-
-	if (p == NULL) {
-		err = -ENOMEM;
-		return err;
+	g_dvfs_data = dvfs_mem_alloc(dev, freq_num);
+	if (g_dvfs_data == NULL) {
+		dev_err(dev, "failed alloc mem\n");
+		return -ENOMEM;
 	}
-
-	g_dvfs_data = (struct dvfs_data *)p;
-	p += sizeof(struct dvfs_data);
-	g_dvfs_data->profile = (struct devfreq_dev_profile *)p;
-	p += sizeof(struct devfreq_dev_profile);
-	g_dvfs_data->freq_table_display = (unsigned long *)p;
-	p += sizeof(unsigned long)*freq_num;
-	g_dvfs_data->freq_table = (unsigned long *)p;
-	p += sizeof(unsigned long)*freq_num;
-	g_dvfs_data->paras = (struct freq_para *)p;
 
 	g_dvfs_data->dev = dev;
 	g_dvfs_data->freq_num = freq_num;
@@ -928,7 +974,7 @@ int dvfs_core_init(struct platform_device *pdev)
 	g_dvfs_data->gov_callback = &g_gov_callback;
 
 	mutex_init(&g_dvfs_data->dfs_step_mutex);
-	ddr_cur_step_g = ddr_step_list_init(ddr_step_arr, DDR_DB_NODE_NUM);
+	ddr_cur_step_g = ddr_step_list_init(DDR_DB_NODE_NUM);
 
 	for (i = 0; i < g_dvfs_data->freq_num; i++) {
 		err = of_property_read_u32_index(node, "overflow",
@@ -953,32 +999,33 @@ int dvfs_core_init(struct platform_device *pdev)
 	set_profile(g_dvfs_data->profile);
 	g_dvfs_data->dvfs_smsg_ch_open = kthread_run(dvfs_smsg_thread, g_dvfs_data, "dvfs-init");
 	if (IS_ERR(g_dvfs_data->dvfs_smsg_ch_open)) {
-		err = -EINVAL;
-		goto err_device;
+		g_dvfs_data->dvfs_smsg_ch_open = NULL;
+		return -EINVAL;
 	}
 
 	g_dvfs_data->wake_lock = wakeup_source_register(g_dvfs_data->dev, dev_name(dev));
 	if (!g_dvfs_data->wake_lock) {
 		dev_err(dev, "register wakeup lock fail\n");
-		goto err_device;
+		return -EINVAL;
 	}
 
 	platform_set_drvdata(pdev, g_dvfs_data);
 	ddrinfo_dfs_step_debug_init();
 
 	return 0;
-
-err_device:
-	devm_kfree(dev, p);
-	return err;
 }
 
 int dvfs_core_clear(struct platform_device *pdev)
 {
+	if (g_dvfs_data->dvfs_smsg_thread_process == 1) {
+		kthread_stop(g_dvfs_data->dvfs_smsg_ch_open);
+		g_dvfs_data->dvfs_smsg_thread_process = 0;
+		g_dvfs_data->dvfs_smsg_ch_open = NULL;
+	}
+
 	wakeup_source_unregister(g_dvfs_data->wake_lock);
 	devfreq_remove_device(g_dvfs_data->devfreq);
 	sprd_dvfs_del_governor();
-	devm_kfree(&pdev->dev, g_dvfs_data);
 	atomic_notifier_chain_unregister(&panic_notifier_list, &ddr_dvfs_event_nb);
 	return 0;
 }

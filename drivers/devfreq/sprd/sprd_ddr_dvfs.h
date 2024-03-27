@@ -42,6 +42,7 @@ enum DDR_DFS_STATE_STEP {
 #define DDR_DUMP_BUFFER (DDR_DB_NODE_NUM * INFO_LEN_MAX)
 #define SCENE_MAX 25
 #define COMM_MAX 25
+#define DEFAULT_VOL 750
 struct DDR_DFS_STEP_T {
 	enum DDR_DFS_STATE_STEP step;
 	int status;
