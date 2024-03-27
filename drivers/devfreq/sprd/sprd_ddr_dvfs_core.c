@@ -479,11 +479,11 @@ static int force_freq_request(unsigned int freq)
 	unsigned int data;
 	int err;
 
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done == 0))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
 		return -EINVAL;
 	mutex_lock(&g_dvfs_data->sync_mutex);
 	err = dvfs_msg(&data, freq, DVFS_CMD_SET_DDR_FREQ, 500);
-	if (err == 0)
+	if (err == 0 && data == freq)
 		g_dvfs_data->force_freq = freq;
 	mutex_unlock(&g_dvfs_data->sync_mutex);
 	return err;
@@ -499,13 +499,13 @@ unsigned long get_max_freq(void)
 	return g_dvfs_data->devfreq->scaling_max_freq;
 }
 
-int send_freq_request(unsigned int freq)
+static int send_freq_request(unsigned int freq)
 {
 	int i;
 	int err;
 	unsigned long data;
 
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done == 0))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
 		return -EINVAL;
 	for (i = g_dvfs_data->freq_num - 1; i >= 0; i--) {
 		err = g_dvfs_data->gov_callback->get_freq_table(&data, i);
@@ -525,9 +525,17 @@ int send_freq_request(unsigned int freq)
 	return err;
 }
 
-int get_request_freq(unsigned int *data)
+static int get_force_freq(unsigned int *data)
 {
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done == 0))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
+		return -EINVAL;
+	*data = g_dvfs_data->force_freq;
+	return 0;
+}
+
+static int get_request_freq(unsigned int *data)
+{
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
 		return -EINVAL;
 	*data = g_dvfs_data->request_freq;
 	return 0;
@@ -538,7 +546,7 @@ int send_vote_request(unsigned int freq)
 	int err;
 	unsigned int data;
 
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done == 0))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
 		return -EINVAL;
 	mutex_lock(&g_dvfs_data->sync_mutex);
 	err = dvfs_msg(&data, freq, DVFS_CMD_NORMAL, 500);
@@ -643,21 +651,21 @@ static int get_freq_num(unsigned int *data)
 
 static int gov_vote(const char *name)
 {
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done == 0))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
 		return -EINVAL;
 	return g_dvfs_data->hw_callback->hw_dvfs_vote(name);
 }
 
 static int gov_unvote(const char *name)
 {
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done == 0))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
 		return -EINVAL;
 	return g_dvfs_data->hw_callback->hw_dvfs_unvote(name);
 }
 
 static int gov_change_point(const char *name, unsigned int freq)
 {
-	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done == 0))
+	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done != 1))
 		return -EINVAL;
 	return g_dvfs_data->hw_callback->hw_dvfs_set_point(name, freq);
 }
@@ -690,6 +698,9 @@ struct governor_callback g_gov_callback = {
 	.get_freq_table = get_freq_table,
 	.ddrinfo_dfs_step_parse = ddrinfo_dfs_step_parse,
 	.ddr_dfs_step_add = ddr_dfs_step_add,
+	.get_request_freq = get_request_freq,
+	.send_freq_request = send_freq_request,
+	.get_force_freq = get_force_freq,
 };
 
 static int dvfs_freq_target(struct device *dev, unsigned long *freq,

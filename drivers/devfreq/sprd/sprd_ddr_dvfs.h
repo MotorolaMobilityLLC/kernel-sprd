@@ -78,6 +78,9 @@ struct governor_callback {
 				      int *pid, char **comm, ktime_t *time, u32 i);
 	void (*ddr_dfs_step_add)(enum DDR_DFS_STATE_STEP cur_step, int status,
 				 char *scene, u32 buff, int pid, char *comm, ktime_t time);
+	int (*get_request_freq)(unsigned int *data);
+	int (*send_freq_request)(unsigned int freq);
+	int (*get_force_freq)(unsigned int *data);
 };
 
 /*functions supportd by dvfs core to specific drivers*/
@@ -87,8 +90,6 @@ void dvfs_core_hw_callback_register(struct dvfs_hw_callback *hw_callback);
 void dvfs_core_hw_callback_clear(struct dvfs_hw_callback *hw_callback);
 unsigned long get_min_freq(void);
 unsigned long get_max_freq(void);
-int send_freq_request(unsigned int freq);
-int get_request_freq(unsigned int *data);
 int send_vote_request(unsigned int freq);
 
 /*EXPORT_SYMBOLs supoorted by governor for other kernel drivers*/

@@ -25,8 +25,11 @@ static ssize_t scaling_request_ddr_freq_show(struct device *dev,
 	ssize_t count;
 	unsigned int data;
 	int err;
+	struct devfreq *devfreq = to_devfreq(dev);
+	struct governor_callback *gov_callback =
+		(struct governor_callback *)devfreq->last_status.private_data;
 
-	err = get_request_freq(&data);
+	err = gov_callback->get_request_freq(&data);
 	if (err < 0)
 		data = 0;
 	count = sprintf(buf, "%u\n", data);
@@ -52,7 +55,7 @@ static ssize_t scaling_request_ddr_freq_store(struct device *dev,
 		dev_warn(dev, "request freq para err: %d\n", err);
 		return count;
 	}
-	err = send_freq_request(request_freq);
+	err = gov_callback->send_freq_request(request_freq);
 	if (err)
 		dev_err(dev, "request freq fail: %d\n", err);
 
@@ -69,6 +72,7 @@ static ssize_t scaling_force_ddr_freq_show(struct device *dev,
 {
 	ssize_t count;
 	unsigned int data;
+	unsigned int freq;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
@@ -83,10 +87,15 @@ static ssize_t scaling_force_ddr_freq_show(struct device *dev,
 		dev_err(dev->parent, "get ddr auto dfs status fail: %d\n", err);
 	}
 
-	if (data == 1)
-		force_freq = 0;
+	if (data == 1) {
+		freq = 0;
+	} else {
+		err = gov_callback->get_force_freq(&freq);
+		if (err < 0)
+			freq = 0;
+	}
 
-	count = sprintf(buf, "%u\n", force_freq);
+	count = sprintf(buf, "%u\n", freq);
 
 	gov_callback->ddr_dfs_step_add(GET_DVFS_FORCE_FREQ_T, err, NULL, data,
 				       task_pid_nr(current), current->comm, call_time);
@@ -915,6 +924,7 @@ static int gov_vote_get_target_freq(struct devfreq *devfreq,
 	unsigned long *freq)
 {
 	*freq = force_freq;
+
 	return 0;
 }
 
