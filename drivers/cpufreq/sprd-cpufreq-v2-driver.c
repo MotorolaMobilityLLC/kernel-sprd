@@ -769,24 +769,6 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 		}
 	}
 
-	ret = of_property_read_string(cluster->node, "nvmem-cell-names", &dvfs_bin);
-	if (ret == -EINVAL) { /* No definition is allowed */
-		pr_warn("Warning: no 'dvfs_bin' appointed\n");
-		cluster->bin = 0U;
-	} else {
-		ret = sprd_nvmem_info_read(cluster->node, dvfs_bin, &cluster->bin);
-		if (ret) {
-			pr_err("read dvfs bin value error(%d)\n", ret);
-			return ret;
-		}
-
-		ret = cluster->bin_set(cluster->id, cluster->bin);
-		if (ret) {
-			pr_err("set cluster %u 'binning' value error\n", cluster->id);
-			return ret;
-		}
-	}
-
 	if (of_property_read_bool(cluster->node, "sprd,multi-version")) {
 		hwf = of_find_node_by_path("/hwfeature/auto");
 		if (IS_ERR_OR_NULL(hwf)) {
@@ -804,6 +786,36 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 
 	if (of_property_read_bool(cluster->node, "sprd,cpufreq-boost"))
 		cluster->boost_enable = true;
+
+	ret = of_property_read_string_index(cluster->node, "nvmem-cell-names", 1, &dvfs_bin);
+	if (ret >= 0) {
+		ret = sprd_nvmem_info_read(cluster->node, dvfs_bin, &cluster->bin);
+		if (ret) {
+			dev_err(dev, "%s: error in reading dvfs bin_1 value\n", __func__);
+			return ret;
+		}
+
+		if (cluster->bin)
+			goto dvfs_bin_set;
+	}
+
+	ret = of_property_read_string_index(cluster->node, "nvmem-cell-names", 0, &dvfs_bin);
+	if (ret < 0) {
+		pr_warn("Warning: no 'dvfs_bin' appointed\n");
+	} else {
+		ret = sprd_nvmem_info_read(cluster->node, dvfs_bin, &cluster->bin);
+		if (ret) {
+			pr_err("read dvfs bin value error(%d)\n", ret);
+			return ret;
+		}
+	}
+
+dvfs_bin_set:
+	ret = cluster->bin_set(cluster->id, cluster->bin);
+	if (ret) {
+		dev_err(dev, "%s: set cluster %u 'binning' value error\n", __func__, cluster->id);
+		return -EINVAL;
+	}
 
 	return 0;
 }
