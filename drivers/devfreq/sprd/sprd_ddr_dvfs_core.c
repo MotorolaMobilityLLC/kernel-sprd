@@ -158,62 +158,62 @@ static int ddrinfo_dfs_step_show(char **arg, char **step_status, char **scene,
 	*scene = NULL;
 
 	switch (ddr_cur_step_g->data.step) {
-	case 1:
+	case SCENARIO_DFS_ENTER:
 		*arg = "scenario_dfs_enter";
 		*scene = ddr_cur_step_g->data.scene;
 		break;
-	case 2:
+	case EXIT_SCENE:
 		*arg = "exit_scene";
 		*scene = ddr_cur_step_g->data.scene;
 		break;
-	case 3:
+	case AUTO_DFS_ON_OFF:
 		*arg = "auto_dfs_on_off";
 		break;
-	case 4:
+	case SCALING_FORCE_DDR_FREQ:
 		*arg = "scaling_force_ddr_freq";
 		break;
-	case 5:
+	case SCENE_BOOST_ENTER:
 		*arg = "scene_boost_enter";
 		break;
-	case 6:
+	case SET_BACKDOOR:
 		*arg = "set_backdoor";
 		break;
-	case 7:
+	case DFS_ON_OFF:
 		*arg = "dfs_on_off";
 		break;
-	case 8:
+	case CHANGE_POINT:
 		*arg = "change_point";
 		break;
-	case 9:
+	case SCENE_FREQ_SET:
 		*arg = "scene_freq_set";
 		break;
-	case 10:
+	case GET_OVERFLOW_T:
 		*arg = "get_overflow_t";
 		break;
-	case 11:
+	case SET_OVERFLOW_T:
 		*arg = "set_overflow_t";
 		*scene = ddr_cur_step_g->data.scene;
 		break;
-	case 12:
+	case GET_UNDERFLOW_T:
 		*arg = "get_underflow_t";
 		break;
-	case 13:
+	case SET_UNDERFLOW_T:
 		*arg = "set_underflow_t";
 		*scene = ddr_cur_step_g->data.scene;
 		break;
-	case 14:
+	case GET_DVFS_STATUS_T:
 		*arg = "get_dvfs_status_t";
 		break;
-	case 15:
+	case GET_DVFS_AUTO_STATUS_T:
 		*arg = "get_dvfs_auto_status_t";
 		break;
-	case 16:
+	case GET_CUR_FREQ_T:
 		*arg = "get_cur_freq_t";
 		break;
-	case 17:
+	case GET_FREQ_TABLE_T:
 		*arg = "get_freq_table_t";
 		break;
-	case 18:
+	case SEND_FREQ_REQUEST_T:
 		*arg = "send_freq_request_t";
 		break;
 	default:

@@ -56,7 +56,7 @@ static ssize_t scaling_request_ddr_freq_store(struct device *dev,
 	if (err)
 		dev_err(dev, "request freq fail: %d\n", err);
 
-	gov_callback->ddr_dfs_step_add(send_freq_request_t, err, NULL, request_freq,
+	gov_callback->ddr_dfs_step_add(SEND_FREQ_REQUEST_T, err, NULL, request_freq,
 				       task_pid_nr(current), current->comm, call_time);
 
 	return count;
@@ -115,7 +115,7 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 		dev_info(dev->parent, "force ddr freq %u, pid: %d, comm: %s\n",
 			 force_freq, task_pid_nr(current), current->comm);
 
-	gov_callback->ddr_dfs_step_add(scaling_force_ddr_freq, err, NULL, force_freq,
+	gov_callback->ddr_dfs_step_add(SCALING_FORCE_DDR_FREQ, err, NULL, force_freq,
 				       task_pid_nr(current), current->comm, call_time);
 	return count;
 }
@@ -147,7 +147,7 @@ static ssize_t scaling_overflow_show(struct device *dev,
 	}
 	count += sprintf(&buf[count], "\n");
 
-	gov_callback->ddr_dfs_step_add(get_overflow_t, 0, NULL, freq_num,
+	gov_callback->ddr_dfs_step_add(GET_OVERFLOW_T, 0, NULL, freq_num,
 				       task_pid_nr(current), current->comm, call_time);
 
 	return count;
@@ -190,7 +190,7 @@ static ssize_t scaling_overflow_store(struct device *dev,
 	if (err)
 		dev_err(dev->parent, "set sel[%u] overflow %u fail: %d\n", sel, overflow, err);
 
-	gov_callback->ddr_dfs_step_add(set_overflow_t, err, arg, name_len,
+	gov_callback->ddr_dfs_step_add(SET_OVERFLOW_T, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
 	kfree(arg);
 	return count;
@@ -224,7 +224,7 @@ static ssize_t scaling_underflow_show(struct device *dev,
 	}
 	count += sprintf(&buf[count], "\n");
 
-	gov_callback->ddr_dfs_step_add(get_underflow_t, 0, NULL, freq_num,
+	gov_callback->ddr_dfs_step_add(GET_UNDERFLOW_T, 0, NULL, freq_num,
 				       task_pid_nr(current), current->comm, call_time);
 	return count;
 }
@@ -267,7 +267,7 @@ static ssize_t scaling_underflow_store(struct device *dev,
 	if (err)
 		dev_err(dev->parent, "set sel[%u] underflow %u fail: %d\n", sel, underflow, err);
 
-	gov_callback->ddr_dfs_step_add(set_underflow_t, err, arg, name_len,
+	gov_callback->ddr_dfs_step_add(SET_UNDERFLOW_T, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
 
 	kfree(arg);
@@ -295,7 +295,7 @@ static ssize_t dfs_on_off_show(struct device *dev,
 	}
 	count = sprintf(buf, "%u\n", data);
 
-	gov_callback->ddr_dfs_step_add(get_dvfs_status_t, err, NULL, data,
+	gov_callback->ddr_dfs_step_add(GET_DVFS_STATUS_T, err, NULL, data,
 				       task_pid_nr(current), current->comm, call_time);
 	return count;
 }
@@ -328,7 +328,7 @@ static ssize_t dfs_on_off_store(struct device *dev,
 	if (err)
 		dev_err(dev->parent, "ddr dfs enable[%u] fail: %d\n", enable, err);
 
-	gov_callback->ddr_dfs_step_add(dfs_on_off, err, NULL, enable,
+	gov_callback->ddr_dfs_step_add(DFS_ON_OFF, err, NULL, enable,
 				       task_pid_nr(current), current->comm, call_time);
 
 	return count;
@@ -355,7 +355,7 @@ static ssize_t auto_dfs_on_off_show(struct device *dev,
 	}
 	count = sprintf(buf, "%u\n", data);
 
-	gov_callback->ddr_dfs_step_add(get_dvfs_auto_status_t, err, NULL, data,
+	gov_callback->ddr_dfs_step_add(GET_DVFS_AUTO_STATUS_T, err, NULL, data,
 				       task_pid_nr(current), current->comm, call_time);
 
 	return count;
@@ -394,7 +394,7 @@ static ssize_t auto_dfs_on_off_store(struct device *dev,
 			 "ddr auto dfs enable[%u], pid: %d, comm: %s\n",
 			 enable, task_pid_nr(current), current->comm);
 
-	gov_callback->ddr_dfs_step_add(auto_dfs_on_off, err, NULL, enable,
+	gov_callback->ddr_dfs_step_add(AUTO_DFS_ON_OFF, err, NULL, enable,
 				       task_pid_nr(current), current->comm, call_time);
 	return count;
 }
@@ -420,7 +420,7 @@ static ssize_t ddrinfo_cur_freq_show(struct device *dev,
 	}
 	count = sprintf(buf, "%u\n", data);
 
-	gov_callback->ddr_dfs_step_add(get_cur_freq_t, err, NULL, data,
+	gov_callback->ddr_dfs_step_add(GET_CUR_FREQ_T, err, NULL, data,
 				       task_pid_nr(current), current->comm, call_time);
 	return count;
 }
@@ -450,7 +450,7 @@ static ssize_t ddrinfo_freq_table_show(struct device *dev,
 	}
 	count += sprintf(&buf[count], "\n");
 
-	gov_callback->ddr_dfs_step_add(get_freq_table_t, 0, NULL, freq_num,
+	gov_callback->ddr_dfs_step_add(GET_FREQ_TABLE_T, 0, NULL, freq_num,
 				       task_pid_nr(current), current->comm, call_time);
 
 	return count;
@@ -488,7 +488,7 @@ static ssize_t scenario_dfs_store(struct device *dev,
 		dev_err(dev->parent, "scene %s enter fail: %d, pid: %d, comm: %s\n",
 			arg, err, task_pid_nr(current), current->comm);
 
-	gov_callback->ddr_dfs_step_add(scenario_dfs_enter, err, arg, name_len,
+	gov_callback->ddr_dfs_step_add(SCENARIO_DFS_ENTER, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
 	kfree(arg);
 	return count;
@@ -526,7 +526,7 @@ static ssize_t exit_scene_store(struct device *dev,
 		dev_err(dev->parent, "scene %s exit fail: %d, pid: %d, comm: %s\n",
 			arg, err, task_pid_nr(current), current->comm);
 
-	gov_callback->ddr_dfs_step_add(exit_scene, err, arg, name_len,
+	gov_callback->ddr_dfs_step_add(EXIT_SCENE, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
 	kfree(arg);
 	return count;
@@ -571,7 +571,7 @@ static ssize_t scene_freq_set_store(struct device *dev,
 	if (err)
 		dev_err(dev->parent, "scene %s change freq %u fail: %d\n", arg, freq, err);
 
-	gov_callback->ddr_dfs_step_add(scene_freq_set, err, arg, name_len,
+	gov_callback->ddr_dfs_step_add(SCENE_FREQ_SET, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
 
 	kfree(arg);
@@ -638,10 +638,10 @@ static ssize_t scene_boost_dfs_store(struct device *dev,
 
 out:
 	if (enable == 1)
-		gov_callback->ddr_dfs_step_add(scene_boost_enter, err, NULL, freq,
+		gov_callback->ddr_dfs_step_add(SCENE_BOOST_ENTER, err, NULL, freq,
 					       task_pid_nr(current), current->comm, call_time);
 	else
-		gov_callback->ddr_dfs_step_add(scene_boost_enter, err, NULL, enable,
+		gov_callback->ddr_dfs_step_add(SCENE_BOOST_ENTER, err, NULL, enable,
 					       task_pid_nr(current), current->comm, call_time);
 	return count;
 }
@@ -689,7 +689,7 @@ static ssize_t backdoor_store(struct device *dev,
 		dev_info(dev->parent, "set backdoor %d, pid: %d, comm: %s\n",
 			 backdoor, task_pid_nr(current), current->comm);
 	}
-	gov_callback->ddr_dfs_step_add(set_backdoor, err, NULL, backdoor,
+	gov_callback->ddr_dfs_step_add(SET_BACKDOOR, err, NULL, backdoor,
 				       task_pid_nr(current), current->comm, call_time);
 	return count;
 }
@@ -854,7 +854,7 @@ int change_scene_freq(char *scenario, unsigned int freq)
 		dev_err(devfreq->dev.parent, "scene %s change freq %u fail: %d\n",
 			scenario, freq, err);
 
-	gov_callback->ddr_dfs_step_add(change_point, err, arg, name_len,
+	gov_callback->ddr_dfs_step_add(CHANGE_POINT, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
 
 	kfree(arg);
