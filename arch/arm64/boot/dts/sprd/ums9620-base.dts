@@ -405,6 +405,7 @@
 		avdd-gpio = <&ap_gpio 192 GPIO_ACTIVE_HIGH>;
 		avee-gpio = <&ap_gpio 191 GPIO_ACTIVE_HIGH>;
 		reset-gpio = <&ap_gpio 11 GPIO_ACTIVE_HIGH>;
+		tp-reset-gpio = <&ap_gpio 14 GPIO_ACTIVE_HIGH>;
 
 		port@1 {
 			reg = <1>;

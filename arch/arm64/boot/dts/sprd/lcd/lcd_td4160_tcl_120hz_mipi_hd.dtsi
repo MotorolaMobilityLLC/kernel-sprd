@@ -24,6 +24,8 @@
 
 					sprd,reset-on-sequence = <1 15>, <0 5>, <1 15>;
 					sprd,reset-off-sequence = <0 10>;
+					ontim,tp-reset-flag;
+					sprd,need-execute-shutdown;
 
 					sprd,initial-command = [
 						15 00 00 02 B0 04
