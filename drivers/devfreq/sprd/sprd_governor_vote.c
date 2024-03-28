@@ -19,8 +19,7 @@ static int backdoor_status;
 static struct devfreq *gov_devfreq;
 
 static ssize_t scaling_request_ddr_freq_show(struct device *dev,
-	struct device_attribute *attr,
-	char *buf)
+					     struct device_attribute *attr, char *buf)
 {
 	ssize_t count;
 	unsigned int data;
@@ -33,21 +32,19 @@ static ssize_t scaling_request_ddr_freq_show(struct device *dev,
 	if (err < 0)
 		data = 0;
 	count = sprintf(buf, "%u\n", data);
+
 	return count;
 }
 
-static ssize_t scaling_request_ddr_freq_store(struct device *dev,
-	struct device_attribute *attr,
-	const char *buf, size_t count)
+static ssize_t scaling_request_ddr_freq_store(struct device *dev, struct device_attribute *attr,
+					      const char *buf, size_t count)
 {
 	unsigned int request_freq;
 	int err;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	err = sscanf(buf, "%u\n", &request_freq);
 
@@ -67,19 +64,15 @@ static ssize_t scaling_request_ddr_freq_store(struct device *dev,
 static DEVICE_ATTR_RW(scaling_request_ddr_freq);
 
 static ssize_t scaling_force_ddr_freq_show(struct device *dev,
-	struct device_attribute *attr,
-	char *buf)
+					   struct device_attribute *attr, char *buf)
 {
 	ssize_t count;
-	unsigned int data;
-	unsigned int freq;
+	unsigned int data, freq;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 	int err;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	err = gov_callback->get_dvfs_auto_status(&data);
 	if (err < 0) {
@@ -103,9 +96,8 @@ static ssize_t scaling_force_ddr_freq_show(struct device *dev,
 	return count;
 }
 
-static ssize_t scaling_force_ddr_freq_store(struct device *dev,
-	struct device_attribute *attr,
-	const char *buf, size_t count)
+static ssize_t scaling_force_ddr_freq_store(struct device *dev, struct device_attribute *attr,
+					    const char *buf, size_t count)
 {
 	int err;
 	unsigned int i, freq_num = 0, status;
@@ -113,9 +105,8 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
-	ktime_t call_time;
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
-	call_time = ktime_to_ms(ktime_get());
 	err = gov_callback->get_freq_num(&freq_num);
 	if (err < 0) {
 		dev_warn(dev->parent, "get ddr freq num err: %d\n", err);
@@ -141,7 +132,6 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 	if ((i == freq_num) || err) {
 		dev_err(dev->parent, "force freq %u fail: %d, pid: %d, comm: %s\n",
 			force_freq, err, task_pid_nr(current), current->comm);
-
 		status = 1;
 	} else {
 		dev_info(dev->parent, "force ddr freq %u, pid: %d, comm: %s\n",
@@ -151,6 +141,7 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(SCALING_FORCE_DDR_FREQ, status, NULL, force_freq,
 				       task_pid_nr(current), current->comm, call_time);
+
 	return count;
 }
 static DEVICE_ATTR_RW(scaling_force_ddr_freq);
@@ -159,15 +150,13 @@ static ssize_t scaling_overflow_show(struct device *dev,
 				     struct device_attribute *attr, char *buf)
 {
 	ssize_t count = 0;
-	unsigned int i, freq_num;
-	unsigned int data;
+	unsigned int i, freq_num, data;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 	int err;
-	ktime_t call_time;
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
-	call_time = ktime_to_ms(ktime_get());
 	err = gov_callback->get_freq_num(&freq_num);
 	if (err < 0)
 		freq_num = 0;
@@ -187,21 +176,17 @@ static ssize_t scaling_overflow_show(struct device *dev,
 	return count;
 }
 
-static ssize_t scaling_overflow_store(struct device *dev,
-				      struct device_attribute *attr,
+static ssize_t scaling_overflow_store(struct device *dev, struct device_attribute *attr,
 				      const char *buf, size_t count)
 {
-	unsigned int sel;
-	unsigned int overflow;
+	unsigned int sel, overflow, name_len;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
-	unsigned int name_len;
 	char *arg;
 	int err;
-	ktime_t call_time;
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
-	call_time = ktime_to_ms(ktime_get());
 	arg = (char *)buf;
 	while (*arg && !isspace(*arg))
 		arg++;
@@ -227,23 +212,21 @@ static ssize_t scaling_overflow_store(struct device *dev,
 	gov_callback->ddr_dfs_step_add(SET_OVERFLOW_T, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
 	kfree(arg);
+
 	return count;
 }
 static DEVICE_ATTR_RW(scaling_overflow);
 
 static ssize_t scaling_underflow_show(struct device *dev,
-				     struct device_attribute *attr, char *buf)
+				      struct device_attribute *attr, char *buf)
 {
 	ssize_t count = 0;
-	unsigned int i, freq_num;
-	unsigned int data;
+	unsigned int i, freq_num, data;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 	int err;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	err = gov_callback->get_freq_num(&freq_num);
 	if (err < 0)
@@ -260,24 +243,20 @@ static ssize_t scaling_underflow_show(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(GET_UNDERFLOW_T, 0, NULL, freq_num,
 				       task_pid_nr(current), current->comm, call_time);
+
 	return count;
 }
 
-static ssize_t scaling_underflow_store(struct device *dev,
-				      struct device_attribute *attr,
-				      const char *buf, size_t count)
+static ssize_t scaling_underflow_store(struct device *dev, struct device_attribute *attr,
+				       const char *buf, size_t count)
 {
-	unsigned int sel;
-	unsigned int underflow;
+	unsigned int sel, underflow, name_len;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
-	unsigned int name_len;
 	char *arg;
 	int err;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	arg = (char *)buf;
 	while (*arg && !isspace(*arg))
@@ -310,7 +289,7 @@ static ssize_t scaling_underflow_store(struct device *dev,
 static DEVICE_ATTR_RW(scaling_underflow);
 
 static ssize_t dfs_on_off_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+			       struct device_attribute *attr, char *buf)
 {
 	ssize_t count;
 	unsigned int data;
@@ -318,9 +297,7 @@ static ssize_t dfs_on_off_show(struct device *dev,
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 	int err;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	err = gov_callback->get_dvfs_status(&data);
 	if (err < 0) {
@@ -331,21 +308,19 @@ static ssize_t dfs_on_off_show(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(GET_DVFS_STATUS_T, err, NULL, data,
 				       task_pid_nr(current), current->comm, call_time);
+
 	return count;
 }
 
-static ssize_t dfs_on_off_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
+static ssize_t dfs_on_off_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count)
 {
 	unsigned int enable;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 	int err;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	err = sscanf(buf, "%u\n", &enable);
 	if (err < 1) {
@@ -370,7 +345,7 @@ static ssize_t dfs_on_off_store(struct device *dev,
 static DEVICE_ATTR_RW(dfs_on_off);
 
 static ssize_t auto_dfs_on_off_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+				    struct device_attribute *attr, char *buf)
 {
 	ssize_t count;
 	unsigned int data;
@@ -378,9 +353,7 @@ static ssize_t auto_dfs_on_off_show(struct device *dev,
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 	int err;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	err = gov_callback->get_dvfs_auto_status(&data);
 	if (err < 0) {
@@ -395,18 +368,15 @@ static ssize_t auto_dfs_on_off_show(struct device *dev,
 	return count;
 }
 
-static ssize_t auto_dfs_on_off_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
+static ssize_t auto_dfs_on_off_store(struct device *dev, struct device_attribute *attr,
+				     const char *buf, size_t count)
 {
 	unsigned int enable;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 	int err;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	err = sscanf(buf, "%u\n", &enable);
 	if (err < 1) {
@@ -430,6 +400,7 @@ static ssize_t auto_dfs_on_off_store(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(AUTO_DFS_ON_OFF, err, NULL, enable,
 				       task_pid_nr(current), current->comm, call_time);
+
 	return count;
 }
 static DEVICE_ATTR_RW(auto_dfs_on_off);
@@ -443,9 +414,7 @@ static ssize_t ddrinfo_cur_freq_show(struct device *dev,
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 	int err;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	err = gov_callback->get_cur_freq(&data);
 	if (err < 0) {
@@ -456,12 +425,13 @@ static ssize_t ddrinfo_cur_freq_show(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(GET_CUR_FREQ_T, err, NULL, data,
 				       task_pid_nr(current), current->comm, call_time);
+
 	return count;
 }
 static DEVICE_ATTR_RO(ddrinfo_cur_freq);
 
 static ssize_t ddrinfo_freq_table_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
+				       struct device_attribute *attr, char *buf)
 {
 	ssize_t count = 0;
 	unsigned int i, freq_num = 0;
@@ -470,9 +440,7 @@ static ssize_t ddrinfo_freq_table_show(struct device *dev,
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 	int err;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	err = gov_callback->get_freq_num(&freq_num);
 	if (err < 0)
@@ -491,9 +459,8 @@ static ssize_t ddrinfo_freq_table_show(struct device *dev,
 }
 static DEVICE_ATTR_RO(ddrinfo_freq_table);
 
-static ssize_t scenario_dfs_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
+static ssize_t scenario_dfs_store(struct device *dev, struct device_attribute *attr,
+				  const char *buf, size_t count)
 {
 	int err;
 	unsigned int name_len;
@@ -501,10 +468,7 @@ static ssize_t scenario_dfs_store(struct device *dev,
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
-
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	arg = (char *)buf;
 	while (*arg && !isspace(*arg))
@@ -525,13 +489,13 @@ static ssize_t scenario_dfs_store(struct device *dev,
 	gov_callback->ddr_dfs_step_add(SCENARIO_DFS_ENTER, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
 	kfree(arg);
+
 	return count;
 }
 static DEVICE_ATTR_WO(scenario_dfs);
 
-static ssize_t exit_scene_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
+static ssize_t exit_scene_store(struct device *dev, struct device_attribute *attr,
+				const char *buf, size_t count)
 {
 	int err;
 	unsigned int name_len;
@@ -539,10 +503,7 @@ static ssize_t exit_scene_store(struct device *dev,
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
-
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	arg = (char *)buf;
 	while (*arg && !isspace(*arg))
@@ -563,24 +524,21 @@ static ssize_t exit_scene_store(struct device *dev,
 	gov_callback->ddr_dfs_step_add(EXIT_SCENE, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
 	kfree(arg);
+
 	return count;
 }
 static DEVICE_ATTR_WO(exit_scene);
 
-static ssize_t scene_freq_set_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
+static ssize_t scene_freq_set_store(struct device *dev, struct device_attribute *attr,
+				    const char *buf, size_t count)
 {
 	int err;
-	unsigned int name_len;
+	unsigned int name_len, freq;
 	char *arg;
-	unsigned int freq;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	arg = (char *)buf;
 	while (*arg && !isspace(*arg))
@@ -607,15 +565,14 @@ static ssize_t scene_freq_set_store(struct device *dev,
 
 	gov_callback->ddr_dfs_step_add(SCENE_FREQ_SET, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
-
 	kfree(arg);
+
 	return count;
 }
 static DEVICE_ATTR_WO(scene_freq_set);
 
-static ssize_t scene_boost_dfs_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
+static ssize_t scene_boost_dfs_store(struct device *dev, struct device_attribute *attr,
+				     const char *buf, size_t count)
 {
 	unsigned int i, enable, freq, freq_num = 0;
 	unsigned long data = 0;
@@ -623,9 +580,7 @@ static ssize_t scene_boost_dfs_store(struct device *dev,
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 	int err;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	err = sscanf(buf, "%u %u\n", &enable, &freq);
 	if (err < 2) {
@@ -677,29 +632,26 @@ out:
 	else
 		gov_callback->ddr_dfs_step_add(SCENE_BOOST_ENTER, err, NULL, enable,
 					       task_pid_nr(current), current->comm, call_time);
+
 	return count;
 }
 static DEVICE_ATTR_WO(scene_boost_dfs);
 
 static ssize_t backdoor_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+			     struct device_attribute *attr, char *buf)
 {
 	return sprintf(buf, "%d\n", backdoor_status);
 }
 
-
-static ssize_t backdoor_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t count)
+static ssize_t backdoor_store(struct device *dev, struct device_attribute *attr,
+			      const char *buf, size_t count)
 {
-	int err;
-	int backdoor;
+	int err, backdoor;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
-	ktime_t call_time;
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
-	call_time = ktime_to_ms(ktime_get());
 	err = sscanf(buf, "%d\n", &backdoor);
 	if (err < 1) {
 		dev_warn(dev->parent, "set backdoor err: %d\n", err);
@@ -725,32 +677,30 @@ static ssize_t backdoor_store(struct device *dev,
 	}
 	gov_callback->ddr_dfs_step_add(SET_BACKDOOR, err, NULL, backdoor,
 				       task_pid_nr(current), current->comm, call_time);
+
 	return count;
 }
 static DEVICE_ATTR_RW(backdoor);
 
 static ssize_t scene_dfs_list_show(struct device *dev,
-		struct device_attribute *attr, char *buf)
+				   struct device_attribute *attr, char *buf)
 {
 	ssize_t count = 0;
 	char *name;
-	unsigned int freq;
-	unsigned int flag;
-	int i = 0;
+	unsigned int freq, flag;
+	int i = 0, err;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
 		(struct governor_callback *)devfreq->last_status.private_data;
 
-	int err;
-
 	do {
 		err =  gov_callback->get_point_info(&name, &freq, &flag, i);
 		if (err == 0)
-			count += sprintf(&buf[count],
-				"%s freq %u  flag %u\n",
-				name, freq, flag);
+			count += sprintf(&buf[count], "%s freq %u  flag %u\n",
+					 name, freq, flag);
 		i++;
 	} while (!err);
+
 	return count;
 }
 static DEVICE_ATTR_RO(scene_dfs_list);
@@ -760,12 +710,9 @@ static ssize_t ddrinfo_dfs_step_show(struct device *dev,
 {
 	ssize_t count = 0;
 	unsigned int i = 0;
-	char *arg = "NONE_STEP";
-	char *step_status = "NONE_STATUS";
-	char *scene = NULL;
-	char *comm = NULL;
-	int err, pid = -1;
-	int buff = 0;
+	char *arg = "NONE_STEP", *step_status = "NONE_STATUS";
+	char *scene = NULL, *comm = NULL;
+	int err, pid = -1, buff = 0;
 	ktime_t time = 0;
 	struct devfreq *devfreq = to_devfreq(dev);
 	struct governor_callback *gov_callback =
@@ -862,9 +809,7 @@ int change_scene_freq(char *scenario, unsigned int freq)
 	struct governor_callback *gov_callback;
 	struct devfreq *devfreq = gov_devfreq;
 	unsigned int name_len;
-	ktime_t call_time;
-
-	call_time = ktime_to_ms(ktime_get());
+	ktime_t call_time = ktime_to_ms(ktime_get());
 
 	if (!devfreq)
 		return -ENODEV;
@@ -890,21 +835,22 @@ int change_scene_freq(char *scenario, unsigned int freq)
 
 	gov_callback->ddr_dfs_step_add(CHANGE_POINT, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
-
 	kfree(arg);
+
 	return err;
 }
 EXPORT_SYMBOL(change_scene_freq);
 
 static int gov_vote_start(struct devfreq *devfreq)
 {
-	int err = 0;
+	int err;
 
 	err = sysfs_create_group(&devfreq->dev.kobj, &gov_vote_attrs);
 	if (err) {
 		dev_err(devfreq->dev.parent, "dvfs sysfs create fail: %d\n", err);
 		return err;
 	}
+
 	err = devfreq_update_stats(devfreq);
 	if (err) {
 		dev_err(devfreq->dev.parent, "dvfs update states fail: %d\n", err);

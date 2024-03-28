@@ -36,6 +36,7 @@ static struct vote_data *find_point(const char *name)
 		point++;
 		scene_index++;
 	}
+
 	return NULL;
 }
 
@@ -90,6 +91,7 @@ static int check_and_vote(unsigned int target_freq)
 			return err;
 		last_freq = target_freq;
 	}
+
 	return 0;
 }
 
@@ -103,6 +105,7 @@ static int dvfs_freq_request(unsigned int freq)
 	err = check_and_vote(freq);
 	if (err == 0)
 		request_freq = freq;
+
 	return err;
 }
 
@@ -168,7 +171,8 @@ static int dvfs_set_point(const char *name, unsigned int freq)
 	return err;
 }
 
-static int dvfs_get_point_info(char **name, unsigned int *freq, unsigned int *flag, int index)
+static int dvfs_get_point_info(char **name, unsigned int *freq,
+			       unsigned int *flag, int index)
 {
 	struct vote_data *point;
 
@@ -182,6 +186,7 @@ static int dvfs_get_point_info(char **name, unsigned int *freq, unsigned int *fl
 	*name = (char *)point->name;
 	*freq = point->freq;
 	*flag = point->flag;
+
 	return 0;
 }
 
@@ -204,7 +209,7 @@ static int dvfs_probe(struct platform_device *pdev)
 		dev_warn(dev, "failed read scene_num\n");
 		scene_num = 0;
 	} else {
-		g_vote_data = devm_kzalloc(dev, sizeof(struct vote_data)*(unsigned int)scene_num,
+		g_vote_data = devm_kzalloc(dev, sizeof(struct vote_data) * (unsigned int)scene_num,
 					   GFP_KERNEL);
 		if (g_vote_data == NULL) {
 			err = -ENOMEM;
@@ -232,11 +237,13 @@ static int dvfs_probe(struct platform_device *pdev)
 		goto free_mem;
 
 	dvfs_core_hw_callback_register(&callbacks);
+
 	return 0;
 
 free_mem:
 	if (g_vote_data != NULL)
 		devm_kfree(&pdev->dev, g_vote_data);
+
 	return err;
 }
 
@@ -244,8 +251,10 @@ static int dvfs_remove(struct platform_device *pdev)
 {
 	if (g_vote_data != NULL)
 		devm_kfree(&pdev->dev, g_vote_data);
+
 	dvfs_core_hw_callback_clear(&callbacks);
 	dvfs_core_clear(pdev);
+
 	return 0;
 }
 
