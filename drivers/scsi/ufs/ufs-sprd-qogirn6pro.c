@@ -547,7 +547,8 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	hba->caps |= UFSHCD_CAP_CLK_GATING |
 		UFSHCD_CAP_CRYPTO |
 		UFSHCD_CAP_HIBERN8_WITH_CLK_GATING |
-		UFSHCD_CAP_WB_EN;
+		UFSHCD_CAP_WB_EN |
+		UFSHCD_CAP_H8_ULP;
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
 
@@ -893,7 +894,9 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8119), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
-
+	 if (hba->caps & UFSHCD_CAP_H8_ULP)
+        /* add ultra low power H8 function */
+        ufshcd_dme_set(hba, UIC_ARG_MIB(CBUPLH8), ULP_H8_EN);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(VS_MPHYDISABLE), 0x0);
 
 	return ret;
@@ -1166,6 +1169,97 @@ static int ufs_sprd_program_key(struct ufs_hba *hba,
 out:
 	return err;
 }
+static int ufs_sprd_apply_dev_quirks(struct ufs_hba *hba)
+{
+    int ret = 0;
+    u32 ulp_value;
+    u32 granularity, peer_granularity;
+    u32 pa_tactivate, peer_pa_tactivate;
+    u32 pa_tactivate_us, peer_pa_tactivate_us, max_pa_tactivate_us;
+    u8 gran_to_us_table[] = {1, 4, 8, 16, 32, 100};
+    u32 new_pa_tactivate, new_peer_pa_tactivate;
+
+    if (!(hba->caps & UFSHCD_CAP_H8_ULP))
+        return 0;
+
+    ret = ufshcd_dme_get(hba, UIC_ARG_MIB(CBUPLH8), &ulp_value);
+    if (ret)
+        goto out;
+
+    if (!(ulp_value & ULP_H8_EN)) {
+        dev_err(hba->dev, "%s: ulp value : %x\n", __func__, ulp_value);
+        return 0;
+    }
+
+    ret = ufshcd_dme_get(hba, UIC_ARG_MIB(PA_GRANULARITY),
+                  &granularity);
+    if (ret)
+        goto out;
+
+    ret = ufshcd_dme_peer_get(hba, UIC_ARG_MIB(PA_GRANULARITY),
+                  &peer_granularity);
+    if (ret)
+        goto out;
+
+    if ((granularity < PA_GRANULARITY_MIN_VAL) ||
+        (granularity > PA_GRANULARITY_MAX_VAL)) {
+        dev_err(hba->dev, "%s: invalid host PA_GRANULARITY %d",
+            __func__, granularity);
+        return -EINVAL;
+    }
+
+    if ((peer_granularity < PA_GRANULARITY_MIN_VAL) ||
+        (peer_granularity > PA_GRANULARITY_MAX_VAL)) {
+        dev_err(hba->dev, "%s: invalid device PA_GRANULARITY %d",
+            __func__, peer_granularity);
+        return -EINVAL;
+    }
+
+    ret = ufshcd_dme_get(hba, UIC_ARG_MIB(PA_TACTIVATE), &pa_tactivate);
+    if (ret)
+        goto out;
+
+    ret = ufshcd_dme_peer_get(hba, UIC_ARG_MIB(PA_TACTIVATE),
+                  &peer_pa_tactivate);
+    if (ret)
+        goto out;
+
+    dev_info(hba->dev, "%s pre: %d,%d,%d,%d",
+         __func__, peer_pa_tactivate,
+         peer_granularity, pa_tactivate, granularity);
+
+    pa_tactivate_us = pa_tactivate * gran_to_us_table[granularity - 1];
+    peer_pa_tactivate_us = peer_pa_tactivate *
+            gran_to_us_table[peer_granularity - 1];
+    max_pa_tactivate_us = (pa_tactivate_us > peer_pa_tactivate_us) ?
+            pa_tactivate_us : peer_pa_tactivate_us;
+
+    new_peer_pa_tactivate = (max_pa_tactivate_us + ULP_TACTIVATE_COMP_TIME) /
+            gran_to_us_table[peer_granularity - 1];
+
+    ret = ufshcd_dme_peer_set(hba, UIC_ARG_MIB(PA_TACTIVATE),
+                  new_peer_pa_tactivate);
+    if (ret) {
+        dev_err(hba->dev, "%s: peer_pa_tactivate set err ", __func__);
+        goto out;
+    }
+
+    new_pa_tactivate = (max_pa_tactivate_us + ULP_TACTIVATE_COMP_TIME) /
+            gran_to_us_table[granularity - 1];
+    ret = ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TACTIVATE),
+                 new_pa_tactivate);
+    if (ret) {
+        dev_err(hba->dev, "%s: pa_tactivate set err ", __func__);
+        goto out;
+    }
+
+    dev_info(hba->dev, "%s post: %d,%d,%d,%d",
+         __func__, new_peer_pa_tactivate,
+         peer_granularity, new_pa_tactivate, granularity);
+
+out:
+    return ret;
+}
 
 const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops = {
 	.name = "sprd,ufshc-ums9620",
@@ -1182,5 +1276,6 @@ const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops = {
 	.suspend = ufs_sprd_suspend,
 	.event_notify = ufs_sprd_update_evt_hist,
 	.program_key = ufs_sprd_program_key,
+	.apply_dev_quirks = ufs_sprd_apply_dev_quirks,
 };
 EXPORT_SYMBOL(ufs_hba_sprd_ums9620_vops);
