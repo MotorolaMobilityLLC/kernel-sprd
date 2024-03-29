@@ -806,13 +806,22 @@ static irqreturn_t sprd_i2c_dma_isr(int irq, void *dev_id)
 {
 	struct sprd_i2c *i2c_dev = dev_id;
 	struct i2c_msg *msg = i2c_dev->msg;
-
+	u8 ret;
 	i2c_dev->err = 0;
 	i2c_dev->ack_flag = !(readl(i2c_dev->base + I2C_STATUS) & I2C_RX_ACK);
 	if (!i2c_dev->ack_flag) {
 		if (msg->flags & I2C_M_RD)
 			complete(&i2c_dev->dma_complete);
 		i2c_dev->err = -EIO;
+		//printk(KERN_ERR"[lizhongshi]err -EIO\n");
+		if (msg->addr == 0x08) { //for st21nfc
+			//printk(KERN_ERR"[lizhongshi]i2c need to be reset for nfc\n");
+			if (i2c_dev->rst != NULL) {
+				ret = reset_control_reset(i2c_dev->rst);
+				if (ret < 0)
+					dev_err(i2c_dev->dev, "i2c soft reset failed, ret = %d\n", ret);
+			}
+		}
 	}
 
 	sprd_i2c_clear_irq(i2c_dev);
