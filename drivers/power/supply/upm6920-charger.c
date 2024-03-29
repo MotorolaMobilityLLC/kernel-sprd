@@ -702,7 +702,7 @@ static void upm6920_charger_stop_charge(struct upm6920_charger_info *info, bool 
 {
 	int ret;
 
-	dev_info(info->dev, "%s:line%d: stop charge\n", __func__, __LINE__);
+	dev_info(info->dev, "%s:line%d: stop charge1\n", __func__, __LINE__);
 
 	if (info->role == UPM6920_ROLE_MASTER_DEFAULT) {
 		if (0){//!present || info->need_disable_Q1) {
@@ -739,9 +739,9 @@ static void upm6920_charger_stop_charge(struct upm6920_charger_info *info, bool 
 	}
 
 	if (info->disable_power_path) {
-	//	ret = upm6920_update_bits(info, UPM6920_REG_0,
-	//				  UPM6920_REG_EN_HIZ_MASK,
-	//				  0x01 << UPM6920_REG_EN_HIZ_SHIFT);
+		ret = upm6920_update_bits(info, UPM6920_REG_0,
+					  UPM6920_REG_EN_HIZ_MASK,
+					  0x01 << UPM6920_REG_EN_HIZ_SHIFT);
 		if (ret)
 			dev_err(info->dev, "Failed to disable power path\n");
 	}
