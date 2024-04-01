@@ -105,6 +105,7 @@ struct upm6920qc_charger_info {
 	struct power_supply *psy_fgu;
 	unsigned int dpdm_gpio;
 	struct power_supply *psy_cp;
+	struct regulator	*vdd;
 
 };
 
@@ -247,9 +248,13 @@ static int upm6920qc_hsphy_set_dpdm(struct upm6920qc_charger_info *info ,  int o
 				 1,
 				 1);         
 
+			if (info->vdd)
+				regulator_disable(info->vdd);
 
 	} else {
 
+			if (info->vdd)
+				ret = regulator_enable(info->vdd);
 
 			ret = regmap_update_bits(info->pmic, CHARGE_PD,     // 0x1e8 vddusb33 power up
 				 1,
@@ -487,6 +492,7 @@ static void upm6920qc_work(struct work_struct *data)
 			 * to charger manager, otherwise it will cause deadlock.
 			 */
 			upm6920qc_set_qc(info, VBUS_5V);
+			msleep(50);
 			gpio_direction_output(info->dpdm_gpio, 1); //analogy swtich
 			upm6920qc_hsphy_set_dpdm(info, 0); //pmic D+ D- high impedance
 			 
@@ -712,6 +718,11 @@ static int upm6920qc_charger_probe(struct platform_device *pdev)
 		goto err_regmap_exit;
 	}
 
+	info->vdd = devm_regulator_get_optional(dev, "vdd");
+	if (IS_ERR(info->vdd)) {
+		dev_warn(dev, "unable to get ssphy vdd supply\n");
+		info->vdd = NULL;
+	}
 
 	device_init_wakeup(info->dev, true);
 

@@ -608,7 +608,7 @@ static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
 		dev_err(info->dev, "set upm6920 limit current failed\n");
 
 	ret = upm6920_update_bits(info, UPM6920_REG_0, 0x40,0x00);
-	ret = upm6920_update_bits(info, UPM6920_REG_2, 0x01,0x00);
+	ret = upm6920_update_bits(info, UPM6920_REG_2, 0xff,0x00);
 
 	ret = upm6920_update_bits(info, UPM6920_REG_7, 0x08, 0);
 	ret = upm6920_update_bits(info, UPM6920_REG_6, 0x01, 0); //recharge  0:100mv 1:200mv
@@ -694,6 +694,8 @@ static int upm6920_charger_start_charge(struct upm6920_charger_info *info)
 	ret = upm6920_charger_set_termina_cur(info, info->termination_cur);
 	if (ret)
 		dev_err(info->dev, "set upm6920 terminal cur failed\n");
+
+	ret = upm6920_charger_set_vindpm(info, 4600);
 
 	return ret;
 }

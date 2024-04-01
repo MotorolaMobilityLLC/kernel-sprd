@@ -241,18 +241,21 @@
 				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
 				io-channel-names = "dp", "dm";
 				dpdm-gpio = <&ap_gpio 149 GPIO_ACTIVE_LOW>;
+				vdd-supply = <&vddusb33>;
 			};
 			hl7015qc_chg: hl7015qc {
 				compatible = "hl,hl7015qc_chg";
 				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
 				io-channel-names = "dp", "dm";
 				dpdm-gpio = <&ap_gpio 149 GPIO_ACTIVE_LOW>;
+				vdd-supply = <&vddusb33>;
 			};
 			upm6920qc_chg: upm6920qc {
 				compatible = "uni,upm6920qc_chg";
 				io-channels = <&pmic_adc 30>, <&pmic_adc 31>;
 				io-channel-names = "dp", "dm";
 				dpdm-gpio = <&ap_gpio 149 GPIO_ACTIVE_LOW>;
+				vdd-supply = <&vddusb33>;
 			};
 		};
 	};
