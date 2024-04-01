@@ -14,6 +14,7 @@ obj-$(CONFIG_SPRD_MODEM_DEBUG)	+= debug_log/
 obj-$(CONFIG_SPRD_PMIC_SMPL)	+= sprd_pmic_smpl.o
 obj-$(CONFIG_SPRD_PMIC_SYSCON)  += sprd_pmic_syscon.o
 obj-$(CONFIG_SPRD_SFP_SUPPORT)	+= sfp/
+obj-$(CONFIG_SPRD_SLA_SUPPORT)	+= sla/
 obj-$(CONFIG_SPRD_SYSDUMP) 	+= sysdump/
 obj-$(CONFIG_TIMESTAMP_SYNC)	+= kts_sync/
 obj-$(CONFIG_UNISOC_7SRESET)	+= sprd_7sreset.o
