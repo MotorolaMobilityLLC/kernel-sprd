@@ -726,31 +726,49 @@ static ssize_t backdoor_store(struct device *dev,
 	call_time = ktime_to_us(ktime_get());
 	err = sscanf(buf, "%d\n", &backdoor);
 	if (err < 1) {
-		dev_warn(dev->parent, "set backdoor err: %d", err);
-		return count;
+		dev_err(dev->parent, "set backdoor err: %d", err);
+		goto err;
 	}
 
 	if (backdoor_status == backdoor)
 		return count;
 
-	if (backdoor == 1)
-		err = gov_callback->governor_vote("top");
-	else if (backdoor == 0)
-		err = gov_callback->governor_unvote("top");
-	else
+	if (backdoor == 1) {
+		mutex_lock(&devfreq->lock);
+		force_freq = 0xbacd;
+		err = update_devfreq(devfreq);
+		mutex_unlock(&devfreq->lock);
+		if (err < 0)
+			goto err;
+
+	} else if (backdoor == 0) {
+		err = gov_callback->dvfs_auto_enable();
+		if (err) {
+			dev_err(dev->parent, "auto dfs enable fail");
+			goto err;
+		}
+		err = send_freq_request(0);
+		if (err) {
+			dev_err(dev->parent, "freq request 0 fail");
+			goto err;
+		}
+	} else {
 		err = -EINVAL;
+		goto err;
+	}
+
 	gov_callback->ddr_dfs_step_add(set_backdoor,
 				err, NULL, backdoor, task_pid_nr(current), call_time);
-	if (err) {
-		dev_err(dev->parent, "set backdoor %d fail: %d, PID: %d",
-			backdoor, err, task_pid_nr(current));
-		return err;
-	}
 	backdoor_status = backdoor;
 	dev_info(dev->parent, "set backdoor %d, PID: %d",
 		 backdoor, task_pid_nr(current));
 
 	return count;
+err:
+	dev_err(dev->parent, "set backdoor %d fail: %d, PID: %d",
+		backdoor, err, task_pid_nr(current));
+
+	return err;
 }
 static DEVICE_ATTR_RW(backdoor);
 
