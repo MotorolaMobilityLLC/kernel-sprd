@@ -59,7 +59,7 @@ struct cluster_info {
 	struct mutex mutex;
 	struct device_node *node;
 
-	int (*dvfs_init)(u32 flag);
+	int (*dvfs_init)(u32 flag, u32 flag2, u32 flag3);
 
 	int (*dvfs_debug_init)(void);
 
