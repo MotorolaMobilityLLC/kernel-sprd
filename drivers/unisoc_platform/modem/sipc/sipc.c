@@ -252,12 +252,6 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-#if defined(CONFIG_DEBUG_FS)
-	smem_init_debug();
-	smsg_init_debug();
-	sbuf_init_debug();
-	sblock_init_debug();
-#endif
 	return 0;
 out:
 	if (!IS_ERR(ipc->chan))
@@ -299,6 +293,12 @@ static int __init sprd_ipc_init(void)
 	smsg_init_channel2index();
 #if IS_ENABLED(CONFIG_UNISOC_SIPC)
 	sysdump_callback_register(smsg_senddie);
+#endif
+#if defined(CONFIG_DEBUG_FS)
+	smem_init_debug();
+	smsg_init_debug();
+	sbuf_init_debug();
+	sblock_init_debug();
 #endif
 	return platform_driver_register(&sprd_ipc_driver);
 }
