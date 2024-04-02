@@ -294,6 +294,21 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x0802))
 
+#if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
+/* SIP cache dump operations */
+#define SPRD_SIP_SVC_CACHEDUMP_REV					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			    ARM_SMCCC_SMC_32,				\
+			    ARM_SMCCC_OWNER_SIP,			\
+			    0x0A00))
+
+#define SPRD_SIP_SVC_CACHEDUMP_FUNC_API					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			    ARM_SMCCC_SMC_32,				\
+			    ARM_SMCCC_OWNER_SIP,			\
+			    0x0A01))
+#endif
+
 #define SPRD_SIP_RET_UNK	0xFFFFFFFFUL
 
 static struct sprd_sip_svc_handle sprd_sip_svc_handle = {};
@@ -690,6 +705,18 @@ static int sprd_sip_svc_npu_set_volts(u32 high_temp)
 	return sprd_sip_remap_err(res.a0);
 }
 
+#if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
+static int sprd_sip_svc_cachedump_func_api(uint8_t mesi, uint8_t sec, uint8_t valid)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_CACHEDUMP_FUNC_API,
+			mesi, sec, valid, 0, 0, 0, 0, &res);
+
+	return res.a0;
+}
+#endif
+
 static int __init sprd_sip_svc_init(void)
 {
 	int ret = 0;
@@ -804,6 +831,19 @@ static int __init sprd_sip_svc_init(void)
 	pr_notice("SPRD SIP SVC GPU:v%d.%d detected in firmware.\n",
 		sprd_sip_svc_handle.gpu_ops.rev.major_ver,
 		sprd_sip_svc_handle.gpu_ops.rev.minor_ver);
+
+#if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
+	/* init cachedump_ops */
+	arm_smccc_smc(SPRD_SIP_SVC_CACHEDUMP_REV, 0, 0, 0, 0, 0, 0, 0, &res);
+	sprd_sip_svc_handle.cachedump_ops.rev.major_ver = (u32)(res.a0);
+	sprd_sip_svc_handle.cachedump_ops.rev.minor_ver = (u32)(res.a1);
+
+	sprd_sip_svc_handle.cachedump_ops.cachedump_func_api = sprd_sip_svc_cachedump_func_api;
+
+	pr_notice("SPRD SIP SVC CACHEDUMP:v%d.%d detected in firmware.\n",
+			sprd_sip_svc_handle.cachedump_ops.rev.major_ver,
+			sprd_sip_svc_handle.cachedump_ops.rev.minor_ver);
+#endif
 
 	return ret;
 }

@@ -180,6 +180,23 @@ struct sprd_sip_svc_gpu_ops {
 	int (*update_voltage_list)(u32 temp, u32 pos);
 };
 
+#if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
+/**
+ * struct sprd_sip_svc_cachedump_ops - represents the various operations
+ * provided by SPRD SIP CACHEDUMP
+ *
+ * @cachedump_func_api: execute cachedump function
+ * @mesi: 0x1001 means save INVALID and MODIFED dcache
+ * @sec: 0x1 means save no_security dcache
+ * @valid: 0x1100 means save A64+A32 in A76, but means save Invalid+T32 in A55
+ */
+struct sprd_sip_svc_cachedump_ops {
+	struct sprd_sip_svc_rev_info rev;
+
+	int (*cachedump_func_api)(uint8_t mesi, uint8_t sec, uint8_t valid);
+};
+#endif
+
 /**
  * struct sprd_sip_svc_handle - Handle returned to SPRD SIP clients for usage
  *
@@ -196,6 +213,10 @@ struct sprd_sip_svc_handle {
 	struct sprd_sip_svc_storage_ops storage_ops;
 	struct sprd_sip_svc_npu_ops npu_ops;
 	struct sprd_sip_svc_gpu_ops gpu_ops;
+
+#if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
+	struct sprd_sip_svc_cachedump_ops cachedump_ops;
+#endif
 };
 
 /**
