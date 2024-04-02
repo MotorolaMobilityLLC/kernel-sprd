@@ -311,6 +311,7 @@ static int sprd_adi_read(struct sprd_adi *sadi, u32 reg, u32 *read_val)
 	u32 val;
 	int ret = 0;
 
+	*read_val = 0;
 	if (sadi->hwlock) {
 		ret = hwspin_lock_timeout_irqsave(sadi->hwlock,
 						  ADI_HWSPINLOCK_TIMEOUT,
@@ -624,7 +625,7 @@ static int sprd_adi_probe(struct platform_device *pdev)
 	pdev->id = of_alias_get_id(np, "spi");
 	num_chipselect = of_get_child_count(np);
 
-	ctlr = spi_alloc_master(&pdev->dev, sizeof(struct sprd_adi));
+	ctlr = devm_spi_alloc_master(&pdev->dev, sizeof(struct sprd_adi));
 	if (!ctlr)
 		return -ENOMEM;
 
@@ -708,15 +709,17 @@ static int sprd_adi_probe(struct platform_device *pdev)
 	ret = register_restart_handler(&sadi->restart_handler);
 	if (ret) {
 		dev_err(&pdev->dev, "can not register restart handler\n");
-		goto put_ctlr;
+		goto free_seq_buf;
 	}
 
 	return 0;
 
 free_seq_buf:
 	kfree(sprd_adi_seq_buf);
+	sprd_adi_seq_buf = NULL;
 free_adi_buf:
 	kfree(sprd_adi_buf);
+	sprd_adi_buf = NULL;
 put_ctlr:
 	spi_controller_put(ctlr);
 	return ret;
@@ -728,6 +731,11 @@ static int sprd_adi_remove(struct platform_device *pdev)
 	struct sprd_adi *sadi = spi_controller_get_devdata(ctlr);
 
 	unregister_restart_handler(&sadi->restart_handler);
+	kfree(sprd_adi_seq_buf);
+	sprd_adi_seq_buf = NULL;
+	kfree(sprd_adi_buf);
+	sprd_adi_buf = NULL;
+
 	return 0;
 }
 
