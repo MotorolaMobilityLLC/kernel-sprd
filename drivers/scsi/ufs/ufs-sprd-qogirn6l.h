@@ -55,4 +55,6 @@ struct ufs_sprd_ums9621_data {
 
 #define REG_ANLG_PHY_G12	0x64380000
 
+#define UFS_SLOW_MODE		(SLOW_MODE | (SLOW_MODE << 4))
+
 #endif/* _UFS_SPRD_QOGIRN6L_H_ */

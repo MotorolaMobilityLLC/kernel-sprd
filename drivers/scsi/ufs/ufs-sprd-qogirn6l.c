@@ -977,8 +977,10 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 	case PRE_CHANGE:
 		memcpy(final_params, desired_pwr_mode,
 		       sizeof(struct ufs_pa_layer_attr));
-		if (final_params->gear_rx == UFS_HS_G4)
-			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), 0x0);
+		if (final_params->gear_rx >= UFS_HS_G4)
+			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), PA_REFRESH_ADAPT);
+		else
+			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), PA_NO_ADAPT);
 		/* err==0 using dev_req_params,err!=0 using dev_max_params */
 		err = -EPERM;
 		break;
@@ -996,10 +998,96 @@ out:
 	return err;
 }
 
+static int is_ufs_sprd_host_in_pwm(struct ufs_hba *hba)
+{
+	int ret = 0;
+	u32 pwr_mode = 0;
+
+	ret = ufshcd_dme_get(hba, UIC_ARG_MIB(PA_PWRMODE),
+			&pwr_mode);
+	if (ret)
+		goto out;
+
+	if (((pwr_mode >> 0) & 0xf) == SLOWAUTO_MODE ||
+		((pwr_mode >> 0) & 0xf) == SLOW_MODE ||
+		((pwr_mode >> 4) & 0xf) == SLOWAUTO_MODE ||
+		((pwr_mode >> 4) & 0xf) == SLOW_MODE) {
+		ret = UFS_SLOW_MODE;
+	}
+
+out:
+	return ret;
+}
+
+static int sprd_ufs_pwmmode_change(struct ufs_hba *hba)
+{
+	int ret;
+	struct ufs_pa_layer_attr pwr_info;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	ret = is_ufs_sprd_host_in_pwm(hba);
+	if (ret == UFS_SLOW_MODE)
+		return 0;
+
+	pwr_info.gear_rx = UFS_PWM_G1;
+	pwr_info.gear_tx = UFS_PWM_G1;
+	pwr_info.lane_rx = 2;
+	pwr_info.lane_tx = 2;
+	pwr_info.pwr_rx = SLOW_MODE;
+	pwr_info.pwr_tx = SLOW_MODE;
+	pwr_info.hs_rate = 0;
+
+	ret = ufshcd_config_pwr_mode(hba, &pwr_info);
+	if (ret) {
+		dev_err(hba->dev, "change ufs to pwm mode failed!\n");
+		return ret;
+	}
+	dev_err(hba->dev, "ufs to pwm mode succ.\n");
+	complete(&host->pwm_async_done);
+
+	return 0;
+}
+
+static int sprd_ufs_hsmode_change(struct ufs_hba *hba)
+{
+	int ret;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	ret = is_ufs_sprd_host_in_pwm(hba);
+	if (ret != UFS_SLOW_MODE)
+		return 0;
+
+	ret = ufshcd_config_pwr_mode(hba, &(hba->max_pwr_info.info));
+	if (ret) {
+		dev_err(hba->dev, "ufs pwm to hs mode fail.\n");
+		return ret;
+	}
+	dev_err(hba->dev, "ufs_pwm2hs succ\n");
+	complete(&host->hs_async_done);
+
+	return 0;
+}
+
+static int check_afc_cali_ioctl_status(struct ufs_hba *hba)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	if (host->ioctl_status == UFS_IOCTL_ENTER_MODE) {
+		/* ufs change to pwm mode */
+		return sprd_ufs_pwmmode_change(hba);
+	} else if (host->ioctl_status == UFS_IOCTL_AFC_EXIT) {
+		/* ufs change to hs mode */
+		return sprd_ufs_hsmode_change(hba);
+	}
+
+	return 0;
+}
+
 static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 				    enum uic_cmd_dme cmd,
 				    enum ufs_notify_change_status status)
 {
+	int ret;
 	u32 set;
 	unsigned long flags;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
@@ -1031,6 +1119,17 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 			set |= UIC_COMMAND_COMPL;
 			ufshcd_writel(hba, set, REG_INTERRUPT_ENABLE);
 			spin_unlock_irqrestore(hba->host->host_lock, flags);
+
+			if (host->cali_mode_enable) {
+				down_write(&hba->clk_scaling_lock);
+				hba->caps &= ~UFSHCD_CAP_HIBERN8_WITH_CLK_GATING;
+				ret = check_afc_cali_ioctl_status(hba);
+				if (ret)
+					dev_err(hba->dev,
+						"ufs afc calibration change pwrmode fail.\n");
+				hba->caps |= UFSHCD_CAP_HIBERN8_WITH_CLK_GATING;
+				up_write(&hba->clk_scaling_lock);
+			}
 		}
 		break;
 	default:
