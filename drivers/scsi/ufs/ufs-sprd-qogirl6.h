@@ -29,6 +29,12 @@ struct ufs_sprd_ums9230_data {
 	void __iomem *dbg_apb_reg;
 
 	ktime_t last_linkup_time;
+
+	struct regulator *vddgen0;
+	struct regulator *avdd12;
+	struct regulator *avdd18;
+	struct regulator *vddcore;
+	struct regulator *vddmodem;
 };
 
 extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
@@ -39,6 +45,7 @@ extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
 #define VS_DEBUGSAVECONFIGTIME	0xD0A0
 
 /* UFS analog registers */
+#define MPHY_2T2R_APB_REG 0x64
 #define MPHY_2T2R_APB_REG1 0x68
 #define MPHY_2T2R_APB_RESETN (0x1 << 3)
 
@@ -67,6 +74,9 @@ extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
 #define	MPHY_RXOFFSETCALDONEOVR_ENABLE (BIT(5) | BIT(4))
 #define	MPHY_RXOFFOVRVAL_MASK GENMASK(11, 10)
 #define	MPHY_RXOFFOVRVAL_ENABLE (BIT(11) | BIT(10))
+
+#define	MPHY_DIG_CFG48_LANE0 0xC0C0
+#define	MPHY_DIG_CFG48_LANE1 0xC8C0
 
 #define	MPHY_DIG_CFG49_LANE0 0xC0C4
 #define	MPHY_DIG_CFG49_LANE1 0xC8C4
