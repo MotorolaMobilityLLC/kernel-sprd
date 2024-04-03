@@ -2086,6 +2086,7 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	const char *cmdline;
 	u32 buf[2];
 	int ret;
+	int cali_maxspeed;
 	bool mode;
 
 	if (sprd_usbmux_check_mode() == MUX_MODE) {
@@ -2219,10 +2220,17 @@ static int musb_sprd_probe(struct platform_device *pdev)
 	       (strstr(cmdline, "sprdboot.mode=cali") != NULL) ||
 	       (strstr(cmdline, "sprdboot.mode=autotest") != NULL);
 	if (mode) {
+		if (of_property_read_bool(node, "cali-fs")) {
+			cali_maxspeed = USB_SPEED_FULL;
+			dev_info(&pdev->dev, "cali maxspeed limits to fs\n");
+		} else {
+			cali_maxspeed = USB_SPEED_HIGH;
+			dev_info(&pdev->dev, "cali maxspeed limits to hs\n");
+		}
 		if (glue->use_singlefifo)
-			sprd_musb_hdrc_config_single.maximum_speed = USB_SPEED_FULL;
+			sprd_musb_hdrc_config_single.maximum_speed = cali_maxspeed;
 		else
-			sprd_musb_hdrc_config.maximum_speed = USB_SPEED_FULL;
+			sprd_musb_hdrc_config.maximum_speed = cali_maxspeed;
 	}
 
 	glue->enable_pm_suspend_in_host = of_property_read_bool(node, "wakeup-source");
