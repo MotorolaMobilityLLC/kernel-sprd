@@ -1098,16 +1098,16 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 		}
 
 		if ((priv != NULL) && ufshcd_is_link_hibern8(hba) && (on == false)) {
-			usleep_range(1000, 1100);
+			usleep_range(100, 110);
 			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
 				priv->ufsdev_refclk_en.reg,
 				priv->ufsdev_refclk_en.mask,
-			    priv->ufsdev_refclk_en.mask);
+				0);
 
 			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
 				priv->usb31pllv_ref2mphy_en.reg,
 				priv->usb31pllv_ref2mphy_en.mask,
-				priv->usb31pllv_ref2mphy_en.mask);
+				0);
 		}
 		break;
 	case POST_CHANGE:
