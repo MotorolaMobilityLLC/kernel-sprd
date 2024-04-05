@@ -60,7 +60,7 @@
 							vactive = <1604>;
 							hback-porch = <180>;
 							hfront-porch = <268>;
-							vback-porch = <32>;
+							vback-porch = <33>;
 							vfront-porch = <800>;
 							hsync-len = <4>;
 							vsync-len = <4>;
@@ -72,7 +72,7 @@
 							vactive = <1604>;
 							hback-porch = <32>;
 							hfront-porch = <32>;
-							vback-porch = <32>;
+							vback-porch = <33>;
 							vfront-porch = <780>;
 							hsync-len = <4>;
 							vsync-len = <4>;
@@ -84,7 +84,7 @@
 							vactive = <1604>;
 							hback-porch = <32>;
 							hfront-porch = <32>;
-							vback-porch = <32>;
+							vback-porch = <33>;
 							vfront-porch = <180>;
 							hsync-len = <4>;
 							vsync-len = <4>;
