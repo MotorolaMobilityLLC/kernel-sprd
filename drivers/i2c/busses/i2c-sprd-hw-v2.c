@@ -313,6 +313,7 @@ static int sprd_i2c_hw_handle_msg(struct i2c_adapter *i2c_adap,
 	i2c_dev->buf = pmsg->buf;
 	i2c_dev->count = pmsg->len;
 
+	dev_warn(&i2c_dev->adap.dev, "This is a dedicated iic channel for dvfs.\n");
 	ret = sprd_i2c_hw_check_noack(i2c_dev);
 	if (ret)
 		return ret;
