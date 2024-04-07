@@ -16,6 +16,7 @@
 #ifndef __SPRD_SIP_SVC_H__
 #define __SPRD_SIP_SVC_H__
 
+#include <linux/arm-smccc.h>
 #include <linux/init.h>
 #include <linux/types.h>
 
@@ -89,7 +90,8 @@ struct sprd_sip_svc_dbg_ops {
 struct sprd_sip_svc_pwr_ops {
 	struct sprd_sip_svc_rev_info rev;
 	int (*get_wakeup_source)(u32 *major, u32 *second, u32 *thrid);
-	u64 (*get_pdbg_info)(u32 scene, u32 phase, u64 *r0, u64 *r1, u64 *r2, u64 *r3);
+	u64 (*pdbg_info_trans)(u32 scene, u32 priv0, u32 priv1, u32 priv2,
+			       struct arm_smccc_res *ret);
 };
 
 /**

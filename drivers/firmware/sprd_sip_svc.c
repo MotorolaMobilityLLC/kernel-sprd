@@ -154,12 +154,11 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x0501)
 
-#define SPRD_SIP_SVC_PWR_PDBG_INFO_GET					\
-	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+#define SPRD_SIP_SVC_PDBG_INFO_TRANS					\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
 			   ARM_SMCCC_SMC_32,				\
 			   ARM_SMCCC_OWNER_SIP,				\
-			   0x0502))
-
+			   0x0502)
 /* SIP dvfs operations */
 #define SPRD_SIP_SVC_DVFS_REV						\
 	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
@@ -442,23 +441,15 @@ static int sprd_sip_svc_pwr_get_wakeup_source(u32 *major, u32 *second, u32 *thri
 	return res.a0;
 }
 
-static u64 sprd_sip_svc_pwr_get_pdbg_info(u32 scene, u32 phase, u64 *r0, u64 *r1, u64 *r2, u64 *r3)
+static u64 sprd_sip_svc_pdbg_info_trans(u32 scene, u32 priv0, u32 priv1, u32 priv2,
+					struct arm_smccc_res *ret)
 {
 	struct arm_smccc_res res;
 
-	arm_smccc_smc(SPRD_SIP_SVC_PWR_PDBG_INFO_GET, scene, phase, 0, 0, 0, 0, 0, &res);
+	arm_smccc_smc(SPRD_SIP_SVC_PDBG_INFO_TRANS, scene, priv0, priv1, priv2, 0, 0, 0, &res);
 
-	if (r0 != NULL)
-		*r0 = res.a0;
-
-	if (r1 != NULL)
-		*r1 = res.a1;
-
-	if (r2 != NULL)
-		*r2 = res.a2;
-
-	if (r3 != NULL)
-		*r3 = res.a3;
+	if (ret != NULL)
+		*ret = res;
 
 	return res.a0;
 }
@@ -742,7 +733,7 @@ static int __init sprd_sip_svc_init(void)
 	sprd_sip_svc_handle.pwr_ops.rev.minor_ver = res.a1;
 
 	sprd_sip_svc_handle.pwr_ops.get_wakeup_source = sprd_sip_svc_pwr_get_wakeup_source;
-	sprd_sip_svc_handle.pwr_ops.get_pdbg_info = sprd_sip_svc_pwr_get_pdbg_info;
+	sprd_sip_svc_handle.pwr_ops.pdbg_info_trans = sprd_sip_svc_pdbg_info_trans;
 
 	/* init dvfs_ops */
 	arm_smccc_smc(SPRD_SIP_SVC_DVFS_REV, 0, 0, 0, 0, 0, 0, 0, &res);
