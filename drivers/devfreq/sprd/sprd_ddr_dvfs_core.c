@@ -14,6 +14,7 @@
 #include <linux/mutex.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
+#include <linux/pm_wakeup.h>
 #include <linux/slab.h>
 #include <linux/suspend.h>
 #include <linux/sipc.h>
@@ -94,6 +95,7 @@ struct dvfs_data {
 	unsigned int init_done;
 	struct mutex dfs_step_mutex;
 	struct delayed_work topfreq_unvote_work;
+	struct wakeup_source *wake_lock;
 };
 static struct dvfs_data *g_dvfs_data;
 static char *default_governor = "sprd-governor";
@@ -330,16 +332,19 @@ static int dvfs_msg(unsigned int *data, unsigned int value,
 	int err = 0;
 	struct smsg msg;
 
+	__pm_stay_awake(g_dvfs_data->wake_lock);
 	err = dvfs_msg_send(&msg, cmd, msecs_to_jiffies(100), value);
 	if (err < 0)
-		return err;
+		goto ret;
 
 	err = dvfs_msg_recv(&msg, msecs_to_jiffies(wait));
 	if (err < 0)
-		return err;
+		goto ret;
 
 	err = dvfs_msg_parse_ret(&msg);
 	*data = msg.value;
+ret:
+	__pm_relax(g_dvfs_data->wake_lock);
 	return err;
 }
 
@@ -860,6 +865,12 @@ int dvfs_core_init(struct platform_device *pdev)
 		goto err_device;
 	}
 
+	g_dvfs_data->wake_lock = wakeup_source_register(g_dvfs_data->dev, dev_name(dev));
+	if (!g_dvfs_data->wake_lock) {
+		dev_err(dev, "register wakeup lock fail\n");
+		goto err_device;
+	}
+
 	platform_set_drvdata(pdev, g_dvfs_data);
 	return 0;
 
@@ -870,6 +881,7 @@ err_device:
 
 int dvfs_core_clear(struct platform_device *pdev)
 {
+	wakeup_source_unregister(g_dvfs_data->wake_lock);
 	devfreq_remove_device(g_dvfs_data->devfreq);
 	sprd_dvfs_del_governor();
 	devm_kfree(&pdev->dev, g_dvfs_data);
