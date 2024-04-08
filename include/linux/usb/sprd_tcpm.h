@@ -640,6 +640,8 @@ struct sprd_tcpm_port {
 	struct delayed_work dp_work;
 	u32 dp_status;
 	u32 vdm_discovery_id_retry;
+	bool vdm_sent;
+	bool vdm_queue;
 
 	/* PPS */
 	struct sprd_pd_pps_data pps_data;
