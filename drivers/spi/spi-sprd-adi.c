@@ -500,7 +500,9 @@ static int sprd_adi_restart_handler(struct notifier_block *this, unsigned long m
 {
 	struct sprd_adi *sadi = container_of(this, struct sprd_adi,
 					     restart_handler);
+	struct device_node *np = sadi->dev->of_node;
 	u32 val = 0, reboot_mode = 0, sml_mode;
+	u32 ret;
 
 	if (!cmd) {
 		if (strlen(panic_reason)) {
@@ -550,19 +552,26 @@ static int sprd_adi_restart_handler(struct notifier_block *this, unsigned long m
 		sprd_adi_write(sadi, sadi->data->rst_sts, val);
 	}
 
-	/*enable register reboot mode*/
-	sprd_adi_read(sadi, sadi->data->swrst_base, &val);
-	val |= REG_RST_EN;
-	sprd_adi_write(sadi, sadi->data->swrst_base, val);
+	val = 0;
+	ret = of_property_read_u32(np, "sprd,psci-reboot", &val);
+	if (val)
+		dev_info(sadi->dev, "psci reboot enable\n");
+	else {
+		dev_info(sadi->dev, "kernel reboot enable\n");
+		/*enable register reboot mode*/
+		sprd_adi_read(sadi, sadi->data->swrst_base, &val);
+		val |= REG_RST_EN;
+		sprd_adi_write(sadi, sadi->data->swrst_base, val);
 
-	/*enable soft reboot mode */
-	sprd_adi_read(sadi, sadi->data->softrst_base, &val);
-	val |= REG_SOFT_RST;
-	sprd_adi_write(sadi, sadi->data->softrst_base, val);
+		/*enable soft reboot mode */
+		sprd_adi_read(sadi, sadi->data->softrst_base, &val);
+		val |= REG_SOFT_RST;
+		sprd_adi_write(sadi, sadi->data->softrst_base, val);
 
-	mdelay(1000);
+		mdelay(1000);
 
-	dev_emerg(sadi->dev, "Unable to restart system\n");
+		dev_emerg(sadi->dev, "Unable to restart system\n");
+	}
 	return NOTIFY_DONE;
 }
 
