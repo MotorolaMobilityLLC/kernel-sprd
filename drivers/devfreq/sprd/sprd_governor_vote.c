@@ -10,6 +10,7 @@
 #include <linux/errno.h>
 #include <linux/ktime.h>
 #include <linux/module.h>
+#include <linux/mutex.h>
 #include <linux/slab.h>
 #include <linux/pm_qos.h>
 #include "sprd_ddr_dvfs.h"
@@ -17,6 +18,7 @@
 static unsigned int force_freq;
 static int backdoor_status;
 static struct devfreq *gov_devfreq;
+static struct mutex dfs_step_mutex;
 
 static ssize_t scaling_request_ddr_freq_show(struct device *dev,
 					     struct device_attribute *attr, char *buf)
@@ -56,9 +58,10 @@ static ssize_t scaling_request_ddr_freq_store(struct device *dev, struct device_
 		return count;
 	}
 	err = gov_callback->send_freq_request(request_freq);
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(SEND_FREQ_REQUEST_T, err, NULL, request_freq,
 				       task_pid_nr(current), current->comm, call_time);
-
+	mutex_unlock(&dfs_step_mutex);
 	if (err) {
 		dev_err(dev, "request freq fail: %d\n", err);
 		return err;
@@ -95,8 +98,10 @@ static ssize_t scaling_force_ddr_freq_show(struct device *dev,
 
 	count = sprintf(buf, "%u\n", freq);
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(GET_DVFS_FORCE_FREQ_T, err, NULL, data,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
 
 	return count;
 }
@@ -144,8 +149,10 @@ static ssize_t scaling_force_ddr_freq_store(struct device *dev, struct device_at
 		status = 0;
 	}
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(SCALING_FORCE_DDR_FREQ, status, NULL, force_freq,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
 
 	if (err)
 		return err;
@@ -178,8 +185,10 @@ static ssize_t scaling_overflow_show(struct device *dev,
 	}
 	count += sprintf(&buf[count], "\n");
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(GET_OVERFLOW_T, 0, NULL, freq_num,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
 
 	if (err)
 		return err;
@@ -220,8 +229,10 @@ static ssize_t scaling_overflow_store(struct device *dev, struct device_attribut
 	if (err)
 		dev_err(dev->parent, "set sel[%u] overflow %u fail: %d\n", sel, overflow, err);
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(SET_OVERFLOW_T, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
 	kfree(arg);
 	arg = NULL;
 
@@ -256,8 +267,11 @@ static ssize_t scaling_underflow_show(struct device *dev,
 	}
 	count += sprintf(&buf[count], "\n");
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(GET_UNDERFLOW_T, 0, NULL, freq_num,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
+
 	if (err)
 		return err;
 
@@ -297,9 +311,10 @@ static ssize_t scaling_underflow_store(struct device *dev, struct device_attribu
 	if (err)
 		dev_err(dev->parent, "set sel[%u] underflow %u fail: %d\n", sel, underflow, err);
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(SET_UNDERFLOW_T, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
-
+	mutex_unlock(&dfs_step_mutex);
 	kfree(arg);
 	arg = NULL;
 
@@ -328,8 +343,10 @@ static ssize_t dfs_on_off_show(struct device *dev,
 	}
 	count = sprintf(buf, "%u\n", data);
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(GET_DVFS_STATUS_T, err, NULL, data,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
 
 	if (err)
 		return err;
@@ -359,8 +376,10 @@ static ssize_t dfs_on_off_store(struct device *dev, struct device_attribute *att
 	else
 		err = -EINVAL;
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(DFS_ON_OFF, err, NULL, enable,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
 
 	if (err) {
 		dev_err(dev->parent, "ddr dfs enable[%u] fail: %d\n", enable, err);
@@ -389,8 +408,11 @@ static ssize_t auto_dfs_on_off_show(struct device *dev,
 	}
 	count = sprintf(buf, "%u\n", data);
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(GET_DVFS_AUTO_STATUS_T, err, NULL, data,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
+
 	if (err)
 		return err;
 
@@ -419,8 +441,11 @@ static ssize_t auto_dfs_on_off_store(struct device *dev, struct device_attribute
 	else
 		err = -EINVAL;
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(AUTO_DFS_ON_OFF, err, NULL, enable,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
+
 	if (err) {
 		dev_err(dev->parent,
 			"ddr auto dfs enable[%u] fail: %d, pid: %d, comm: %s\n",
@@ -453,8 +478,11 @@ static ssize_t ddrinfo_cur_freq_show(struct device *dev,
 	}
 	count = sprintf(buf, "%u\n", data);
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(GET_CUR_FREQ_T, err, NULL, data,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
+
 	if (err)
 		return err;
 
@@ -484,8 +512,11 @@ static ssize_t ddrinfo_freq_table_show(struct device *dev,
 	}
 	count += sprintf(&buf[count], "\n");
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(GET_FREQ_TABLE_T, 0, NULL, freq_num,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
+
 	if (err)
 		return err;
 
@@ -520,8 +551,10 @@ static ssize_t scenario_dfs_store(struct device *dev, struct device_attribute *a
 		dev_err(dev->parent, "scene %s enter fail: %d, pid: %d, comm: %s\n",
 			arg, err, task_pid_nr(current), current->comm);
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(SCENARIO_DFS_ENTER, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
 	kfree(arg);
 	arg = NULL;
 
@@ -559,8 +592,10 @@ static ssize_t exit_scene_store(struct device *dev, struct device_attribute *att
 		dev_err(dev->parent, "scene %s exit fail: %d, pid: %d, comm: %s\n",
 			arg, err, task_pid_nr(current), current->comm);
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(EXIT_SCENE, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
 	kfree(arg);
 	arg = NULL;
 
@@ -605,8 +640,10 @@ static ssize_t scene_freq_set_store(struct device *dev, struct device_attribute 
 	if (err)
 		dev_err(dev->parent, "scene %s change freq %u fail: %d\n", arg, freq, err);
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(SCENE_FREQ_SET, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
 	kfree(arg);
 	arg = NULL;
 
@@ -668,12 +705,15 @@ static ssize_t scene_boost_dfs_store(struct device *dev, struct device_attribute
 		err = -EINVAL;
 	}
 out:
+	mutex_lock(&dfs_step_mutex);
 	if (enable == 1)
 		gov_callback->ddr_dfs_step_add(SCENE_BOOST_ENTER, err, NULL, freq,
 					       task_pid_nr(current), current->comm, call_time);
 	else
 		gov_callback->ddr_dfs_step_add(SCENE_BOOST_ENTER, err, NULL, enable,
 					       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
+
 	if (err) {
 		dev_err(dev->parent, "scene boost freq %u enter[%u] fail: %d\n",
 			freq, enable, err);
@@ -714,8 +754,11 @@ static ssize_t backdoor_store(struct device *dev, struct device_attribute *attr,
 		err = gov_callback->governor_unvote("top");
 	else
 		err = -EINVAL;
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(SET_BACKDOOR, err, NULL, backdoor,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
+
 	if (err) {
 		dev_err(dev->parent, "set backdoor %d fail: %d, pid: %d, comm: %s\n",
 			backdoor, err, task_pid_nr(current), current->comm);
@@ -880,8 +923,10 @@ int change_scene_freq(char *scenario, unsigned int freq)
 		dev_err(devfreq->dev.parent, "scene %s change freq %u fail: %d\n",
 			scenario, freq, err);
 
+	mutex_lock(&dfs_step_mutex);
 	gov_callback->ddr_dfs_step_add(CHANGE_POINT, err, arg, name_len,
 				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
 	kfree(arg);
 
 	return err;
@@ -892,6 +937,7 @@ static int gov_vote_start(struct devfreq *devfreq)
 {
 	int err;
 
+	mutex_init(&dfs_step_mutex);
 	err = sysfs_create_group(&devfreq->dev.kobj, &gov_vote_attrs);
 	if (err) {
 		dev_err(devfreq->dev.parent, "dvfs sysfs create fail: %d\n", err);

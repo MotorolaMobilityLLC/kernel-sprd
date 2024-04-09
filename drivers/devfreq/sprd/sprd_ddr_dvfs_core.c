@@ -95,7 +95,6 @@ struct dvfs_data {
 	struct completion reg_callback_done;
 	struct governor_callback *gov_callback;
 	unsigned int init_done;
-	struct mutex dfs_step_mutex;
 	struct delayed_work topfreq_unvote_work;
 	unsigned int dvfs_smsg_thread_process;
 	struct wakeup_source *wake_lock;
@@ -128,7 +127,6 @@ static struct ddr_dfs_step_list_t *ddr_step_list_init(u32 node_num)
 static void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char *scene,
 			     u32 buff, int pid, char *comm, ktime_t time)
 {
-	mutex_lock(&g_dvfs_data->dfs_step_mutex);
 	ddr_cur_step_g = ddr_cur_step_g->next;
 
 	ddr_cur_step_g->data.step = cur_step;
@@ -146,14 +144,12 @@ static void ddr_dfs_step_add(enum DDR_DFS_STATE_STEP cur_step, int status, char 
 	ddr_cur_step_g->data.buff = buff;
 	ddr_cur_step_g->data.pid = pid;
 	ddr_cur_step_g->data.time = time;
-	mutex_unlock(&g_dvfs_data->dfs_step_mutex);
 }
 
 static int ddrinfo_dfs_step_parse(char **arg, char **step_status, char **scene,
 				  u32 *buff, int *pid, char **comm, ktime_t *time, u32 i)
 {
-	if (i == 0)
-		mutex_lock(&g_dvfs_data->dfs_step_mutex);
+	int ret = 0;
 
 	ddr_cur_step_g = ddr_cur_step_g->next;
 	*scene = NULL;
@@ -232,12 +228,10 @@ static int ddrinfo_dfs_step_parse(char **arg, char **step_status, char **scene,
 	*comm = ddr_cur_step_g->data.comm;
 	*pid = ddr_cur_step_g->data.pid;
 	*time = ddr_cur_step_g->data.time;
-	if (i >= (DDR_DB_NODE_NUM - 1)) {
-		mutex_unlock(&g_dvfs_data->dfs_step_mutex);
-		return 1;
-	} else {
-		return 0;
-	}
+	if (i >= (DDR_DB_NODE_NUM - 1))
+		ret =  1;
+
+	return ret;
 }
 
 static int ddr_dvfs_panic_handler(struct notifier_block *self, unsigned long val, void *reason)
@@ -1007,8 +1001,6 @@ int dvfs_core_init(struct platform_device *pdev)
 	mutex_init(&g_dvfs_data->sync_mutex);
 	init_completion(&g_dvfs_data->reg_callback_done);
 	g_dvfs_data->gov_callback = &g_gov_callback;
-
-	mutex_init(&g_dvfs_data->dfs_step_mutex);
 	ddr_cur_step_g = ddr_step_list_init(DDR_DB_NODE_NUM);
 
 	err = 0;
