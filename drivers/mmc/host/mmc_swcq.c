@@ -1008,7 +1008,7 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 		return;
 	}
 
-	if (!swcq->timer_running && swcq->cmdq_support) {
+	if (!swcq->timer_running && swcq->cmdq_support && swcq->switch_en) {
 		swcq->timer_running = true;
 		mod_timer(&swcq->check_timer, jiffies + msecs_to_jiffies(swcq->timeout));
 	}
@@ -2151,7 +2151,8 @@ out:
 
 	atomic_set(&swcq->random_cnt, 0);
 	atomic_set(&swcq->sequential_cnt, 0);
-	mod_timer(&swcq->check_timer, jiffies + msecs_to_jiffies(swcq->timeout));
+	if (swcq->switch_en)
+		mod_timer(&swcq->check_timer, jiffies + msecs_to_jiffies(swcq->timeout));
 
 }
 
@@ -2252,14 +2253,54 @@ static const struct proc_ops swcq_cmdqmode_fops = {
 	.proc_release = single_release,
 };
 
+static int sprd_swcq_switch_en_show(struct seq_file *m, void *v)
+{
+	struct mmc_swcq *swcq = g_swcq;
+
+	seq_printf(m, "switch_en: %d\n", swcq->switch_en);
+
+	return 0;
+}
+
+static ssize_t sprd_swcq_switch_en_write(struct file *file,
+		const char __user *buffer, size_t count, loff_t *pos)
+{
+	struct mmc_swcq *swcq = g_swcq;
+	char val;
+
+	if (count > 0) {
+		if (get_user(val, buffer))
+			return -EFAULT;
+
+		swcq->switch_en = (val == '1') ? true : false;
+	}
+
+	return count;
+}
+
+static int sprd_swcq_switch_en_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sprd_swcq_switch_en_show, inode->i_private);
+}
+
+static const struct proc_ops swcq_switch_en_fops = {
+	.proc_open = sprd_swcq_switch_en_open,
+	.proc_read = seq_read,
+	.proc_write = sprd_swcq_switch_en_write,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
+};
+
 static const struct proc_ops *proc_fops_list[] = {
 	&swcq_cmd_fops,
 	&swcq_cmdqmode_fops,
+	&swcq_switch_en_fops,
 };
 
 static char * const sprd_emmc_node_info[] = {
 	"cmd_history",
-	"cmdq_mode"
+	"cmdq_mode",
+	"switch_en"
 };
 
 int sprd_create_swcq_proc_init(void)
@@ -2425,6 +2466,7 @@ int mmc_swcq_init(struct mmc_swcq *swcq, struct mmc_host *mmc)
 	swcq->timer_running = false;
 	swcq->mode_need_change = true;
 	swcq->pump_busy = false;
+	swcq->switch_en = true;
 	swcq->recovery_cnt = 0;
 	swcq->r1_address_error = 0;
 	swcq->r1_block_len_error = 0;
