@@ -24,7 +24,125 @@
 #include "../core/mmc_ops.h"
 #include "sdhci.h"
 
+#define SPRD_SPEED_MODE_NAME_MAX	20
+#define SPRD_SPEED_MODE_NAME_MIN	2
+
+#define MMC_TIMING 0
+#define SD_TIMING 1
+#define NOT_SUPPORT 3
+
 bool debug_en;
+
+struct mmc_speed_config {
+	char *name;
+	u8 support; /* support: sd or mmc */
+	u32 caps; /* sd: need modify host caps */
+	u32 type; /* mmc: need modify mmc_avail_type */
+};
+
+static const struct mmc_speed_config mmc_speed[] = {
+	{"LEGACY", SD_TIMING, MMC_CAP_SD_HIGHSPEED, 0}, /* MMC_TIMING_LEGACY: 0 */
+	{"HS", MMC_TIMING, 0, EXT_CSD_CARD_TYPE_HS}, /* MMC_TIMING_MMC_HS: 1 */
+	{"HS", SD_TIMING, MMC_CAP_SD_HIGHSPEED, 0}, /* MMC_TIMING_SD_HS: 2 */
+	{"SDR12", NOT_SUPPORT, MMC_CAP_UHS_SDR12, 0}, /* MMC_TIMING_UHS_SDR12: 3 */
+	{"SDR25", NOT_SUPPORT, MMC_CAP_UHS_SDR25, 0}, /* MMC_TIMING_UHS_SDR25: 4 */
+	{"SDR50", SD_TIMING, MMC_CAP_UHS_SDR50, 0}, /* MMC_TIMING_UHS_SDR50: 5 */
+	{"SDR104", SD_TIMING, MMC_CAP_UHS_SDR104, 0}, /* MMC_TIMING_UHS_SDR104: 6 */
+	{"DDR50", NOT_SUPPORT, MMC_CAP_DDR, 0}, /* MMC_TIMING_UHS_DDR50: 7 */
+	{"DDR52", MMC_TIMING, 0, EXT_CSD_CARD_TYPE_DDR_52}, /* MMC_TIMING_MMC_DDR52: 8 */
+	{"HS200", MMC_TIMING, 0, EXT_CSD_CARD_TYPE_HS200}, /* MMC_TIMING_MMC_HS200: 9 */
+	{"HS400", MMC_TIMING, 0, EXT_CSD_CARD_TYPE_HS400}, /* MMC_TIMING_MMC_HS400: 10 */
+	{"HS400ES", MMC_TIMING, 0, EXT_CSD_CARD_TYPE_HS400ES}, /* add new define HS400_ES: 11 */
+};
+
+static int sdhci_sprd_set_timing_show(struct seq_file *file, void *data)
+{
+	struct mmc_host *host = file->private;
+	u8 timing = host->ios.enhanced_strobe ? host->ios.timing + 1 : host->ios.timing;
+	static const char * const mmc_select_mode[] = {
+		"support select HS, DDR52, HS200, HS400, HS400ES\n", /* EMMC */
+		"support select LEGACY, HS, SDR50, SDR104\n" /* SD */
+	};
+
+	seq_printf(file, "%s current speed is: [%s], %s\n",
+		mmc_hostname(host), mmc_speed[timing].name, mmc_select_mode[host->index]);
+
+	return 0;
+}
+
+static int sdhci_sprd_set_timing_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sdhci_sprd_set_timing_show, PDE_DATA(inode));
+}
+
+static bool sdhci_sprd_raw_cfg(struct mmc_host *host, u32 caps, u32 mmc_type)
+{
+	static u32 sd_caps, mmc_avail_type; /* record mmc default config */
+
+	if (mmc_card_sd(host->card)) {
+		sd_caps |= host->caps;
+		host->caps = sd_caps;
+	} else if (mmc_card_mmc(host->card)) {
+		mmc_avail_type |= host->card->mmc_avail_type;
+		host->card->mmc_avail_type = mmc_avail_type;
+	}
+
+	if (!(sd_caps & caps) && !(mmc_avail_type & mmc_type))
+		return false;
+
+	return true;
+}
+
+static ssize_t sdhci_sprd_set_timing_write(struct file *filp, const char __user *ubuf,
+				   size_t cnt, loff_t *ppos)
+{
+	struct mmc_host *host = PDE_DATA(file_inode(filp));
+	u8 timing = host->ios.enhanced_strobe ? host->ios.timing + 1 : host->ios.timing;
+	char temp[SPRD_SPEED_MODE_NAME_MAX] = {0};
+	bool flag = false;
+	int i;
+
+	if (!host->card || mmc_card_sdio(host->card) ||
+		cnt > SPRD_SPEED_MODE_NAME_MAX || cnt < SPRD_SPEED_MODE_NAME_MIN)
+		goto out;
+
+	if (copy_from_user(temp, ubuf, cnt - 1))
+		return -EFAULT;
+
+	for (i = 0; i < ARRAY_SIZE(mmc_speed); i++) {
+		if (mmc_speed[i].support != host->index)
+			continue;
+		if (flag) {
+			host->card->mmc_avail_type &= ~mmc_speed[i].type;
+			host->caps &= ~mmc_speed[i].caps;
+		} else if (!strcmp(mmc_speed[i].name, temp)) {
+			if (!sdhci_sprd_raw_cfg(host, mmc_speed[i].caps, mmc_speed[i].type))
+				break;
+			flag = true;
+		}
+	}
+
+	if (!flag) {
+		pr_err("%s does not support %s, set timing fail!\n", mmc_hostname(host), temp);
+		goto out;
+	}
+
+	mmc_claim_host(host);
+	host->bus_ops->hw_reset(host);
+	mmc_release_host(host);
+
+	pr_info("%s current speed is: [%s], set timing success!\n",
+		mmc_hostname(host), mmc_speed[timing].name);
+out:
+	return cnt;
+}
+
+static const struct proc_ops sdhci_sprd_set_timing_fops = {
+	.proc_open = sdhci_sprd_set_timing_open,
+	.proc_read = seq_read,
+	.proc_write = sdhci_sprd_set_timing_write,
+	.proc_release = single_release,
+};
 
 static int sdhci_sprd_reset_show(struct seq_file *file, void *data)
 {
@@ -137,6 +255,7 @@ void sdhci_sprd_add_host_debug(struct sdhci_host *host)
 {
 	static struct proc_dir_entry *debug_parent;
 	static struct proc_dir_entry *debug_en_data;
+	struct mmc_host *mmc = host->mmc;
 
 	debug_parent = proc_mkdir(mmc_hostname(host->mmc), NULL);
 	if (!debug_parent) {
@@ -146,17 +265,30 @@ void sdhci_sprd_add_host_debug(struct sdhci_host *host)
 		goto err;
 	}
 
-	debug_en_data = proc_create_data("debug_enable", 0660, debug_parent,
-		&sdhci_sprd_debugen_fops, NULL);
-	if (!debug_en_data) {
-		pr_err("%s: failed to create sprd_host_debug proc data\n",
-			__func__);
+	if (host->mmc->index == 0) {
+		debug_en_data = proc_create_data("debug_enable", 0660, debug_parent,
+			&sdhci_sprd_debugen_fops, NULL);
+		if (!debug_en_data) {
+			pr_err("%s: failed to create node: /proc/%s/debug_enable\n",
+				__func__, mmc_hostname(mmc));
 
-		goto err;
+			goto err;
+		}
+	}
+
+	if (host->mmc->index != 2) {
+		debug_en_data = proc_create_data("set_timing", 0660, debug_parent,
+			&sdhci_sprd_set_timing_fops, mmc);
+		if (!debug_en_data) {
+			pr_err("%s: failed to create node: /proc/%s/set_timing\n",
+				__func__, mmc_hostname(mmc));
+
+			goto err;
+		}
 	}
 
 	return;
 err:
 	//call the function will cause gki error
-	remove_proc_subtree(mmc_hostname(host->mmc), NULL);
+	remove_proc_subtree(mmc_hostname(mmc), NULL);
 }
