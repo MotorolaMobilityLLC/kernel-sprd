@@ -450,6 +450,7 @@
 #include "audio.dtsi"
 #include "power.dtsi"
 #include "ptm.dtsi"
+#include "pnp.dtsi"
 #include "qos.dtsi"
 #include "sdio.dtsi"
 #include "sensorhub.dtsi"

@@ -1396,6 +1396,7 @@
 #include "pin-controller.dtsi"
 #include "power.dtsi"
 #include "audio.dtsi"
+#include "pnp.dtsi"
 #include "qos.dtsi"
 #include "thermal.dtsi"
 #include "sdio.dtsi"

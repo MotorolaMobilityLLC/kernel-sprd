@@ -261,6 +261,7 @@
 #include "pinctrl.dtsi"
 #include "power.dtsi"
 #include "ptm.dtsi"
+#include "pnp.dtsi"
 #include "pwm.dtsi"
 #include "sdio.dtsi"
 #include "sensorhub.dtsi"

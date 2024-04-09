@@ -818,6 +818,7 @@
 #include "i2s.dtsi"
 #include "modem.dtsi"
 #include "power.dtsi"
+#include "pnp.dtsi"
 #include "ptm.dtsi"
 #include "pwm.dtsi"
 #include "pin-controller.dtsi"

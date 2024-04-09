@@ -485,6 +485,7 @@
 #include "audio.dtsi"
 #include "power.dtsi"
 #include "ptm.dtsi"
+#include "pnp.dtsi"
 #include "sensorhub.dtsi"
 #include "spi.dtsi"
 #include "thermal.dtsi"

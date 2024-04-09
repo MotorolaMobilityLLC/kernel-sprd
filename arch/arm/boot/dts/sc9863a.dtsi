@@ -206,6 +206,10 @@
 		method = "smc";
 	};
 
+	pnp_debug: sprd-pnp {
+		compatible = "sprd,pnp";
+	};
+
 	cpufreq_cluster0: cpufreq-cluster0 {
 		nvmem-cells = <&dvfs_bin_cpu0>;
 		nvmem-cell-names = "dvfs_bin";
