@@ -24,6 +24,7 @@
 #include <linux/netdevice.h>
 #include <linux/of_device.h>
 #include <linux/platform_device.h>
+#include <linux/sipa.h>
 #include <linux/seq_file.h>
 #include <linux/skbuff.h>
 #include <linux/spinlock.h>
@@ -31,6 +32,7 @@
 
 #include "sipa_eth.h"
 #include "sipa_dummy.h"
+
 /* Device status */
 #define DEV_ON 1
 #define DEV_OFF 0
@@ -41,6 +43,10 @@
 
 #define SIPA_ETH_NAPI_WEIGHT 64
 #define SIPA_ETH_IFACE_PREF "sipa_eth"
+
+/* Cmd for ioctl */
+#define SIOC_SIPA_ETH_SET_UID (SIOCDEVPRIVATE + 0)
+#define SIOC_SIPA_ETH_DEL_UID (SIOCDEVPRIVATE + 1)
 
 static unsigned long queue_lock_flags;
 static spinlock_t queue_lock; /* spin-lock for queue status protection */
@@ -217,11 +223,58 @@ static struct net_device_stats *sipa_eth_get_stats(struct net_device *dev)
 	return sipa_eth->stats;
 }
 
+static int sipa_eth_siocdevprivate(struct net_device *dev,
+				   struct ifreq *ifr,
+				   void __user *data,
+				   int cmd)
+{
+	int vip_uid = 0;
+	int i = 0;
+	int ret = 0;
+	struct sipa_vip_attrs *eth_vip_attrs = sipa_eth_vip_attrs();
+
+	switch (cmd) {
+	case SIOC_SIPA_ETH_SET_UID:
+		eth_vip_attrs->vip_enable = 1;
+
+		ret = copy_from_user(&vip_uid, data, sizeof(vip_uid));
+		pr_info("copy from userspace vip_uid is %d\n", vip_uid);
+		if (ret)
+			return -EFAULT;
+
+		for (; i < MAX_UID_NUM; i++) {
+			if (eth_vip_attrs->vip_uids[i] == vip_uid)
+				break;
+
+			if (!eth_vip_attrs->vip_uids[i]) {
+				eth_vip_attrs->vip_uids[i] = vip_uid;
+				break;
+			}
+		}
+
+		if (i >= (MAX_UID_NUM - 1))
+			pr_info("the vip_uids from userspace are full\n");
+
+		break;
+	case SIOC_SIPA_ETH_DEL_UID:
+		eth_vip_attrs->vip_enable = 0;
+		pr_info("set vip_enable %d, delete all the vip uids\n", eth_vip_attrs->vip_enable);
+		memset(eth_vip_attrs->vip_uids, 0, sizeof(eth_vip_attrs->vip_uids));
+		break;
+	default:
+		pr_err("ioctl cmd not support.\n");
+		return -EOPNOTSUPP;
+	}
+
+	return 0;
+}
+
 static const struct net_device_ops sipa_eth_ops = {
 	.ndo_open = sipa_eth_open,
 	.ndo_stop = sipa_eth_close,
 	.ndo_start_xmit = sipa_eth_start_xmit,
 	.ndo_get_stats = sipa_eth_get_stats,
+	.ndo_siocdevprivate = sipa_eth_siocdevprivate,
 };
 
 static ssize_t gro_enable_show(struct device *dev,
@@ -230,7 +283,7 @@ static ssize_t gro_enable_show(struct device *dev,
 {
 	struct sipa_eth *sipa_eth = dev_get_drvdata(dev);
 
-	return sprintf(buf, "%d\n", sipa_eth->gro_enable);
+	return scnprintf(buf, PAGE_SIZE, "%d\n", sipa_eth->gro_enable);
 }
 
 static ssize_t gro_enable_store(struct device *dev,
@@ -252,8 +305,35 @@ static ssize_t gro_enable_store(struct device *dev,
 
 static DEVICE_ATTR_RW(gro_enable);
 
+static ssize_t vip_enable_show(struct device *dev,
+			       struct device_attribute *attr, char *buf)
+{
+	struct sipa_vip_attrs *eth_vip_attrs = sipa_eth_vip_attrs();
+
+	return scnprintf(buf, PAGE_SIZE, "%d\n", eth_vip_attrs->vip_enable);
+}
+
+static ssize_t vip_enable_store(struct device *dev,
+				struct device_attribute *attr,
+				const char *buf,
+				size_t count)
+{
+	int flag, ret;
+	struct sipa_vip_attrs *eth_vip_attrs = sipa_eth_vip_attrs();
+
+	ret = kstrtoint(buf, 10, &flag);
+	if (ret)
+		return ret;
+
+	eth_vip_attrs->vip_enable = flag;
+
+	return count;
+}
+static DEVICE_ATTR_RW(vip_enable);
+
 static struct attribute *sipa_eth_attributes[] = {
 	&dev_attr_gro_enable.attr,
+	&dev_attr_vip_enable.attr,
 	NULL,
 };
 

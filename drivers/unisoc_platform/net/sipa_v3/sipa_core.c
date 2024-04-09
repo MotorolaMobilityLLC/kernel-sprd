@@ -2080,6 +2080,14 @@ static int sipa_init_sysfs(struct sipa_plat_drv_cfg *ipa)
 	return 0;
 }
 
+struct sipa_vip_attrs *sipa_eth_vip_attrs(void)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	return ipa->vip_attrs;
+}
+EXPORT_SYMBOL_GPL(sipa_eth_vip_attrs);
+
 static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 {
 	int ret;
@@ -2094,6 +2102,10 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 
 	ipa = devm_kzalloc(dev, sizeof(*ipa), GFP_KERNEL);
 	if (!ipa)
+		return -ENOMEM;
+
+	ipa->vip_attrs = kzalloc(sizeof(struct sipa_vip_attrs), GFP_KERNEL);
+	if (!ipa->vip_attrs)
 		return -ENOMEM;
 
 	s_sipa_core = ipa;
