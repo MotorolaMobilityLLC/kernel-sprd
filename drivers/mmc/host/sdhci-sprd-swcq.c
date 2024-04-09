@@ -2145,8 +2145,6 @@ static void sdhci_sprd_finish_command(struct sdhci_host *host)
 {
 	struct mmc_command *cmd = host->cmd;
 
-	host->cmd = NULL;
-
 	if (cmd->flags & MMC_RSP_PRESENT) {
 		if (cmd->flags & MMC_RSP_136) {
 			sdhci_sprd_read_rsp_136(host, cmd);
@@ -2156,6 +2154,8 @@ static void sdhci_sprd_finish_command(struct sdhci_host *host)
 				cmd->resp[0], cmd->mrq);
 		}
 	}
+
+	host->cmd = NULL;
 
 	//if (cmd->mrq->cap_cmd_during_tfr && cmd == cmd->mrq->cmd)
 	//	mmc_command_done(host->mmc, cmd->mrq);
