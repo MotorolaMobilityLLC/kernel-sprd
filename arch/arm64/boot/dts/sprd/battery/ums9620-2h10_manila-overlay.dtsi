@@ -266,8 +266,7 @@
 
 	/* sprd_fchg parameter */
 	sprd,support-fchg;
-	sprd,support-pd-pps;
-	sprd,pd-fixed-max-microwatt = <18000000>;
+	sprd,pd-fixed-max-microwatt = <27000000>;
 	sprd,customized-fchg-psy ="bq2560xpe_charger","bq2560xqc_charger","hl7015qc_charger","upm6920qc_charger";
 
 	monitored-battery = <&bat>,<&bat2>,<&bat3>;
