@@ -41,6 +41,10 @@ struct ufs_sprd_host {
 	/* Set when entering calibration mode. */
 	bool cali_mode_enable;
 
+	u8 pre_eol_info;
+	u8 life_time_est_typ_a;
+	u8 life_time_est_typ_b;
+
 	struct completion pwm_async_done;
 	struct completion hs_async_done;
 	/* gic enable register address */
