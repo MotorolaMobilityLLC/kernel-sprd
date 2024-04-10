@@ -312,7 +312,7 @@
 	ums9230s_i2c: ums9230s_i2c {
 		compatible = "sprd,umb9230s-i2c";
 		reg = <0 0x20100000 0 0x100>;
-		clock-frequency = <1700000>;
+		clock-frequency = <3400000>;
 		clock-names ="enable", "i2c", "source";
 		clocks = <&apapb_gate CLK_I2C3_EB>,
 			<&ap_clk CLK_AP_I2C3>, <&pll1 CLK_TWPLL_153M6>;
