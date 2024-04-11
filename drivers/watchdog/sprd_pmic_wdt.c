@@ -133,10 +133,8 @@ struct sprd_pmic_wdt {
 	const struct sprd_pmic_wdt_data *data;
 };
 
-#ifndef CONFIG_SPRD_DEBUG
 static int pmic_timeout = 300;
 static int feed_period = 250;
-#endif
 
 static DEFINE_MUTEX(sprd_wdt_mutex);
 
@@ -221,12 +219,10 @@ static int sprd_pmic_wdt_on(struct sprd_pmic_wdt *pmic_wdt)
 			regmap_read(pmic_wdt->regmap, pmic_wdt->base + SPRD_PMIC_WDT_LOAD_HIGH,
 				    &val);
 			if (val != SPRD_PMIC_WDT_LOAD_VAULE_HIGH && nwrite == len) {
-#ifndef CONFIG_SPRD_DEBUG
 				if (!IS_ERR_OR_NULL(pmic_wdt->feed_task)) {
 					kthread_stop(pmic_wdt->feed_task);
 					pmic_wdt->feed_task = NULL;
 				}
-#endif
 				break;
 			}
 			retry_cnt++;
@@ -327,7 +323,6 @@ static bool sprd_pmic_wdt_en(const char *wdten_name)
 	return true;
 }
 
-#ifndef CONFIG_SPRD_DEBUG
 static bool sprd_pmic_wdt_get_normal_mode(void)
 {
 	struct device_node *cmdline_node;
@@ -495,7 +490,6 @@ static void sprd_wdt_feeder_init(struct sprd_pmic_wdt *pmic_wdt)
 	}
 	mutex_unlock(pmic_wdt->lock);
 }
-#endif
 
 static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 {
@@ -554,7 +548,6 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 		goto out;
 	}
 
-#ifndef CONFIG_SPRD_DEBUG
 	pmic_wdt->normal_mode = sprd_pmic_wdt_get_normal_mode();
 	if (pmic_wdt->normal_mode && !pmic_wdt->wdt_flag) {
 		ret = sprd_pmic_wdt_enable(pmic_wdt);
@@ -564,7 +557,6 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 		}
 		sprd_wdt_feeder_init(pmic_wdt);
 	}
-#endif
 
 	platform_set_drvdata(pdev, pmic_wdt);
 
@@ -591,12 +583,10 @@ static int sprd_pmic_wdt_remove(struct platform_device *pdev)
 	kthread_stop(pmic_wdt->wdt_thread);
 	pmic_wdt->wdt_thread = NULL;
 
-#ifndef CONFIG_SPRD_DEBUG
 	if (!IS_ERR_OR_NULL(pmic_wdt->feed_task)) {
 		kthread_stop(pmic_wdt->feed_task);
 		pmic_wdt->feed_task = NULL;
 	}
-#endif
 
 	return 0;
 }
