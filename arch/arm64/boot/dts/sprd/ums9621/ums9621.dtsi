@@ -414,6 +414,12 @@
 			614400    750000
 		>;
 	};
+
+	freq_limit: freq-limit {
+		compatible = "sprd,freq-limit";
+		sprd,device-sign = <0x3>;
+		sprd,devfreq-cells = <&gpu>;
+	};
 };
 
 /* Include other IP modules ALPHABETICALLY */

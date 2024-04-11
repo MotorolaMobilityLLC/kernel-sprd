@@ -1219,6 +1219,12 @@
 		compatible = "sprd,ddr-dvfs";
 		freq-num = <8>;
 	};
+
+	freq_limit: freq-limit {
+		compatible = "sprd,freq-limit";
+		sprd,device-sign = <0x3>;
+		sprd,devfreq-cells = <&gpu>;
+	};
 };
 
 &i2c0 {

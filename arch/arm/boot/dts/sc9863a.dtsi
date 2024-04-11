@@ -806,6 +806,12 @@
 	iram_reserved: sp-iram@d000 {
 		reg = <0xd000 0x2000>;
 	};
+
+	freq_limit: freq-limit {
+		compatible = "sprd,freq-limit";
+		sprd,device-sign = <0x3>;
+		sprd,devfreq-cells = <&gpu>;
+	};
 };
 
 &i2c0 {
