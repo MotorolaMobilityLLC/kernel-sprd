@@ -31,6 +31,8 @@
 #include <linux/seq_file.h>
 #include "native_hang_monitor.h"
 #include "unisoc_sysdump.h"
+/* vendor hook*/
+#include <trace/hooks/signal.h>
 
 static int hang_detect_enabled; /*	disable in default	*/
 static int hang_detect_timeout = WAIT_BOOT_COMPLETE; /*	2 min timeout in default	*/
@@ -41,6 +43,13 @@ static struct task_struct *hd_thread;
 static struct task_struct *hdinfo_thread;
 static struct semaphore hang_detect_sema;
 #define NH_LOGBUF_SIZE (128 * 1024)
+#ifdef CONFIG_UNISOC_SIGNAL_DEBUG
+#define SD_DST_1 "system_server"
+#define SD_DST_2 "surfaceflinger"
+#define SD_DST_3 "netd"
+#define SD_DST_4 "inputflinger"
+#define SD_DST_5 "servicemanager"
+#endif
 static char *nh_log_buf;
 #ifdef CONFIG_SPRD_DEBUG
 static int dump_info_enable;
@@ -714,6 +723,34 @@ static void native_hang_monitor_para_set(int para)
 		pr_debug("[Native Hang Detect] invalid hang_detect para\n");
 	}
 }
+
+/* get send signal info for debug */
+#ifdef CONFIG_UNISOC_SIGNAL_DEBUG
+static void send_sig_info_for_debug(void *data, int sig, struct task_struct *killer, struct task_struct *dst)
+{
+	struct task_struct *tar_proc;
+	struct pid *tar_proc_tgid;
+	if (sig == SIGKILL || sig == SIGTERM) {
+		tar_proc_tgid = find_get_pid(task_tgid_nr(dst));
+		tar_proc = get_pid_task(tar_proc_tgid, PIDTYPE_PID);
+		if ((tar_proc != NULL) && (!strncmp(tar_proc->comm, SD_DST_1, strlen(SD_DST_1))
+					|| !strncmp(tar_proc->comm, SD_DST_2, strlen(SD_DST_2))
+					|| !strncmp(tar_proc->comm, SD_DST_3, strlen(SD_DST_3))
+					|| !strncmp(tar_proc->comm, SD_DST_4, strlen(SD_DST_4))
+					|| !strncmp(tar_proc->comm, SD_DST_5, strlen(SD_DST_5)))) {
+			pr_warn("Signal_Debug: Req_proc is %s, pid=%d, Tar_proc is %s, pid=%d\n",
+				killer->comm, task_pid_nr(killer), dst->comm, task_pid_nr(dst));
+			pr_warn("Signal_Debug: Tar_proc_group is %s, tgid=%d, sig=%d\n",
+				tar_proc->comm, task_tgid_nr(dst), sig);
+		}
+		put_pid(tar_proc_tgid);
+		if (tar_proc) {
+			put_task_struct(tar_proc);
+		}
+	}
+}
+#endif
+
 /* * user control interface  * */
 static long monitor_hang_ioctl(struct file *file, unsigned int cmd,  unsigned long arg)
 {
@@ -773,7 +810,6 @@ do {                \
 	else            \
 		pr_debug(x);        \
 } while (0)
-
 
 
 static int monitor_hang_show(struct seq_file *m, void *v)
@@ -910,6 +946,10 @@ static int monitor_hang_init(void)
 
 	/* modules loaded monitor init */
 	sprd_modules_init();
+  /* register send_signal vh */
+#ifdef CONFIG_UNISOC_SIGNAL_DEBUG
+	register_trace_android_vh_do_send_sig_info(send_sig_info_for_debug, NULL);
+#endif
 
 	return err;
 }
@@ -930,6 +970,9 @@ static void monitor_hang_exit(void)
 	}
 
 	sprd_modules_exit();
+#ifdef CONFIG_UNISOC_SIGNAL_DEBUG
+	unregister_trace_android_vh_do_send_sig_info(send_sig_info_for_debug, NULL);
+#endif
 }
 
 module_init(monitor_hang_init);

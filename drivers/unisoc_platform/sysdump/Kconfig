@@ -73,3 +73,12 @@ config SPRD_MODULES_NOTIFY
 	  When in doubt, say n
 	  this is a debug feature that monitor every modules loading time
 	  when bootup
+
+config UNISOC_SIGNAL_DEBUG
+	bool "SPRD userspace debug: add signal debug"
+	depends on ARM64 && SPRD_DEBUG && SPRD_NATIVE_HANG_MONITOR
+	help
+	  Say y here to enable Debug support.
+	  when in doubt, say n.
+	  this is a debug feature for tracing signal origins
+	  when process is receiving a signal.
