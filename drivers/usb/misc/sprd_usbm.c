@@ -160,14 +160,20 @@ static void usb_new_device_added(void *data, struct usb_device *udev, int *ret)
 	else
 		driver_name = udev->bus->sysdev->driver->name;
 
+	if (!driver_name)
+		return;
+
 	/* There may be couple of intf_cache due to config, loopup all
 	 * of the intf for usb audio
 	 */
 	for (i = 0; i < config_desc->bNumInterfaces; i++) {
 		intf_desc = &udev->config->intf_cache[i]->altsetting[0].desc;
-		if (intf_desc->bInterfaceClass == USB_CLASS_AUDIO) {
-			audio_flag = true;
+		if (intf_desc->bInterfaceClass != USB_CLASS_AUDIO &&
+			intf_desc->bInterfaceClass != USB_CLASS_HID) {
+			audio_flag = false;
 			break;
+		} else if (intf_desc->bInterfaceClass == USB_CLASS_AUDIO) {
+			audio_flag = true;
 		}
 	}
 
