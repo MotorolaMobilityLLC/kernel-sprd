@@ -865,7 +865,7 @@ static ssize_t sensorlist_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
 	int err;
-	u32 number = 0;
+	int number = 0;
 	u32 len = 0;
 	u8 data[4];
 	u8 *sensorlist = NULL;
@@ -877,6 +877,12 @@ static ssize_t sensorlist_show(struct device *dev,
 	err = shub_sipc_read(sensor, SHUB_GET_PHYSICAL_SENSOR_NUMBER_SUBTYPE, data, sizeof(number));
 	if (err >= 0) {
 		memcpy(&number, data, sizeof(number));
+	} else {
+               dev_info(&sensor->sensor_pdev->dev,
+                               "sipc read sensorlist support number fail, err = %d\n", err);
+               return err;
+       }
+       if(number >= 0) {
 		len = number * sizeof(struct sensor_info_t);
 		sensorlist = kzalloc(len, GFP_KERNEL);
 		if (!sensorlist)
@@ -896,9 +902,8 @@ static ssize_t sensorlist_show(struct device *dev,
 			return err;
 		}
 	} else {
-		dev_info(&sensor->sensor_pdev->dev,
-				"sipc read sensorlist support number fail, err = %d\n", err);
-		return err;
+		memcpy(buf, &number, sizeof(number));
+                return 0;
 	}
 
 	if (len > MAX_STRING_SIZE) {
