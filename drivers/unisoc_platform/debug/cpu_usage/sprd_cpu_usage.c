@@ -46,11 +46,19 @@ struct sprd_iowait {
 	u64	start;
 };
 
+/* thread min_flt and maj_flt*/
+struct sprd_flt {
+	unsigned long sprd_min_flt;
+	unsigned long sprd_maj_flt;
+};
+
 /* info kept on stack */
 struct sprd_thread_info {
 	struct sprd_thread_time	start;
 	struct sprd_thread_time	delta[NR_RECORD];
 	struct sprd_iowait io;
+	struct sprd_flt sprd_start_flt;
+	struct sprd_flt sprd_flt[NR_RECORD];
 	ulong	idx;
 };
 
@@ -198,6 +206,8 @@ static void _clean_thread_info(struct sprd_thread_info *t, unsigned long id)
 		clear = NEXT_ID(clear);
 		t->delta[clear].ut = 0;
 		t->delta[clear].st = 0;
+		t->sprd_flt[clear].sprd_min_flt = 0;
+		t->sprd_flt[clear].sprd_maj_flt = 0;
 	}
 
 	t->idx = id;
@@ -217,6 +227,7 @@ void sprd_monitor_switch(struct task_struct *prev, struct task_struct *next)
 	struct sprd_cpu_usage *p = p_sprd_cpu_usage;
 	struct sprd_thread_info *t;
 	struct sprd_thread_time *time;
+	struct sprd_flt *flt;
 	int i, idx;
 
 	if (!p)
@@ -234,6 +245,9 @@ void sprd_monitor_switch(struct task_struct *prev, struct task_struct *next)
 	time = &t->delta[i];
 	time->ut += (prev->utime - t->start.ut);
 	time->st += (prev->stime - t->start.st);
+	flt = &t->sprd_flt[i];
+	flt->sprd_min_flt += (prev->min_flt - t->sprd_start_flt.sprd_min_flt);
+	flt->sprd_maj_flt += (prev->maj_flt - t->sprd_start_flt.sprd_maj_flt);
 
 	/* check if prev need start iowait */
 	if (prev->in_iowait)
@@ -243,6 +257,8 @@ void sprd_monitor_switch(struct task_struct *prev, struct task_struct *next)
 	t = T_BUF(next);
 	t->start.ut = next->utime;
 	t->start.st = next->stime;
+	t->sprd_start_flt.sprd_min_flt = next->min_flt;
+	t->sprd_start_flt.sprd_maj_flt = next->maj_flt;
 
 	/* check if next io wait need to update */
 	if (next->in_iowait) {
@@ -556,6 +572,20 @@ static void __show_a_thread(u64 item, u64 sum)
 		sprd_cpu_log(false, "%8s", "-----");
 }
 
+static void _show_a_flt(ulong item1, ulong item2)
+{
+	if (item1)
+		sprd_cpu_log(false, "%7lu/", item1);
+	else
+		sprd_cpu_log(false, "%7s/", "-----");
+
+	if (item2)
+		sprd_cpu_log(false, "%-7lu", item2);
+	else
+		sprd_cpu_log(false, "%-7s", "-----");
+	sprd_cpu_log(false, "%s", "|");
+}
+
 /* thread info show */
 struct _records {
 	u64 time[NR_RECORD];
@@ -564,6 +594,8 @@ struct _records {
 	u64 st_all[NR_RECORD];
 	u64 ut_all[NR_RECORD];
 	u64 iowait[NR_RECORD];
+	unsigned long sprd_min_flt[NR_RECORD];
+	unsigned long sprd_maj_flt[NR_RECORD];
 	int cnt[NR_RECORD];
 };
 
@@ -575,6 +607,7 @@ static void _show_thread_info(struct seq_file *m, ulong id)
 	struct task_struct *gp, *pp;
 	struct sprd_thread_info *t;
 	struct sprd_thread_time	*delta;
+	struct sprd_flt *sprd_flt;
 	struct _records *r;
 	void *stack;
 	int i, j;
@@ -597,8 +630,8 @@ static void _show_thread_info(struct seq_file *m, ulong id)
 	}
 
 	seq_puts(m, "* USAGE PER THREAD:\n");
-	seq_printf(m, " %-6s%24s   %24s   %24s       %-15s\n", "PID", "USER",
-			"SYSTEM", "TOTAL", "NAME");
+	seq_printf(m, " %-6s%24s   %24s   %24s       %-15s  %-37s  %-s/%-8s\n", "PID", "USER",
+			"SYSTEM", "TOTAL", "NAME", "IOWAIT TOTAL/CNT", "MIN_FLT", "MAJ_FLT");
 
 	read_lock(&tasklist_lock);
 	do_each_thread(gp, pp) {
@@ -618,6 +651,9 @@ static void _show_thread_info(struct seq_file *m, ulong id)
 			delta = &t->delta[j];
 			r->st[i] = delta->st;
 			r->ut[i] = delta->ut;
+			sprd_flt = &t->sprd_flt[j];
+			r->sprd_min_flt[i] = sprd_flt->sprd_min_flt;
+			r->sprd_maj_flt[i] = sprd_flt->sprd_maj_flt;
 
 			if ((r->st[i] + r->ut[i]) != 0) {
 				r->st_all[i] += r->st[i];
@@ -656,6 +692,8 @@ static void _show_thread_info(struct seq_file *m, ulong id)
 		sprd_cpu_log(false, "%s    %-15s:", " | ", pp->comm);
 		for (i = 0; i < NR_RECORD; i++)
 			__show_a_iowait(r->iowait[i], r->cnt[i]);
+		for (i = 0; i < NR_RECORD; i++)
+			_show_a_flt(r->sprd_min_flt[i], r->sprd_maj_flt[i]);
 		seq_printf(m, "%s\n", p->buf);
 	} while_each_thread(gp, pp);
 	read_unlock(&tasklist_lock);
