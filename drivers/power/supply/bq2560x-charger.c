@@ -395,7 +395,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 	int voltage_max_microvolt, termination_cur;
 	int ret;
 
-	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info);
+	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info, 0);
 	if (ret) {
 		dev_warn(info->dev, "no battery information is supplied\n");
 

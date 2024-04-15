@@ -327,7 +327,7 @@ static int bq25910_charger_hw_init(struct bq25910_charger_info *info)
 	struct sprd_battery_info bat_info = {};
 	int ret;
 
-	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info);
+	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info, 0);
 	if (ret) {
 		dev_warn(info->dev, "no battery information is supplied\n");
 

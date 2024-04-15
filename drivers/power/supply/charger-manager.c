@@ -694,14 +694,14 @@ static int get_batt_cap(struct charger_manager *cm, int *cap)
 }
 
 /**
- * get_batt_total_cap - Get the total capacity level of the battery
+ * get_batt_total_uah - Get the total capacity level of the battery
  * @cm: the Charger Manager representing the battery.
  * @uV: the total_cap level returned.
  *
  * Returns 0 if there is no error.
  * Returns a negative value on error.
  */
-static int get_batt_total_cap(struct charger_manager *cm, u32 *total_cap)
+static int get_batt_total_uah(struct charger_manager *cm, u32 *total_uah)
 {
 	union power_supply_propval val;
 	struct power_supply *fuel_gauge;
@@ -711,13 +711,13 @@ static int get_batt_total_cap(struct charger_manager *cm, u32 *total_cap)
 	if (!fuel_gauge)
 		return -ENODEV;
 
-	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
+	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CHARGE_FULL,
 					&val);
 	power_supply_put(fuel_gauge);
 	if (ret)
 		return ret;
 
-	*total_cap = val.intval;
+	*total_uah = val.intval;
 
 	return 0;
 }
@@ -773,6 +773,24 @@ static int cm_get_charge_cycle(struct charger_manager *cm, int *cycle)
 	*cycle = val.intval;
 
 	return 0;
+}
+
+static int cm_get_bat_aging_id(struct charger_manager *cm, int *aging_bat_id)
+{
+	int charge_cycle, ret = 0;
+
+	*aging_bat_id = 0;
+
+	ret = cm_get_charge_cycle(cm, &charge_cycle);
+	if (ret) {
+		dev_err(cm->dev, "failed to get charge cycle, ret = %d\n", ret);
+		return ret;
+	}
+
+	*aging_bat_id = sprd_battery_get_aging_bat_id(cm->charger_psy, charge_cycle);
+	dev_info(cm->dev, "%s %d, aging_bat_id = %d\n", __func__, __LINE__, *aging_bat_id);
+
+	return ret;
 }
 
 static int cm_get_bc1p2_type(struct charger_manager *cm, u32 *type)
@@ -1108,106 +1126,6 @@ static void cm_set_charger_present(struct charger_manager *cm, bool present)
 	}
 }
 
-static bool cm_reset_basp_parameters(struct charger_manager *cm, int volt_uv)
-{
-	struct sprd_battery_jeita_table *table;
-	int i, j, size;
-	bool is_need_update = false;
-
-	if (cm->desc->constant_charge_voltage_max_uv == volt_uv) {
-		dev_warn(cm->dev, "BASP does not reset: volt_uv == constant charge voltage\n");
-		return is_need_update;
-	}
-
-	cm->desc->ir_comp.us = volt_uv;
-	cm->desc->constant_charge_voltage_max_uv = volt_uv;
-	cm->desc->fullbatt_uV = volt_uv - cm->desc->fullbatt_voltage_offset_uv;
-
-	for (i = SPRD_BATTERY_JEITA_DCP; i < SPRD_BATTERY_JEITA_MAX; i++) {
-		table = cm->desc->jeita_tab_array[i];
-		size = cm->desc->jeita_size[i];
-
-		if (!table || !size)
-			continue;
-
-		for (j = 0; j < size; j++) {
-			if (table[j].term_volt > volt_uv) {
-				is_need_update = true;
-				dev_info(cm->dev, "%s, set table[%d] from %d to %d\n",
-					 sprd_battery_jeita_type_names[i], j,
-					 table[j].term_volt, volt_uv);
-				table[j].term_volt = volt_uv;
-			}
-		}
-	}
-
-	return is_need_update;
-}
-
-static int cm_set_basp_max_volt(struct charger_manager *cm, int max_volt_uv)
-{
-	struct power_supply *fuel_gauge = NULL;
-	union power_supply_propval val;
-	int ret;
-
-	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
-	if (!fuel_gauge) {
-		ret = -ENODEV;
-		return ret;
-	}
-
-	val.intval = max_volt_uv;
-	ret = power_supply_set_property(fuel_gauge, POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN, &val);
-	power_supply_put(fuel_gauge);
-
-	if (ret)
-		dev_err(cm->dev, "failed to set basp max voltage, ret = %d\n", ret);
-
-	return ret;
-}
-
-static int cm_get_basp_max_volt(struct charger_manager *cm, int *max_volt_uv)
-{
-	struct power_supply *fuel_gauge = NULL;
-	union power_supply_propval val;
-	int ret;
-
-	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
-	if (!fuel_gauge) {
-		dev_err(cm->dev, "%s: Fail to get fuel_gauge\n", __func__);
-		ret = -ENODEV;
-		return ret;
-	}
-
-	*max_volt_uv = 0;
-
-	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN, &val);
-	if (ret) {
-		dev_err(cm->dev, "Fail to get voltage max design, ret = %d\n", ret);
-		return ret;
-	}
-
-	power_supply_put(fuel_gauge);
-	*max_volt_uv = val.intval;
-
-	return ret;
-}
-
-static bool cm_init_basp_parameter(struct charger_manager *cm)
-{
-	int ret;
-	int max_volt_uv;
-
-	ret = cm_get_basp_max_volt(cm, &max_volt_uv);
-	if (ret)
-		return false;
-
-	if (max_volt_uv == 0 || max_volt_uv == -1)
-		return false;
-
-	return cm_reset_basp_parameters(cm, max_volt_uv);
-}
-
 static void cm_power_path_enable(struct charger_manager *cm, int cmd)
 {
 	int ret, i;
@@ -1368,18 +1286,6 @@ static bool is_full_charged(struct charger_manager *cm)
 	fuel_gauge = power_supply_get_by_name(cm->desc->psy_fuel_gauge);
 	if (!fuel_gauge)
 		return false;
-
-	if (desc->fullbatt_full_capacity > 0) {
-		val.intval = 0;
-
-		/* Not full if capacity of fuel gauge isn't full */
-		ret = power_supply_get_property(fuel_gauge,
-						POWER_SUPPLY_PROP_CHARGE_FULL, &val);
-		if (!ret && val.intval > desc->fullbatt_full_capacity) {
-			is_full = true;
-			goto out;
-		}
-	}
 
 	/* Full, if it's over the fullbatt voltage */
 	if (desc->fullbatt_uV > 0 && desc->fullbatt_uA > 0) {
@@ -3342,7 +3248,7 @@ static void cm_cp_tune_algo(struct charger_manager *cm)
 		 __func__, cp->cp_target_vbus, cp->cp_target_ibus, cp->cp_target_vbat,
 		 cp->cp_target_ibat, cp->jeita_status);
 
-	 dev_info(cm->dev, "%s, tune_step = [%d %d %d %d %d]\n",
+	dev_info(cm->dev, "%s, tune_step = [%d %d %d %d %d]\n",
 		  __func__, vbus_step, ibus_step, vbat_step, ibat_step, alarm_step);
 
 	if (cp->cp_last_target_vbus != cp->cp_target_vbus) {
@@ -4315,17 +4221,17 @@ static void cm_check_battery_voltage(struct charger_manager *cm)
 		try_charger_enable(cm, false);
 	} else if (!cm->charger_enabled && batt_uV <= cm->desc->constant_charge_voltage_max_uv &&
 		   (cm->charging_status & CM_CHARGE_BATT_OVERVOLTAGE)) {
-			ret = cm_set_health_cmd(cm);
-			if (ret) {
-				dev_err(cm->dev, "failed to set health cmd, ret=%d\n", ret);
-				mutex_unlock(&cm->desc->charge_info_mtx);
-				return;
-			}
-
-			dev_info(cm->dev, "battery voltage %d less than %d, recharging\n", batt_uV,
-				 cm->desc->constant_charge_voltage_max_uv);
+		ret = cm_set_health_cmd(cm);
+		if (ret) {
+			dev_err(cm->dev, "failed to set health cmd, ret=%d\n", ret);
 			mutex_unlock(&cm->desc->charge_info_mtx);
-			cm->charging_status &= ~CM_CHARGE_BATT_OVERVOLTAGE;
+			return;
+		}
+
+		dev_info(cm->dev, "battery voltage %d less than %d, recharging\n",
+			 batt_uV, cm->desc->constant_charge_voltage_max_uv);
+		mutex_unlock(&cm->desc->charge_info_mtx);
+		cm->charging_status &= ~CM_CHARGE_BATT_OVERVOLTAGE;
 	} else {
 		mutex_unlock(&cm->desc->charge_info_mtx);
 	}
@@ -5239,7 +5145,7 @@ static int cm_get_charge_full_design(struct charger_manager *cm, union power_sup
 	if (!fuel_gauge)
 		return -ENODEV;
 
-	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN, val);
+	ret = power_supply_get_property(fuel_gauge, POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN, val);
 	power_supply_put(fuel_gauge);
 
 	return ret;
@@ -5250,7 +5156,7 @@ static int cm_get_charge_now(struct charger_manager *cm, int *charge_now)
 	int total_uah;
 	int ret;
 
-	ret = get_batt_total_cap(cm, &total_uah);
+	ret = get_batt_total_uah(cm, &total_uah);
 	if (ret) {
 		dev_err(cm->dev, "failed to get total uah.\n");
 		return ret;
@@ -5311,12 +5217,23 @@ static int cm_get_charge_control_limit(struct charger_manager *cm,
 
 static int cm_get_charge_full_uah(struct charger_manager *cm, union power_supply_propval *val)
 {
-	return cm_get_charge_full_design(cm, val);
+	int ret, total_uah;
+
+	val->intval = 0;
+	ret = get_batt_total_uah(cm, &total_uah);
+	if (ret) {
+		dev_err(cm->dev, "failed to get total uah.\n");
+		return ret;
+	}
+
+	val->intval = total_uah;
+
+	return ret;
 }
 
 static int cm_get_time_to_full_now(struct charger_manager *cm, int *time)
 {
-	unsigned int total_cap = 0;
+	unsigned int total_uah = 0;
 	int chg_cur = 0;
 	int ret;
 
@@ -5328,15 +5245,15 @@ static int cm_get_time_to_full_now(struct charger_manager *cm, int *time)
 
 	chg_cur = chg_cur / 1000;
 
-	ret = get_batt_total_cap(cm, &total_cap);
+	ret = get_batt_total_uah(cm, &total_uah);
 	if (ret) {
 		dev_err(cm->dev, "failed to get total cap.\n");
 		return ret;
 	}
 
-	total_cap = total_cap / 1000;
+	total_uah = total_uah / 1000;
 
-	*time = ((1000 - cm->desc->cap) * total_cap / 1000) * 3600 / chg_cur;
+	*time = ((1000 - cm->desc->cap) * total_uah / 1000) * 3600 / chg_cur;
 
 	if (*time <= 0)
 		*time = 1;
@@ -5528,22 +5445,6 @@ static void cm_set_charge_control_limit(struct charger_manager *cm, int power)
 		cm_check_target_ibus(cm);
 }
 
-static int cm_set_voltage_max_design(struct charger_manager *cm, int voltage_max)
-{
-	int ret;
-
-	ret = cm_set_basp_max_volt(cm, voltage_max);
-	if (ret)
-		return ret;
-
-	if (cm_init_basp_parameter(cm)) {
-		if (cm->cm_charge_vote && cm->cm_charge_vote->vote)
-			cm_update_charge_info(cm, CM_CHARGE_INFO_JEITA_LIMIT);
-	}
-
-	return ret;
-}
-
 static int cm_get_power_supply_property(struct power_supply *psy,
 					enum power_supply_property psp,
 					union power_supply_propval *val)
@@ -5674,10 +5575,6 @@ static int charger_get_property(struct power_supply *psy,
 		val->intval = is_ext_pwr_online(cm);
 		break;
 
-	case POWER_SUPPLY_PROP_CHARGE_FULL:
-		ret = cm_get_charge_full_uah(cm, val);
-		break;
-
 	case POWER_SUPPLY_PROP_CHARGE_NOW:
 		ret = cm_get_charge_now(cm, &val->intval);
 		break;
@@ -5702,6 +5599,10 @@ static int charger_get_property(struct power_supply *psy,
 		ret = cm_get_charge_full_design(cm, val);
 		break;
 
+	case POWER_SUPPLY_PROP_CHARGE_FULL:
+		ret = cm_get_charge_full_uah(cm, val);
+		break;
+
 	case POWER_SUPPLY_PROP_TIME_TO_FULL_NOW:
 		ret = cm_get_time_to_full_now(cm, &val->intval);
 		break;
@@ -5718,9 +5619,6 @@ static int charger_get_property(struct power_supply *psy,
 		ret = cm_get_charge_cycle(cm, &val->intval);
 		break;
 
-	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
-		ret = cm_get_basp_max_volt(cm, &val->intval);
-		break;
 	default:
 		return -EINVAL;
 	}
@@ -5776,11 +5674,6 @@ static int charger_set_property(struct power_supply *psy,
 		cm_set_charge_control_limit(cm, val->intval);
 		break;
 
-	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
-		dev_dbg(cm->dev, "%s:line%d max vol = %d\n", __func__, __LINE__, val->intval);
-		ret = cm_set_voltage_max_design(cm, val->intval);
-		break;
-
 	default:
 		ret = -EINVAL;
 	}
@@ -5796,7 +5689,6 @@ static int charger_property_is_writeable(struct power_supply *psy, enum power_su
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_CURRENT:
 	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
 	case POWER_SUPPLY_PROP_CHARGE_CONTROL_LIMIT:
-	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
 		ret = 1;
 		break;
 
@@ -5851,7 +5743,6 @@ static enum power_supply_property default_charger_props[] = {
 	POWER_SUPPLY_PROP_TEMP,
 	POWER_SUPPLY_PROP_TEMP_AMBIENT,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
-	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
 	/*
 	 * Optional properties are:
 	 * POWER_SUPPLY_PROP_CHARGE_NOW,
@@ -7223,12 +7114,12 @@ static inline struct charger_desc *cm_get_drv_data(struct platform_device *pdev)
 	return dev_get_platdata(&pdev->dev);
 }
 
-static int cm_get_bat_info(struct charger_manager *cm)
+static int cm_get_bat_info(struct charger_manager *cm, int bat_aging_id)
 {
 	struct sprd_battery_info info = {};
 	int ret;
 
-	ret = sprd_battery_get_battery_info(cm->charger_psy, &info);
+	ret = sprd_battery_get_battery_info(cm->charger_psy, &info, bat_aging_id);
 	if (ret) {
 		dev_err(cm->dev, "failed to get battery information\n");
 		sprd_battery_put_battery_info(cm->charger_psy, &info);
@@ -7308,6 +7199,17 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	return 0;
 }
 
+static void cm_batt_aging_algo(struct charger_manager *cm)
+{
+	int ret = 0, bat_aging_id;
+
+	ret = cm_get_bat_aging_id(cm, &bat_aging_id);
+	if (ret)
+		return;
+
+	cm_get_bat_info(cm, bat_aging_id);
+}
+
 static void cm_shutdown_handle(struct charger_manager *cm)
 {
 	dev_dbg(cm->dev, "%s: shutdown mode = %d\n", __func__, cm->desc->uvlo_shutdown_mode);
@@ -7382,7 +7284,7 @@ static int cm_get_charging_works_cycle(struct charger_manager *cm,
 	if (ibat_avg_ma <= 0)
 		return ret;
 
-	ret = get_batt_total_cap(cm, &total_uah);
+	ret = get_batt_total_uah(cm, &total_uah);
 	if (ret) {
 		dev_err(cm->dev, "%s failed to get total uah.\n", __func__);
 		return ret;
@@ -8136,7 +8038,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	wakeup_source_add(cm->cp_ws);
 	mutex_init(&cm->desc->charger_type_mtx);
 
-	ret = cm_get_bat_info(cm);
+	ret = cm_get_bat_info(cm, 0);
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to get battery information\n");
 		goto err;
@@ -8151,8 +8053,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 		ret = PTR_ERR(cm->cm_charge_vote);
 		goto err;
 	}
-
-	cm_init_basp_parameter(cm);
 
 	if (cm->fchg_info->ops && cm->fchg_info->ops->extcon_init &&
 	    cm->fchg_info->ops->extcon_init(cm->fchg_info, cm->charger_psy)) {
@@ -8408,6 +8308,9 @@ static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_type
 		break;
 	case CM_EVENT_IGNORE_HARD_RESET:
 		cm_enable_fixed_fchg_handshake(cm, false);
+		break;
+	case CM_EVENT_BATT_AGING:
+		cm_batt_aging_algo(cm);
 		break;
 	case CM_EVENT_UNKNOWN:
 	case CM_EVENT_OTHERS:

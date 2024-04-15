@@ -71,6 +71,7 @@
 #define SPRD_FGU_TRACK_UPDATING_WAKE_UP_MS		200
 #define SPRD_FGU_TRACK_DONE_WAKE_UP_MS			6000
 #define SPRD_FGU_TRACK_OCV_VALID_TIME			15
+#define SPRD_FGU_TRACK_CHARGE_CYCLE_DIFF		200000
 #define SPRD_FGU_CAPACITY_TRACK_0S			0
 #define SPRD_FGU_CAPACITY_TRACK_3S			3
 #define SPRD_FGU_CAPACITY_TRACK_15S			15
@@ -149,6 +150,7 @@ struct sprd_fgu_track_capacity {
 	s64 start_time;
 	bool cap_tracking;
 	int learned_mah;
+	int start_aging_bat_id;
 	struct sprd_fgu_ocv_info lpocv_info;
 	struct sprd_fgu_ocv_info pocv_info;
 	density_ocv_table *dens_ocv_table;
@@ -251,6 +253,7 @@ struct sprd_fgu_data {
 	int internal_resist;
 	int total_mah;
 	int design_mah;
+	int charge_full_mah;
 	int init_cap;
 	int alarm_cap;
 	int boot_cap;
@@ -299,6 +302,7 @@ struct sprd_fgu_data {
 	int chg_sts;
 	struct sprd_fgu_debug_info debug_info;
 	density_ocv_table *cap_calib_dens_ocv_table;
+	struct sprd_battery_cycles_fcc_table *battery_cycles_fcc_table;
 
 	struct sprd_fgu_sysfs *sysfs;
 	struct delayed_work fgu_work;
@@ -332,15 +336,10 @@ struct sprd_fgu_data {
 	/* charge cycle */
 	int charge_cycle;
 
-	/* basp */
-	bool support_basp;
-	int basp_volt_uv;
-	struct sprd_battery_ocv_table **basp_ocv_table;
-	int basp_ocv_table_len;
-	int *basp_full_design_table;
-	int basp_full_design_table_len;
-	int *basp_voltage_max_table;
-	int basp_voltage_max_table_len;
+	/* battery aging function */
+	bool support_bat_aging;
+	int last_aging_bat_id;
+	bool dynamic_update_bat_para_flag;
 
 	int work_enter_cc_uah;
 	int work_exit_cc_uah;
@@ -370,6 +369,7 @@ static bool cali_or_auto_mode;
 static void sprd_fgu_capacity_calibration(struct sprd_fgu_data *data, bool int_mode);
 static void sprd_fgu_discharging_calibration(struct sprd_fgu_data *data, int *cap);
 static int sprd_fgu_resistance_algo(struct sprd_fgu_data *data, int cur_ua, int vol_uv);
+static int sprd_fgu_get_bat_para_table(struct sprd_fgu_data *data, int aging_bat_id);
 
 static inline int sprd_fgu_uah2current(int uah, int times)
 {
@@ -502,6 +502,32 @@ static int sprd_fgu_temp2cap(struct power_supply_capacity_temp_table *table,
 	return capacity;
 }
 
+static int sprd_fgu_fcc_uah2charge_cycles(struct sprd_fgu_data *data, int fcc_uah)
+{
+	int i, result = -1, cols = data->battery_cycles_fcc_table->cols;
+
+	if (cols <= 0)
+		return result;
+
+	if (fcc_uah >= data->battery_cycles_fcc_table->fcc_uah[0])
+		return data->battery_cycles_fcc_table->cycles[0];
+
+	if (fcc_uah <= data->battery_cycles_fcc_table->fcc_uah[cols - 1])
+		return data->battery_cycles_fcc_table->cycles[cols - 1];
+
+	for (i = 1; i < cols; i++) {
+		if (fcc_uah > data->battery_cycles_fcc_table->fcc_uah[i])
+			break;
+	}
+
+	result = interpolate(fcc_uah, data->battery_cycles_fcc_table->fcc_uah[i - 1],
+			     data->battery_cycles_fcc_table->cycles[i - 1],
+			     data->battery_cycles_fcc_table->fcc_uah[i],
+			     data->battery_cycles_fcc_table->cycles[i]);
+
+	return result;
+}
+
 static void sprd_fgu_cap_remap_init_boundary(struct sprd_fgu_data *data, int index)
 {
 
@@ -564,6 +590,44 @@ static int sprd_fgu_init_cap_remap_table(struct sprd_fgu_data *data)
 
 	dev_dbg(data->dev, "cap_remap_total_cnt =%d, cap_remap_table_len = %d\n",
 		data->cap_remap_total_cnt, data->cap_remap_table_len);
+
+	return 0;
+}
+
+static int sprd_fgu_parse_battery_cycles_fcc_table(struct sprd_fgu_data *data)
+{
+	struct device_node *np = data->dev->of_node;
+	int len, battery_id;
+	char *cycle_str, *fcc_str;
+
+	data->battery_cycles_fcc_table =
+		devm_kzalloc(data->dev, sizeof(struct sprd_battery_cycles_fcc_table), GFP_KERNEL);
+
+	battery_id = sprd_battery_parse_battery_id(data->battery);
+	cycle_str = kasprintf(GFP_KERNEL, "bat-%d-aging-cycles", battery_id);
+	len = of_property_count_u32_elems(np, cycle_str);
+
+	if (len < 0 && len != -EINVAL) {
+		data->battery_cycles_fcc_table->cols = len;
+		return len;
+	} else if (len > SPRD_BATTERY_CYCLES_FCC_COLS_MAX) {
+		dev_err(data->dev, "too many cycles values\n");
+		data->battery_cycles_fcc_table->cols = -EINVAL;
+		return -EINVAL;
+	} else if (len > 0) {
+		fcc_str = kasprintf(GFP_KERNEL, "bat-%d-aging-fcc-uah", battery_id);
+		if (len != of_property_count_u32_elems(np, fcc_str)) {
+			dev_err(data->dev, "the cycles and fcc table length is not equals\n");
+			data->battery_cycles_fcc_table->cols = -EINVAL;
+			return -EINVAL;
+		}
+
+		data->battery_cycles_fcc_table->cols = len;
+		of_property_read_u32_array(np, cycle_str,
+					   data->battery_cycles_fcc_table->cycles, len);
+		of_property_read_u32_array(np, fcc_str,
+					   data->battery_cycles_fcc_table->fcc_uah, len);
+	}
 
 	return 0;
 }
@@ -637,38 +701,6 @@ static int sprd_fgu_get_boot_mode(struct sprd_fgu_data *data)
 	return ret;
 }
 
-static int sprd_fgu_set_basp_volt(struct sprd_fgu_data *data, int max_volt_uv)
-{
-	int i, index;
-
-	if (!data->support_basp || max_volt_uv == -1 || !data->basp_voltage_max_table ||
-	    !data->basp_full_design_table || !data->basp_ocv_table)
-		return 0;
-
-	for (i = 0; i < data->basp_voltage_max_table_len; i++) {
-		if (max_volt_uv >= data->basp_voltage_max_table[i])
-			break;
-	}
-
-	if (i == data->basp_voltage_max_table_len)
-		index = i - 1;
-	else
-		index = i;
-
-	data->basp_volt_uv = data->basp_voltage_max_table[index];
-	data->total_mah = data->basp_full_design_table[index]  / 1000;
-	data->design_mah = data->total_mah;
-
-	data->table_len = data->basp_ocv_table_len;
-	data->cap_table = (struct power_supply_battery_ocv_table *)
-		(data->basp_ocv_table[index]);
-
-	dev_info(data->dev, "%s, basp_volt_uv = %d, basp_index = %d, max_volt_uv= %d, total_mah = %d\n",
-		 __func__, data->basp_volt_uv, index, max_volt_uv, data->total_mah);
-
-	return 0;
-}
-
 static int sprd_fgu_parse_cmdline_match(struct sprd_fgu_data *data, char *match_str,
 					char *result, int size)
 {
@@ -732,6 +764,35 @@ static void sprd_fgu_parse_shutdown_rtc_time(struct sprd_fgu_data *data)
 	}
 }
 
+static int sprd_fgu_get_aging_bat_id(struct sprd_fgu_data *data)
+{
+	int aging_bat_id = 0, i, cols;
+
+	if (!data->support_bat_aging)
+		return aging_bat_id;
+
+	cols = data->battery_cycles_fcc_table->cols;
+	if (cols <= 0)
+		return aging_bat_id;
+
+	if (data->charge_cycle <= data->battery_cycles_fcc_table->cycles[0] * 1000)
+		return 0;
+
+	if (data->charge_cycle >= data->battery_cycles_fcc_table->cycles[cols - 1] * 1000)
+		return cols - 1;
+
+	for (i = 1; i < cols; i++) {
+		if (data->charge_cycle < data->battery_cycles_fcc_table->cycles[i] * 1000) {
+			aging_bat_id = i - 1;
+			break;
+		}
+	}
+
+	dev_info(data->dev, "aging_bat_id = %d\n", aging_bat_id);
+
+	return aging_bat_id;
+}
+
 static void sprd_fgu_parse_charge_cycle(struct sprd_fgu_data *data)
 {
 	char result[32] = {};
@@ -749,29 +810,9 @@ static void sprd_fgu_parse_charge_cycle(struct sprd_fgu_data *data)
 				ret, result);
 		}
 	}
-}
 
-static void sprd_fgu_parse_basp(struct sprd_fgu_data *data)
-{
-	char result[32] = {};
-	int ret;
-	char *str;
-
-	str = "charge.basp=";
-	data->basp_volt_uv = -1;
-	ret = sprd_fgu_parse_cmdline_match(data, str, result, sizeof(result));
-	if (!ret) {
-		ret = kstrtoint(result, 10, &data->basp_volt_uv);
-		if (ret) {
-			data->basp_volt_uv = -1;
-			dev_err(data->dev, "Covert basp fail, ret = %d, result = %s\n",
-				ret, result);
-		}
-
-		ret = sprd_fgu_set_basp_volt(data, data->basp_volt_uv);
-		if (ret)
-			dev_err(data->dev, "Fail to set basp volt\n");
-	}
+	data->last_aging_bat_id = sprd_fgu_get_aging_bat_id(data);
+	data->dynamic_update_bat_para_flag = false;
 }
 
 static void sprd_fgu_parse_learned_mah(struct sprd_fgu_data *data)
@@ -802,17 +843,12 @@ static void sprd_fgu_parse_cmdline(struct sprd_fgu_data *data)
 	/* parse charge cycle */
 	sprd_fgu_parse_charge_cycle(data);
 
-	/* parse basp */
-	if (data->support_basp)
-		sprd_fgu_parse_basp(data);
-
 	/* parse learned total mah */
 	if (data->track.cap_tracking)
 		sprd_fgu_parse_learned_mah(data);
 
-	dev_info(data->dev, "shutdown_rtc_time = %lld, charge_cycle = %d, basp = %d, learned_mah = %d\n",
-		 data->shutdown_rtc_time, data->charge_cycle, data->basp_volt_uv,
-		 data->track.learned_mah);
+	dev_info(data->dev, "shutdown_rtc_time = %lld, charge_cycle = %d, learned_mah = %d\n",
+		 data->shutdown_rtc_time, data->charge_cycle, data->track.learned_mah);
 }
 
 static int sprd_fgu_get_rtc_time(struct sprd_fgu_data *data, s64 *time)
@@ -915,27 +951,16 @@ resistance_algo:
 	return 0;
 }
 
-static int sprd_fgu_get_basp_volt(struct sprd_fgu_data *data, int *max_volt_uv)
-{
-	int ret = 0;
-
-	*max_volt_uv = data->basp_volt_uv;
-
-	return ret;
-}
-
 static void sprd_fgu_dump_battery_info(struct sprd_fgu_data *data, char *str)
 {
 	int i, j;
 
-	dev_info(data->dev, "%s, ocv_table_len = %d, temp_table_len = %d, rabat_table_len = %d, basp_ocv_table_len = %d, basp_full_design_table_len = %d, basp_voltage_max_table_len = %d\n"
-		 "track.end_vol = %d, track.end_cur = %d, first_calib_volt = %d, total_mah = %d, max_volt_uv = %d, internal_resist = %d, min_volt_uv = %d\n",
+	dev_info(data->dev, "%s, ocv_table_len = %d, temp_table_len = %d, rabat_table_len = %d, track.end_vol = %d\n"
+		 "track.end_cur = %d, first_calib_volt = %d, total_mah = %d, max_volt_uv = %d, internal_resist = %d, min_volt_uv = %d\n",
 		 str, data->rbat_ocv_table_len, data->rbat_temp_table_len,
-		 data->rabat_table_len, data->basp_ocv_table_len,
-		 data->basp_full_design_table_len, data->basp_voltage_max_table_len,
-		 data->track.end_vol, data->track.end_cur, data->first_calib_volt,
-		 data->total_mah, data->max_volt_uv, data->internal_resist,
-		 data->min_volt_uv);
+		 data->rabat_table_len, data->track.end_vol, data->track.end_cur,
+		 data->first_calib_volt, data->total_mah, data->max_volt_uv,
+		 data->internal_resist, data->min_volt_uv);
 
 	if (data->rbat_temp_table_len > 0) {
 		for (i = 0; i < data->rbat_temp_table_len; i++)
@@ -959,27 +984,6 @@ static void sprd_fgu_dump_battery_info(struct sprd_fgu_data *data, char *str)
 		for (i = 0; i < data->rabat_table_len; i++)
 			dev_info(data->dev, "%s, target_rbat_table[%d] = %d\n",
 				 str, i, data->target_rbat_table[i]);
-	}
-
-	if (data->basp_full_design_table) {
-		for (i = 0; i < data->basp_full_design_table_len; i++)
-			dev_info(data->dev, "%s, basp_full_design_table[%d] = %d\n",
-				 str, i, data->basp_full_design_table[i]);
-	}
-
-	if (data->basp_voltage_max_table) {
-		for (i = 0; i < data->basp_voltage_max_table_len; i++)
-			dev_info(data->dev, "%s, basp_voltage_max_table[%d] = %d\n",
-				 str, i, data->basp_voltage_max_table[i]);
-	}
-
-	if (data->basp_ocv_table) {
-		for (i = 0; i < data->basp_voltage_max_table_len; i++) {
-			for (j = 0; j < data->basp_ocv_table_len; j++)
-				dev_info(data->dev, "%s, basp_ocv_table[%d][%d] = (%d, %d)\n",
-					 str, i, j, data->basp_ocv_table[i][j].ocv,
-					 data->basp_ocv_table[i][j].capacity);
-		}
 	}
 
 	if (data->cap_table) {
@@ -1143,7 +1147,6 @@ static void sprd_fgu_boot_cap_calibration(struct sprd_fgu_data *data,
 	data->track.pocv_info.valid = true;
 	data->track.pocv_info.ocv_uv = pocv_uv;
 	data->track.pocv_info.ocv_time_stamp = cur_time;
-
 
 	dev_info(data->dev, "Boot calib: pocv_cap = %d, *cap = %d\n", pocv_cap, *cap);
 
@@ -2010,7 +2013,11 @@ static int sprd_fgu_get_property(struct power_supply *psy,
 		val->intval = value * 1000;
 		break;
 
-	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
+	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+		val->intval = data->design_mah * 1000;
+		break;
+
+	case POWER_SUPPLY_PROP_CHARGE_FULL:
 		val->intval = data->total_mah * 1000;
 		break;
 
@@ -2018,9 +2025,6 @@ static int sprd_fgu_get_property(struct power_supply *psy,
 		val->intval = data->charge_cycle;
 		break;
 
-	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
-		ret = sprd_fgu_get_basp_volt(data, &val->intval);
-		break;
 	default:
 		ret = -EINVAL;
 		break;
@@ -2115,8 +2119,11 @@ static int sprd_fgu_set_property(struct power_supply *psy,
 		data->init_cap = fgu_info->ops->adjust_cap(fgu_info, val->intval);
 		break;
 
-	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
-		dev_dbg(data->dev, "%s:line%d total_uah = %d\n", __func__, __LINE__, val->intval);
+	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+		data->design_mah = val->intval / 1000;
+		break;
+
+	case POWER_SUPPLY_PROP_CHARGE_FULL:
 		data->total_mah = val->intval / 1000;
 		break;
 
@@ -2265,11 +2272,6 @@ static int sprd_fgu_set_property(struct power_supply *psy,
 		dev_info(data->dev, "Battery debug  Battery Health = %#x\n", val->intval);
 		break;
 
-	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
-		dev_dbg(data->dev, "%s:line%d max vol= %d\n", __func__, __LINE__, val->intval);
-		ret = sprd_fgu_set_basp_volt(data, val->intval);
-		break;
-
 	default:
 		ret = -EINVAL;
 	}
@@ -2297,12 +2299,12 @@ static int sprd_fgu_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_TEMP:
 	case POWER_SUPPLY_PROP_CAPACITY:
 	case POWER_SUPPLY_PROP_CALIBRATE:
-	case POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN:
+	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
+	case POWER_SUPPLY_PROP_CHARGE_FULL:
 	case POWER_SUPPLY_PROP_PRESENT:
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
-	case POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN:
 	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
 	case POWER_SUPPLY_PROP_HEALTH:
 		return 1;
@@ -2324,10 +2326,10 @@ static enum power_supply_property sprd_fgu_props[] = {
 	POWER_SUPPLY_PROP_CURRENT_NOW,
 	POWER_SUPPLY_PROP_CURRENT_AVG,
 	POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE,
-	POWER_SUPPLY_PROP_ENERGY_FULL_DESIGN,
+	POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN,
+	POWER_SUPPLY_PROP_CHARGE_FULL,
 	POWER_SUPPLY_PROP_CALIBRATE,
 	POWER_SUPPLY_PROP_CYCLE_COUNT,
-	POWER_SUPPLY_PROP_VOLTAGE_MAX_DESIGN,
 };
 
 static const struct power_supply_desc sprd_fgu_desc = {
@@ -3013,10 +3015,11 @@ static bool sprd_fgu_cap_track_is_meet_end_conditon(struct sprd_fgu_data *data)
 
 static void sprd_fgu_cap_track_state_init(struct sprd_fgu_data *data, int *cycle)
 {
-	int design_mah, learned_mah;
+	int design_mah, learned_mah, charge_full_mah;
 
 	design_mah = data->design_mah;
 	learned_mah = data->track.learned_mah;
+	charge_full_mah = data->charge_full_mah;
 
 	data->track.state = CAP_TRACK_IDLE;
 
@@ -3029,8 +3032,11 @@ static void sprd_fgu_cap_track_state_init(struct sprd_fgu_data *data, int *cycle
 	}
 
 	if (((learned_mah > design_mah) && ((learned_mah - design_mah) < design_mah / 10)) ||
-	    ((design_mah > learned_mah) && ((design_mah - learned_mah) < design_mah / 2)))
+	    ((((design_mah > learned_mah) && ((design_mah - learned_mah) < design_mah / 2))) &&
+	    (learned_mah < charge_full_mah)))
 		data->total_mah = learned_mah;
+	else
+		data->total_mah = charge_full_mah;
 }
 
 static void sprd_fgu_cap_track_state_idle(struct sprd_fgu_data *data, int *cycle)
@@ -3071,6 +3077,7 @@ static void sprd_fgu_cap_track_state_idle(struct sprd_fgu_data *data, int *cycle
 
 	data->track.start_time = ktime_divns(ktime_get_boottime(), NSEC_PER_SEC);
 	data->track.start_cc_mah = cc_uah / 1000;
+	data->track.start_aging_bat_id = data->last_aging_bat_id;
 	data->track.state = CAP_TRACK_UPDATING;
 
 	dev_info(data->dev, "[idle] start_time = %lld, start_cc_mah = %d, start_cap = %d\n",
@@ -3117,6 +3124,12 @@ static void sprd_fgu_cap_track_state_updating(struct sprd_fgu_data *data, int *c
 		return;
 	}
 
+	if (data->track.start_aging_bat_id != data->last_aging_bat_id) {
+		data->track.state = CAP_TRACK_IDLE;
+		dev_dbg(data->dev, "[updating] bat aging table change occurs, need to stop capacity track!\n");
+		return;
+	}
+
 	ret = fgu_info->ops->get_current_avg(fgu_info, &ibat_avg_ma);
 	if (ret) {
 		dev_err(data->dev, "failed to get ibat average current.\n");
@@ -3148,7 +3161,7 @@ static void sprd_fgu_cap_track_state_updating(struct sprd_fgu_data *data, int *c
 static void sprd_fgu_cap_track_state_done(struct sprd_fgu_data *data, int *cycle)
 {
 	int ret, ibat_avg_ma = 0, vbat_avg_mv = 0, ibat_now_ma = 0;
-	int delta_mah, total_mah, design_mah, start_mah, end_mah, cur_cc_uah;
+	int delta_mah, total_mah, design_mah, start_mah, end_mah, cur_cc_uah, charge_cycle;
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
 
 	*cycle = SPRD_FGU_CAPACITY_TRACK_3S;
@@ -3247,14 +3260,24 @@ static void sprd_fgu_cap_track_state_done(struct sprd_fgu_data *data, int *cycle
 		 ibat_now_ma, vbat_avg_mv);
 
 	data->track.state = CAP_TRACK_IDLE;
-	if (((end_mah > design_mah) && ((end_mah - design_mah) < design_mah / 10)) ||
-	    ((design_mah > end_mah) && ((design_mah - end_mah) < design_mah / 2))) {
+	if ((((end_mah > design_mah) && ((end_mah - design_mah) < design_mah / 10)) ||
+	    ((design_mah > end_mah) && ((design_mah - end_mah) < design_mah / 2))) &&
+	    data->track.start_aging_bat_id == data->last_aging_bat_id) {
 		data->total_mah = end_mah;
 		pm_wakeup_event(data->dev, SPRD_FGU_TRACK_WAKE_UP_MS);
+		if (data->support_bat_aging) {
+			charge_cycle = sprd_fgu_fcc_uah2charge_cycles(data, data->total_mah * 1000);
+			if ((charge_cycle != -1) &&
+			    (abs(charge_cycle * 1000 - data->charge_cycle) >=
+			     SPRD_FGU_TRACK_CHARGE_CYCLE_DIFF))
+				data->charge_cycle = charge_cycle * 1000;
+		}
+
 		dev_info(data->dev, "track capacity done: end_mah = %d, diff_mah = %d\n",
 			 end_mah, (end_mah - total_mah));
 	} else {
-		dev_info(data->dev, "less than half standard capacity.\n");
+		dev_info(data->dev, "less than half standard capacity or start_aging_bat_id = %d is not equal to last_aging_bat_id = %d.\n",
+			 data->track.start_aging_bat_id, data->last_aging_bat_id);
 	}
 }
 
@@ -3285,6 +3308,51 @@ static int sprd_fgu_cap_track_state_machine(struct sprd_fgu_data *data)
 
 	return cycle;
 }
+
+static bool sprd_fgu_is_switch_bat_para(struct sprd_fgu_data *data)
+{
+	int aging_bat_id;
+	bool is_need_switch = false;
+
+	aging_bat_id = sprd_fgu_get_aging_bat_id(data);
+	if (aging_bat_id != data->last_aging_bat_id) {
+		data->last_aging_bat_id = aging_bat_id;
+		is_need_switch = true;
+	}
+
+	dev_info(data->dev, "%s %d is_need_switch = %d\n",
+		 __func__, __LINE__, is_need_switch);
+
+	return is_need_switch;
+}
+
+static void sprd_fgu_bat_aging_algo(struct sprd_fgu_data *data)
+{
+	int ret = 0;
+	struct sprd_fgu_info *fgu_info = data->fgu_info;
+
+	dev_info(data->dev, "%s %d charge_cycle = %d\n",
+		 __func__, __LINE__, data->charge_cycle);
+
+	if (!sprd_fgu_is_switch_bat_para(data))
+		return;
+
+	data->dynamic_update_bat_para_flag = true;
+
+	ret = sprd_fgu_get_bat_para_table(data, data->last_aging_bat_id);
+	if (ret)
+		return;
+
+	/*
+	 * Set the capacity delta threshold, that means when the capacity
+	 * change is multiples of the delta threshold, the controller
+	 * will generate one interrupt to notify the users to update the battery
+	 * capacity. Now we set the 1% capacity value.
+	 */
+	fgu_info->ops->set_cap_delta_thre(fgu_info, data->total_mah, 10);
+	cm_notify_event(data->battery, CM_EVENT_BATT_AGING, NULL);
+}
+
 static int sprd_fgu_cap_calc_work_cycle(struct sprd_fgu_data *data)
 {
 	int ret = 0, temp, cur_ma = 0, delta_cc_uah;
@@ -3318,6 +3386,7 @@ static int sprd_fgu_cap_calc_work_cycle(struct sprd_fgu_data *data)
 
 	return work_cycle;
 }
+
 static void sprd_fgu_cap_calculate_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
@@ -3347,6 +3416,9 @@ static void sprd_fgu_cap_calculate_work(struct work_struct *work)
 		dev_err(data->dev, "failed get capacity!!\n");
 		goto out;
 	}
+
+	if (data->support_bat_aging)
+		sprd_fgu_bat_aging_algo(data);
 
 	work_cycle = sprd_fgu_cap_calc_work_cycle(data);
 
@@ -3407,11 +3479,6 @@ static int sprd_fgu_cap_track_register_usb_notify(struct sprd_fgu_data *data)
 		}
 		INIT_WORK(&data->typec_extcon_work, sprd_fgu_typec_extcon_work);
 		data->extcon_nb.notifier_call = sprd_fgu_extcon_event;
-		ret = devm_extcon_register_notifier_all(data->dev, data->edev, &data->extcon_nb);
-		if (ret) {
-			dev_err(data->dev, "Can't register extcon, ret = %d\n", ret);
-			return ret;
-		}
 	} else {
 		data->usb_notify.notifier_call = sprd_fgu_usb_change;
 		ret = usb_register_notifier(data->usb_phy, &data->usb_notify);
@@ -3807,7 +3874,7 @@ static int sprd_fgu_parse_sprd_battery_info(struct sprd_fgu_data *data,
 	int i;
 
 	/*
-	 * For SC27XX fuel gauge device, we only use one ocv-capacity
+	 * For sprd fuel gauge device, we only use one ocv-capacity
 	 * table in normal temperature 20 Celsius.
 	 */
 	table = sprd_battery_find_ocv2cap_table(info, 20, &data->table_len);
@@ -3819,11 +3886,6 @@ static int sprd_fgu_parse_sprd_battery_info(struct sprd_fgu_data *data,
 				       GFP_KERNEL);
 	if (!data->cap_table)
 		return -ENOMEM;
-
-	/*
-	 * We should give a initial temperature value of temp_buff.
-	 */
-	data->temp_buff[0] = -500;
 
 	data->temp_table_len = info->battery_vol_temp_table_len;
 	if (data->temp_table_len > 0) {
@@ -3936,52 +3998,6 @@ static int sprd_fgu_parse_sprd_battery_info(struct sprd_fgu_data *data,
 		}
 	}
 
-	data->basp_full_design_table_len = info->basp_charge_full_design_uah_table_len;
-	if (data->basp_full_design_table_len > 0) {
-		data->basp_full_design_table =
-			devm_kmemdup(data->dev, info->basp_charge_full_design_uah_table,
-				     data->basp_full_design_table_len * sizeof(int), GFP_KERNEL);
-		if (!data->basp_full_design_table) {
-			dev_err(data->dev, "data->basp_full_design_table is null\n");
-			return -ENOMEM;
-		}
-	}
-
-	data->basp_voltage_max_table_len = info->basp_constant_charge_voltage_max_uv_table_len;
-	if (data->basp_voltage_max_table_len > 0) {
-		data->basp_voltage_max_table =
-			devm_kmemdup(data->dev, info->basp_constant_charge_voltage_max_uv_table,
-				     data->basp_voltage_max_table_len * sizeof(int), GFP_KERNEL);
-		if (!data->basp_voltage_max_table) {
-			dev_err(data->dev, "data->basp_voltage_max_table is null\n");
-			return -ENOMEM;
-		}
-	}
-
-	data->basp_ocv_table_len = info->basp_ocv_table_len[0];
-	if (data->basp_ocv_table_len > 0) {
-		data->basp_ocv_table =
-			devm_kzalloc(data->dev, data->basp_voltage_max_table_len * sizeof(int *),
-				     GFP_KERNEL);
-
-		if (!data->basp_ocv_table) {
-			dev_err(data->dev, "Fail to alloc basp_ocv_table\n");
-			return -ENOMEM;
-		}
-
-		for (i = 0; i < data->basp_voltage_max_table_len; i++) {
-			data->basp_ocv_table[i] =
-				devm_kmemdup(data->dev, info->basp_ocv_table[i],
-					     data->basp_ocv_table_len *
-					     sizeof(struct sprd_battery_ocv_table),
-					     GFP_KERNEL);
-			if (!data->basp_ocv_table[i]) {
-				dev_err(data->dev, "data->basp_ocv_table[%d]\n", i);
-				return -ENOMEM;
-			}
-		}
-	}
-
 	if (info->fullbatt_track_end_voltage_uv > 0)
 		data->track.end_vol = info->fullbatt_track_end_voltage_uv / 1000;
 	else
@@ -4008,11 +4024,24 @@ static int sprd_fgu_parse_sprd_battery_info(struct sprd_fgu_data *data,
 		dev_warn(data->dev, "no fgu first_calib_cap support\n");
 
 	if (info->charge_full_design_uah > 0)
-		data->total_mah = info->charge_full_design_uah / 1000;
+		data->design_mah = info->charge_full_design_uah / 1000;
 	else
 		dev_warn(data->dev, "no fgu charge_full_design_uah support\n");
 
-	data->design_mah = data->total_mah;
+	if (info->charge_full_uah > 0) {
+		data->charge_full_mah = info->charge_full_uah / 1000;
+		if (data->dynamic_update_bat_para_flag && data->track.learned_mah > 0 &&
+		    data->track.learned_mah < data->charge_full_mah &&
+		    ((data->charge_full_mah - data->track.learned_mah) <
+		     (data->charge_full_mah / 2))) {
+			data->total_mah = data->track.learned_mah;
+			data->dynamic_update_bat_para_flag = false;
+		} else {
+			data->total_mah = data->charge_full_mah;
+		}
+	} else {
+		dev_warn(data->dev, "no fgu charge_full_uah support\n");
+	}
 
 	if (info->constant_charge_voltage_max_uv > 0)
 		data->max_volt_uv = info->constant_charge_voltage_max_uv;
@@ -4033,6 +4062,26 @@ static int sprd_fgu_parse_sprd_battery_info(struct sprd_fgu_data *data,
 		sprd_fgu_dump_battery_info(data, "parse_resistance_table");
 
 	return 0;
+}
+
+static int sprd_fgu_get_bat_para_table(struct sprd_fgu_data *data, int aging_bat_id)
+{
+	int ret = 0;
+	struct sprd_battery_info info = {};
+
+	ret = sprd_battery_get_battery_info(data->battery, &info, aging_bat_id);
+	if (ret) {
+		sprd_battery_put_battery_info(data->battery, &info);
+		dev_err(data->dev, "failed to get sprd battery information\n");
+		return ret;
+	}
+
+	ret = sprd_fgu_parse_sprd_battery_info(data, &info);
+	sprd_battery_put_battery_info(data->battery, &info);
+	if (ret)
+		dev_err(data->dev, "failed to parse battery information, ret = %d\n", ret);
+
+	return ret;
 }
 
 static int sprd_fgu_hw_config(struct sprd_fgu_data *data)
@@ -4090,27 +4139,30 @@ static int sprd_fgu_hw_config(struct sprd_fgu_data *data)
 static int sprd_fgu_hw_init(struct sprd_fgu_data *data)
 {
 	int ret;
-	struct sprd_battery_info info = {};
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
 	struct timespec64 cur_time;
 
 	data->cur_now_buff[SPRD_FGU_CURRENT_BUFF_CNT - 1] = SPRD_FGU_MAGIC_NUMBER;
 
-	ret = sprd_battery_get_battery_info(data->battery, &info);
-	if (ret) {
-		sprd_battery_put_battery_info(data->battery, &info);
-		dev_err(data->dev, "failed to get sprd battery information\n");
-		return ret;
-	}
+	/*
+	 * We should give a initial temperature value of temp_buff.
+	 */
+	data->temp_buff[0] = -500;
 
-	ret = sprd_fgu_parse_sprd_battery_info(data, &info);
-	sprd_battery_put_battery_info(data->battery, &info);
-	if (ret) {
-		dev_err(data->dev, "failed to parse battery information, ret = %d\n", ret);
-		return ret;
+	if (data->support_bat_aging) {
+		ret = sprd_fgu_parse_battery_cycles_fcc_table(data);
+		if (ret) {
+			dev_err(data->dev, "%s failed to parse battery_cycles_fcc_table!!!\n",
+				__func__);
+			data->support_bat_aging = false;
+		}
 	}
 
 	sprd_fgu_parse_cmdline(data);
+
+	ret = sprd_fgu_get_bat_para_table(data, 0);
+	if (ret)
+		return ret;
 
 	data->alarm_cap = sprd_fgu_ocv2cap(data->cap_table, data->table_len, data->min_volt_uv);
 	/*
@@ -4279,10 +4331,10 @@ static int sprd_fgu_probe(struct platform_device *pdev)
 	if (ret)
 		dev_warn(dev, "get_boot_mode can't not parse bootargs property\n");
 
-	data->support_basp =
-		device_property_read_bool(&pdev->dev, "sprd,basp");
-	if (!data->support_basp)
-		dev_info(&pdev->dev, "Do not support basp function\n");
+	data->support_bat_aging =
+		device_property_read_bool(&pdev->dev, "sprd,bat-aging");
+	if (!data->support_bat_aging)
+		dev_info(&pdev->dev, "Do not support battery aging function\n");
 
 	data->gpiod = devm_gpiod_get(&pdev->dev, "bat-detect", GPIOD_IN);
 	if (IS_ERR(data->gpiod)) {

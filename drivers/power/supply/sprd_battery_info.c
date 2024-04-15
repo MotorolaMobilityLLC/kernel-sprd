@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+ // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (C) 2011 Unisoc Co., Ltd.
  * Jinfeng.Lin <Jinfeng.Lin1@unisoc.com>
@@ -89,6 +89,81 @@ int sprd_battery_parse_battery_id(struct power_supply *psy)
 }
 EXPORT_SYMBOL_GPL(sprd_battery_parse_battery_id);
 
+static int sprd_battery_parse_charge_cycle(struct power_supply *psy)
+{
+	char result[32] = {};
+	int ret, charge_cycle = 0;
+	char *str;
+
+	str = "charge.charge_cycle=";
+	ret = sprd_battery_parse_cmdline_match(psy, str, result, sizeof(result));
+	if (!ret) {
+		ret = kstrtoint(result, 10, &charge_cycle);
+		if (ret) {
+			charge_cycle = -1;
+			dev_err(&psy->dev, "Covert charge_cycle fail, ret = %d, result = %s\n",
+				ret, result);
+		}
+	}
+
+	dev_info(&psy->dev, "charge_cycle = %d\n", charge_cycle);
+
+	return charge_cycle;
+}
+
+int sprd_battery_get_aging_bat_id(struct power_supply *psy, int charge_cycle)
+{
+	int aging_bat_id = 0, bat_id, i, charge_cycle_thres, len, ret;
+	struct device_node *np;
+	char *cycle_str;
+
+	np = of_find_compatible_node(NULL, NULL, "sprd,sprd-fgu");
+	bat_id = sprd_battery_parse_battery_id(psy);
+	if (!np) {
+		dev_err(&psy->dev, "failed to get fuel gauge device node!!!\n");
+		return 0;
+	}
+
+	cycle_str = kasprintf(GFP_KERNEL, "bat-%d-aging-cycles", bat_id);
+	if ((!of_property_read_bool(np, cycle_str)) ||
+	    (!of_property_read_bool(np, "sprd,bat-aging"))) {
+		dev_err(&psy->dev, "Do not support battery aging function!!!\n");
+		return 0;
+	}
+
+	len = of_property_count_u32_elems(np, cycle_str);
+	if (len < 0 && len != -EINVAL) {
+		goto out;
+	} else if (len > SPRD_BATTERY_CYCLES_FCC_COLS_MAX) {
+		dev_err(&psy->dev, "too many cycles values\n");
+		goto out;
+	} else if (len > 0) {
+		for (i = 1; i < len; i++) {
+			ret = of_property_read_u32_index(np, cycle_str, i, &charge_cycle_thres);
+			if (ret) {
+				dev_err(&psy->dev, "failed to get charge_cycle_thres!!!\n");
+				goto out;
+			}
+
+			if (i == len - 1 && charge_cycle >= charge_cycle_thres * 1000) {
+				aging_bat_id = i;
+				break;
+			}
+
+			if (charge_cycle < charge_cycle_thres * 1000) {
+				aging_bat_id = i - 1;
+				break;
+			}
+		}
+	}
+
+out:
+	dev_info(&psy->dev, "aging_bat_id = %d\n", aging_bat_id);
+
+	return aging_bat_id;
+}
+EXPORT_SYMBOL_GPL(sprd_battery_get_aging_bat_id);
+
 static bool sprd_battery_ocv_cap_table_check(struct power_supply *psy,
 					     struct sprd_battery_ocv_table *table,
 					     int table_len)
@@ -158,13 +233,15 @@ static int sprd_battery_factory_internal_resistance_check(struct sprd_battery_in
 {
 	int ret;
 
-	ret = sprd_battery_resistance_temp_table_check(info->battery_internal_resistance_temp_table_len,
-						       info->battery_internal_resistance_table_len);
+	ret = sprd_battery_resistance_temp_table_check(
+		info->battery_internal_resistance_temp_table_len,
+		info->battery_internal_resistance_table_len);
 	if (ret)
 		return ret;
 
-	ret = sprd_battery_resistance_ocv_table_size_check(info->battery_internal_resistance_table_len[0],
-							   info->battery_internal_resistance_ocv_table_len);
+	ret = sprd_battery_resistance_ocv_table_size_check(
+		info->battery_internal_resistance_table_len[0],
+		info->battery_internal_resistance_ocv_table_len);
 
 	return ret;
 }
@@ -347,9 +424,8 @@ static int sprd_battery_parse_battery_internal_resistance_table(struct sprd_batt
 
 		table = info->battery_internal_resistance_table[index] =
 			devm_kzalloc(&psy->dev, tab_len * sizeof(*table), GFP_KERNEL);
-		if (!info->battery_internal_resistance_table[index]) {
+		if (!info->battery_internal_resistance_table[index])
 			return -ENOMEM;
-		}
 
 		for (i = 0; i < tab_len; i++)
 			table[i] = be32_to_cpu(*list++);
@@ -441,145 +517,6 @@ static int sprd_battery_parse_energy_density_ocv_table(struct sprd_battery_info 
 	if (!sprd_battery_energy_density_ocv_table_check(*dens_ocv_table, *table_len)) {
 		dev_err(&psy->dev, "%s:  density ocv table value is wrong, please check\n", name);
 		return -EINVAL;
-	}
-
-	return 0;
-}
-
-static int sprd_battery_parse_basp_ocv_table(struct sprd_battery_info *info,
-					     struct device_node *battery_np,
-					     struct power_supply *psy)
-{
-	int fcc_table_len, cc_voltage_max_table_len, ocv_table_len;
-	const __be32 *list;
-	int i, index, size;
-	int *fcc_table, *cc_voltage_max_table;
-	struct sprd_battery_ocv_table *ocv_table;
-	char *propname;
-
-	/* parse  basp-charge-full-design-microamp-hours*/
-	list = of_get_property(battery_np, "basp-charge-full-design-microamp-hours", &size);
-	if (!list || !size)
-		return 0;
-
-	fcc_table_len = size / (sizeof(__be32));
-	fcc_table = devm_kcalloc(&psy->dev, fcc_table_len, sizeof(*fcc_table), GFP_KERNEL);
-	if (!fcc_table) {
-		dev_err(&psy->dev, "basp_charge_full_design_uah_table is null\n");
-		return -ENOMEM;
-	}
-
-	for (index = 0; index < fcc_table_len; index++)
-		fcc_table[index] = be32_to_cpu(*list++);
-
-	/* Check basp_charge_full_design_uah_table */
-	for (index = 0; index < fcc_table_len - 1; index++) {
-		if (fcc_table[index] <= fcc_table[index + 1]) {
-			dev_err(&psy->dev, "basp_fcc_uah_table is wrong, please check\n");
-			return -EINVAL;
-		}
-	}
-
-	info->basp_charge_full_design_uah_table = fcc_table;
-	info->basp_charge_full_design_uah_table_len = fcc_table_len;
-
-	/* parse  basp_constant_charge_voltage_max_microvolt*/
-	list = of_get_property(battery_np, "basp-constant-charge-voltage-max-microvolt", &size);
-	if (!list || !size)
-		return 0;
-
-	cc_voltage_max_table_len = size / (sizeof(__be32));
-	cc_voltage_max_table = devm_kcalloc(&psy->dev, cc_voltage_max_table_len,
-					    sizeof(*cc_voltage_max_table), GFP_KERNEL);
-	if (!cc_voltage_max_table) {
-		dev_err(&psy->dev, "basp_cc_voltage_max_microvolt_table is null\n");
-		return -ENOMEM;
-	}
-
-	for (index = 0; index < cc_voltage_max_table_len; index++)
-		cc_voltage_max_table[index] = be32_to_cpu(*list++);
-
-	/* Check basp_constant_charge_voltage_max_microvolt_table */
-	for (index = 0; index < cc_voltage_max_table_len - 1; index++) {
-		if (cc_voltage_max_table[index] <= cc_voltage_max_table[index + 1]) {
-			dev_err(&psy->dev, "basp_cc_voltage_table is wrong, please check\n");
-			return -EINVAL;
-		}
-	}
-
-	/* check table len */
-	if (fcc_table_len != cc_voltage_max_table_len) {
-		dev_err(&psy->dev, "basp table len is wrong, please check\n");
-		return -EINVAL;
-	}
-
-	info->basp_constant_charge_voltage_max_uv_table = cc_voltage_max_table;
-	info->basp_constant_charge_voltage_max_uv_table_len = cc_voltage_max_table_len;
-
-	for (index = 0; index < fcc_table_len; index++) {
-		if (index == 0)
-			propname = kasprintf(GFP_KERNEL, "ocv-capacity-table-%d", index);
-		else
-			propname = kasprintf(GFP_KERNEL, "basp-ocv-capacity-table-%d", index - 1);
-
-		if (!propname) {
-			dev_err(&psy->dev, "propname is null!!!\n");
-			return -EINVAL;
-		}
-
-		list = of_get_property(battery_np, propname, &size);
-		if (!list || !size) {
-			dev_err(&psy->dev, "failed to get %s\n", propname);
-			kfree(propname);
-			return -EINVAL;
-		}
-
-		kfree(propname);
-		ocv_table_len = size / (2 * sizeof(__be32));
-		ocv_table =  devm_kzalloc(&psy->dev,
-					  ocv_table_len *
-					  sizeof(struct sprd_battery_ocv_table),
-					  GFP_KERNEL);
-		if (!ocv_table) {
-			dev_err(&psy->dev, "ocv_table is null, index = %d\n", index);
-			return -ENOMEM;
-		}
-
-		for (i = 0; i < ocv_table_len; i++) {
-			ocv_table[i].ocv = be32_to_cpu(*list++);
-			ocv_table[i].capacity = be32_to_cpu(*list++);
-		}
-
-		info->basp_ocv_table[index] = ocv_table;
-		info->basp_ocv_table_len[index] = ocv_table_len;
-	}
-
-	/* check basp_constant_charge_voltage_max_uv_table_len*/
-	for (i = 0; i < fcc_table_len; i++) {
-		if (info->basp_ocv_table_len[index] != info->basp_ocv_table_len[index + 1]) {
-			dev_err(&psy->dev, "basp_ocv_table_len is wrong, please check\n");
-			return -EINVAL;
-		}
-	}
-
-	/* check basp_constant_charge_voltage_max_uv_table */
-	for (i = 0; i < fcc_table_len; i++) {
-		ocv_table = info->basp_ocv_table[i];
-		if ((ocv_table[0].ocv < SPRD_BATTERY_OCV_TABLE_CHECK_VOLT_UV) ||
-			    (ocv_table[info->basp_ocv_table_len[i] - 1].ocv <
-			     SPRD_BATTERY_OCV_TABLE_CHECK_VOLT_UV) ||
-			    (ocv_table[0].capacity > 100) || (ocv_table[0].capacity < 0)) {
-			dev_err(&psy->dev, "basp_ocv_table[%d] unit is wrong, please check\n", i);
-			return -EINVAL;
-		}
-
-		for (index = 0; index < info->basp_ocv_table_len[i] - 2; index++) {
-			if ((ocv_table[index].ocv <= ocv_table[index + 1].ocv) ||
-			    (ocv_table[index].capacity <= ocv_table[index + 1].capacity)) {
-				dev_err(&psy->dev, "basp_ocv_table[%d] order is wrong, please check\n", i);
-				return -EINVAL;
-			}
-		}
 	}
 
 	return 0;
@@ -696,11 +633,14 @@ struct sprd_battery_ocv_table *sprd_battery_find_ocv2cap_table(struct sprd_batte
 }
 EXPORT_SYMBOL_GPL(sprd_battery_find_ocv2cap_table);
 
-int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_info *info)
+int sprd_battery_get_battery_info(struct power_supply *psy,
+				  struct sprd_battery_info *info,
+				  int dynamic_aging_bat_id)
 {
 	struct device_node *battery_np;
 	const char *value;
-	int err, index, battery_id;
+	char *propname;
+	int err, index, battery_id, aging_bat_id, charge_cycle;
 
 	info->charge_full_design_uah         = -EINVAL;
 	info->voltage_min_design_uv          = -EINVAL;
@@ -714,10 +654,6 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 	info->battery_internal_resistance_ocv_table = NULL;
 	info->battery_internal_resistance_temp_table_len = -EINVAL;
 	info->battery_internal_resistance_ocv_table_len = -EINVAL;
-	info->basp_charge_full_design_uah_table = NULL;
-	info->basp_charge_full_design_uah_table_len = -EINVAL;
-	info->basp_constant_charge_voltage_max_uv_table = NULL;
-	info->basp_constant_charge_voltage_max_uv_table_len = -EINVAL;
 	info->fullbatt_track_end_voltage_uv = -EINVAL;
 	info->fullbatt_track_end_current_uA = -EINVAL;
 	info->first_capacity_calibration_voltage_uv = -EINVAL;
@@ -746,21 +682,25 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 		info->battery_internal_resistance_table_len[index] = -EINVAL;
 	}
 
-	for (index = 0; index < SPRD_BATTERY_BASP_OCV_TABLE_MAX; index++) {
-		info->basp_ocv_table[index] = NULL;
-		info->basp_ocv_table_len[index] = -EINVAL;
-	}
-
 	if (!psy->of_node) {
 		dev_warn(&psy->dev, "%s currently only supports devicetree\n", __func__);
 		return -ENXIO;
 	}
 
 	battery_id = sprd_battery_parse_battery_id(psy);
+	propname = kasprintf(GFP_KERNEL, "monitored-battery-%d", battery_id);
 
-	battery_np = of_parse_phandle(psy->of_node, "monitored-battery", battery_id);
+	if (!dynamic_aging_bat_id) {
+		charge_cycle = sprd_battery_parse_charge_cycle(psy);
+		aging_bat_id = sprd_battery_get_aging_bat_id(psy, charge_cycle);
+	} else {
+		aging_bat_id = dynamic_aging_bat_id;
+	}
+
+	battery_np = of_parse_phandle(psy->of_node, propname, aging_bat_id);
 	if (!battery_np) {
-		dev_warn(&psy->dev, "Fail to get monitored-battery-id-%d\n", battery_id);
+		dev_warn(&psy->dev, "Fail to get monitored-battery-%d, aging-bat-id-%d\n",
+			 battery_id, aging_bat_id);
 		return -ENODEV;
 	}
 
@@ -773,6 +713,8 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 
 	of_property_read_u32(battery_np, "charge-full-design-microamp-hours",
 			     &info->charge_full_design_uah);
+	of_property_read_u32(battery_np, "charge-full-microamp-hours",
+			     &info->charge_full_uah);
 	of_property_read_u32(battery_np, "voltage-min-design-microvolt",
 			     &info->voltage_min_design_uv);
 	of_property_read_u32(battery_np, "batt-ovp-threshold-microvolt",
@@ -876,7 +818,8 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 
 	err = sprd_battery_parse_battery_internal_resistance_ocv_table(info, battery_np, psy);
 	if (err) {
-		dev_err(&psy->dev, "Fail to get factory internal resist ocv table, ret = %d\n", err);
+		dev_err(&psy->dev, "Fail to get factory internal resist ocv table, ret = %d\n",
+			err);
 		return err;
 	}
 
@@ -904,12 +847,6 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 		return err;
 	}
 
-	err = sprd_battery_parse_basp_ocv_table(info, battery_np, psy);
-	if (err) {
-		dev_err(&psy->dev, "Fail to parse basp ocv table, ret = %d\n", err);
-		return err;
-	}
-
 	err = sprd_battery_parse_jeita_table(info, battery_np, psy);
 	if (err) {
 		dev_err(&psy->dev, "Fail to parse jeita table, err = %d\n", err);
@@ -931,17 +868,8 @@ void sprd_battery_put_battery_info(struct power_supply *psy, struct sprd_battery
 			devm_kfree(&psy->dev, info->battery_internal_resistance_table[i]);
 	}
 
-	for (i = 0; i < SPRD_BATTERY_BASP_OCV_TABLE_MAX; i++) {
-		if (info->basp_ocv_table[i])
-			devm_kfree(&psy->dev, info->basp_ocv_table[i]);
-	}
-
 	if (info->battery_internal_resistance_ocv_table)
 		devm_kfree(&psy->dev, info->battery_internal_resistance_ocv_table);
-	if (info->basp_charge_full_design_uah_table)
-		devm_kfree(&psy->dev, info->basp_charge_full_design_uah_table);
-	if (info->basp_constant_charge_voltage_max_uv_table)
-		devm_kfree(&psy->dev, info->basp_constant_charge_voltage_max_uv_table);
 }
 EXPORT_SYMBOL_GPL(sprd_battery_put_battery_info);
 
