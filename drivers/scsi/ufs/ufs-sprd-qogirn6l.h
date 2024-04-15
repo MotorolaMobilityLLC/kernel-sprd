@@ -42,6 +42,7 @@ struct ufs_sprd_ums9621_data {
 #define CBCREGRDWRSEL				0x811C
 #define CBCRCTRL				0x811F
 #define CBREFCLKCTRL2				0x8132
+#define CBUPLH8					0x8130
 
 /*
  * Synopsys RX implementation specific M-PHY Attributes
@@ -56,5 +57,17 @@ struct ufs_sprd_ums9621_data {
 #define REG_ANLG_PHY_G12	0x64380000
 
 #define UFS_SLOW_MODE		(SLOW_MODE | (SLOW_MODE << 4))
+
+/*
+ * This capability allows the host controller enter
+ * ULP state in Hibernate8, if it is set
+ */
+#define UFSHCD_CAP_H8_ULP	(1 << 31)
+
+/* compensation time for TActivate in Hibernate ULP state */
+#define ULP_TACTIVATE_COMP_TIME 200
+
+/* Enable ULP H8 */
+#define ULP_H8_EN		0x1
 
 #endif/* _UFS_SPRD_QOGIRN6L_H_ */
