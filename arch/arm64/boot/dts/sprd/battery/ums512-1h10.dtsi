@@ -25,6 +25,7 @@
 	compatible = "simple-battery";
 	status = "okay";
 	charge-full-design-microamp-hours = <3690000>;
+	charge-full-microamp-hours = <3690000>;
 	charge-term-current-microamp = <120000>;
 	constant-charge-voltage-max-microvolt = <4400000>;
 	factory-internal-resistance-micro-ohms = <130000>;
@@ -156,7 +157,7 @@
 	/* drop voltage in microVolts to restart charging */
 	cm-charge-voltage-drop = <700000>;
 
-	monitored-battery = <&bat>;
+	monitored-battery-0 = <&bat>;
 	cm-keep-awake;
 
 	phys = <&hsphy>;
@@ -171,7 +172,7 @@
 		compatible = "fairchild,fan54015_chg";
 		reg = <0x6a>;
 		phys = <&hsphy>;
-		monitored-battery = <&bat>;
+		monitored-battery-0 = <&bat>;
 		extcon = <&extcon_gpio>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
@@ -180,7 +181,7 @@
 };
 
 &pmic_fgu {
-	monitored-battery = <&bat>;
+	monitored-battery-0 = <&bat>;
 	fgu-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 	sprd,calib-resistance-micro-ohms = <10000>;
 	sprd,comp-resistance-mohm = <13>;
@@ -190,5 +191,4 @@
 
 	sprd,capacity-boot-calibration;
 	sprd,capacity-charge-cycle;
-	sprd,basp;
 };

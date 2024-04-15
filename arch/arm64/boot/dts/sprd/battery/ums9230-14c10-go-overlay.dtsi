@@ -11,6 +11,7 @@
 	compatible = "simple-battery";
 	status = "okay";
 	charge-full-design-microamp-hours = <5000000>;
+	charge-full-microamp-hours = <5000000>;
 	charge-term-current-microamp = <300000>;
 	constant-charge-voltage-max-microvolt = <4500000>;
 	factory-internal-resistance-micro-ohms = <72000>;
@@ -119,7 +120,7 @@
 	sprd,support-fchg;
 	sprd,pd-fixed-max-microwatt = <18000000>;
 
-	monitored-battery = <&bat>;
+	monitored-battery-0 = <&bat>;
 	cm-capacity-track;
 	cm-keep-awake;
 
@@ -136,7 +137,7 @@
 	sgm41516_chg: charger@6b {
 		compatible = "Sgm,sgm41516_chg";
 		reg = <0x6b>;
-		monitored-battery = <&bat>;
+		monitored-battery-0 = <&bat>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
 		};
@@ -144,7 +145,7 @@
 };
 
 &pmic_fgu {
-	monitored-battery = <&bat>;
+	monitored-battery-0 = <&bat>;
 	fgu-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 	sprd,calib-resistance-micro-ohms = <10000>;
 	sprd,comp-resistance-mohm = <20>;

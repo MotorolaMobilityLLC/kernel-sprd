@@ -25,6 +25,7 @@
 	compatible = "simple-battery";
 	status = "okay";
 	charge-full-design-microamp-hours = <2950000>;
+	charge-full-microamp-hours = <2950000>;
 	charge-term-current-microamp = <60000>;
 	constant-charge-voltage-max-microvolt = <4340000>;
 	factory-internal-resistance-micro-ohms = <252000>;
@@ -140,7 +141,7 @@
 	sprd,support-pd-pps;
 	sprd,pd-fixed-max-microwatt = <18000000>;
 
-	monitored-battery = <&bat>;
+	monitored-battery-0 = <&bat>;
 	cm-capacity-track;
 	cm-keep-awake;
 
@@ -158,7 +159,7 @@
 	bq2560x_chg: charger@6b {
 		compatible = "ti,bq2560x_chg";
 		reg = <0x6b>;
-		monitored-battery = <&bat>;
+		monitored-battery-0 = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
 		vddvbus:otg-vbus {
@@ -199,7 +200,7 @@
 };
 
 &pmic_fgu {
-	monitored-battery = <&bat>;
+	monitored-battery-0 = <&bat>;
 	fgu-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 	sprd,calib-resistance-micro-ohms = <4850>;
 	sprd,comp-resistance-mohm = <11>;

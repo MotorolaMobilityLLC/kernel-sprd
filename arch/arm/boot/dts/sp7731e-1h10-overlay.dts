@@ -149,6 +149,7 @@
 			bat: battery {
 				compatible = "simple-battery";
 				charge-full-design-microamp-hours = <2780000>;
+				charge-full-microamp-hours = <2780000>;
 				charge-term-current-microamp = <120000>;
 				constant-charge-voltage-max-microvolt = <4350000>;
 				factory-internal-resistance-micro-ohms = <320000>;
@@ -287,7 +288,7 @@
 				cm-charge-voltage-drop = <700000>;
 
 				phys = <&hsphy>;
-				monitored-battery = <&bat>;
+				monitored-battery-0 = <&bat>;
 				cm-keep-awake;
 
 				regulator@0 {
@@ -517,11 +518,11 @@
 &pmic_charger {
 	status = "okay";
 	phys = <&hsphy>;
-	monitored-battery = <&bat>;
+	monitored-battery-0 = <&bat>;
 };
 
 &pmic_fgu {
-	monitored-battery = <&bat>;
+	monitored-battery-0 = <&bat>;
 	fgu-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 	sprd,calib-resistance-micro-ohms = <20000>;
 	sprd,comp-resistance-mohm = <20>;
