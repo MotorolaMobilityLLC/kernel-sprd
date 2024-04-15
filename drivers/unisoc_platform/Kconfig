@@ -93,5 +93,6 @@ source "drivers/unisoc_platform/usbpinmux/Kconfig"
 source "drivers/unisoc_platform/sprd_cache_print/Kconfig"
 source "drivers/unisoc_platform/autotest/Kconfig"
 source "drivers/unisoc_platform/shutdown_detect/Kconfig"
+source "drivers/unisoc_platform/cachedump/Kconfig"
 
 endmenu
