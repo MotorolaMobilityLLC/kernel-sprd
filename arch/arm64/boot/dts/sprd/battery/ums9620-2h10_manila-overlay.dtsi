@@ -396,7 +396,7 @@
 	monitored-battery = <&bat>,<&bat2>,<&bat3>;
 	fgu-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 	sprd,calib-resistance-micro-ohms = <4850>;
-	sprd,comp-resistance-mohm = <11>;
+//	sprd,comp-resistance-mohm = <11>;
 
 	fgu-capacity-track;
 	phys = <&ssphy>;
