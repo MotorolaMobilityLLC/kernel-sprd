@@ -270,34 +270,6 @@ static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt
 	}
 }
 
-static int ufs_efuse_calib_data(struct platform_device *pdev,
-				const char *cell_name)
-{
-	struct nvmem_cell *cell;
-	void *buf;
-	u32 calib_data;
-	size_t len;
-
-	if (!pdev)
-		return -EINVAL;
-
-	cell = nvmem_cell_get(&pdev->dev, cell_name);
-	if (IS_ERR_OR_NULL(cell))
-		return PTR_ERR(cell);
-
-	buf = nvmem_cell_read(cell, &len);
-	if (IS_ERR_OR_NULL(buf)) {
-		nvmem_cell_put(cell);
-		return PTR_ERR(buf);
-	}
-
-	memcpy(&calib_data, buf, min(len, sizeof(u32)));
-
-	kfree(buf);
-	nvmem_cell_put(cell);
-	return calib_data;
-}
-
 static int ufs_sprd_get_syscon_reg_dt(struct device *dev,
 				  struct ufs_sprd_ums9621_data *priv)
 {

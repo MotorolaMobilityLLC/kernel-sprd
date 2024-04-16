@@ -17,6 +17,7 @@
 #include <dt-bindings/soc/sprd,qogirl6-regs.h>
 #include <linux/rpmb.h>
 #include <linux/reset.h>
+#include <linux/nvmem-consumer.h>
 
 #include "ufshcd.h"
 #include "ufshcd-pltfrm.h"
@@ -428,6 +429,23 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 		priv->ap_apb_ufs_glb_rst = NULL;
 		return -ENODEV;
 	}
+
+	priv->ufs_cali_lanes = ufs_efuse_calib_data(pdev,
+						"ufs_cali_lanes");
+	if (priv->ufs_cali_lanes == -EPROBE_DEFER) {
+		dev_err(&pdev->dev,
+			"%s:get ufs_cali_lanes failed!\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	priv->ufs_trimbg = 0xf & (priv->ufs_cali_lanes >> 0x0);
+	priv->ufs_rxtrim = 0xf & (priv->ufs_cali_lanes >> 0x4);
+	priv->ufs_txtrim = 0xf & (priv->ufs_cali_lanes >> 0x8);
+
+	dev_err(&pdev->dev, "%s: ufs_cali_lanes: 0x%x,trimbg=0x%x,rxtrim=0x%x,txtrim=0x%x\n",
+		__func__, priv->ufs_cali_lanes, priv->ufs_trimbg,
+		priv->ufs_rxtrim, priv->ufs_txtrim);
+
 
 	res = platform_get_resource_byname(pdev,
 					IORESOURCE_MEM, "ufs_analog_reg");

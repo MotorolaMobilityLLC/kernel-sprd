@@ -5,6 +5,7 @@
 
 #ifndef _UFS_SPRD_H_
 #define _UFS_SPRD_H_
+#include <linux/platform_device.h>
 
 #define UFS_MAX_GENERAL_LUN	8
 #define B_WB_AVAIL_BUF_ALL (0xA)
@@ -126,6 +127,8 @@ void ufs_sprd_get_gic_reg(struct ufs_hba *hba);
 void ufs_sprd_print_gic_reg(struct ufs_hba *hba);
 void ufs_sprd_uic_cmd_record(struct ufs_hba *hba, struct uic_command *ucmd, int str);
 int get_boot_mode(struct ufs_hba *hba);
+int ufs_efuse_calib_data(struct platform_device *pdev,
+				const char *cell_name);
 
 extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9620_vops;
 extern const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops;

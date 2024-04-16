@@ -14,6 +14,7 @@
 #include <trace/hooks/ufshcd.h>
 #include <linux/regulator/driver.h>
 #include <../drivers/regulator/internal.h>
+#include <linux/nvmem-consumer.h>
 
 #include "ufs.h"
 #include "ufshcd.h"
@@ -44,6 +45,34 @@ int get_boot_mode(struct ufs_hba *hba)
 		host->cali_mode_enable = true;
 
 	return 0;
+}
+
+int ufs_efuse_calib_data(struct platform_device *pdev,
+				const char *cell_name)
+{
+	struct nvmem_cell *cell;
+	void *buf;
+	u32 calib_data;
+	size_t len;
+
+	if (!pdev)
+		return -EINVAL;
+
+	cell = nvmem_cell_get(&pdev->dev, cell_name);
+	if (IS_ERR_OR_NULL(cell))
+		return PTR_ERR(cell);
+
+	buf = nvmem_cell_read(cell, &len);
+	if (IS_ERR_OR_NULL(buf)) {
+		nvmem_cell_put(cell);
+		return PTR_ERR(buf);
+	}
+
+	memcpy(&calib_data, buf, min(len, sizeof(u32)));
+
+	kfree(buf);
+	nvmem_cell_put(cell);
+	return calib_data;
 }
 
 void ufs_sprd_get_gic_reg(struct ufs_hba *hba)

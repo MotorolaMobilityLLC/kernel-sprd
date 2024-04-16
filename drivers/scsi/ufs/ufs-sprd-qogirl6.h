@@ -28,6 +28,12 @@ struct ufs_sprd_ums9230_data {
 	struct reset_control *ap_apb_ufs_glb_rst;
 	void __iomem *dbg_apb_reg;
 
+	/* efuse mphy trim*/
+	uint32_t ufs_cali_lanes;
+	uint32_t ufs_trimbg;
+	uint32_t ufs_rxtrim;
+	uint32_t ufs_txtrim;
+
 	ktime_t last_linkup_time;
 
 	struct regulator *vddgen0;
@@ -147,5 +153,8 @@ extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
 
 /* Define debug apb base register */
 #define REG_DEBUG_APB_BASE	0x7C00A000
+
+#define UFS_TXRX_PHY_MASK GENMASK(11, 0)
+#define UFS_TXRX_PHY_ADDR 0x58
 
 #endif/* _UFS_SPRD_QOGIRL6_H_ */
