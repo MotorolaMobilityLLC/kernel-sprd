@@ -368,8 +368,6 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 			 priv->hclk_source = NULL;
 	}
 
-	clk_set_parent(priv->hclk, priv->hclk_source);
-
 	priv->rco_100M = devm_clk_get(&pdev->dev, "ufs_rco_100M");
 	if (IS_ERR(priv->rco_100M)) {
 		dev_warn(&pdev->dev,
@@ -579,6 +577,9 @@ static int ufs_sprd_hw_init(struct ufs_hba *hba)
 		(struct ufs_sprd_ums9620_data *) host->ufs_priv_data;
 
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
+
+	clk_set_parent(priv->hclk, priv->hclk_source);
+	ufshcd_writel(hba, 0x100, REG_HCLKDIV);
 
 	regmap_update_bits(priv->phy_sram_ext_ld_done.regmap,
 			   priv->phy_sram_ext_ld_done.reg,

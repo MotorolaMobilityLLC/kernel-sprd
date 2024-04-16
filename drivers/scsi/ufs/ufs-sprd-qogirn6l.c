@@ -369,8 +369,6 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 			 priv->hclk_source = NULL;
 	}
 
-	clk_set_parent(priv->hclk, priv->hclk_source);
-
 	priv->rco_100M = devm_clk_get(&pdev->dev, "ufs_rco_100M");
 	if (IS_ERR(priv->rco_100M)) {
 		dev_warn(&pdev->dev,
@@ -590,6 +588,9 @@ static int ufs_sprd_hw_init(struct ufs_hba *hba)
 		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
 
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
+
+	clk_set_parent(priv->hclk, priv->hclk_source);
+	ufshcd_writel(hba, 0x100, REG_HCLKDIV);
 
 	regmap_update_bits(priv->phy_sram_ext_ld_done.regmap,
 			   priv->phy_sram_ext_ld_done.reg,
@@ -1162,7 +1163,6 @@ static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
 static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 				 enum ufs_notify_change_status status)
 {
-	int err = 0;
 	struct ufs_clk_dbg clk_tmp = {};
 	struct ufs_sprd_ums9621_data *priv = NULL;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
@@ -1178,8 +1178,13 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 
 	switch (status) {
 	case PRE_CHANGE:
+		if (!ufshcd_is_link_hibern8(hba) || priv == NULL) {
+			dev_err(hba->dev, "%s during ufs init or setup clock not in h8", __func__);
+			return 0;
+		}
+
 		/* synopsys spec requires that refclk must be opened before cfg_eb */
-		if ((priv != NULL) && ufshcd_is_link_hibern8(hba) && (on == true)) {
+		if (ufshcd_is_link_hibern8(hba) && (on == true)) {
 			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
 				priv->ufsdev_refclk_en.reg,
 				priv->ufsdev_refclk_en.mask,
@@ -1210,7 +1215,7 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 		break;
 	}
 
-	return err;
+	return 0;
 }
 
 static void ufs_sprd_update_evt_hist(struct ufs_hba *hba,
