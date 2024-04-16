@@ -8,7 +8,7 @@
 #define SEC_PROTOCOL_CMD_SIZE 12
 #define SEC_PROTOCOL_RETRIES 3
 #define SEC_PROTOCOL_RETRIES_ON_RESET 10
-#define SEC_PROTOCOL_TIMEOUT msecs_to_jiffies(1000)
+#define SEC_PROTOCOL_TIMEOUT msecs_to_jiffies(3000)
 
 void ufs_sprd_rpmb_add(struct ufs_hba *hba);
 void ufs_sprd_rpmb_remove(struct ufs_hba *hba);
