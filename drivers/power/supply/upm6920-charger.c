@@ -812,6 +812,8 @@ static int upm6920_charger_set_limit_current(struct upm6920_charger_info *info,
 
 	reg_val = (limit_cur -REG00_IINDPM_BASE)/ REG00_IINDPM_LSB;
 
+	info->actual_limit_cur = (reg_val * REG00_IINDPM_LSB + REG00_IINDPM_BASE) * 1000;
+
 	ret = upm6920_update_bits(info, UPM6920_REG_0, 0x40,0x00);
 
 	ret = upm6920_update_bits(info, UPM6920_REG_0, REG00_IINDPM_MASK,
@@ -868,6 +870,7 @@ static int upm6920_charger_feed_watchdog(struct upm6920_charger_info *info)
 {
 	int ret = 0;
 	u64 duration, curr = ktime_to_ms(ktime_get());
+	u32 cur;
 
 	ret = upm6920_update_bits(info, UPM6920_REG_3,
 				  UPM6920_REG_WD_RST_MASK,
@@ -888,10 +891,18 @@ static int upm6920_charger_feed_watchdog(struct upm6920_charger_info *info)
 	if (info->otg_enable)
 		return ret;
 
-//	ret = upm6920_charger_set_limit_current(info, 0, true);
-//	if (ret)
-//		dev_err(info->dev, "set limit cur failed\n");
+	ret = upm6920_charger_get_limit_current(info, &cur);
+	if( cur != info->actual_limit_cur)
+	{
+		dev_err(info->dev, "%s:error limit cur %d;%d;\n", __func__,cur,info->actual_limit_cur);
 
+		ret = upm6920_charger_set_limit_current(info, info->actual_limit_cur, true);
+		if (ret)
+			dev_err(info->dev, "set limit cur failed\n");
+		ret = upm6920_charger_set_vindpm(info, 4600);
+		if (ret)
+			dev_err(info->dev, "set upm6920 vindpm vol failed\n");
+	}
 	return ret;
 }
 
