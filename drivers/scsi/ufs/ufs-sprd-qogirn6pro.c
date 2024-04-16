@@ -978,7 +978,7 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		err = -EINVAL;
 		break;
 	}
-	ufs_sprd_pwr_change_compare(hba, status, final_params, err);
+	ufs_sprd_pwr_change_compare(hba, status, final_params, &err);
 
 out:
 	return err;
