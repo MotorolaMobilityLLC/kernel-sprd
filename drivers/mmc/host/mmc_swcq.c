@@ -1059,12 +1059,12 @@ again:
 			return;
 		}
 
-		if ((mrq->data->flags & MMC_DATA_READ)
-			&& (mrq->data->blocks == 8)) {
-			atomic_inc(&swcq->read_cnt);
+		if (mrq->data) {
+			if (mrq->data->blocks == RANDOM_BLKS)
+				atomic_inc(&swcq->random_cnt);
+			else
+				atomic_inc(&swcq->sequential_cnt);
 		}
-		if (mrq->data->flags & MMC_DATA_WRITE)
-			atomic_inc(&swcq->write_cnt);
 
 		atomic_inc(&swcq->cmdq_cnt);
 		atomic_dec(&swcq->qcnt);
@@ -1356,33 +1356,6 @@ static int mmc_wait_transfer(struct mmc_host *host)
 
 	return 0;
 }
-/*
- *	check write
- */
-static int mmc_check_write(struct mmc_host *host, struct mmc_request *mrq)
-{
-	int ret = 0;
-	u32 status = 0;
-	struct mmc_swcq *swcq = host->cqe_private;
-
-	if (mrq->cmd->opcode == MMC_EXECUTE_WRITE_TASK) {
-		//ret = mmc_blk_status_check(host->card, &status);
-		if ((status & R1_WP_VIOLATION) || swcq->wp_error) {
-
-			pr_notice("[%s]: err\n", __func__);
-		} else if (R1_CURRENT_STATE(status) != R1_STATE_TRAN) {
-			mmc_wait_transfer(host);
-			mrq->data->error = 0;
-			swcq->wp_error = 0;
-			atomic_set(&swcq->cq_w, false);
-
-		}
-
-	}
-
-	return ret;
-}
-
 
 static int mmc_discard_cmdq(struct mmc_swcq *swcq)
 {
@@ -1503,7 +1476,6 @@ reset_card:
 			if (done_mrq && !done_mrq->data->error
 			&& !done_mrq->cmd->error && !atomic_read(&swcq->busy)) {
 				task_id = (done_mrq->cmd->arg >> 16) & 0x1f;
-				mmc_check_write(host, done_mrq);
 				swcq->cur_rw_task = CQ_TASK_IDLE;
 				is_done = true;
 
@@ -1643,7 +1615,8 @@ reset_card:
 				swcq->waiting_for_idle = false;
 				wake_up(&swcq->wait_queue);
 			}
-			if (atomic_read(&swcq->qcnt) == 0 && swcq->timer_running) {
+			if (atomic_read(&swcq->qcnt) == 0 && swcq->timer_running &&
+				atomic_read(&swcq->sequential_cnt) == 0) {
 				swcq->timer_running = false;
 				del_timer(&swcq->check_timer);
 			}
@@ -2070,13 +2043,13 @@ static void check_cmdq_timer(struct timer_list *t)
 	u32 expect_blk_addr, real_blk_addr;
 	bool result = false;
 	int reason = 0;
-	int read_cnt, pre_qcnt, pre_cmdqcnt, pre_mode;
+	int random_cnt, pre_qcnt, pre_cmdqcnt, pre_mode;
 	static u64 pre_checksum, cur_checksum;
 
 	swcq = from_timer(swcq, t, check_timer);
 	mmc = swcq->mmc;
 
-	read_cnt = 0;
+	random_cnt = 0;
 	pre_qcnt = atomic_read(&swcq->qcnt);
 	pre_cmdqcnt = atomic_read(&swcq->cmdq_cnt);
 	pre_mode = swcq->cmdq_mode;
@@ -2088,7 +2061,7 @@ static void check_cmdq_timer(struct timer_list *t)
 
 	if (swcq->cmdq_mode) {
 		/*from cmdq to hsq checking*/
-		if (atomic_read(&swcq->read_cnt) == 0) {
+		if (atomic_read(&swcq->sequential_cnt) != 0) {
 			reason = 1;
 			result = false;
 		} else {
@@ -2104,11 +2077,10 @@ static void check_cmdq_timer(struct timer_list *t)
 		for (i = 0, j = 0; i < swcq->num_slots; i++) {
 			slot = &swcq->slot[i];
 			mrq = slot->mrq;
-			if (mrq && mrq->data && (mrq->data->flags & MMC_DATA_READ)
-			    && (mrq->data->blocks == 8)) {
-				read_cnt++;
+			if (mrq && mrq->data && (mrq->data->blocks == RANDOM_BLKS)) {
+				random_cnt++;
 				swcq->check_slot[j].blk_addr = mrq->data->blk_addr;
-				swcq->check_slot[j].blocks = mrq->data->blocks;
+				swcq->check_slot[j].blocks = RANDOM_BLKS;
 				cur_checksum += swcq->check_slot[j].blk_addr;
 				j++;
 			} else if (mrq) {
@@ -2120,7 +2092,7 @@ static void check_cmdq_timer(struct timer_list *t)
 		}
 		spin_unlock_irqrestore(&swcq->lock, flags);
 
-		if (read_cnt < 3) {
+		if (random_cnt < 3) {
 			result = false;
 			reason = 3;
 			goto out;
@@ -2137,13 +2109,13 @@ static void check_cmdq_timer(struct timer_list *t)
 		if (reason == 5)
 			goto out;
 
-		sort(swcq->check_slot, read_cnt,
+		sort(swcq->check_slot, random_cnt,
 				sizeof(struct swcq_check), my_cmp, NULL);
 
-		for (i = 0; i < read_cnt; i++) {
+		for (i = 0; i < random_cnt; i++) {
 			check_slot = &swcq->check_slot[i];
 			expect_blk_addr = check_slot->blk_addr + check_slot->blocks;
-			if ((i + 1) < read_cnt) {
+			if ((i + 1) < random_cnt) {
 				next_check_slot = &swcq->check_slot[i+1];
 				real_blk_addr = next_check_slot->blk_addr;
 				if (expect_blk_addr == real_blk_addr) {
@@ -2172,14 +2144,13 @@ out:
 		pre_cmdqcnt,
 		swcq->cmdq_mode ? "True" : "False");
 
-		pr_info("mmc0 read:%d write:%d reason:%d",
-		atomic_read(&swcq->read_cnt),
-		atomic_read(&swcq->write_cnt), reason);
+		pr_info("mmc0 random_cnt:%d sequential_cnt: %d reason:%d",
+			atomic_read(&swcq->random_cnt), atomic_read(&swcq->sequential_cnt), reason);
 		swcq->debug1++;
 	}
 
-	atomic_set(&swcq->read_cnt, 0);
-	atomic_set(&swcq->write_cnt, 0);
+	atomic_set(&swcq->random_cnt, 0);
+	atomic_set(&swcq->sequential_cnt, 0);
 	mod_timer(&swcq->check_timer, jiffies + msecs_to_jiffies(swcq->timeout));
 
 }
@@ -2414,8 +2385,8 @@ int mmc_swcq_init(struct mmc_swcq *swcq, struct mmc_host *mmc)
 	init_waitqueue_head(&swcq->wait_hsq_idle);
 	init_waitqueue_head(&swcq->cmdq_que);
 	atomic_set(&swcq->qcnt, 0);
-	atomic_set(&swcq->read_cnt, 0);
-	atomic_set(&swcq->write_cnt, 0);
+	atomic_set(&swcq->random_cnt, 0);
+	atomic_set(&swcq->sequential_cnt, 0);
 
 	INIT_LIST_HEAD(&swcq->cmd_que);
 	INIT_LIST_HEAD(&swcq->data_que);
