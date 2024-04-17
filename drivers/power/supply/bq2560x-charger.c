@@ -95,7 +95,7 @@
 #define BQ2560X_ROLE_MASTER_DEFAULT		1
 #define BQ2560X_ROLE_SLAVE			2
 
-#define BQ2560X_FCHG_OVP_6V			9000
+#define BQ2560X_FCHG_OVP_6V			6000
 #define BQ2560X_FCHG_OVP_9V			9000
 #define BQ2560X_FCHG_OVP_14V			14000
 #define BQ2560X_FAST_CHARGER_VOLTAGE_MAX	10500000
@@ -337,16 +337,66 @@ static int bq2560x_set_reg(struct bq2560x_charger_info *info, int reg)
 }
 
 static int
+bq2560x_charger_set_vindpmos(struct bq2560x_charger_info *info, u32 val)
+{
+
+	return bq2560x_update_bits(info, 0x0f,
+				   0x03, val );
+}
+
+static int
 bq2560x_charger_set_vindpm(struct bq2560x_charger_info *info, u32 vol)
 {
 	u8 reg_val;
 
 	if (vol < 3900)
-		reg_val = 0x0;
-	else if (vol > 5400)
-		reg_val = 0x0f;
+	{
+		vol = 0;
+		bq2560x_charger_set_vindpmos(info, 0);
+	}
+	else if (vol <= 5400)
+	{
+		vol = vol -3900;
+		bq2560x_charger_set_vindpmos(info, 0);
+	}
+	else if (vol < 5900)
+	{
+		vol = 0;
+		bq2560x_charger_set_vindpmos(info, 1);
+	}
+	else if( vol <= 7400)
+	{
+		vol = vol -5900;
+		bq2560x_charger_set_vindpmos(info, 1);
+	}
+	else if (vol < 7500)
+	{
+		vol = 0;
+		bq2560x_charger_set_vindpmos(info, 2);
+	}
+	else if( vol <= 9000)
+	{
+		vol = vol -7500;
+		bq2560x_charger_set_vindpmos(info, 2);
+	}
+	else if( vol < 10500)
+	{
+		vol = 0;
+		bq2560x_charger_set_vindpmos(info, 3);
+	}
+
+	else if( vol <= 12000)
+	{
+		vol = vol -10500;
+		bq2560x_charger_set_vindpmos(info, 3);
+	}
 	else
-		reg_val = (vol - 3900) / 100;
+	{
+		vol =0;
+		bq2560x_charger_set_vindpmos(info, 0);
+	}
+
+	reg_val = vol  / 100;
 
 	return bq2560x_update_bits(info, BQ2560X_REG_6,
 				   BQ2560X_REG_VINDPM_VOLTAGE_MASK, reg_val);
@@ -360,13 +410,25 @@ bq2560x_charger_set_ovp(struct bq2560x_charger_info *info, u32 vol)
 	dev_dbg(info->dev, "%s:line%d: set ovp vol = %d\n", __func__, __LINE__, vol);
 
 	if (vol < 5500)
+	{
 		reg_val = 0x0;
+		bq2560x_charger_set_vindpm(info, 4600);
+	}
 	else if (vol > 5500 && vol < 6500)
+	{
 		reg_val = 0x01;
+		bq2560x_charger_set_vindpm(info, 4600);
+	}
 	else if (vol > 6500 && vol < 10500)
+	{
 		reg_val = 0x02;
+		bq2560x_charger_set_vindpm(info, 7800);
+	}
 	else
+	{
 		reg_val = 0x03;
+		bq2560x_charger_set_vindpm(info, 9800);
+	}
 
 	return bq2560x_update_bits(info, BQ2560X_REG_6,
 				   BQ2560X_REG_OVP_MASK,
