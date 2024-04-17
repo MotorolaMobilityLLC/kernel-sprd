@@ -139,7 +139,7 @@ int sprd_pdbg_ws_info_trans(u32 *major, u32 *domain_id, u32 *hwirq)
 
 	ret = pdbg->power_ops->pdbg_info_trans(PDBG_WS, 0, 0, 0, &ret_vals);
 	if (ret == ERROR_MAGIC) {
-		SPRD_PDBG_ERR("Get ws info: %d error\n");
+		SPRD_PDBG_ERR("Get ws info error\n");
 		return -EINVAL;
 	}
 
