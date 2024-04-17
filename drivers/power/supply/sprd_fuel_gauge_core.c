@@ -105,6 +105,7 @@
 #define SPRD_FGU_FCC_PERCENT				1000
 #define SPRD_FGU_EXTCON_SINK				3
 #define SPRD_FGU_GET_CHG_TYPE_RETRY_CNT			12
+#define SPRD_FGU_IS_SWITCH_BAT_PARA_VOL_THRES		4100
 #define SPRD_FGU_REG_MAX				0x260
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
@@ -3311,15 +3312,25 @@ static int sprd_fgu_cap_track_state_machine(struct sprd_fgu_data *data)
 
 static bool sprd_fgu_is_switch_bat_para(struct sprd_fgu_data *data)
 {
-	int aging_bat_id;
+	int aging_bat_id, vbat_avg_mv, ret;
 	bool is_need_switch = false;
+	struct sprd_fgu_info *fgu_info = data->fgu_info;
 
 	aging_bat_id = sprd_fgu_get_aging_bat_id(data);
 	if (aging_bat_id != data->last_aging_bat_id) {
-		data->last_aging_bat_id = aging_bat_id;
-		is_need_switch = true;
+		ret = fgu_info->ops->get_vbat_avg(fgu_info, &vbat_avg_mv);
+		if (ret) {
+			dev_err(data->dev, "%d failed to get vbat_avg_mv\n", __LINE__);
+			goto out;
+		}
+
+		if (vbat_avg_mv < SPRD_FGU_IS_SWITCH_BAT_PARA_VOL_THRES) {
+			data->last_aging_bat_id = aging_bat_id;
+			is_need_switch = true;
+		}
 	}
 
+out:
 	dev_info(data->dev, "%s %d is_need_switch = %d\n",
 		 __func__, __LINE__, is_need_switch);
 
