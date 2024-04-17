@@ -257,6 +257,7 @@ struct sc27xx_typec {
 	struct extcon_dev *edev;
 	struct extcon_dev *vbus_dev;
 	struct notifier_block vbus_nb;
+	struct wakeup_source *wake_lock;
 
 	bool vbus_connect_value;
 	bool vbus_only_connect;
@@ -1256,18 +1257,19 @@ static void sc27xx_typec_handle_vbus(struct sc27xx_typec *sc)
 
 	dev_info(sc->dev, "%s event %d", __func__, sc->vbus_connect_value);
 	if (sc->vbus_connect_value) {
+		__pm_stay_awake(sc->wake_lock);
 		do {
 			/* typec has attach,not vbusonly, notify charging when analog headphone
 			 *  have vbus connection
 			 */
 			if (sc->partner_connected && sc->pre_state != SC27XX_AUDIO_CABLE) {
 				dev_info(sc->dev, "typec connect, not vbusonly\n");
-				return;
+				goto out;
 			}
 			msleep(20);
 			if (!sc->vbus_connect_value) {
 				dev_info(sc->dev, "vbusonly plug out during 500ms\n");
-				return;
+				goto out;
 			}
 
 		} while (--timeout > 0);
@@ -1278,6 +1280,8 @@ static void sc27xx_typec_handle_vbus(struct sc27xx_typec *sc)
 		dev_info(sc->dev, "vbus_only_connect\n");
 		extcon_set_state_sync(sc->edev, EXTCON_SINK, true);
 		extcon_set_state_sync(sc->edev, EXTCON_USB, true);
+out:
+		__pm_relax(sc->wake_lock);
 		return;
 	}
 
@@ -1445,6 +1449,12 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 
 	sc27xx_typec_register_ops();
 
+	sc->wake_lock = wakeup_source_register(sc->dev, "sc27xx_typec");
+	if (!sc->wake_lock) {
+		dev_err(dev, "fail to register wakeup lock.\n");
+		goto error;
+	}
+
 	ret = sc27xx_typec_enable(sc);
 	if (ret)
 		goto error;
@@ -1463,6 +1473,7 @@ static int sc27xx_typec_remove(struct platform_device *pdev)
 	struct sc27xx_typec *sc = platform_get_drvdata(pdev);
 
 	sysfs_remove_groups(&sc->dev->kobj, sc27xx_typec_groups);
+	wakeup_source_unregister(sc->wake_lock);
 	sc27xx_typec_disconnect(sc, 0);
 	if (!sc->use_pdhub_c2c)
 		typec_unregister_port(sc->port);
