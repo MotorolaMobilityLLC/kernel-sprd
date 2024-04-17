@@ -30,7 +30,8 @@
 
 //IO control's window is selected as (1/8)s.
 #define WAIT_PARTS_NUM		(8)
-#define WAIT_INTERNAL_JIF	(HZ/WAIT_PARTS_NUM)
+#define WAIT_INTERNAL_JIF	(HZ / WAIT_PARTS_NUM)
+#define MIN_WRITE_LIMIT		(PAGE_SIZE * WAIT_PARTS_NUM)
 
 
 static struct blkcg_policy iolimit_policy;
@@ -225,7 +226,15 @@ static int write_limit_store(struct cgroup_subsys_state *css,
 	if (limit < 0 || !css)
 		return -EINVAL;
 
+	if (limit < MIN_WRITE_LIMIT) {
+		limit = MIN_WRITE_LIMIT;
+		pr_info("iolimit bytes too small, set to minimum: %lld\n", limit);
+	}
+
 	iolimit_blkcg = css_to_iolimitcg(css);
+	if (limit == atomic64_read(&iolimit_blkcg->write_max))
+		return 0;
+
 	atomic64_set(&iolimit_blkcg->write_max, limit);
 
 	spin_lock_bh(&iolimit_blkcg->write_lock);
