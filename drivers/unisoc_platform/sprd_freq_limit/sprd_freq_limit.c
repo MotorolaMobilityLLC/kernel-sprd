@@ -160,7 +160,7 @@ static ssize_t file_name##_show						\
 	if (!dev_limit)							\
 		return -EINVAL;						\
 									\
-	return sprintf(buf, "%lu\n", dev_limit->object##_freq);		\
+	return sprintf(buf, "%u\n", dev_limit->object##_freq);		\
 }
 
 dev_show_one(thermald_max_freq, thermald_max);
