@@ -78,6 +78,9 @@
 #define FAN54015_DISABLE_PIN_MASK_2721			BIT(15)
 #define FAN54015_DISABLE_PIN_MASK_2720			BIT(0)
 
+#define FAN54015_SHUTDOWN_LIMIT			600000
+#define FAN54015_SHUTDOWN_CURRENT		500000
+
 static bool enable_otg_debug;
 module_param(enable_otg_debug, bool, 0644);
 
@@ -1155,7 +1158,17 @@ static void fan54015_charger_shutdown(struct i2c_client *client)
 			dev_err(info->dev,
 				"enable charger detection function failed ret = %d\n", ret);
 	}
+
 	info->shutdown_flag = true;
+	if (info->charging) {
+		ret = fan54015_charger_set_limit_current(info, FAN54015_SHUTDOWN_LIMIT);
+		if (ret < 0)
+			dev_err(info->dev, "%s: set input limit cur failed\n", __func__);
+
+		ret = fan54015_charger_set_current(info, FAN54015_SHUTDOWN_CURRENT);
+		if (ret < 0)
+			dev_err(info->dev, "%s:set charge current failed\n", __func__);
+	}
 }
 
 static int fan54015_charger_remove(struct i2c_client *client)

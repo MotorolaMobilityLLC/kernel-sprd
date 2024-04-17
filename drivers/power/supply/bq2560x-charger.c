@@ -91,6 +91,8 @@
 #define BQ2560X_LIMIT_CURRENT_MAX		3200000
 #define BQ2560X_LIMIT_CURRENT_OFFSET		100000
 #define BQ2560X_REG_IINDPM_LSB			100
+#define BQ2560X_SHUTDOWN_LIMIT			600000
+#define BQ2560X_SHUTDOWN_CURRENT		500000
 
 #define BQ2560X_ROLE_MASTER_DEFAULT		1
 #define BQ2560X_ROLE_SLAVE			2
@@ -952,6 +954,9 @@ static void bq2560x_current_work(struct work_struct *data)
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return;
 	}
+
+	if (info->shutdown_flag)
+		return;
 
 	if (info->current_charge_limit_cur > info->new_charge_limit_cur) {
 		ret = bq2560x_charger_set_current(info, info->new_charge_limit_cur);
@@ -1996,7 +2001,17 @@ static void bq2560x_charger_shutdown(struct i2c_client *client)
 			dev_err(info->dev,
 				"enable charger detection function failed ret = %d\n", ret);
 	}
+
 	info->shutdown_flag = true;
+	if (info->charging) {
+		ret = bq2560x_charger_set_limit_current(info, BQ2560X_SHUTDOWN_LIMIT, false);
+		if (ret < 0)
+			dev_err(info->dev, "%s: set input limit cur failed\n", __func__);
+
+		ret = bq2560x_charger_set_current(info, BQ2560X_SHUTDOWN_CURRENT);
+		if (ret < 0)
+			dev_err(info->dev, "%s:set charge current failed\n", __func__);
+	}
 }
 
 static int bq2560x_charger_remove(struct i2c_client *client)

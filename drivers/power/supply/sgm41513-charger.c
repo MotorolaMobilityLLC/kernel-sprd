@@ -53,6 +53,8 @@
 #define SGM41513_PROBE_TIMEOUT			msecs_to_jiffies(500)
 
 #define SGM41513_WATCH_DOG_TIME_OUT_MS		20000
+#define SGM41513_SHUTDOWN_LIMIT			600000
+#define SGM41513_SHUTDOWN_CURRENT		500000
 
 static bool boot_calibration;
 
@@ -1560,7 +1562,17 @@ static void sgm41513_charger_shutdown(struct i2c_client *client)
 			dev_err(info->dev,
 				"enable charger detection function failed ret = %d\n", ret);
 	}
+
 	info->shutdown_flag = true;
+	if (info->charging) {
+		ret = sgm41513_charger_set_limit_current(info, SGM41513_SHUTDOWN_LIMIT, false);
+		if (ret < 0)
+			dev_err(info->dev, "%s: set input limit cur failed\n", __func__);
+
+		ret = sgm41513_charger_set_current(info, SGM41513_SHUTDOWN_CURRENT);
+		if (ret < 0)
+			dev_err(info->dev, "%s:set charge current failed\n", __func__);
+	}
 }
 
 static int sgm41513_charger_remove(struct i2c_client *client)
