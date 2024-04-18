@@ -1133,6 +1133,18 @@ static void sprd_tcpm_set_state_cond(struct sprd_tcpm_port *port, enum sprd_tcpm
 			      delay_ms, sprd_tcpm_states[port->enter_state]);
 }
 
+static void sprd_tcpm_dp_vdm_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct sprd_tcpm_port *port = container_of(dwork, struct sprd_tcpm_port, dp_work);
+
+	if (port->tcpc->dp_altmode_notify) {
+		sprd_tcpm_log(port, "%s:line%d status update", __func__, __LINE__);
+		port->tcpc->dp_altmode_notify(port->tcpc, port->dp_status);
+		port->dp_status = 0;
+	}
+}
+
 static void sprd_tcpm_queue_message(struct sprd_tcpm_port *port,
 				    enum sprd_pd_msg_request message)
 {
@@ -1255,9 +1267,11 @@ static void sprd_tcpm_register_partner_altmodes(struct sprd_tcpm_port *port)
 
 	for (i = 0; i < modep->altmodes; i++) {
 		altmode = typec_partner_register_altmode(port->partner, &modep->altmode_desc[i]);
-		if (!altmode)
+		if (IS_ERR(altmode)) {
 			sprd_tcpm_log(port, "Failed to register partner SVID 0x%04x",
 				      modep->altmode_desc[i].svid);
+			altmode = NULL;
+		}
 		port->partner_altmode[i] = altmode;
 	}
 }
@@ -1303,6 +1317,10 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 					response[i + 1] = port->snk_vdo[i];
 				rlen = port->nr_snk_vdo + 1;
 			}
+			if (port->data_role == TYPEC_HOST) {
+				sprd_tcpm_log(port, "Rx VDM from ufp");
+				port->vdm_discovery_id_retry = 1;
+			}
 			break;
 		case SPRD_CMD_DISCOVER_SVID:
 			break;
@@ -1317,6 +1335,7 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 			if (adev) {
 				sprd_tcpm_source_release_wake_lock(port);
 				typec_altmode_attention(adev, p[1]);
+				cancel_delayed_work(&port->dp_work);
 				if (port->tcpc->dp_altmode_notify) {
 					sprd_tcpm_log(port, "%s:line%d CMD_ATTENTION", __func__, __LINE__);
 					port->tcpc->dp_altmode_notify(port->tcpc, p[1]);
@@ -1364,8 +1383,13 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 			modep->svid_index++;
 			if (modep->svid_index < modep->nsvids) {
 				u16 svid = modep->svids[modep->svid_index];
+				if (svid == SPRD_USB_SID_PD || svid == SPRD_USB_SID_DISPLAYPORT ||
+				    svid == SPRD_USB_SID_MHL) {
 				response[0] = SPRD_VDO(svid, 1, SPRD_CMD_DISCOVER_MODES);
 				rlen = 1;
+			} else {
+				sprd_tcpm_register_partner_altmodes(port);
+			}
 			} else {
 				sprd_tcpm_register_partner_altmodes(port);
 			}
@@ -1390,6 +1414,15 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 							     TYPEC_STATE_USB,
 							     NULL));
 			}
+			break;
+		case SPRD_CMD_DP_STATUS_UPDATE:
+			port->dp_status = p[1];
+			sprd_tcpm_log(port, "DP_STATUS_UPDATE status 0x%x", p[1]);
+			break;
+		case SPRD_CMD_DP_CONFIGURE:
+			sprd_tcpm_log(port, "DP_CONFIGURE status = 0x%x", port->dp_status);
+			if (port->dp_status & 0x80)
+				schedule_delayed_work(&port->dp_work, msecs_to_jiffies(200));
 			break;
 		default:
 			break;
@@ -1450,6 +1483,7 @@ static void sprd_tcpm_send_vdm(struct sprd_tcpm_port *port,
 			       u32 vid, int cmd, const u32 *data, int count)
 {
 	u32 header;
+	u32 timeout;
 
 	if (WARN_ON(count > SPRD_VDO_MAX_SIZE - 1))
 		count = SPRD_VDO_MAX_SIZE - 1;
@@ -1459,7 +1493,12 @@ static void sprd_tcpm_send_vdm(struct sprd_tcpm_port *port,
 		     1 : (SPRD_PD_VDO_CMD(cmd) <= SPRD_CMD_ATTENTION), cmd);
 	sprd_tcpm_queue_vdm(port, header, data, count);
 
-	sprd_mod_vdm_delayed_work(port, 0);
+	if (port->vdm_discovery_id_retry == 1)
+		timeout = 20;
+	else
+		timeout = 100;
+
+	sprd_mod_vdm_delayed_work(port, timeout);
 }
 
 static unsigned int sprd_vdm_ready_timeout(u32 vdm_hdr)
@@ -1533,6 +1572,13 @@ static void sprd_vdm_run_state_machine(struct sprd_tcpm_port *port)
 		res = sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
 		if (res < 0) {
 			port->vdm_state = VDM_STATE_ERR_SEND;
+		} else if (port->vdm_discovery_id_retry == 1) {
+			u32 temp = 0;
+
+			sprd_tcpm_log(port, "ufp, retry send discovery ident");
+			sprd_tcpm_send_vdm(port, SPRD_USB_SID_PD, SPRD_CMD_DISCOVER_IDENT,
+					   &temp, 0);
+			port->vdm_discovery_id_retry = 0;
 		} else {
 			unsigned long timeout;
 
@@ -2986,6 +3032,8 @@ static void sprd_tcpm_reset_port(struct sprd_tcpm_port *port)
 	sprd_tcpm_log_force(port, "%s:line%d", __func__, __LINE__);
 	sprd_tcpm_unregister_altmodes(port);
 	sprd_tcpm_typec_disconnect(port);
+	cancel_delayed_work(&port->dp_work);
+	port->dp_status = 0;
 	port->data_role_swap = false;
 	port->drs_not_vdm = false;
 	port->attached = false;
@@ -2994,6 +3042,7 @@ static void sprd_tcpm_reset_port(struct sprd_tcpm_port *port)
 	port->pps_data.supported = false;
 	port->update_ext_src_caps = false;
 	port->xts_limit_cur = false;
+	port->vdm_discovery_id_retry = 0;
 
 	/*
 	 * First Rx ID should be 0; set this to a sentinel of -1 so that
@@ -5557,6 +5606,7 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 	port->state_machine_timer.function = sprd_tcpm_state_machine_timer_handler;
 	hrtimer_init(&port->vdm_state_machine_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	port->vdm_state_machine_timer.function = sprd_tcpm_vdm_state_machine_timer_handler;
+	INIT_DELAYED_WORK(&port->dp_work, sprd_tcpm_dp_vdm_work);
 
 	spin_lock_init(&port->pd_event_lock);
 

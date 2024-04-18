@@ -70,6 +70,8 @@
 #define SPRD_CMD_ENTER_MODE		4
 #define SPRD_CMD_EXIT_MODE		5
 #define SPRD_CMD_ATTENTION		6
+#define SPRD_CMD_DP_STATUS_UPDATE	16
+#define SPRD_CMD_DP_CONFIGURE		17
 
 #define SPRD_VDO_CMD_VENDOR(x)    (((0x10 + (x)) & 0x1f))
 
