@@ -45,3 +45,4 @@ obj-y += thermal/
 obj-y += performance/
 obj-y += autotest/
 obj-y += sprd_freq_limit/
+obj-y += sprd_bcl/
