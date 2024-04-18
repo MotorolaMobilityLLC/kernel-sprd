@@ -122,6 +122,7 @@
 
 				wlan {
 					compatible = "sprd,sc2355-sdio-wifi";
+					sprd,enable-chr;
 				};
 
 				gnss {
