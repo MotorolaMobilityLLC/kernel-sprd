@@ -66,6 +66,10 @@ struct mmc_debug_info {
 	unsigned long cmd_2_end[MMC_ARRAY_SIZE];
 	unsigned long data_2_end[MMC_ARRAY_SIZE];
 	unsigned long block_len[MMC_ARRAY_SIZE];
+	u64 wspeed;
+	u64 wspeed_mod;
+	u64 rspeed;
+	u64 rspeed_mod;
 };
 
 #define rq_log(array, fmt, ...) \
@@ -91,8 +95,6 @@ static void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host
 {
 	u64 read_speed = 0;
 	u64 write_speed = 0;
-	u64 wspeed_temp = 0, rspeed_temp = 0;
-	u64 wspeed_mod = 0, rspeed_mod = 0;
 
 	if ((ktime_to_ms(ktime_get()) - info->cnt_time) > (10000ULL)) {
 		/* calculate read/write speed */
@@ -109,19 +111,19 @@ static void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host
 		rq_log(info->cmd_2_end, "|__c2e%9s", info->name);
 		rq_log(info->data_2_end, "|__d2e%9s", info->name);
 		rq_log(info->block_len, "|__blocks%6s", info->name);
-		rspeed_temp = read_speed;
-		wspeed_temp = write_speed;
-		rspeed_mod = do_div(rspeed_temp, 100);
-		wspeed_mod = do_div(wspeed_temp, 100);
+		info->rspeed = read_speed;
+		info->wspeed = write_speed;
+		info->rspeed_mod = do_div(info->rspeed, 100);
+		info->wspeed_mod = do_div(info->wspeed, 100);
 		pr_err("|__speed%7s: r= %lld.%lldM/s, w= %lld.%lldM/s, r_blk= %lld, w_blk= %lld\n",
-			info->name, rspeed_temp, rspeed_mod, wspeed_temp, wspeed_mod,
+			info->name, info->rspeed, info->rspeed_mod, info->wspeed, info->wspeed_mod,
 			info->read_total_blocks, info->write_total_blocks);
 		if ((read_speed > MMC_SPEED_0M && read_speed < MMC_SPEED_1M) ||
 			(write_speed > MMC_SPEED_0M && write_speed < MMC_SPEED_1M))
 			mmc_debug_is_emmc(host, info);
 
-		/* clear mmc_debug structure except name*/
-		memset(&info->cmd, 0, sizeof(struct mmc_debug_info) - 8);
+		/* clear mmc_debug structure except name and speed */
+		memset(&info->cmd, 0, sizeof(struct mmc_debug_info) - 40);
 		info->cnt_time = ktime_to_ms(ktime_get());
 	}
 }
@@ -217,4 +219,3 @@ void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 intm
 		mmc_debug_handle_rsp(host, info);
 }
 EXPORT_SYMBOL(mmc_debug_update);
-

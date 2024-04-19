@@ -351,6 +351,17 @@ static inline void sdhci_sprd_writel(struct sdhci_host *host, u32 val, int reg)
 	if (unlikely(reg == SDHCI_SIGNAL_ENABLE || reg == SDHCI_INT_ENABLE))
 		val = val & SDHCI_SPRD_INT_SIGNAL_MASK;
 
+	/* for debug */
+	if (unlikely(reg == SDHCI_INT_STATUS) && (val &
+		(SDHCI_INT_CMD_MASK | SDHCI_INT_DATA_MASK | SDHCI_INT_BUS_POWER))) {
+#ifdef CONFIG_SPRD_DEBUG
+		mmc_debug_update(host, NULL, val);
+#else
+		if (true == debug_en)
+			mmc_debug_update(host, NULL, val);
+#endif
+	}
+
 	writel_relaxed(val, host->ioaddr + reg);
 }
 
@@ -361,6 +372,16 @@ static inline void sdhci_sprd_writew(struct sdhci_host *host, u16 val, int reg)
 	/* SDHCI_BLOCK_COUNT is Read Only on Spreadtrum's platform */
 	if (unlikely(reg == SDHCI_BLOCK_COUNT))
 		return;
+
+	/* for debug */
+	if (unlikely(reg == SDHCI_COMMAND)) {
+#ifdef CONFIG_SPRD_DEBUG
+		mmc_debug_update(host, host->cmd, 0);
+#else
+		if (true == debug_en)
+			mmc_debug_update(host, host->cmd, 0);
+#endif
+	}
 
 	if ((HOST_IS_SD_TYPE(host->mmc)) &&
 		(reg == SDHCI_COMMAND) &&

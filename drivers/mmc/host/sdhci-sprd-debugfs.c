@@ -24,6 +24,9 @@
 #include "../core/mmc_ops.h"
 #include "sdhci.h"
 
+#include "sdhci-sprd-debug.h"
+#include "sdhci-sprd-debug.c"
+
 #define SPRD_SPEED_MODE_NAME_MAX	20
 #define SPRD_SPEED_MODE_NAME_MIN	2
 
@@ -251,6 +254,33 @@ static const struct proc_ops sdhci_sprd_debugen_fops = {
 	.proc_release = single_release,
 };
 
+static int sdhci_sprd_debuginfo_show(struct seq_file *file, void *data)
+{
+	struct mmc_host *mmc = file->private;
+
+	if (!mmc) {
+		pr_err("no mmc");
+		return 0;
+	}
+
+	seq_printf(file, "r= %lld.%lldM/s, w= %lld.%lldM/s\n", mmc_debug[mmc->index].rspeed,
+		   mmc_debug[mmc->index].rspeed_mod, mmc_debug[mmc->index].wspeed,
+		   mmc_debug[mmc->index].wspeed_mod);
+
+	return 0;
+}
+
+static int sdhci_sprd_debuginfo_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sdhci_sprd_debuginfo_show, PDE_DATA(inode));
+}
+
+static const struct proc_ops sdhci_sprd_debuginfo_fops = {
+	.proc_open = sdhci_sprd_debuginfo_open,
+	.proc_read = seq_read,
+	.proc_release = single_release,
+};
+
 void sdhci_sprd_add_host_debug(struct sdhci_host *host)
 {
 	static struct proc_dir_entry *debug_parent;
@@ -268,6 +298,17 @@ void sdhci_sprd_add_host_debug(struct sdhci_host *host)
 	if (host->mmc->index == 0) {
 		debug_en_data = proc_create_data("debug_enable", 0660, debug_parent,
 			&sdhci_sprd_debugen_fops, NULL);
+		if (!debug_en_data) {
+			pr_err("%s: failed to create node: /proc/%s/debug_enable\n",
+				__func__, mmc_hostname(mmc));
+
+			goto err;
+		}
+	}
+
+	if ((host->mmc->index == 0) || (host->mmc->index == 1)) {
+		debug_en_data = proc_create_data("debug_info", 0664, debug_parent,
+			&sdhci_sprd_debuginfo_fops, mmc);
 		if (!debug_en_data) {
 			pr_err("%s: failed to create node: /proc/%s/debug_enable\n",
 				__func__, mmc_hostname(mmc));
