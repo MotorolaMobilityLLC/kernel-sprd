@@ -584,21 +584,15 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
 	tmp &= ~(SDHCI_SPRD_DLL_EN | SDHCI_SPRD_DLL_ALL_CPST_EN);
 	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
-	/* wait 1ms */
-	usleep_range_state(1000, 1250, TASK_UNINTERRUPTIBLE);
 
 	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
 	tmp |= SDHCI_SPRD_DLL_ALL_CPST_EN | SDHCI_SPRD_DLL_SEARCH_MODE |
 		SDHCI_SPRD_DLL_INIT_COUNT | SDHCI_SPRD_DLL_PHASE_INTERNAL;
 	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
-	/* wait 1ms */
-	usleep_range_state(1000, 1250, TASK_UNINTERRUPTIBLE);
 
 	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
 	tmp |= SDHCI_SPRD_DLL_EN;
 	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
-	/* wait 1ms */
-	usleep_range_state(1000, 1250, TASK_UNINTERRUPTIBLE);
 
 	if (read_poll_timeout(sdhci_readl, tmp, (tmp & SDHCI_SPRD_DLL_LOCKED),
 		2000, USEC_PER_SEC, false, host, SDHCI_SPRD_REG_32_DLL_STS0)) {
@@ -607,6 +601,18 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 			 mmc_hostname(host->mmc),
 			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS0),
 			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG));
+		pr_info("%s: CLK_CTRL : 0x%x, HOST_CTRL2 : 0x%x\n",
+			 mmc_hostname(host->mmc),
+			 sdhci_readl(host, SDHCI_CLOCK_CONTROL),
+			 sdhci_readl(host, SDHCI_AUTO_CMD_STATUS));
+		if (!IS_ERR(host->mmc->supply.vmmc))
+			pr_info("%s: vmmc voltage is %d uV\n",
+				mmc_hostname(host->mmc),
+				regulator_get_voltage(host->mmc->supply.vmmc));
+		if (!IS_ERR(host->mmc->supply.vqmmc))
+			pr_info("%s: vqmmc voltage is %d uV\n",
+				mmc_hostname(host->mmc),
+				regulator_get_voltage(host->mmc->supply.vqmmc));
 	}
 }
 
