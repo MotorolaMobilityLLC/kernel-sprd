@@ -64,9 +64,6 @@
 #include <linux/of_device.h>
 #endif
 
-#include <crypto/hash.h>
-#include <linux/crypto.h>
-#include <crypto/sha1.h>
 #include <asm/sections.h>
 
 /* vmalloc */
@@ -116,6 +113,12 @@ struct minidump_info *sprd_minidump_info;
 
 #if IS_ENABLED(CONFIG_UNISOC_SIPC)
 int (*senddie_callback)(u8 dst) = NULL;
+#endif
+
+#ifdef CONFIG_ARM64
+static u64 reg_esr_el1;
+static u64 reg_far_el1;
+static u64 reg_elr_el1;
 #endif
 
 extern void stext(void);
@@ -248,10 +251,6 @@ static struct sysdump_info *sprd_sysdump_info;
 static unsigned long sprd_sysdump_info_paddr;
 static int sysdump_reflag;
 
-/* global var for memory hash */
-static u8 g_ktxt_hash_data[SHA1_DIGEST_SIZE];
-static struct shash_desc *desc;
-
 /* must be global to let gdb know */
 struct sysdump_extra sprd_sysdump_extra = {
 	.enter_id = -1,
@@ -268,7 +267,6 @@ static struct sysdump_config sysdump_conf = {
 };
 
 static int sprd_sysdump_init;
-static int sprd_sysdump_shash_init;
 
 atomic_t sysdump_status;
 struct regmap *regmap;
@@ -294,12 +292,6 @@ void sprd_debug_check_crash_key(unsigned int code, int value)
 	static unsigned int voldown_p;
 	static unsigned int loopcount;
 	static unsigned long vol_pressed;
-
-#if 0
-	/* Must be deleted later */
-	pr_info("Test %s:key code(%d) value(%d),(up:%d,down:%d),lpct(%d),vop(%ld)\n", __func__,
-		code, value, volup_p, voldown_p, loopcount, vol_pressed);
-#endif
 
 	/*  Enter Force Upload
 	 *  hold the volume down and volume up
@@ -351,14 +343,14 @@ void sprd_debug_check_crash_key(unsigned int code, int value)
 		}
 	}
 }
-int sprd_vmalloc_or_module_addr(const void *x)
+bool sprd_vmalloc_or_module_addr(const void *x)
 {
 	unsigned long addr = (unsigned long)kasan_reset_tag(x);
 #if defined(CONFIG_MODULES) && defined(MODULES_VADDR)
 	if (addr >= MODULES_VADDR && addr < MODULES_END)
-		return 1;
+		return true;
 #endif
-	return addr >= VMALLOC_START && addr < VMALLOC_END;
+	return ((addr >= VMALLOC_START) && (addr < VMALLOC_END));
 }
 /* maybe need to change in some situation */
 unsigned long unisoc_virt_to_phys(const void *kaddr)
@@ -368,7 +360,7 @@ unsigned long unisoc_virt_to_phys(const void *kaddr)
 	unsigned long paddr = 0;
 
 	if (!sprd_virt_addr_valid(kaddr))
-		return -1;
+		return -EFAULT;
 	/* module and vmalloc vmap area */
 	if (sprd_vmalloc_or_module_addr(kaddr)) {
 		vmalloc_page = vmalloc_to_page(kaddr);
@@ -402,14 +394,19 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 	char str_name[SECTION_NAME_MAX];
 	char tmp;
 
+	if (name == NULL) {
+		pr_err("name is null in %s\n", __func__);
+		return -EFAULT;
+	}
+
 	/* check name valid first */
 	if (strlen(name) > (SECTION_NAME_MAX - strlen(EXTEND_STRING) - 1)) {
 		pr_err("The length of name is too long!!, add extend section fail!!\n");
-		return -1;
+		return -EFAULT;
 	}
 	if (!strlen(name)) {
 		pr_err("The name is empty, invalid!!\n");
-		return -1;
+		return -EFAULT;
 	}
 	memset(str_name, 0, SECTION_NAME_MAX);
 	memcpy(str_name, name, strlen(name));
@@ -419,7 +416,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 								|| tmp == '"' || tmp == '|') {
 			pr_err("the name=%s include special character:%c that not supported!!\n",
 					name, tmp);
-			return -1;
+			return -EFAULT;
 		}
 	}
 	/* section_mutex only be inited once */
@@ -430,7 +427,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 
 	if (!sprd_sysdump_info) {
 		pr_err("sprd_sysdump_info is NULL!\n");
-		return -1;
+		return -EFAULT;
 	}
 	mutex_lock(&section_mutex);
 	/* check insert repeatly and acquire total seciton num before insert new section */
@@ -440,7 +437,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 			sprd_minidump_info->section_info_total.section_info[i].section_name)) {
 			mutex_unlock(&section_mutex);
 			pr_err("the name:%s has been used!!,please use a new name!\n", name);
-			return -1;
+			return -EFAULT;
 		}
 		if (!strlen(sprd_minidump_info->section_info_total.section_info[i].section_name))
 			break;
@@ -451,7 +448,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 	if (index >= (SECTION_NUM_MAX - 1)) {
 		pr_err("No space for new section.\n");
 		mutex_unlock(&section_mutex);
-		return -1;
+		return -EFAULT;
 	}
 	/* add new section in the tail of section_info */
 	extend_section = &(sprd_minidump_info->section_info_total.section_info[index]);
@@ -467,8 +464,7 @@ int minidump_save_extend_information(const char *name, unsigned long paddr_start
 		sprd_minidump_info->section_info_total.total_size += extend_section->section_size;
 		sprd_minidump_info->minidump_data_size += extend_section->section_size;
 	}
-//	pr_info("%s added successfully in minidump section:paddr_start=%lx,paddr_end=%lx\n",
-//			name, paddr_start, paddr_end);
+
 	sprd_minidump_info->section_info_total.total_num++;
 	mutex_unlock(&section_mutex);
 	return 0;
@@ -495,25 +491,32 @@ int minidump_change_extend_information(const char *name, unsigned long paddr_sta
 	int i;
 	char str_name[SECTION_NAME_MAX];
 
+	if (name == NULL) {
+		pr_err("name is null in %s\n", __func__);
+		return -EFAULT;
+	}
+
 	if (strlen(name) > (SECTION_NAME_MAX - strlen(EXTEND_STRING) - 1))
-		return -1;
+		return -EFAULT;
 
 	memset(str_name, 0, SECTION_NAME_MAX);
 	snprintf(str_name, SECTION_NAME_MAX, "%s_%s", EXTEND_STRING, name);
 	if (!sprd_sysdump_info)
-		return -1;
+		return -EFAULT;
 	for (i = 0; i < SECTION_NUM_MAX; i++) {
 		if (!strlen(sprd_minidump_info->section_info_total.section_info[i].section_name))
-			return -1;
+			return -EFAULT;
 		if (!strcmp(sprd_minidump_info->section_info_total.section_info[i].section_name,
 					str_name))
 			break;
 	}
 	if (i >= SECTION_NUM_MAX)
-		return -1;
+		return -EFAULT;
 
 	sprd_minidump_info->section_info_total.section_info[i].section_start_paddr = paddr_start;
 	sprd_minidump_info->section_info_total.section_info[i].section_end_paddr = paddr_end;
+	sprd_minidump_info->section_info_total.section_info[i].section_size =
+								paddr_end - paddr_start;
 
 	return 0;
 }
@@ -642,32 +645,7 @@ static void sysdump_fill_core_hdr(struct pt_regs *regs, char *bufp)
 
 	return;
 }
-#if 0
-//hdy
-static int sysdump_magic_setup(char *str)
-{
-	if (str != NULL)
-		sscanf(&str[0], "%lx", &sysdump_magic_paddr);
 
-	pr_info("[%s]SYSDUMP paddr from uboot: 0x%lx\n",
-		 __func__, sysdump_magic_paddr);
-	return 1;
-}
-__setup("sysdump_magic=", sysdump_magic_setup);
-/* get sysdump reserve flag from uboot
- * sysdump_reflag: 1 sysdump reserved in dts
- *		   0 sysdump don't reserved in dts
- */
-static int sysdump_reflag_setup(char *str)
-{
-	if (str != NULL)
-		sscanf(&str[0], "%d", &sysdump_reflag);
-	pr_info("[%s]sysdump reserve flag from uboot: %d\n",
-		__func__, sysdump_reflag);
-	return 1;
-}
-__setup("sysdump_re_flag=", sysdump_reflag_setup);
-#endif
 static unsigned long get_sprd_sysdump_info_paddr(void)
 {
 	struct device_node *node;
@@ -677,24 +655,22 @@ static unsigned long get_sprd_sysdump_info_paddr(void)
 
 
 	node = of_find_node_by_name(NULL, SPRD_SYSDUMP_RESERVED);
-//	pr_info("[%s]in\n", __func__);
 	if (!node) {
 		pr_err("Not find %s node from dts, use RAMDISK addr when panic\n",
 				SPRD_SYSDUMP_RESERVED);
-		sysdump_re_paddr = SPRD_SYSDUMP_MAGIC;
+		sysdump_re_paddr = 0;
 		sysdump_reflag = 0;
 	} else {
 		ret = of_address_to_resource(node, 0, &res);
 		if (!ret) {
 			sysdump_re_paddr = res.start;
 			sysdump_reflag = 1;
-//			pr_info("the addr of sysdump reserved memory is 0x%lx\n", sysdump_re_paddr);
+			pr_info("the addr of sysdump reserved memory is 0x%lx\n", sysdump_re_paddr);
 		} else {
 			pr_err("Not find res property from %s node\n", SPRD_SYSDUMP_RESERVED);
 			return 0;
 		}
 	}
-//	pr_info("[%s]out\n", __func__);
 	return sysdump_re_paddr;
 }
 static int sysdump_info_init(void)
@@ -703,7 +679,7 @@ static int sysdump_info_init(void)
 	sprd_sysdump_info_paddr = get_sprd_sysdump_info_paddr();
 	if (!sprd_sysdump_info_paddr) {
 		pr_err("get sprd_sysdump_info_paddr failed.\n");
-		return -1;
+		return -EFAULT;
 	}
 	sprd_sysdump_info = (struct sysdump_info *)phys_to_virt(sprd_sysdump_info_paddr);
 
@@ -718,18 +694,7 @@ static int sysdump_info_init(void)
 		sprd_sysdump_info->sprd_kaslrinfo.phys_offset = PHYS_OFFSET;
 		sprd_sysdump_info->sprd_kaslrinfo.vabits_actual = (uint64_t)VA_BITS;
 #endif
-#if 0
-		/* get log_buf info */
-#ifdef CONFIG_KALLSYMS
-		sprd_sysdump_info->sprd_logbuf_info.log_buf =
-			__pa(kallsyms_lookup_name("log_buf"));
-		sprd_sysdump_info->sprd_logbuf_info.log_first_idx =
-			__pa(kallsyms_lookup_name("log_first_idx"));
-		sprd_sysdump_info->sprd_logbuf_info.log_next_idx =
-			__pa(kallsyms_lookup_name("log_next_idx"));
-#endif
-		sprd_sysdump_info->sprd_logbuf_info.log_buf_len = log_buf_len_get();
-#endif //0
+
 /*
 		sprd_sysdump_info->sprd_logbuf_info.vmcoreinfo_size =
 			__pa(&vmcoreinfo_size);
@@ -825,6 +790,14 @@ static int sysdump_panic_event(struct notifier_block *self,
 		crash_notes = &crash_notes_temp;
 	}
 
+	/* show regs */
+#ifdef CONFIG_ARM64
+	reg_esr_el1 = read_sysreg(esr_el1);
+	reg_far_el1 = read_sysreg(far_el1);
+	reg_elr_el1 = read_sysreg(elr_el1);
+	pr_emerg("\nreg_esr_el1 = %016llx\nreg_far_el1 = %016llx\nreg_elr_el1 = %016llx\n",
+				reg_esr_el1, reg_far_el1, reg_elr_el1);
+#endif
 	/* this should before smp_send_stop() to make sysdump_ipi enable */
 	sprd_sysdump_extra.enter_cpu = smp_processor_id();
 	pregs = &sprd_sysdump_extra.cpu_context[sprd_sysdump_extra.enter_cpu];
@@ -871,24 +844,6 @@ static int sysdump_panic_event(struct notifier_block *self,
 		prepare_exception_info(pregs, NULL, reason);
 	}
 #endif
-	if (sprd_sysdump_shash_init) {
-#if 0
-//hdy
-		pr_emerg("KTXT VERIFY...\n");
-		crypto_shash_update(desc, (u8 *)_stext, _etext-_stext);
-		crypto_shash_final(desc, g_ktxt_hash_data);
-
-		pr_emerg("KTXT [0x%lx--0x%lx]\n",
-			(unsigned long)_stext, (unsigned long)_etext);
-		pr_emerg("SHA1:\n");
-		pr_emerg("%x %x %x %x %x\n",
-			*((unsigned int *)g_ktxt_hash_data + 0),
-			*((unsigned int *)g_ktxt_hash_data + 1),
-			*((unsigned int *)g_ktxt_hash_data + 2),
-			*((unsigned int *)g_ktxt_hash_data + 3),
-.			*((unsigned int *)g_ktxt_hash_data + 4));
-#endif
-	}
 
 	pr_emerg("\n");
 	pr_emerg("*****************************************************\n");
@@ -918,11 +873,13 @@ void sysdump_ipi(void *p, struct pt_regs *regs)
 	if (crash_notes == NULL)
 		crash_notes = &crash_notes_temp;
 
+	if (!sprd_virt_addr_valid(regs))
+		return;
+
 	/*do flush and save only in oops path */
 	if (oops_in_progress) {
-		if (sprd_virt_addr_valid(regs))
-			memcpy((void *)&(sprd_sysdump_extra.cpu_context[cpu]),
-			       (void *)regs, sizeof(struct pt_regs));
+		memcpy((void *)&(sprd_sysdump_extra.cpu_context[cpu]),
+			(void *)regs, sizeof(struct pt_regs));
 		if (!user_mode(regs)) {
 			crash_note_save_cpu(regs, cpu);
 			sprd_debug_save_context();
@@ -1007,13 +964,12 @@ static ssize_t sprd_sysdump_write(struct file *file, const char __user *buf,
 				size_t count, loff_t *data)
 {
 	char sysdump_buf[SYSDUMP_PROC_BUF_LEN] = {0};
-	int *test = NULL;
 
 	pr_debug("%s: start!!!\n", __func__);
 	if (count && (count < SYSDUMP_PROC_BUF_LEN)) {
 		if (copy_from_user(sysdump_buf, buf, count)) {
 			pr_err("%s: copy_from_user failed!!!\n", __func__);
-			return -1;
+			return -EFAULT;
 		}
 		sysdump_buf[count] = '\0';
 
@@ -1025,12 +981,6 @@ static ssize_t sprd_sysdump_write(struct file *file, const char __user *buf,
 			pr_info("%s: disable user version sysdump!!!\n",
 				__func__);
 			set_sysdump_enable(0);
-		} else if (!strncmp(sysdump_buf, "bug", 3)) {
-			pr_info("%s  bug-on !!\n", __func__);
-			BUG_ON(1);
-		} else if (!strncmp(sysdump_buf, "null", 4)) {
-			pr_info("%s  null pointer !!\n", __func__);
-			count = *test;
 		}
 	}
 
@@ -1178,37 +1128,6 @@ static int set_sysdump_enable(int on)
 	return 0;
 }
 
-static int sysdump_shash_init(void)
-{
-	struct crypto_shash *tfm;
-	size_t desc_size;
-	int ret;
-
-	tfm = crypto_alloc_shash("sha1", 0, CRYPTO_ALG_ASYNC);
-	if (IS_ERR(tfm))
-		return (PTR_ERR(tfm) == -ENOENT) ? -ENOPKG : PTR_ERR(tfm);
-
-	desc_size = crypto_shash_descsize(tfm) + sizeof(*desc);
-
-	desc = kzalloc(desc_size, GFP_KERNEL);
-	if (!desc)
-		goto error_no_desc;
-
-	desc->tfm = tfm;
-//	desc->flags = CRYPTO_TFM_REQ_MAY_SLEEP;
-
-	ret = crypto_shash_init(desc);
-	if (ret < 0) {
-		pr_err("crypto_shash_init fail(%d)!\n", ret);
-		return ret;
-	}
-	sprd_sysdump_shash_init = 1;
-	return 0;
-error_no_desc:
-	crypto_free_shash(tfm);
-	return -ENOMEM;
-}
-
 #ifdef CONFIG_SPRD_MINI_SYSDUMP /*	minidump code start	*/
 static int minidump_info_read(struct seq_file *s, void *v)
 {
@@ -1249,6 +1168,13 @@ void prepare_minidump_reg_memory(struct pt_regs *regs)
 		pr_debug("R%d: %08lx\n", i, regs->uregs[i]);
 		pr_debug("addr: %08lx\n", addr);
 		if (addr < PAGE_OFFSET || addr > -256UL) {
+			sprd_minidump_info->regs_memory_info.reg_paddr[i] = 0;
+			pr_debug("reg value invalid !!!\n");
+		} else {
+			sprd_minidump_info->regs_memory_info.reg_paddr[i] =
+				unisoc_virt_to_phys((char *)addr);
+			sprd_minidump_info->regs_memory_info.valid_reg_num++;
+		}
 #endif
 #ifdef CONFIG_ARM64
 		if (REG_SP_INDEX == i) {
@@ -1268,8 +1194,6 @@ void prepare_minidump_reg_memory(struct pt_regs *regs)
 			pr_debug("addr: %lx\n", addr);
 		}
 		if (!sprd_virt_addr_valid(addr)) {
-
-#endif
 			sprd_minidump_info->regs_memory_info.reg_paddr[i] = 0;
 			pr_debug("reg value invalid !!!\n");
 		} else {
@@ -1278,6 +1202,7 @@ void prepare_minidump_reg_memory(struct pt_regs *regs)
 		}
 		pr_debug("reg[%d] paddr: %lx\n",
 			 i, sprd_minidump_info->regs_memory_info.reg_paddr[i]);
+#endif
 	}
 	sprd_minidump_info->regs_memory_info.size = sprd_minidump_info->regs_memory_info.valid_reg_num *
 					 sprd_minidump_info->regs_memory_info.per_reg_memory_size;
@@ -1340,7 +1265,7 @@ void show_minidump_info(struct minidump_info *minidump_infop)
 static int prepare_minidump_info(struct pt_regs *regs)
 {
 	if (!sprd_minidump_info)
-		return -1;
+		return -EFAULT;
 
 	if (sprd_virt_addr_valid(regs)) {
 		/*	struct pt_regs part: save minidump_regs contents */
@@ -1388,35 +1313,6 @@ static void section_info_ylog_buf(void)
 		pr_err("ylog_buf added to minidump section failed!!\n");
 }
 
-#if 0
-//hdy
-static void section_info_pt(void)
-{
-	unsigned long vaddr;
-	int len;
-	int ret;
-	vaddr  = (unsigned long)swapper_pg_dir;
-
-#ifdef CONFIG_ARM
-		len = (unsigned long)stext - vaddr;
-#endif
-#ifdef CONFIG_ARM64
-		len = 0x1000;
-#endif
-	ret = minidump_save_extend_information("kernel_pt", __pa(vaddr), __pa(vaddr + len));
-	if (ret)
-		pr_err("kernel pt added to minidump section failed!!\n");
-#ifdef CONFIG_ARM
-	pr_info("pgd vaddr start: 0x%lx  paddr start: 0x%x  len :0x%x\n",
-							vaddr, __pa(vaddr), len);
-#endif
-#ifdef CONFIG_ARM64
-	pr_info("pgd vaddr start: 0x%lx  paddr start: 0x%llx  len :0x%x\n",
-							vaddr, __pa(vaddr), len);
-#endif
-	return;
-}
-#endif /*0*/
 static int extend_section_cm4dump(void)
 {
 #define CM4_DUMP_IRAM "scproc"
@@ -1428,7 +1324,7 @@ static int extend_section_cm4dump(void)
 	node = of_find_node_by_name(NULL, CM4_DUMP_IRAM);
 	if (!node) {
 		pr_err("Not find %s from dts \n", CM4_DUMP_IRAM);
-		return -1;
+		return -ENOENT;
 	} else {
 		ret = of_address_to_resource(node, 0, &res);
 		if (!ret) {
@@ -1438,7 +1334,7 @@ static int extend_section_cm4dump(void)
 				cm4_dump_start, cm4_dump_end, cm4_dump_end - cm4_dump_start + 1);
 		} else {
 			pr_err("Not find cm4_reg property from %s node\n", CM4_DUMP_IRAM);
-			return -1;
+			return -ENOENT;
 		}
 	}
 	minidump_save_extend_information(CM4_DUMP_IRAM, cm4_dump_start, cm4_dump_end);
@@ -1474,7 +1370,7 @@ static int ylog_buffer_map(struct file *filp, struct vm_area_struct *vma)
 			ylog_buffer_paddr >> PAGE_SHIFT, /*	get pfn */
 			vma->vm_end - vma->vm_start,
 			vma->vm_page_prot))
-		return -1;
+		return -ENOMEM;
 
 //	pr_info("mmap ylog_buffer ok !\n");
 	return 0;
@@ -1497,7 +1393,7 @@ static int ylog_buffer_init(void)
 
 	ylog_buffer = kzalloc(YLOG_BUF_SIZE, GFP_KERNEL);
 	if (ylog_buffer == NULL) {
-		return -1;
+		return -ENOMEM;
 	}
 //	pr_info("%s: ylog_buffer vaddr is %p\n", __func__, ylog_buffer);
 	snprintf(ylog_buffer, YLOG_BUF_SIZE, "%s", "This is ylog buffer. Now , it is nothing . ");
@@ -1510,7 +1406,10 @@ static void ylog_buffer_exit(void)
 {
 	misc_deregister(&misc_dev_ylog);
 	ClearPageReserved(virt_to_page(ylog_buffer));
-	kfree(ylog_buffer);
+	if (ylog_buffer != NULL) {
+		kfree(ylog_buffer);
+		ylog_buffer = NULL;
+	}
 }
 static void minidump_info_exit(void)
 {
@@ -1530,22 +1429,22 @@ int minidump_init(void)
 	struct proc_dir_entry *minidump_info;
 
 	minidump_info_dir = proc_mkdir(MINIDUMP_INFO_DIR, NULL);
-	if (!minidump_info_dir)
-		return -ENOMEM;
-	minidump_info = proc_create(MINIDUMP_INFO_PROC, 0644, minidump_info_dir,
+	if (minidump_info_dir) {
+		minidump_info = proc_create(MINIDUMP_INFO_PROC, 0644, minidump_info_dir,
 				&minidump_proc_fops);
-	if (!minidump_info)
-		return -ENOMEM;
+		if (!minidump_info)
+			pr_err("minidump info proc create failed!\n");
+	}
+
 	ylog_buffer_init();
 	/*	dump_die_notifier for get infomation when die */
-	if (register_die_notifier(&dump_die_notifier) != 0) {
+	if (register_die_notifier(&dump_die_notifier) != 0)
 		pr_err("register dump_die_notifyier failed.\n");
-		return -1;
+
+	if (sprd_minidump_info) {
+		minidump_info_desc_g.paddr = unisoc_virt_to_phys(sprd_minidump_info);
+		minidump_info_desc_g.size = sizeof(minidump_info_g);
 	}
-	if (!sprd_minidump_info)
-		return -1;
-	minidump_info_desc_g.paddr = unisoc_virt_to_phys(sprd_minidump_info);
-	minidump_info_desc_g.size = sizeof(minidump_info_g);
 	section_extend_info_init();
 //	pr_info("%s out.\n", __func__);
 	return 0;
@@ -1578,31 +1477,6 @@ void show_exception_info(void)
 void get_file_line_info(void *p, const char *file, unsigned int line, unsigned long bugaddr)
 {
 
-#if 0
-	if (!regs || !is_valid_bugaddr(regs->reg_pc)) {
-		snprintf(minidump_info_g.exception_info.exception_file_info,
-			EXCEPTION_INFO_SIZE_SHORT, "not-bugon");
-		pr_debug("no regs  or not a bugon,do nothing\n");
-		return;
-	}
-
-	bug = find_bug(regs->reg_pc);
-	if (!bug) {
-		pr_debug("not a bugon, no  bug info ,do nothing\n");
-		snprintf(minidump_info_g.exception_info.exception_file_info,
-			EXCEPTION_INFO_SIZE_SHORT, "not-bugon");
-		return;
-	}
-#ifdef CONFIG_DEBUG_BUGVERBOSE
-#ifndef CONFIG_GENERIC_BUG_RELATIVE_POINTERS
-	file = bug->file;
-#else
-	 file = (const char *)bug + bug->file_disp;
-#endif
-	line = bug->line;
-#endif
-#endif //0
-
 	if (file) {
 		snprintf(sprd_minidump_info->exception_info.exception_file_info,
 			EXCEPTION_INFO_SIZE_SHORT, "[%s:%u]", file, line);
@@ -1611,19 +1485,19 @@ void get_file_line_info(void *p, const char *file, unsigned int line, unsigned l
 }
 void get_exception_stack_info(struct pt_regs *regs)
 {
-	unsigned long stack_entries[MAX_STACK_TRACE_DEPTH];
 	int sz;
-//	struct stack_trace trace;
 	struct task_struct *tsk, *cur;
+#if IS_ENABLED(CONFIG_STACKTRACE)
+	unsigned long stack_entries[MAX_STACK_TRACE_DEPTH];
 	char symbol[96];
 	int off, plen;
 	int i;
 	unsigned int entries = 0;
-#if IS_BUILTIN(CONFIG_SPRD_SYSDUMP)
+#if (IS_BUILTIN(CONFIG_SPRD_SYSDUMP) && !IS_ENABLED(CONFIG_ARCH_STACKWALK))
 	struct stack_trace trace;
-#elif (IS_ENABLED(CONFIG_STACKTRACE) && IS_ENABLED(CONFIG_ARCH_STACKWALK))
-	unsigned int nr_entries;
-#endif
+#endif /* CONFIG_SPRD_SYSDUMP=y && !CONFIG_ARCH_STACKWALK */
+#endif /* CONFIG_STACKTRACE */
+
 	cur = current;
 	tsk = cur;
 	if (!sprd_virt_addr_valid(tsk))
@@ -1642,18 +1516,24 @@ void get_exception_stack_info(struct pt_regs *regs)
 			"[%s, %d]", tsk->comm, tsk->pid);
 		tsk = tsk->real_parent;
 	} while (tsk && (tsk->pid != 0) && (tsk->pid != 1));
-#if IS_BUILTIN(CONFIG_SPRD_SYSDUMP)
-	/* Grab kernel task stack trace */
+
+	if (sprd_virt_addr_valid(regs)) {
+		snprintf(sprd_minidump_info->exception_info.exception_pc_symbol,
+			EXCEPTION_INFO_SIZE_SHORT, "[<%lx>] %pS",
+			(unsigned long)regs->reg_pc,
+			(void *)(unsigned long)regs->reg_pc);
+	}
+#if IS_ENABLED(CONFIG_STACKTRACE)
+#if IS_ENABLED(CONFIG_ARCH_STACKWALK)
+	entries  = stack_trace_save_tsk(cur, stack_entries, MAX_STACK_TRACE_DEPTH, 0);
+#elif IS_BUILTIN(CONFIG_SPRD_SYSDUMP)
 	trace.nr_entries = 0;
 	trace.max_entries = MAX_STACK_TRACE_DEPTH;
 	trace.entries = stack_entries;
 	trace.skip = 0;
 	save_stack_trace_tsk(cur, &trace);
 	entries = trace.nr_entries;
-#elif (IS_ENABLED(CONFIG_STACKTRACE) && IS_ENABLED(CONFIG_ARCH_STACKWALK))
-	nr_entries = stack_trace_save_tsk(cur, stack_entries, MAX_STACK_TRACE_DEPTH, 0);
-	entries = nr_entries;
-#endif
+#endif /* !CONFIG_ARCH_STACKWALK */
 	for (i = 0; i < entries; i++) {
 		off = strlen(sprd_minidump_info->exception_info.exception_stack_info);
 		plen = EXCEPTION_INFO_SIZE_LONG - ALIGN(off, 8);
@@ -1671,17 +1551,13 @@ void get_exception_stack_info(struct pt_regs *regs)
 				symbol, ALIGN(sz, 8));
 		}
 	}
-	if (sprd_virt_addr_valid(regs)) {
-		snprintf(sprd_minidump_info->exception_info.exception_pc_symbol,
-			EXCEPTION_INFO_SIZE_SHORT, "[<%lx>] %pS",
-			(unsigned long)regs->reg_pc,
-			(void *)(unsigned long)regs->reg_pc);
-	} else {
+	if (!sprd_virt_addr_valid(regs)) {
 		snprintf(sprd_minidump_info->exception_info.exception_pc_symbol,
 			EXCEPTION_INFO_SIZE_SHORT, "[<%lx>] %pS",
 			(unsigned long)stack_entries[0],
 			(void *)(unsigned long)stack_entries[0]);
 	}
+#endif /* CONFIG_STACKTRACE */
 }
 static int prepare_exception_info(struct pt_regs *regs,
 				struct task_struct *tsk, const char *reason)
@@ -1691,7 +1567,7 @@ static int prepare_exception_info(struct pt_regs *regs,
 	struct rtc_time tm;
 
 	if (!sprd_minidump_info)
-		return -1;
+		return -EFAULT;
 	memset(&(sprd_minidump_info->exception_info), 0,
 		sizeof(sprd_minidump_info->exception_info));
 	memcpy(sprd_minidump_info->exception_info.kernel_magic, KERNEL_MAGIC, 4);
@@ -1744,6 +1620,11 @@ static int prepare_exception_info(struct pt_regs *regs,
 /* for wdh and so on */
 void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason)
 {
+	if (regs == NULL || reason == NULL) {
+		pr_err("regs or reason is nulL in %s\n", __func__);
+		return;
+	}
+
 	/* 1    prepare minidump info */
 	prepare_minidump_info(regs);
 	prepare_exception_info(regs, NULL, reason);
@@ -1751,40 +1632,9 @@ void prepare_dump_info_for_wdh(struct pt_regs *regs, const char *reason)
 EXPORT_SYMBOL(prepare_dump_info_for_wdh);
 #endif  /*	minidump code end	*/
 
-/* common data init */
-#if 0
-//hdy
-static void section_info_per_cpu(void)
-{
-	int ret;
-	long vaddr = (long)(__per_cpu_start) + (long)(__per_cpu_offset[0]);
-	int len = (int)(__per_cpu_offset[1] - __per_cpu_offset[0]) * CPU_NUM_MAX;
-
-	if (sysdump_reflag)
-		sprd_sysdump_info->sprd_coreregs_info.pcpu_start_paddr = __pa(vaddr);
-	ret = minidump_save_extend_information("per_cpu", __pa(vaddr), __pa(vaddr + len));
-	if (ret)
-		pr_err("per_cpu added to minidump section failed!!\n");
-}
-#endif
-#if 0
-//hdy
-static void section_info_log_buf(void)
-{
-	int ret;
-	unsigned long vaddr = (unsigned long)(log_buf_addr_get());
-	int len = log_buf_len_get();
-
-	pr_info("%s in. vaddr : 0x%lx  len :0x%x\n",
-		__func__, vaddr, len);
-	ret = minidump_save_extend_information("log_buf", __pa(vaddr), __pa(vaddr + len));
-	if (ret)
-		pr_err("add log_buf to minidump section failed!!\n");
-}
-#endif
 static void update_vmcoreinfo_data(void)
 {
-	if (!sprd_minidump_info)
+	if (!sprd_minidump_info || (sysdump_reflag == 0))
 		return;
 	vmcoreinfo_append_str("SYMBOL(%s)=%d\n", "processor_id",
 			smp_processor_id());
@@ -1807,6 +1657,7 @@ static void minidump_addr_convert(int i)
 		(int)(sprd_minidump_info->section_info_total.section_info[i].section_end_paddr -
 		sprd_minidump_info->section_info_total.section_info[i].section_start_paddr);
 }
+
 static void minidump_info_init(void)
 {
 	int i;
@@ -1822,7 +1673,7 @@ static void minidump_info_init(void)
 	memcpy(sprd_minidump_info, &minidump_info_g, MINIDUMP_INFO_BYTES);
 	/* alloc minidump regs buffer */
 	sprd_minidump_regs = kzalloc(MINIDUMP_REGS_BYTES, GFP_KERNEL);
-	if (sprd_minidump_info == NULL) {
+	if (sprd_minidump_regs == NULL) {
 		pr_err("kzalloc minidump regs failed, required size:%ld\n",
 				MINIDUMP_REGS_BYTES);
 		return;
@@ -1933,7 +1784,7 @@ static int sysdump_sysctl_init(void)
 	sysdump_sysctl_hdr =
 	    register_sysctl_table((struct ctl_table *)sysdump_sysctl_root);
 	if (!sysdump_sysctl_hdr)
-		return -ENOMEM;
+		pr_err("sysctl_table register failed\n");
 #if IS_MODULE(CONFIG_SPRD_SYSDUMP)
 	/* panic notifer, mindump_info, ...*/
 	sysdump_early_init();
@@ -1946,11 +1797,7 @@ static int sysdump_sysctl_init(void)
 
 	sysdump_proc = proc_create("sprd_sysdump", S_IWUSR | S_IRUSR, NULL, &sysdump_proc_fops);
 	if (!sysdump_proc)
-		return -ENOMEM;
-
-	memset(g_ktxt_hash_data, 0x55, SHA1_DIGEST_SIZE);
-	if (sysdump_shash_init())
-		return -ENOMEM;
+		pr_err("sprd_sysdump proc create failed.\n");
 
 	sprd_sysdump_enable_prepare();
 #if defined(CONFIG_SPRD_DEBUG)
@@ -1969,11 +1816,6 @@ void sysdump_sysctl_exit(void)
 		unregister_sysctl_table(sysdump_sysctl_hdr);
 	input_unregister_handler(&sysdump_handler);
 	remove_proc_entry("sprd_sysdump", NULL);
-	if (desc) {
-		if (desc->tfm)
-			crypto_free_shash(desc->tfm);
-		kfree(desc);
-	}
 	minidump_info_exit();
 #ifdef CONFIG_SPRD_MINI_SYSDUMP
 	ylog_buffer_exit();
@@ -1991,7 +1833,8 @@ late_initcall_sync(sysdump_sysctl_init);
 #endif
 #if IS_MODULE(CONFIG_SPRD_SYSDUMP)
 module_init(sysdump_sysctl_init);
-module_exit(sysdump_sysctl_exit);
+/* rvh no unregister, so don't exit!! */
+//module_exit(sysdump_sysctl_exit);
 #endif
 
 MODULE_IMPORT_NS(MINIDUMP);

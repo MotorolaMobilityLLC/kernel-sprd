@@ -51,11 +51,11 @@ static struct semaphore hang_detect_sema;
 #define SD_DST_5 "servicemanager"
 #endif
 static char *nh_log_buf;
-#ifdef CONFIG_SPRD_DEBUG
-static int dump_info_enable;
-static int panic_enable; /* only for debug version */
+#if IS_ENABLED(CONFIG_UNISOC_DEBUG)
+static int panic_enable;
+#else
+static int panic_enable = 1;
 #endif
-
 static void log_to_hang_info(const char *fmt, ...)
 {
 	int len = 0;
@@ -154,25 +154,40 @@ static void get_kernel_bt(struct task_struct *tsk, struct thread_backtrace_info 
 static void sched_show_task_local(struct task_struct *p)
 {
 	unsigned long free = 0;
-	int ppid, i;
+	int ppid;
 	unsigned int state;
+	int exit_state;
 	char stat_nam[] = TASK_STATE_TO_CHAR_STR;
 	pid_t pid;
+#if IS_ENABLED(CONFIG_STACKTRACE)
+	int i;
 	unsigned int nr_entries;
 	unsigned long stack_entries[NR_FRAME];
+#if (IS_BUILTIN(CONFIG_SPRD_SYSDUMP) && !IS_ENABLED(CONFIG_ARCH_STACKWALK))
+	struct stack_trace trace;
+#endif /* !CONFIG_ARCH_STACKWALK && CONFIG_SPRD_SYSDUMP=y */
+#endif /* CONFIG_STACKTRACE */
 
-	state = p->__state ? __ffs(p->__state) + 1 : 0;
-	pr_err("%-15.15s %c", p->comm, state < sizeof(stat_nam) - 1 ? stat_nam[state] : '?');
+	state = READ_ONCE(p->__state);
+	exit_state = p->exit_state;
+	if ((state == TASK_DEAD) || (exit_state == EXIT_ZOMBIE)
+			|| (exit_state == EXIT_DEAD)) {
+		pr_err("the status of the %s is %d!\n", p->comm, state);
+		return;
+	}
+	state = state ? __ffs(state) + 1 : 0;
+	log_to_hang_info("%-15.15s %c",
+			p->comm, state < sizeof(stat_nam) - 1 ? stat_nam[state] : '?');
 #if BITS_PER_LONG == 32
 	if (state == TASK_RUNNING)
-		pr_err(" running  ");
+		log_to_hang_info(" running  ");
 	else
-		pr_err(" %08lx ", thread_saved_pc(p));
+		log_to_hang_info(" %08lx ", thread_saved_pc(p));
 #else
 	if (state == TASK_RUNNING)
-		pr_err("  running task    ");
+		log_to_hang_info("  running task    ");
 	else
-		pr_err(" %016lx ", thread_saved_pc(p));
+		log_to_hang_info(" %016lx ", thread_saved_pc(p));
 #endif
 #ifdef CONFIG_DEBUG_STACK_USAGE
 	free = stack_not_used(p);
@@ -180,7 +195,7 @@ static void sched_show_task_local(struct task_struct *p)
 	rcu_read_lock();
 	ppid = task_pid_nr(rcu_dereference(p->real_parent));
 	rcu_read_unlock();
-	pr_err("%5lu %5d %6d 0x%08lx\n", free,
+	log_to_hang_info("%5lu %5d %6d 0x%08lx\n", free,
 	     task_pid_nr(p), ppid, (unsigned long)task_thread_info(p)->flags);
 
 	log_to_hang_info("%-15.15s %c ", p->comm,
@@ -189,30 +204,35 @@ static void sched_show_task_local(struct task_struct *p)
 		     (unsigned long)task_thread_info(p)->flags);
 
 	pid = task_pid_nr(p);
-
+#if IS_ENABLED(CONFIG_STACKTRACE)
+#if IS_ENABLED(CONFIG_ARCH_STACKWALK)
 	nr_entries = stack_trace_save_tsk(p, stack_entries, NR_FRAME, 0);
+#elif IS_BUILTIN(CONFIG_SPRD_SYSDUMP)
+	trace.nr_entries = 0;
+	trace.max_entries = NR_FRAME;
+	trace.entries = stack_entries;
+	trace.skip = 0;
+	save_stack_trace_tsk(p, &trace);
+	nr_entries = trace.nr_entries;
+#endif /* !CONFIG_ARCH_STACKWALK && CONFIG_SPRD_SYSDUMP=y */
 	log_to_hang_info("KBT,sysTid=%d,nr_entries:%d\n", pid, nr_entries);
 	for (i = 0; i < nr_entries; i++) {
-		pr_err("LHD11:frame %d: [<%p>] %pS\n", i, (void *)stack_entries[i],
+		log_to_hang_info("LHD11:frame %d: [<%p>] %pS\n", i, (void *)stack_entries[i],
 		     (void *)stack_entries[i]);
 		/*  format: [<0000000000000000>] __switch_to+0xa0/0xd8 */
 		log_to_hang_info("[<%p>] %pS\n", (void *)stack_entries[i],
 				(void *)stack_entries[i]);
 	}
+#endif /* CONFIG_STACKTRACE */
 }
 
 static void show_state_filter_local(unsigned long state_filter)
 {
 	struct task_struct *g, *p;
 
-#if BITS_PER_LONG == 32
-	pr_err("  task                PC stack   pid father\n");
-#else
-	pr_err("  task                        PC stack   pid father\n");
-#endif
 	do_each_thread(g, p) {
 		/* TODO: Here can discard some threads which  always stay in D state */
-		if (p->__state != state_filter)
+		if (READ_ONCE(p->__state) != state_filter)
 			continue;
 		sched_show_task_local(p);
 	} while_each_thread(g, p);
@@ -315,10 +335,23 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 	unsigned long userstack_start = 0;
 	unsigned long userstack_end = 0, length = 0;
 	int ret = -1;
+	unsigned int __state;
+	int exit_state;
 
+	rcu_read_lock();
 	current_task = find_task_by_vpid(tid);
+	rcu_read_unlock();
 	if (current_task == NULL)
 		return -ESRCH;
+	__state = READ_ONCE(current_task->__state);
+	exit_state = current_task->exit_state;
+	if ((__state == TASK_DEAD) || (exit_state == EXIT_ZOMBIE)
+			|| (exit_state == EXIT_DEAD)) {
+		pr_err("__state = 0x%x, exit_state = 0x%x",
+				__state, exit_state);
+		pr_err("the thread is invalid, do nothing\n");
+		return -EFAULT;
+	}
 	user_ret = task_pt_regs(current_task);
 
 	if (!user_mode(user_ret)) {
@@ -331,8 +364,8 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 		return ret;
 	}
 #ifdef CONFIG_ARM		/* 32bit */
-	pr_err(" pc/lr/sp 0x%08lx/0x%08lx/0x%08lx\n", user_ret->ARM_pc, user_ret->ARM_lr,
-	     user_ret->ARM_sp);
+	log_to_hang_info(" pc/lr/sp 0x%08lx/0x%08lx/0x%08lx\n",
+			user_ret->ARM_pc, user_ret->ARM_lr, user_ret->ARM_sp);
 
 	userstack_start = (unsigned long)user_ret->ARM_sp;
 	vma = current_task->mm->mmap;
@@ -351,7 +384,8 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 		pr_err(" %s,%d:%s,userstack_end == 0", __func__, tid, current_task->comm);
 		return ret;
 	}
-	pr_err("Dump K32 stack range (0x%08lx:0x%08lx)\n", userstack_start, userstack_end);
+	log_to_hang_info("Dump K32 stack range (0x%08lx:0x%08lx)\n",
+			userstack_start, userstack_end);
 	length = userstack_end - userstack_start;
 
 
@@ -368,7 +402,7 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 			copied = access_process_vm(current_task, SPStart, &tempSpContent,
 							sizeof(tempSpContent), 0);
 			if (copied != sizeof(tempSpContent)) {
-				pr_err("access_process_vm  SPStart error,sizeof(tempSpContent)=%x\n",
+				log_to_hang_info("vm SPStart error,size=%x\n",
 				     (unsigned int)sizeof(tempSpContent));
 			}
 			log_to_hang_info("0x%08x:%08x %08x %08x %08x\n", SPStart, tempSpContent[0],
@@ -376,13 +410,13 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 			SPStart += 4 * 4;
 		}
 	}
-	pr_err("u+k 32 copy_from_user ret(0x%08x),len:%lx\n", ret, length);
-	pr_err("end dump native stack:\n");
+	log_to_hang_info("u+k 32 copy_from_user ret(0x%08x),len:%lx\n", ret, length);
+	log_to_hang_info("end dump native stack:\n");
 #else	/* 64bit, First deal with K64+U64, the last time to deal with K64+U32 */
 
 	/* K64_U32 for current task */
 	if (compat_user_mode(user_ret)) {	/* K64_U32 for check reg */
-		pr_err(" K64+ U32 pc/lr/sp 0x%16lx/0x%16lx/0x%16lx\n",
+		log_to_hang_info(" K64+ U32 pc/lr/sp 0x%16lx/0x%16lx/0x%16lx\n",
 		     (long)(user_ret->user_regs.pc),
 		     (long)(user_ret->user_regs.regs[14]), (long)(user_ret->user_regs.regs[13]));
 		userstack_start = (unsigned long)user_ret->user_regs.regs[13];
@@ -402,7 +436,7 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 			return ret;
 		}
 
-		pr_err("Dump K64+ U32 stack range (0x%08lx:0x%08lx)\n", userstack_start,
+		log_to_hang_info("Dump K64+ U32 stack range (0x%08lx:0x%08lx)\n", userstack_start,
 		     userstack_end);
 		length = userstack_end - userstack_start;
 
@@ -422,7 +456,7 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 				    access_process_vm(current_task, SPStart, &tempSpContent,
 						      sizeof(tempSpContent), 0);
 				if (copied != sizeof(tempSpContent)) {
-					pr_err("access_process_vm  SPStart error,sizeof(tempSpContent)=%x\n",
+					log_to_hang_info("vm SPStart error,size=%x\n",
 						(unsigned int)sizeof(tempSpContent));
 					/* return -EIO; */
 				}
@@ -433,7 +467,7 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 			}
 		}
 	} else {		/*K64+U64 */
-		pr_err(" K64+ U64 pc/lr/sp 0x%16lx/0x%16lx/0x%16lx\n",
+		log_to_hang_info(" K64+ U64 pc/lr/sp 0x%16lx/0x%16lx/0x%16lx\n",
 		     (long)(user_ret->user_regs.pc),
 		     (long)(user_ret->user_regs.regs[30]), (long)(user_ret->user_regs.sp));
 		userstack_start = (unsigned long)user_ret->user_regs.sp;
@@ -484,13 +518,13 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 					break;
 			}
 			for (copied = 0; copied < frames; copied++) {
-				pr_err("frame:#%d: pc(%016lx)\n", copied, native_bt[copied]);
-				/* #00 pc 0x6c760  /system/lib64/ libc.so (__epoll_pwait+8) */
-				log_to_hang_info(" #%d pc %016lx\n", copied, native_bt[copied]);
+				log_to_hang_info("frame:#%d: pc(%016lx)\n",
+						copied, native_bt[copied]);
 			}
-			pr_err("tid(%d:%s),frame %d. tmpfp(0x%lx),userstack_start(0x%lx), ",
+
+			log_to_hang_info("tid(%d:%s),frame %d.tmpfp(0x%lx),userstack_start(0x%lx)",
 				tid, current_task->comm, frames, tmpfp, userstack_start);
-			pr_err("userstack_end(0x%lx)\n", userstack_end);
+			log_to_hang_info("userstack_end(0x%lx)\n", userstack_end);
 		}
 	}
 #endif
@@ -503,40 +537,49 @@ static void show_bt_by_pid(int task_pid)
 	struct pid *pid;
 	int count = 0;
 	unsigned int state;
+	int exit_state;
 	char stat_nam[] = TASK_STATE_TO_CHAR_STR;
 
 	pid = find_get_pid(task_pid);
 	t = p = get_pid_task(pid, PIDTYPE_PID);
 
 	if (p != NULL) {
+		state = READ_ONCE(t->__state);
+		exit_state = t->exit_state;
 		log_to_hang_info("%s: %d: %s.\n", __func__, task_pid, t->comm);
 //		save_native_thread_maps(task_pid);	/* catch maps to Userthread_maps */
+		rcu_read_lock();
 		do {
-			if (t) {
+			if (t && (state != TASK_DEAD) && (exit_state != EXIT_ZOMBIE)
+					&& (exit_state != EXIT_DEAD)) {
 				pid_t tid = 0;
 
 				tid = task_pid_vnr(t);
-				state = t->__state ? __ffs(t->__state) + 1 : 0;
-				pr_err("lhd: %-15.15s %c pid(%d),tid(%d)",
+				if (state > TASK_STATE_MAX) {
+					pr_err("the state of the task is invalid\n");
+					continue;
+				}
+				state = state ? __ffs(state) + 1 : 0;
+				log_to_hang_info("lhd: %-15.15s %c pid(%d),tid(%d)",
 				     t->comm, state < sizeof(stat_nam) - 1 ? stat_nam[state] : '?',
 				     task_pid, tid);
 
-				sched_show_task_local(t);	/* catch kernel bt */
-
 				log_to_hang_info("%s sysTid=%d, pid=%d\n", t->comm, tid, task_pid);
-
+				/* catch kernel bt */
+				sched_show_task_local(t);
+				/* change send ptrace_stop to send signal stop */
 				send_sig_info(SIGSTOP, SEND_SIG_PRIV, t);
-				/* change send ptrace_stop to send signal stop */
-				save_native_threadinfo_by_tid(tid);	/* catch user-space bt */
-				/* change send ptrace_stop to send signal stop */
-				if (stat_nam[state] != 'T')
-					send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
+				/* catch user-space bt */
+				save_native_threadinfo_by_tid(tid);
+				/* change send ptrace_stop to send signal contiue */
+				send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
 			}
 			if ((++count) % 5 == 4)
 				msleep(20);
 			log_to_hang_info("---\n");
 		} while_each_thread(p, t);
-		put_task_struct(t);
+		rcu_read_unlock();
+		put_task_struct(p);
 	}
 	put_pid(pid);
 }
@@ -546,6 +589,8 @@ static int find_core_task(void)
 	struct task_struct *task;
 	int ret = -1;
 	int i;
+	unsigned int __state;
+	int exit_state;
 
 	reset_core_task_info();
 	log_to_hang_info("[Native Hang detect]: -----	%s	------\n", __func__);
@@ -554,10 +599,15 @@ static int find_core_task(void)
 		for (i = 0; i < CORE_TASK_NUM_MAX; i++) {
 			if (!strlen(core_task[i].name))
 				break;
-			/* ZO process stack is NULL, record its pid & name */
-			if ((task->__state == TASK_DEAD) && (task->exit_state == EXIT_ZOMBIE)) {
-				log_to_hang_info("[Native Hang detect]: ZO Task :pid = %d",
-						task->pid);
+			__state = READ_ONCE(task->__state);
+			exit_state = task->exit_state;
+			/* ZO & DEAD process stack is NULL, record its pid & name */
+			if ((__state == TASK_DEAD) || (exit_state == EXIT_ZOMBIE)
+					|| (exit_state == EXIT_DEAD)) {
+				log_to_hang_info("[Native Hang detect]: ZO or dead Task :pid = %d",
+							task->pid);
+				log_to_hang_info(" __state = 0x%x, exit_state = 0x%x",
+						__state, exit_state);
 				log_to_hang_info(" name = %s\n", task->comm);
 				continue;
 			}
@@ -636,18 +686,20 @@ static int hang_detect_thread_info(void *arg)
 	sched_setscheduler(current, SCHED_FIFO, &param);
 	pr_emerg("[Native Hang Detect] hang_detect info thread starts.\n");
 	while (!kthread_should_stop()) {
-		down(&hang_detect_sema);
-		/* get kernel log first */
-		get_current_kernel_log();
-		reset_hang_info();
+		if (atomic_add_negative(0, &hang_detect_counter)) {
+			/* get kernel log first */
+			get_current_kernel_log();
 
-		log_to_hang_info("[Native Hang detect] save data start.\n");
-		if (hang_info != NULL) {
-			save_native_hang_monitor_data();
-			pr_emerg("[Native Hang detect]save data finished\n");
-		} else {
-			pr_err("hang_info is NULL, don't save anything.\n");
+			reset_hang_info();
+			log_to_hang_info("[Native Hang detect] save data start.\n");
+			if (hang_info != NULL) {
+				save_native_hang_monitor_data();
+				pr_emerg("[Native Hang detect]save data finished\n");
+			} else {
+				pr_err("hang_info is NULL, don't save anything.\n");
+			}
 		}
+		down(&hang_detect_sema);
 	}
 
 	return 0;
@@ -667,48 +719,26 @@ static int hang_detect_thread(void *arg)
 	while (!kthread_should_stop()) {
 		if (hang_detect_enabled) {
 			if (atomic_add_negative(0, &hang_detect_counter)) {
-#ifdef CONFIG_SPRD_DEBUG
-				/* no panic on userdeug */
-				pr_emerg("[Native Hang Detect] ");
-				pr_emerg("hang_detect_counter:%d ...\n",
+				pr_notice("hang_detect_counter:%d ...\n",
 					atomic_read(&hang_detect_counter));
-
-				if (dump_info_enable > 0) {
-					up(&hang_detect_sema);
-					dump_info_enable--;
-					/* wait for log saving done */
-					msleep(10 * 1000);
-				}
 				if (panic_enable) {
-					pr_emerg("panic enable = %d, panic!!\n", panic_enable);
-					panic("Native hang monitor trigger");
-				} else {
-					msleep(1000);
-					continue;
+					up(&hang_detect_sema);
+					pr_notice("panic enable = %d, wait 40s!!\n", panic_enable);
+					/* wait for wdh 40s and log saving */
+					msleep(40 * 1000);
+					if (atomic_add_negative(0, &hang_detect_counter))
+						panic("Native hang monitor trigger");
 				}
-#endif
-#ifndef CONFIG_SPRD_DEBUG
-				pr_emerg("[Native Hang Detect] hang_detect_counter:%d, ",
-					atomic_read(&hang_detect_counter));
-				up(&hang_detect_sema);
-				/* wait for wdh 40s and log saving */
-				msleep(40 * 1000);
-				/* check hang_detect_counter before panic */
-				if (atomic_add_negative(0, &hang_detect_counter)) {
-					pr_emerg("we should trigger panic...\n");
-					panic("Native hang monitor trigger");
-				}
-#endif
+			} else {
+				atomic_dec(&hang_detect_counter);
 			}
-			atomic_dec(&hang_detect_counter);
-			pr_debug("[Native Hang Detect] hang_detect thread counts down %d:%d.\n",
-				atomic_read(&hang_detect_counter), hang_detect_timeout);
-
-		} else {
-			pr_notice("[Native Hang Detect] hang_detect disabled.\n");
+			msleep(1000);
+			continue;
 		}
 
-		msleep(1000); /* detect 1s in default */
+		pr_notice("[Native Hang Detect] hang_detect disabled.\n");
+		set_current_state(TASK_UNINTERRUPTIBLE);
+		schedule();
 	}
 	return 0;
 }
@@ -817,10 +847,8 @@ static int monitor_hang_show(struct seq_file *m, void *v)
 	SEQ_printf(m, "hang_detect_enabled: %d ,hang_detect_timeout = %d s ",
 		hang_detect_enabled, hang_detect_timeout);
 	SEQ_printf(m, "hang_detect_counter: %d\n", atomic_read(&hang_detect_counter));
-#ifdef CONFIG_SPRD_DEBUG
 	SEQ_printf(m, "panic_enable: %d\n", panic_enable);
-	SEQ_printf(m, "dump_info_enable: %d\n", dump_info_enable);
-#endif
+
 	return 0;
 }
 
@@ -842,45 +870,25 @@ static ssize_t monitor_hang_proc_write(struct file *filp, const char __user *buf
 		write_buf[count] = '\0';
 		pr_info("%s copy_from_user:%s\n", __func__, write_buf);
 		if (!strncmp(write_buf, "on", 2)) {
-			/*	create hang detect thread */
-			if (!hang_detect_enabled) {
-				pr_info("%s:create hang_detect_thread !\n", __func__);
-				hd_thread = kthread_run(hang_detect_thread, NULL,
-							"native_hang_detect");
-				hdinfo_thread = kthread_run(hang_detect_thread_info, NULL,
-						"native_hang_detect_info");
-				hang_detect_enabled = 1;
-			} else {
+			if (hang_detect_enabled) {
 				pr_info("%s:hang_detect_thread already run !\n", __func__);
+			} else {
+				atomic_set(&hang_detect_counter, WAIT_BOOT_COMPLETE);
+				hang_detect_enabled = 1;
+				wake_up_process(hd_thread);
 			}
 		} else if (!strncmp(write_buf, "off", 3)) {
-			/*	stop &  hang detect thread */
-			if (!hang_detect_enabled) {
+			if (!hang_detect_enabled)
 				pr_info("%s:hang_detect_thread already stop !\n", __func__);
-			} else {
-				pr_info("%s:stop hang_detect_thread !\n", __func__);
-				kthread_stop(hd_thread);
-				kthread_stop(hdinfo_thread);
-				hang_detect_enabled = 0;
-			}
-#ifdef CONFIG_SPRD_DEBUG
+			hang_detect_enabled = 0;
 		} else if (!strncmp(write_buf, "panic-on", 8)) {
 			/* panic when timeout for debug */
 			panic_enable = 1;
-			pr_emerg("set panic_enable to 1");
+			pr_notice("set panic_enable to 1");
 		} else if (!strncmp(write_buf, "panic-off", 9)) {
 			/* no panic when timeout for debug */
 			panic_enable = 0;
-			pr_emerg("set panic_enable to 0");
-		} else if (!strncmp(write_buf, "timeout", 7)) {
-			/* timeout */
-			atomic_set(&hang_detect_counter, 0);
-			pr_emerg("set hang_detect_counter to 0");
-		} else if (!strncmp(write_buf, "dump-info", 9)) {
-			/* dump info for debug */
-			dump_info_enable = 1;
-			pr_emerg("set dump_info_enable to 1");
-#endif
+			pr_notice("set panic_enable to 0");
 		} else {
 			pr_err("%s invalid string , do nothing !!\n", __func__);
 		}
@@ -895,7 +903,7 @@ static const struct proc_ops monitor_enable_fops = {
 	.proc_lseek = seq_lseek,
 	.proc_release = single_release,
 };
-static int monitor_hang_init(void)
+static int native_hang_init(void)
 {
 	int err = 0;
 	int ret = 0;
@@ -915,10 +923,10 @@ static int monitor_hang_init(void)
 
 	atomic_set(&hang_detect_counter, WAIT_BOOT_COMPLETE);
 	sema_init(&hang_detect_sema, 0);
-#ifdef CONFIG_SPRD_DEBUG
-	panic_enable = 0;
-	dump_info_enable = 0;
-#endif
+
+	hd_thread = kthread_run(hang_detect_thread, NULL, "native_hang_detect");
+	hdinfo_thread = kthread_run(hang_detect_thread_info, NULL, "native_hang_detect_info");
+
 	/* hang info buffer alloc */
 	hang_info = (char *)kzalloc(HANG_INFO_MAX, GFP_KERNEL);
 	if (hang_info != NULL) {
@@ -944,19 +952,30 @@ static int monitor_hang_init(void)
 		pr_err("kzalloc nh_log_buf failed, required size:%d\n", HANG_INFO_MAX);
 	}
 
-	/* modules loaded monitor init */
+
+	return ret;
+}
+
+static int monitor_hang_init(void)
+{
+	native_hang_init();
+
 	sprd_modules_init();
-  /* register send_signal vh */
+/* register send_signal vh */
 #ifdef CONFIG_UNISOC_SIGNAL_DEBUG
 	register_trace_android_vh_do_send_sig_info(send_sig_info_for_debug, NULL);
 #endif
 
-	return err;
+	return 0;
 }
 
 static void monitor_hang_exit(void)
 {
 	misc_deregister(&native_hang_monitor_dev);
+
+	kthread_stop(hd_thread);
+	kthread_stop(hdinfo_thread);
+	up(&hang_detect_sema);
 
 	if (hang_info != NULL) {
 		ClearPageReserved(virt_to_page(hang_info));
