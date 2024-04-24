@@ -1832,7 +1832,9 @@ static void cm_update_charge_info(struct charger_manager *cm, int cmd)
 
 	mutex_unlock(&cm->desc->charge_info_mtx);
 	
-	thm_info->adapter_default_charge_vol = 5;
+	if (cm->desc->thm_info.need_calib_charge_lmt)
+	        thm_info->adapter_default_charge_vol = 5;
+
 	if (thm_info->thm_pwr && thm_info->adapter_default_charge_vol)
 		thm_info->thm_adjust_cur = (int)(thm_info->thm_pwr /
 			thm_info->adapter_default_charge_vol) * 1000;
@@ -7788,7 +7790,7 @@ static void cm_batt_works(struct work_struct *work)
 #define CHARGE_SOC_VALUE_FACTOR 1031
 	static bool charge_done=false;
 	int fuel_cap_buf = 0;
-	int term_vol;
+	static int term_vol;
 
 	ret = get_vbat_now_uV(cm, &batt_uV);
 	if (ret) {
@@ -7843,7 +7845,6 @@ static void cm_batt_works(struct work_struct *work)
 	if (ret)
 		dev_warn(cm->dev, "get chg_vol error.\n");
 
-	get_charger_term_voltage(cm, &term_vol);
 	
 	ret = cm_get_battery_temperature(cm, &cur_temp);
 	if (ret) {
@@ -7875,7 +7876,10 @@ static void cm_batt_works(struct work_struct *work)
 	if (is_full_charged(cm))
 		cm->battery_status = POWER_SUPPLY_STATUS_FULL;
 	else if (is_charging(cm))
+	{
+		get_charger_term_voltage(cm, &term_vol);
 		cm->battery_status = POWER_SUPPLY_STATUS_CHARGING;
+	}
 	else if (is_ext_pwr_online(cm))
 		cm->battery_status = POWER_SUPPLY_STATUS_NOT_CHARGING;
 	else
