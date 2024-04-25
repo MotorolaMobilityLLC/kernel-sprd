@@ -64,3 +64,11 @@ config HYBRIDSWAP_ASYNC_COMPRESS
 	  for compress anon pages.
 	  If unsure, say N here.
 	  This feature will reduce the kswapd cpu load.
+
+config ZRAM_5_15
+	bool "zram support kernel 5.15"
+	default y
+	help
+	  Say Y here if you want support 5.15.
+	  If unsure, say N here.
+	  This feature will close.
