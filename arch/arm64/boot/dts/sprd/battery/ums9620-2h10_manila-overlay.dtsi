@@ -26,7 +26,7 @@
 	status = "okay";
 	battery_name ="QG50-SB18E23377-ATL-5000mAh","QG50-SB18E21836-ATL-5000mAh";
 
-	charge-full-design-microamp-hours = <4850000>;
+	charge-full-design-microamp-hours = <4989000>;
 	charge-term-current-microamp = <256000>;
 	constant-charge-voltage-max-microvolt = <4500000>;
 	factory-internal-resistance-micro-ohms = <109000>;
@@ -90,7 +90,7 @@
 	status = "okay";
 	battery_name ="QG50-SB18E23379-SWD-5000mAh","QG50-SB18E21837-SWD-5000mAh";
 
-	charge-full-design-microamp-hours = <4850000>;
+	charge-full-design-microamp-hours = <4977000>;
 	charge-term-current-microamp = <256000>;
 	constant-charge-voltage-max-microvolt = <4500000>;
 	factory-internal-resistance-micro-ohms = <110000>;
