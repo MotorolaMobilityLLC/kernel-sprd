@@ -727,10 +727,6 @@ void musb_rx_dma_sprd(struct dma_channel *dma_channel,
 	} else
 		musb_writeb(musb->mregs, MUSB_FADDR, qh->addr_reg);
 
-	/* protocol/endpoint, interval/NAKlimit, i/o size */
-	musb_writeb(hw_ep->regs, MUSB_RXTYPE, qh->type_reg);
-	if (urb->dev->speed == USB_SPEED_FULL)
-		musb_writeb(hw_ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
 	/* NOTE: bulk combining rewrites high bits of maxpacket */
 	/* Set RXMAXP with the FIFO size of the endpoint
 	 * to disable double buffer mode.
@@ -2415,8 +2411,11 @@ success:
 	qh->hw_ep = hw_ep;
 	qh->hep->hcpriv = qh;
 	if (idle) {
-		if (is_in)
+		if (is_in) {
+			/* RXINTERVAL should be set after RXTYPE */
+			musb_writeb(hw_ep->regs, MUSB_RXTYPE, qh->type_reg);
 			musb_writeb(hw_ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
+		}
 		musb_start_urb(musb, is_in, qh);
 	}
 	return 0;
