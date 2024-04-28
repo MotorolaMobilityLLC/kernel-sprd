@@ -698,12 +698,80 @@ temp_node_init:
 	return 0;
 }
 
+
+static u32 sprd_cluster_get_dcdc_type(struct cluster_info *cluster, u32 dcdc_id)
+{
+	const char *name = "sprd,dcdc-id";
+	struct property *prop;
+	u32 num, val, id, pmic_type;
+	int i, ret;
+
+	prop = of_find_property(cluster->node, name, &num);
+	if (!prop || !num) {
+		pr_warn("cluster %u dcdc_type property is not set\n", cluster->id);
+		return 0;
+	}
+
+	for (i = 0; i < (num / sizeof(u32)) / 2; i++) {
+		ret = of_property_read_u32_index(cluster->node, name, 2 * i, &val);
+		if (ret) {
+			pr_err("get cluster %u dcdc_type error\n", cluster->id);
+			return 0;
+		}
+		pmic_type = val;
+		ret = of_property_read_u32_index(cluster->node, name, 2 * i + 1, &val);
+		if (ret) {
+			pr_err("get cluster %u dcdc_type error\n", cluster->id);
+			return 0;
+		}
+		id = val;
+
+		if (dcdc_id == id) {
+			pr_info("cluster[%u] dc.id=%d pmic.type=%d\n", cluster->id, id, pmic_type);
+			return pmic_type;
+		}
+	}
+	return 0;
+}
+
+static u32 sprd_cluster_get_dcdc_id(struct cluster_info *cluster)
+{
+	struct device_node *cmdline_node;
+	const char *cmd_line, *dcdc_type;
+	u32 value = 0;
+	int ret;
+
+	cmdline_node = of_find_node_by_path("/chosen");
+	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
+
+	if (ret) {
+		pr_err("Fail to find cmdline bootargs property\n");
+		return 0;
+	}
+
+	dcdc_type = strstr(cmd_line, "dcdc.id=");
+	if (!dcdc_type) {
+		pr_info("no property dcdc.id found\n");
+		return 0;
+	}
+
+	sscanf(dcdc_type, "dcdc.id=%d", &value);
+	if (value) {
+		pr_info("get_dcdc_id: value= %d\n", value);
+		return value;
+	}
+
+	pr_info("get_dcdc_id: failed %d\n", value);
+	return 0;
+}
+
 static int sprd_cluster_props_init(struct cluster_info *cluster)
 {
 	int (*ops)(u32 id, u32 val);
 	struct cluster_prop *p;
 	struct device_node *hwf;
 	int i, ret;
+	u32 dcdc_id, pmic_type = 0;
 	const char *dvfs_bin;
 	char dcdc_supply[32] = "sprd,pmic-type";
 	struct cluster_prop props[] = {
@@ -746,6 +814,20 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 	pr_info("cluster %u dcdc supply[%s]\n", cluster->id, dcdc_supply);
 
 	ret = of_property_read_u32(cluster->node, dcdc_supply, &cluster->pmic_type);
+
+	dcdc_id = sprd_cluster_get_dcdc_id(cluster);
+	if (dcdc_id)
+		pmic_type = sprd_cluster_get_dcdc_type(cluster, dcdc_id);
+
+	if (pmic_type) {
+		cluster->pmic_type = pmic_type;
+		pr_info("cluster %u dcdc.id[%u] pmic_type[%u]\n",
+			cluster->id, dcdc_id, cluster->pmic_type);
+	} else {
+		pr_info("cluster %u dcdc.id[%u] pmic_type is not set, pmic_type use def[%u]\n",
+			cluster->id, dcdc_id, cluster->pmic_type);
+	}
+
 	if (!ret) {
 		ret = cluster->pmic_set(cluster->id, cluster->pmic_type);
 		if (ret) {
