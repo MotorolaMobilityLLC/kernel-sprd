@@ -47,6 +47,7 @@
 				nvmem-cell-names = "dvfs_bin";
 				sprd,cpufreq-boost;
 				sprd,multi-version;
+				sprd,dcdc-id = <4 136>;
 				sprd,pmic-type = <2>;
 				sprd,temp-threshold = <10 65>;
 				sprd,transition-delay = <500>;
