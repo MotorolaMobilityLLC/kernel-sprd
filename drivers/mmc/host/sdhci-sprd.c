@@ -70,6 +70,7 @@
 #define  SDHCI_SPRD_DLL_EN		BIT(21)
 #define  SDHCI_SPRD_DLL_SEARCH_MODE	BIT(16)
 #define  SDHCI_SPRD_DLL_INIT_COUNT	0xc00
+#define SDHCI_SPRD_DLL_EN_MASK		(SDHCI_SPRD_DLL_EN | SDHCI_SPRD_DLL_ALL_CPST_EN)
 #ifdef CONFIG_MMC_SPRD_SDHCR11P3
 #define  SDHCI_SPRD_DLL_PHASE_INTERNAL	0x2
 #else
@@ -582,15 +583,16 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 	u32 tmp;
 
 	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
-	tmp &= ~(SDHCI_SPRD_DLL_EN | SDHCI_SPRD_DLL_ALL_CPST_EN);
+	if ((tmp & SDHCI_SPRD_DLL_EN_MASK) == SDHCI_SPRD_DLL_EN_MASK)
+		return;
+
+	tmp &= ~SDHCI_SPRD_DLL_EN_MASK;
 	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
 
-	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
 	tmp |= SDHCI_SPRD_DLL_ALL_CPST_EN | SDHCI_SPRD_DLL_SEARCH_MODE |
 		SDHCI_SPRD_DLL_INIT_COUNT | SDHCI_SPRD_DLL_PHASE_INTERNAL;
 	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
 
-	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
 	tmp |= SDHCI_SPRD_DLL_EN;
 	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
 
@@ -613,6 +615,18 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 			pr_info("%s: vqmmc voltage is %d uV\n",
 				mmc_hostname(host->mmc),
 				regulator_get_voltage(host->mmc->supply.vqmmc));
+	}
+}
+
+static void sdhci_sprd_disable_phy_dll(struct sdhci_host *host)
+{
+	u32 tmp;
+
+	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
+
+	if ((tmp & SDHCI_SPRD_DLL_EN_MASK) == SDHCI_SPRD_DLL_EN_MASK) {
+		tmp &= ~SDHCI_SPRD_DLL_EN_MASK;
+		sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
 	}
 }
 
@@ -652,8 +666,10 @@ static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 	 * is used to track the clock frequency to make the clock work more
 	 * stable. Otherwise deviation may occur of the higher clock.
 	 */
-	if (clk_changed && clock > SDHCI_SPRD_PHY_DLL_CLK)
+	if (clock > SDHCI_SPRD_PHY_DLL_CLK && host->timing == mmc->ios.timing)
 		sdhci_sprd_enable_phy_dll(host);
+	else
+		sdhci_sprd_disable_phy_dll(host);
 
 	/*
 	 * Print manfid/prod_name and do some special ops for some special t-cards
