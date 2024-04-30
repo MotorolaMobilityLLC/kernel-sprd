@@ -227,6 +227,16 @@ static struct delayed_work cm_monitor_work; /* init at driver add */
 
 static bool allow_charger_enable;
 static bool is_charger_mode;
+
+enum term_type
+{
+	TERM_NORMAL=256000,
+	TERM_555MA=555000,
+	TERM_590MA=590000,
+	TERM_855MA=855000,
+};
+static int ffs_status=TERM_NORMAL,last_ffs_status=TERM_NORMAL;
+
 static void cm_notify_type_handle(struct charger_manager *cm, enum cm_event_types type, char *msg);
 static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_status);
 static void cm_update_charger_type_status(struct charger_manager *cm);
@@ -4485,6 +4495,72 @@ static void cm_check_charge_health(struct charger_manager *cm)
 		cm->charging_status &= ~CM_CHARGE_HEALTH_ABNORMAL;
 	}
 }
+static int cm_set_term_current(struct charger_manager *cm, int cur)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	union power_supply_propval val;
+	int ret, i;
+
+	if (!desc->psy_charger_stat) {
+		dev_err(cm->dev, "psy_charger_stat is null!!!\n");
+		return -ENODEV;
+	}
+
+	/*
+	 * make the psy_charger_stat[0] to be main charger,
+	 * set the main charger charge current and limit current
+	 * in 9V/5V fast charge status.
+	 */
+	for (i = 0; desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				desc->psy_charger_stat[i]);
+			return -ENODEV;
+		}
+
+		val.intval = cur;
+		ret = power_supply_set_property(psy, POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT, &val);
+		power_supply_put(psy);
+		if (ret) {
+			dev_err(cm->dev, "failed to set \"%s\" term cur = %d, ret = %d\n",
+				desc->psy_charger_stat[i], cur, ret);
+			return ret;
+		}
+	}
+
+	return 0;
+}
+
+static void cm_manager_set_ffs(struct charger_manager *cm, int cur_temp)
+{
+	struct charger_desc *desc = cm->desc;
+	struct cm_jeita_info *jeita_info = &desc->jeita_info;
+
+	if (cm->desc->is_fast_charge)
+	{
+		if( jeita_info->jeita_status == 4)
+		{
+			if( cur_temp >= 150 && cur_temp <= 250 )
+				ffs_status = TERM_555MA;
+			else if( cur_temp > 250 && cur_temp <= 350 )
+				ffs_status = TERM_590MA;
+			else if( cur_temp > 350 && cur_temp <= 450 )
+				ffs_status = TERM_855MA;
+			else
+				ffs_status = TERM_NORMAL;
+		}
+		else
+			ffs_status = TERM_NORMAL;
+	}
+
+	if(ffs_status != last_ffs_status)
+	{
+		cm_set_term_current(cm, ffs_status);
+		last_ffs_status = ffs_status;
+	}
+}
 
 static bool cm_manager_adjust_current(struct charger_manager *cm, int jeita_status)
 {
@@ -4643,6 +4719,8 @@ out:
 	dev_info(cm->dev, "%s: jeita status:(%d) %d %d, temperature:%d, jeita_size:%d\n",
 		 __func__, jeita_status, temp_status, recovery_temp_status,
 		 cur_temp, desc->jeita_tab_size);
+
+	cm_manager_set_ffs(cm,cur_temp);
 
 	return jeita_status;
 }
@@ -7915,12 +7993,12 @@ static void cm_batt_works(struct work_struct *work)
 	dev_info(cm->dev, "vbat:%d,OCV:%d,ibat:%d,ibus:%d,"
 		 "vbus:%d,soc:%d,%d,chg_sts:%d,chg_lmt_cur:%d,"
 		 " inpt_lmt_cur: %d, chgr_type: %d, Tboard: %d, Tbatt: %d, thm_cur: %d,"
-		 "thm_pwr:%d,is_fchg:%d,fchg_en:%d,term_vol:%d\n",
+		 "thm_pwr:%d,is_fchg:%d,fchg_en:%d,term_vol:%d;%d;\n",
 		 batt_uV/1000,  batt_ocV/1000, batt_uA/1000, input_cur/1000, chg_vol/1000, fuel_cap,cm->desc->cap,
 		 cm->desc->charger_status, chg_cur/1000, chg_limit_cur/1000,
 		 cm->desc->charger_type, board_temp, cur_temp,
 		 cm->desc->thm_info.thm_adjust_cur/1000, cm->desc->thm_info.thm_pwr/1000,
-		 cm->desc->is_fast_charge, cm->desc->enable_fast_charge, term_vol/1000);
+		 cm->desc->is_fast_charge, cm->desc->enable_fast_charge, term_vol/1000,ffs_status/1000);
 #if 0
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:

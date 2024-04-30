@@ -1429,6 +1429,10 @@ static int bq2560x_charger_usb_set_property(struct power_supply *psy,
 		ret = bq2560x_set_reg(info, val->intval);
 		break;
 
+	case POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT:
+		ret = bq2560x_charger_set_termina_cur(info, val->intval/1000);
+		break;
+
 	default:
 		ret = -EINVAL;
 	}
@@ -1450,6 +1454,7 @@ static int bq2560x_charger_property_is_writeable(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_STATUS:
 	case POWER_SUPPLY_PROP_PRESENT:
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
+	case POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT:
 		ret = 1;
 		break;
 
@@ -1470,6 +1475,7 @@ static enum power_supply_property bq2560x_usb_props[] = {
 	POWER_SUPPLY_PROP_ONLINE,
 	POWER_SUPPLY_PROP_TECHNOLOGY,
 	POWER_SUPPLY_PROP_CHARGE_FULL,
+	POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT,
 };
 
 static const struct power_supply_desc bq2560x_charger_desc = {
