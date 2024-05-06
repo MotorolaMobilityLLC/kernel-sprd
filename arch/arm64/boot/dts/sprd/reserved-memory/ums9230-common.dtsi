@@ -21,4 +21,8 @@
 	audio_reserved: audio-mem@94100000 {
 		reg = <0x0 0x94100000 0x0 0x00300000>;
 	};
+
+	logobuffer@9e000000 {
+		reg = <0x0 0x9e000000 0x0 0x00ab0000>;
+	};
 };

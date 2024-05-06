@@ -29,5 +29,9 @@
 		reg = <0x0 0xA2400000 0x0 0x02C00000>;
 		status = "disabled";
 	};
+	logobuffer@be000000 {
+		reg = <0x0 0xbe000000 0x0 0x009ec000>;
+	};
+
 };
 
