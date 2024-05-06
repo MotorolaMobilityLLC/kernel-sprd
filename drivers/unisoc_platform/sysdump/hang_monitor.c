@@ -152,18 +152,24 @@ static void sched_show_task_local(struct task_struct *p)
 	unsigned int nr_entries;
 	unsigned long stack_entries[NR_FRAME];
 
+	if ((p->__state == TASK_DEAD) || (p->exit_state == EXIT_ZOMBIE)
+			|| (p->exit_state == EXIT_DEAD)) {
+		pr_err("the status of the %s is %d!\n", p->comm, p->__state);
+		return;
+	}
 	state = p->__state ? __ffs(p->__state) + 1 : 0;
-	pr_err("%-15.15s %c", p->comm, state < sizeof(stat_nam) - 1 ? stat_nam[state] : '?');
+	log_to_hang_info("%-15.15s %c",
+			p->comm, state < sizeof(stat_nam) - 1 ? stat_nam[state] : '?');
 #if BITS_PER_LONG == 32
 	if (state == TASK_RUNNING)
-		pr_err(" running  ");
+		log_to_hang_info(" running  ");
 	else
-		pr_err(" %08lx ", thread_saved_pc(p));
+		log_to_hang_info(" %08lx ", thread_saved_pc(p));
 #else
 	if (state == TASK_RUNNING)
-		pr_err("  running task    ");
+		log_to_hang_info("  running task    ");
 	else
-		pr_err(" %016lx ", thread_saved_pc(p));
+		log_to_hang_info(" %016lx ", thread_saved_pc(p));
 #endif
 #ifdef CONFIG_DEBUG_STACK_USAGE
 	free = stack_not_used(p);
@@ -171,7 +177,7 @@ static void sched_show_task_local(struct task_struct *p)
 	rcu_read_lock();
 	ppid = task_pid_nr(rcu_dereference(p->real_parent));
 	rcu_read_unlock();
-	pr_err("%5lu %5d %6d 0x%08lx\n", free,
+	log_to_hang_info("%5lu %5d %6d 0x%08lx\n", free,
 	     task_pid_nr(p), ppid, (unsigned long)task_thread_info(p)->flags);
 
 	log_to_hang_info("%-15.15s %c ", p->comm,
@@ -184,7 +190,7 @@ static void sched_show_task_local(struct task_struct *p)
 	nr_entries = stack_trace_save_tsk(p, stack_entries, NR_FRAME, 0);
 	log_to_hang_info("KBT,sysTid=%d,nr_entries:%d\n", pid, nr_entries);
 	for (i = 0; i < nr_entries; i++) {
-		pr_err("LHD11:frame %d: [<%p>] %pS\n", i, (void *)stack_entries[i],
+		log_to_hang_info("LHD11:frame %d: [<%p>] %pS\n", i, (void *)stack_entries[i],
 		     (void *)stack_entries[i]);
 		/*  format: [<0000000000000000>] __switch_to+0xa0/0xd8 */
 		log_to_hang_info("[<%p>] %pS\n", (void *)stack_entries[i],
@@ -196,11 +202,6 @@ static void show_state_filter_local(unsigned long state_filter)
 {
 	struct task_struct *g, *p;
 
-#if BITS_PER_LONG == 32
-	pr_err("  task                PC stack   pid father\n");
-#else
-	pr_err("  task                        PC stack   pid father\n");
-#endif
 	do_each_thread(g, p) {
 		/* TODO: Here can discard some threads which  always stay in D state */
 		if (p->__state != state_filter)
@@ -310,6 +311,11 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 	current_task = find_task_by_vpid(tid);
 	if (current_task == NULL)
 		return -ESRCH;
+	if ((current_task->__state == TASK_DEAD) || (current_task->exit_state == EXIT_ZOMBIE)
+			|| (current_task->exit_state == EXIT_DEAD)) {
+		pr_err("the thread is invalid, do nothing\n");
+		return -EFAULT;
+	}
 	user_ret = task_pt_regs(current_task);
 
 	if (!user_mode(user_ret)) {
@@ -322,8 +328,8 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 		return ret;
 	}
 #ifdef CONFIG_ARM		/* 32bit */
-	pr_err(" pc/lr/sp 0x%08lx/0x%08lx/0x%08lx\n", user_ret->ARM_pc, user_ret->ARM_lr,
-	     user_ret->ARM_sp);
+	log_to_hang_info(" pc/lr/sp 0x%08lx/0x%08lx/0x%08lx\n",
+			user_ret->ARM_pc, user_ret->ARM_lr, user_ret->ARM_sp);
 
 	userstack_start = (unsigned long)user_ret->ARM_sp;
 	vma = current_task->mm->mmap;
@@ -342,7 +348,8 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 		pr_err(" %s,%d:%s,userstack_end == 0", __func__, tid, current_task->comm);
 		return ret;
 	}
-	pr_err("Dump K32 stack range (0x%08lx:0x%08lx)\n", userstack_start, userstack_end);
+	log_to_hang_info("Dump K32 stack range (0x%08lx:0x%08lx)\n",
+			userstack_start, userstack_end);
 	length = userstack_end - userstack_start;
 
 
@@ -359,7 +366,7 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 			copied = access_process_vm(current_task, SPStart, &tempSpContent,
 							sizeof(tempSpContent), 0);
 			if (copied != sizeof(tempSpContent)) {
-				pr_err("access_process_vm  SPStart error,sizeof(tempSpContent)=%x\n",
+				log_to_hang_info("vm SPStart error,size=%x\n",
 				     (unsigned int)sizeof(tempSpContent));
 			}
 			log_to_hang_info("0x%08x:%08x %08x %08x %08x\n", SPStart, tempSpContent[0],
@@ -367,13 +374,13 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 			SPStart += 4 * 4;
 		}
 	}
-	pr_err("u+k 32 copy_from_user ret(0x%08x),len:%lx\n", ret, length);
-	pr_err("end dump native stack:\n");
+	log_to_hang_info("u+k 32 copy_from_user ret(0x%08x),len:%lx\n", ret, length);
+	log_to_hang_info("end dump native stack:\n");
 #else	/* 64bit, First deal with K64+U64, the last time to deal with K64+U32 */
 
 	/* K64_U32 for current task */
 	if (compat_user_mode(user_ret)) {	/* K64_U32 for check reg */
-		pr_err(" K64+ U32 pc/lr/sp 0x%16lx/0x%16lx/0x%16lx\n",
+		log_to_hang_info(" K64+ U32 pc/lr/sp 0x%16lx/0x%16lx/0x%16lx\n",
 		     (long)(user_ret->user_regs.pc),
 		     (long)(user_ret->user_regs.regs[14]), (long)(user_ret->user_regs.regs[13]));
 		userstack_start = (unsigned long)user_ret->user_regs.regs[13];
@@ -393,7 +400,7 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 			return ret;
 		}
 
-		pr_err("Dump K64+ U32 stack range (0x%08lx:0x%08lx)\n", userstack_start,
+		log_to_hang_info("Dump K64+ U32 stack range (0x%08lx:0x%08lx)\n", userstack_start,
 		     userstack_end);
 		length = userstack_end - userstack_start;
 
@@ -413,7 +420,7 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 				    access_process_vm(current_task, SPStart, &tempSpContent,
 						      sizeof(tempSpContent), 0);
 				if (copied != sizeof(tempSpContent)) {
-					pr_err("access_process_vm  SPStart error,sizeof(tempSpContent)=%x\n",
+					log_to_hang_info("vm SPStart error,size=%x\n",
 						(unsigned int)sizeof(tempSpContent));
 					/* return -EIO; */
 				}
@@ -424,7 +431,7 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 			}
 		}
 	} else {		/*K64+U64 */
-		pr_err(" K64+ U64 pc/lr/sp 0x%16lx/0x%16lx/0x%16lx\n",
+		log_to_hang_info(" K64+ U64 pc/lr/sp 0x%16lx/0x%16lx/0x%16lx\n",
 		     (long)(user_ret->user_regs.pc),
 		     (long)(user_ret->user_regs.regs[30]), (long)(user_ret->user_regs.sp));
 		userstack_start = (unsigned long)user_ret->user_regs.sp;
@@ -475,13 +482,14 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 					break;
 			}
 			for (copied = 0; copied < frames; copied++) {
-				pr_err("frame:#%d: pc(%016lx)\n", copied, native_bt[copied]);
+				log_to_hang_info("frame:#%d: pc(%016lx)\n",
+						copied, native_bt[copied]);
 				/* #00 pc 0x6c760  /system/lib64/ libc.so (__epoll_pwait+8) */
 				log_to_hang_info(" #%d pc %016lx\n", copied, native_bt[copied]);
 			}
-			pr_err("tid(%d:%s),frame %d. tmpfp(0x%lx),userstack_start(0x%lx), ",
+			log_to_hang_info("tid(%d:%s),frame %d. tmpfp(0x%lx),userstack_start(0x%lx), ",
 				tid, current_task->comm, frames, tmpfp, userstack_start);
-			pr_err("userstack_end(0x%lx)\n", userstack_end);
+			log_to_hang_info("userstack_end(0x%lx)\n", userstack_end);
 		}
 	}
 #endif
@@ -503,25 +511,29 @@ static void show_bt_by_pid(int task_pid)
 		log_to_hang_info("%s: %d: %s.\n", __func__, task_pid, t->comm);
 //		save_native_thread_maps(task_pid);	/* catch maps to Userthread_maps */
 		do {
-			if (t) {
+			if (t && (t->__state != TASK_DEAD) && (t->exit_state != EXIT_ZOMBIE)
+					&& (t->exit_state != EXIT_DEAD)) {
 				pid_t tid = 0;
 
 				tid = task_pid_vnr(t);
+				if (t->__state > TASK_STATE_MAX) {
+					pr_err("the state of the task is invalid\n");
+					continue;
+				}
 				state = t->__state ? __ffs(t->__state) + 1 : 0;
-				pr_err("lhd: %-15.15s %c pid(%d),tid(%d)",
+				log_to_hang_info("lhd: %-15.15s %c pid(%d),tid(%d)",
 				     t->comm, state < sizeof(stat_nam) - 1 ? stat_nam[state] : '?',
 				     task_pid, tid);
 
-				sched_show_task_local(t);	/* catch kernel bt */
-
 				log_to_hang_info("%s sysTid=%d, pid=%d\n", t->comm, tid, task_pid);
-
+				/* catch kernel bt */
+				sched_show_task_local(t);
+				/* change send ptrace_stop to send signal stop */
 				send_sig_info(SIGSTOP, SEND_SIG_PRIV, t);
-				/* change send ptrace_stop to send signal stop */
-				save_native_threadinfo_by_tid(tid);	/* catch user-space bt */
-				/* change send ptrace_stop to send signal stop */
-				if (stat_nam[state] != 'T')
-					send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
+				/* catch user-space bt */
+				save_native_threadinfo_by_tid(tid);
+				/* change send ptrace_stop to send signal contiue */
+				send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
 			}
 			if ((++count) % 5 == 4)
 				msleep(20);
@@ -546,7 +558,8 @@ static int find_core_task(void)
 			if (!strlen(core_task[i].name))
 				break;
 			/* ZO process stack is NULL, record its pid & name */
-			if ((task->__state == TASK_DEAD) && (task->exit_state == EXIT_ZOMBIE)) {
+			if ((task->__state == TASK_DEAD) || (task->exit_state == EXIT_ZOMBIE)
+					|| (task->exit_state == EXIT_DEAD)) {
 				log_to_hang_info("[Native Hang detect]: ZO Task :pid = %d",
 						task->pid);
 				log_to_hang_info(" name = %s\n", task->comm);
