@@ -33,8 +33,8 @@
 					sprd,esd-check-regs = <0xA>;
 					sprd,esd-return-code = <0x9c>;
 
-					sprd,reset-on-sequence = <1 5>, <0 5>, <1 10>;
-					//sprd,reset-off-sequence = <0 5>;
+					sprd,reset-on-sequence = <1 10>, <0 10>, <1 10>;
+					sprd,reset-off-sequence = <0 10>;
 
 					sprd,initial-command = [
 						29 00 00 02 B0 04
