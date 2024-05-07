@@ -241,9 +241,8 @@ static bool imsbr_get_mac_by_ipaddr(union imsbr_inet_addr *addr,
 
 	memcpy(mac_addr, neigh->ha, (size_t)mac_dev->addr_len);
 
-	pr_info("mac: %02x:%02x:%02x:%02x:%02x:%02x\n",
-		mac_addr[0], mac_addr[1], mac_addr[2],
-		mac_addr[3], mac_addr[4], mac_addr[5]);
+	pr_info("mac: %02x:%02x:**:**:**:%02x\n",
+		mac_addr[0], mac_addr[1], mac_addr[5]);
 	rcu_read_unlock();
 	neigh_release(neigh);
 	dst_release(dst);
@@ -305,9 +304,8 @@ imsbr_notify_local_mac(struct sk_buff *skb, struct genl_info *info)
 
 	localmac = (unsigned char *)nla_data(nla);
 
-	pr_info("local mac %02x:%02x:%02x:%02x:%02x:%02x\n",
-		localmac[0], localmac[1], localmac[2],
-		localmac[3], localmac[4], localmac[5]);
+	pr_info("local mac %02x:%02x:**:**:**:%02x\n",
+		localmac[0], localmac[1], localmac[5]);
 
 	if (!imsbr_build_cmd(cmd, &blk, localmac, ETH_ALEN))
 		imsbr_sblock_send(&imsbr_ctrl, &blk, ETH_ALEN);
