@@ -1496,9 +1496,6 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 	else
 		usb_mode = "DRD";
 
-	usb_phy_init(sdwc->hs_phy);
-	usb_phy_init(sdwc->ss_phy);
-
 	ret = devm_of_platform_populate(&pdev->dev);
 	if (ret) {
 		dev_err(dev, "failed to add create dwc3 core\n");
