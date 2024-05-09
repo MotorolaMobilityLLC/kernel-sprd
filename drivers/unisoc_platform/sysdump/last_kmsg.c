@@ -28,6 +28,7 @@
 #include <uapi/mtd/ubi-user.h>
 #include <../../drivers/mtd/ubi/ubi.h>
 #include "../../kernel/printk/printk_ringbuffer.h"
+#include "unisoc_vmcoreinfo.h"
 
 static bool log_buf_get;
 
@@ -446,6 +447,13 @@ static void minidump_save_prb_info(void *ignore, struct printk_ringbuffer *prb,
 	if (ret < 0)
 		return;
 
+	vmcoreinfo_append_str("SYMBOL(%s)=0x%llx\n", "prb",
+				virt_to_phys(prb));
+	vmcoreinfo_append_str("SYMBOL(%s)=0x%x\n", "descs_counts",
+				descs_counts);
+	vmcoreinfo_append_str("SYMBOL(%s)=0x%lx\n", "log_buf_len",
+				log_buf_len);
+	update_vmcoreinfo_note();
 	log_buf_get = true;
 }
 

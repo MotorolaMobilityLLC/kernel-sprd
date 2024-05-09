@@ -1637,6 +1637,8 @@ static void update_vmcoreinfo_data(void)
 {
 	if (!sprd_minidump_info || (sysdump_reflag == 0))
 		return;
+	vmcoreinfo_append_str("SYMBOL(%s)=0x%lx\n", "data-bss",
+				unisoc_virt_to_phys(android_debug_symbol(ADS_SDATA)));
 	vmcoreinfo_append_str("SYMBOL(%s)=%d\n", "processor_id",
 			smp_processor_id());
 	vmcoreinfo_append_str("SYMBOL(%s)=%d\n", "per_cpu_offset",
@@ -1756,12 +1758,12 @@ static int sysdump_early_init(void)
 
 	minidump_info_init();
 
-	/* last kmsg init */
-	last_kmsg_init();
 	/* vmcoreinfo init */
 	crash_save_vmcoreinfo_init();
 	/* add percpu info to vmcoreinfo data, behind init */
 	update_vmcoreinfo_data();
+	/* last kmsg init */
+	last_kmsg_init();
 
 	return 0;
 }
