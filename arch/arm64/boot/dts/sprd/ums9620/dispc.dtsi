@@ -295,15 +295,10 @@
 		interrupts = <GIC_SPI 123 IRQ_TYPE_LEVEL_HIGH>;
 		power-domains = <&pd_ipa_sys>;
 		clock-names = "clk_ipa_apb_dpu1_eb",
-				"clk_ipa_apb_dptx_eb",
-				"clk_ipa_apb_tca_eb",
-				"clk_ipa_apb_usb31pll_eb";
+				"clk_ipa_apb_dptx_eb";
 		clocks = <&ipadispc_gate CLK_IPA_DPU1_EB>,
-			<&ipadispc_gate CLK_IPA_DPTX_EB>,
-			<&ipadispc_gate CLK_IPA_TCA_EB>,
-			<&ipadispc_gate CLK_IPA_USB31PLL_EB>;
+			<&ipadispc_gate CLK_IPA_DPTX_EB>;
 		extcon = <&pmic_pd>;
-		dp-usbphy = <&ssphy>, <&ssphy>;
 		#sound-dai-cells = <1>;
 		ports {
 			#address-cells = <1>;
