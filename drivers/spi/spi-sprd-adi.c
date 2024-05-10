@@ -198,6 +198,8 @@ struct sprd_adi {
 	const struct sprd_adi_data *data;
 };
 
+static int securefuse = 0;
+
 static char *sprd_adi_buf;
 static struct seq_buf *sprd_adi_seq_buf;
 static char panic_reason[1024] = {0};
@@ -478,9 +480,12 @@ static int sprd_adi_restart_handler(struct notifier_block *this, unsigned long m
 		reboot_mode = HWRST_STATUS_SPECIAL;
 	else if (!strncmp(cmd, "cftreboot", 9))
 		reboot_mode = HWRST_STATUS_CFTREBOOT;
-	else if (!strncmp(cmd, "autodloader", 11))
-		reboot_mode = HWRST_STATUS_AUTODLOADER;
-	else if (!strncmp(cmd, "iqmode", 6))
+	else if (!strncmp(cmd, "autodloader", 11) || !strncmp(cmd, "edl", 3)) {
+		if (securefuse)
+			pr_err("Warning: %s is not allowed in fused phone!!\n", cmd);
+		else
+			reboot_mode = HWRST_STATUS_AUTODLOADER;
+	} else if (!strncmp(cmd, "iqmode", 6))
 		reboot_mode = HWRST_STATUS_IQMODE;
 	else if (!strncmp(cmd, "sprdisk", 7))
 		reboot_mode = HWRST_STATUS_SPRDISK;
@@ -600,6 +605,18 @@ static void sprd_adi_hw_init(struct sprd_adi *sadi)
 	}
 }
 
+const char *hwinfo_get_prop(const char *prop_name)
+{
+	static struct device_node *node = NULL;
+	const char *prop;
+	int rc = -1;
+	if (!node)
+		node = of_find_node_by_path("/firmware/android");
+	if (node)
+		rc = of_property_read_string(node, prop_name, &prop);
+	return rc ? "error" : prop;
+}
+
 static int sprd_adi_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -610,6 +627,8 @@ static int sprd_adi_probe(struct platform_device *pdev)
 	u16 num_chipselect;
 	int ret;
 
+	if (!strcmp(hwinfo_get_prop("hwinfo.securefuse"), "true"))
+		securefuse = 1;
 	if (!np) {
 		dev_err(&pdev->dev, "can not find the adi bus node\n");
 		return -ENODEV;
