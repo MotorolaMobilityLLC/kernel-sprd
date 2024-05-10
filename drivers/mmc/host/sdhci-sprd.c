@@ -630,6 +630,16 @@ static void sdhci_sprd_disable_phy_dll(struct sdhci_host *host)
 	}
 }
 
+static bool sdhci_sprd_dll_en_allowed(struct sdhci_host *host)
+{
+	u8 reg = sdhci_readb(host, SDHCI_HOST_CONTROL2) & 0xF;
+
+	if (reg < SDHCI_CTRL_UHS_SDR50 || reg == SDHCI_CTRL_UHS_DDR50)
+		return false;
+
+	return true;
+}
+
 static bool sdhci_sprd_check_invert(struct sdhci_host *host)
 {
 	if ((host->mmc->index == 0) && (host->timing == MMC_TIMING_MMC_HS))
@@ -666,7 +676,7 @@ static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 	 * is used to track the clock frequency to make the clock work more
 	 * stable. Otherwise deviation may occur of the higher clock.
 	 */
-	if (clock > SDHCI_SPRD_PHY_DLL_CLK && host->timing == mmc->ios.timing)
+	if (clock > SDHCI_SPRD_PHY_DLL_CLK && sdhci_sprd_dll_en_allowed(host))
 		sdhci_sprd_enable_phy_dll(host);
 	else
 		sdhci_sprd_disable_phy_dll(host);
