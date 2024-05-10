@@ -99,6 +99,8 @@ drm:sprd:sysfs:
 drm:panfrost:
 dt-bindings:*
 
+extcon:
+
 firmware:psci:
 firmware:sprd:
 firmware:
