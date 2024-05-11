@@ -816,7 +816,8 @@ static int sysdump_panic_event(struct notifier_block *self,
 #endif
 
 //	smp_send_stop();
-	mdelay(1000);
+	/* add delay to ensure that the socdump is saved completely */
+	mdelay(3000);
 
 	pr_emerg("\n");
 	pr_emerg("*****************************************************\n");
