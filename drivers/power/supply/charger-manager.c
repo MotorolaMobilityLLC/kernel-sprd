@@ -110,6 +110,8 @@
 #define CM_CP_IBUS_STEP1			1000000
 #define CM_CP_IBUS_STEP2			500000
 #define CM_CP_IBUS_STEP3			100000
+#define CM_CP_THERMAL_STEP1			8000000
+#define CM_CP_THERMAL_STEP2			4000000
 #define CM_CP_DEFAULT_TAPER_CURRENT		1000000
 
 #define CM_CP_STEP_CHG_DOWN_COUNT		2
@@ -3063,9 +3065,6 @@ static void cm_check_target_ibus(struct charger_manager *cm)
 	if (cp->adapter_max_ibus > 0)
 		target_ibus = min(target_ibus, cp->adapter_max_ibus);
 
-	if (cm->desc->thm_info.thm_adjust_cur > 0)
-		target_ibus = min(target_ibus, cm->desc->thm_info.thm_adjust_cur);
-
 	cp->cp_target_ibus = target_ibus;
 
 	dev_dbg(cm->dev, "%s, adp_max_ibus = %d, cp_max_ibus = %d, thm_cur = %d, target_ibus = %d\n",
@@ -3168,6 +3167,36 @@ static int cm_cp_ibus_step_algo(struct charger_manager *cm)
 	return ibus_step;
 }
 
+static int cm_cp_thermal_step_algo(struct charger_manager *cm)
+{
+	struct cm_charge_pump_status *cp = &cm->desc->cp;
+	int thermal_ibus_step = 0, delta_power_uw, power_now_uw;
+
+	if (cp->ibus_uA <= 0)
+		return thermal_ibus_step;
+
+	power_now_uw = (cp->cp_target_vbus / 1000) * (cp->ibus_uA / 1000);
+	delta_power_uw = cm->desc->thm_info.thm_pwr * 1000 - power_now_uw;
+
+	dev_dbg(cm->dev, "%s, power_now_uw = %d, delta_power_uw = %d\n",
+		__func__, power_now_uw, delta_power_uw);
+
+	if (delta_power_uw > CM_CP_THERMAL_STEP1)
+		thermal_ibus_step = CM_CP_VSTEP * 3;
+	else if (delta_power_uw > CM_CP_THERMAL_STEP2)
+		thermal_ibus_step = CM_CP_VSTEP * 2;
+	else if (delta_power_uw > 0)
+		thermal_ibus_step = CM_CP_VSTEP;
+	else if (delta_power_uw < -CM_CP_THERMAL_STEP1)
+		thermal_ibus_step = -CM_CP_VSTEP * 3;
+	else if (delta_power_uw < -CM_CP_THERMAL_STEP2)
+		thermal_ibus_step = -CM_CP_VSTEP * 2;
+	else if (delta_power_uw < 0)
+		thermal_ibus_step = -CM_CP_VSTEP;
+
+	return thermal_ibus_step;
+}
+
 static bool cm_cp_is_taper_done(struct charger_manager *cm)
 {
 	struct cm_charge_pump_status *cp = &cm->desc->cp;
@@ -3202,6 +3231,8 @@ static void cm_cp_tune_algo(struct charger_manager *cm)
 	int vbus_step = 0;
 	int ibus_step = 0;
 	int alarm_step = 0;
+	int thermal_step = 0;
+	int target_step = 0;
 
 	/* check battery current*/
 	cm_check_target_ibat(cm);
@@ -3216,6 +3247,9 @@ static void cm_cp_tune_algo(struct charger_manager *cm)
 
 	/* check bus current*/
 	ibus_step = cm_cp_ibus_step_algo(cm);
+
+	/* check thermal power*/
+	thermal_step = cm_cp_thermal_step_algo(cm);
 
 	/* check alarm status*/
 	if (cp->alm.bat_ovp_alarm || cp->alm.bat_ocp_alarm ||
@@ -3236,8 +3270,11 @@ static void cm_cp_tune_algo(struct charger_manager *cm)
 		alarm_step = CM_CP_VSTEP * 3;
 	}
 
-	cp->cp_target_vbus += min(min(min(min(vbat_step, ibat_step),
-					  vbus_step), ibus_step), alarm_step);
+	target_step = min(vbat_step, ibat_step);
+	target_step = min(target_step, vbus_step);
+	target_step = min(target_step, ibus_step);
+	target_step = min(target_step, alarm_step);
+	cp->cp_target_vbus += min(target_step, thermal_step);
 	cm_check_target_vbus(cm);
 
 	dev_info(cm->dev, "%s, cp = [%duV %duA %duV %duA], ir_drop = %duV, ucp_cnt = %d\n",
@@ -3248,8 +3285,8 @@ static void cm_cp_tune_algo(struct charger_manager *cm)
 		 __func__, cp->cp_target_vbus, cp->cp_target_ibus, cp->cp_target_vbat,
 		 cp->cp_target_ibat, cp->jeita_status);
 
-	dev_info(cm->dev, "%s, tune_step = [%d %d %d %d %d]\n",
-		  __func__, vbus_step, ibus_step, vbat_step, ibat_step, alarm_step);
+	dev_info(cm->dev, "%s, tune_step = [%d %d %d %d %d %d]\n",
+		  __func__, vbus_step, ibus_step, vbat_step, ibat_step, alarm_step, thermal_step);
 
 	if (cp->cp_last_target_vbus != cp->cp_target_vbus) {
 		if (cm_adjust_fchg_voltage(cm, cp->cp_target_vbus)) {
