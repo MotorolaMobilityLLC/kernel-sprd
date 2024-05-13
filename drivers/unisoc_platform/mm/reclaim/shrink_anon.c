@@ -195,7 +195,7 @@ static void shrink_anon_bind_cpu(void)
 	}
 
 	if (!cpumask_empty(&cpumask)) {
-		set_cpus_allowed_ptr(shrink_anon_thread, &cpumask);
+		set_cpus_allowed_ptr(current, &cpumask);
 		shrink_anon_bind_cpus_success = true;
 	}
 }
