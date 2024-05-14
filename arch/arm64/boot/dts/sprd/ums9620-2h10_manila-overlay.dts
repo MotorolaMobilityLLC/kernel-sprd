@@ -25,6 +25,7 @@
 #include <dt-bindings/interrupt-controller/arm-gic.h>
 #include <dt-bindings/clock/sprd,ums9620-clk.h>
 #include <dt-bindings/usb/pd.h>
+#include "lcd/lcd_icnl9922c_boe_120hz_mipi_fhd.dtsi"
 #include "lcd/lcd_td4375_dijin_4lane_mipi_fhd.dtsi"
 #include "lcd/lcd_ili9883c_txd_120hz_mipi_hd.dtsi"
 #include "lcd/lcd_nt36528_dj_120hz_mipi_hd.dtsi"
@@ -545,7 +546,7 @@
 		aw99703,switch-freq = <1>; /* 1000kHz(default) */
 		aw99703,auto-freq-high = <0x80>;
 		aw99703,auto-freq-low = <0x10>;
-		aw99703,bl-fscal-led = <0x1C>; /* 27.2mA(default) */
+		aw99703,bl-fscal-led = <0x1E>; /* 28.8mA(default) */
 		aw99703,bl-channel = <3>;
 		aw99703,turn-on-ramp = <0x04>; /* 8ms(default) */
 		aw99703,turn-off-ramp = <0x04>; /* 8ms(default) */
