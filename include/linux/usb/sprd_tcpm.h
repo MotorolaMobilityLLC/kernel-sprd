@@ -53,6 +53,13 @@ enum sprd_typec_cc_polarity {
 #define SPRD_PD_CTRL_TIMEOUT			(MSEC_PER_SEC * 3)
 #define SPRD_PD_PPS_CTRL_TIMEOUT		(MSEC_PER_SEC * 10)
 
+
+/*
+ * The SPRD_PPS_5V_PROG_MAX reference value is derived from
+ * section 10.2.3.2 of the PD3.0 spec.
+ */
+#define SPRD_PPS_5V_PROG_MAX			6200
+
 enum sprd_tcpm_transmit_status {
 	SPRD_TCPC_TX_SUCCESS = 0,
 	SPRD_TCPC_TX_DISCARDED = 1,
@@ -630,9 +637,9 @@ struct sprd_tcpm_port {
 	u8 vdo_count;
 	/* VDO to retry if UFP responder replied busy */
 	u32 vdo_retry;
-	u32 vdm_discovery_id_retry;
 	struct delayed_work dp_work;
 	u32 dp_status;
+	u32 vdm_discovery_id_retry;
 
 	/* PPS */
 	struct sprd_pd_pps_data pps_data;

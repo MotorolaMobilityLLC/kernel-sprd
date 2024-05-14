@@ -2596,9 +2596,10 @@ static unsigned int sprd_tcpm_pd_select_pps_apdo(struct sprd_tcpm_port *port)
 					max_op_mv = min(max_src_mv, max_snk_mv);
 					src_mw = (max_op_mv * src_ma) / 1000;
 					/* Prefer higher voltages if available */
-					if ((src_mw == max_mw &&
-					     max_op_mv > max_mv) ||
-					    src_mw > max_mw) {
+					if (src_mw > max_mw ||
+					    (src_mw == max_mw && max_op_mv > max_mv) ||
+					    (src_mw < max_mw && max_mv <= SPRD_PPS_5V_PROG_MAX &&
+					     max_op_mv >= SPRD_PPS_5V_PROG_MAX)) {
 						src_pdo = i;
 						snk_pdo = j;
 						max_mw = src_mw;
