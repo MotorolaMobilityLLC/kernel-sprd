@@ -45,6 +45,7 @@
 
 #define SGM41516_FCHG_OVP_6V			6000
 #define SGM41516_FCHG_OVP_9V			9000
+#define SGM41516_FCHG_OVP_14V			14000
 
 #define SGM41516_WAKE_UP_MS			1000
 #define SGM41516_PROBE_TIMEOUT			msecs_to_jiffies(500)
@@ -758,6 +759,12 @@ static int sgm41516_charger_set_extend_status(struct sgm41516_charger_info *info
 			dev_err(info->dev, "%s, failed to set 9V bus ovp, ret = %d\n",
 				__func__, ret);
 		break;
+	case CM_FAST_CHARGE_MAX_OVP_ENABLE_CMD:
+		ret = sgm41516_charger_set_acovp_threshold(info, SGM41516_FCHG_OVP_14V);
+		if (ret)
+			dev_err(info->dev, "%s, failed to set fast charge max ovp, ret = %d\n",
+				__func__, ret);
+		break;
 	case CM_FAST_CHARGE_OVP_DISABLE_CMD:
 		ret = sgm41516_charger_set_acovp_threshold(info, SGM41516_FCHG_OVP_6V);
 		if (ret)
@@ -774,6 +781,12 @@ static int sgm41516_charger_set_extend_status(struct sgm41516_charger_info *info
 		ret = sgm41516_charger_enable_power_path(info, false);
 		if (ret)
 			dev_err(info->dev, "%s, failed to disable power path, ret = %d\n",
+				__func__, ret);
+		break;
+	case CM_BUCK_MAX_TERMINA_VOL:
+		ret = sgm41516_charger_set_termina_vol(info, SGM41516_VREG_MAX);
+		if (ret)
+			dev_err(info->dev, "%s, failed to set terminate max voltage, ret = %d\n",
 				__func__, ret);
 		break;
 	default:
@@ -891,6 +904,9 @@ static int sgm41516_charger_get_status_psp(struct sgm41516_charger_info *info, i
 	case CM_POWER_PATH_ENABLE_CMD:
 	case CM_POWER_PATH_DISABLE_CMD:
 		status = sgm41516_charger_power_path_is_enabled(info);
+		break;
+	case CM_BUCK_MAX_TERMINA_VOL:
+		status = SGM41516_VREG_MAX * 1000;
 		break;
 	default:
 		status = sgm41516_charger_get_status(info);

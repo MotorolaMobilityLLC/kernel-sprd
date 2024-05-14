@@ -1003,7 +1003,13 @@ static int bq25890_charger_set_status(struct bq25890_charger_info *info,
 {
 	int ret = 0;
 
-	if (val == CM_FAST_CHARGE_OVP_DISABLE_CMD) {
+	if (val == CM_BUCK_MAX_TERMINA_VOL) {
+		ret = bq25890_charger_set_termina_vol(info, REG06_VREG_MAX);
+		if (ret) {
+			dev_err(info->dev, "failed to set terminate max voltage\n");
+			return ret;
+		}
+	} else if (val == CM_FAST_CHARGE_OVP_DISABLE_CMD) {
 		if (input_vol > BQ25890_FAST_CHG_VOL_MAX)
 			info->need_disable_Q1 = true;
 	} else if (val == false) {
@@ -1242,6 +1248,11 @@ static int bq25890_charger_usb_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
+		if (val->intval == CM_BUCK_MAX_TERMINA_VOL) {
+			val->intval = REG06_VREG_MAX * 1000;
+			break;
+		}
+
 		val->intval = bq25890_charger_get_status(info);
 		break;
 

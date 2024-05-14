@@ -67,6 +67,9 @@
 
 #define BQ2560X_REG_TERMINAL_VOLTAGE_MASK	GENMASK(7, 3)
 #define BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT	3
+#define BQ2560X_REG_TERMINAL_VOLTAGE_BASE	3856
+#define BQ2560X_REG_TERMINAL_VOLTAGE_MAX	4624
+#define BQ2560X_REG_TERMINAL_VOLTAGE_LSB	32
 
 #define BQ2560X_REG_TERMINAL_CUR_MASK		GENMASK(3, 0)
 
@@ -359,17 +362,17 @@ bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 	u8 reg_val;
 
 	dev_dbg(info->dev, "%s:line%d: set termina vol = %d\n", __func__, __LINE__, vol);
+	if (vol < BQ2560X_REG_TERMINAL_VOLTAGE_BASE)
+		vol = BQ2560X_REG_TERMINAL_VOLTAGE_BASE;
+	else if (vol > BQ2560X_REG_TERMINAL_VOLTAGE_MAX)
+		vol = BQ2560X_REG_TERMINAL_VOLTAGE_MAX;
 
-	if (vol < 3500)
-		reg_val = 0x0;
-	else if (vol >= 4440)
-		reg_val = 0x2e;
-	else
-		reg_val = (vol - 3856) / 32;
+	reg_val = (vol - BQ2560X_REG_TERMINAL_VOLTAGE_BASE) / BQ2560X_REG_TERMINAL_VOLTAGE_LSB;
+	reg_val <<= BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT;
 
 	return bq2560x_update_bits(info, BQ2560X_REG_4,
 				   BQ2560X_REG_TERMINAL_VOLTAGE_MASK,
-				   reg_val << BQ2560X_REG_TERMINAL_VOLTAGE_SHIFT);
+				   reg_val);
 }
 
 static int
@@ -901,7 +904,19 @@ static int bq2560x_charger_set_status(struct bq2560x_charger_info *info,
 {
 	int ret = 0;
 
-	if (val == CM_FAST_CHARGE_OVP_ENABLE_CMD) {
+	if (val == CM_BUCK_MAX_TERMINA_VOL) {
+		ret = bq2560x_charger_set_termina_vol(info, BQ2560X_REG_TERMINAL_VOLTAGE_MAX);
+		if (ret < 0) {
+			dev_err(info->dev, "failed to set terminate max voltage\n");
+			return ret;
+		}
+	} else if (val == CM_FAST_CHARGE_MAX_OVP_ENABLE_CMD) {
+		ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_14V);
+		if (ret) {
+			dev_err(info->dev, "failed to set fast charge max ovp\n");
+			return ret;
+		}
+	} else if (val == CM_FAST_CHARGE_OVP_ENABLE_CMD) {
 		ret = bq2560x_charger_set_ovp(info, BQ2560X_FCHG_OVP_9V);
 		if (ret) {
 			dev_err(info->dev, "failed to set fast charge 9V ovp\n");
@@ -1050,6 +1065,9 @@ static int bq2560x_charger_usb_get_property(struct power_supply *psy,
 		if (val->intval == CM_POWER_PATH_ENABLE_CMD ||
 		    val->intval == CM_POWER_PATH_DISABLE_CMD) {
 			val->intval = bq2560x_charger_get_power_path_status(info);
+			break;
+		} else if (val->intval == CM_BUCK_MAX_TERMINA_VOL) {
+			val->intval = BQ2560X_REG_TERMINAL_VOLTAGE_MAX * 1000;
 			break;
 		}
 

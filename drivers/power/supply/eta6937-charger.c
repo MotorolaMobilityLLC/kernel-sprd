@@ -665,6 +665,14 @@ static int eta6937_charger_set_status(struct eta6937_charger_info *info, int val
 {
 	int ret = 0;
 
+	if (val == CM_BUCK_MAX_TERMINA_VOL) {
+		ret = eta6937_charger_set_termina_vol(info, ETA6937_CHG_VOREG_MAX);
+		if (ret) {
+			dev_err(info->dev, "failed to set terminate max voltage\n");
+			return ret;
+		}
+	}
+
 	if (val > CM_FAST_CHARGE_NORMAL_CMD)
 		return 0;
 
@@ -699,6 +707,11 @@ static int eta6937_charger_usb_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
+		if (val->intval == CM_BUCK_MAX_TERMINA_VOL) {
+			val->intval = ETA6937_CHG_VOREG_MAX * 1000;
+			break;
+		}
+
 		val->intval = eta6937_charger_get_status(info);
 		break;
 

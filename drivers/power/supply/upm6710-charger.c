@@ -480,6 +480,8 @@ static int upm6710_set_batovp_alarm_th(struct upm6710_charger_info *upm, int thr
 
 	if (threshold < UPM6710_BAT_OVP_ALM_BASE)
 		threshold = UPM6710_BAT_OVP_ALM_BASE;
+	else if (threshold > UPM6710_BAT_OVP_ALM_MAX)
+		threshold = UPM6710_BAT_OVP_ALM_MAX;
 
 	val = (threshold - UPM6710_BAT_OVP_ALM_BASE) / UPM6710_BAT_OVP_ALM_LSB;
 
@@ -586,6 +588,8 @@ static int upm6710_set_busovp_alarm_th(struct upm6710_charger_info *upm, int thr
 
 	if (threshold < UPM6710_BUS_OVP_ALM_BASE)
 		threshold = UPM6710_BUS_OVP_ALM_BASE;
+	else if (threshold > UPM6710_BUS_OVP_ALM_MAX)
+		threshold = UPM6710_BUS_OVP_ALM_MAX;
 
 	val = (threshold - UPM6710_BUS_OVP_ALM_BASE) / UPM6710_BUS_OVP_ALM_LSB;
 
@@ -614,6 +618,8 @@ static int upm6710_set_busocp_th(struct upm6710_charger_info *upm, int threshold
 
 	if (threshold < UPM6710_BUS_OCP_BASE)
 		threshold = UPM6710_BUS_OCP_BASE;
+	else if (threshold > UPM6710_BUS_OCP_MAX)
+		threshold = UPM6710_BUS_OCP_MAX;
 
 	val = (threshold - UPM6710_BUS_OCP_BASE) / UPM6710_BUS_OCP_LSB;
 
@@ -643,6 +649,8 @@ static int upm6710_set_busocp_alarm_th(struct upm6710_charger_info *upm, int thr
 
 	if (threshold < UPM6710_BUS_OCP_ALM_BASE)
 		threshold = UPM6710_BUS_OCP_ALM_BASE;
+	else if (threshold > UPM6710_BUS_OCP_ALM_MAX)
+		threshold = UPM6710_BUS_OCP_ALM_MAX;
 
 	val = (threshold - UPM6710_BUS_OCP_ALM_BASE) / UPM6710_BUS_OCP_ALM_LSB;
 

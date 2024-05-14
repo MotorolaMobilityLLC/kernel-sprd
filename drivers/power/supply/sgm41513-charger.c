@@ -46,6 +46,7 @@
 
 #define SGM41513_FCHG_OVP_6V			6000
 #define SGM41513_FCHG_OVP_9V			9000
+#define SGM41513_FCHG_OVP_14V			14000
 #define SGM41513_FAST_CHARGER_VOLTAGE_MAX	10500000
 #define SGM41513_NORMAL_CHARGER_VOLTAGE_MAX	6500000
 
@@ -775,7 +776,19 @@ static int sgm41513_charger_set_status(struct sgm41513_charger_info *info, int v
 {
 	int ret = 0;
 
-	if (val == CM_FAST_CHARGE_OVP_ENABLE_CMD) {
+	if (val == CM_BUCK_MAX_TERMINA_VOL) {
+		ret = sgm41513_charger_set_termina_vol(info, SGM41513_VREG_MAX);
+		if (ret) {
+			dev_err(info->dev, "failed to set terminate max voltage\n");
+			return ret;
+		}
+	} else if (val == CM_FAST_CHARGE_MAX_OVP_ENABLE_CMD) {
+		ret = sgm41513_set_acovp_threshold(info, SGM41513_FCHG_OVP_14V);
+		if (ret) {
+			dev_err(info->dev, "failed to set fast charge max ovp\n");
+			return ret;
+		}
+	} else if (val == CM_FAST_CHARGE_OVP_ENABLE_CMD) {
 		ret = sgm41513_set_acovp_threshold(info, SGM41513_FCHG_OVP_9V);
 		if (ret) {
 			dev_err(info->dev, "failed to set 9V fast charge ovp\n");
@@ -886,6 +899,9 @@ static int sgm41513_charger_usb_get_property(struct power_supply *psy,
 		if (val->intval == CM_POWER_PATH_ENABLE_CMD ||
 		    val->intval == CM_POWER_PATH_DISABLE_CMD) {
 			val->intval = sgm41513_charger_get_power_path_status(info);
+			break;
+		} else if (val->intval == CM_BUCK_MAX_TERMINA_VOL) {
+			val->intval = SGM41513_VREG_MAX * 1000;
 			break;
 		}
 
