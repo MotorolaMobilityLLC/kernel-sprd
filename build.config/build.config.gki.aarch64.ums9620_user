@@ -36,6 +36,7 @@ EXT_MODULES="
 ../modules/kernel5.15/touchscreen/synaptics_td4320_spi
 ../modules/kernel5.15/input/touchscreen/td4375_ts
 ../modules/kernel5.15/input/touchscreen/ilitek_v3
+../modules/kernel5.15/input/touchscreen/chipone-tddi-v3
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver
 ../modules/kernel5.15/video/backlight

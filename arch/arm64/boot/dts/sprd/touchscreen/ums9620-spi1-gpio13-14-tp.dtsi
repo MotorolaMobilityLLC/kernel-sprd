@@ -12,10 +12,41 @@
 
 	/* Novatek device tree node */
 	touchpanel@0 {
-		compatible = "omnivision,tcm-spi","tchip,ilitek","novatek,NVT-ts-spi";
+		compatible = "omnivision,tcm-spi","tchip,ilitek","novatek,NVT-ts-spi","chipone-tddi";
 		reg = <0>; //Same as CS ID
 		status = "ok";
 		spi-max-frequency = <8000000>;	//4800000,9600000,15000000,19200000
+
+		/*chipone-tddi start*/
+		chipone,x-res = <4320>;
+		chipone,y-res = <9600>;
+		chipone,rst-gpio = <&ap_gpio 14 GPIO_ACTIVE_HIGH>;
+		chipone,irq-gpio = <&ap_gpio 13 GPIO_ACTIVE_HIGH>;
+
+		/* Charger detect */
+		chipone,touch-charger-detect-enable;
+		chipone,touch-charger-detect-type = "notify"; /* notify, poll */
+		chipone,touch-charger-detect-psy-name = "battery";
+		chipone,touch-charger-detect-psp = "POWER_SUPPLY_PROP_ONLINE";
+		chipone,touch-charger-detect-psp-poll-interval = <1000>;
+
+		/* Factory test parameter */
+		chipone,test-reset-pin;
+		chipone,test-int-pin;
+		chipone,test-rawdata;
+		chipone,test-rawdata-frames      = <1>;
+		chipone,rawdata-min              = <1200>;	//base2000, ±40%
+		chipone,rawdata-max              = <2800>;
+		chipone,test-noise;
+		chipone,test-noise-frames        = <50>;
+		chipone,noise-max                = <80>;
+		chipone,test-open;
+		chipone,open-min                 = <1980>;
+		chipone,test-short;
+		chipone,short-min                = <500>;
+		chipone,test-compensate-cap;
+		chipone,compensate-cap-min       = <1>;
+		chipone,compensate-cap-max       = <126>;
 
 		/*------------------omnivision_td4375_spi------------------*/
 		omnivision,irq-gpio = <&ap_gpio 13 GPIO_ACTIVE_HIGH>; /* IRQF_ONESHOT | IRQF_TRIGGER_LOW */
