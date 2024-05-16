@@ -124,5 +124,10 @@
 			reg = <0x1b 0x4>;
 			bits = <0 3>;
 		};
+
+		dvfs_bin_cpu1_1: dvfs-bin-cpu1_1@1a {
+			reg = <0x1a 0x4>;
+			bits = <5 3>;
+		};
 	};
 };
