@@ -582,13 +582,6 @@ static int sgm41516_charger_start_charge(struct sgm41516_charger_info *info)
 		return ret;
 	}
 
-	ret = sgm41516_charger_enable(info, true);
-	if (ret) {
-		dev_err(info->dev, "%s, failed to enable charge, ret = %d\n",
-			__func__, ret);
-		return ret;
-	}
-
 	if (info->role == SGM41516_ROLE_MASTER) {
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
 					 info->charger_pd_mask, 0);
@@ -598,6 +591,13 @@ static int sgm41516_charger_start_charge(struct sgm41516_charger_info *info)
 		}
 	} else if (info->role == SGM41516_ROLE_SLAVE) {
 		gpiod_set_value_cansleep(info->gpiod, 0);
+	}
+
+	ret = sgm41516_charger_enable(info, true);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to enable charge, ret = %d\n",
+			__func__, ret);
+		return ret;
 	}
 
 	sgm41516_charger_dump_register(info);
@@ -611,6 +611,10 @@ static void sgm41516_charger_stop_charge(struct sgm41516_charger_info *info)
 
 	dev_info(info->dev, "%s:line%d: stop charge\n", __func__, __LINE__);
 
+	ret = sgm41516_charger_enable(info, false);
+	if (ret)
+		dev_err(info->dev, "%s, failed to disable charge, ret = %d\n", __func__, ret);
+
 	if (info->role == SGM41516_ROLE_MASTER) {
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
 					 info->charger_pd_mask,
@@ -620,10 +624,6 @@ static void sgm41516_charger_stop_charge(struct sgm41516_charger_info *info)
 	} else if (info->role == SGM41516_ROLE_SLAVE) {
 		gpiod_set_value_cansleep(info->gpiod, 1);
 	}
-
-	ret = sgm41516_charger_enable(info, false);
-	if (ret)
-		dev_err(info->dev, "%s, failed to disable charge, ret = %d\n", __func__, ret);
 
 	ret = sgm41516_charger_enable_wdg(info, false);
 	if (ret)
@@ -1361,6 +1361,26 @@ static const struct regulator_desc sgm41516_charger_vbus_desc = {
 	.n_voltages = 1,
 };
 
+static void sgm41516_charger_check_otg_status(struct sgm41516_charger_info *info)
+{
+	int ret;
+	u8 val;
+
+	ret = sgm41516_read(info, SGM41516_REG_01, &val);
+	if (ret < 0) {
+		dev_err(info->dev, "%s:line%d, failed to get reg1(%d)\n", __func__, __LINE__, ret);
+		return;
+	}
+
+	if (val & SGM41516_OTG_CONFIG_MASK) {
+		dev_info(info->dev, "%s:line%d, exit otg mode\n", __func__, __LINE__);
+		ret = sgm41516_update_bits(info, SGM41516_REG_01, SGM41516_OTG_CONFIG_MASK,
+					   SGM41516_OTG_DISABLE << SGM41516_OTG_CONFIG_SHIFT);
+		if (ret)
+			dev_err(info->dev, "disable sgm41516 otg failed\n");
+	}
+}
+
 static int sgm41516_charger_register_vbus_regulator(struct sgm41516_charger_info *info)
 {
 	struct regulator_config cfg = { };
@@ -1372,6 +1392,8 @@ static int sgm41516_charger_register_vbus_regulator(struct sgm41516_charger_info
 	 */
 	if (info->role != SGM41516_ROLE_MASTER)
 		return 0;
+
+	sgm41516_charger_check_otg_status(info);
 
 	cfg.dev = info->dev;
 	cfg.driver_data = info;
@@ -1385,8 +1407,61 @@ static int sgm41516_charger_register_vbus_regulator(struct sgm41516_charger_info
 	return ret;
 }
 
+static int sgm41516_charger_register_external_vbus_regulator(struct sgm41516_charger_info *info)
+{
+	struct regulator_config cfg = { };
+	struct regulator_dev *reg;
+	int ret = 0;
+	struct device_node *otg_nd;
+	struct device_node *otg_parent_nd;
+	struct platform_device *otg_parent_nd_pdev;
+
+	/*
+	 * only master to support otg
+	 */
+	if (info->role != SGM41516_ROLE_MASTER)
+		return 0;
+
+	otg_nd = of_find_node_by_name(NULL, "otg-vbus");
+	if (!otg_nd) {
+		dev_warn(info->dev, "%s, unable to get otg node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd = of_get_parent(otg_nd);
+	of_node_put(otg_nd);
+	if (!otg_parent_nd) {
+		dev_warn(info->dev, "%s, unable to get otg parent node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd_pdev = of_find_device_by_node(otg_parent_nd);
+	of_node_put(otg_parent_nd);
+	if (!otg_parent_nd_pdev) {
+		dev_warn(info->dev, "%s, unable to get otg parent node device\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	cfg.dev = &otg_parent_nd_pdev->dev;
+	platform_device_put(otg_parent_nd_pdev);
+	cfg.driver_data = info;
+	reg = devm_regulator_register(cfg.dev, &sgm41516_charger_vbus_desc, &cfg);
+	if (IS_ERR(reg)) {
+		ret = PTR_ERR(reg);
+		dev_warn(info->dev, "%s, failed to register vddvbus regulator:%d\n",
+			 __func__, ret);
+	}
+
+	return ret;
+}
+
 #else
 static int sgm41516_charger_register_vbus_regulator(struct sgm41516_charger_info *info)
+{
+	return 0;
+}
+
+static int sgm41516_charger_register_external_vbus_regulator(struct sgm41516_charger_info *info)
 {
 	return 0;
 }
@@ -1528,6 +1603,26 @@ static int sgm41516_charger_psy_register(struct sgm41516_charger_info *info)
 	return 0;
 }
 
+static int sgm41516_charger_detect_device(struct sgm41516_charger_info *info)
+{
+	int ret, part_id;
+	u8 reg_val;
+
+	ret = sgm41516_read(info, SGM41516_REG_0B, &reg_val);
+	if (ret < 0) {
+		dev_err(info->dev, "%s, failed to get device id, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	part_id = (reg_val & SGM41516_PN_MASK) >> SGM41516_PN_SHIFT;
+	if (part_id != SGM41516_DEV_ID && part_id != SGM41516D_DEV_ID) {
+		dev_err(info->dev, "%s, the device id is 0x%x\n", __func__, part_id);
+		return -EINVAL;
+	}
+
+	return ret;
+}
+
 static int sgm41516_charger_probe(struct i2c_client *client,
 				  const struct i2c_device_id *id)
 {
@@ -1553,6 +1648,13 @@ static int sgm41516_charger_probe(struct i2c_client *client,
 	info->dev = dev;
 
 	i2c_set_clientdata(client, info);
+
+	ret = sgm41516_charger_detect_device(info);
+	if (ret) {
+		dev_err(dev, "%s, failed to detect device, ret = %d\n", __func__, ret);
+		return -ENODEV;
+	}
+
 	sgm41516_charger_power_path_control(info);
 
 	info->use_typec_extcon = device_property_read_bool(dev, "use-typec-extcon");
@@ -1601,10 +1703,13 @@ static int sgm41516_charger_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&info->otg_work, sgm41516_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work, sgm41516_charger_feed_watchdog_work);
 
-	ret = sgm41516_charger_register_vbus_regulator(info);
+	if (device_property_read_bool(dev, "otg-vbus-node-external"))
+		ret = sgm41516_charger_register_external_vbus_regulator(info);
+	else
+		ret = sgm41516_charger_register_vbus_regulator(info);
+
 	if (ret) {
-		dev_err(dev, "%s, failed to register vbus regulator, ret = %d\n",
-			__func__, ret);
+		dev_err(dev, "failed to register vbus regulator.\n");
 		goto out;
 	}
 

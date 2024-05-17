@@ -128,9 +128,9 @@ static void power_path_control(struct sgm41513_charger_info *info)
 {
 	struct device_node *cmdline_node;
 	const char *cmd_line;
-	int ret;
 	char *match;
-	char result[5];
+	char result[5] = {0};
+	int ret;
 
 	cmdline_node = of_find_node_by_path("/chosen");
 	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
@@ -144,14 +144,15 @@ static void power_path_control(struct sgm41513_charger_info *info)
 
 	match = strstr(cmd_line, "sprdboot.mode=");
 	if (match) {
-		memcpy(result, (match + strlen("sprdboot.mode=")),
-			sizeof(result) - 1);
+		memcpy(result, (match + strlen("sprdboot.mode=")), sizeof(result) - 1);
 		if ((!strcmp(result, "cali")) || (!strcmp(result, "auto")))
 			info->disable_power_path = true;
 
 		if (!strcmp(result, "cali"))
 			boot_calibration = true;
 	}
+
+	dev_info(info->dev, "disable_power_path=%d\n", info->disable_power_path);
 }
 
 static bool sgm41513_charger_is_bat_present(struct sgm41513_charger_info *info)
@@ -304,22 +305,16 @@ static int sgm41513_set_acovp_threshold(struct sgm41513_charger_info *info, int 
 				    reg_val << SGM41513_OVP_SHIFT);
 }
 
-static int sgm41513_enable_charger(struct sgm41513_charger_info *info)
+static int sgm41513_enable_charger(struct sgm41513_charger_info *info, bool enable)
 {
-	u8 val = SGM41513_CHG_ENABLE << SGM41513_CHG_CONFIG_SHIFT;
+	u8 val = SGM41513_CHG_DISABLE;
+
+	if (enable)
+		val = SGM41513_CHG_ENABLE;
 
 	return sgm41513_update_bits(info, SGM41513_REG_01,
 				    SGM41513_CHG_CONFIG_MASK,
-				    val);
-}
-
-static int sgm41513_disable_charger(struct sgm41513_charger_info *info)
-{
-	u8 val = SGM41513_CHG_DISABLE << SGM41513_CHG_CONFIG_SHIFT;
-
-	return sgm41513_update_bits(info, SGM41513_REG_01,
-				    SGM41513_CHG_CONFIG_MASK,
-				    val);
+				    val << SGM41513_CHG_CONFIG_SHIFT);
 }
 
 static int sgm41513_enter_hiz_mode(struct sgm41513_charger_info *info)
@@ -603,10 +598,6 @@ static int sgm41513_charger_start_charge(struct sgm41513_charger_info *info)
 		return ret;
 	}
 
-	ret = sgm41513_enable_charger(info);
-	if (ret)
-		dev_err(info->dev, "enable charger failed\n");
-
 	if (info->role == SGM41513_ROLE_MASTER) {
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
 					 info->charger_pd_mask, 0);
@@ -616,6 +607,12 @@ static int sgm41513_charger_start_charge(struct sgm41513_charger_info *info)
 		}
 	} else if (info->role == SGM41513_ROLE_SLAVE) {
 		gpiod_set_value_cansleep(info->gpiod, 0);
+	}
+
+	ret = sgm41513_enable_charger(info, true);
+	if (ret) {
+		dev_err(info->dev, "enable charger failed\n");
+		return ret;
 	}
 
 	sgm41513_dump_register(info);
@@ -629,6 +626,10 @@ static void sgm41513_charger_stop_charge(struct sgm41513_charger_info *info)
 
 	dev_info(info->dev, "%s:line%d: stop charge\n", __func__, __LINE__);
 
+	ret = sgm41513_enable_charger(info, false);
+	if (ret)
+		dev_err(info->dev, "disable charger failed\n");
+
 	if (info->role == SGM41513_ROLE_MASTER) {
 		if (boot_calibration) {
 			ret = sgm41513_enter_hiz_mode(info);
@@ -636,17 +637,12 @@ static void sgm41513_charger_stop_charge(struct sgm41513_charger_info *info)
 				dev_err(info->dev, "enable HIZ mode failed\n");
 		}
 
-		ret = sgm41513_disable_charger(info);
-		if (ret)
-			dev_err(info->dev, "disable charger failed\n");
-
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
 					 info->charger_pd_mask,
 					 info->charger_pd_mask);
 		if (ret)
 			dev_err(info->dev, "disable sgm41513 charge failed\n");
 	} else if (info->role == SGM41513_ROLE_SLAVE) {
-		sgm41513_disable_charger(info);
 		if (boot_calibration) {
 			ret = sgm41513_enter_hiz_mode(info);
 			if (ret)
@@ -1361,18 +1357,94 @@ static const struct regulator_desc sgm41513_charger_vbus_desc = {
 	.n_voltages = 1,
 };
 
+static void sgm41513_charger_check_otg_status(struct sgm41513_charger_info *info)
+{
+	int ret;
+	u8 val;
+
+	ret = sgm41513_read(info, SGM41513_REG_01, &val);
+	if (ret < 0) {
+		dev_err(info->dev, "%s:line%d, failed to get reg1(%d)\n", __func__, __LINE__, ret);
+		return;
+	}
+
+	if (val & SGM41513_OTG_CONFIG_MASK) {
+		dev_info(info->dev, "%s:line%d, exit otg mode\n", __func__, __LINE__);
+		ret = sgm41513_update_bits(info, SGM41513_REG_01, SGM41513_OTG_CONFIG_MASK,
+					   SGM41513_OTG_DISABLE << SGM41513_OTG_CONFIG_SHIFT);
+		if (ret)
+			dev_err(info->dev, "disable sgm41513 otg failed\n");
+	}
+}
+
 static int sgm41513_charger_register_vbus_regulator(struct sgm41513_charger_info *info)
 {
 	struct regulator_config cfg = { };
 	struct regulator_dev *reg;
 	int ret = 0;
 
+	/*
+	 * only master to support otg
+	 */
+	if (info->role != SGM41513_ROLE_MASTER)
+		return 0;
+
+	sgm41513_charger_check_otg_status(info);
+
 	cfg.dev = info->dev;
 	cfg.driver_data = info;
 	reg = devm_regulator_register(info->dev, &sgm41513_charger_vbus_desc, &cfg);
 	if (IS_ERR(reg)) {
 		ret = PTR_ERR(reg);
-		dev_err(info->dev, "Can't register regulator:%d\n", ret);
+		dev_err(info->dev, "%s, failed to register vddvbus regulator:%d\n", __func__, ret);
+	}
+
+	return ret;
+}
+
+static int sgm41513_charger_register_external_vbus_regulator(struct sgm41513_charger_info *info)
+{
+	struct regulator_config cfg = { };
+	struct regulator_dev *reg;
+	int ret = 0;
+	struct device_node *otg_nd;
+	struct device_node *otg_parent_nd;
+	struct platform_device *otg_parent_nd_pdev;
+
+	/*
+	 * only master to support otg
+	 */
+	if (info->role != SGM41513_ROLE_MASTER)
+		return 0;
+
+	otg_nd = of_find_node_by_name(NULL, "otg-vbus");
+	if (!otg_nd) {
+		dev_warn(info->dev, "%s, unable to get otg node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd = of_get_parent(otg_nd);
+	of_node_put(otg_nd);
+	if (!otg_parent_nd) {
+		dev_warn(info->dev, "%s, unable to get otg parent node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd_pdev = of_find_device_by_node(otg_parent_nd);
+	of_node_put(otg_parent_nd);
+	if (!otg_parent_nd_pdev) {
+		dev_warn(info->dev, "%s, unable to get otg parent node device\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	cfg.dev = &otg_parent_nd_pdev->dev;
+	platform_device_put(otg_parent_nd_pdev);
+	cfg.driver_data = info;
+	reg = devm_regulator_register(cfg.dev, &sgm41513_charger_vbus_desc, &cfg);
+	if (IS_ERR(reg)) {
+		ret = PTR_ERR(reg);
+		dev_warn(info->dev, "%s, failed to register vddvbus regulator:%d\n",
+			 __func__, ret);
 	}
 
 	return ret;
@@ -1383,7 +1455,32 @@ static int sgm41513_charger_register_vbus_regulator(struct sgm41513_charger_info
 {
 	return 0;
 }
+
+static int sgm41513_charger_register_external_vbus_regulator(struct sgm41513_charger_info *info)
+{
+	return 0;
+}
 #endif
+
+static int sgm41513_charger_detect_device(struct sgm41513_charger_info *info)
+{
+	int ret, part_id;
+	u8 reg_val;
+
+	ret = sgm41513_read(info, SGM41513_REG_0B, &reg_val);
+	if (ret < 0) {
+		dev_err(info->dev, "%s, failed to get device id, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	part_id = (reg_val & SGM41513_PN_MASK) >> SGM41513_PN_SHIFT;
+	if (part_id != SGM41513_DEV_ID && part_id != SGM41513A_OR_D_DEV_ID) {
+		dev_err(info->dev, "%s, the device id is 0x%x\n", __func__, part_id);
+		return -EINVAL;
+	}
+
+	return ret;
+}
 
 static int sgm41513_charger_probe(struct i2c_client *client,
 				  const struct i2c_device_id *id)
@@ -1413,6 +1510,13 @@ static int sgm41513_charger_probe(struct i2c_client *client,
 	info->dev = dev;
 
 	i2c_set_clientdata(client, info);
+
+	ret = sgm41513_charger_detect_device(info);
+	if (ret) {
+		dev_err(dev, "%s, failed to detect device, ret = %d\n", __func__, ret);
+		return -ENODEV;
+	}
+
 	power_path_control(info);
 
 	ret = sgm41513_charger_is_fgu_present(info);
@@ -1522,15 +1626,14 @@ static int sgm41513_charger_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&info->otg_work, sgm41513_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work, sgm41513_charger_feed_watchdog_work);
 
-	/*
-	 * only master to support otg
-	 */
-	if (info->role == SGM41513_ROLE_MASTER) {
+	if (device_property_read_bool(dev, "otg-vbus-node-external"))
+		ret = sgm41513_charger_register_external_vbus_regulator(info);
+	else
 		ret = sgm41513_charger_register_vbus_regulator(info);
-		if (ret) {
-			dev_err(dev, "failed to register vbus regulator.\n");
-			goto out;
-		}
+
+	if (ret) {
+		dev_err(dev, "failed to register vbus regulator.\n");
+		goto out;
 	}
 
 	info->probe_initialized = true;
@@ -1621,7 +1724,9 @@ static int sgm41513_charger_suspend(struct device *dev)
 	}
 
 	if (info->otg_enable || info->is_charger_online) {
-		sgm41513_charger_feed_watchdog(info);
+		if (sgm41513_charger_feed_watchdog(info))
+			dev_err(info->dev, "%s, failed to feed watchdog\n", __func__);
+
 		cancel_delayed_work_sync(&info->wdt_work);
 	}
 
@@ -1638,6 +1743,8 @@ static int sgm41513_charger_suspend(struct device *dev)
 		now = ktime_get_boottime();
 		add = ktime_set(SGM41513_OTG_ALARM_TIMER_S, 0);
 		alarm_start(&info->otg_timer, ktime_add(now, add));
+		pr_info("sgm41513_charger set alarm, triggered at [%lld]ms\n",
+			ktime_to_ms(ktime_add(now, add)));
 	}
 
 	return 0;
@@ -1653,7 +1760,9 @@ static int sgm41513_charger_resume(struct device *dev)
 	}
 
 	if (info->otg_enable || info->is_charger_online) {
-		sgm41513_charger_feed_watchdog(info);
+		if (sgm41513_charger_feed_watchdog(info))
+			dev_err(info->dev, "%s, failed to feed watchdog\n", __func__);
+
 		schedule_delayed_work(&info->wdt_work, HZ * 15);
 	}
 

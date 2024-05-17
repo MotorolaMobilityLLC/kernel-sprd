@@ -47,6 +47,13 @@
 #define FAN54015_REG_HZ_MODE_MASK			GENMASK(1, 1)
 #define FAN54015_REG_OPA_MODE_MASK			GENMASK(0, 0)
 
+#define FAN54015_PN_MASK				0x1c
+#define FAN54015_PN_SHIFT				2
+#define FAN54015_DEV_ID					0x5
+#define PSC5415Z_PN_MASK				0xe0
+#define PSC5415Z_PN_SHIFT				5
+#define PSC5415Z_DEV_ID					0x7
+
 #define FAN54015_REG_SAFETY_VOL_MASK			GENMASK(3, 0)
 #define FAN54015_REG_SAFETY_CUR_MASK			GENMASK(6, 4)
 
@@ -64,9 +71,10 @@
 #define FAN54015_REG_TERMINAL_VOLTAGE_MASK		GENMASK(7, 2)
 #define FAN54015_REG_TERMINAL_VOLTAGE_SHIFT		2
 
-#define FAN54015_REG_CHARGE_CONTROL_MASK		GENMASK(2, 2)
-#define FAN54015_REG_CHARGE_DISABLE			BIT(2)
-#define FAN54015_REG_CHARGE_ENABLE			0
+#define FAN54015_REG_CHG_CONTROL_MASK		GENMASK(2, 2)
+#define FAN54015_REG_CHG_CONTROL_SHIFT		2
+#define FAN54015_REG_CHG_DISABLE			1
+#define FAN54015_REG_CHG_ENABLE			0
 
 #define FAN54015_REG_CURRENT_MASK			GENMASK(6, 4)
 #define FAN54015_REG_CURRENT_MASK_SHIFT			4
@@ -367,6 +375,13 @@ static int fan54015_charger_start_charge(struct fan54015_charger_info *info)
 	int ret;
 
 	ret = regmap_update_bits(info->pmic, info->charger_pd, info->charger_pd_mask, 0);
+	if (ret) {
+		dev_err(info->dev, "enable fan54015 charger_pd failed\n");
+		return ret;
+	}
+
+	ret = fan54015_update_bits(info, FAN54015_REG_1, FAN54015_REG_CHG_CONTROL_MASK,
+				   FAN54015_REG_CHG_ENABLE << FAN54015_REG_CHG_CONTROL_SHIFT);
 	if (ret)
 		dev_err(info->dev, "enable fan54015 charge failed\n");
 
@@ -377,11 +392,15 @@ static void fan54015_charger_stop_charge(struct fan54015_charger_info *info)
 {
 	int ret;
 
-	ret = regmap_update_bits(info->pmic, info->charger_pd,
-				 info->charger_pd_mask,
-				 info->charger_pd_mask);
+	ret = fan54015_update_bits(info, FAN54015_REG_1, FAN54015_REG_CHG_CONTROL_MASK,
+				   FAN54015_REG_CHG_DISABLE << FAN54015_REG_CHG_CONTROL_SHIFT);
 	if (ret)
 		dev_err(info->dev, "disable fan54015 charge failed\n");
+
+	ret = regmap_update_bits(info->pmic, info->charger_pd, info->charger_pd_mask,
+				 info->charger_pd_mask);
+	if (ret)
+		dev_err(info->dev, "disable fan54015 charger_pd failed\n");
 }
 
 static int fan54015_charger_set_current(struct fan54015_charger_info *info, u32 cur)
@@ -594,6 +613,10 @@ static int fan54015_charger_usb_get_property(struct power_supply *psy,
 	mutex_lock(&info->lock);
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
+		if (val->intval == CM_POWER_PATH_ENABLE_CMD ||
+		    val->intval == CM_POWER_PATH_DISABLE_CMD)
+			break;
+
 		val->intval = fan54015_charger_get_status(info);
 		break;
 
@@ -692,6 +715,10 @@ fan54015_charger_usb_set_property(struct power_supply *psy,
 		break;
 
 	case POWER_SUPPLY_PROP_STATUS:
+		if (val->intval == CM_POWER_PATH_ENABLE_CMD ||
+		    val->intval == CM_POWER_PATH_DISABLE_CMD)
+			break;
+
 		ret = fan54015_charger_set_status(info, val->intval);
 		if (ret < 0)
 			dev_err(info->dev, "set charge status failed\n");
@@ -976,12 +1003,33 @@ static const struct regulator_desc fan54015_charger_vbus_desc = {
 	.n_voltages = 1,
 };
 
-static int
-fan54015_charger_register_vbus_regulator(struct fan54015_charger_info *info)
+static void fan54015_charger_check_otg_status(struct fan54015_charger_info *info)
+{
+	int ret;
+	u8 val;
+
+	ret = fan54015_read(info, FAN54015_REG_1, &val);
+	if (ret) {
+		dev_err(info->dev, "%s:line%d, failed to get reg1(%d)\n", __func__, __LINE__, ret);
+		return;
+	}
+
+	if (val & FAN54015_REG_OPA_MODE_MASK) {
+		dev_info(info->dev, "%s:line%d, exit otg mode\n", __func__, __LINE__);
+		ret = fan54015_update_bits(info, FAN54015_REG_1, FAN54015_REG_HZ_MODE_MASK |
+					   FAN54015_REG_OPA_MODE_MASK, 0);
+		if (ret)
+			dev_err(info->dev, "disable fan54015 otg failed\n");
+	}
+}
+
+static int fan54015_charger_register_vbus_regulator(struct fan54015_charger_info *info)
 {
 	struct regulator_config cfg = { };
 	struct regulator_dev *reg;
 	int ret = 0;
+
+	fan54015_charger_check_otg_status(info);
 
 	cfg.dev = info->dev;
 	cfg.driver_data = info;
@@ -995,16 +1043,83 @@ fan54015_charger_register_vbus_regulator(struct fan54015_charger_info *info)
 	return ret;
 }
 
+static int fan54015_charger_register_external_vbus_regulator(struct fan54015_charger_info *info)
+{
+	struct regulator_config cfg = { };
+	struct regulator_dev *reg;
+	int ret = 0;
+	struct device_node *otg_nd;
+	struct device_node *otg_parent_nd;
+	struct platform_device *otg_parent_nd_pdev;
+
+	otg_nd = of_find_node_by_name(NULL, "otg-vbus");
+	if (!otg_nd) {
+		dev_warn(info->dev, "%s, unable to get otg node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd = of_get_parent(otg_nd);
+	of_node_put(otg_nd);
+	if (!otg_parent_nd) {
+		dev_warn(info->dev, "%s, unable to get otg parent node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd_pdev = of_find_device_by_node(otg_parent_nd);
+	of_node_put(otg_parent_nd);
+	if (!otg_parent_nd_pdev) {
+		dev_warn(info->dev, "%s, unable to get otg parent node device\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	cfg.dev = &otg_parent_nd_pdev->dev;
+	platform_device_put(otg_parent_nd_pdev);
+	cfg.driver_data = info;
+	reg = devm_regulator_register(cfg.dev, &fan54015_charger_vbus_desc, &cfg);
+	if (IS_ERR(reg)) {
+		ret = PTR_ERR(reg);
+		dev_warn(info->dev, "%s, failed to register vddvbus regulator:%d\n",
+			 __func__, ret);
+	}
+
+	return ret;
+}
+
 #else
-static int
-fan54015_charger_register_vbus_regulator(struct fan54015_charger_info *info)
+static int fan54015_charger_register_vbus_regulator(struct fan54015_charger_info *info)
+{
+	return 0;
+}
+
+static int fan54015_charger_register_external_vbus_regulator(struct fan54015_charger_info *info)
 {
 	return 0;
 }
 #endif
 
-static int
-fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id)
+static int fan54015_charger_detect_device(struct fan54015_charger_info *info)
+{
+	int ret, fan54015_part_id, psc5415z_part_id;
+	u8 reg_val;
+
+	ret = fan54015_read(info, FAN54015_REG_3, &reg_val);
+	if (ret < 0) {
+		dev_err(info->dev, "%s, failed to get device id, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	fan54015_part_id = (reg_val & FAN54015_PN_MASK) >> FAN54015_PN_SHIFT;
+	psc5415z_part_id = (reg_val & PSC5415Z_PN_MASK) >> PSC5415Z_PN_SHIFT;
+	if (fan54015_part_id != FAN54015_DEV_ID && psc5415z_part_id != PSC5415Z_DEV_ID) {
+		dev_err(info->dev, "%s, failed to match device id, DEV_ID(0x%2x) = 0x%x\n",
+			__func__, FAN54015_REG_3, reg_val);
+		return -EINVAL;
+	}
+
+	return ret;
+}
+
+static int fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
 	struct device *dev = &client->dev;
@@ -1032,6 +1147,12 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 	info->dev = dev;
 
 	i2c_set_clientdata(client, info);
+
+	ret = fan54015_charger_detect_device(info);
+	if (ret) {
+		dev_err(dev, "%s, failed to detect device, ret = %d\n", __func__, ret);
+		return -ENODEV;
+	}
 
 	info->edev = extcon_get_edev_by_phandle(info->dev, 0);
 	if (IS_ERR(info->edev)) {
@@ -1116,7 +1237,11 @@ fan54015_charger_probe(struct i2c_client *client, const struct i2c_device_id *id
 	INIT_DELAYED_WORK(&info->otg_work, fan54015_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work, fan54015_charger_feed_watchdog_work);
 
-	ret = fan54015_charger_register_vbus_regulator(info);
+	if (device_property_read_bool(dev, "otg-vbus-node-external"))
+		ret = fan54015_charger_register_external_vbus_regulator(info);
+	else
+		ret = fan54015_charger_register_vbus_regulator(info);
+
 	if (ret) {
 		dev_err(dev, "failed to register vbus regulator.\n");
 		goto err_regmap_exit;
@@ -1200,6 +1325,8 @@ static int fan54015_charger_alarm_prepare(struct device *dev)
 	now = ktime_get_boottime();
 	add = ktime_set(FAN54015_WDG_TIMER_S, 0);
 	alarm_start(&info->wdg_timer, ktime_add(now, add));
+	pr_info("fan54015_charger set alarm, triggered at [%lld]ms\n",
+		ktime_to_ms(ktime_add(now, add)));
 	return 0;
 }
 

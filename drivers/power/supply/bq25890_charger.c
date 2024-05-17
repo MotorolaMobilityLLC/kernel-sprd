@@ -1,7 +1,8 @@
+// SPDX-License-Identifier: GPL-2.0:
+// Copyright (c) 2021 unisoc.
+
 /*
  * TI BQ25890 charger driver
- *
- * Copyright (C) 2015 Intel Corporation
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -237,6 +238,8 @@
 #define REG14_REG_ICO_OP_SHIFT			6
 #define REG14_PN_MASK				0x38
 #define REG14_PN_SHIFT				3
+#define BQ25890_DEV_ID				0x3
+#define BQ25892_DEV_ID				0x0
 #define REG14_TS_PROFILE_MASK			0x04
 #define REG14_TS_PROFILE_SHIFT			2
 #define REG14_DEV_REV_MASK			0x03
@@ -516,11 +519,13 @@ struct bq25890_charger_info {
 	bool need_disable_Q1;
 	int termination_cur;
 	int vol_max_mv;
-	u32 actual_limit_current;
+	u32 actual_limit_cur;
+	bool disable_wdg;
 	bool otg_enable;
 	struct alarm wdg_timer;
 	struct bq25890_charger_sysfs *sysfs;
 	int reg_id;
+	bool use_typec_extcon;
 };
 
 struct bq25890_charger_reg_tab {
@@ -554,7 +559,8 @@ static struct bq25890_charger_reg_tab reg_tab[BQ25890_REG_NUM + 1] = {
 	{21, 0, "null"},
 };
 
-static int bq25890_charger_set_limit_current(struct bq25890_charger_info *info, u32 limit_cur);
+static int bq25890_charger_set_limit_current(struct bq25890_charger_info *info,
+					     u32 limit_cur, bool enable);
 
 static int bq25890_read(struct bq25890_charger_info *info, u8 reg, u8 *data)
 {
@@ -665,8 +671,7 @@ static int bq25890_charger_set_vindpm(struct bq25890_charger_info *info, u32 vol
 		vol = REG0D_VINDPM_MAX;
 	reg_val = (vol - REG0D_VINDPM_OFFSET) / REG0D_VINDPM_STEP;
 
-	return bq25890_update_bits(info, BQ25890_REG_0D,
-				   REG0D_FORCE_VINDPM_MASK, reg_val);
+	return bq25890_update_bits(info, BQ25890_REG_0D, REG0D_VINDPM_MASK, reg_val);
 }
 
 static int bq25890_charger_set_termina_vol(struct bq25890_charger_info *info, u32 vol)
@@ -799,6 +804,29 @@ static int bq25890_charger_get_charge_voltage(struct bq25890_charger_info *info,
 	return 0;
 }
 
+static int bq25890_charger_enable_wdg(struct bq25890_charger_info *info, bool en)
+{
+	u8 val = REG07_WDT_DISABLE;
+
+	if (en)
+		val = REG07_WDT_40S;
+
+	return bq25890_update_bits(info, BQ25890_REG_07,
+				   REG07_WDT_MASK,
+				   val << REG07_WDT_SHIFT);
+}
+
+static int bq25890_enable_charger(struct bq25890_charger_info *info, bool enable)
+{
+	u8 val = REG03_CHG_DISABLE;
+
+	if (enable)
+		val = REG03_CHG_ENABLE;
+
+	return bq25890_update_bits(info, BQ25890_REG_03, REG03_CHG_CONFIG_MASK,
+				   val << REG03_CHG_CONFIG_SHIFT);
+}
+
 static int bq25890_charger_start_charge(struct bq25890_charger_info *info)
 {
 	int ret;
@@ -808,19 +836,24 @@ static int bq25890_charger_start_charge(struct bq25890_charger_info *info)
 	if (ret)
 		dev_err(info->dev, "disable HIZ mode failed\n");
 
-	ret = bq25890_update_bits(info, BQ25890_REG_07, REG07_WDT_MASK,
-				  REG07_WDT_40S << REG07_WDT_SHIFT);
+	ret = bq25890_charger_enable_wdg(info, true);
 	if (ret) {
-		dev_err(info->dev, "Failed to enable bq25890 watchdog\n");
+		dev_err(info->dev, "%s, failed to enable watchdog, ret = %d\n", __func__, ret);
 		return ret;
 	}
 
 	ret = regmap_update_bits(info->pmic, info->charger_pd,
 				 info->charger_pd_mask, 0);
 	if (ret) {
-		dev_err(info->dev, "enable bq25890 charge failed\n");
-			return ret;
-		}
+		dev_err(info->dev, "enable bq25890 charge_pd failed\n");
+		return ret;
+	}
+
+	ret = bq25890_enable_charger(info, true);
+	if (ret) {
+		dev_err(info->dev, "enable bq25890 charge failed, ret = %d\n", ret);
+		return ret;
+	}
 
 	ret = bq25890_charger_set_limit_current(info,
 						info->last_limit_current, false);
@@ -848,17 +881,19 @@ static void bq25890_charger_stop_charge(struct bq25890_charger_info *info, bool 
 		info->need_disable_Q1 = false;
 	}
 
+	ret = bq25890_enable_charger(info, false);
+	if (ret)
+		dev_err(info->dev, "disable bq25890 charge, ret = %d\n", ret);
+
 	ret = regmap_update_bits(info->pmic, info->charger_pd,
 				 info->charger_pd_mask,
 				 info->charger_pd_mask);
 	if (ret)
-		dev_err(info->dev, "disable bq25890 charge failed\n");
+		dev_err(info->dev, "disable bq25890 charge_pd failed\n");
 
-	ret = bq25890_update_bits(info, BQ25890_REG_07, REG07_WDT_MASK,
-				  REG07_WDT_DISABLE);
+	ret = bq25890_charger_enable_wdg(info, false);
 	if (ret)
-		dev_err(info->dev, "Failed to disable bq25890 watchdog\n");
-
+		dev_err(info->dev, "%s, failed to disable watchdog, ret = %d\n", __func__, ret);
 }
 
 static int bq25890_charger_set_current(struct bq25890_charger_info *info, u32 cur)
@@ -946,14 +981,14 @@ static int bq25890_charger_set_limit_current(struct bq25890_charger_info *info,
 
 	info->last_limit_current = limit_cur * 1000;
 	reg_val = (limit_cur - REG00_IINLIM_OFFSET) / REG00_IINLIM_STEP;
-	info->actual_limit_current =
+	info->actual_limit_cur =
 		(reg_val * REG00_IINLIM_STEP + REG00_IINLIM_OFFSET) * 1000;
 	ret = bq25890_update_bits(info, BQ25890_REG_00, REG00_IINLIM_MASK, reg_val);
 	if (ret)
 		dev_err(info->dev, "set bq25890 limit cur failed\n");
 
 	dev_info(info->dev, "set limit current reg_val = %#x, actual_limit_cur = %d\n",
-		 reg_val, info->actual_limit_current);
+		 reg_val, info->actual_limit_cur);
 
 out:
 	mutex_unlock(&info->input_limit_cur_lock);
@@ -1444,7 +1479,7 @@ static void bq25890_charger_feed_watchdog_work(struct work_struct *work)
 		schedule_delayed_work(&info->wdt_work, HZ * 15);
 }
 
-#ifdef CONFIG_REGULATOR
+#if IS_ENABLED(CONFIG_REGULATOR)
 static bool bq25890_charger_check_otg_valid(struct bq25890_charger_info *info)
 {
 	int ret;
@@ -1529,20 +1564,33 @@ static int bq25890_charger_enable_otg(struct regulator_dev *dev)
 	 * Disable charger detection function in case
 	 * affecting the OTG timing sequence.
 	 */
-	ret = regmap_update_bits(info->pmic, info->charger_detect,
-				 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
-	if (ret) {
-		dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
-		return ret;
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, BIT_DP_DM_BC_ENB);
+		if (ret) {
+			dev_err(info->dev, "failed to disable bc1.2 detect function.\n");
+			return ret;
+		}
 	}
 
 	ret = bq25890_update_bits(info, BQ25890_REG_03, REG03_OTG_CONFIG_MASK,
 				  REG03_OTG_ENABLE << REG03_OTG_CONFIG_SHIFT);
-
 	if (ret) {
 		dev_err(info->dev, "enable bq25890 otg failed\n");
 		regmap_update_bits(info->pmic, info->charger_detect,
 				   BIT_DP_DM_BC_ENB, 0);
+		return ret;
+	}
+
+	ret = bq25890_charger_enable_wdg(info, true);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to enable watchdog, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	ret = bq25890_charger_feed_watchdog(info);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to feed watchdog, ret = %d\n", __func__, ret);
 		return ret;
 	}
 
@@ -1552,13 +1600,14 @@ static int bq25890_charger_enable_otg(struct regulator_dev *dev)
 	schedule_delayed_work(&info->otg_work,
 			      msecs_to_jiffies(BQ25890_OTG_VALID_MS));
 
+	dev_info(info->dev, "%s[%d], enable_otg\n", __func__, __LINE__);
 	return 0;
 }
 
 static int bq25890_charger_disable_otg(struct regulator_dev *dev)
 {
 	struct bq25890_charger_info *info = rdev_get_drvdata(dev);
-	int ret;
+	int ret = 0;
 
 	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);
@@ -1570,9 +1619,22 @@ static int bq25890_charger_disable_otg(struct regulator_dev *dev)
 		return ret;
 	}
 
+	ret = bq25890_charger_enable_wdg(info, false);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to disable watchdog, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
 	/* Enable charger detection function to identify the charger type */
-	return regmap_update_bits(info->pmic, info->charger_detect,
-				  BIT_DP_DM_BC_ENB, 0);
+	if (!info->use_typec_extcon) {
+		ret = regmap_update_bits(info->pmic, info->charger_detect,
+					 BIT_DP_DM_BC_ENB, 0);
+		if (ret)
+			dev_err(info->dev, "enable BC1.2 failed\n");
+	}
+
+	dev_info(info->dev, "%s[%d], disable_otg\n", __func__, __LINE__);
+	return ret;
 }
 
 static int bq25890_charger_vbus_is_enabled(struct regulator_dev *dev)
@@ -1626,12 +1688,79 @@ static int bq25890_charger_register_vbus_regulator(struct bq25890_charger_info *
 	return ret;
 }
 
+static int bq25890_charger_register_external_vbus_regulator(struct bq25890_charger_info *info)
+{
+	struct regulator_config cfg = { };
+	struct regulator_dev *reg;
+	int ret = 0;
+	struct device_node *otg_nd;
+	struct device_node *otg_parent_nd;
+	struct platform_device *otg_parent_nd_pdev;
+
+	otg_nd = of_find_node_by_name(NULL, "otg-vbus");
+	if (!otg_nd) {
+		dev_warn(info->dev, "%s, unable to get otg node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd = of_get_parent(otg_nd);
+	of_node_put(otg_nd);
+	if (!otg_parent_nd) {
+		dev_warn(info->dev, "%s, unable to get otg parent node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd_pdev = of_find_device_by_node(otg_parent_nd);
+	of_node_put(otg_parent_nd);
+	if (!otg_parent_nd_pdev) {
+		dev_warn(info->dev, "%s, unable to get otg parent node device\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	cfg.dev = &otg_parent_nd_pdev->dev;
+	platform_device_put(otg_parent_nd_pdev);
+	cfg.driver_data = info;
+	reg = devm_regulator_register(cfg.dev, &bq25890_charger_vbus_desc, &cfg);
+	if (IS_ERR(reg)) {
+		ret = PTR_ERR(reg);
+		dev_warn(info->dev, "%s, failed to register vddvbus regulator:%d\n",
+			 __func__, ret);
+	}
+
+	return ret;
+}
+
 #else
 static int bq25890_charger_register_vbus_regulator(struct bq25890_charger_info *info)
 {
 	return 0;
 }
+
+static int bq25890_charger_register_external_vbus_regulator(struct bq25890_charger_info *info)
+{
+	return 0;
+}
 #endif
+
+static int bq25890_charger_detect_device(struct bq25890_charger_info *info)
+{
+	int ret = 0, part_id = -EINVAL;
+	u8 reg_val;
+
+	ret = bq25890_read(info, BQ25890_REG_14, &reg_val);
+	if (ret < 0) {
+		dev_err(info->dev, "%s, failed to get device id, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	part_id = (reg_val & REG14_PN_MASK) >> REG14_PN_SHIFT;
+	if (part_id != BQ25890_DEV_ID && part_id != BQ25892_DEV_ID) {
+		dev_err(info->dev, "%s, the device id is 0x%x\n", __func__, part_id);
+		return -EINVAL;
+	}
+
+	return ret;
+}
 
 static int bq25890_charger_probe(struct i2c_client *client,
 				 const struct i2c_device_id *id)
@@ -1663,13 +1792,25 @@ static int bq25890_charger_probe(struct i2c_client *client,
 
 	i2c_set_clientdata(client, info);
 
+	ret = bq25890_charger_detect_device(info);
+	if (ret) {
+		dev_err(dev, "%s, failed to detect device, ret = %d\n", __func__, ret);
+		return -ENODEV;
+	}
+
 	ret = bq25890_charger_is_fgu_present(info);
 	if (ret) {
 		dev_err(dev, "sc27xx_fgu not ready.\n");
 		return -EPROBE_DEFER;
 	}
 
-	ret = bq25890_charger_register_vbus_regulator(info);
+	info->use_typec_extcon = device_property_read_bool(dev, "use-typec-extcon");
+
+	if (device_property_read_bool(dev, "otg-vbus-node-external"))
+		ret = bq25890_charger_register_external_vbus_regulator(info);
+	else
+		ret = bq25890_charger_register_vbus_regulator(info);
+
 	if (ret) {
 		dev_err(dev, "failed to register vbus regulator.\n");
 		return ret;
@@ -1757,6 +1898,7 @@ static int bq25890_charger_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&info->wdt_work,
 			  bq25890_charger_feed_watchdog_work);
 
+	dev_info(dev, "use_typec_extcon = %d\n", info->use_typec_extcon);
 	return 0;
 
 err_sysfs:
@@ -1805,26 +1947,37 @@ static int bq25890_charger_remove(struct i2c_client *client)
 	return 0;
 }
 
-#ifdef CONFIG_PM_SLEEP
+#if IS_ENABLED(CONFIG_PM_SLEEP)
 static int bq25890_charger_suspend(struct device *dev)
 {
 	struct bq25890_charger_info *info = dev_get_drvdata(dev);
 	ktime_t now, add;
 	unsigned int wakeup_ms = BQ25890_WDG_TIMER_MS;
 
-	if (info->otg_enable || info->is_charger_online)
+	if (info->otg_enable || info->is_charger_online) {
 		/* feed watchdog first before suspend */
-		bq25890_charger_feed_watchdog(info);
+		if (bq25890_charger_feed_watchdog(info))
+			dev_err(info->dev, "%s, failed to feed watchdog\n", __func__);
+
+		cancel_delayed_work_sync(&info->wdt_work);
+	}
 
 	if (!info->otg_enable)
 		return 0;
 
-	cancel_delayed_work_sync(&info->wdt_work);
-
-	now = ktime_get_boottime();
-	add = ktime_set(wakeup_ms / MSEC_PER_SEC,
-		       (wakeup_ms % MSEC_PER_SEC) * NSEC_PER_MSEC);
-	alarm_start(&info->wdg_timer, ktime_add(now, add));
+	if (info->disable_wdg) {
+		if (bq25890_charger_enable_wdg(info, false)) {
+			dev_err(info->dev, "%s, failed to disable watchdog\n", __func__);
+			return -EBUSY;
+		}
+	} else {
+		now = ktime_get_boottime();
+		add = ktime_set(wakeup_ms / MSEC_PER_SEC,
+			       (wakeup_ms % MSEC_PER_SEC) * NSEC_PER_MSEC);
+		alarm_start(&info->wdg_timer, ktime_add(now, add));
+		pr_info("bq25890_charger set alarm, triggered at [%lld]ms\n",
+				ktime_to_ms(ktime_add(now, add)));
+	}
 
 	return 0;
 }
@@ -1833,16 +1986,23 @@ static int bq25890_charger_resume(struct device *dev)
 {
 	struct bq25890_charger_info *info = dev_get_drvdata(dev);
 
-	if (info->otg_enable || info->is_charger_online)
+	if (info->otg_enable || info->is_charger_online) {
 		/* feed watchdog first before suspend */
 		bq25890_charger_feed_watchdog(info);
+		schedule_delayed_work(&info->wdt_work, HZ * 15);
+	}
 
 	if (!info->otg_enable)
 		return 0;
 
-	alarm_cancel(&info->wdg_timer);
-
-	schedule_delayed_work(&info->wdt_work, HZ * 15);
+	if (info->disable_wdg) {
+		if (bq25890_charger_enable_wdg(info, true)) {
+			dev_err(info->dev, "%s, failed to enable watchdog\n", __func__);
+			return -EBUSY;
+		}
+	} else {
+		alarm_cancel(&info->wdg_timer);
+	}
 
 	return 0;
 }

@@ -8382,6 +8382,67 @@ static int get_boot_mode(void)
 	return 0;
 }
 
+static int cm_check_alt_charger_psy_ready_status(struct charger_manager *cm)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	int i;
+
+	if (!desc->psy_charger_stat || !desc->psy_alt_charger_adpt_stat) {
+		dev_err(cm->dev, "%s, chargeIC not exit\n", __func__);
+		return 0;
+	}
+
+	psy = power_supply_get_by_name(desc->psy_charger_stat[0]);
+	if (psy) {
+		dev_info(cm->dev, "%s, find preferred chargeIC \"%s\"\n",
+			 __func__, desc->psy_charger_stat[0]);
+		goto done;
+	}
+
+	for (i = 0; desc->psy_alt_charger_adpt_stat[i]; i++) {
+		psy = power_supply_get_by_name(desc->psy_alt_charger_adpt_stat[i]);
+		if (!psy) {
+			dev_warn(cm->dev, "%s, cannot find alt chargeIC \"%s\"\n",
+				 __func__, desc->psy_alt_charger_adpt_stat[i]);
+		} else {
+			dev_info(cm->dev, "%s, find alt chargeIC \"%s\"\n",
+				 __func__, desc->psy_alt_charger_adpt_stat[i]);
+			desc->psy_charger_stat[0] = desc->psy_alt_charger_adpt_stat[i];
+			goto done;
+		}
+	}
+
+	if (i == desc->alt_charger_nums) {
+		dev_err(cm->dev, "%s, cannot find all chargeIC\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+done:
+	power_supply_put(psy);
+	return 0;
+}
+
+static int cm_check_charger_psy_ready_status(struct charger_manager *cm)
+{
+	struct charger_desc *desc = cm->desc;
+	struct power_supply *psy;
+	int i;
+
+	/* Check if charger's supplies are present at probe */
+	for (i = 0; desc->psy_charger_stat[i]; i++) {
+		psy = power_supply_get_by_name(desc->psy_charger_stat[i]);
+		if (!psy) {
+			dev_err(cm->dev, "Cannot find power supply \"%s\"\n",
+				desc->psy_charger_stat[i]);
+			return -EPROBE_DEFER;
+		}
+		power_supply_put(psy);
+	}
+
+	return 0;
+}
+
 static int charger_manager_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -8467,17 +8528,18 @@ static int charger_manager_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	/* Check if charger's supplies are present at probe */
-	for (i = 0; desc->psy_charger_stat[i]; i++) {
-		struct power_supply *psy;
-
-		psy = power_supply_get_by_name(desc->psy_charger_stat[i]);
-		if (!psy) {
-			dev_err(&pdev->dev, "Cannot find power supply \"%s\"\n",
-				desc->psy_charger_stat[i]);
-			return -EPROBE_DEFER;
+	if (desc->enable_alt_charger_adapt && desc->alt_charger_nums > 0) {
+		ret = cm_check_alt_charger_psy_ready_status(cm);
+		if (ret < 0) {
+			dev_err(&pdev->dev, "can't find chargeIC\n");
+			return ret;
 		}
-		power_supply_put(psy);
+	} else {
+		ret = cm_check_charger_psy_ready_status(cm);
+		if (ret < 0) {
+			dev_err(&pdev->dev, "can't find chargeIC\n");
+			return ret;
+		}
 	}
 
 	if (desc->enable_alt_cp_adapt && (desc->alt_cp_nums > 0)) {

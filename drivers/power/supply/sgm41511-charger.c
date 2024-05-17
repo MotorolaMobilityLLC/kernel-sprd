@@ -138,9 +138,9 @@ static void power_path_control(struct sgm41511_charger_info *info)
 {
 	struct device_node *cmdline_node;
 	const char *cmd_line;
-	int ret;
 	char *match;
-	char result[5];
+	char result[5] = {0};
+	int ret;
 
 	cmdline_node = of_find_node_by_path("/chosen");
 	ret = of_property_read_string(cmdline_node, "bootargs", &cmd_line);
@@ -154,14 +154,15 @@ static void power_path_control(struct sgm41511_charger_info *info)
 
 	match = strstr(cmd_line, "sprdboot.mode=");
 	if (match) {
-		memcpy(result, (match + strlen("sprdboot.mode=")),
-			sizeof(result) - 1);
+		memcpy(result, (match + strlen("sprdboot.mode=")), sizeof(result) - 1);
 		if ((!strcmp(result, "cali")) || (!strcmp(result, "auto")))
 			info->disable_power_path = true;
 
 		if (!strcmp(result, "cali"))
 			boot_calibration = true;
 	}
+
+	dev_info(info->dev, "disable_power_path=%d\n", info->disable_power_path);
 }
 
 static bool sgm41511_charger_is_bat_present(struct sgm41511_charger_info *info)
@@ -311,23 +312,15 @@ static int sgm41511_set_acovp_threshold(struct sgm41511_charger_info *info, int 
 				    reg_val << REG06_OVP_SHIFT);
 }
 
-static int sgm41511_enable_charger(struct sgm41511_charger_info *info)
+static int sgm41511_enable_charger(struct sgm41511_charger_info *info, bool enable)
 {
-	int ret;
-	u8 val = REG01_CHG_ENABLE << REG01_CHG_CONFIG_SHIFT;
+	u8 val = REG01_CHG_DISABLE;
 
-	ret = sgm41511_update_bits(info, SGM4151X_REG_01, REG01_CHG_CONFIG_MASK, val);
+	if (enable)
+		val = REG01_CHG_ENABLE;
 
-	return ret;
-}
-
-static int sgm41511_disable_charger(struct sgm41511_charger_info *info)
-{
-	int ret;
-	u8 val = REG01_CHG_DISABLE << REG01_CHG_CONFIG_SHIFT;
-
-	ret = sgm41511_update_bits(info, SGM4151X_REG_01, REG01_CHG_CONFIG_MASK, val);
-	return ret;
+	return sgm41511_update_bits(info, SGM4151X_REG_01, REG01_CHG_CONFIG_MASK,
+				    val << REG01_CHG_CONFIG_SHIFT);
 }
 
 static int sgm41511_enter_hiz_mode(struct sgm41511_charger_info *info)
@@ -527,22 +520,16 @@ static void sgm41511_dump_register(struct sgm41511_charger_info *info)
 	}
 }
 
-static int sgm41511_charger_enable_wdg(struct sgm41511_charger_info *info,
-				       bool en)
+static int sgm41511_charger_enable_wdg(struct sgm41511_charger_info *info, bool en)
 {
-	int ret;
+	u8 val = REG05_WDT_DISABLE;
 
 	if (en)
-		ret = sgm41511_update_bits(info, SGM4151X_REG_05,
-					   SGM41511_REG_WATCHDOG_TIMER_MASK,
-					   0x01 << SGM41511_REG_WATCHDOG_TIMER_SHIFT);
-	else
-		ret = sgm41511_update_bits(info, SGM4151X_REG_05,
-					   SGM41511_REG_WATCHDOG_TIMER_MASK, 0);
-	if (ret)
-		dev_err(info->dev, "%s:Failed to update %d\n", __func__, en);
+		val = REG05_WDT_40S;
 
-	return ret;
+	return sgm41511_update_bits(info, SGM4151X_REG_05,
+				    SGM41511_REG_WATCHDOG_TIMER_MASK,
+				    val << REG05_WDT_SHIFT);
 }
 
 static int sgm41511_charger_start_charge(struct sgm41511_charger_info *info)
@@ -556,12 +543,10 @@ static int sgm41511_charger_start_charge(struct sgm41511_charger_info *info)
 		dev_err(info->dev, "disable HIZ mode failed\n");
 
 	ret = sgm41511_charger_enable_wdg(info, true);
-	if (ret)
+	if (ret) {
+		dev_err(info->dev, "%s, failed to enable watchdog, ret = %d\n", __func__, ret);
 		return ret;
-
-	ret = sgm41511_enable_charger(info);
-	if (ret)
-		dev_err(info->dev, "enable charger failed\n");
+	}
 
 	if (info->role == SGM41511_ROLE_MASTER) {
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
@@ -572,6 +557,12 @@ static int sgm41511_charger_start_charge(struct sgm41511_charger_info *info)
 		}
 	} else if (info->role == SGM41511_ROLE_SLAVE) {
 		gpiod_set_value_cansleep(info->gpiod, 0);
+	}
+
+	ret = sgm41511_enable_charger(info, true);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to enable charger, ret = %d\n", __func__, ret);
+		return ret;
 	}
 
 	sgm41511_dump_register(info);
@@ -585,6 +576,10 @@ static void sgm41511_charger_stop_charge(struct sgm41511_charger_info *info)
 
 	dev_info(info->dev, "%s:line%d: stop charge\n", __func__, __LINE__);
 
+	ret = sgm41511_enable_charger(info, false);
+	if (ret)
+		dev_err(info->dev, "disable charger failed\n");
+
 	if (info->role == SGM41511_ROLE_MASTER) {
 		if (boot_calibration) {
 			ret = sgm41511_enter_hiz_mode(info);
@@ -592,17 +587,12 @@ static void sgm41511_charger_stop_charge(struct sgm41511_charger_info *info)
 				dev_err(info->dev, "enable HIZ mode failed\n");
 		}
 
-		ret = sgm41511_disable_charger(info);
-		if (ret)
-			dev_err(info->dev, "disable charger failed\n");
-
 		ret = regmap_update_bits(info->pmic, info->charger_pd,
 					 info->charger_pd_mask,
 					 info->charger_pd_mask);
 		if (ret)
 			dev_err(info->dev, "disable sgm41511 charge failed\n");
 	} else if (info->role == SGM41511_ROLE_SLAVE) {
-		sgm41511_disable_charger(info);
 		if (boot_calibration) {
 			ret = sgm41511_enter_hiz_mode(info);
 			if (ret)
@@ -622,7 +612,7 @@ static void sgm41511_charger_stop_charge(struct sgm41511_charger_info *info)
 
 	ret = sgm41511_charger_enable_wdg(info, false);
 	if (ret)
-		dev_err(info->dev, "Failed to update wdg\n");
+		dev_err(info->dev, "%s, failed to disable watchdog, ret = %d\n", __func__, ret);
 }
 
 static int sgm41511_charger_set_current(struct sgm41511_charger_info *info, u32 cur)
@@ -1198,12 +1188,16 @@ static int sgm41511_charger_enable_otg(struct regulator_dev *dev)
 	}
 
 	ret = sgm41511_charger_enable_wdg(info, true);
-	if (ret)
+	if (ret) {
+		dev_err(info->dev, "%s, failed to enable watchdog, ret = %d\n", __func__, ret);
 		return ret;
+	}
 
 	ret = sgm41511_charger_feed_watchdog(info);
-	if (ret)
+	if (ret) {
+		dev_err(info->dev, "%s, failed to feed watchdog, ret = %d\n", __func__, ret);
 		return ret;
+	}
 
 	ret = sgm41511_exit_hiz_mode(info);
 	if (ret)
@@ -1250,8 +1244,10 @@ static int sgm41511_charger_disable_otg(struct regulator_dev *dev)
 	}
 
 	ret = sgm41511_charger_enable_wdg(info, false);
-	if (ret)
+	if (ret) {
+		dev_err(info->dev, "%s, failed to disable watchdog, ret = %d\n", __func__, ret);
 		return ret;
+	}
 
 	/* Enable charger detection function to identify the charger type */
 	if (!info->use_typec_extcon) {
@@ -1302,18 +1298,93 @@ static const struct regulator_desc sgm41511_charger_vbus_desc = {
 	.n_voltages = 1,
 };
 
+static void sgm41511_charger_check_otg_status(struct sgm41511_charger_info *info)
+{
+	int ret;
+	u8 val;
+
+	ret = sgm41511_read(info, SGM4151X_REG_01, &val);
+	if (ret < 0) {
+		dev_err(info->dev, "%s:line%d, failed to get reg1(%d)\n", __func__, __LINE__, ret);
+		return;
+	}
+
+	if (val & REG01_OTG_CONFIG_MASK) {
+		dev_info(info->dev, "%s:line%d, exit otg mode\n", __func__, __LINE__);
+		ret = sgm41511_update_bits(info, SGM4151X_REG_01, REG01_OTG_CONFIG_MASK,
+					   REG01_OTG_DISABLE << REG01_OTG_CONFIG_SHIFT);
+		if (ret)
+			dev_err(info->dev, "exit sgm41511 otg failed, ret = %d\n", ret);
+	}
+}
+
 static int sgm41511_charger_register_vbus_regulator(struct sgm41511_charger_info *info)
 {
 	struct regulator_config cfg = { };
 	struct regulator_dev *reg;
 	int ret = 0;
 
+	/*
+	 * only master to support otg
+	 */
+	if (info->role != SGM41511_ROLE_MASTER)
+		return 0;
+
+	sgm41511_charger_check_otg_status(info);
+
 	cfg.dev = info->dev;
 	cfg.driver_data = info;
 	reg = devm_regulator_register(info->dev, &sgm41511_charger_vbus_desc, &cfg);
 	if (IS_ERR(reg)) {
 		ret = PTR_ERR(reg);
-		dev_err(info->dev, "Can't register regulator:%d\n", ret);
+		dev_err(info->dev, "%s, failed to register vddvbus regulator:%d\n", __func__, ret);
+	}
+
+	return ret;
+}
+
+static int sgm41511_charger_register_external_vbus_regulator(struct sgm41511_charger_info *info)
+{
+	struct regulator_config cfg = { };
+	struct regulator_dev *reg;
+	int ret = 0;
+	struct device_node *otg_nd;
+	struct device_node *otg_parent_nd;
+	struct platform_device *otg_parent_nd_pdev;
+
+	/*
+	 * only master to support otg
+	 */
+	if (info->role != SGM41511_ROLE_MASTER)
+		return 0;
+
+	otg_nd = of_find_node_by_name(NULL, "otg-vbus");
+	if (!otg_nd) {
+		dev_err(info->dev, "%s, unable to get otg node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd = of_get_parent(otg_nd);
+	of_node_put(otg_nd);
+	if (!otg_parent_nd) {
+		dev_err(info->dev, "%s, unable to get otg parent node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd_pdev = of_find_device_by_node(otg_parent_nd);
+	of_node_put(otg_parent_nd);
+	if (!otg_parent_nd_pdev) {
+		dev_err(info->dev, "%s, unable to get otg parent node device\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	cfg.dev = &otg_parent_nd_pdev->dev;
+	platform_device_put(otg_parent_nd_pdev);
+	cfg.driver_data = info;
+	reg = devm_regulator_register(cfg.dev, &sgm41511_charger_vbus_desc, &cfg);
+	if (IS_ERR(reg)) {
+		ret = PTR_ERR(reg);
+		dev_err(info->dev, "%s, failed to register vddvbus regulator:%d\n", __func__, ret);
 	}
 
 	return ret;
@@ -1324,7 +1395,32 @@ static int sgm41511_charger_register_vbus_regulator(struct sgm41511_charger_info
 {
 	return 0;
 }
+
+static int sgm41511_charger_register_external_vbus_regulator(struct sgm41511_charger_info *info)
+{
+	return 0;
+}
 #endif
+
+static int sgm41511_charger_detect_device(struct sgm41511_charger_info *info)
+{
+	int ret, part_id;
+	u8 reg_val;
+
+	ret = sgm41511_read(info, SGM4151X_REG_0B, &reg_val);
+	if (ret < 0) {
+		dev_err(info->dev, "%s, failed to get device id, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	part_id = (reg_val & REG0B_PN_MASK) >> REG0B_PN_SHIFT;
+	if (part_id != SGM41511_DEV_ID) {
+		dev_err(info->dev, "%s, the device id is 0x%x\n", __func__, part_id);
+		return -EINVAL;
+	}
+
+	return ret;
+}
 
 static int sgm41511_charger_probe(struct i2c_client *client,
 				  const struct i2c_device_id *id)
@@ -1354,6 +1450,13 @@ static int sgm41511_charger_probe(struct i2c_client *client,
 	info->dev = dev;
 
 	i2c_set_clientdata(client, info);
+
+	ret = sgm41511_charger_detect_device(info);
+	if (ret) {
+		dev_err(dev, "%s, failed to detect device, ret = %d\n", __func__, ret);
+		return -ENODEV;
+	}
+
 	power_path_control(info);
 
 	ret = sgm41511_charger_is_fgu_present(info);
@@ -1463,15 +1566,14 @@ static int sgm41511_charger_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&info->otg_work, sgm41511_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work, sgm41511_charger_feed_watchdog_work);
 
-	/*
-	 * only master to support otg
-	 */
-	if (info->role == SGM41511_ROLE_MASTER) {
+	if (device_property_read_bool(dev, "otg-vbus-node-external"))
+		ret = sgm41511_charger_register_external_vbus_regulator(info);
+	else
 		ret = sgm41511_charger_register_vbus_regulator(info);
-		if (ret) {
-			dev_err(dev, "failed to register vbus regulator.\n");
-			goto out;
-		}
+
+	if (ret) {
+		dev_err(dev, "failed to register vbus regulator.\n");
+		goto out;
 	}
 
 	info->probe_initialized = true;
@@ -1553,7 +1655,6 @@ static int sgm41511_charger_remove(struct i2c_client *client)
 #if IS_ENABLED(CONFIG_PM_SLEEP)
 static int sgm41511_charger_suspend(struct device *dev)
 {
-	int ret;
 	ktime_t now, add;
 	struct sgm41511_charger_info *info = dev_get_drvdata(dev);
 
@@ -1563,7 +1664,9 @@ static int sgm41511_charger_suspend(struct device *dev)
 	}
 
 	if (info->otg_enable || info->is_charger_online) {
-		sgm41511_charger_feed_watchdog(info);
+		if (sgm41511_charger_feed_watchdog(info))
+			dev_err(info->dev, "%s, failed to feed watchdog\n", __func__);
+
 		cancel_delayed_work_sync(&info->wdt_work);
 	}
 
@@ -1571,14 +1674,17 @@ static int sgm41511_charger_suspend(struct device *dev)
 		return 0;
 
 	if (info->disable_wdg) {
-		ret = sgm41511_charger_enable_wdg(info, false);
-		if (ret)
+		if (sgm41511_charger_enable_wdg(info, false)) {
+			dev_err(info->dev, "%s, failed to disable watchdog\n", __func__);
 			return -EBUSY;
+		}
 	} else {
 		dev_dbg(info->dev, "%s:line%d: set alarm\n", __func__, __LINE__);
 		now = ktime_get_boottime();
 		add = ktime_set(SGM41511_OTG_ALARM_TIMER_S, 0);
 		alarm_start(&info->otg_timer, ktime_add(now, add));
+		pr_info("sgm41511_charger set alarm, triggered at [%lld]ms\n",
+			ktime_to_ms(ktime_add(now, add)));
 	}
 
 	return 0;
@@ -1586,7 +1692,6 @@ static int sgm41511_charger_suspend(struct device *dev)
 
 static int sgm41511_charger_resume(struct device *dev)
 {
-	int ret;
 	struct sgm41511_charger_info *info = dev_get_drvdata(dev);
 
 	if (!info) {
@@ -1595,7 +1700,9 @@ static int sgm41511_charger_resume(struct device *dev)
 	}
 
 	if (info->otg_enable || info->is_charger_online) {
-		sgm41511_charger_feed_watchdog(info);
+		if (sgm41511_charger_feed_watchdog(info))
+			dev_err(info->dev, "%s, failed to feed watchdog\n", __func__);
+
 		schedule_delayed_work(&info->wdt_work, HZ * 15);
 	}
 
@@ -1603,9 +1710,10 @@ static int sgm41511_charger_resume(struct device *dev)
 		return 0;
 
 	if (info->disable_wdg) {
-		ret = sgm41511_charger_enable_wdg(info, true);
-		if (ret)
+		if (sgm41511_charger_enable_wdg(info, true)) {
+			dev_err(info->dev, "%s, failed to enable watchdog\n", __func__);
 			return -EBUSY;
+		}
 	} else {
 		alarm_cancel(&info->otg_timer);
 	}
