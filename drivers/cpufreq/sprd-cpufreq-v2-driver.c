@@ -514,9 +514,8 @@ static int sprd_cpufreq_set_target_index(struct cpufreq_policy *policy, u32 inde
 	mutex_lock(&cluster->mutex);
 
 	if (index >= cluster->table_entry_num) {
-		pr_err("cluster %u index %u is error\n", cluster->id, index);
-		mutex_unlock(&cluster->mutex);
-		return -EINVAL;
+		pr_info("cluster %u index %u has been reduced\n", cluster->id, index);
+		index = cluster->table_entry_num - 1;
 	}
 
 	ret = cluster->freq_set(cluster->id, index);
