@@ -11,7 +11,6 @@
 
 struct subsys_slp_info_data;
 typedef void (*slp_info_update_func)(struct subsys_slp_info_data *subsys_data, u32 stage);
-typedef void (*slp_info_update_func_ext)(struct subsys_slp_info_data *subsys_data);
 
 struct slp_info_reg {
 	struct regmap *map;
@@ -33,7 +32,7 @@ struct subsys_slp_info_data {
 	struct slp_info_reg slp_state;
 	struct slp_info_reg slp_time;
 	slp_info_update_func info_update;
-	slp_info_update_func_ext info_update_ext;
+	slp_info_update_func info_update_ext;
 	struct slp_lock *lock;
 	u32 index;
 	bool update_ext;
@@ -42,7 +41,7 @@ struct subsys_slp_info_data {
 struct subsys_data_var {
 	const char *name;
 	slp_info_update_func info_update;
-	slp_info_update_func_ext info_update_ext;
+	slp_info_update_func info_update_ext;
 };
 
 struct slp_info_data {

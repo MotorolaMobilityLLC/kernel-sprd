@@ -135,6 +135,11 @@ static int sprd_regs_info_proc_init(struct regs_info_data *data, struct proc_dir
 
 static void sprd_pdbg_regs_info_show(struct regs_info_data *regs_info)
 {
+	sprd_pdbg_regs_get(regs_info, regs_info->log_buf, true);
+}
+
+static void sprd_pdbg_regs_info_show_locked(struct regs_info_data *regs_info)
+{
 	mutex_lock(&regs_info->regs_info_mutex);
 	sprd_pdbg_regs_get(regs_info, regs_info->log_buf, true);
 	mutex_unlock(&regs_info->regs_info_mutex);
@@ -146,8 +151,10 @@ static void regs_info_notify_handler(void *data, unsigned long cmd)
 
 	switch (cmd) {
 	case SPRD_CPU_PM_ENTER:
-	case SPRD_PM_MONITOR:
 		sprd_pdbg_regs_info_show(regs_info);
+		break;
+	case SPRD_PM_MONITOR:
+		sprd_pdbg_regs_info_show_locked(regs_info);
 		break;
 	default:
 		break;
