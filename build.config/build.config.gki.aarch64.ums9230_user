@@ -34,6 +34,7 @@ EXT_MODULES="
 ../modules/kernel5.15/nfc/SN4V
 ../modules/common/io/block
 ../modules/common/io/iowait
+../modules/common/io/filemap
 ../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver

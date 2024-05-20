@@ -61,6 +61,7 @@ EXT_MODULES="
 ../modules/common/camera/sensor
 ../modules/common/io/block
 ../modules/common/io/iowait
+../modules/common/io/filemap
 "
 fi
 #camera module version config

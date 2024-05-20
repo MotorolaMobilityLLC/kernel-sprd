@@ -43,6 +43,7 @@ EXT_MODULES="
 ../modules/common/camera/mmdvfs
 ../modules/common/io/block
 ../modules/common/io/iowait
+../modules/common/io/filemap
 ../modules/kernel5.15/video/sprd-vpu
 ../modules/kernel5.15/video/sprd-vpu-power
 ../modules/kernel5.15/video/sprd-jpg

@@ -62,6 +62,7 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/dai/tdm
 ../modules/common/io/block
 ../modules/common/io/iowait
+../modules/common/io/filemap
 ../modules/common/camera/power
 ../modules/common/camera/cam_sys
 ../modules/common/camera/cpp

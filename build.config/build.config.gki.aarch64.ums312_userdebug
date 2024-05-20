@@ -51,6 +51,7 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/codec/sprd/sc2730/power_dev
 ../modules/common/io/block
 ../modules/common/io/iowait
+../modules/common/io/filemap
 ../modules/kernel5.15/video/sprd-vpu
 ../modules/kernel5.15/video/sprd-vsp-power
 ../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
