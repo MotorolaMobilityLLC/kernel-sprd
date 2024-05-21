@@ -1195,7 +1195,8 @@ retry_tuning:
 	}
 
 	err = sdhci_sprd_tuning(mmc, opcode, type);
-	if (HOST_IS_SD_TYPE(mmc) && err && sprd_host->tuning_merged) {
+	if (HOST_IS_SD_TYPE(mmc) && err && sprd_host->tuning_merged &&
+		(type != SDHCI_SPRD_TUNING_SD_HS)) {
 		pr_err("%s: cmd and data tuning merged failed, afterwards tuning separately\n",
 			mmc_hostname(mmc));
 		sprd_host->tuning_merged = false;
