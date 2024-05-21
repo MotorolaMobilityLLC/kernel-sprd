@@ -130,33 +130,33 @@
 			front_sensor: front-sensor {
 				compatible = "sprd,shell-thermal";
 				#thermal-sensor-cells = <0>;
-				sensor-names = "chg-thmzone",
+				sensor-names = "board-thmzone",
 						"pa-thmzone",
-						"board-thmzone",
-						"battery";
-				temp-coeff = <18881 17918 18288 18241 18889 18974 18976
-						13160 17177 17571 17413 17324 17990 23386
-						15219 15341 15299 15330 14777 13891 16130
-						597 16326 16001 15710 19060 19947 38182>;
-				coeff-offset = <17000>;
-				temp-const = <256>;
+						"pa5g-thmzone",
+						"chg-thmzone";
+				temp-coeff = <2800 2905 2899 3070 2952 2960 2765
+						3655 3834 4878 5729 6478 7826 10212
+						1021 1903 2398 2902 3156 3674 4398
+						2644 2144 1851 1446 928 570 2005>;
+				coeff-offset = <3000>;
+				temp-const = <0>;
 				const-offset = <0>;
 			};
 
 			back_sensor: back-sensor {
 				compatible = "sprd,shell-thermal";
 				#thermal-sensor-cells = <0>;
-				sensor-names = "chg-thmzone",
+				sensor-names = "board-thmzone",
 						"pa-thmzone",
-						"board-thmzone",
-						"battery";
-				temp-coeff = <19281 19863 20573 20843 21523 21903 21530
-						15641 19803 20542 20460 20374 21149 27280
-						20678 19833 19152 18770 18146 17276 19273
-						521 18852 18577 18451 22329 23133 44243>;
-				coeff-offset = <20000>;
-				temp-const = <791>;
-				const-offset = <1000>;
+						"pa5g-thmzone",
+						"chg-thmzone";
+				temp-coeff = <3469 3573 3461 3814 3786 4033 3146
+						2676 1656 3602 5173 6573 8551 11871
+						633 3114 3787 4934 5710 6489 8456
+						6637 3746 3554 2961 1883 1438 3277>;
+						coeff-offset = <4000>;
+				temp-const = <0>;
+				const-offset = <0>;
 			};
 
 			right_sensor: right-sensor {
@@ -194,17 +194,17 @@
 			env_sensor: env-sensor {
 				compatible = "sprd,shell-thermal";
 				#thermal-sensor-cells = <0>;
-				sensor-names = "chg-thmzone",
+				sensor-names = "board-thmzone",
 						"pa-thmzone",
-						"board-thmzone",
-						"battery";
-				temp-coeff = <88434 86056 89451 90002 93103 93856 90891
-						28750 79653 85395 85323 84382 87994 125132
-						71347 69498 67250 65976 63148 60212 71661
-						425 73750 73214 74213 87331 89947 173603>;
-				coeff-offset = <80000>;
-				temp-const = <681>;
-				const-offset = <3000>;
+						"pa5g-thmzone",
+						"chg-thmzone";
+				temp-coeff = <9703 8245 7734 8218 7817 8326 9542
+						9490 9877 11189 12201 13807 16007 19527
+						920 4594 5741 6408 7366 8031 8462
+						7449 6512 6095 5872 4708 3774 6384>;
+				coeff-offset = <8000>;
+				temp-const = <0>;
+				const-offset = <0>;
 			};
 
 			/*fingerprint@0 {
