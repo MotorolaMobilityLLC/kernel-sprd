@@ -335,6 +335,10 @@ static void usb_config_4_cts(struct sprd_ssphy *phy)
 	reg |= BIT(3);
 	regmap_write(phy->ipa_usb31_dp, 0x20, reg);
 
+	/* select new CDR logic, repaire usb31 10G problem */
+	reg |= BIT(11);
+	regmap_write(phy->ipa_usb31_dp, 0x20, reg);
+
 	/*phy reg addr 0x0021 SUP_DIG_LVL_OVER_IN*/
 	reg = 0x10021;
 	regmap_write(phy->ipa_usb31_dp, 0x8, reg);
