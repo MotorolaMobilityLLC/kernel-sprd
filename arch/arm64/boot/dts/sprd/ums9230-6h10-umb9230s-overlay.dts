@@ -76,7 +76,7 @@
 			};
 
 			skin_sensor: skin-sensor {
-				compatible = "sprd,skin-thermal";
+				compatible = "sprd, skin-thermal";
 				#thermal-sensor-cells = <0>;
 				sensor-names = "board-thmzone";
 			};
