@@ -196,6 +196,7 @@ struct sdhci_sprd_host {
 	struct register_hotplug reg_debounce_cn;
 	struct register_hotplug reg_rmldo_en;
 	unsigned char	power_mode;
+	struct mmc_card *card;
 	bool vqmmc_enabled;
 	bool init_flag;
 	bool support_swcq;
@@ -299,7 +300,7 @@ static void sdhci_sprd_init_card(struct mmc_host *mmc, struct mmc_card *card)
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 
 	if (HOST_IS_SD_TYPE(mmc)) {
-		mmc->card = card;
+		sprd_host->card = card;
 		sprd_host->init_flag = true;
 	}
 }
@@ -647,7 +648,6 @@ static bool sdhci_sprd_check_invert(struct sdhci_host *host)
 static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 {
 	struct mmc_host *mmc = host->mmc;
-	struct mmc_card *card = mmc->card;
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	bool en = false, clk_changed = false;
 
@@ -681,6 +681,8 @@ static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 	 * Print manfid/prod_name and do some special ops for some special t-cards
 	 */
 	if (sprd_host->init_flag && clk_changed && clock >= HIGH_SPEED_MAX_DTR) {
+		struct mmc_card *card = sprd_host->card;
+
 		/* print mmc device info */
 		pr_info("%s: manfid= 0x%06x, name= %s\n",
 			mmc_hostname(mmc), card->cid.manfid, card->cid.prod_name);
