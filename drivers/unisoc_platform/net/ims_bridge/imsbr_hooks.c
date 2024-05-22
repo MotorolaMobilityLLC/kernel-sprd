@@ -1010,6 +1010,7 @@ static unsigned int nf_imsbr_ipv4_frag_output(void *priv,
 	struct dst_entry *dst = skb_dst(skb);
 	struct xfrm_state *x = dst->xfrm;
 	int pmtu = 1400;
+	unsigned int transport_offset;
 
 	if (!xfrm_frag_enable)
 		return NF_ACCEPT;
@@ -1038,6 +1039,13 @@ static unsigned int nf_imsbr_ipv4_frag_output(void *priv,
 			- x->props.header_len
 			- x->props.trailer_len);
 	}
+
+	if (ipv4h->protocol == IPPROTO_UDP) {
+		transport_offset = ipv4h->ihl * 4;
+		skb_set_transport_header(skb, transport_offset);
+		uh = udp_hdr(skb);
+	}
+
 	if (skb->len > pmtu &&
 	    ((ipv4h->protocol == IPPROTO_UDP && ntohs(uh->dest) == 5060) ||
 	    ipv4h->protocol == IPPROTO_ESP)) {
@@ -1079,6 +1087,7 @@ static unsigned int nf_imsbr_ipv6_frag_output(void *priv,
 	struct xfrm_state *x = dst->xfrm;
 	struct ipv6_pinfo *np = skb->sk ? inet6_sk(skb->sk) : NULL;
 	int pmtu = 1400;
+	int transport_offset;
 
 	if (!xfrm_frag_enable)
 		return NF_ACCEPT;
@@ -1106,6 +1115,12 @@ static unsigned int nf_imsbr_ipv6_frag_output(void *priv,
 		pmtu = (1400
 			- x->props.header_len
 			- x->props.trailer_len);
+	}
+
+	if (ipv6h->nexthdr == NEXTHDR_UDP) {
+		transport_offset = skb->len - skb->data_len - ntohs(ipv6h->payload_len);
+		skb_set_transport_header(skb, transport_offset);
+		uh = udp_hdr(skb);
 	}
 
 	if (skb->len > pmtu &&
