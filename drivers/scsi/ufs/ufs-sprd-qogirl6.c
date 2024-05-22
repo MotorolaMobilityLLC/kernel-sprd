@@ -378,6 +378,11 @@ int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 	if (ret < 0)
 		return ret;
 
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ap_apb_cfg_frc_on,
+				      "ap_apb_cfg_frc_on");
+	if (ret < 0)
+		return ret;
+
 	return ret;
 }
 
@@ -1136,6 +1141,9 @@ out:
 static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 					enum ufs_notify_change_status status)
 {
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9230_data *priv =
+		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
 	int err = 0;
 
 	switch (status) {
@@ -1160,6 +1168,13 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 		break;
 	case POST_CHANGE:
 		hba->clk_gating.delay_ms = 10;
+
+		/* keep UFS cfgclk AON in runtime state */
+		regmap_update_bits(priv->ap_apb_cfg_frc_on.regmap,
+				   priv->ap_apb_cfg_frc_on.reg,
+				   priv->ap_apb_cfg_frc_on.mask,
+				   priv->ap_apb_cfg_frc_on.mask);
+
 		break;
 	default:
 		err = -EINVAL;
@@ -1331,6 +1346,10 @@ static void ufs_sprd_fixup_dev_quirks(struct ufs_hba *hba)
 static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 						enum ufs_notify_change_status status)
 {
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9230_data *priv =
+		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
+
 	switch (status) {
 	case PRE_CHANGE:
 		break;
@@ -1338,6 +1357,12 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 		hba->rpm_lvl = UFS_PM_LVL_1;
 		hba->spm_lvl = UFS_PM_LVL_5;
 		hba->uic_link_state = UIC_LINK_OFF_STATE;
+
+		/* close UFS cfgclk AON in suspend state */
+		regmap_update_bits(priv->ap_apb_cfg_frc_on.regmap,
+				   priv->ap_apb_cfg_frc_on.reg,
+				   priv->ap_apb_cfg_frc_on.mask,
+				   0);
 		break;
 	default:
 		break;
