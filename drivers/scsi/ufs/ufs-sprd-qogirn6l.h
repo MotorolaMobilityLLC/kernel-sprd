@@ -15,6 +15,7 @@ struct ufs_sprd_ums9621_data {
 	struct syscon_ufs aon_apb_ufs_clk_en;
 	struct syscon_ufs ufsdev_refclk_en;
 	struct syscon_ufs usb31pllv_ref2mphy_en;
+	struct syscon_ufs ufs_cfg_eb;
 
 	struct clk *hclk_source;
 	struct clk *hclk;

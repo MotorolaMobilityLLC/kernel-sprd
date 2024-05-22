@@ -304,6 +304,10 @@ static int ufs_sprd_get_syscon_reg_dt(struct device *dev,
 					&priv->usb31pllv_ref2mphy_en,
 				      "usb31pllv_ref2mphy_en");
 
+	ret = ufs_sprd_get_syscon_reg(dev->of_node,
+					&priv->ufs_cfg_eb,
+				      "ufs_cfg_eb");
+
 	return ret;
 }
 
@@ -415,12 +419,23 @@ static int ufs_sprd_priv_pre_init(struct device *dev,
 				  struct ufs_sprd_host *host)
 {
 	int ret = 0;
-
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+	struct sprd_sip_svc_handle *svc_handle;
+#endif
 	struct ufs_sprd_ums9621_data *priv =
 		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
-	struct sprd_sip_svc_handle *svc_handle;
 
+	regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
+			   priv->usb31pllv_ref2mphy_en.reg,
+			   priv->usb31pllv_ref2mphy_en.mask,
+			   priv->usb31pllv_ref2mphy_en.mask);
+
+	regmap_update_bits(priv->ufs_cfg_eb.regmap,
+			   priv->ufs_cfg_eb.reg,
+			   priv->ufs_cfg_eb.mask,
+			   priv->ufs_cfg_eb.mask);
+
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 	ret = reset_control_assert(priv->ap_ahb_ufs_rst);
 	if (ret) {
 		dev_err(host->hba->dev, "%s assert ufs_soft_rst failed, ret = %d!\n",
@@ -1176,37 +1191,23 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 		ufshcd_common_trace(hba, UFS_TRACE_CLK_GATE, &clk_tmp);
 	}
 
+	if (priv == NULL) {
+		dev_err(hba->dev, "%s ufs private data isn't initializated.\n", __func__);
+		return 0;
+	}
+
 	switch (status) {
 	case PRE_CHANGE:
-		if (!ufshcd_is_link_hibern8(hba) || priv == NULL) {
-			dev_err(hba->dev, "%s during ufs init or setup clock not in h8", __func__);
-			return 0;
-		}
-
-		/* synopsys spec requires that refclk must be opened before cfg_eb */
-		if (ufshcd_is_link_hibern8(hba) && (on == true)) {
+		if (on == true) {
 			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
-				priv->ufsdev_refclk_en.reg,
-				priv->ufsdev_refclk_en.mask,
-				priv->ufsdev_refclk_en.mask);
-
-			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
-				priv->usb31pllv_ref2mphy_en.reg,
-				priv->usb31pllv_ref2mphy_en.mask,
-				priv->usb31pllv_ref2mphy_en.mask);
-		}
-
-		if ((priv != NULL) && ufshcd_is_link_hibern8(hba) && (on == false)) {
-			usleep_range(1000, 1100);
+					   priv->ufsdev_refclk_en.reg,
+					   priv->ufsdev_refclk_en.mask,
+					   priv->ufsdev_refclk_en.mask);
+		} else {
 			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
-				priv->ufsdev_refclk_en.reg,
-				priv->ufsdev_refclk_en.mask,
-				0);
-
-			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
-				priv->usb31pllv_ref2mphy_en.reg,
-				priv->usb31pllv_ref2mphy_en.mask,
-				0);
+					   priv->ufsdev_refclk_en.reg,
+					   priv->ufsdev_refclk_en.mask,
+					   0);
 		}
 		break;
 	case POST_CHANGE:
