@@ -131,6 +131,8 @@
 #define UMP96XX_FGU_RELAX_CUR_THRESHOLD_MA	30
 #define UMP96XX_FGU_RELAX_CNT_THRESHOLD		320
 
+#define UMP96XX_FGU_CLBCNT_MAX_RANGE_VAL	0x100000000
+
 static s64 init_clbcnt;
 static s64 start_work_clbcnt;
 static s64 latest_clbcnt;
@@ -182,9 +184,12 @@ static s64 ump96xx_fgu_cap2clbcnt(struct sprd_fgu_info *info, int total_mah, int
 
 	/*
 	 * Convert current capacity (mAh) to coulomb counter according to the
-	 * formula: 1 mAh =3.6 coulomb.
+	 * formula: 1 mAh = 3.6 coulomb.
+	 * 1 clbcnt = cur_mah * 36 * cur_1000ma_adc * fgu_clk_sample_hz / 10
+	 * = cur_mah * 18 * cur_1000ma_adc * fgu_clk_sample_hz / 5
 	 */
-	return DIV_ROUND_CLOSEST(cur_mah * 36 * info->cur_1000ma_adc * UMP96XX_FGU_SAMPLE_HZ, 10);
+	return DIV_S64_ROUND_CLOSEST(cur_mah * 18 * info->cur_1000ma_adc *
+				     UMP96XX_FGU_SAMPLE_HZ, 5);
 }
 
 static int ump96xx_fgu_clbcnt2uah(struct sprd_fgu_info *info, s64 clbcnt)
@@ -193,8 +198,10 @@ static int ump96xx_fgu_clbcnt2uah(struct sprd_fgu_info *info, s64 clbcnt)
 	 * Convert coulomb counter to delta capacity (uAh), and set multiplier
 	 * as 10 to improve the precision.
 	 * formula: 1000 uAh = 3.6 coulomb
+	 * 1 uah = clbcnt * 10 * 1000 / (36 * fgu_clk_sample_hz * cur_1000ma_adc)
+	 * = clbcnt * 2500 / (9 * fgu_clk_sample_hz * cur_1000ma_adc)
 	 */
-	s64 uah = DIV_ROUND_CLOSEST(clbcnt * 10 * 1000, 36 * UMP96XX_FGU_SAMPLE_HZ);
+	s64 uah = DIV_S64_ROUND_CLOSEST(clbcnt * 2500, 9 * UMP96XX_FGU_SAMPLE_HZ);
 
 	if (uah > 0)
 		uah = uah + info->cur_1000ma_adc / 2;
@@ -965,6 +972,9 @@ static int ump96xx_fgu_get_clbcnt(struct sprd_fgu_info *info, s64 *clb_cnt)
 		return ret;
 
 	*clb_cnt = ccl | (cch << 16);
+
+	if (cch & 0x2000)
+		*clb_cnt = *clb_cnt - UMP96XX_FGU_CLBCNT_MAX_RANGE_VAL;
 
 	return ret;
 }

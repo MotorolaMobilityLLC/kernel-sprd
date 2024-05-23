@@ -105,6 +105,8 @@
 #define SPRD_FGU_FCC_PERCENT				1000
 #define SPRD_FGU_EXTCON_SINK				3
 #define SPRD_FGU_GET_CHG_TYPE_RETRY_CNT			12
+#define SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF		30
+#define SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF		150
 #define SPRD_FGU_IS_SWITCH_BAT_PARA_VOL_THRES		4100
 #define SPRD_FGU_REG_MAX				0x260
 #define interpolate(x, x1, y1, x2, y2) \
@@ -139,6 +141,7 @@ struct sprd_fgu_ocv_info {
 	s64 ocv_time_stamp;
 	int ocv_uv;
 	bool valid;
+	bool is_low_density;
 };
 
 struct sprd_fgu_track_capacity {
@@ -188,7 +191,8 @@ struct sprd_fgu_sysfs {
 	struct device_attribute attr_sprd_fgu_enable_sleep_calib;
 	struct device_attribute attr_sprd_fgu_relax_cnt_th;
 	struct device_attribute attr_sprd_fgu_relax_cur_th;
-	struct attribute *attrs[7];
+	struct device_attribute attr_sprd_fgu_charge_now;
+	struct attribute *attrs[8];
 
 	struct sprd_fgu_data *data;
 };
@@ -1032,6 +1036,50 @@ static bool sprd_fgu_is_in_low_energy_dens(struct sprd_fgu_data *data, int ocv_u
 	return is_matched;
 }
 
+static bool sprd_fgu_is_need_calib(struct sprd_fgu_data *data, int pocv_uv, int pocv_cap, int cap)
+{
+	bool is_need = false;
+
+	if (sprd_fgu_is_in_low_energy_dens(data, pocv_uv, data->cap_calib_dens_ocv_table,
+					   data->cap_calib_dens_ocv_table_len)) {
+		dev_info(data->dev, "Boot calib: pocv_uv is in low energy dens!!!!\n");
+		is_need = true;
+		data->track.pocv_info.is_low_density = true;
+		return is_need;
+	}
+
+	if ((pocv_cap - SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF > cap) ||
+	    (pocv_cap + SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF < cap)) {
+		is_need = true;
+		dev_info(data->dev, "Boot calib: normal cap error is too large need to be calib!!!!\n");
+	}
+
+	return is_need;
+}
+
+static bool sprd_fgu_sr_is_need_calib(struct sprd_fgu_data *data, int vol_uv)
+{
+	bool is_need = false;
+	int sr_ocv_cap;
+
+	if (sprd_fgu_is_in_low_energy_dens(data, vol_uv, data->cap_calib_dens_ocv_table,
+					   data->cap_calib_dens_ocv_table_len)) {
+		dev_info(data->dev, "suspend calib: vol_uv is in low energy dens!!!!\n");
+		is_need = true;
+		data->track.lpocv_info.is_low_density = true;
+		return is_need;
+	}
+
+	sr_ocv_cap = sprd_fgu_ocv2cap(data->cap_table, data->table_len, vol_uv);
+	if ((sr_ocv_cap - SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF > data->normal_temp_cap) ||
+	    (sr_ocv_cap + SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF < data->normal_temp_cap)) {
+		is_need = true;
+		dev_info(data->dev, "suspend calib: normal cap error is too large need to be calib!!!!\n");
+	}
+
+	return is_need;
+}
+
 static void sprd_fgu_calc_charge_cycle(struct sprd_fgu_data *data, int cap, int *fgu_cap)
 {
 	int delta_cap;
@@ -1117,12 +1165,6 @@ static void sprd_fgu_boot_cap_calibration(struct sprd_fgu_data *data,
 		return;
 	}
 
-	if (!sprd_fgu_is_in_low_energy_dens(data, pocv_uv, data->cap_calib_dens_ocv_table,
-					    data->cap_calib_dens_ocv_table_len)) {
-		dev_warn(data->dev, "Boot calib: pocv_uv is not in low energy dens !!!!\n");
-		return;
-	}
-
 	if (data->bat_temp < SPRD_FGU_CAP_CALIB_TEMP_LOW ||
 		data->bat_temp > SPRD_FGU_CAP_CALIB_TEMP_HI) {
 		dev_err(data->dev, "Boot calib: temp = %d out range\n", data->bat_temp);
@@ -1145,16 +1187,29 @@ static void sprd_fgu_boot_cap_calibration(struct sprd_fgu_data *data,
 		return;
 	}
 
+	if (!sprd_fgu_is_need_calib(data, pocv_uv, pocv_cap, *cap)) {
+		dev_warn(data->dev, "Boot calib: pocv_uv is not meet calib condition !!!!\n");
+		return;
+	}
+
 	data->track.pocv_info.valid = true;
 	data->track.pocv_info.ocv_uv = pocv_uv;
 	data->track.pocv_info.ocv_time_stamp = cur_time;
 
 	dev_info(data->dev, "Boot calib: pocv_cap = %d, *cap = %d\n", pocv_cap, *cap);
 
-	if (pocv_cap > *cap + 30)
-		*cap += (pocv_cap - *cap - 30);
-	else if (pocv_cap < *cap - 30)
-		*cap -= (*cap - pocv_cap - 30);
+	if (data->track.pocv_info.is_low_density) {
+		data->track.pocv_info.is_low_density = false;
+		if (pocv_cap > *cap + SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF)
+			*cap = pocv_cap - SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF;
+		else if (pocv_cap < *cap - SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF)
+			*cap = pocv_cap + SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF;
+	} else {
+		if (pocv_cap - SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF > *cap)
+			*cap = pocv_cap - SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF;
+		else if (pocv_cap + SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF < *cap)
+			*cap = pocv_cap + SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF;
+	}
 }
 
 /*
@@ -3633,7 +3688,7 @@ static ssize_t sprd_fgu_reg_val_store(struct device *dev,
 		container_of(attr, struct sprd_fgu_sysfs,
 			     attr_sprd_fgu_reg_val);
 	struct sprd_fgu_data *data = sysfs->data;
-	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	struct sprd_fgu_info *fgu_info;
 	u32 reg_val;
 	int ret;
 
@@ -3642,6 +3697,7 @@ static ssize_t sprd_fgu_reg_val_store(struct device *dev,
 		return count;
 	}
 
+	fgu_info = data->fgu_info;
 	ret =  kstrtouint(buf, 16, &reg_val);
 	if (ret) {
 		dev_err(data->dev, "fail to get addr, ret = %d\n", ret);
@@ -3814,6 +3870,30 @@ static ssize_t sprd_fgu_relax_cur_th_store(struct device *dev,
 	return count;
 }
 
+static ssize_t sprd_fgu_charge_now_show(struct device *dev, struct device_attribute *attr,
+					char *buf)
+{
+	struct sprd_fgu_sysfs *sysfs = container_of(attr, struct sprd_fgu_sysfs,
+						    attr_sprd_fgu_charge_now);
+	struct sprd_fgu_data *data = sysfs->data;
+	struct sprd_fgu_info *fgu_info;
+	int cc_uah = 0, ret = 0;
+
+	if (!data) {
+		dev_err(dev, "%s sprd_fgu_data is null\n", __func__);
+		return snprintf(buf, PAGE_SIZE, "%s sprd_fgu_data is null\n", __func__);
+	}
+
+	fgu_info = data->fgu_info;
+	ret = fgu_info->ops->get_cc_uah(fgu_info, &cc_uah, false);
+	if (ret) {
+		dev_err(data->dev, "failed to get cc uah!\n");
+		return snprintf(buf, PAGE_SIZE, "%s failed ret = %d\n", __func__, ret);
+	}
+
+	return snprintf(buf, PAGE_SIZE, "[batt cc_mah:%d]\n", cc_uah / 1000);
+}
+
 static int sprd_fgu_register_sysfs(struct sprd_fgu_data *data)
 {
 	struct sprd_fgu_sysfs *sysfs;
@@ -3832,7 +3912,8 @@ static int sprd_fgu_register_sysfs(struct sprd_fgu_data *data)
 	sysfs->attrs[3] = &sysfs->attr_sprd_fgu_enable_sleep_calib.attr;
 	sysfs->attrs[4] = &sysfs->attr_sprd_fgu_relax_cnt_th.attr;
 	sysfs->attrs[5] = &sysfs->attr_sprd_fgu_relax_cur_th.attr;
-	sysfs->attrs[6] = NULL;
+	sysfs->attrs[6] = &sysfs->attr_sprd_fgu_charge_now.attr;
+	sysfs->attrs[7] = NULL;
 	sysfs->attr_g.name = "debug";
 	sysfs->attr_g.attrs = sysfs->attrs;
 
@@ -3870,6 +3951,11 @@ static int sprd_fgu_register_sysfs(struct sprd_fgu_data *data)
 	sysfs->attr_sprd_fgu_relax_cur_th.attr.mode = 0644;
 	sysfs->attr_sprd_fgu_relax_cur_th.show = sprd_fgu_relax_cur_th_show;
 	sysfs->attr_sprd_fgu_relax_cur_th.store = sprd_fgu_relax_cur_th_store;
+
+	sysfs_attr_init(&sysfs->attr_sprd_fgu_charge_now.attr);
+	sysfs->attr_sprd_fgu_charge_now.attr.name = "fgu_charge_now";
+	sysfs->attr_sprd_fgu_charge_now.attr.mode = 0444;
+	sysfs->attr_sprd_fgu_charge_now.show = sprd_fgu_charge_now_show;
 
 	ret = sysfs_create_group(&data->battery->dev.kobj, &sysfs->attr_g);
 	if (ret < 0)
@@ -4577,22 +4663,42 @@ static void sprd_fgu_sr_calib_cap_calib(struct sprd_fgu_data *data)
 	int sr_ocv_cap;
 	struct timespec64 cur_time;
 	s64 cur_times;
+	struct sprd_fgu_info *fgu_info = data->fgu_info;
 
 	cur_time = ktime_to_timespec64(ktime_get_boottime());
 	cur_times = cur_time.tv_sec;
 	sr_ocv_cap = sprd_fgu_ocv2cap(data->cap_table, data->table_len, data->sr_ocv_uv);
 
-	dev_info(data->dev, "%s, sr_ocv_cap = %d, normal_temp_cap = %d, init_cap = %d\n",
-		 __func__, sr_ocv_cap, data->normal_temp_cap, data->init_cap);
-
-	if (sr_ocv_cap > data->normal_temp_cap + 30)
-		data->init_cap += (sr_ocv_cap - data->normal_temp_cap - 30);
-	else if (sr_ocv_cap < data->normal_temp_cap - 30)
-		data->init_cap -= (data->normal_temp_cap - sr_ocv_cap - 30);
-
 	data->track.lpocv_info.valid = true;
 	data->track.lpocv_info.ocv_uv = data->sr_ocv_uv;
 	data->track.lpocv_info.ocv_time_stamp = cur_times;
+
+	dev_info(data->dev, "%s, sr_ocv_cap = %d, normal_temp_cap = %d\n",
+		 __func__, sr_ocv_cap, data->normal_temp_cap);
+
+	if (data->track.lpocv_info.is_low_density) {
+		data->track.lpocv_info.is_low_density = false;
+		if (sr_ocv_cap > data->normal_temp_cap + SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF) {
+			data->normal_temp_cap = sr_ocv_cap - SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF;
+			goto out;
+		} else if (sr_ocv_cap < data->normal_temp_cap - SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF) {
+			data->normal_temp_cap = sr_ocv_cap + SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF;
+			goto out;
+		}
+	} else {
+		if (sr_ocv_cap - SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF > data->normal_temp_cap) {
+			data->normal_temp_cap = sr_ocv_cap - SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF;
+			goto out;
+		} else if (sr_ocv_cap + SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF < data->normal_temp_cap) {
+			data->normal_temp_cap = sr_ocv_cap + SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF;
+			goto out;
+		}
+	}
+
+	return;
+
+out:
+	data->init_cap = fgu_info->ops->adjust_cap(fgu_info, data->normal_temp_cap);
 }
 
 static int sprd_fgu_sr_get_ocv(struct sprd_fgu_data *data)
@@ -4646,8 +4752,7 @@ static int sprd_fgu_sr_get_ocv(struct sprd_fgu_data *data)
 		  __func__, total_vol_mv, valid_cnt, total_vol_mv / valid_cnt);
 
 	vol_uv = total_vol_mv * 1000 / valid_cnt;
-	if (sprd_fgu_is_in_low_energy_dens(data, vol_uv, data->cap_calib_dens_ocv_table,
-					   data->cap_calib_dens_ocv_table_len)) {
+	if (sprd_fgu_sr_is_need_calib(data, vol_uv)) {
 		data->sr_ocv_uv = vol_mv * 1000;
 		sprd_fgu_sr_calib_cap_calib(data);
 		dev_info(data->dev, "%s suspend calib: get sr_ocv_uv = %duV!!!\n",
@@ -4778,7 +4883,6 @@ static void sprd_fgu_sr_calib_suspend_check(struct sprd_fgu_data *data)
 			__func__, awake_time);
 	}
 }
-
 
 static int sprd_fgu_suspend(struct device *dev)
 {
