@@ -35,15 +35,12 @@
 #define SC2721_MODULE_EN0			0xC08
 #define SC2721_CLK_EN0				0xC10
 #define SC2721_IB_CTRL				0xEA4
-#define SC2721_IB_TRIM_OFFSET			0x1e
 #define SC2730_MODULE_EN0			0x1808
 #define SC2730_CLK_EN0				0x1810
 #define SC2730_IB_CTRL				0x1b84
-#define SC2730_IB_TRIM_OFFSET			0x1e
 #define UMP9620_MODULE_EN0			0x2008
 #define UMP9620_CLK_EN0				0x2010
 #define UMP9620_IB_CTRL				0x2384
-#define UMP9620_IB_TRIM_OFFSET			0x0
 
 #define ANA_REG_IB_TRIM_MASK			GENMASK(6, 0)
 #define ANA_REG_IB_TRIM_SHIFT			2
@@ -89,28 +86,24 @@ struct sc27xx_fast_chg_data {
 	u32 module_en;
 	u32 clk_en;
 	u32 ib_ctrl;
-	u32 ib_trim_offset;
 };
 
 static const struct sc27xx_fast_chg_data sc2721_info = {
 	.module_en = SC2721_MODULE_EN0,
 	.clk_en = SC2721_CLK_EN0,
 	.ib_ctrl = SC2721_IB_CTRL,
-	.ib_trim_offset = SC2721_IB_TRIM_OFFSET,
 };
 
 static const struct sc27xx_fast_chg_data sc2730_info = {
 	.module_en = SC2730_MODULE_EN0,
 	.clk_en = SC2730_CLK_EN0,
 	.ib_ctrl = SC2730_IB_CTRL,
-	.ib_trim_offset = SC2730_IB_TRIM_OFFSET,
 };
 
 static const struct sc27xx_fast_chg_data ump9620_info = {
 	.module_en = UMP9620_MODULE_EN0,
 	.clk_en = UMP9620_CLK_EN0,
 	.ib_ctrl = UMP9620_IB_CTRL,
-	.ib_trim_offset = UMP9620_IB_TRIM_OFFSET,
 };
 
 struct sc27xx_fchg_info {
@@ -124,22 +117,22 @@ struct sc27xx_fchg_info {
 	u32 state;
 	u32 base;
 	int input_vol;
+	int ext_dev_comp_cur_code;
 	u32 charger_online;
 	bool detected;
 	bool shutdown_flag;
 	const struct sc27xx_fast_chg_data *pdata;
 };
 
-static int sc27xx_fchg_internal_cur_calibration(struct sc27xx_fchg_info *info)
+static int sc27xx_fchg_efuse_read(struct sc27xx_fchg_info *info,
+				  const char *cell_id, u32 *val)
 {
 	struct nvmem_cell *cell;
-	int calib_data, calib_current, ret;
 	void *buf;
-	size_t len;
-	const struct sc27xx_fast_chg_data *pdata = info->pdata;
+	size_t len = 0;
 
-	cell = nvmem_cell_get(info->dev, "fchg_cur_calib");
-	if (IS_ERR_OR_NULL(cell))
+	cell = nvmem_cell_get(info->dev, cell_id);
+	if (IS_ERR(cell))
 		return PTR_ERR(cell);
 
 	buf = nvmem_cell_read(cell, &len);
@@ -148,8 +141,24 @@ static int sc27xx_fchg_internal_cur_calibration(struct sc27xx_fchg_info *info)
 	if (IS_ERR(buf))
 		return PTR_ERR(buf);
 
-	memcpy(&calib_data, buf, min(len, sizeof(u32)));
+	memcpy(val, buf, min(len, sizeof(u32)));
 	kfree(buf);
+	buf = NULL;
+
+	return 0;
+}
+
+static int sc27xx_fchg_internal_cur_calibration(struct sc27xx_fchg_info *info)
+{
+	u32 calib_data = 0, calib_current = 0;
+	int ret = 0;
+	const struct sc27xx_fast_chg_data *pdata = info->pdata;
+
+	ret = sc27xx_fchg_efuse_read(info, "fchg_cur_calib", &calib_data);
+	if (ret) {
+		dev_err(info->dev, "%s, failed to get efuse data, ret = %d\n", __func__, ret);
+		return ret;
+	}
 
 	/*
 	 * In the handshake protocol behavior of sfcp, the current source
@@ -157,9 +166,9 @@ static int sc27xx_fchg_internal_cur_calibration(struct sc27xx_fchg_info *info)
 	 * by set the register ANA_REG_IB_CTRL. Now we add 30 level compensation.
 	 */
 	calib_current = (calib_data & FCHG_CALI_MASK) >> FCHG_CALI_SHIFT;
-	calib_current += pdata->ib_trim_offset;
+	calib_current += info->ext_dev_comp_cur_code;
 
-	if (calib_current < 0 || calib_current > ANA_REG_IB_TRIM_MAX) {
+	if (calib_current > ANA_REG_IB_TRIM_MAX) {
 		dev_info(info->dev, "The compensated calib_current exceeds the range of IB_TRIM,"
 			 " calib_current=%d\n", calib_current);
 		calib_current = (calib_data & FCHG_CALI_MASK) >> FCHG_CALI_SHIFT;
@@ -585,6 +594,19 @@ static int sc27xx_fchg_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "failed to get fast charger voltage.\n");
 		return ret;
 	}
+
+	ret = device_property_read_u32(&pdev->dev,
+				       "sprd,ext-dev-comp-cur-code",
+				       &info->ext_dev_comp_cur_code);
+	if (ret) {
+		dev_info(&pdev->dev, "Failed to get ext device compensation current code, ret=%d\n",
+			 ret);
+		/* If this parameter is not defined in DTS, the default value is 0 */
+		info->ext_dev_comp_cur_code = 0;
+	}
+
+	dev_info(&pdev->dev, "%s, ext_dev_comp_cur_code = %d\n",
+		 __func__, info->ext_dev_comp_cur_code);
 
 	platform_set_drvdata(pdev, info);
 
