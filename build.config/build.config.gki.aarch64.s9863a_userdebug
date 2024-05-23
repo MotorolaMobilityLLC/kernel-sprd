@@ -11,6 +11,8 @@ if [[ $BSP_PRODUCT_NAME_TAIL == "Skynet" ]]; then
 	if [[ $BSP_PRODUCT_GO_DEVICE == "true" ]]; then
 		S9863A_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_swkasan_Skynet.fragment"
 	fi
+elif [[ $BSP_PRODUCT_NAME_TAIL == "Syzkaller" ]]; then
+	S9863A_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_Syzkaller.fragment"
 fi
 
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \
