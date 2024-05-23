@@ -192,6 +192,9 @@
 &pmic_fchg {
 	status = "okay";
 	sprd,input-voltage-microvolt = <5000000>;
+
+	/* External device current compensation code value during sfcp handshaking */
+	sprd,ext-dev-comp-cur-code = <0>;
 };
 
 &pmic_pd {
