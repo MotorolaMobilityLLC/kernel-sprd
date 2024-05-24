@@ -105,11 +105,11 @@ static ssize_t kswapd_stat_read(struct file *file, char __user *user_buf,
 {
 	ssize_t ret = -1;
 
-	if (spin_trylock(&mem_spinlock)) {
+	if (spin_trylock_irq(&mem_spinlock)) {
 		ret = 0;
 		strscpy(kswapd_tmp_buf, kswapd_stat_buf, strlen(kswapd_stat_buf) + 1);
 		flush_node_buf(kswapd_stat_buf, KSWAPD_CON_HEAD, &kswapd_stat_index);
-		spin_unlock(&mem_spinlock);
+		spin_unlock_irq(&mem_spinlock);
 	}
 	if (!ret) {
 		ret = simple_read_from_buffer(user_buf, count, ppos,
@@ -123,11 +123,11 @@ static ssize_t dr_stat_read(struct file *file, char __user *user_buf,
 {
 	ssize_t ret = -1;
 
-	if (spin_trylock(&dr_spinlock)) {
+	if (spin_trylock_irq(&dr_spinlock)) {
 		ret = 0;
 		strscpy(dr_tmp_buf, dr_stat_buf, strlen(dr_stat_buf) + 1);
 		flush_node_buf(dr_stat_buf, DR_CON_HEAD, &dr_stat_index);
-		spin_unlock(&dr_spinlock);
+		spin_unlock_irq(&dr_spinlock);
 	}
 	if (!ret) {
 		ret = simple_read_from_buffer(user_buf, count, ppos,
