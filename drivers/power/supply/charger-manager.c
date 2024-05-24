@@ -158,6 +158,9 @@
 
 #define CM_LIMIT_POWER_TRANSFER_MA		110
 
+/* Single soft multi hard scheme parameters */
+#define CM_CHECK_ALT_CP_PSY_TH_MS		600
+
 static const char * const cm_cp_state_names[] = {
 	[CM_CP_STATE_UNKNOWN] = "Charge pump state: UNKNOWN",
 	[CM_CP_STATE_RECOVERY] = "Charge pump state: RECOVERY",
@@ -5331,8 +5334,11 @@ static bool cm_charger_is_support_fchg(struct charger_manager *cm)
 			mutex_lock(&cm->desc->charger_type_mtx);
 			desc->is_fast_charge = true;
 			if (!desc->psy_cp_stat &&
-			    fchg_type == POWER_SUPPLY_CHARGE_TYPE_ADAPTIVE)
+			    fchg_type == POWER_SUPPLY_CHARGE_TYPE_ADAPTIVE) {
 				fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
+				cm->fchg_info->ops->force_set_fixed_fchg_type(cm->fchg_info);
+			}
+
 			cm_get_charger_type(cm, CM_FCHG_TYPE, &fchg_type);
 			desc->fast_charger_type = fchg_type;
 			desc->charger_type = fchg_type;
@@ -5724,7 +5730,7 @@ static int cm_get_charge_now(struct charger_manager *cm, int *charge_now)
 		return ret;
 	}
 
-	*charge_now = total_uah * cm->desc->cap / CM_CAP_FULL_PERCENT;
+	*charge_now = total_uah / CM_CAP_FULL_PERCENT * cm->desc->cap;
 
 	return ret;
 }
@@ -6574,6 +6580,8 @@ static bool cm_setup_timer(void)
 		add = ktime_set(wakeup_ms / MSEC_PER_SEC,
 				(wakeup_ms % MSEC_PER_SEC) * NSEC_PER_MSEC);
 		alarm_start(cm_timer, ktime_add(now, add));
+		pr_info("cm_timer set alarm, triggered at [%lld]ms\n",
+			ktime_to_ms(ktime_add(now, add)));
 
 		cm_suspend_duration_ms = wakeup_ms;
 
@@ -8325,17 +8333,39 @@ static int cm_check_alt_cp_psy_ready_status(struct charger_manager *cm)
 	struct charger_desc *desc = cm->desc;
 	struct power_supply *psy;
 	int i;
+	static bool is_first_probe = true;
+	static int check_alt_cp_count;
+	static u64 alt_cp_probe_time;
+	u64 cur_time = 0;
 
-	if (!desc->psy_cp_stat || !desc->psy_alt_cp_adpt_stat) {
-		dev_err(cm->dev, "%s, cp not exit\n", __func__);
+	if (!desc->psy_cp_stat) {
+		dev_err(cm->dev, "%s, preferred cp is undefined, cp not exit\n", __func__);
 		return 0;
+	}
+
+	if (is_first_probe) {
+		is_first_probe = false;
+		alt_cp_probe_time = ktime_to_ms(ktime_get_boottime());
 	}
 
 	psy = power_supply_get_by_name(desc->psy_cp_stat[0]);
 	if (psy) {
-		dev_info(cm->dev, "%s, find preferred cp \"%s\"\n",
-			 __func__, desc->psy_cp_stat[0]);
+		dev_info(cm->dev, "%s, find preferred cp \"%s\", count: %d\n",
+			 __func__, desc->psy_cp_stat[0], check_alt_cp_count);
 		goto done;
+	}
+
+	if (!desc->psy_alt_cp_adpt_stat || !desc->alt_cp_nums) {
+		cur_time = ktime_to_ms(ktime_get_boottime());
+		if (cur_time - alt_cp_probe_time > CM_CHECK_ALT_CP_PSY_TH_MS) {
+			dev_err(cm->dev, "%s, alt cp is undefined, cp not exit, count: %d\n",
+				__func__, check_alt_cp_count);
+			desc->psy_cp_stat = NULL;
+			return 0;
+		}
+
+		check_alt_cp_count++;
+		return -EPROBE_DEFER;
 	}
 
 	for (i = 0; desc->psy_alt_cp_adpt_stat[i]; i++) {
@@ -8542,7 +8572,12 @@ static int charger_manager_probe(struct platform_device *pdev)
 		}
 	}
 
-	if (desc->enable_alt_cp_adapt && (desc->alt_cp_nums > 0)) {
+	/*
+	 * CP single software and multiple hardware scheme.
+	 * Currently, only the single CP hardware scheme is
+	 * supported.
+	 */
+	if (desc->enable_alt_cp_adapt && desc->cp_nums == 1) {
 		ret = cm_check_alt_cp_psy_ready_status(cm);
 		if (ret < 0) {
 			dev_err(&pdev->dev, "can't find cp\n");
@@ -8834,6 +8869,7 @@ static void charger_manager_shutdown(struct platform_device *pdev)
 	cancel_delayed_work_sync(&cm->fullbatt_vchk_work);
 	cancel_delayed_work_sync(&cm->cap_update_work);
 	cancel_delayed_work(&cm->uvlo_work);
+	cancel_delayed_work_sync(&cm->ir_compensation_work);
 }
 
 static const struct platform_device_id charger_manager_id[] = {
