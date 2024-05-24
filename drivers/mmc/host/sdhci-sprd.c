@@ -2084,6 +2084,18 @@ static void mmc_hsq_status(void *data, const struct blk_mq_queue_data *bd, int *
 	req->cmd_flags &= ~REQ_FUA;
 }
 
+struct mmc_host *g_mmc_host[3];
+
+static void sdhci_sprd_record_mmc_host(struct mmc_host *mmc)
+{
+	int index = mmc->index;
+
+	if (mmc->index > 2)
+		return;
+
+	g_mmc_host[index] = mmc;
+}
+
 static int sdhci_sprd_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
@@ -2097,6 +2109,8 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	host = sdhci_pltfm_init(pdev, &sdhci_sprd_pdata, sizeof(*sprd_host));
 	if (IS_ERR(host))
 		return PTR_ERR(host);
+
+	sdhci_sprd_record_mmc_host(host->mmc);
 
 	host->dma_mask = DMA_BIT_MASK(64);
 	pdev->dev.dma_mask = &host->dma_mask;
@@ -2358,6 +2372,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			goto err_cleanup_host;
 	}
 
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[8] = sched_clock();
+#endif
+
 	/* disable polling scan for sdiocard */
 	if ((host->mmc->caps2 & MMC_CAP2_NO_SD)
 			&& (host->mmc->caps2 & MMC_CAP2_NO_MMC)) {
@@ -2373,6 +2391,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[9] = sched_clock();
+#endif
 
 	return 0;
 
