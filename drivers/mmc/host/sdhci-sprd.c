@@ -228,19 +228,23 @@ enum sdhci_sprd_tuning_type {
 
 struct sdhci_sprd_phy_cfg {
 	const char *property;
-	u8 timing;
+	u32 clk_freq;
 };
 
+/* The index of the matrix means the corresponding timing */
 static const struct sdhci_sprd_phy_cfg sdhci_sprd_phy_cfgs[] = {
-	{ "sprd,phy-delay-legacy", MMC_TIMING_LEGACY, },
-	{ "sprd,phy-delay-sd-highspeed", MMC_TIMING_SD_HS, },
-	{ "sprd,phy-delay-sd-uhs-sdr50", MMC_TIMING_UHS_SDR50, },
-	{ "sprd,phy-delay-sd-uhs-sdr104", MMC_TIMING_UHS_SDR104, },
-	{ "sprd,phy-delay-mmc-highspeed", MMC_TIMING_MMC_HS, },
-	{ "sprd,phy-delay-mmc-ddr52", MMC_TIMING_MMC_DDR52, },
-	{ "sprd,phy-delay-mmc-hs200", MMC_TIMING_MMC_HS200, },
-	{ "sprd,phy-delay-mmc-hs400", MMC_TIMING_MMC_HS400, },
-	{ "sprd,phy-delay-mmc-hs400es", MMC_TIMING_MMC_HS400 + 1, },
+	{ "sprd,phy-delay-legacy", HIGH_SPEED_MAX_DTR},
+	{ "sprd,phy-delay-mmc-highspeed", MMC_HIGH_52_MAX_DTR},
+	{ "sprd,phy-delay-sd-highspeed", HIGH_SPEED_MAX_DTR},
+	{ "sprd,phy-delay-sd-uhs-sdr12", UHS_SDR12_MAX_DTR},
+	{ "sprd,phy-delay-sd-uhs-sdr25", UHS_SDR25_MAX_DTR},
+	{ "sprd,phy-delay-sd-uhs-sdr50", UHS_SDR50_MAX_DTR},
+	{ "sprd,phy-delay-sd-uhs-sdr104", UHS_SDR104_MAX_DTR},
+	{ "sprd,phy-delay-sd-uhs-ddr50", UHS_DDR50_MAX_DTR},
+	{ "sprd,phy-delay-mmc-ddr52", MMC_HIGH_DDR_MAX_DTR},
+	{ "sprd,phy-delay-mmc-hs200", MMC_HS200_MAX_DTR},
+	{ "sprd,phy-delay-mmc-hs400", MMC_HS200_MAX_DTR},
+	{ "sprd,phy-delay-mmc-hs400es", MMC_HS200_MAX_DTR},
 };
 
 #define TO_SPRD_HOST(host) sdhci_pltfm_priv(sdhci_priv(host))
@@ -645,11 +649,100 @@ static bool sdhci_sprd_check_invert(struct sdhci_host *host)
 	return false;
 }
 
+static int sdhci_sprd_timing_matching(struct sdhci_host *host, unsigned int clock)
+{
+	struct mmc_host *mmc = host->mmc;
+	int timing = mmc->ios.timing;
+
+	switch (timing) {
+	case MMC_TIMING_LEGACY:
+		/* consider there is no significant diff in delay when clk below 50MHz */
+		if (clock < sdhci_sprd_phy_cfgs[timing].clk_freq)
+			return timing;
+		break;
+	case MMC_TIMING_MMC_HS:
+		if ((clock == MMC_HIGH_26_MAX_DTR) || (clock == MMC_HIGH_52_MAX_DTR))
+			return timing;
+		break;
+	case MMC_TIMING_SD_HS:
+	case MMC_TIMING_UHS_SDR12:
+	case MMC_TIMING_UHS_SDR25:
+	case MMC_TIMING_UHS_SDR50:
+	case MMC_TIMING_UHS_SDR104:
+	case MMC_TIMING_UHS_DDR50:
+	case MMC_TIMING_MMC_DDR52:
+	case MMC_TIMING_MMC_HS200:
+	case MMC_TIMING_MMC_HS400:
+		if (clock == sdhci_sprd_phy_cfgs[timing].clk_freq) {
+			if (mmc->ios.enhanced_strobe)
+				return timing + 1;
+			else
+				return timing;
+		}
+		break;
+	default:
+		pr_warn("%s: unknown timing %d\n", mmc_hostname(mmc), timing);
+		break;
+	};
+
+	return -EINVAL;
+}
+
+static int sdhci_sprd_clock_matching(struct mmc_host *mmc, unsigned int clock)
+{
+	int timing = mmc->ios.timing;
+	/*
+	 * consider there is no significant diff in delay when clk below 50MHz
+	 * and use the same delay with LEGACY timing
+	 */
+	if (clock < HIGH_SPEED_MAX_DTR)
+		return MMC_TIMING_LEGACY;
+
+	if (HOST_IS_EMMC_TYPE(mmc)) {
+		switch (clock) {
+		case MMC_HIGH_52_MAX_DTR:
+			return MMC_TIMING_MMC_HS;
+		case MMC_HS200_MAX_DTR:
+			return MMC_TIMING_MMC_HS200;
+		};
+	} else {
+		switch (clock) {
+		case HIGH_SPEED_MAX_DTR:
+			return MMC_TIMING_SD_HS;
+		case UHS_SDR50_MAX_DTR:
+			return MMC_TIMING_UHS_SDR50;
+		case UHS_SDR104_MAX_DTR:
+			return MMC_TIMING_UHS_SDR104;
+		};
+	}
+
+	pr_warn("%s: uncommon clk frequency %d in timing %d\n",
+		mmc_hostname(mmc), clock, timing);
+
+	return -EINVAL;
+}
+
+static int sdhci_sprd_timing_check(struct sdhci_host *host, unsigned int clock)
+{
+	struct mmc_host *mmc = host->mmc;
+	int timing;
+
+	/* if clock matched current timing, return current timing */
+	timing = sdhci_sprd_timing_matching(host, clock);
+	if (timing >= 0)
+		return timing;
+
+	/* if not matched above, return corresponding timing to clock (if have) */
+	return sdhci_sprd_clock_matching(mmc, clock);
+}
+
 static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 {
 	struct mmc_host *mmc = host->mmc;
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
-	bool en = false, clk_changed = false;
+	bool en = false;
+	u32 *p = sprd_host->phy_delay;
+	int timing = -EINVAL;
 
 	if (clock == 0) {
 		sdhci_writew(host, 0, SDHCI_CLOCK_CONTROL);
@@ -661,7 +754,6 @@ static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 			en = true;
 		sdhci_sprd_set_dll_invert(host, SDHCI_SPRD_BIT_CMD_DLY_INV |
 					  SDHCI_SPRD_BIT_POSRD_DLY_INV, en);
-		clk_changed = true;
 	} else {
 		sdhci_sprd_sd_clk_on(host);
 	}
@@ -677,10 +769,15 @@ static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 	else
 		sdhci_sprd_disable_phy_dll(host);
 
+	/* Matching suitable timing delay refer to clock frequency */
+	timing = sdhci_sprd_timing_check(host, clock);
+	if (timing >= 0)
+		sdhci_writel(host, p[timing], SDHCI_SPRD_REG_32_DLL_DLY);
+
 	/*
 	 * Print manfid/prod_name and do some special ops for some special t-cards
 	 */
-	if (sprd_host->init_flag && clk_changed && clock >= HIGH_SPEED_MAX_DTR) {
+	if (sprd_host->init_flag && clock >= HIGH_SPEED_MAX_DTR) {
 		struct mmc_card *card = sprd_host->card;
 
 		/* print mmc device info */
@@ -709,9 +806,7 @@ static unsigned int sdhci_sprd_get_min_clock(struct sdhci_host *host)
 static void sdhci_sprd_set_uhs_signaling(struct sdhci_host *host,
 					 unsigned int timing)
 {
-	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	struct mmc_host *mmc = host->mmc;
-	u32 *p = sprd_host->phy_delay;
 	u16 ctrl_2;
 	bool en = false;
 
@@ -758,11 +853,6 @@ static void sdhci_sprd_set_uhs_signaling(struct sdhci_host *host,
 
 	sdhci_sprd_set_dll_invert(host, SDHCI_SPRD_BIT_CMD_DLY_INV |
 		SDHCI_SPRD_BIT_POSRD_DLY_INV, en);
-
-	if (!mmc->ios.enhanced_strobe)
-		sdhci_writel(host, p[timing], SDHCI_SPRD_REG_32_DLL_DLY);
-	else
-		sdhci_writel(host, p[MMC_TIMING_MMC_HS400 + 1], SDHCI_SPRD_REG_32_DLL_DLY);
 }
 
 static void sdhci_sprd_hw_reset(struct sdhci_host *host)
@@ -1725,8 +1815,6 @@ static void sdhci_sprd_hs400_enhanced_strobe(struct mmc_host *mmc,
 					     struct mmc_ios *ios)
 {
 	struct sdhci_host *host = mmc_priv(mmc);
-	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
-	u32 *p = sprd_host->phy_delay;
 	u16 ctrl_2;
 
 	if (!ios->enhanced_strobe)
@@ -1741,17 +1829,14 @@ static void sdhci_sprd_hs400_enhanced_strobe(struct mmc_host *mmc,
 	sdhci_writew(host, ctrl_2, SDHCI_HOST_CONTROL2);
 
 	sdhci_sprd_sd_clk_on(host);
-
-	/* Set the PHY DLL delay value for HS400 enhanced strobe mode */
-	sdhci_writel(host, p[MMC_TIMING_MMC_HS400 + 1],
-		     SDHCI_SPRD_REG_32_DLL_DLY);
 }
 
+/* Parse delay which configured in dts and store */
 static void sdhci_sprd_phy_param_parse(struct sdhci_sprd_host *sprd_host,
 				       struct device_node *np)
 {
 	u32 *p = sprd_host->phy_delay;
-	int ret, i, index;
+	int ret, i;
 	u32 val[4];
 
 	for (i = 0; i < ARRAY_SIZE(sdhci_sprd_phy_cfgs); i++) {
@@ -1760,8 +1845,7 @@ static void sdhci_sprd_phy_param_parse(struct sdhci_sprd_host *sprd_host,
 		if (ret)
 			continue;
 
-		index = sdhci_sprd_phy_cfgs[i].timing;
-		p[index] = val[0] | (val[1] << 8) | (val[2] << 16) | (val[3] << 24);
+		p[i] = val[0] | (val[1] << 8) | (val[2] << 16) | (val[3] << 24);
 	}
 }
 
