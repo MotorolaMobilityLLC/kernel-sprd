@@ -551,6 +551,11 @@
 
 &dmabuf {
 
+	secured-reserved {
+		label = "uncached_carveout_mm";
+		memory-region = <&secured_reserved>;
+	};
+
 	fd-reserved {
 		label = "carveout_fd";
 		memory-region = <&fd_reserved>;
