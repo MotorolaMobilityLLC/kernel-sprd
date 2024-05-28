@@ -20,6 +20,11 @@
  */
 
 &reserved_memory {
+	/* Increase support for protected_heap */
+	protected_reserved: protected-mem@80003000 {
+		reg = <0x0 0x80003000 0x0 0x00002000>;
+	};
+
 	secured_reserved: secured@ff870000 {
 		reg = <0x0 0xff870000 0x0 0x00200000>;
 	};
