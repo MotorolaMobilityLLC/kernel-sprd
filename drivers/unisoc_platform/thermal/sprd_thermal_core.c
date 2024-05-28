@@ -181,6 +181,7 @@ static void unisoc_thermal_power_throttle_update(void *data, struct thermal_zone
 						 bool *update)
 {
 	*update |= need_update;
+	*update |= tz->passive;
 }
 
 /* modify IPA power_range by user_power_range */
