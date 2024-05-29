@@ -29,6 +29,11 @@
 					sprd,reset-off-sequence = <1 10>;
 					/*ontim,tp-reset-flag;*/
 					sprd,need-execute-shutdown;
+					ontim,qrcode-read-flag;
+					sprd,qrcode-reg = <0x95 23>;
+					sprd,qrcode-read-command = [
+						39 00 00 04 F0 99 22 0C
+						];
 
 					sprd,initial-command = [
 						39 00 00 04 F0 99 22 0C
