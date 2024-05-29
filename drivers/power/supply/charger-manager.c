@@ -8744,11 +8744,6 @@ static int charger_manager_probe(struct platform_device *pdev)
 
 	mutex_init(&cm->desc->keep_awake_mtx);
 
-	/* Add to the list */
-	mutex_lock(&cm_list_mtx);
-	list_add(&cm->entry, &cm_list);
-	mutex_unlock(&cm_list_mtx);
-
 	/*
 	 * Charger-manager is capable of waking up the system from sleep
 	 * when event is happened through cm_notify_event()
@@ -8790,6 +8785,11 @@ static int charger_manager_probe(struct platform_device *pdev)
 		ret = -EPROBE_DEFER;
 		goto err;
 	}
+
+	/* Add to the list */
+	mutex_lock(&cm_list_mtx);
+	list_add(&cm->entry, &cm_list);
+	mutex_unlock(&cm_list_mtx);
 
 	if (is_ext_usb_pwr_online(cm) && cm->fchg_info->ops && cm->fchg_info->ops->fchg_detect)
 		cm->fchg_info->ops->fchg_detect(cm->fchg_info);
