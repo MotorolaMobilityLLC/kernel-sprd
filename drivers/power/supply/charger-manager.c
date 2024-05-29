@@ -3208,6 +3208,9 @@ static int cm_thermal_step_algo(struct charger_manager *cm)
 	struct cm_adaptive_fchg_info *adaptive_fchg = &cm->desc->cp_sm.adaptive_fchg;
 	int thermal_ibus_step = 0, delta_power_uw, power_now_uw;
 
+	if (!cm->desc->thm_info.thm_pwr)
+		return CM_CP_VSTEP * 5;
+
 	if (cp->ibus_uA <= 0)
 		return thermal_ibus_step;
 
