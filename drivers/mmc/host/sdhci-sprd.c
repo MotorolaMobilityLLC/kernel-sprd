@@ -1179,6 +1179,7 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	struct sdhci_host *host = mmc_priv(mmc);
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	enum sdhci_sprd_tuning_type type = SDHCI_SPRD_TUNING_DEFAULT;
+	bool old_tm = sprd_host->tuning_merged;
 	int err = 0;
 
 retry_tuning:
@@ -1190,19 +1191,22 @@ retry_tuning:
 	if (HOST_IS_SD_TYPE(mmc)) {
 		if (sprd_host->tuning_merged == false &&
 			((mmc->ios.timing == MMC_TIMING_UHS_SDR104) ||
-			 (mmc->ios.timing == MMC_TIMING_UHS_SDR50)))
+			 (mmc->ios.timing == MMC_TIMING_UHS_SDR50))) {
 			type = SDHCI_SPRD_TUNING_SD_UHS_CMD;
-		else if (mmc->ios.timing == MMC_TIMING_SD_HS)
+		} else if (mmc->ios.timing == MMC_TIMING_SD_HS) {
 			type = SDHCI_SPRD_TUNING_SD_HS;
+			sprd_host->tuning_merged = false;
+		}
 	}
 
 	err = sdhci_sprd_tuning(mmc, opcode, type);
-	if (HOST_IS_SD_TYPE(mmc) && err && sprd_host->tuning_merged &&
-		(type != SDHCI_SPRD_TUNING_SD_HS)) {
+	if (HOST_IS_SD_TYPE(mmc) && err && sprd_host->tuning_merged) {
 		pr_err("%s: cmd and data tuning merged failed, afterwards tuning separately\n",
 			mmc_hostname(mmc));
 		sprd_host->tuning_merged = false;
 		goto retry_tuning;
+	} else if (type == SDHCI_SPRD_TUNING_SD_HS) {
+		sprd_host->tuning_merged = old_tm;
 	}
 
 	if (!err && (type == SDHCI_SPRD_TUNING_SD_UHS_CMD)) {
