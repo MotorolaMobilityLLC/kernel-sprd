@@ -15,6 +15,7 @@
 #include <linux/sysctl.h>
 #include <linux/thermal.h>
 #include <trace/hooks/thermal.h>
+#include <trace/hooks/cpufreq.h>
 #include <trace/events/power.h>
 #include "../../../drivers/thermal/thermal_core.h"
 
@@ -82,6 +83,11 @@ user_min_freq_store(struct device *dev, struct device_attribute *attr,
 
 static DEVICE_ATTR_RW(user_min_freq);
 
+static void unisoc_thermal_remove_sys(void *data, struct device *dev, int val)
+{
+	device_remove_file(dev, &dev_attr_user_min_freq);
+}
+
 static void unisoc_thermal_register(void *data, struct cpufreq_policy *policy)
 {
 	struct sprd_thermal_ctl *thm_ctl;
@@ -97,8 +103,11 @@ static void unisoc_thermal_register(void *data, struct cpufreq_policy *policy)
 	}
 
 	list_for_each_entry(thm_ctl, &thermal_policy_list, node)
-		if (thm_ctl->policy == policy)
+		if (thm_ctl->policy == policy) {
+			device_create_file(&policy->cdev->device,
+					   &dev_attr_user_min_freq);
 			return;
+		}
 
 	list_for_each_entry(thm_ctl, &thermal_policy_list, node)
 		if (thm_ctl->policy == NULL) {
@@ -110,7 +119,8 @@ static void unisoc_thermal_register(void *data, struct cpufreq_policy *policy)
 			user_min_freq[policy->cdev->id] = policy->cpuinfo.min_freq;
 			if (device_create_file(&policy->cdev->device,
 					       &dev_attr_user_min_freq))
-				pr_err("Failed to create min_freq\n");
+				pr_err("Failed to create min_freq for cdev%d\n",
+				       policy->cdev->id);
 			break;
 		}
 }
@@ -449,6 +459,7 @@ static int sprd_thermal_ctl_init(void)
 	get_ipa_trips(soc_tz);
 
 	register_trace_android_vh_thermal_register(unisoc_thermal_register, NULL);
+	register_trace_android_vh_cpufreq_offline(unisoc_thermal_remove_sys, NULL);
 	register_trace_android_vh_enable_thermal_power_throttle(
 					unisoc_enable_thermal_power_throttle, NULL);
 	register_trace_android_vh_modify_thermal_throttle_update(
