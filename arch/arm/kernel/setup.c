@@ -1328,7 +1328,9 @@ static int c_show(struct seq_file *m, void *v)
 		seq_printf(m, "Hardware\t: %s\n", machine_name);
 
 	seq_printf(m, "Revision\t: %04x\n", system_rev);
+#ifndef CONFIG_ARCH_SPRD
 	seq_printf(m, "Serial\t\t: %s\n", system_serial);
+#endif
 
 	return 0;
 }
