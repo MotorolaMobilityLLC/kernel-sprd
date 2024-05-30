@@ -100,7 +100,6 @@ static ssize_t sdhci_sprd_set_timing_write(struct file *filp, const char __user 
 				   size_t cnt, loff_t *ppos)
 {
 	struct mmc_host *host = PDE_DATA(file_inode(filp));
-	u8 timing = host->ios.enhanced_strobe ? host->ios.timing + 1 : host->ios.timing;
 	char temp[SPRD_SPEED_MODE_NAME_MAX] = {0};
 	bool flag = false;
 	int i;
@@ -135,7 +134,7 @@ static ssize_t sdhci_sprd_set_timing_write(struct file *filp, const char __user 
 	mmc_release_host(host);
 
 	pr_info("%s current speed is: [%s], set timing success!\n",
-		mmc_hostname(host), mmc_speed[timing].name);
+		mmc_hostname(host), temp);
 out:
 	return cnt;
 }
