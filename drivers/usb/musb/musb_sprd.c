@@ -45,6 +45,7 @@
 #define DRIVER_INFO DRIVER_DESC ", v" MUSB_VERSION
 
 #define MUSB_AUTOSUSPEND_DELAY 1000
+#define HOST_PM_RESUME_WAKE_UP_MS 2000
 
 #define ID			0
 #define B_SESS_VLD		1
@@ -180,6 +181,7 @@ struct sprd_glue {
 	int				usb_data_enabled;
 	bool				gadget_suspend;
 	bool				host_recover;
+	bool				host_recover_processing;
 	bool				in_restart;
 	atomic_t			musb_runtime_suspended;
 	struct mutex			suspend_resume_mutex;
@@ -870,6 +872,9 @@ static int musb_sprd_id_notifier(struct notifier_block *nb,
 
 	id = event ? MUSB_ID_GROUND : MUSB_ID_FLOAT;
 
+	/* as long as id changed, recover should be abort */
+	glue->host_recover_processing = false;
+
 	/* to set USB_EVENT_ID as soon as possible */
 	if (is_slave) {
 		if (id == MUSB_ID_GROUND)
@@ -1125,6 +1130,7 @@ static bool musb_sprd_lowpower_configuration_onoff(struct sprd_glue *glue, int o
 		/* switch hclk to default clk */
 		clk_set_parent(glue->hclk_src_sel, glue->hclk_default_src);
 		usb_phy_set_wakeup(glue->xceiv, 0);
+		pm_wakeup_event(glue->dev, HOST_PM_RESUME_WAKE_UP_MS);
 	}
 
 	return true;
@@ -1512,7 +1518,7 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 	if (on) {
 		dev_info(glue->dev, "%s: turn on host\n", __func__);
 
-		if (!glue->use_pdhub_c2c) {
+		if (!glue->use_pdhub_c2c || glue->host_recover_processing) {
 			if (!regulator_is_enabled(glue->vbus)) {
 				dev_info(glue->dev, "%s: regulator enable\n", __func__);
 				ret = regulator_enable(glue->vbus);
@@ -1578,7 +1584,7 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		if (musb->port_mode != MUSB_HOST)
 			musb_host_cleanup(musb);
 
-		if (!glue->use_pdhub_c2c) {
+		if (!glue->use_pdhub_c2c || glue->host_recover_processing) {
 			ret = regulator_disable(glue->vbus);
 			if (ret)
 				dev_err(glue->dev, "Failed to disable vbus: %d\n", ret);
@@ -2021,8 +2027,10 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 				glue->start_host_retry_count++;
 			} else if (ret) {
 				/* do not need change drd_state */
+				glue->host_recover_processing = false;
 				dev_err(glue->dev, "unable to start host\n");
 			} else {
+				glue->host_recover_processing = false;
 				glue->drd_state = DRD_STATE_HOST;
 			}
 		}
@@ -2037,6 +2045,7 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 		} else if (test_bit(A_RECOVER, &glue->inputs)) {
 			dev_dbg(glue->dev, "A Recover!\n");
 			clear_bit(A_RECOVER, &glue->inputs);
+			glue->host_recover_processing = true;
 			glue->drd_state = DRD_STATE_RUNTIME_SUSPENDING;
 			musb_sprd_otg_start_host(glue, 0);
 			glue->start_host_retry_count = 0;
