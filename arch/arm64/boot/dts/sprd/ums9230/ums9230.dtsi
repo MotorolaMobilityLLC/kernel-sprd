@@ -547,6 +547,9 @@
 						REG_AP_AHB_UFS_CONTROLLER MASK_AP_AHB_IES_EN_MASK>;
 				ahb_ufs_cg_pclkreq = <&ap_ahb_regs
 						REG_AP_AHB_UFS_CLK_CTRL MASK_AP_AHB_CG_PCLKREQ_SW>;
+				ap_apb_cfg_frc_on = <&ap_ahb_regs
+						 REG_AP_AHB_UFS_CLK_EN_FORCE_ON_OFF
+						 MASK_AP_AHB_UFS_CFG_FRC_ON>;
 				interrupts = <GIC_SPI 147 IRQ_TYPE_LEVEL_HIGH>;
 				status = "okay";
 			};
