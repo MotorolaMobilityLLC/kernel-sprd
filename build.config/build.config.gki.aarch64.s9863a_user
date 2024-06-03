@@ -50,9 +50,6 @@ EXT_MODULES="
 ../modules/common/camera/flash/ocp8137
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/sensor
-../modules/common/io/block
-../modules/common/io/iowait
-../modules/common/io/filemap
 "
 fi
 #camera module version config
