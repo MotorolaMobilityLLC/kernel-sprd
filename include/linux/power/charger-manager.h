@@ -724,6 +724,7 @@ struct charger_desc {
 	u32 fchg_voltage_check_count;
 	u32 fast_charge_enable_count;
 	u32 fast_charge_disable_count;
+	u32 fast_charge_exit_count;
 	u32 cp_nums;
 	u32 alt_cp_nums;
 	bool enable_alt_cp_adapt;

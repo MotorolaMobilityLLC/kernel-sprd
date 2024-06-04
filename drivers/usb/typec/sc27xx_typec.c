@@ -131,6 +131,8 @@
 /*CC RP LEVEL*/
 #define SC27XX_TYPEC_RP_LEVEL(x)	(((x) << 2) & GENMASK(3, 2))
 
+static u8 sc27xx_typec_connect_state;
+
 enum typec_rp_level {
 	RP_DISABLED = 0,
 	RP_80UA,
@@ -648,10 +650,12 @@ static irqreturn_t sc27xx_typec_interrupt(int irq, void *data)
 
 	if (event & SC27XX_ATTACH_INT) {
 		ret = sc27xx_typec_connect(sc, sc->state);
+		sc27xx_typec_connect_state = 1;
 		if (ret)
 			dev_warn(sc->dev, "failed to register partner\n");
 	} else if (event & SC27XX_DETACH_INT) {
 		sc27xx_typec_disconnect(sc, sc->state);
+		sc27xx_typec_connect_state = 0;
 		ret = sc27xx_typec_random_tdrp(sc);
 		if (ret)
 			dev_warn(sc->dev, "failed to random tdrp\n");
@@ -807,6 +811,9 @@ typec_cc_polarity_role_show(struct device *dev, struct device_attribute *attr,
 		char *buf)
 {
 	struct sc27xx_typec *sc = dev_get_drvdata(dev);
+
+	if(sc27xx_typec_connect_state == 0)
+		return snprintf(buf, 5, "%s\n", "cc_0");
 
 	return snprintf(buf, 5, "%s\n", sprd_typec_cc_polarity_roles[sc->cc_polarity]);
 }

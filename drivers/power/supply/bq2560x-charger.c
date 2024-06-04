@@ -741,7 +741,7 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info, bool 
 	dev_info(info->dev, "%s:line%d: stop charge1\n", __func__, __LINE__);
 
 	if (info->role == BQ2560X_ROLE_MASTER_DEFAULT) {
-		if (!present || info->need_disable_Q1) {
+		if (0){//!present || info->need_disable_Q1) {
 			ret = bq2560x_update_bits(info, BQ2560X_REG_0,
 						  BQ2560X_REG_EN_HIZ_MASK,
 						  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
@@ -1762,7 +1762,7 @@ static void bq2560x_charger_otg_work(struct work_struct *work)
 
 	do {
 		otg_fault = bq2560x_charger_check_otg_fault(info);
-		if (!otg_fault) {
+		if (otg_fault) {
 			dev_dbg(info->dev, "%s:line%d:restart charger otg\n", __func__, __LINE__);
 			ret = bq2560x_update_bits(info, BQ2560X_REG_1,
 						  BQ2560X_REG_OTG_MASK,

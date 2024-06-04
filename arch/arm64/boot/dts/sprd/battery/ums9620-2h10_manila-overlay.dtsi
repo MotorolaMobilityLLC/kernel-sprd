@@ -41,9 +41,9 @@
 	first-calib-voltage = <3580000>;
 	first-calib-capacity = <50>;
 
-	ir-cv-offset-microvolt = <0>;
+	ir-cv-offset-microvolt = <100000>;
 	ir-rc-micro-ohms = <10000>;
-	ir-us-upper-limit-microvolt = <4530000>;
+	ir-us-upper-limit-microvolt = <4576000>;
 
 	ocv-capacity-celsius = <25>;
 	ocv-capacity-table-0 = <4449000 100>, <4382000 95>, <4328000 90>,
@@ -68,7 +68,7 @@
 	charge-fchg-current-microamp = <4000000 2200000>;
 	charge-flash-current-microamp = <6000000 3000000>;
 
-	cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
+//	cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
 	cap-track-energy-density-ocv-table = <3400000 3722000>;
 
 	dcp-jeita-temp-table = <800 830 0 4208000>, <1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>,<1150 1170 2200000 4500000>,
@@ -80,7 +80,7 @@
 	unknown-jeita-temp-table = <800 830 0 4208000>,<1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>,<1150 1170 1000000 4500000>,
 		<1450 1420 1000000 4500000>, <1550 1520 1000000 4208000>;
 	fchg-jeita-temp-table = <800 830 0 4208000>,<1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>, <1150 1170 3000000 4500000>,
-		<1450 1420 4000000 4530000>, <1550 1520 4000000 4208000>;
+		<1450 1420 4000000 4544000>, <1550 1520 4000000 4208000>;
 	flash-jeita-temp-table = <800 830 0 4208000>,<1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>,<1150 1170 3000000 4500000>,
 		<1450 1420 6000000 4500000>, <1550 1520 4000000 4208000>;
 };
@@ -105,9 +105,9 @@
 	first-calib-voltage = <3580000>;
 	first-calib-capacity = <50>;
 
-	ir-cv-offset-microvolt = <0>;
+	ir-cv-offset-microvolt = <100000>;
 	ir-rc-micro-ohms = <10000>;
-	ir-us-upper-limit-microvolt = <4530000>;
+	ir-us-upper-limit-microvolt = <4576000>;
 
 	ocv-capacity-celsius = <25>;
 	ocv-capacity-table-0 = <4450000 100>, <4387000 95>, <4333000 90>,
@@ -132,7 +132,7 @@
 	charge-fchg-current-microamp = <4000000 2200000>;
 	charge-flash-current-microamp = <6000000 3000000>;
 
-	cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
+//	cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
 	cap-track-energy-density-ocv-table = <3400000 3722000>;
 
 	dcp-jeita-temp-table = <800 830 0 4208000>, <1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>,<1150 1170 2200000 4500000>,
@@ -144,7 +144,7 @@
 	unknown-jeita-temp-table = <800 830 0 4208000>,<1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>,<1150 1170 1000000 4500000>,
 		<1450 1420 1000000 4500000>, <1550 1520 1000000 4208000>;
 	fchg-jeita-temp-table = <800 830 0 4208000>,<1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>, <1150 1170 3000000 4500000>,
-		<1450 1420 4000000 4530000>, <1550 1520 4000000 4208000>;
+		<1450 1420 4000000 4544000>, <1550 1520 4000000 4208000>;
 	flash-jeita-temp-table = <800 830 0 4208000>,<1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>,<1150 1170 3000000 4500000>,
 		<1450 1420 6000000 4500000>, <1550 1520 4000000 4208000>;
 };
@@ -152,12 +152,12 @@
 &bat3 {
 	compatible = "simple-battery";
 	status = "okay";
-	battery_name ="QG50-SB18E23377-JIADE-5000mAh","QG50-SB18E21836-JIADE-5000mAh";
+	battery_name ="QG50-SB18E28521-JIADE-5000mAh","QG50-SB18E21838-JIADE-5000mAh";
 
-	charge-full-design-microamp-hours = <5050000>;
+	charge-full-design-microamp-hours = <4884000>;
 	charge-term-current-microamp = <256000>;
 	constant-charge-voltage-max-microvolt = <4500000>;
-	factory-internal-resistance-micro-ohms = <115000>;
+	factory-internal-resistance-micro-ohms = <106000>;
 	voltage-min-design-microvolt = <3400000>;
 
 	fast-charge-threshold-microvolt = <4250000>;
@@ -169,26 +169,26 @@
 	first-calib-voltage = <3580000>;
 	first-calib-capacity = <50>;
 
-	ir-cv-offset-microvolt = <0>;
+	ir-cv-offset-microvolt = <100000>;
 	ir-rc-micro-ohms = <10000>;
-	ir-us-upper-limit-microvolt = <4530000>;
+	ir-us-upper-limit-microvolt = <4576000>;
 
 	ocv-capacity-celsius = <25>;
-	ocv-capacity-table-0 = <4383000 100>, <4254000 95>, <4201000 90>,
-				<4151000 85>, <4102000 80>, <4060000 75>,
-				<4006000 70>, <3973000 65>, <3930000 60>,
-				<3882000 55>, <3851000 50>, <3829000 45>,
-				<3810000 40>, <3795000 35>, <3781000 30>,
-				<3765000 25>, <3746000 20>, <3722000 15>,
-				<3694000 10>, <3682000 5>, <3400000 0>;
+	ocv-capacity-table-0 = <4452000 100>, <4401000 95>, <4351000 90>,
+				<4296000 85>, <4237000 80>, <4177000 75>,
+				<4119000 70>, <4065000 65>, <4015000 60>,
+				<3956000 55>, <3904000 50>, <3872000 45>,
+				<3845000 40>, <3823000 35>, <3805000 30>,
+				<3782000 25>, <3757000 20>, <3729000 15>,
+				<3698000 10>, <3687000 5>, <3400000 0>;
 	voltage-temp-table = <1307000 700>, <1203000 750>, <1095000 800>, <986000 850>, <878000 900>,
 	      <775000 950>, <678000 1000>, <590000 1050>,
 	      <510000 1100>, <440000 1150>, <378000 1200>,
 	      <324000 1250>, <278000 1300>, <238000 1350>,
 	      <204000 1400>, <175000 1450>, <150000 1500>,
 	      <129000 1550>, <111000 1600>, <96000 1650> , <83000 1700>,<63000 1800>;
-	capacity-temp-table = <45 100>, <25 100>, <10 100>, <0 95>, <(-10) 90>;
-	resistance-temp-table = <45 53>, <25 100>, <10 395>, <0 567>, <(-10) 793>;
+	capacity-temp-table = <45 100>, <25 100>, <10 100>, <0 95>, <(-10) 88>;
+	resistance-temp-table = <45 88>, <25 100>, <10 146>, <0 1071>, <(-10) 1168>;
 	charge-sdp-current-microamp = <600000 500000>;
 	charge-dcp-current-microamp = <2200000 2100000>;
 	charge-cdp-current-microamp = <1500000 1500000>;
@@ -196,7 +196,7 @@
 	charge-fchg-current-microamp = <4000000 2200000>;
 	charge-flash-current-microamp = <6000000 3000000>;
 
-	cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
+//	cap-calib-energy-density-ocv-table = <3350000 3800000>, <4150000 4350000>;
 	cap-track-energy-density-ocv-table = <3400000 3722000>;
 
 	dcp-jeita-temp-table = <800 830 0 4208000>, <1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>,<1150 1170 2200000 4500000>,
@@ -208,7 +208,7 @@
 	unknown-jeita-temp-table = <800 830 0 4208000>,<1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>,<1150 1170 1000000 4500000>,
 		<1450 1420 1000000 4500000>, <1550 1520 1000000 4208000>;
 	fchg-jeita-temp-table = <800 830 0 4208000>,<1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>, <1150 1170 3000000 4500000>,
-		<1450 1420 4000000 4530000>, <1550 1520 4000000 4208000>;
+		<1450 1420 4000000 4544000>, <1550 1520 4000000 4208000>;
 	flash-jeita-temp-table = <800 830 0 4208000>,<1000 1030 1000000 4208000>, <1100 1120 1000000 4500000>,<1150 1170 3000000 4500000>,
 		<1450 1420 6000000 4500000>, <1550 1520 4000000 4208000>;
 };
@@ -405,7 +405,7 @@
 	sprd,relax-current-threshold = <30>;
 	sprd,capacity-sleep-calibration;
 
-	sprd,capacity-boot-calibration;
+//	sprd,capacity-boot-calibration;
 	use-typec-extcon;
 	extcon = <&pmic_typec>;
 };

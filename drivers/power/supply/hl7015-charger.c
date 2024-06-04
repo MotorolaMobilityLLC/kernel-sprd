@@ -68,7 +68,7 @@
 #define HL7015_REG_OTG_MASK			GENMASK(5, 4)
 #define HL7015_REG_OTG_SHIFT			4
 
-#define HL7015_REG_BOOST_FAULT_MASK		GENMASK(7, 6)
+#define HL7015_REG_BOOST_FAULT_MASK		GENMASK(6, 6)
 
 #define HL7015_REG_WATCHDOG_MASK		GENMASK(6, 6)
 
@@ -1600,13 +1600,13 @@ static bool hl7015_charger_check_otg_fault(struct hl7015_charger_info *info)
 	u8 value = 0;
 	bool status = true;
 
-	ret = hl7015_read(info, HL7015_REG_8, &value);
+	ret = hl7015_read(info, HL7015_REG_9, &value);
 	if (ret) {
 		dev_err(info->dev, "get hl7015 charger otg fault status failed\n");
 		return status;
 	}
 
-	if ((value & HL7015_REG_BOOST_FAULT_MASK ) == 0xc0)
+	if (!(value & HL7015_REG_BOOST_FAULT_MASK ))
 		status = false;
 	else
 		dev_err(info->dev, "boost fault occurs, REG_9 = 0x%x\n", value);

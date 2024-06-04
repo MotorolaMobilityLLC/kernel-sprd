@@ -77,7 +77,7 @@
 
 /* Fixed fast charge parameters */
 #define CM_FIXED_FCHG_DISABLE_BATTERY_VOLTAGE	3400000
-#define CM_FIXED_FCHG_DISABLE_CURRENT		1000000
+#define CM_FIXED_FCHG_DISABLE_CURRENT		500000
 #define CM_FIXED_FCHG_C2C_CURRENT		1000000
 #define CM_FIXED_FCHG_C2C_IBUS_THRESHOLD	1500000
 #define CM_FIXED_FCHG_TRANSITION_CURRENT_1P5A	1500000
@@ -244,6 +244,7 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 static bool cm_charger_is_support_fchg(struct charger_manager *cm);
 static int cm_get_battery_temperature(struct charger_manager *cm, int *temp);
 static bool cm_pd_is_ac_online(struct charger_manager *cm);
+static void cm_smt_sm(struct charger_manager *cm);
 
 /*
  * cm_cap_advance_full - capacity value are
@@ -2121,6 +2122,10 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 	}
 
 	cm->desc->fchg_voltage_check_count = 0;
+
+	if(cm->desc->fast_charge_exit_count > 4)
+		return false;
+
 	if (get_batt_ocv(cm, &batt_ocv)) {
 		dev_err(cm->dev, "get_batt_ocv error.\n");
 		return false;
@@ -2394,8 +2399,13 @@ static bool cm_is_disable_fixed_fchg_check(struct charger_manager *cm, int *dela
 	if (cm->desc->fast_charge_disable_count < CM_FIXED_FCHG_DISABLE_COUNT)
 		return false;
 
-	dev_info(cm->dev, "%s, vbat: %d, ibat: %d, vbus: %d, exit fixed fchg\n",
-		 __func__, batt_uV, batt_uA, chg_vol);
+	if(!ret && chg_vol < CM_FIXED_FCHG_VOLTAGE_5V_THRESHOLD)
+		cm->desc->fast_charge_exit_count++;
+	else
+		cm->desc->fast_charge_exit_count = 0;
+
+	dev_info(cm->dev, "%s, vbat: %d, ibat: %d, vbus: %d,%d; exit fixed fchg\n",
+		 __func__, batt_uV, batt_uA, chg_vol,cm->desc->fast_charge_exit_count);
 	return true;
 }
 
@@ -4878,6 +4888,8 @@ static bool _cm_monitor(struct charger_manager *cm)
 		}
 	}
 
+	cm_smt_sm(cm);
+
 	target = cm_get_target_status(cm);
 
 	if (target == POWER_SUPPLY_STATUS_CHARGING) {
@@ -5216,6 +5228,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 				cm->desc->fchg_voltage_check_count = 0;
 				cm->desc->fast_charge_enable_count = 0;
 				cm->desc->fast_charge_disable_count = 0;
+				cm->desc->fast_charge_exit_count = 0;
 				cm->desc->fixed_fchg_running = false;
 				cm->desc->wait_vbus_stable = false;
 				cm->desc->cp.cp_running = false;
@@ -5275,6 +5288,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->fchg_voltage_check_count = 0;
 		cm->desc->fast_charge_enable_count = 0;
 		cm->desc->fast_charge_disable_count = 0;
+		cm->desc->fast_charge_exit_count = 0;
 		cm->desc->fixed_fchg_running = false;
 		cm->desc->wait_vbus_stable = false;
 		cm->desc->cp.cp_running = false;
@@ -7654,10 +7668,12 @@ static void cm_uvlo_check_work(struct work_struct *work)
 			dev_err(cm->dev, "WARN: trigger uvlo, will shutdown with uisoc less than 1%%\n");
 			cm_shutdown_handle(cm);
 		} else if ((u32)batt_uV <= cm->desc->shutdown_voltage) {
+			#ifndef DUAL_85_VERSION
 			dev_err(cm->dev, "WARN: batt_uV less than shutdown voltage, will shutdown,"
 				"and force capacity to 0%%\n");
 			set_batt_cap(cm, 0);
 			cm_shutdown_handle(cm);
+			#endif
 		}
 	}
 
@@ -8164,8 +8180,6 @@ static void cm_batt_works(struct work_struct *work)
 	}
 	else if ( !check_charge_done(cm))
 		charge_done = false;
-
-	cm_smt_sm(cm);
 
 	dev_info(cm->dev, "fuel = %d, cm->desc->cap = %d,  fuel_cap_buf = %d\n",
 		 fuel_cap, cm->desc->cap, fuel_cap_buf);
