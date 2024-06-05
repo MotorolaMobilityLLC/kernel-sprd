@@ -28,6 +28,8 @@ enum dvfs_master_cmd {
 	DVFS_CMD_DISABLE		= 0x0305,
 	DVFS_CMD_AUTO_ENABLE		= 0x0310,
 	DVFS_CMD_AUTO_DISABLE		= 0x0315,
+	DVFS_CMD_PERF_MODE_ENABLE	= 0x031A,
+	DVFS_CMD_PERF_MODE_DISABLE	= 0x031F,
 	DVFS_CMD_AXI_ENABLE		= 0x0320,
 	DVFS_CMD_AXI_DISABLE		= 0x0330,
 	DVFS_CMD_INQ_DDR_FREQ		= 0x0500,
@@ -668,6 +670,19 @@ static int set_underflow(unsigned int value, unsigned int sel)
 	return err;
 }
 
+static int dvfs_perf_mode_enable(bool en)
+{
+	int err;
+	unsigned int data;
+
+	if (en == 1)
+		err = dvfs_msg(&data, 0, DVFS_CMD_PERF_MODE_ENABLE, 3000);
+	else
+		err = dvfs_msg(&data, 0, DVFS_CMD_PERF_MODE_DISABLE, 3000);
+
+	return err;
+}
+
 static int get_freq_num(unsigned int *data)
 {
 	if (g_dvfs_data == NULL)
@@ -727,6 +742,7 @@ struct governor_callback g_gov_callback = {
 	.get_dvfs_auto_status = get_dvfs_auto_status,
 	.dvfs_auto_enable = dvfs_auto_enable,
 	.dvfs_auto_disable = dvfs_auto_disable,
+	.dvfs_perf_mode_enable = dvfs_perf_mode_enable,
 	.get_cur_freq = get_cur_freq,
 	.get_freq_table = get_freq_table,
 	.ddrinfo_dfs_step_parse = ddrinfo_dfs_step_parse,

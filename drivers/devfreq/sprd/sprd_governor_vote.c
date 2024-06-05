@@ -748,23 +748,25 @@ static ssize_t backdoor_store(struct device *dev, struct device_attribute *attr,
 	if (backdoor_status == backdoor)
 		return count;
 
+	err = -EINVAL;
 	if (backdoor == 1)
 		err = gov_callback->governor_vote("top");
 	else if (backdoor == 0)
 		err = gov_callback->governor_unvote("top");
-	else
-		err = -EINVAL;
-	mutex_lock(&dfs_step_mutex);
-	gov_callback->ddr_dfs_step_add(SET_BACKDOOR, err, NULL, backdoor,
-				       task_pid_nr(current), current->comm, call_time);
-	mutex_unlock(&dfs_step_mutex);
 
 	if (err) {
 		dev_err(dev->parent, "set backdoor %d fail: %d, pid: %d, comm: %s\n",
 			backdoor, err, task_pid_nr(current), current->comm);
 		return err;
 	}
+
 	backdoor_status  = backdoor;
+	gov_callback->dvfs_perf_mode_enable(backdoor);
+
+	mutex_lock(&dfs_step_mutex);
+	gov_callback->ddr_dfs_step_add(SET_BACKDOOR, err, NULL, backdoor,
+				       task_pid_nr(current), current->comm, call_time);
+	mutex_unlock(&dfs_step_mutex);
 	dev_info(dev->parent, "set backdoor %d, pid: %d, comm: %s\n",
 		 backdoor, task_pid_nr(current), current->comm);
 

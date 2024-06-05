@@ -1,4 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0 */
+//
+// Unisoc ddr dvfs driver
+//
+// Copyright (C) 2022 Unisoc, Inc.
+// Author: Mingmin Ling <mingmin.ling@unisoc.com
+
 #ifndef __SPRD_DVFS_DRV_H__
 #define __SPRD_DVFS_DRV_H__
 
@@ -75,6 +81,7 @@ struct governor_callback {
 	int (*get_dvfs_auto_status)(unsigned int *data);
 	int (*dvfs_auto_enable)(void);
 	int (*dvfs_auto_disable)(void);
+	int (*dvfs_perf_mode_enable)(bool en);
 	int (*get_cur_freq)(unsigned int *data);
 	int (*get_freq_table)(unsigned long *data, unsigned int sel);
 	int (*ddrinfo_dfs_step_parse)(char **arg, char **step_status, char **scene, u32 *buff,
