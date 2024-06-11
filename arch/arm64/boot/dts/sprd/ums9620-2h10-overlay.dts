@@ -148,38 +148,6 @@
 				const-offset = <1000>;
 			};
 
-			right_sensor: right-sensor {
-				compatible = "sprd,shell-thermal";
-				#thermal-sensor-cells = <0>;
-				sensor-names = "chg-thmzone",
-						"pa-thmzone",
-						"board-thmzone",
-						"battery";
-				temp-coeff = <27622 25445 26082 26122 27037 27278 27858
-						16966 24115 24729 24593 24441 25423 32621
-						20953 21210 21364 21195 20328 19033 21485
-						760 22980 22690 22546 26582 27761 52778>;
-				coeff-offset = <24000>;
-				temp-const = <805>;
-				const-offset = <1000>;
-			};
-
-			left_sensor: left-sensor {
-				compatible = "sprd,shell-thermal";
-				#thermal-sensor-cells = <0>;
-				sensor-names = "chg-thmzone",
-						"pa-thmzone",
-						"board-thmzone",
-						"battery";
-				temp-coeff = <17337 15400 15676 15485 16166 16131 16666
-						10227 14360 14697 14516 14422 14890 19470
-						11164 11541 12008 12157 11494 10590 12498
-						229 13686 13382 12645 15805 16673 32684>;
-				coeff-offset = <14000>;
-				temp-const = <12>;
-				const-offset = <0>;
-			};
-
 			env_sensor: env-sensor {
 				compatible = "sprd,shell-thermal";
 				#thermal-sensor-cells = <0>;
@@ -197,12 +165,9 @@
 			};
 
 			skin_sensor: skin-sensor {
-				compatible = "sprd, skin-thermal";
+				compatible = "sprd,virt-thm";
 				#thermal-sensor-cells = <0>;
-				sensor-names = "back-thmzone",
-						"front-thmzone",
-						"left-thmzone",
-						"right-thmzone";
+				thmzone-cells = <&front_thmzone>, <&back_thmzone>;
 			};
 
 			fingerprint@0 {
@@ -236,16 +201,6 @@
 &back_thmzone {
 	status = "okay";
 	thermal-sensors = <&back_sensor>;
-};
-
-&right_thmzone {
-	status = "okay";
-	thermal-sensors = <&right_sensor>;
-};
-
-&left_thmzone {
-	status = "okay";
-	thermal-sensors = <&left_sensor>;
 };
 
 &env_thmzone {
