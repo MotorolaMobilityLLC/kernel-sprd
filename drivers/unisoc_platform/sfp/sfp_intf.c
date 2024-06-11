@@ -401,6 +401,8 @@ static bool sfp_update_pkt_header(int ifindex,
 	case IP_L4_PROTO_UDP:
 		pudphdr = (struct udphdr *)((unsigned char *)l3data + l4offset);
 		check = &pudphdr->check;
+		if (*check == 0)
+			break;
 		oldsrcport = pudphdr->source;
 		olddstport = pudphdr->dest;
 		pudphdr->dest = ret_info.trans_info.dst_l4_info.all;
