@@ -507,11 +507,13 @@ config SPRD_SHELL_THERMAL
 	help
 	  this driver belongs to thermal module, We use it to monitor virtua shell's temperature
 
-config SPRD_SKIN_THERMAL
-	tristate "sprd virt thermal"
+config SPRD_VIRT_THERMAL
+	tristate "sprd get max temp Support"
 	depends on THERMAL
 	help
-	  this driver belongs to thermal module, We use it to get max skin temp
+	  Say Y here to enable support for get max temp driver,
+	  this driver belongs to thermal module,
+	  We use it to get max temp
 
 config SC27XX_TSENSOR_THERMAL
 	tristate "Spreadtrum SC27xx Tsensor Thermal Support"
