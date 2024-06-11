@@ -89,7 +89,7 @@ static ssize_t cable_gpio_show(struct kobject *dev, struct kobj_attribute *attr,
 
 	val = gpio_get_value(226);
 	if(0 == val)
-		gpio_get_value(227);
+	    val = gpio_get_value(227);
 	pr_info("%s: val = %d\n", __func__, val);
 	msg = val ? "0" : "1";
 
