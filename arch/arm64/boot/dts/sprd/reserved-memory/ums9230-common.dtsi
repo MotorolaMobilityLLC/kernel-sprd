@@ -22,7 +22,9 @@
 		reg = <0x0 0x94100000 0x0 0x00300000>;
 	};
 
+	/* double logo_reserved memory size to support buffer swap in LK */
+	/* the @addr value is not accurate on UMS9230, please refer to the reg value */
 	logobuffer@9e000000 {
-		reg = <0x0 0x9e000000 0x0 0x00ab0000>;
+		reg = <0x0 0x9caa8000 0x0 0x013d8000>;
 	};
 };

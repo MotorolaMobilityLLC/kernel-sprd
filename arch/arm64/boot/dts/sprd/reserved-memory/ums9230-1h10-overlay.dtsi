@@ -25,11 +25,6 @@
 		reg = <0x0 0x80003000 0x0 0x00002000>;
 	};
 
-	/* double logo_reserved memory size to support buffer swap in LK */
-	logo_reserved: logobuffer@9caa8000 {
-		reg = <0x0 0x9caa8000 0x0 0x013d8000>;
-	};
-
 	oemcrypto_reserved: oemcrypto@b6100000 {
 		reg = <0x0 0xb6100000 0x0 0x01100000>;
 	};
