@@ -217,8 +217,8 @@ static void sbuf_skip_old_data(struct sbuf_mgr *sbuf)
 		ring = &sbuf->rings[i];
 		hd_op = &ring->header_op;
 
-		/* clean sbuf tx ring , sbuf tx ring no need to clear */
-		if (sbuf->dst == SIPC_ID_PM_SYS) {
+		/* clean sbuf tx ring , sbuf tx ring and channel 6-6 no need to clear */
+		if (sbuf->dst == SIPC_ID_PM_SYS && sbuf->channel != SMSG_CH_TTY) {
 			mutex_lock(&ring->txlock);
 			*(hd_op->tx_wt_p) = *(hd_op->tx_rd_p);
 			mutex_unlock(&ring->txlock);
@@ -231,6 +231,7 @@ static void sbuf_skip_old_data(struct sbuf_mgr *sbuf)
 		spin_lock_irqsave(&ring->poll_lock, flags);
 		ring->poll_mask = POLLOUT | POLLWRNORM;
 		spin_unlock_irqrestore(&ring->poll_lock, flags);
+
 	}
 	ring = &sbuf->rings[0];
 	/* release resource */
