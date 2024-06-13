@@ -475,6 +475,9 @@ bq2560x_charger_set_termina_vol(struct bq2560x_charger_info *info, u32 vol)
 	else if (vol >= 4624)
 		vol = 4624;
 
+	if(vol >4500)
+		vol -= 8; //for ffc
+
 	reg_val = (vol - 3856) / 32;
 
 	reg_remain =(vol - 3856) % 32;
@@ -633,6 +636,9 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 
 	ret = bq2560x_update_bits(info, BQ2560X_REG_4,   //sgm41542 recharge  0:100mv 1:200mv
 				  0x01,
+				  0);
+	ret = bq2560x_update_bits(info, BQ2560X_REG_2,   //otg current:  0:1.2A 1:2A
+				  0x80,
 				  0);
 	info->current_charge_limit_cur = BQ2560X_REG_ICHG_LSB * 1000;
 	info->current_input_limit_cur = BQ2560X_REG_IINDPM_LSB * 1000;
