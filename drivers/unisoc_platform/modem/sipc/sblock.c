@@ -1418,8 +1418,6 @@ static int sblock_send_ex(u8 dst, u8 channel,
 				 sblock->txblksz);
 	ring->txrecord[index] = SBLOCK_BLK_STATE_DONE;
 
-	spin_unlock_irqrestore(&ring->r_txlock, flags);
-
 	/* request in sblock_get, release here */
 	sipc_smem_release_resource(ring->tx_pms, dst);
 
@@ -1430,12 +1428,14 @@ static int sblock_send_ex(u8 dst, u8 channel,
 	if (send_event && (((int)(*(ringhd_op->tx_wt_p) -
 	    *(ringhd_op->tx_rd_p)) == 1) || ((int)(*(ringhd_op->tx_wt_p) -
 	    *(ringhd_op->tx_rd_p)) >= ringhd_op->tx_count))) {
+		spin_unlock_irqrestore(&ring->r_txlock, flags);
 		smsg_set(&mevt, channel,
 			 SMSG_TYPE_EVENT,
 			 SMSG_EVENT_SBLOCK_SEND,
 			 0);
 		rval = smsg_send(dst, &mevt, -1);
-	}
+	} else
+		spin_unlock_irqrestore(&ring->r_txlock, flags);
 
 	return rval;
 }
