@@ -1175,6 +1175,12 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 				   priv->ap_apb_cfg_frc_on.mask,
 				   priv->ap_apb_cfg_frc_on.mask);
 
+		/* keep UFS MPHY_ANA_POWERDOWN FRC in runtime state */
+		ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_REG_SEL_CFG_0_ANA_POWERDOWN_MASK,
+				MPHY_REG_SEL_CFG_0_ANA_POWERDOWN_VAL, MPHY_REG_SEL_CFG_0);
+		ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_POWER_REG_ANA_POWERDOWN_MASK,
+				0, MPHY_POWER_REG);
+
 		break;
 	default:
 		err = -EINVAL;
@@ -1363,6 +1369,10 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 				   priv->ap_apb_cfg_frc_on.reg,
 				   priv->ap_apb_cfg_frc_on.mask,
 				   0);
+
+		/* restore UFS MPHY_ANA_POWERDOWN ctl by PMU */
+		ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_REG_SEL_CFG_0_ANA_POWERDOWN_MASK,
+				0, MPHY_REG_SEL_CFG_0);
 		break;
 	default:
 		break;
@@ -1381,9 +1391,17 @@ static int ufs_sprd_device_reset(struct ufs_hba *hba)
 static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
 {
 	u32 data = 0;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9230_data *priv =
+		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
 
 	sprd_ufs_print_err_cnt(hba);
 	ufs_sprd_get_debug_regs(hba, UFS_EVT_CNT, &data);
+
+	dev_err(hba->dev, "%s: MPHY_REG_SEL_CFG_0:0x%x,MPHY_POWER_REG:0x%x", __func__,
+			readl(priv->ufs_analog_reg + MPHY_REG_SEL_CFG_0),
+			readl(priv->ufs_analog_reg + MPHY_POWER_REG));
+
 	sprd_ufs_debug_err_dump(hba);
 }
 
