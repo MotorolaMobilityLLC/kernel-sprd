@@ -149,6 +149,17 @@ config UNISOC_CPU_NETLINK
 	  If you do not use unisoc android framework, or you do not want to receive
 	  the messege, turn off it.
 
+config UNISOC_SCHED_DEBUG_ATOMIC
+	bool "Support unisoc scheduler debug"
+	depends on UNISOC_SCHED && SPRD_DEBUG
+	default n
+	help
+	  Enable unisoc scheduler_bug debug.
+	  When open this feature, scheduler would check scheduling in atomic,
+	  and then trigger panic.
+	  If you do not want to trigger panic,
+	  turn it off.
+
 config UNISOC_INPUT_BOOST
 	bool "Support input cpufreq boost"
 	depends on UNISOC_SCHED && CPU_FREQ
