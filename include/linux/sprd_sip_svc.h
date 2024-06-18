@@ -198,6 +198,18 @@ struct sprd_sip_svc_cachedump_ops {
 #endif
 
 /**
+ * struct sprd_sip_svc_socdump_ops - represents the various operations
+ * provided by SPRD SIP SOCDUMP
+ *
+ * @socdump_func_api: execute socdump function
+ */
+struct sprd_sip_svc_socdump_ops {
+	struct sprd_sip_svc_rev_info rev;
+
+	int (*socdump_func_api)(void);
+};
+
+/**
  * struct sprd_sip_svc_handle - Handle returned to SPRD SIP clients for usage
  *
  * @perf_ops: pointer to set of performance operations
@@ -213,6 +225,7 @@ struct sprd_sip_svc_handle {
 	struct sprd_sip_svc_storage_ops storage_ops;
 	struct sprd_sip_svc_npu_ops npu_ops;
 	struct sprd_sip_svc_gpu_ops gpu_ops;
+	struct sprd_sip_svc_socdump_ops socdump_ops;
 
 #if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
 	struct sprd_sip_svc_cachedump_ops cachedump_ops;

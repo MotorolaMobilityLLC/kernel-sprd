@@ -294,6 +294,19 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x0802))
 
+/* SIP socdump operations */
+#define SPRD_SIP_SVC_SOCDUMP_REV					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0900))
+
+#define SPRD_SIP_SVC_SOCDUMP_FUNC_API					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			   ARM_SMCCC_SMC_32,				\
+			   ARM_SMCCC_OWNER_SIP,				\
+			   0x0901))
+
 #if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
 /* SIP cache dump operations */
 #define SPRD_SIP_SVC_CACHEDUMP_REV					\
@@ -717,6 +730,18 @@ static int sprd_sip_svc_cachedump_func_api(uint8_t mesi, uint8_t sec, uint8_t va
 }
 #endif
 
+static int sprd_sip_svc_socdump_func_api(void)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_SOCDUMP_FUNC_API,
+			0, 0, 0, 0, 0, 0, 0, &res);
+
+	pr_info("%s: socdump in sml pass!\n", __func__);
+
+	return res.a0;
+}
+
 static int __init sprd_sip_svc_init(void)
 {
 	int ret = 0;
@@ -844,6 +869,17 @@ static int __init sprd_sip_svc_init(void)
 			sprd_sip_svc_handle.cachedump_ops.rev.major_ver,
 			sprd_sip_svc_handle.cachedump_ops.rev.minor_ver);
 #endif
+
+	/* init socdump_ops */
+	arm_smccc_smc(SPRD_SIP_SVC_SOCDUMP_REV, 0, 0, 0, 0, 0, 0, 0, &res);
+	sprd_sip_svc_handle.socdump_ops.rev.major_ver = (u32)(res.a0);
+	sprd_sip_svc_handle.socdump_ops.rev.minor_ver = (u32)(res.a1);
+
+	sprd_sip_svc_handle.socdump_ops.socdump_func_api = sprd_sip_svc_socdump_func_api;
+
+	pr_notice("SPRD SIP SVC SOCDUMP:v%d.%d detected in firmware.\n",
+		  sprd_sip_svc_handle.socdump_ops.rev.major_ver,
+		  sprd_sip_svc_handle.socdump_ops.rev.minor_ver);
 
 	return ret;
 }
