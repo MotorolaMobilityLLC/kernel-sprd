@@ -24,7 +24,7 @@
 &bat {
 	compatible = "simple-battery";
 	status = "okay";
-	battery_name ="QG50-SB18E23377-ATL-5000mAh","QG50-SB18E21836-ATL-5000mAh";
+	battery_name ="QG50-SB18E23377-ATL-4850Ah","QG50-SB18E21836-ATL-4850mAh";
 
 	charge-full-design-microamp-hours = <4989000>;
 	charge-term-current-microamp = <256000>;
@@ -88,7 +88,7 @@
 &bat2 {
 	compatible = "simple-battery";
 	status = "okay";
-	battery_name ="QG50-SB18E23379-SWD-5000mAh","QG50-SB18E21837-SWD-5000mAh";
+	battery_name ="QG50-SB18E23379-SWD-4850mAh","QG50-SB18E21837-SWD-4850mAh";
 
 	charge-full-design-microamp-hours = <4977000>;
 	charge-term-current-microamp = <256000>;
@@ -152,7 +152,7 @@
 &bat3 {
 	compatible = "simple-battery";
 	status = "okay";
-	battery_name ="QG50-SB18E28521-JIADE-5000mAh","QG50-SB18E21838-JIADE-5000mAh";
+	battery_name ="QG50-SB18E28521-JIADE-4850mAh","QG50-SB18E21838-JIADE-4850mAh";
 
 	charge-full-design-microamp-hours = <4884000>;
 	charge-term-current-microamp = <256000>;
