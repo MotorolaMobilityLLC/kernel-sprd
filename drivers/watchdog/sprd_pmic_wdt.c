@@ -20,15 +20,18 @@
 #include <linux/err.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
+#include <linux/irq.h>
 #include <linux/kernel.h>
 #include <linux/kthread.h>
 #include <linux/module.h>
 #include <linux/of.h>
 #include <linux/of_device.h>
+#include <linux/of_irq.h>
 #include <linux/platform_device.h>
 #include <linux/regmap.h>
 #include <linux/rtc.h>
 #include <linux/sipc.h>
+#include <linux/sprd_sip_svc.h>
 #include <uapi/linux/sched/types.h>
 
 #define SPRD_PMIC_WDT_LOAD_LOW		0x0
@@ -143,6 +146,7 @@ struct sprd_pmic_wdt_data {
 	u32 wdt_rtc_eb_reg;
 	u32 wdt_en;
 	u32 wdt_rtc_en;
+	bool eb_always_on;
 };
 
 static struct sprd_pmic_wdt_data sc2731_data = {
@@ -150,6 +154,7 @@ static struct sprd_pmic_wdt_data sc2731_data = {
 	.wdt_rtc_eb_reg = SC2731_WDT_RTC_EB,
 	.wdt_en = SC2731_WDT_EN,
 	.wdt_rtc_en = SC2731_WDT_RTC_EN,
+	.eb_always_on = false,
 };
 
 static struct sprd_pmic_wdt_data sc2730_data = {
@@ -157,6 +162,7 @@ static struct sprd_pmic_wdt_data sc2730_data = {
 	.wdt_rtc_eb_reg = SC2730_WDT_RTC_EB,
 	.wdt_en = SC2730_WDT_EN,
 	.wdt_rtc_en = SC2730_WDT_RTC_EN,
+	.eb_always_on = false,
 };
 
 static struct sprd_pmic_wdt_data sc2721_data = {
@@ -164,6 +170,7 @@ static struct sprd_pmic_wdt_data sc2721_data = {
 	.wdt_rtc_eb_reg = SC2721_WDT_RTC_EB,
 	.wdt_en = SC2721_WDT_EN,
 	.wdt_rtc_en = SC2721_WDT_RTC_EN,
+	.eb_always_on = false,
 };
 
 static struct sprd_pmic_wdt_data sc2720_data = {
@@ -171,6 +178,7 @@ static struct sprd_pmic_wdt_data sc2720_data = {
 	.wdt_rtc_eb_reg = SC2720_WDT_RTC_EB,
 	.wdt_en = SC2720_WDT_EN,
 	.wdt_rtc_en = SC2720_WDT_RTC_EN,
+	.eb_always_on = false,
 };
 
 static struct sprd_pmic_wdt_data ump9620_data = {
@@ -178,6 +186,7 @@ static struct sprd_pmic_wdt_data ump9620_data = {
 	.wdt_rtc_eb_reg = ump9620_WDT_RTC_EB,
 	.wdt_en = ump9620_WDT_EN,
 	.wdt_rtc_en = ump9620_WDT_RTC_EN,
+	.eb_always_on = true,
 };
 
 static struct sprd_pmic_wdt_data uip8520_data = {
@@ -185,6 +194,7 @@ static struct sprd_pmic_wdt_data uip8520_data = {
 	.wdt_rtc_eb_reg = uip8520_WDT_RTC_EB,
 	.wdt_en = uip8520_WDT_EN,
 	.wdt_rtc_en = uip8520_WDT_RTC_EN,
+	.eb_always_on = false,
 };
 
 static int sprd_pmic_wdt_on(struct sprd_pmic_wdt *pmic_wdt)
@@ -491,9 +501,31 @@ static void sprd_wdt_feeder_init(struct sprd_pmic_wdt *pmic_wdt)
 	mutex_unlock(pmic_wdt->lock);
 }
 
+static irqreturn_t  sprd_pmic_wdg_interrupt(int irq, void *dev_id)
+{
+	int ret;
+	struct sprd_sip_svc_handle *svc_handle;
+
+	pr_info("%s: irq_handler entry!\n", __func__);
+
+	svc_handle = sprd_sip_svc_get_handle();
+	if (!svc_handle) {
+		pr_err("%s: failed to get svc handle\n", __func__);
+		return IRQ_NONE;
+	}
+
+	ret = svc_handle->socdump_ops.socdump_func_api();
+	pr_info("smc: enable cfg, ret:0x%x", ret);
+
+	disable_irq(irq);
+
+	return IRQ_HANDLED;
+}
+
 static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 {
 	int ret, rval;
+	uint32_t irq;
 	struct device_node *node = pdev->dev.of_node;
 	struct sprd_pmic_wdt *pmic_wdt;
 	struct sched_param param = { .sched_priority = MAX_RT_PRIO - 1 };
@@ -556,6 +588,19 @@ static int sprd_pmic_wdt_probe(struct platform_device *pdev)
 			goto out;
 		}
 		sprd_wdt_feeder_init(pmic_wdt);
+	}
+
+	if (pmic_wdt->data->eb_always_on) {
+		irq = irq_of_parse_and_map(node, 0);
+		if (!irq)
+			dev_err(&pdev->dev, "can't parse PMIC WDT irq\n");
+		else {
+			ret = request_threaded_irq(irq, NULL, sprd_pmic_wdg_interrupt,
+			IRQF_NO_SUSPEND | IRQF_ONESHOT, "pmic_wdt", pmic_wdt);
+
+			if (ret)
+				dev_err(&pdev->dev, "Failed to add PMIC WDT irq\n");
+		}
 	}
 
 	platform_set_drvdata(pdev, pmic_wdt);
