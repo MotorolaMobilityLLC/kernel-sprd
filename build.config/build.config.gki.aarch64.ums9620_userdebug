@@ -8,7 +8,8 @@ UMS9620_BASE_CONFIG="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig
                      ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_gki_qogirn6pro.fragment
                     "
 if [[ $BSP_PRODUCT_NAME_TAIL == "Skynet" ]]; then
-	UMS9620_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_swkasan_Skynet.fragment"
+	UMS9620_BASE_CONFIG+="${FRAGMENT_CONFIG}"
+	FRAGMENT_CONFIG="${KERNEL_DIR}/arch/arm64/configs/sprd_swkasan_Skynet.fragment"
 elif [[ $BSP_PRODUCT_NAME_TAIL == "Syzkaller" ]]; then
 	UMS9620_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_Syzkaller.fragment"
 fi
