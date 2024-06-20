@@ -35,6 +35,7 @@
 #define NOT_SUPPORT 3
 
 bool debug_en;
+atomic_t force_err;
 
 struct mmc_speed_config {
 	char *name;
@@ -52,7 +53,7 @@ static const struct mmc_speed_config mmc_speed[] = {
 	{"SDR50", SD_TIMING, MMC_CAP_UHS_SDR50, 0}, /* MMC_TIMING_UHS_SDR50: 5 */
 	{"SDR104", SD_TIMING, MMC_CAP_UHS_SDR104, 0}, /* MMC_TIMING_UHS_SDR104: 6 */
 	{"DDR50", NOT_SUPPORT, MMC_CAP_DDR, 0}, /* MMC_TIMING_UHS_DDR50: 7 */
-	{"DDR52", MMC_TIMING, 0, EXT_CSD_CARD_TYPE_DDR_52}, /* MMC_TIMING_MMC_DDR52: 8 */
+	{"DDR52", NOT_SUPPORT, 0, EXT_CSD_CARD_TYPE_DDR_52}, /* MMC_TIMING_MMC_DDR52: 8 */
 	{"HS200", MMC_TIMING, 0, EXT_CSD_CARD_TYPE_HS200}, /* MMC_TIMING_MMC_HS200: 9 */
 	{"HS400", MMC_TIMING, 0, EXT_CSD_CARD_TYPE_HS400}, /* MMC_TIMING_MMC_HS400: 10 */
 	{"HS400ES", MMC_TIMING, 0, EXT_CSD_CARD_TYPE_HS400ES}, /* add new define HS400_ES: 11 */
@@ -63,7 +64,7 @@ static int sdhci_sprd_set_timing_show(struct seq_file *file, void *data)
 	struct mmc_host *host = file->private;
 	u8 timing = host->ios.enhanced_strobe ? host->ios.timing + 1 : host->ios.timing;
 	static const char * const mmc_select_mode[] = {
-		"support select HS, DDR52, HS200, HS400, HS400ES\n", /* EMMC */
+		"support select HS, HS200, HS400, HS400ES\n", /* EMMC */
 		"support select LEGACY, HS, SDR50, SDR104\n" /* SD */
 	};
 
@@ -100,13 +101,19 @@ static ssize_t sdhci_sprd_set_timing_write(struct file *filp, const char __user 
 				   size_t cnt, loff_t *ppos)
 {
 	struct mmc_host *host = PDE_DATA(file_inode(filp));
+	struct mmc_card *card = host->card;
+	struct mmc_blk_data *md;
+	struct mmc_queue *mq;
+	const char *name = mmc_hostname(host);
+	bool cmdq_dis = false;
+	int busy = 1000;
 	char temp[SPRD_SPEED_MODE_NAME_MAX] = {0};
 	bool flag = false;
-	int i;
+	int i, err = 0;
 
-	if (!host->card || mmc_card_sdio(host->card) ||
+	if (!card || mmc_card_sdio(card) ||
 		cnt > SPRD_SPEED_MODE_NAME_MAX || cnt < SPRD_SPEED_MODE_NAME_MIN)
-		goto out;
+		return cnt;
 
 	if (copy_from_user(temp, ubuf, cnt - 1))
 		return -EFAULT;
@@ -115,7 +122,7 @@ static ssize_t sdhci_sprd_set_timing_write(struct file *filp, const char __user 
 		if (mmc_speed[i].support != host->index)
 			continue;
 		if (flag) {
-			host->card->mmc_avail_type &= ~mmc_speed[i].type;
+			card->mmc_avail_type &= ~mmc_speed[i].type;
 			host->caps &= ~mmc_speed[i].caps;
 		} else if (!strcmp(mmc_speed[i].name, temp)) {
 			if (!sdhci_sprd_raw_cfg(host, mmc_speed[i].caps, mmc_speed[i].type))
@@ -125,17 +132,64 @@ static ssize_t sdhci_sprd_set_timing_write(struct file *filp, const char __user 
 	}
 
 	if (!flag) {
-		pr_err("%s does not support %s, set timing fail!\n", mmc_hostname(host), temp);
-		goto out;
+		pr_err("%s:(set timing) does not support %s, set fail!\n", name, temp);
+		return cnt;
+	}
+
+	md = dev_get_drvdata(&card->dev);
+	mq = &md->queue;
+
+	err = -EBUSY;
+	while (busy--) {
+		spin_lock_irq(&mq->lock);
+		if (mq->recovery_needed || mq->busy) {
+			spin_unlock_irq(&mq->lock);
+			usleep_range_state(3000, 5000, TASK_UNINTERRUPTIBLE);
+			continue;
+		}
+
+		mq->busy = true;
+		spin_unlock_irq(&mq->lock);
+		err = 0;
+		break;
+	}
+
+	if (err) {
+		pr_err("%s:(set timing) mq busy\n", name);
+		return err;
 	}
 
 	mmc_claim_host(host);
-	host->bus_ops->hw_reset(host);
+
+	if (card->ext_csd.cmdq_en) {
+		err = mmc_cmdq_disable(card);
+		if (err) {
+			pr_err("%s:(set timing) cmdq disable fail,err=%d\n", name, err);
+			goto fail;
+		}
+		cmdq_dis = true;
+	}
+
+	err = mmc_hw_reset(host);
+	if (err >= 0)
+		pr_info("%s:(set timing) current speed is: [%s], set success!\n",
+			mmc_hostname(host), temp);
+
+fail:
+	if (cmdq_dis) {
+		err = mmc_cmdq_enable(card);
+		if (err) {
+			pr_err("%s:(set timing) cmdq enable fail, err=%d\n", name, err);
+			mmc_hw_reset(host);
+		}
+	}
+
+	spin_lock_irq(&mq->lock);
+	mq->busy = false;
+	spin_unlock_irq(&mq->lock);
+
 	mmc_release_host(host);
 
-	pr_info("%s current speed is: [%s], set timing success!\n",
-		mmc_hostname(host), temp);
-out:
 	return cnt;
 }
 
@@ -187,11 +241,8 @@ static ssize_t sdhci_sprd_reset_write(struct file *filp, const char __user *ubuf
 	if (!host->card)
 		return -EOPNOTSUPP;
 
-	mmc_claim_host(host);
-
-	host->ops->hw_reset(host);
-
-	mmc_release_host(host);
+	atomic_set(&force_err, 1);
+	pr_info("%s: triger hw_reset\n", mmc_hostname(host));
 
 	return cnt;
 }

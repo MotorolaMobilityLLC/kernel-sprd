@@ -1017,7 +1017,7 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 
 	if (check_need_cmdq(swcq)) {
 		/*come from hsq interrupt handler context*/
-		if (in_irq()) {
+		if (in_irq() || in_softirq()) {
 			SCHED_PUMP_WORK(&swcq->delayed_pump_work, 0);
 			swcq->pump_busy = false;
 			spin_unlock_irqrestore(&swcq->lock, flags);

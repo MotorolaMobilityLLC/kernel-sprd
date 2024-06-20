@@ -896,6 +896,21 @@ static void sdhci_sprd_request_done(struct sdhci_host *host,
 
 	trace_mmc_cmd_done(host->mmc, mrq);
 
+	if (HOST_IS_EMMC_TYPE(host->mmc) &&
+		atomic_read(&force_err) && mrq && mrq->cmd && mrq->data) {
+		if (((mrq->cmd->opcode == MMC_READ_SINGLE_BLOCK) ||
+			(mrq->cmd->opcode == MMC_READ_MULTIPLE_BLOCK) ||
+			(mrq->cmd->opcode == MMC_WRITE_BLOCK) ||
+			(mrq->cmd->opcode == MMC_WRITE_MULTIPLE_BLOCK) ||
+			(mrq->cmd->opcode == MMC_EXECUTE_READ_TASK) ||
+			(mrq->cmd->opcode == MMC_EXECUTE_WRITE_TASK))) {
+			mrq->data->error = -EILSEQ;
+			pr_info("%s: fill error to cmd:%d, mrq %p\n",
+				mmc_hostname(host->mmc), mrq->cmd->opcode, mrq);
+			atomic_set(&force_err, 0);
+		}
+	}
+
 	/* Validate if the request was from software queue firstly. */
 	if (HOST_IS_EMMC_TYPE(host->mmc) && sprd_host->support_swcq) {
 		if (mmc_swcq_finalize_request(host->mmc, mrq))
@@ -1007,6 +1022,26 @@ static int sprd_calc_tuning_range(struct sdhci_sprd_host *host, int *value_t)
 	}
 
 	return range_count;
+}
+
+static void sdhci_sprd_clk_autogate(struct sdhci_host *host, bool enable)
+{
+	u32 val, mask;
+
+	val = sdhci_readl(host, SDHCI_SPRD_REG_32_BUSY_POSI);
+	mask = SDHCI_SPRD_BIT_OUTR_CLK_AUTO_EN | SDHCI_SPRD_BIT_INNR_CLK_AUTO_EN;
+
+	if (enable) {
+		if (mask != (val & mask)) {
+			val |= mask;
+			sdhci_writel(host, val, SDHCI_SPRD_REG_32_BUSY_POSI);
+		}
+	} else {
+		if (val & mask) {
+			val &= ~mask;
+			sdhci_writel(host, val, SDHCI_SPRD_REG_32_BUSY_POSI);
+		}
+	}
 }
 
 static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_tuning_type type)
@@ -1268,6 +1303,8 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	bool old_tm = sprd_host->tuning_merged;
 	int err = 0;
 
+	if (HOST_IS_EMMC_TYPE(mmc))
+		sdhci_sprd_clk_autogate(host, false);
 retry_tuning:
 	/*
 	 * For better compatibility with some SD Cards,
@@ -1299,6 +1336,9 @@ retry_tuning:
 		type = SDHCI_SPRD_TUNING_SD_UHS_DATA;
 		err = sdhci_sprd_tuning(mmc, opcode, type);
 	}
+
+	if (HOST_IS_EMMC_TYPE(mmc))
+		sdhci_sprd_clk_autogate(host, true);
 
 	return err;
 }
