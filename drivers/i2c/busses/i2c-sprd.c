@@ -718,7 +718,7 @@ static void sprd_i2c_set_clk(struct sprd_i2c *i2c_dev, u32 freq)
 	if (freq == I2C_MAX_FAST_MODE_FREQ)
 		writel((14 * apb_clk) / 10000000, i2c_dev->base + ADDR_STA0_DVD);
 	else if (freq == I2C_MAX_STANDARD_MODE_FREQ)
-		writel((5 * apb_clk) / 1000000, i2c_dev->base + ADDR_STA0_DVD);
+		writel((4 * apb_clk) / 1000000, i2c_dev->base + ADDR_STA0_DVD);
 	else if (freq == I2C_MAX_FAST_MODE_PLUS_FREQ)
 		writel((8 * apb_clk) / 10000000, i2c_dev->base + ADDR_STA0_DVD);
 	else if (freq == I2C_MAX_HIGH_SPEED_MODE_FREQ)
