@@ -402,6 +402,10 @@ hl7015_charger_set_termina_vol(struct hl7015_charger_info *info, u32 vol)
 
 	reg_val = (vol - 3504) / 16;
 
+	if(vol > 4500)
+		hl7015_update_bits(info, HL7015_REG_C, 0xfc, 0xd0);
+	else
+		hl7015_update_bits(info, HL7015_REG_C, 0xfc, 0x00);
 
 	dev_info(info->dev, "%s;%d;%d;\n",__func__,vol,reg_val);
 
