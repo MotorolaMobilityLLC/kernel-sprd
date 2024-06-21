@@ -69,6 +69,9 @@ static int check_and_vote(unsigned int target_freq)
 	struct vote_data *point;
 	int err, i;
 
+	if (target_freq == 0)
+		last_freq = 0;
+
 	point = g_vote_data;
 	for (i = 0; i < scene_num; i++) {
 		if ((point->flag >= 1) && (point->freq > target_freq)) {

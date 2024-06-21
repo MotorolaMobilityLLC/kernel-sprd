@@ -413,6 +413,8 @@ static int force_freq_request(unsigned int freq)
 
 	if ((g_dvfs_data == NULL) || (g_dvfs_data->init_done == 0))
 		return -EINVAL;
+	if (unlikely(freq == 0xbacd))
+		freq = get_max_freq();
 	mutex_lock(&g_dvfs_data->sync_mutex);
 	err = dvfs_msg(&data, freq, DVFS_CMD_SET_DDR_FREQ, 500);
 	if (err == 0)

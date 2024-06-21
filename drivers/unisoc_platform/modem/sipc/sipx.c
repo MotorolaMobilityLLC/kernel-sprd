@@ -1780,6 +1780,14 @@ static int destroy_sipx_channel_ctrl(struct sipx_channel *sipx_chan)
 		sipx_chan->smem_addr,
 		sipx_chan->smem_size);
 
+#ifdef UL_TEST
+	if (5 == sipx_chan->dst && 7 == sipx_chan->channel) {
+		if (!IS_ERR_OR_NULL(s_test_thrd_hdl)) {
+			kthread_stop(s_test_thrd_hdl);
+			s_test_thrd_hdl = NULL;
+		}
+	}
+#endif
 	kfree(sipx_chan);
 
 	return 0;

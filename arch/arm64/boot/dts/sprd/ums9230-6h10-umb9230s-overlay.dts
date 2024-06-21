@@ -16,6 +16,7 @@
 #include <dt-bindings/mfd/sprd,sc2730-mask.h>
 #include <dt-bindings/usb/pd.h>
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_umb9230s.dtsi"
+#include "lcd/lcd_nt36672e_truly_mipi_fhd_120hz_umb9230s.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "touchscreen/ums9230-spi3-gpio144-145-tp.dtsi"
 #include "battery/ums9230-6h10-overlay.dtsi"
@@ -311,7 +312,7 @@
 	ums9230s_i2c: ums9230s_i2c {
 		compatible = "sprd,umb9230s-i2c";
 		reg = <0 0x20100000 0 0x100>;
-		clock-frequency = <1700000>;
+		clock-frequency = <3400000>;
 		clock-names ="enable", "i2c", "source";
 		clocks = <&apapb_gate CLK_I2C3_EB>,
 			<&ap_clk CLK_AP_I2C3>, <&pll1 CLK_TWPLL_153M6>;
@@ -506,6 +507,11 @@
 	sprd,sr-height = <1600>;
 };
 
+&lcd_nt36672e_truly_mipi_fhd_120hz_umb9230s {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1600>;
+};
+
 &dphy{
 	ports {
 		port@2 {
@@ -536,9 +542,9 @@
 };
 
 &ddr_dfs {
-	  sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
+	  sprd-scene = "boost", "lcd-high", "lcdon", "lcdoff", "camlow",
 			"camhigh", "camveryhigh", "faceid", "top", "boot-opt";
-	  sprd-freq = <1333 768 256 1333 1333 0xbacd 1333 0xbacd 0xbacd>;
+	  sprd-freq = <1333 1333 768 256 1333 1333 0xbacd 1333 0xbacd 0xbacd>;
 };
 
 &pin_controller {
@@ -603,6 +609,11 @@
 	oemcrypto-reserved {
 		label = "uncached_carveout_oem";
 		memory-region = <&oemcrypto_reserved>;
+	};
+	
+	protected-reserved {
+		label = "propected";
+		memory-region = <&protected_reserved>;
 	};
 };
 

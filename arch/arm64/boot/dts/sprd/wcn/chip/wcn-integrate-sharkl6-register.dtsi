@@ -7,6 +7,7 @@
 				wcn-dump {
 					btwf-dump {
 						/* base    size    offset    domain*/
+						sprd,bt-iram = <0x10004000 0x10000 0x41500000 0>;
 						sprd,btwf-share-mem = <0 0x800000 0x87000000 0>;
 					};
 				};
