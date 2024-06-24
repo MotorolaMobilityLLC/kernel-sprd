@@ -50,6 +50,36 @@
 		#iommu-cells = <0>;
 	};
 
+	perf_dpu: perf_dpu@31000000 {
+		compatible = "sprd,perf_dpu";
+		reg = <0x0 0x31000000 0x0 0x3000>,
+		       <0x0 0x30120000 0x0 0x100>;
+		resets = <&dpu_vsp_gate RESET_DPU_VSP_APB_DPU_SOFT_RST>,
+			<&dpu_vsp_gate RESET_DPU_VSP_APB_DPU_VAU_SOFT_RST>;
+		reset-names = "dpu_ctx_rst", "dpu_vau_rst";
+		interrupts = <GIC_SPI 152 IRQ_TYPE_LEVEL_HIGH>;
+		status = "disabled";
+		iommus = <&iommu_dispc>;
+		#power-domain-cells = <0>;
+		power-domains = <&vpu_pd_top>;
+		perf_dpu_port: port {
+			perf_dpu_out: endpoint {
+				remote-endpoint = <&perf_connector_in>;
+			};
+		};
+	};
+
+	perf_connector: perf_connector {
+		compatible = "sprd,perf-connector";
+		status = "okay";
+
+		port {
+			perf_connector_in: endpoint {
+				remote-endpoint = <&perf_dpu_out>;
+			};
+		};
+	};
+
 	gsp0_core0: gsp@31100000 {
 		compatible = "sprd,gsp-core";
 		reg = <0 0x31100000 0 0x2000>;
@@ -346,6 +376,7 @@
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>, <&dpu1_port>;
 		gsp = <&gsp0>, <&gsp1>;
+		perf_ports = <&perf_dpu_port>;
 	};
 };
 
@@ -377,6 +408,98 @@
 		<&aonapb_gate CLK_DPU_VSP_EB>,
 		<&dpu_vsp_gate CLK_DPU_EB>,
 		<&dpu_vsp_gate CLK_M_DIV6CLK_GATE_EN>;
+};
+
+&perf_dpu {
+	clock-names = "clk_src_256m",
+			"clk_src_307m2",
+			"clk_src_312m5",
+			"clk_src_384m",
+			"clk_src_409m6",
+			"clk_src_416m7",
+			"clk_src_512m",
+			"clk_src_614m4",
+			"clk_dpu_core",
+			"clk_dpu_dpi",
+			"clk_dpuvsp_eb",
+			"clk_dpuvsp_disp_eb",
+			"clk_master_div6_eb";
+
+	clocks = <&g5l_pll CLK_TGPLL_256M>,
+		<&g5l_pll CLK_TGPLL_307M2>,
+		<&dphy_312m5>,
+		<&g5l_pll CLK_TGPLL_384M>,
+		<&g5l_pll CLK_V4NRPLL_409M6>,
+		<&dphy_416m7>,
+		<&g5l_pll CLK_TGPLL_512M>,
+		<&g5l_pll CLK_V4NRPLL_614M4>,
+		<&dpu_vsp_clk CLK_DISPC0>,
+		<&dpu_vsp_clk CLK_DISPC0_DPI>,
+		<&aonapb_gate CLK_DPU_VSP_EB>,
+		<&dpu_vsp_gate CLK_DPU_EB>,
+		<&dpu_vsp_gate CLK_M_DIV6CLK_GATE_EN>;
+};
+
+
+&perf_connector {
+	sprd,dummy-panel-work-mode = <1>;
+	sprd,dummy-panel-color-format = "rgb888";
+	sprd,dpi-clk-pixelpll;
+	sprd,width-mm = <68>;
+	sprd,height-mm = <152>;
+
+	sprd,hw-vrr-en;
+	sprd,vrr-enabled;
+	sprd,vrr-max-layers = <2>;
+
+	sprd,slice-width = <540>;
+	sprd,slice-height = <20>;
+	sprd,output-bpc = <8>;
+	sprd,dsc-enable = <0>;
+	sprd,dual-dsi-enable = <0>;
+
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1640>;
+
+	display-timings {
+		native-mode = <&dummy_timing0>;
+
+		dummy_timing0: timing0 {
+			clock-frequency = <384000000>;
+			hactive = <1080>;
+			vactive = <2408>; /*2408*/
+			hback-porch = <56>;
+			hfront-porch = <130>;
+			vback-porch = <30>;
+			vfront-porch = <2559>;
+			hsync-len = <12>;
+			vsync-len = <10>;
+		};
+
+		dummy_timing1: timing1 {
+			clock-frequency = <384000000>;
+			hactive = <1080>;
+			vactive = <2408>; /*2408*/
+			hback-porch = <56>;
+			hfront-porch = <130>;
+			vback-porch = <30>;
+			vfront-porch = <890>;
+			hsync-len = <12>;
+			vsync-len = <10>;
+		};
+
+		dummy_timing2: timing2 {
+			clock-frequency = <384000000>;
+			hactive = <1080>;
+			vactive = <2408>; /*2408*/
+			hback-porch = <56>;
+			hfront-porch = <130>;
+			vback-porch = <30>;
+			vfront-porch = <46>;
+			hsync-len = <12>;
+			vsync-len = <10>;
+		};
+	};
 };
 
 &dsi {

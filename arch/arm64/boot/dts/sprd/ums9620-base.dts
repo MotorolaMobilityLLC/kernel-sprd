@@ -368,6 +368,11 @@
 	status = "okay";
 };
 
+&perf_dpu {
+	sprd,logo-memory = <&logo_reserved>;
+	status = "okay";
+};
+
 &dpu1 {
 	status = "okay";
 };
