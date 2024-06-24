@@ -24,7 +24,7 @@
 &bat {
 	compatible = "simple-battery";
 	status = "okay";
-	battery_name ="QG50-SB18E23377-ATL-4850Ah","QG50-SB18E21836-ATL-4850mAh";
+	battery_name ="QG50-SB18E23377-ATL-4850mAh","QG50-SB18E21836-ATL-4850mAh";
 
 	charge-full-design-microamp-hours = <4989000>;
 	charge-term-current-microamp = <256000>;
