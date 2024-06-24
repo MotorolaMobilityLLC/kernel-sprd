@@ -31,7 +31,7 @@
 #define SPRD_BLK_SIZE (1024 * 512)
 #define SPRD_PAGE_SIZE (1024 * 4)
 #define SPRD_DIFF (0x1)
-static int sprd_debug_buf[SPRD_BLK_SIZE / sizeof(int)];
+static int sprd_debug_buf[3][SPRD_BLK_SIZE / sizeof(int)];
 #endif
 
 const struct file_operations generic_ro_fops = {
@@ -619,22 +619,27 @@ static inline loff_t *file_ppos(struct file *file)
 }
 
 #if defined(CONFIG_SPRD_DEBUG)
-static void sprd_fs_debug_check_data(struct file *filep, char __user *buf, size_t count)
+static void sprd_fs_debug_check_data(struct file *filep, char __user *buf, size_t count,
+					int file_no)
 {
 	int i;
 	ssize_t ret = -EBADF;
+	loff_t pos, *ppos;
 
 	for (i = 0; i < SPRD_BLK_SIZE / sizeof(int); i += SPRD_PAGE_SIZE / sizeof(int)) {
-		if ((*(sprd_debug_buf + i + 1) - *(sprd_debug_buf + i) != SPRD_DIFF) &&
-			(*(sprd_debug_buf + i + 2) - *(sprd_debug_buf + i + 1) != SPRD_DIFF)) {
-			loff_t pos, *ppos = file_ppos(filep);
+		if ((sprd_debug_buf[file_no][i + 1] - sprd_debug_buf[file_no][i] == SPRD_DIFF) &&
+		(sprd_debug_buf[file_no][i + 2] - sprd_debug_buf[file_no][i + 1] == SPRD_DIFF))
+			continue;
 
-			if (ppos) {
-				pos = *ppos;
-				ppos = &pos;
-			}
+		ppos = file_ppos(filep);
+		if (ppos) {
+			pos = *ppos;
+			ppos = &pos;
 			ret = vfs_read(filep, buf, count, ppos);
-			panic("fs read_write test panic\n");
+			ret = __copy_from_user(&sprd_debug_buf[0][0], buf, SPRD_BLK_SIZE);
+			panic("FS ufstest panic f:%d 0x%llx bofs:%d v:0x%x 0x%x 0x%x 0x%x",
+			file_no, pos, i, sprd_debug_buf[file_no][i], sprd_debug_buf[file_no][i + 1],
+			sprd_debug_buf[file_no][i + 2], sprd_debug_buf[file_no][i + 3]);
 		}
 	}
 }
@@ -653,13 +658,13 @@ ssize_t ksys_read(unsigned int fd, char __user *buf, size_t count)
 		}
 		ret = vfs_read(f.file, buf, count, ppos);
 #if defined(CONFIG_SPRD_DEBUG)
-		if ((ret >= 0) && (count == SPRD_BLK_SIZE) &&
-		((!strcmp(f.file->f_path.dentry->d_name.name, "SequenceRead_test_file")) ||
-		(!strcmp(f.file->f_path.dentry->d_name.name, "RandomRead_test_file")) ||
-		(!strcmp(f.file->f_path.dentry->d_name.name, "SequenceWrite_test_file")) ||
-		(!strcmp(f.file->f_path.dentry->d_name.name, "RandomWrite_test_file")))) {
-			if (!__copy_from_user(sprd_debug_buf, buf, SPRD_BLK_SIZE))
-				sprd_fs_debug_check_data(f.file, buf, count);
+		if ((ret >= 0) && (count == SPRD_BLK_SIZE)) {
+			if (!strcmp(f.file->f_path.dentry->d_name.name, "SequenceRead_test_file")
+			    && !__copy_from_user(&sprd_debug_buf[1][0], buf, SPRD_BLK_SIZE))
+				sprd_fs_debug_check_data(f.file, buf, count, 1);
+			if (!strcmp(f.file->f_path.dentry->d_name.name, "SequenceWrite_test_file")
+			    && !__copy_from_user(&sprd_debug_buf[2][0], buf, SPRD_BLK_SIZE))
+				sprd_fs_debug_check_data(f.file, buf, count, 2);
 		}
 #endif
 		if (ret >= 0 && ppos)
