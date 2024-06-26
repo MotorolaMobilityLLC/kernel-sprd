@@ -6,6 +6,7 @@
 #ifndef __SPRD_PDBG_COMM_H__
 #define __SPRD_PDBG_COMM_H__
 
+#include <linux/arm-smccc.h>
 #include <linux/printk.h>
 #include <linux/rtc.h>
 
@@ -29,6 +30,7 @@ enum PDBG_R_TYPE {
 	PDBG_R_LCNT,
 	PDBG_R_LPC,
 	PDBG_WS,
+	PDBG_MISC,
 	PDBG_INFO_MAX
 };
 
@@ -47,7 +49,9 @@ enum {
 typedef void (*pdbg_notify_cb)(void *data, unsigned long cmd);
 
 extern void pm_get_active_wakeup_sources(char *pending_wakeup_source, size_t max);
-int sprd_pdbg_regs_get_once(u32 info_type, u64 *r_value, u64 *r_value_h);
+int sprd_pdbg_regs_get_once(u32 info_type, u64 *ret_vals);
+int sprd_pdbg_ws_info_trans(u32 *major, u32 *domain_id, u32 *hwirq);
+int sprd_pdbg_misc_trans(u32 cmd, u32 priv, struct arm_smccc_res *ret_vals);
 void sprd_pdbg_time_get(struct rtc_time *time);
 int pdbg_notifier_call_chain(unsigned long val, void *priv);
 void sprd_pdbg_kernel_active_ws_show(void);

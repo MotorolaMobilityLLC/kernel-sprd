@@ -476,11 +476,11 @@ static void adjust_dwc3_max_speed(struct dwc3_sprd *sdwc)
 		spin_lock_irqsave(&dwc->lock, flags);
 		reg = sdwc_readl(dwc->regs, DWC3_DCFG);
 		reg &= ~(DWC3_DCFG_SPEED_MASK);
-		reg |= DWC3_DCFG_FULLSPEED;
+		reg |= DWC3_DCFG_HIGHSPEED;
 		sdwc_writel(dwc->regs, DWC3_DCFG, reg);
 		reg = sdwc_readl(dwc->regs, DWC3_DSTS);
 		spin_unlock_irqrestore(&dwc->lock, flags);
-		dev_info(dwc->dev, "set dwc3 max speed to fs in cali mode, DWC3_DSTS: 0x%x\n", reg);
+		dev_info(dwc->dev, "set dwc3 max speed to hs in cali mode, DWC3_DSTS: 0x%x\n", reg);
 	}
 }
 
@@ -1495,6 +1495,9 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		usb_mode = "HOST";
 	else
 		usb_mode = "DRD";
+
+	usb_phy_init(sdwc->hs_phy);
+	usb_phy_init(sdwc->ss_phy);
 
 	ret = devm_of_platform_populate(&pdev->dev);
 	if (ret) {

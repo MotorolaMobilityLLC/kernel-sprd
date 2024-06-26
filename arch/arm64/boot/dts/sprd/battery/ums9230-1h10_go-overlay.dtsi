@@ -11,6 +11,7 @@
 	compatible = "simple-battery";
 	status = "okay";
 	charge-full-design-microamp-hours = <2950000>;
+	charge-full-microamp-hours = <2950000>;
 	charge-term-current-microamp = <60000>;
 	constant-charge-voltage-max-microvolt = <4340000>;
 	factory-internal-resistance-micro-ohms = <252000>;
@@ -126,7 +127,7 @@
 	sprd,support-pd-pps;
 	sprd,pd-fixed-max-microwatt = <18000000>;
 
-	monitored-battery = <&bat>;
+	monitored-battery-0 = <&bat>;
 	cm-capacity-track;
 	cm-keep-awake;
 
@@ -143,7 +144,7 @@
 	bq2560x_chg: charger@6b {
 		compatible = "ti,bq2560x_chg";
 		reg = <0x6b>;
-		monitored-battery = <&bat>;
+		monitored-battery-0 = <&bat>;
 		irq-gpio = <&ap_gpio 115 GPIO_ACTIVE_LOW>;
 		vddvbus:otg-vbus {
 			regulator-name = "vddvbus";
@@ -183,7 +184,7 @@
 };
 
 &pmic_fgu {
-	monitored-battery = <&bat>;
+	monitored-battery-0 = <&bat>;
 	fgu-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 	sprd,calib-resistance-micro-ohms = <4850>;
 	sprd,comp-resistance-mohm = <11>;
@@ -201,6 +202,9 @@
 &pmic_fchg {
 	status = "okay";
 	sprd,input-voltage-microvolt = <5000000>;
+
+	/* External device current compensation code value during sfcp handshaking */
+	sprd,ext-dev-comp-cur-code = <30>;
 };
 
 &pmic_pd {
@@ -211,9 +215,11 @@
 		label = "USB-C";
 		power-role = "dual";
 		try-power-role = "sink";
-		source-pdos = <PDO_FIXED(5000, 400, PDO_FIXED_USB_COMM)>;
-		sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
-				PDO_PPS_APDO(3300, 11000, 3000)>;
+		source-pdos = <PDO_FIXED(5000, 400, PDO_FIXED_USB_COMM |
+			       PDO_FIXED_DUAL_ROLE | PDO_FIXED_DATA_SWAP)>;
+		sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM |
+			     PDO_FIXED_DUAL_ROLE | PDO_FIXED_DATA_SWAP)
+			     PDO_PPS_APDO(3300, 11000, 3000)>;
 		op-sink-microwatt = <10000000>;
 	};
 };

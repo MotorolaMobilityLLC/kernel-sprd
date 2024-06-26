@@ -3,4 +3,7 @@
 KCOV_INSTRUMENT := n
 KCSAN_SANITIZE := n
 
+obj-$(CONFIG_UNISOC_IODEBUG) += kprobe_block.o
+obj-$(CONFIG_UNISOC_IOWAIT) += kprobe_iowait.o
 obj-$(CONFIG_UNISOC_IOLIMIT) += iolimit.o
+obj-$(CONFIG_UNISOC_FILEMAP_DEBUG) += kprobe_filemap.o

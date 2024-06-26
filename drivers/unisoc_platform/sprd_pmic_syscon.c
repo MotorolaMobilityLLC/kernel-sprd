@@ -18,6 +18,7 @@ struct pmic_glb {
 	struct list_head list;
 };
 
+static DEFINE_SPINLOCK(sc27xx_head_slock);
 static LIST_HEAD(sc27xx_head);
 static struct platform_driver sprd_pmic_glb_driver;
 
@@ -27,10 +28,15 @@ static ssize_t pmic_reg_show(struct kobject *kobj, struct kobj_attribute *attr,
 	ssize_t ret = -EINVAL;
 	struct pmic_glb *sc27xx_glb;
 
+	spin_lock(&sc27xx_head_slock);
 	list_for_each_entry(sc27xx_glb, &sc27xx_head, list) {
-		if (sc27xx_glb->kobj == kobj)
-			return sprintf(buf, "0x%x", sc27xx_glb->reg);
+		if (sc27xx_glb->kobj == kobj) {
+			ret = snprintf(buf, 10, "0x%x", sc27xx_glb->reg);
+			break;
+		}
 	}
+	spin_unlock(&sc27xx_head_slock);
+
 	return ret;
 }
 
@@ -40,15 +46,17 @@ static ssize_t pmic_reg_store(struct kobject *kobj, struct kobj_attribute *attr,
 	int ret = -EINVAL;
 	struct pmic_glb *sc27xx_glb;
 
+	spin_lock(&sc27xx_head_slock);
 	list_for_each_entry(sc27xx_glb, &sc27xx_head, list) {
 		if (sc27xx_glb->kobj == kobj) {
-			ret = sscanf(buf, "%x", &sc27xx_glb->reg);
-			if (ret != 1)
-				return -EINVAL;
-
-			return strnlen(buf, count);
+			ret = kstrtouint(buf, 16, &sc27xx_glb->reg);
+			if (!ret)
+				ret = strnlen(buf, count);
+			break;
 		}
 	}
+	spin_unlock(&sc27xx_head_slock);
+
 	return ret;
 }
 
@@ -57,20 +65,22 @@ static ssize_t pmic_value_show(struct kobject *kobj, struct kobj_attribute
 {
 	int ret = -EINVAL;
 	u32 value;
-	struct pmic_glb *sc27xx_glb;
+	struct pmic_glb *sc27xx_glb = NULL;
 
+	spin_lock(&sc27xx_head_slock);
 	list_for_each_entry(sc27xx_glb, &sc27xx_head, list) {
 		if (sc27xx_glb->kobj == kobj) {
-			if (sc27xx_glb->reg < sc27xx_glb->base)
-				return ret;
-
-			ret = regmap_read(sc27xx_glb->regmap, sc27xx_glb->reg, &value);
-			if (ret)
-				return ret;
-
-			return sprintf(buf, "%x", value);
+			break;
 		}
 	}
+	spin_unlock(&sc27xx_head_slock);
+
+	if (sc27xx_glb->kobj != NULL && sc27xx_glb->reg > sc27xx_glb->base) {
+		ret = regmap_read(sc27xx_glb->regmap, sc27xx_glb->reg, &value);
+		if (!ret)
+			ret = snprintf(buf, 10, "0x%x", value);
+	}
+
 	return ret;
 }
 
@@ -79,23 +89,22 @@ static ssize_t pmic_value_store(struct kobject *kobj, struct kobj_attribute
 {
 	int ret = -EINVAL;
 	u32 value;
-	struct pmic_glb *sc27xx_glb;
+	struct pmic_glb *sc27xx_glb = NULL;
 
+	spin_lock(&sc27xx_head_slock);
 	list_for_each_entry(sc27xx_glb, &sc27xx_head, list) {
 		if (sc27xx_glb->kobj == kobj) {
-			ret = sscanf(buf, "%x", &value);
-			if (ret != 1)
-				return -EINVAL;
-
-			if (sc27xx_glb->reg < sc27xx_glb->base)
-				return -EINVAL;
-
-			ret = regmap_write(sc27xx_glb->regmap, sc27xx_glb->reg, value);
-			if (ret)
-				return ret;
-
-			return count;
+			break;
 		}
+	}
+	spin_unlock(&sc27xx_head_slock);
+
+	if (sc27xx_glb->kobj != NULL && sc27xx_glb->reg > sc27xx_glb->base) {
+		ret = kstrtouint(buf, 16, &value);
+		if (!ret)
+			ret = regmap_write(sc27xx_glb->regmap, sc27xx_glb->reg, value);
+		if (!ret)
+			ret = count;
 	}
 
 	return ret;
@@ -150,19 +159,21 @@ static int sprd_pmic_glb_probe(struct platform_device *pdev)
 
 	sprd_pmic_glb_kobj = kobject_create_and_add(match->compatible, &drv->p->kobj);
 	if (sprd_pmic_glb_kobj == NULL) {
-		ret = -ENOMEM;
-		pr_err("%s register sysfs failed. ret %d\n", __func__, ret);
-		return ret;
+		dev_err(dev, "failed to create sprd_pmic_glb_kobj.\n");
+		return -ENOMEM;
 	}
 	ret = sysfs_create_group(sprd_pmic_glb_kobj, &pmic_syscon_group);
 	if (ret) {
-		dev_warn(dev, "failed to create pmic_syscon attributes\n");
+		dev_err(dev, "failed to create pmic_syscon attributes\n");
 		kobject_put(sprd_pmic_glb_kobj);
+		return ret;
 	}
 
 	sc27xx_glb->kobj = sprd_pmic_glb_kobj;
 
+	spin_lock(&sc27xx_head_slock);
 	list_add(&sc27xx_glb->list, &sc27xx_head);
+	spin_unlock(&sc27xx_head_slock);
 
 	dev_set_drvdata(dev, sc27xx_glb);
 
@@ -171,16 +182,19 @@ static int sprd_pmic_glb_probe(struct platform_device *pdev)
 
 static int sprd_pmic_glb_remove(struct platform_device *pdev)
 {
-	struct pmic_glb *sc27xx_glb;
+	struct pmic_glb *sc27xx_glb = dev_get_drvdata(&pdev->dev);
 
-	list_for_each_entry(sc27xx_glb, &sc27xx_head, list) {
-		list_del(&sc27xx_glb->list);
-		sysfs_remove_group(&sc27xx_glb->dev->kobj, &pmic_syscon_group);
-	}
+	spin_lock(&sc27xx_head_slock);
+	list_del(&sc27xx_glb->list);
+	spin_unlock(&sc27xx_head_slock);
+	sysfs_remove_group(sc27xx_glb->kobj, &pmic_syscon_group);
+	kobject_put(sc27xx_glb->kobj);
+
 	return 0;
 }
 static const struct of_device_id sprd_pmic_glb_match[] = {
 	{ .compatible = "sprd,sc27xx-syscon"},
+	{ .compatible = "sprd,uip8520-syscon"},
 	{ .compatible = "sprd,ump962x-syscon"},
 	{ .compatible = "sprd,ump9621-syscon"},
 	{ .compatible = "sprd,ump9622-syscon"},

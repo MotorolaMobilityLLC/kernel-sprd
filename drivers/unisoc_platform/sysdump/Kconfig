@@ -32,6 +32,25 @@ config UNISOC_LASTKMSG
 	  panic or cpu hang.
 	  5.save per cpu irq stack in minidump when panic or wdh
 	  only in 64b system.
+
+config UNISOC_MINIDUMP_FTRACE
+	bool "Enable dump ftrace buffer when panic"
+	depends on UNISOC_LASTKMSG
+	default n
+	help
+	  This add ftrace buffer to minidump section.
+	  When panic, ftrace buffer will be copied to that buffer.
+	  This way, ftrace buffer would becomes a part of minidump
+	  section.
+
+config UNISOC_MINIDUMP_FTRACE_SIZE_KB
+	int "Unisoc minidump per_cpu ftrace size(kb)"
+	range 128 2048
+	default 256
+	depends on UNISOC_MINIDUMP_FTRACE
+	help
+	  This set the minidump buffer size.
+
 config UNISOC_DUMP_IO
 	depends on SPRD_SYSDUMP || SPRD_MINI_SYSDUMP
 	tristate "Enable UNISOC dump io handler"
@@ -48,9 +67,18 @@ config SPRD_CLOSE_CRASH_KEY
 
 config SPRD_MODULES_NOTIFY
 	tristate "monitor every modules loading time"
-	depends on ARCH_SPRD && MODULES
+	depends on ARCH_SPRD && MODULES && ANDROID_KABI_RESERVE
 	help
 	  Say y here to enable Debug support.
 	  When in doubt, say n
 	  this is a debug feature that monitor every modules loading time
 	  when bootup
+
+config UNISOC_SIGNAL_DEBUG
+	bool "SPRD userspace debug: add signal debug"
+	depends on ARM64 && SPRD_DEBUG && SPRD_NATIVE_HANG_MONITOR
+	help
+	  Say y here to enable Debug support.
+	  when in doubt, say n.
+	  this is a debug feature for tracing signal origins
+	  when process is receiving a signal.

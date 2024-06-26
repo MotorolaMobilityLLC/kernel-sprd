@@ -5,10 +5,6 @@
 // Copyright (C) 2021 UNISOC, Inc.
 // Author: Zhongwu Zhu <zhongwu.zhu@unisoc.com>
 #include "sdhci-sprd-debugfs.h"
-#ifndef CONFIG_SPRD_DEBUG
-#include "sdhci-sprd-debug.h"
-#include "sdhci-sprd-debug.c"
-#endif
 
 #define _DRIVER_NAME "sprd-sdhci-swcq"
 #define DBG(f, x...) \
@@ -1393,12 +1389,6 @@ static irqreturn_t sdhci_sprd_irq(int irq, void *dev_id)
 		if (intmask & SDHCI_INT_DATA_MASK)
 			sdhci_sprd_data_irq(host, intmask & SDHCI_INT_DATA_MASK);
 
-#ifdef CONFIG_SPRD_DEBUG
-		mmc_debug_update(host, NULL, intmask);
-#else
-		if (true == debug_en)
-			mmc_debug_update(host, NULL, intmask);
-#endif
 		if (intmask & SDHCI_INT_BUS_POWER)
 			pr_err("%s: Card is consuming too much power!\n",
 				mmc_hostname(host->mmc));
@@ -1538,12 +1528,6 @@ static irqreturn_t raw_sdhci_irq(int irq, void *dev_id)
 		if (intmask & SDHCI_INT_DATA_MASK)
 			sdhci_sprd_data_irq(host, intmask & SDHCI_INT_DATA_MASK);
 
-#ifdef CONFIG_SPRD_DEBUG
-		mmc_debug_update(host, NULL, intmask);
-#else
-		if (true == debug_en)
-			mmc_debug_update(host, NULL, intmask);
-#endif
 		if (intmask & SDHCI_INT_BUS_POWER)
 			pr_err("%s: Card is consuming too much power!\n",
 				mmc_hostname(host->mmc));
@@ -2061,14 +2045,10 @@ static bool sdhci_sprd_send_command(struct sdhci_host *host, struct mmc_command 
 	sdhci_sprd_mod_timer(host, cmd->mrq, timeout);
 
 #ifdef CONFIG_SPRD_DEBUG
-	mmc_debug_update(host, cmd, 0);
 	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sdhci_sprd_data_line_cmd(cmd)) {
 		mod_timer(&host->debug_timer, jiffies + 256);
 		host->cnt_time = ktime_to_ms(ktime_get());
 	}
-#else
-	if (true == debug_en)
-		mmc_debug_update(host, cmd, 0);
 #endif
 
 	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->opcode, flags), SDHCI_COMMAND);
@@ -2145,8 +2125,6 @@ static void sdhci_sprd_finish_command(struct sdhci_host *host)
 {
 	struct mmc_command *cmd = host->cmd;
 
-	host->cmd = NULL;
-
 	if (cmd->flags & MMC_RSP_PRESENT) {
 		if (cmd->flags & MMC_RSP_136) {
 			sdhci_sprd_read_rsp_136(host, cmd);
@@ -2156,6 +2134,8 @@ static void sdhci_sprd_finish_command(struct sdhci_host *host)
 				cmd->resp[0], cmd->mrq);
 		}
 	}
+
+	host->cmd = NULL;
 
 	//if (cmd->mrq->cap_cmd_during_tfr && cmd == cmd->mrq->cmd)
 	//	mmc_command_done(host->mmc, cmd->mrq);

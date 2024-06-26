@@ -76,6 +76,7 @@ struct sprd_fchg_ops {
 	int (*extcon_init)(struct sprd_fchg_info *info, struct power_supply *psy);
 	void (*fchg_detect)(struct sprd_fchg_info *info);
 	int (*get_fchg_type)(struct sprd_fchg_info *info, u32 *type);
+	void (*force_set_fixed_fchg_type)(struct sprd_fchg_info *info);
 	int (*get_fchg_vol_max)(struct sprd_fchg_info *info, int *voltage_max);
 	int (*get_fchg_cur_max)(struct sprd_fchg_info *info, int input_vol, int *current_max);
 	void (*enable_fixed_fchg)(struct sprd_fchg_info *info, bool enable);

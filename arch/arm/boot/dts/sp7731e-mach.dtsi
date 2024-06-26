@@ -87,7 +87,7 @@
 		};
 
 		logo_reserved: logobuffer@9e000000 {
-			reg = <0x9e000000 0x384000>;
+			reg = <0x9e000000 0x007e9000>;
 		};
 
 		/* Only for userdebug, will be removed in user mode by uboot */

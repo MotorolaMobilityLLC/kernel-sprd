@@ -117,6 +117,12 @@
 					};
 				};
 			};
+
+			fingerprint@0 {
+				compatible = "microarray,afs121";
+				fpint-gpios = <&eic_async 29 0>;
+			};
+
 			sprd-uid {
 				compatible = "sprd,uid";
 				nvmem-cells = <&uid_start>, <&uid_end>;
@@ -219,6 +225,11 @@
 	oemcrypto-reserved {
 		label = "uncached_carveout_oem";
 		memory-region = <&oemcrypto_reserved>;
+	};
+
+	protected-reserved {
+		label = "protected";
+		memory-region = <&protected_reserved>;
 	};
 };
 

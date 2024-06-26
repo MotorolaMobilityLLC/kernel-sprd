@@ -75,6 +75,12 @@
 				>;
 			};
 
+			skin_sensor: skin-sensor {
+				compatible = "sprd,virt-thm";
+				#thermal-sensor-cells = <0>;
+				thmzone-cells = <&bd_thmzone>;
+			};
+
 			fingerprint@0 {
 				compatible = "microarray,afs121";
 				fpint-gpios = <&eic_async 29 0>;
@@ -126,6 +132,10 @@
 
 &chosen {
 	bootargs_ext = "kvm-arm.mode=none";
+};
+
+&skin_thmzone {
+	thermal-sensors = <&skin_sensor>;
 };
 
 &i2c0 {
@@ -541,6 +551,11 @@
 
 &dmabuf {
 
+	secured-reserved {
+		label = "uncached_carveout_mm";
+		memory-region = <&secured_reserved>;
+	};
+
 	fd-reserved {
 		label = "carveout_fd";
 		memory-region = <&fd_reserved>;
@@ -562,4 +577,8 @@
 	sprd,hw-channels1 = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
 			<17 0x1844>, <19 0x1844>, <21 0x1864>, <30 0x1820>,
 			<32 0x197c>, <33 0x1988>, <35 0x19b8>, <39 0x19ac>;
+};
+
+&sprd_wlan {
+	sprd,enable-chr;
 };

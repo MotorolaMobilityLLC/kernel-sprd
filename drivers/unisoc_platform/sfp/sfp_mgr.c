@@ -245,7 +245,7 @@ static void sfp_mgr_fwd_death_by_timeout(struct timer_list *t)
 			 sfp_mgr_fwd_entry_free);
 	}
 
-	if (tuplehash_original->entry_lst.pprev != LIST_POISON2) {
+	if (tuplehash_reply->entry_lst.pprev != LIST_POISON2) {
 		hlist_del_rcu(&sfp_entry->tuplehash[IP_CT_DIR_REPLY].entry_lst);
 		call_rcu(&sfp_entry->tuplehash[IP_CT_DIR_REPLY].rcu,
 			 sfp_mgr_fwd_entry_free);

@@ -270,34 +270,6 @@ static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt
 	}
 }
 
-static int ufs_efuse_calib_data(struct platform_device *pdev,
-				const char *cell_name)
-{
-	struct nvmem_cell *cell;
-	void *buf;
-	u32 calib_data;
-	size_t len;
-
-	if (!pdev)
-		return -EINVAL;
-
-	cell = nvmem_cell_get(&pdev->dev, cell_name);
-	if (IS_ERR_OR_NULL(cell))
-		return PTR_ERR(cell);
-
-	buf = nvmem_cell_read(cell, &len);
-	if (IS_ERR_OR_NULL(buf)) {
-		nvmem_cell_put(cell);
-		return PTR_ERR(buf);
-	}
-
-	memcpy(&calib_data, buf, min(len, sizeof(u32)));
-
-	kfree(buf);
-	nvmem_cell_put(cell);
-	return calib_data;
-}
-
 static int ufs_sprd_get_syscon_reg_dt(struct device *dev,
 				  struct ufs_sprd_ums9621_data *priv)
 {
@@ -331,6 +303,10 @@ static int ufs_sprd_get_syscon_reg_dt(struct device *dev,
 	ret = ufs_sprd_get_syscon_reg(dev->of_node,
 					&priv->usb31pllv_ref2mphy_en,
 				      "usb31pllv_ref2mphy_en");
+
+	ret = ufs_sprd_get_syscon_reg(dev->of_node,
+					&priv->ufs_cfg_eb,
+				      "ufs_cfg_eb");
 
 	return ret;
 }
@@ -397,8 +373,6 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 			 priv->hclk_source = NULL;
 	}
 
-	clk_set_parent(priv->hclk, priv->hclk_source);
-
 	priv->rco_100M = devm_clk_get(&pdev->dev, "ufs_rco_100M");
 	if (IS_ERR(priv->rco_100M)) {
 		dev_warn(&pdev->dev,
@@ -445,12 +419,23 @@ static int ufs_sprd_priv_pre_init(struct device *dev,
 				  struct ufs_sprd_host *host)
 {
 	int ret = 0;
-
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
+	struct sprd_sip_svc_handle *svc_handle;
+#endif
 	struct ufs_sprd_ums9621_data *priv =
 		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
-	struct sprd_sip_svc_handle *svc_handle;
 
+	regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
+			   priv->usb31pllv_ref2mphy_en.reg,
+			   priv->usb31pllv_ref2mphy_en.mask,
+			   priv->usb31pllv_ref2mphy_en.mask);
+
+	regmap_update_bits(priv->ufs_cfg_eb.regmap,
+			   priv->ufs_cfg_eb.reg,
+			   priv->ufs_cfg_eb.mask,
+			   priv->ufs_cfg_eb.mask);
+
+#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 	ret = reset_control_assert(priv->ap_ahb_ufs_rst);
 	if (ret) {
 		dev_err(host->hba->dev, "%s assert ufs_soft_rst failed, ret = %d!\n",
@@ -559,7 +544,8 @@ static int ufs_sprd_init(struct ufs_hba *hba)
 	hba->caps |= UFSHCD_CAP_CLK_GATING |
 		UFSHCD_CAP_CRYPTO |
 		UFSHCD_CAP_HIBERN8_WITH_CLK_GATING |
-		UFSHCD_CAP_WB_EN;
+		UFSHCD_CAP_WB_EN |
+		UFSHCD_CAP_H8_ULP;
 	hba->quirks |= UFSHCD_QUIRK_BROKEN_UFS_HCI_VERSION |
 		UFSHCD_QUIRK_DELAY_BEFORE_DME_CMDS;
 
@@ -617,6 +603,9 @@ static int ufs_sprd_hw_init(struct ufs_hba *hba)
 		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
 
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
+
+	clk_set_parent(priv->hclk, priv->hclk_source);
+	ufshcd_writel(hba, 0x100, REG_HCLKDIV);
 
 	regmap_update_bits(priv->phy_sram_ext_ld_done.regmap,
 			   priv->phy_sram_ext_ld_done.reg,
@@ -705,6 +694,7 @@ static int ufs_sprd_phy_sram_init_done(struct ufs_hba *hba)
 static int ufs_sprd_phy_init(struct ufs_hba *hba)
 {
 	int ret = 0;
+	u32 ulp_value;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 	struct ufs_sprd_ums9621_data *priv =
 		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
@@ -905,6 +895,13 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
 
+	/* add ultra low power H8 function */
+	if (hba->caps & UFSHCD_CAP_H8_ULP) {
+		ufshcd_dme_get(hba, UIC_ARG_MIB(CBUPLH8), &ulp_value);
+		ulp_value |= ULP_H8_EN;
+		ufshcd_dme_set(hba, UIC_ARG_MIB(CBUPLH8), ulp_value);
+	}
+
 	ufshcd_dme_set(hba, UIC_ARG_MIB(VS_MPHYDISABLE), 0x0);
 
 	return ret;
@@ -977,8 +974,10 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 	case PRE_CHANGE:
 		memcpy(final_params, desired_pwr_mode,
 		       sizeof(struct ufs_pa_layer_attr));
-		if (final_params->gear_rx == UFS_HS_G4)
-			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), 0x0);
+		if (final_params->gear_rx >= UFS_HS_G4)
+			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), PA_REFRESH_ADAPT);
+		else
+			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), PA_NO_ADAPT);
 		/* err==0 using dev_req_params,err!=0 using dev_max_params */
 		err = -EPERM;
 		break;
@@ -990,16 +989,102 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		err = -EINVAL;
 		break;
 	}
-	ufs_sprd_pwr_change_compare(hba, status, final_params, err);
+	ufs_sprd_pwr_change_compare(hba, status, final_params, &err);
 
 out:
 	return err;
+}
+
+static int is_ufs_sprd_host_in_pwm(struct ufs_hba *hba)
+{
+	int ret = 0;
+	u32 pwr_mode = 0;
+
+	ret = ufshcd_dme_get(hba, UIC_ARG_MIB(PA_PWRMODE),
+			&pwr_mode);
+	if (ret)
+		goto out;
+
+	if (((pwr_mode >> 0) & 0xf) == SLOWAUTO_MODE ||
+		((pwr_mode >> 0) & 0xf) == SLOW_MODE ||
+		((pwr_mode >> 4) & 0xf) == SLOWAUTO_MODE ||
+		((pwr_mode >> 4) & 0xf) == SLOW_MODE) {
+		ret = UFS_SLOW_MODE;
+	}
+
+out:
+	return ret;
+}
+
+static int sprd_ufs_pwmmode_change(struct ufs_hba *hba)
+{
+	int ret;
+	struct ufs_pa_layer_attr pwr_info;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	ret = is_ufs_sprd_host_in_pwm(hba);
+	if (ret == UFS_SLOW_MODE)
+		return 0;
+
+	pwr_info.gear_rx = UFS_PWM_G1;
+	pwr_info.gear_tx = UFS_PWM_G1;
+	pwr_info.lane_rx = 2;
+	pwr_info.lane_tx = 2;
+	pwr_info.pwr_rx = SLOW_MODE;
+	pwr_info.pwr_tx = SLOW_MODE;
+	pwr_info.hs_rate = 0;
+
+	ret = ufshcd_config_pwr_mode(hba, &pwr_info);
+	if (ret) {
+		dev_err(hba->dev, "change ufs to pwm mode failed!\n");
+		return ret;
+	}
+	dev_err(hba->dev, "ufs to pwm mode succ.\n");
+	complete(&host->pwm_async_done);
+
+	return 0;
+}
+
+static int sprd_ufs_hsmode_change(struct ufs_hba *hba)
+{
+	int ret;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	ret = is_ufs_sprd_host_in_pwm(hba);
+	if (ret != UFS_SLOW_MODE)
+		return 0;
+
+	ret = ufshcd_config_pwr_mode(hba, &(hba->max_pwr_info.info));
+	if (ret) {
+		dev_err(hba->dev, "ufs pwm to hs mode fail.\n");
+		return ret;
+	}
+	dev_err(hba->dev, "ufs_pwm2hs succ\n");
+	complete(&host->hs_async_done);
+
+	return 0;
+}
+
+static int check_afc_cali_ioctl_status(struct ufs_hba *hba)
+{
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
+	if (host->ioctl_status == UFS_IOCTL_ENTER_MODE) {
+		/* ufs change to pwm mode */
+		return sprd_ufs_pwmmode_change(hba);
+	} else if (host->ioctl_status == UFS_IOCTL_AFC_EXIT) {
+		/* ufs change to hs mode */
+		return sprd_ufs_hsmode_change(hba);
+	}
+
+	return 0;
 }
 
 static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 				    enum uic_cmd_dme cmd,
 				    enum ufs_notify_change_status status)
 {
+	int ret;
 	u32 set;
 	unsigned long flags;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
@@ -1031,6 +1116,17 @@ static void ufs_sprd_hibern8_notify(struct ufs_hba *hba,
 			set |= UIC_COMMAND_COMPL;
 			ufshcd_writel(hba, set, REG_INTERRUPT_ENABLE);
 			spin_unlock_irqrestore(hba->host->host_lock, flags);
+
+			if (host->cali_mode_enable) {
+				down_write(&hba->clk_scaling_lock);
+				hba->caps &= ~UFSHCD_CAP_HIBERN8_WITH_CLK_GATING;
+				ret = check_afc_cali_ioctl_status(hba);
+				if (ret)
+					dev_err(hba->dev,
+						"ufs afc calibration change pwrmode fail.\n");
+				hba->caps |= UFSHCD_CAP_HIBERN8_WITH_CLK_GATING;
+				up_write(&hba->clk_scaling_lock);
+			}
 		}
 		break;
 	default:
@@ -1082,7 +1178,6 @@ static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
 static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 				 enum ufs_notify_change_status status)
 {
-	int err = 0;
 	struct ufs_clk_dbg clk_tmp = {};
 	struct ufs_sprd_ums9621_data *priv = NULL;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
@@ -1096,32 +1191,23 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 		ufshcd_common_trace(hba, UFS_TRACE_CLK_GATE, &clk_tmp);
 	}
 
+	if (priv == NULL) {
+		dev_err(hba->dev, "%s ufs private data isn't initializated.\n", __func__);
+		return 0;
+	}
+
 	switch (status) {
 	case PRE_CHANGE:
-		/* synopsys spec requires that refclk must be opened before cfg_eb */
-		if ((priv != NULL) && ufshcd_is_link_hibern8(hba) && (on == true)) {
+		if (on == true) {
 			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
-				priv->ufsdev_refclk_en.reg,
-				priv->ufsdev_refclk_en.mask,
-				priv->ufsdev_refclk_en.mask);
-
-			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
-				priv->usb31pllv_ref2mphy_en.reg,
-				priv->usb31pllv_ref2mphy_en.mask,
-				priv->usb31pllv_ref2mphy_en.mask);
-		}
-
-		if ((priv != NULL) && ufshcd_is_link_hibern8(hba) && (on == false)) {
-			usleep_range(100, 110);
+					   priv->ufsdev_refclk_en.reg,
+					   priv->ufsdev_refclk_en.mask,
+					   priv->ufsdev_refclk_en.mask);
+		} else {
 			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
-				priv->ufsdev_refclk_en.reg,
-				priv->ufsdev_refclk_en.mask,
-				0);
-
-			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
-				priv->usb31pllv_ref2mphy_en.reg,
-				priv->usb31pllv_ref2mphy_en.mask,
-				0);
+					   priv->ufsdev_refclk_en.reg,
+					   priv->ufsdev_refclk_en.mask,
+					   0);
 		}
 		break;
 	case POST_CHANGE:
@@ -1130,7 +1216,7 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 		break;
 	}
 
-	return err;
+	return 0;
 }
 
 static void ufs_sprd_update_evt_hist(struct ufs_hba *hba,
@@ -1183,6 +1269,98 @@ out:
 	return err;
 }
 
+static int ufs_sprd_apply_dev_quirks(struct ufs_hba *hba)
+{
+	int ret = 0;
+	u32 ulp_value;
+	u32 granularity, peer_granularity;
+	u32 pa_tactivate, peer_pa_tactivate;
+	u32 pa_tactivate_us, peer_pa_tactivate_us, max_pa_tactivate_us;
+	u8 gran_to_us_table[] = {1, 4, 8, 16, 32, 100};
+	u32 new_pa_tactivate, new_peer_pa_tactivate;
+
+	if (!(hba->caps & UFSHCD_CAP_H8_ULP))
+		return 0;
+
+	ret = ufshcd_dme_get(hba, UIC_ARG_MIB(CBUPLH8), &ulp_value);
+	if (ret)
+		goto out;
+
+	if (!(ulp_value & ULP_H8_EN)) {
+		dev_err(hba->dev, "%s: ulp value : 0x%x\n", __func__, ulp_value);
+		return 0;
+	}
+
+	ret = ufshcd_dme_get(hba, UIC_ARG_MIB(PA_GRANULARITY),
+				  &granularity);
+	if (ret)
+		goto out;
+
+	ret = ufshcd_dme_peer_get(hba, UIC_ARG_MIB(PA_GRANULARITY),
+				  &peer_granularity);
+	if (ret)
+		goto out;
+
+	if ((granularity < PA_GRANULARITY_MIN_VAL) ||
+	    (granularity > PA_GRANULARITY_MAX_VAL)) {
+		dev_err(hba->dev, "%s: invalid host PA_GRANULARITY %d",
+			__func__, granularity);
+		return -EINVAL;
+	}
+
+	if ((peer_granularity < PA_GRANULARITY_MIN_VAL) ||
+	    (peer_granularity > PA_GRANULARITY_MAX_VAL)) {
+		dev_err(hba->dev, "%s: invalid device PA_GRANULARITY %d",
+			__func__, peer_granularity);
+		return -EINVAL;
+	}
+
+	ret = ufshcd_dme_get(hba, UIC_ARG_MIB(PA_TACTIVATE), &pa_tactivate);
+	if (ret)
+		goto out;
+
+	ret = ufshcd_dme_peer_get(hba, UIC_ARG_MIB(PA_TACTIVATE),
+				  &peer_pa_tactivate);
+	if (ret)
+		goto out;
+
+	dev_info(hba->dev, "%s pre: %d,%d,%d,%d",
+		 __func__, peer_pa_tactivate,
+		 peer_granularity, pa_tactivate, granularity);
+
+	pa_tactivate_us = pa_tactivate * gran_to_us_table[granularity - 1];
+	peer_pa_tactivate_us = peer_pa_tactivate *
+			gran_to_us_table[peer_granularity - 1];
+	max_pa_tactivate_us = (pa_tactivate_us > peer_pa_tactivate_us) ?
+			pa_tactivate_us : peer_pa_tactivate_us;
+
+	new_peer_pa_tactivate = (max_pa_tactivate_us + ULP_TACTIVATE_COMP_TIME) /
+			gran_to_us_table[peer_granularity - 1];
+
+	ret = ufshcd_dme_peer_set(hba, UIC_ARG_MIB(PA_TACTIVATE),
+				  new_peer_pa_tactivate);
+	if (ret) {
+		dev_err(hba->dev, "%s: peer_pa_tactivate set err ", __func__);
+		goto out;
+	}
+
+	new_pa_tactivate = (max_pa_tactivate_us + ULP_TACTIVATE_COMP_TIME) /
+			gran_to_us_table[granularity - 1];
+	ret = ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TACTIVATE),
+			     new_pa_tactivate);
+	if (ret) {
+		dev_err(hba->dev, "%s: pa_tactivate set err ", __func__);
+		goto out;
+	}
+
+	dev_info(hba->dev, "%s post: %d,%d,%d,%d",
+		 __func__, new_peer_pa_tactivate,
+		 peer_granularity, new_pa_tactivate, granularity);
+
+out:
+	return ret;
+}
+
 const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops = {
 	.name = "sprd,ufshc-ums9621",
 	.init = ufs_sprd_init,
@@ -1198,6 +1376,7 @@ const struct ufs_hba_variant_ops ufs_hba_sprd_ums9621_vops = {
 	.suspend = ufs_sprd_suspend,
 	.event_notify = ufs_sprd_update_evt_hist,
 	.program_key = ufs_sprd_program_key,
+	.apply_dev_quirks = ufs_sprd_apply_dev_quirks,
 #if IS_ENABLED(CONFIG_SPRD_DEBUG)
 	.print_gic_reg = ufs_sprd_print_gic_reg,
 #endif

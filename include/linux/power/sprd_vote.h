@@ -37,6 +37,9 @@ enum SPRD_VOTE_TYPE_IBAT_ID {
 	/* The ChargerIC with linear charging cannot set Ibus, only Ibat. */
 	SPRD_VOTE_TYPE_IBAT_ID_INPUT_CURRENT_LIMIT,
 	SPRD_VOTE_TYPE_IBAT_ID_CHARGE_CONTROL_LIMIT,
+
+	/* When charge pump is working, buck chargeIC is auxiliary charging */
+	SPRD_VOTE_TYPE_IBAT_ID_BUCK_CHARGEIC_ASSIT,
 	SPRD_VOTE_TYPE_IBAT_ID_MAX,
 };
 
@@ -45,6 +48,9 @@ enum SPRD_VOTE_TYPE_IBUS_ID {
 	SPRD_VOTE_TYPE_IBUS_ID_CHARGE_CONTROL_LIMIT,
 	SPRD_VOTE_TYPE_IBUS_ID_CHARGER_TYPE,
 	SPRD_VOTE_TYPE_IBUS_ID_FCHG_FIXED_TRANSITION,
+
+	/* When charge pump is working, buck chargeIC is auxiliary charging */
+	SPRD_VOTE_TYPE_IBUS_ID_BUCK_CHARGEIC_ASSIT,
 	SPRD_VOTE_TYPE_IBUS_ID_MAX,
 };
 

@@ -37,6 +37,7 @@
 		i2c7 = &i2c7;
 		mmc0 = &sdio3;
 		mmc1 = &sdio0;
+		pmic_pwroff = &pmic_pwroff;
 };
 
 	memory@80000000 {
@@ -50,7 +51,7 @@
 			    loglevel=1 init=/init root=/dev/ram0 rw printk.devkmsg=on
 			    firmware_class.path=/odm/firmware,/vendor/firmware
 			    dummy_hcd.num=0 swiotlb=1 initcall_debug=1 kpti=0
-			    rcupdate.rcu_expedited=1 rcu_nocbs=0-7";
+			    rcupdate.rcu_expedited=1 rcu_nocbs=0-7 ftrace_dump_on_oops";
 	};
 
 	extcon_gpio: extcon-gpio {
@@ -99,6 +100,11 @@
 &adi_bus {
 	sprd,hw-channels = <33 0x8c20>, <35 0x8cc4>, <36 0x8cd0>,
 			<19 0x8c44>, <20 0x8c44>, <21 0x8c44>, <22 0x8c44>;
+	sprd,psci-reboot = <1>;
+};
+
+&pmic_pwroff {
+	sprd,psci-poweroff = <1>;
 };
 
 &vdd18 {

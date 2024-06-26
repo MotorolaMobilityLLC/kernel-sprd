@@ -411,10 +411,10 @@
 							vactive = <2408>; /*2408*/
 							hback-porch = <56>;
 							hfront-porch = <130>;
-							vback-porch = <30>;
-							vfront-porch = <2559>;
+							vback-porch = <32>;
+							vfront-porch = <2535>;
 							hsync-len = <12>;
-							vsync-len = <10>;
+							vsync-len = <32>;
 						};
 
 						nt36672e_truly_timing1: timing1 {
@@ -423,10 +423,10 @@
 							vactive = <2408>; /*2408*/
 							hback-porch = <56>;
 							hfront-porch = <130>;
-							vback-porch = <30>;
-							vfront-porch = <890>;
+							vback-porch = <32>;
+							vfront-porch = <866>;
 							hsync-len = <12>;
-							vsync-len = <10>;
+							vsync-len = <32>;
 						};
 
 						nt36672e_truly_timing2: timing2 {
@@ -435,10 +435,10 @@
 							vactive = <2408>; /*2408*/
 							hback-porch = <56>;
 							hfront-porch = <130>;
-							vback-porch = <30>;
-							vfront-porch = <46>;
+							vback-porch = <32>;
+							vfront-porch = <31>;
 							hsync-len = <12>;
-							vsync-len = <10>;
+							vsync-len = <32>;
 						};
 					};
 				};

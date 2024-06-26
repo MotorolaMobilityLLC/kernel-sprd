@@ -173,8 +173,12 @@ static const struct proc_ops force_shutdown_proc_fops = {
 
 static int sc27xx_poweroff_probe(struct platform_device *pdev)
 {
+	struct device_node *np = pdev->dev.of_node;
 	struct proc_dir_entry *de;
 	struct proc_dir_entry *df;
+	u32 val = 0;
+	int ret;
+
 	pdata = of_device_get_match_data(&pdev->dev);
 	if (!pdata) {
 		dev_err(&pdev->dev, "No matching driver data found\n");
@@ -196,8 +200,15 @@ static int sc27xx_poweroff_probe(struct platform_device *pdev)
 	} else {
 		pr_err("create /proc/poweroff/ failed\n");
 	}
-	pm_power_off = sc27xx_poweroff_do_poweroff;
-	register_syscore_ops(&poweroff_syscore_ops);
+
+	ret = of_property_read_u32(np, "sprd,psci-poweroff", &val);
+	if (val) {
+		dev_info(&pdev->dev, "psci poweroff enable\n");
+	} else {
+		dev_info(&pdev->dev, "kernel poweroff enable\n");
+		pm_power_off = sc27xx_poweroff_do_poweroff;
+		register_syscore_ops(&poweroff_syscore_ops);
+	}
 	return 0;
 }
 

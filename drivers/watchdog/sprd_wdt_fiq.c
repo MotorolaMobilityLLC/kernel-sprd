@@ -15,6 +15,7 @@
 #include <linux/alarmtimer.h>
 #include <linux/bitops.h>
 #include <linux/clk.h>
+#include <linux/delay.h>
 #include <linux/device.h>
 #include <linux/err.h>
 #include <linux/interrupt.h>
@@ -39,6 +40,8 @@
 #define SPRD_WDT_FIQ_CNT_LOW		0x18
 #define SPRD_WDT_FIQ_CNT_HIGH		0x1c
 #define SPRD_WDT_FIQ_LOCK			0x20
+#define SPRD_WDT_FIQ_CNT_READ_LOW		0x24
+#define SPRD_WDT_FIQ_CNT_READ_HIGH		0x28
 #define SPRD_WDT_FIQ_IRQ_LOAD_LOW		0x2c
 #define SPRD_WDT_FIQ_IRQ_LOAD_HIGH		0x30
 
@@ -79,7 +82,6 @@
 /* used for ap hang reboot */
 #define SPRD_WDT_RESET_TIMEOUT          0xe551
 
-#define SPRD_WDT_SYSCORE_SUSPEND_RESUME
 #define SPRD_PRINT_BUF_LEN              10240
 #define WDT_printf(m, x...)			\
 	do {                                              \
@@ -175,9 +177,9 @@ static u32 sprd_wdt_fiq_get_cnt_value(struct sprd_wdt_fiq *wdt)
 {
 	u32 val;
 
-	val = readl_relaxed(wdt->base + SPRD_WDT_FIQ_CNT_HIGH) <<
+	val = readl_relaxed(wdt->base + SPRD_WDT_FIQ_CNT_READ_HIGH) <<
 		SPRD_WDT_FIQ_CNT_HIGH_SHIFT;
-	val |= readl_relaxed(wdt->base + SPRD_WDT_FIQ_CNT_LOW) &
+	val |= readl_relaxed(wdt->base + SPRD_WDT_FIQ_CNT_READ_LOW) &
 		SPRD_WDT_FIQ_LOW_VALUE_MASK;
 
 	return val;
@@ -205,13 +207,13 @@ static int sprd_wdt_fiq_load_value(struct sprd_wdt_fiq *wdt, u32 timeout,
 		val = readl_relaxed(wdt->base + SPRD_WDT_FIQ_INT_RAW);
 		if (!(val & SPRD_WDT_FIQ_LD_BUSY_BIT))
 			break;
-
-		cpu_relax();
+		udelay(1);
 	} while (delay_cnt++ < SPRD_WDT_FIQ_LOAD_TIMEOUT);
 
-	if (delay_cnt >= SPRD_WDT_FIQ_LOAD_TIMEOUT)
+	if (delay_cnt >= SPRD_WDT_FIQ_LOAD_TIMEOUT) {
+		pr_err("sprd_wdt_fiq: wdt load timeout!\n");
 		return -EBUSY;
-
+	}
 	sprd_wdt_fiq_unlock(wdt);
 	writel_relaxed((tmr_step >> SPRD_WDT_FIQ_CNT_HIGH_SHIFT) &
 		      SPRD_WDT_FIQ_LOW_VALUE_MASK,
@@ -373,7 +375,6 @@ EXPORT_SYMBOL(sprd_wdt_fiq_get_dev);
 
 int sprd_wdt_fiq_syscore_suspend(void)
 {
-#ifdef SPRD_WDT_SYSCORE_SUSPEND_RESUME
 	if (!wdt_fiq)
 		return -ENODEV;
 
@@ -384,14 +385,12 @@ int sprd_wdt_fiq_syscore_suspend(void)
 		if (!wdt_fiq->data->eb_always_on)
 			sprd_wdt_fiq_disable(wdt_fiq);
 	}
-#endif
 	return 0;
 }
 EXPORT_SYMBOL(sprd_wdt_fiq_syscore_suspend);
 
 void sprd_wdt_fiq_syscore_resume(void)
 {
-#ifdef SPRD_WDT_SYSCORE_SUSPEND_RESUME
 	int ret;
 
 	if (!wdt_fiq)
@@ -406,7 +405,6 @@ void sprd_wdt_fiq_syscore_resume(void)
 		if (ret)
 			return;
 	}
-#endif
 }
 EXPORT_SYMBOL(sprd_wdt_fiq_syscore_resume);
 
@@ -509,7 +507,7 @@ static int sprd_wdt_fiq_probe(struct platform_device *pdev)
 	if (ret) {
 		sprd_wdt_fiq_disable(wdt);
 		dev_err(&pdev->dev, "Failed to add wdt disable action\n");
-		return ret;
+		goto free_seq_buf;
 	}
 
 	register_syscore_ops(&sprd_wdt_fiq_syscore_ops);
@@ -521,49 +519,12 @@ static int sprd_wdt_fiq_probe(struct platform_device *pdev)
 
 free_seq_buf:
 	kfree(sprd_wdt_seq_buf);
+	sprd_wdt_seq_buf = NULL;
 free_wdt_buf:
 	kfree(sprd_wdt_buf);
+	sprd_wdt_buf = NULL;
 	return ret;
 }
-
-static int __maybe_unused sprd_wdt_fiq_pm_suspend(struct device *dev)
-{
-#ifndef SPRD_WDT_SYSCORE_SUSPEND_RESUME
-	struct watchdog_device *wdd = dev_get_drvdata(dev);
-	struct sprd_wdt_fiq *wdt = dev_get_drvdata(dev);
-
-	if (!wdt_fiq->sleep_en) {
-		if (watchdog_active(wdd))
-			sprd_wdt_fiq_stop(&wdt->wdd);
-
-		if (!wdt_fiq->data->eb_always_on)
-			sprd_wdt_fiq_disable(wdt_fiq);
-	}
-#endif
-	return 0;
-}
-
-static int __maybe_unused sprd_wdt_fiq_pm_resume(struct device *dev)
-{
-#ifndef SPRD_WDT_SYSCORE_SUSPEND_RESUME
-	struct watchdog_device *wdd = dev_get_drvdata(dev);
-	struct sprd_wdt_fiq *wdt = dev_get_drvdata(dev);
-	int ret;
-
-	ret = sprd_wdt_fiq_enable(wdt);
-	if (ret)
-		return ret;
-
-	if (watchdog_active(wdd))
-		ret = sprd_wdt_fiq_start(&wdt->wdd);
-#endif
-	return 0;
-}
-
-static const struct dev_pm_ops sprd_wdt_fiq_pm_ops = {
-	SET_SYSTEM_SLEEP_PM_OPS(sprd_wdt_fiq_pm_suspend,
-				sprd_wdt_fiq_pm_resume)
-};
 
 static const struct of_device_id sprd_wdt_fiq_match_table[] = {
 	{
@@ -583,7 +544,6 @@ static struct platform_driver sprd_watchdog_fiq_driver = {
 	.driver	= {
 		.name = "sprd-wdt-fiq",
 		.of_match_table = sprd_wdt_fiq_match_table,
-		.pm = &sprd_wdt_fiq_pm_ops,
 	},
 };
 module_platform_driver(sprd_watchdog_fiq_driver);

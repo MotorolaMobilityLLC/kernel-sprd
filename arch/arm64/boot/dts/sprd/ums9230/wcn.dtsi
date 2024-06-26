@@ -71,7 +71,7 @@
 
 				#address-cells = <2>;
 				#size-cells = <2>;
-				sprd-wlan {
+				sprd_wlan: wlan {
 					compatible = "sprd,sc2355-sipc-wifi";
 					/*sipc region <maped-addr size>*/
 					reg = <0x0 0x87380000 0x0 0x00280000>;
@@ -202,9 +202,9 @@
 		reg = <4>;
 		label = "sipc-gnss";
 		/* <&mailbox  channel_id  is_no_wakeup(default 0)> */
-		mboxes = <&mailbox 9 0>;
+		mboxes = <&mailbox 7 0>;
 		/* This is temporary plan*/
-		sprd,smem-info = <0x8749b000 0x11b000 0x32000>;
+		sprd,smem-info = <0x88240000 0xc40000 0x32000>;
 
 		/* these nodes of channel should be probed by its parent node */
 		sttygnss0: channel@4 {

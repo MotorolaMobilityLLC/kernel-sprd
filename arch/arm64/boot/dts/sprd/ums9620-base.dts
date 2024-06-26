@@ -53,6 +53,7 @@
 		mmc0 = &sdio3;
 		mmc1 = &sdio0;
 		mmc2 = &sdio1;
+		pmic_pwroff = &pmic_pwroff;
 	};
 
 	memory@80000000 {
@@ -66,7 +67,8 @@
 			    loop.max_part=7 loglevel=1 log_buf_len=1M kpti=0
 			    firmware_class.path=/odm/firmware,/vendor/firmware
 			    init=/init root=/dev/ram0 rw printk.devkmsg=on pcie_ports=compat
-			    swiotlb=1 nosoftlock rcupdate.rcu_expedited=1 rcu_nocbs=0-7";
+			    swiotlb=1 nosoftlock rcupdate.rcu_expedited=1 rcu_nocbs=0-7
+			    ftrace_dump_on_oops";
 	};
 
 	pwm_backlight: backlight {
@@ -320,6 +322,14 @@
 	status = "okay";
 };
 
+&adi_bus {
+	sprd,psci-reboot = <1>;
+};
+
+&pmic_pwroff {
+	sprd,psci-poweroff = <1>;
+};
+
 &uart0 {
 	status = "okay";
 };
@@ -438,8 +448,11 @@
 	mic-gpios = <&ap_gpio 62 GPIO_ACTIVE_HIGH>;
 	lr-gpios = <&ap_gpio 61 GPIO_ACTIVE_HIGH>;
 	sprd,3pole-adc-threshold = <112>;
-	nvmem-cells = <&headset_adc_fir_1>, <&headset_adc_fir_2>,<&headset_adc_sec>;
-	nvmem-cell-names = "hp_adc_fir_calib_1","hp_adc_fir_calib_2", "hp_adc_sec_calib";
+	nvmem-cells = <&headset_adc_fir_1>, <&headset_adc_fir_2>,<&headset_adc_sec>,
+		<&pdref_calib>, <&aud_pabst_vcal>, <&neg_cp_efuse>, <&fgu_calib>;
+	nvmem-cell-names = "hp_adc_fir_calib_1","hp_adc_fir_calib_2", "hp_adc_sec_calib",
+		"aud_impd_cal2", "aud_impd_cal0", "aud_impd_cal1", "impd_sel";
+	sprd,impd-en = <0>;
 };
 
 &sound_vbc_v4_sprd_codec {

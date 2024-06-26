@@ -29,6 +29,7 @@
 #define UMP9620_ARM_CLK_EN0		0x200c
 #define UMP9620_RTC_CLK_EN0		0x2010
 #define UMP9620_XTL_WAIT_CTRL0		0x2378
+
 #define SC27XX_TYPEC_PD_EN		BIT(13)
 #define SC27XX_CLK_PD_SEL		BIT(10)
 #define SC27XX_CLK_PD_EN		BIT(9)
@@ -65,6 +66,7 @@
 #define SC27XX_PD_PHY_CFG0		0x50
 #define SC27XX_PD_PHY_CFG1		0x54
 #define SC27XX_PD_PHY_CFG2		0x58
+#define SC27XX_PD_DEBUG			0x5c
 
 /* Bits definitions for SC27XX_TYPEC_PD_CFG register */
 #define SC27XX_TYPEC_PD_SUPPORT		BIT(0)
@@ -193,6 +195,11 @@
 #define SC27XX_PD_CFG2_RX_REF_CAL_BIT		BIT(7)
 #define SC27XX_PD_CFG2_RX_REF_CAL_SHIFT		7
 
+/* SC27XX_PD_DEBUG */
+#define SC27XX_PD_PHY_RX_STATE_SHIFT	6
+#define SC27XX_PD_PHY_RX_CRC		3
+#define SC27XX_PD_RX_DATA		1
+
 #define SC27XX_TX_RX_BUF_MASK		GENMASK(15, 0)
 #define SC27XX_PD_INT_CLR		GENMASK(13, 0)
 #define SC27XX_STATE_MASK		GENMASK(4, 0)
@@ -218,6 +225,7 @@
 #define SC27XX_INT_CLR_MASK		0x3fff
 #define SC27XX_INT_EN_MASK		0x85ff
 #define SC27xx_DETECT_TYPEC_DELAY	700
+#define SC27XX_RX_STATE_MONITOR_DELAY	5000
 
 /* chunked extended message */
 #define SC27XX_CHUNKED_EXT_MSG_MASK	GENMASK(7, 0)
@@ -329,6 +337,7 @@ struct sc27xx_pd {
 	struct sprd_tcpm_port *sprd_tcpm_port;
 	struct delayed_work typec_detect_work;
 	struct delayed_work  read_msg_work;
+	struct delayed_work  rx_state_monitor_work;
 	struct workqueue_struct *pd_wq;
 	struct regmap *regmap;
 	struct regmap *aon_apb;
@@ -911,6 +920,63 @@ done:
 	return ret;
 }
 
+static void sc27xx_pd_set_rx_enable(struct sc27xx_pd *pd, bool on)
+{
+	u32 mask = SC27XX_PD_CTL_EN, mask1 = SC27XX_PD_PKG_RV_EN;
+	u32 mask2 = SC27XX_PD_RX_AUTO_GOOD_CRC;
+	int ret;
+	u32 reg_val = 0;
+
+	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_STS1, &reg_val);
+	if (ret < 0) {
+		dev_err(pd->dev, "%s %d, ret = %d", __func__, __LINE__, ret);
+		return;
+	}
+
+	sprd_pd_log(pd, "set rx enable: on = %d, sts1 = 0x%x", on, reg_val);
+
+	if (on) {
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_INT_EN, mask1, mask1);
+		if (ret < 0) {
+			dev_err(pd->dev, "%s %d, ret = %d", __func__, __LINE__, ret);
+			return;
+		}
+
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG1, mask2, mask2);
+		if (ret < 0) {
+			dev_err(pd->dev, "%s %d, ret = %d", __func__, __LINE__, ret);
+			return;
+		}
+
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG0, mask, mask);
+		if (ret < 0) {
+			dev_err(pd->dev, "%s %d, ret = %d", __func__, __LINE__, ret);
+			return;
+		}
+	} else {
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG0, mask, ~mask);
+		if (ret < 0) {
+			dev_err(pd->dev, "%s %d, ret = %d", __func__, __LINE__, ret);
+			return;
+		}
+
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_INT_EN, mask1, ~mask1);
+		if (ret < 0) {
+			dev_err(pd->dev, "%s %d, ret = %d", __func__, __LINE__, ret);
+			return;
+		}
+
+		ret = regmap_update_bits(pd->regmap, pd->base + SC27XX_PD_CFG1, mask2, ~mask2);
+		if (ret < 0) {
+			dev_err(pd->dev, "%s %d, ret = %d", __func__, __LINE__, ret);
+			return;
+		}
+	}
+
+	sprd_pd_log(pd, "set rx enable: pd := %s", on ? "on" : "off");
+	dev_info(pd->dev, "set rx enable:= %s", on ? "on" : "off");
+}
+
 static int sc27xx_pd_tx_msg(struct sc27xx_pd *pd, const struct sprd_pd_message *msg)
 {
 	u16 header;
@@ -973,6 +1039,7 @@ static int sc27xx_pd_transmit(struct tcpc_dev *tcpc,
 	struct sc27xx_pd *pd = tcpc_to_sc27xx_pd(tcpc);
 	int ret;
 
+	cancel_delayed_work_sync(&pd->rx_state_monitor_work);
 	mutex_lock(&pd->lock);
 	switch (type) {
 	case SPRD_TCPC_TX_SOP:
@@ -1590,6 +1657,30 @@ static int sc27xx_pd_init(struct tcpc_dev *tcpc)
 	return sc27xx_pd_module_init(pd);
 }
 
+static void sc27xx_pd_check_rx_state(struct sc27xx_pd *pd)
+{
+	int ret;
+	u32 pd_debug, pd_phy_rx_state, pd_rx_state;
+
+	ret = regmap_read(pd->regmap, pd->base + SC27XX_PD_DEBUG, &pd_debug);
+	if (ret < 0) {
+		dev_err(pd->dev, "read pd debug failed, ret = %d", ret);
+		return;
+	}
+
+	pd_phy_rx_state = (pd_debug >> SC27XX_PD_PHY_RX_STATE_SHIFT) & 0x7;
+	pd_rx_state = pd_debug & 0x7;
+
+	if (pd->can_communication && pd_phy_rx_state  == SC27XX_PD_PHY_RX_CRC &&
+	    pd_rx_state == SC27XX_PD_RX_DATA) {
+		sprd_pd_log(pd, "pd controller reset, pd_debug = 0x%x", pd_debug);
+
+		sc27xx_pd_set_rx_enable(pd, false);
+		udelay(5);
+		sc27xx_pd_set_rx_enable(pd, true);
+	}
+}
+
 static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 {
 	struct sc27xx_pd *pd = dev_id;
@@ -1603,6 +1694,7 @@ static irqreturn_t sc27xx_pd_irq(int irq, void *dev_id)
 	curr_time = ktime_to_ms(ktime_get_boottime());
 
 	sprd_pd_log(pd, "pd irq: start handle irq, irq = %d", irq);
+	cancel_delayed_work_sync(&pd->rx_state_monitor_work);
 	mutex_lock(&pd->lock);
 	ret = regmap_read(pd->regmap, pd->base + SC27XX_INT_FLG, &int_sts);
 	if (ret < 0) {
@@ -1708,14 +1800,8 @@ irq_hard_reset:
 		dev_warn(pd->dev, "IRQ: PD cable rst flag\n");
 	}
 
-	if (int_sts & SC27XX_PD_SOFT_RST_FLAG) {
+	if (int_sts & SC27XX_PD_SOFT_RST_FLAG)
 		sprd_pd_log(pd, "pd irq: soft reset flag");
-		ret = sc27xx_pd_reset(pd, true);
-		if (ret < 0) {
-			dev_err(pd->dev, "cannot PD reset, ret=%d\n", ret);
-			goto done;
-		}
-	}
 
 	if ((int_sts & SC27XX_PD_PKG_RV_FLAG)) {
 		pd->can_communication = true;
@@ -1765,6 +1851,7 @@ irq_hard_reset:
 		sprd_pd_log(pd, "pd irq: PD collision, ktime = %lld ms", curr_time);
 		dev_err(pd->dev, "IRQ: PD collision, ktime = %lld ms\n", curr_time);
 
+		sc27xx_pd_check_rx_state(pd);
 		sprd_tcpm_pd_transmit_complete(pd->sprd_tcpm_port, SPRD_TCPC_TX_FAILED);
 	}
 
@@ -1783,6 +1870,8 @@ irq_hard_reset:
 
 done:
 	mutex_unlock(&pd->lock);
+	queue_delayed_work(system_unbound_wq, &pd->rx_state_monitor_work,
+			   msecs_to_jiffies(SC27XX_RX_STATE_MONITOR_DELAY));
 	sprd_pd_log(pd, "pd irq: IRQ_HANDLED");
 
 	return IRQ_HANDLED;
@@ -2175,6 +2264,7 @@ static int sc27xx_pd_check_vbus_cc_status(struct sc27xx_pd *pd)
 			pd->vbus_only = false;
 			goto out;
 		}
+		cancel_delayed_work_sync(&pd->rx_state_monitor_work);
 	}
 
 	if (pd->use_pdhub_c2c && pd->state == SC27XX_ATTACHED_SRC)
@@ -2340,19 +2430,9 @@ static int sc27xx_pd_cal(struct sc27xx_pd *pd)
 	if (ret)
 		return ret;
 
-	if (pd->var_data->id == PMIC_SC2730) {
-		ret = sc27xx_pd_efuse_read(pd, "pdref_calib", &pd->ref_cal);
-		if (ret)
-			return ret;
-	} else if (pd->var_data->id == PMIC_UMP9620) {
-		/*
-		 * ump9620 pdref_calib use the same block
-		 * with pddelta_calib--block 36.
-		 */
-		ret = sc27xx_pd_efuse_read(pd, "pddelta_calib", &pd->ref_cal);
-		if (ret)
-			return ret;
-	}
+	ret = sc27xx_pd_efuse_read(pd, "pdref_calib", &pd->ref_cal);
+	if (ret)
+		return ret;
 
 	return 0;
 }
@@ -2376,6 +2456,26 @@ static void sc27xx_pd_read_msg_work(struct work_struct *work)
 
 out:
 	mutex_unlock(&pd->lock);
+}
+
+static void sc27xx_pd_rx_state_monitor_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct sc27xx_pd *pd = container_of(dwork, struct sc27xx_pd, rx_state_monitor_work);
+	int work_cycle = SC27XX_RX_STATE_MONITOR_DELAY;
+
+	if (!pd->typec_online)
+		return;
+
+	if (!pd->can_communication) {
+		work_cycle = SC27XX_RX_STATE_MONITOR_DELAY * 4;
+		goto out;
+	}
+
+	sc27xx_pd_check_rx_state(pd);
+out:
+	queue_delayed_work(system_unbound_wq, &pd->rx_state_monitor_work,
+			   msecs_to_jiffies(work_cycle));
 }
 
 static void sc27xx_pd_detect_typec_work(struct work_struct *work)
@@ -2563,6 +2663,7 @@ static int sc27xx_pd_probe(struct platform_device *pdev)
 
 	INIT_DELAYED_WORK(&pd->typec_detect_work, sc27xx_pd_detect_typec_work);
 	INIT_DELAYED_WORK(&pd->read_msg_work, sc27xx_pd_read_msg_work);
+	INIT_DELAYED_WORK(&pd->rx_state_monitor_work, sc27xx_pd_rx_state_monitor_work);
 	INIT_WORK(&pd->pd_work, sc27xx_pd_work);
 
 	platform_set_drvdata(pdev, pd);
@@ -2601,6 +2702,7 @@ static void sc27xx_pd_shutdown(struct platform_device *pdev)
 
 	pd->shutdown_flag = true;
 
+	cancel_delayed_work_sync(&pd->rx_state_monitor_work);
 	cancel_delayed_work_sync(&pd->read_msg_work);
 	cancel_work_sync(&pd->pd_work);
 }
@@ -2613,8 +2715,10 @@ static int sc27xx_pd_suspend(struct device *dev)
 
 	pd->suspend = true;
 
-	if (pd->typec_online)
+	if (pd->typec_online) {
+		cancel_delayed_work_sync(&pd->rx_state_monitor_work);
 		return 0;
+	}
 
 	dev_info(pd->dev, "typec offline, disable pd clock when suspend\n");
 	ret = sc27xx_pd_disable_clk(pd);
@@ -2636,6 +2740,10 @@ static int sc27xx_pd_resume(struct device *dev)
 {
 	struct sc27xx_pd *pd = dev_get_drvdata(dev);
 	int ret;
+
+	if (pd->typec_online)
+		queue_delayed_work(system_unbound_wq, &pd->rx_state_monitor_work,
+				   msecs_to_jiffies(SC27XX_RX_STATE_MONITOR_DELAY));
 
 	ret = sc27xx_pd_set_aon_clock(pd, true);
 	if (ret) {

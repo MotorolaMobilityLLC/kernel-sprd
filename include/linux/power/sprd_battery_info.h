@@ -13,8 +13,8 @@
 #include <linux/device.h>
 
 #define SPRD_BATTERY_INFO_RESISTENCE_TEMP_MAX	20
-#define SPRD_BATTERY_BASP_OCV_TABLE_MAX		20
 #define SPRD_BATTERY_OCV_TEMP_MAX		20
+#define SPRD_BATTERY_CYCLES_FCC_COLS_MAX	8
 
 #define SPRD_BATTERY_STEP_CHG_TABLE_NAME	"step-chg-jeita-table"
 
@@ -52,6 +52,12 @@ struct sprd_battery_step_chg_table {
 	int jeita_inr;
 	int current_ua;
 	int term_volt;
+};
+
+struct sprd_battery_cycles_fcc_table {
+	int cols;
+	int cycles[SPRD_BATTERY_CYCLES_FCC_COLS_MAX];	/* charge cycles */
+	int fcc_uah[SPRD_BATTERY_CYCLES_FCC_COLS_MAX];	/* fcc_uah */
 };
 
 struct sprd_battery_ir_compensation {
@@ -109,6 +115,8 @@ struct sprd_battery_temp_cap_table {
 struct sprd_battery_info {
 	/* microAmp-hours */
 	int charge_full_design_uah;
+	/* microAmp-hours */
+	int charge_full_uah;
 	/* microVolts */
 	int voltage_min_design_uv;
 	/* microVolts */
@@ -174,14 +182,6 @@ struct sprd_battery_info {
 	struct sprd_battery_resistance_temp_table *battery_temp_resist_table;
 	int battery_temp_resist_table_len;
 
-	struct sprd_battery_ocv_table *basp_ocv_table[SPRD_BATTERY_BASP_OCV_TABLE_MAX];
-	int basp_ocv_table_len[SPRD_BATTERY_BASP_OCV_TABLE_MAX];
-	/* microAmp-hours */
-	int *basp_charge_full_design_uah_table;
-	int basp_charge_full_design_uah_table_len;
-	int *basp_constant_charge_voltage_max_uv_table;
-	int basp_constant_charge_voltage_max_uv_table_len;
-
 	struct sprd_battery_jeita_table *jeita_table[SPRD_BATTERY_JEITA_MAX];
 	u32 max_current_jeita_index[SPRD_BATTERY_JEITA_MAX];
 	u32 sprd_battery_jeita_size[SPRD_BATTERY_JEITA_MAX];
@@ -195,13 +195,14 @@ struct sprd_battery_info {
 extern void sprd_battery_put_battery_info(struct power_supply *psy,
 					  struct sprd_battery_info *info);
 extern int sprd_battery_get_battery_info(struct power_supply *psy,
-					 struct sprd_battery_info *info);
+					 struct sprd_battery_info *info, int dynamic_aging_bat_id);
 extern void sprd_battery_find_resistance_table(struct power_supply *psy,
 					       int **resistance_table,
 					       int table_len, int *temp_table,
 					       int temp_len, int temp,
 					       int *target_table);
 extern int sprd_battery_parse_battery_id(struct power_supply *psy);
+extern int sprd_battery_get_aging_bat_id(struct power_supply *psy, int charge_cycle);
 extern struct sprd_battery_ocv_table *
 sprd_battery_find_ocv2cap_table(struct sprd_battery_info *info,
 				int temp, int *table_len);

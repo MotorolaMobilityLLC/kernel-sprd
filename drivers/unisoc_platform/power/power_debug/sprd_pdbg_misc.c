@@ -89,14 +89,74 @@ static const struct proc_ops misc_engpc_fops = {
 	.proc_lseek	= default_llseek,
 };
 
+static ssize_t apsys_pd_disable_read(struct file *file, char *in_buf, size_t count, loff_t *ppos)
+{
+	char out_buf[5];
+	size_t len;
+	u32 apsys_pd_disable = 0;
+	struct arm_smccc_res ret_vals = {0};
+
+	if (sprd_pdbg_misc_trans(PDBG_MISC_APSYS_PD_GET, 0, &ret_vals)) {
+		SPRD_PDBG_ERR("apsys_pd_disable proc get failed\n");
+		return -EINVAL;
+	}
+
+	apsys_pd_disable = !!ret_vals.a0;
+	len = sprintf(out_buf, "%u\n", apsys_pd_disable);
+	return simple_read_from_buffer(in_buf, count, ppos, out_buf, len);
+}
+
+static ssize_t apsys_pd_disable_write(struct file *file, const char *user_buf, size_t count,
+					     loff_t *ppos)
+{
+	int ret;
+	bool enable;
+
+	if (*ppos < 0)
+		return -EINVAL;
+
+	if (count == 0)
+		return 0;
+
+	if (*ppos != 0)
+		return 0;
+
+	ret = kstrtobool_from_user(user_buf, count, &enable);
+	if (ret)
+		return -EINVAL;
+
+	if (sprd_pdbg_misc_trans(PDBG_MISC_APSYS_PD_SET, enable, NULL)) {
+		SPRD_PDBG_ERR("apsys_pd_disable proc set failed\n");
+		return -EINVAL;
+	}
+
+	return count;
+}
+
+
+static const struct proc_ops apsys_pd_fops = {
+	.proc_open	= simple_open,
+	.proc_read	= apsys_pd_disable_read,
+	.proc_write	= apsys_pd_disable_write,
+	.proc_lseek	= default_llseek,
+};
+
 static int pdbg_misc_proc_init(struct misc_data *data, struct proc_dir_entry *dir)
 {
 	struct proc_dir_entry *fle;
 
-	fle = proc_create_data("engpc_deep_en", 0644, dir, &misc_engpc_fops, data);
+	fle = proc_create_data("apsys_pd_disable", 0644, dir, &apsys_pd_fops, data);
 	if (!fle) {
-		SPRD_PDBG_ERR("Proc engpc_deep_en fops  file create failed\n");
+		SPRD_PDBG_ERR("Proc apsys_pd fops  file create failed\n");
 		return -EINVAL;
+	}
+
+	if (data->engpc_boot_mode) {
+		fle = proc_create_data("engpc_deep_en", 0644, dir, &misc_engpc_fops, data);
+		if (!fle) {
+			SPRD_PDBG_ERR("Proc engpc_deep_en fops  file create failed\n");
+			return -EINVAL;
+		}
 	}
 
 	return 0;
@@ -109,8 +169,7 @@ static void misc_engpc_devm_action(void *_data)
 	cancel_delayed_work_sync(&data->engpc_ws_check_work);
 }
 
-static int pdbg_engpc_init(struct device *dev, struct misc_data *data,
-	struct proc_dir_entry *dir)
+static int pdbg_engpc_init(struct device *dev, struct misc_data *data)
 {
 	int ret = -1;
 
@@ -119,12 +178,6 @@ static int pdbg_engpc_init(struct device *dev, struct misc_data *data,
 
 	if (!data->engpc_boot_mode)
 		return 0;
-
-	ret = pdbg_misc_proc_init(data, dir);
-	if (ret) {
-		SPRD_PDBG_ERR("%s: pdbg_misc_proc_init error\n", __func__);
-		return ret;
-	}
 
 	INIT_DELAYED_WORK(&data->engpc_ws_check_work, pdbg_engpc_ws_work);
 	sprd_pdbg_log_force = 1;
@@ -150,9 +203,15 @@ int sprd_pdbg_misc_init(struct device *dev, struct proc_dir_entry *dir, struct m
 		return -ENOMEM;
 	}
 
-	ret = pdbg_engpc_init(dev, data, dir);
+	ret = pdbg_engpc_init(dev, data);
 	if (ret) {
 		SPRD_PDBG_ERR("%s: pdbg_engpc_init error\n", __func__);
+		return ret;
+	}
+
+	ret = pdbg_misc_proc_init(data, dir);
+	if (ret) {
+		SPRD_PDBG_ERR("%s: pdbg_misc_proc_init error\n", __func__);
 		return ret;
 	}
 

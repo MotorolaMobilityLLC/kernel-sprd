@@ -13,15 +13,23 @@ static unsigned long uni_effective_cpu_util(int cpu, unsigned long util_cfs,
 {
 	struct rq *rq = cpu_rq(cpu);
 	struct uni_rq *uni_rq;
-	u64 prev_runnable_sum;
+	u64 runnable_sum, walt_cpu_util;
 
 	uni_rq = (struct uni_rq *) rq->android_vendor_data1;
-	prev_runnable_sum = uni_rq->prev_runnable_sum;
 
-	prev_runnable_sum <<= SCHED_CAPACITY_SHIFT;
-	do_div(prev_runnable_sum, walt_ravg_window);
+	walt_cpu_util = uni_rq->cumulative_runnable_avg;
+	walt_cpu_util <<= SCHED_CAPACITY_SHIFT;
+	do_div(walt_cpu_util, walt_ravg_window);
 
-	return min_t(unsigned long, prev_runnable_sum, max);
+	runnable_sum = uni_rq->prev_runnable_sum > uni_rq->curr_runnable_sum ?
+			uni_rq->prev_runnable_sum : uni_rq->curr_runnable_sum;
+
+	runnable_sum <<= SCHED_CAPACITY_SHIFT;
+	do_div(runnable_sum, walt_ravg_window);
+
+	walt_cpu_util = max(walt_cpu_util, runnable_sum);
+
+	return min_t(unsigned long, walt_cpu_util, max);
 }
 #else
 static unsigned long uni_effective_cpu_util(int cpu, unsigned long util_cfs,
@@ -111,6 +119,21 @@ static unsigned long uni_effective_cpu_util(int cpu, unsigned long util_cfs,
 	return min(max, util);
 }
 #endif
+
+unsigned int sched_get_cpu_util_pct(int cpu)
+{
+	unsigned int busy_pct;
+	unsigned long cpu_util, capacity;
+
+	capacity = arch_scale_cpu_capacity(cpu);
+	cpu_util = uni_effective_cpu_util(cpu, cpu_util_cfs(cpu_rq(cpu)),
+					  capacity, FREQUENCY_UTIL, NULL);
+
+	busy_pct = div64_ul((cpu_util * 100), capacity);
+
+	return busy_pct;
+}
+EXPORT_SYMBOL_GPL(sched_get_cpu_util_pct);
 
 static int show_cpuload(struct seq_file *seq, void *v)
 {

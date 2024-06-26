@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: GPL-2.0:
+// Copyright (c) 2021 unisoc.
+
 /*
  * Driver for the ETA Solutions eta6937 charger.
  * Author: Jinfeng.Lin1 <jinfeng.lin1@unisoc.com>
@@ -73,6 +76,7 @@
 #define ETA6937_REG_VENDOR_CODE_SHIFT			(5)
 #define ETA6937_REG_PN_CODE_MASK			GENMASK(4, 3)
 #define ETA6937_REG_PN_CODE_SHIFT			(3)
+#define ETA6937_DEV_ID					2
 #define ETA6937_REG_REV_CODE_MASK			GENMASK(2, 0)
 #define ETA6937_REG_REV_CODE_SHIFT			(0)
 
@@ -305,7 +309,7 @@ static int eta6937_charger_hw_init(struct eta6937_charger_info *info)
 	int voltage_max_microvolt, termination_cur;
 	int ret;
 
-	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info);
+	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info, 0);
 	if (ret) {
 		dev_warn(info->dev, "no battery information is supplied\n");
 
@@ -665,6 +669,14 @@ static int eta6937_charger_set_status(struct eta6937_charger_info *info, int val
 {
 	int ret = 0;
 
+	if (val == CM_BUCK_MAX_TERMINA_VOL) {
+		ret = eta6937_charger_set_termina_vol(info, ETA6937_CHG_VOREG_MAX);
+		if (ret) {
+			dev_err(info->dev, "failed to set terminate max voltage\n");
+			return ret;
+		}
+	}
+
 	if (val > CM_FAST_CHARGE_NORMAL_CMD)
 		return 0;
 
@@ -699,6 +711,11 @@ static int eta6937_charger_usb_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
+		if (val->intval == CM_BUCK_MAX_TERMINA_VOL) {
+			val->intval = ETA6937_CHG_VOREG_MAX * 1000;
+			break;
+		}
+
 		val->intval = eta6937_charger_get_status(info);
 		break;
 
@@ -985,12 +1002,33 @@ static const struct regulator_desc eta6937_charger_vbus_desc = {
 	.n_voltages = 1,
 };
 
-static int
-eta6937_charger_register_vbus_regulator(struct eta6937_charger_info *info)
+static void eta6937_charger_check_otg_status(struct eta6937_charger_info *info)
+{
+	int ret;
+	u8 val;
+
+	ret = eta6937_read(info, ETA6937_REG_1, &val);
+	if (ret) {
+		dev_err(info->dev, "%s:line%d, failed to get reg1(%d)\n", __func__, __LINE__, ret);
+		return;
+	}
+
+	if (val & ETA6937_REG_OPA_MODE_MASK) {
+		dev_info(info->dev, "%s:line%d, exit otg mode\n", __func__, __LINE__);
+		ret = eta6937_update_bits(info, ETA6937_REG_1, ETA6937_REG_HZ_MODE_MASK |
+					  ETA6937_REG_OPA_MODE_MASK, 0);
+		if (ret)
+			dev_err(info->dev, "disable eta6937 otg failed\n");
+	}
+}
+
+static int eta6937_charger_register_vbus_regulator(struct eta6937_charger_info *info)
 {
 	struct regulator_config cfg = { };
 	struct regulator_dev *reg;
 	int ret = 0;
+
+	eta6937_charger_check_otg_status(info);
 
 	cfg.dev = info->dev;
 	cfg.driver_data = info;
@@ -1004,16 +1042,81 @@ eta6937_charger_register_vbus_regulator(struct eta6937_charger_info *info)
 	return ret;
 }
 
+static int eta6937_charger_register_external_vbus_regulator(struct eta6937_charger_info *info)
+{
+	struct regulator_config cfg = { };
+	struct regulator_dev *reg;
+	int ret = 0;
+	struct device_node *otg_nd;
+	struct device_node *otg_parent_nd;
+	struct platform_device *otg_parent_nd_pdev;
+
+	otg_nd = of_find_node_by_name(NULL, "otg-vbus");
+	if (!otg_nd) {
+		dev_warn(info->dev, "%s, unable to get otg node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd = of_get_parent(otg_nd);
+	of_node_put(otg_nd);
+	if (!otg_parent_nd) {
+		dev_warn(info->dev, "%s, unable to get otg parent node\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	otg_parent_nd_pdev = of_find_device_by_node(otg_parent_nd);
+	of_node_put(otg_parent_nd);
+	if (!otg_parent_nd_pdev) {
+		dev_warn(info->dev, "%s, unable to get otg parent node device\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	cfg.dev = &otg_parent_nd_pdev->dev;
+	platform_device_put(otg_parent_nd_pdev);
+	cfg.driver_data = info;
+	reg = devm_regulator_register(cfg.dev, &eta6937_charger_vbus_desc, &cfg);
+	if (IS_ERR(reg)) {
+		ret = PTR_ERR(reg);
+		dev_warn(info->dev, "%s, failed to register vddvbus regulator:%d\n",
+			 __func__, ret);
+	}
+
+	return ret;
+}
+
 #else
-static int
-eta6937_charger_register_vbus_regulator(struct eta6937_charger_info *info)
+static int eta6937_charger_register_vbus_regulator(struct eta6937_charger_info *info)
+{
+	return 0;
+}
+
+static int eta6937_charger_register_external_vbus_regulator(struct bq2560x_charger_info *info)
 {
 	return 0;
 }
 #endif
 
-static int eta6937_charger_probe(struct i2c_client *client,
-		const struct i2c_device_id *id)
+static int eta6937_charger_detect_device(struct eta6937_charger_info *info)
+{
+	int ret, part_id;
+	u8 reg_val;
+
+	ret = eta6937_read(info, ETA6937_REG_3, &reg_val);
+	if (ret < 0) {
+		dev_err(info->dev, "%s, failed to get device id, ret = %d\n", __func__, ret);
+		return ret;
+	}
+
+	part_id = (reg_val & ETA6937_REG_PN_CODE_MASK) >> ETA6937_REG_PN_CODE_SHIFT;
+	if (part_id != ETA6937_DEV_ID) {
+		dev_err(info->dev, "%s, the device id is 0x%x\n", __func__, part_id);
+		return -EINVAL;
+	}
+
+	return ret;
+}
+
+static int eta6937_charger_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
 	struct device *dev = &client->dev;
@@ -1034,11 +1137,16 @@ static int eta6937_charger_probe(struct i2c_client *client,
 	info->client = client;
 	info->dev = dev;
 
+	i2c_set_clientdata(client, info);
+	ret = eta6937_charger_detect_device(info);
+	if (ret) {
+		dev_err(dev, "%s, failed to detect device, ret = %d\n", __func__, ret);
+		return -ENODEV;
+	}
+
 	alarm_init(&info->wdg_timer, ALARM_BOOTTIME, NULL);
 
 	mutex_init(&info->lock);
-
-	i2c_set_clientdata(client, info);
 
 	info->edev = extcon_get_edev_by_phandle(info->dev, 0);
 	if (IS_ERR(info->edev)) {
@@ -1046,7 +1154,11 @@ static int eta6937_charger_probe(struct i2c_client *client,
 		return PTR_ERR(info->edev);
 	}
 
-	ret = eta6937_charger_register_vbus_regulator(info);
+	if (device_property_read_bool(dev, "otg-vbus-node-external"))
+		ret = eta6937_charger_register_external_vbus_regulator(info);
+	else
+		ret = eta6937_charger_register_vbus_regulator(info);
+
 	if (ret) {
 		dev_err(dev, "failed to register vbus regulator.\n");
 		return ret;
@@ -1183,6 +1295,8 @@ static int eta6937_charger_alarm_prepare(struct device *dev)
 	now = ktime_get_boottime();
 	add = ktime_set(ETA6937_WDG_TIMER_S, 0);
 	alarm_start(&info->wdg_timer, ktime_add(now, add));
+	pr_info("eta6937_charger set alarm, triggered at [%lld]ms\n",
+		ktime_to_ms(ktime_add(now, add)));
 	return 0;
 }
 

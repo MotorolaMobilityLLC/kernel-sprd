@@ -270,34 +270,6 @@ static void ufs_sprd_get_debug_regs(struct ufs_hba *hba, enum ufs_event_type evt
 	}
 }
 
-static int ufs_efuse_calib_data(struct platform_device *pdev,
-				const char *cell_name)
-{
-	struct nvmem_cell *cell;
-	void *buf;
-	u32 calib_data;
-	size_t len;
-
-	if (!pdev)
-		return -EINVAL;
-
-	cell = nvmem_cell_get(&pdev->dev, cell_name);
-	if (IS_ERR_OR_NULL(cell))
-		return PTR_ERR(cell);
-
-	buf = nvmem_cell_read(cell, &len);
-	if (IS_ERR_OR_NULL(buf)) {
-		nvmem_cell_put(cell);
-		return PTR_ERR(buf);
-	}
-
-	memcpy(&calib_data, buf, min(len, sizeof(u32)));
-
-	kfree(buf);
-	nvmem_cell_put(cell);
-	return calib_data;
-}
-
 static int ufs_sprd_get_reg_from_dt(struct device *dev,
 				  struct ufs_sprd_ums9620_data *priv)
 {
@@ -395,8 +367,6 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 			 "can't get the clock dts config: ufs_hclk_source\n");
 			 priv->hclk_source = NULL;
 	}
-
-	clk_set_parent(priv->hclk, priv->hclk_source);
 
 	priv->rco_100M = devm_clk_get(&pdev->dev, "ufs_rco_100M");
 	if (IS_ERR(priv->rco_100M)) {
@@ -607,6 +577,9 @@ static int ufs_sprd_hw_init(struct ufs_hba *hba)
 		(struct ufs_sprd_ums9620_data *) host->ufs_priv_data;
 
 	dev_info(host->hba->dev, "ufs hardware reset!\n");
+
+	clk_set_parent(priv->hclk, priv->hclk_source);
+	ufshcd_writel(hba, 0x100, REG_HCLKDIV);
 
 	regmap_update_bits(priv->phy_sram_ext_ld_done.regmap,
 			   priv->phy_sram_ext_ld_done.reg,
@@ -978,7 +951,7 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		err = -EINVAL;
 		break;
 	}
-	ufs_sprd_pwr_change_compare(hba, status, final_params, err);
+	ufs_sprd_pwr_change_compare(hba, status, final_params, &err);
 
 out:
 	return err;
@@ -1099,7 +1072,7 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 		}
 
 		if ((priv != NULL) && ufshcd_is_link_hibern8(hba) && (on == false)) {
-			usleep_range(100, 110);
+			usleep_range(1000, 1100);
 			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
 				priv->ufsdev_refclk_en.reg,
 				priv->ufsdev_refclk_en.mask,

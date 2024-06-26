@@ -60,6 +60,6 @@
 			<0>;
 		sprd,ddr-offset = <0x80000000>;
 		sprd,panic;
+		status = "okay";
 	};
-
 };

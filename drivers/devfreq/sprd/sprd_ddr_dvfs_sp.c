@@ -36,6 +36,7 @@ static struct vote_data *find_point(const char *name)
 		point++;
 		scene_index++;
 	}
+
 	return NULL;
 }
 
@@ -66,6 +67,7 @@ static void reset_freq(struct vote_data *point, unsigned int freq)
 static int check_and_vote(unsigned int target_freq)
 {
 	static unsigned int last_freq;
+	unsigned int min_freq;
 	struct vote_data *point;
 	int err, i;
 
@@ -83,12 +85,16 @@ static int check_and_vote(unsigned int target_freq)
 		point++;
 	}
 
+	min_freq = (unsigned int)get_min_freq();
+	if (target_freq < min_freq)
+		target_freq = min_freq;
 	if (target_freq != last_freq) {
 		err = send_vote_request(target_freq);
 		if (err)
 			return err;
 		last_freq = target_freq;
 	}
+
 	return 0;
 }
 
@@ -102,12 +108,14 @@ static int dvfs_freq_request(unsigned int freq)
 	err = check_and_vote(freq);
 	if (err == 0)
 		request_freq = freq;
+
 	return err;
 }
 
 static int dvfs_vote(const char *name)
 {
 	struct vote_data *point;
+	int err;
 
 	if (g_vote_data == NULL)
 		return -EINVAL;
@@ -117,12 +125,17 @@ static int dvfs_vote(const char *name)
 
 	set_flag(point);
 
-	return check_and_vote(request_freq);
+	err = check_and_vote(request_freq);
+	if (err != 0)
+		reset_flag(point);
+
+	return err;
 }
 
 static int dvfs_unvote(const char *name)
 {
 	struct vote_data *point;
+	int err;
 
 	if (g_vote_data == NULL)
 		return -EINVAL;
@@ -132,25 +145,37 @@ static int dvfs_unvote(const char *name)
 
 	reset_flag(point);
 
-	return check_and_vote(request_freq);
+	err = check_and_vote(request_freq);
+	if (err != 0)
+		set_flag(point);
+
+	return err;
 }
 
 static int dvfs_set_point(const char *name, unsigned int freq)
 {
 	struct vote_data *point;
+	int err;
+	unsigned int used_freq;
 
 	if (g_vote_data == NULL)
 		return -EINVAL;
 	point = find_point(name);
 	if (point == NULL)
 		return -EINVAL;
+	used_freq = point->freq;
 
 	reset_freq(point, freq);
 
-	return check_and_vote(request_freq);
+	err = check_and_vote(request_freq);
+	if (err != 0)
+		reset_freq(point, used_freq);
+
+	return err;
 }
 
-static int dvfs_get_point_info(char **name, unsigned int *freq, unsigned int *flag, int index)
+static int dvfs_get_point_info(char **name, unsigned int *freq,
+			       unsigned int *flag, int index)
 {
 	struct vote_data *point;
 
@@ -164,6 +189,7 @@ static int dvfs_get_point_info(char **name, unsigned int *freq, unsigned int *fl
 	*name = (char *)point->name;
 	*freq = point->freq;
 	*flag = point->flag;
+
 	return 0;
 }
 
@@ -186,7 +212,7 @@ static int dvfs_probe(struct platform_device *pdev)
 		dev_warn(dev, "failed read scene_num\n");
 		scene_num = 0;
 	} else {
-		g_vote_data = devm_kzalloc(dev, sizeof(struct vote_data)*(unsigned int)scene_num,
+		g_vote_data = devm_kzalloc(dev, sizeof(struct vote_data) * (unsigned int)scene_num,
 					   GFP_KERNEL);
 		if (g_vote_data == NULL) {
 			err = -ENOMEM;
@@ -214,11 +240,13 @@ static int dvfs_probe(struct platform_device *pdev)
 		goto free_mem;
 
 	dvfs_core_hw_callback_register(&callbacks);
+
 	return 0;
 
 free_mem:
 	if (g_vote_data != NULL)
 		devm_kfree(&pdev->dev, g_vote_data);
+
 	return err;
 }
 
@@ -226,8 +254,10 @@ static int dvfs_remove(struct platform_device *pdev)
 {
 	if (g_vote_data != NULL)
 		devm_kfree(&pdev->dev, g_vote_data);
+
 	dvfs_core_hw_callback_clear(&callbacks);
 	dvfs_core_clear(pdev);
+
 	return 0;
 }
 

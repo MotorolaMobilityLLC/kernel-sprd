@@ -20,6 +20,7 @@ struct ufs_sprd_ums9230_data {
 	struct syscon_ufs ahb_ufs_cb;
 	struct syscon_ufs ahb_ufs_ies_en;
 	struct syscon_ufs ahb_ufs_cg_pclkreq;
+	struct syscon_ufs ap_apb_cfg_frc_on;
 	struct clk *hclk_source;
 	struct clk *pclk_source;
 	struct clk *hclk;
@@ -27,6 +28,12 @@ struct ufs_sprd_ums9230_data {
 	struct reset_control *ap_apb_ufs_rst;
 	struct reset_control *ap_apb_ufs_glb_rst;
 	void __iomem *dbg_apb_reg;
+
+	/* efuse mphy trim*/
+	uint32_t ufs_cali_lanes;
+	uint32_t ufs_trimbg;
+	uint32_t ufs_rxtrim;
+	uint32_t ufs_txtrim;
 
 	ktime_t last_linkup_time;
 
@@ -105,6 +112,11 @@ extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
 #define	MPHY_REG_SEL_CFG_0 0xF0
 #define	MPHY_REG_SEL_CFG_0_REFCLKON_MASK GENMASK(18, 18)
 #define	MPHY_REG_SEL_CFG_0_REFCLKON_VAL BIT(18)
+#define	MPHY_REG_SEL_CFG_0_ANA_POWERDOWN_MASK GENMASK(1, 1)
+#define	MPHY_REG_SEL_CFG_0_ANA_POWERDOWN_VAL BIT(1)
+
+#define	MPHY_POWER_REG 0x5C
+#define	MPHY_POWER_REG_ANA_POWERDOWN_MASK GENMASK(0, 0)
 
 #define	MPHY_ANR_MPHY_CTRL2 0x40
 #define	MPHY_ANR_MPHY_CTRL2_REFCLKON_MASK GENMASK(8, 8)
@@ -147,5 +159,8 @@ extern int sprd_get_soc_id(sprd_soc_id_type_t soc_id_type, u32 *id, int id_len);
 
 /* Define debug apb base register */
 #define REG_DEBUG_APB_BASE	0x7C00A000
+
+#define UFS_TXRX_PHY_MASK GENMASK(11, 0)
+#define UFS_TXRX_PHY_ADDR 0x58
 
 #endif/* _UFS_SPRD_QOGIRL6_H_ */

@@ -7,8 +7,8 @@ FRAGMENT_CONFIG=${KERNEL_DIR}/arch/arm64/configs/sprd_gki_sharkl6_debug.fragment
 UMS9230_BASE_CONFIG="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig
                      ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_gki_sharkl6.fragment
                     "
-if [[ $BSP_PRODUCT_NAME_TAIL == "Skynet" ]]; then
-	UMS9230_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_swkasan_Skynet.fragment"
+if [[ $BSP_PRODUCT_NAME_TAIL == "Syzkaller" ]]; then
+	UMS9230_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_Syzkaller.fragment"
 fi
 
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \
@@ -24,6 +24,7 @@ EXT_MODULES="
 ../modules/kernel5.15/sample
 ../modules/kernel5.15/gpu/natt
 ../modules/kernel5.15/microarray
+../modules/kernel5.15/touchscreen/focaltech_ft8725_spi
 ../modules/kernel5.15/touchscreen/focaltech_ft8756_spi
 ../modules/kernel5.15/touchscreen/novatek_nt36xxx
 ../modules/kernel5.15/touchscreen/novatek_nt36528_spi
@@ -36,8 +37,6 @@ EXT_MODULES="
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/sensor
 ../modules/common/camera/mmdvfs
-../modules/common/io/block
-../modules/common/io/iowait
 ../modules/kernel5.15/wcn/bsp/unisoc_wcn_bsp
 ../modules/kernel5.15/wcn/fm/driver
 ../modules/kernel5.15/wcn/bluetooth/driver

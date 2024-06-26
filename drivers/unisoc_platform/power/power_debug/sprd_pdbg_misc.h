@@ -8,6 +8,11 @@
 
 #include <linux/workqueue.h>
 
+enum {
+	PDBG_MISC_APSYS_PD_GET,
+	PDBG_MISC_APSYS_PD_SET,
+};
+
 struct misc_data {
 	struct delayed_work engpc_ws_check_work;
 	bool engpc_deep_en;

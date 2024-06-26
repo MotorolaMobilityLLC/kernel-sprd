@@ -20,6 +20,7 @@
 #include <linux/sched.h>
 #include <linux/sipa.h>
 #include <linux/netdevice.h>
+#include <net/sock.h>
 #include <uapi/linux/sched/types.h>
 
 #include "sipa_priv.h"
@@ -390,6 +391,36 @@ void sipa_skb_sender_remove_nic(struct sipa_skb_sender *sender,
 	spin_unlock_irqrestore(&sender->nic_lock, flags);
 }
 
+static bool sipa_skb_sender_vip_data(struct sipa_skb_sender *sender,
+				     struct sk_buff *skb,
+				     enum sipa_term_type dst)
+{
+	struct sipa_vip_attrs *vip_attrs = sipa_eth_vip_attrs();
+	int sipa_eth_uid;
+	int uid;
+
+	/* For LAN forwarding to sipa_eth, sk is null. */
+	if (skb->sk && dst == SIPA_TERM_VCP
+	    && vip_attrs->vip_enable) {
+		sipa_eth_uid = skb->sk->sk_uid.val;
+
+		dev_dbg(sender->dev, "%s sipa_eth_uid is %d\n",
+			__func__, sipa_eth_uid);
+
+		/* For vip data we need to transmit skb firstly. */
+		for (uid = 0; uid < MAX_UID_NUM; uid++) {
+			if (sipa_eth_uid == vip_attrs->vip_uids[uid]) {
+				dev_dbg(sender->dev,
+					"Vip skb %40ph\n", skb->data);
+
+				return true;
+			}
+		}
+	}
+
+	return false;
+}
+
 int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 			      struct sk_buff *skb,
 			      enum sipa_term_type dst,
@@ -438,6 +469,9 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 	des->src = sender->ep->send_fifo.src_id;
 	if (skb->ip_summed == CHECKSUM_PARTIAL)
 		des->cs_en = 1;
+
+	if (sipa_skb_sender_vip_data(sender, skb, dst))
+		des->indx = 1;
 
 	node = list_first_entry(&sender->pair_free_list,
 				struct sipa_skb_dma_addr_pair,

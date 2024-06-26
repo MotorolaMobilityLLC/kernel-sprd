@@ -98,6 +98,7 @@ enum shub_mode {
 	SHUB_NORMAL,
 	SHUB_SLEEP,
 	SHUB_NO_SLEEP,
+	SHUB_ASSERT,
 };
 
 enum shub_cmd {
@@ -128,6 +129,7 @@ enum shub_cmd {
 	HAL_SENSOR_INFO,
 	HAL_LOG_CTL,
 	HAL_CALI_STORE,
+	HAL_SHUB_MODE_STORE,
 	SPECIAL_CMD = 192,
 	MCU_RDY,
 	COMM_DRV_RDY,
@@ -150,6 +152,11 @@ struct customer_data_get {
 	u8 type;
 	u8 customer_data[30];
 	u8 length;
+};
+
+struct shub_mode_info {
+	u8 cmd;
+	u8 info;
 };
 
 /*add for write cali data back to file node*/

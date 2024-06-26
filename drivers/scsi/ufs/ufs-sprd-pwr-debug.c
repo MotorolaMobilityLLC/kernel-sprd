@@ -1,14 +1,11 @@
-// SPDX-License-Identifier: GPL-2.0
-// Copyright (C) 2020 Unisoc Communications Inc.
-//
-// This software is licensed under the terms of the GNU General Public
-// License version 2, as published by the Free Software Foundation, and
-// may be copied, distributed, and modified under those terms.
-//
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU General Public License for more details.
+// SPDX-License-Identifier: GPL-2.0-only
+/*
+ * UFS Host Controller driver for Unisoc specific extensions
+ *
+ * Copyright (C) 2022 Unisoc, Inc.
+ *
+ */
+
 #include "ufshcd.h"
 
 struct ufs_pa_layer_attr pwr_now_raw_pre;
@@ -210,10 +207,10 @@ static int ufs_sprd_pwr_post_compare(struct ufs_hba *hba)
 	return -1;
 }
 
-int ufs_sprd_pwr_change_compare(struct ufs_hba *hba,
+void ufs_sprd_pwr_change_compare(struct ufs_hba *hba,
 		enum ufs_notify_change_status status,
 		struct ufs_pa_layer_attr *final_params,
-		int err)
+		int *err)
 {
 	ufs_get_sprd_pwr_now(hba, status);
 
@@ -240,10 +237,8 @@ int ufs_sprd_pwr_change_compare(struct ufs_hba *hba,
 		}
 		break;
 	default:
-		err = -EINVAL;
+		*err = -EINVAL;
 		break;
 	}
-
-	return err;
 }
 EXPORT_SYMBOL_GPL(ufs_sprd_pwr_change_compare);

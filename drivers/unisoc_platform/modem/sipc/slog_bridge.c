@@ -286,15 +286,19 @@ static void slog_usb_send_callback(char *buf, unsigned int len, void *p)
 	struct slog_bridge *sb = (struct slog_bridge *)p;
 	struct block_node *blk;
 	int rval;
+	unsigned long flags;
 
+	spin_lock_irqsave(&sb->list_lock, flags);
 	list_for_each_entry(blk, &sb->send_list, list) {
 		if (blk->vaddr == buf) {
+			spin_unlock_irqrestore(&sb->list_lock, flags);
 			rval = slog_block_release(sb, blk, len);
 			if (rval < 0)
 				pr_err("slog release fail!\n");
-			break;
+			return;
 		}
 	}
+	spin_unlock_irqrestore(&sb->list_lock, flags);
 }
 
 static void slog_bridge_event_callback(int event, void *data)
@@ -680,6 +684,8 @@ static int slog_bridge_probe(struct platform_device *pdev)
 		sb_prepare_list_info[thread_count].name = slog_cfg[thread_count].sys_name;
 		sb_prepare_list_info[thread_count].first_recv_flag = 1;
 		sb_prepare_list_info[thread_count].first_release_flag = 1;
+		sb_prepare_list_info[thread_count].receive_not_continue_cnt = 0;
+		sb_prepare_list_info[thread_count].release_not_continue_cnt = 0;
 	}
 
 	return 0;

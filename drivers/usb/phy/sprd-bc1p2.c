@@ -199,7 +199,6 @@ enum usb_charger_type sprd_bc1p2_charger_detect(struct usb_phy *x)
 	do {
 		if (bc1p2->shutdown)
 			return UNKNOWN_TYPE;
-
 		if (x->flags & CHARGER_DETECT_DONE)
 			break;
 		msleep(SPRD_CHG_DET_POLL_DELAY);
@@ -250,10 +249,13 @@ static void sprd_bc1p2_notify_charger(struct usb_phy *x)
 	case CHG_STATE_UNDETECT:
 		usb_phy_notify_charger(x);
 		break;
+	case CHG_STATE_RETRY_DETECT:
+		if (bc1p2->retry_chg_detect_count == 0 && x->chg_type == UNKNOWN_TYPE)
+			usb_phy_notify_charger(x);
+		break;
 	case CHG_STATE_RETRY_DETECTED:
-		if (x->chg_type == UNKNOWN_TYPE)
-			return;
-		usb_phy_notify_charger(x);
+		if (x->chg_type != UNKNOWN_TYPE)
+			usb_phy_notify_charger(x);
 		break;
 	default:
 		break;

@@ -80,5 +80,13 @@
 		headset_adc_fir: calib@4a {
 			reg = <0x4a 0x2>;
 		};
+
+		pdref_calib: calib@34 {
+			reg = <0x34 0x2>;
+		};
+
+		aud_pabst_vcal: calib@30 {
+			reg = <0x30 0x2>;
+		};
 	};
 };

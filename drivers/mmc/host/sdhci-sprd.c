@@ -47,6 +47,9 @@
 #include "sdhci-sprd-debugfs.h"
 #include "sdhci-sprd-debugfs.c"
 
+#define CREATE_TRACE_POINTS
+#include "trace_mmc_sprd.h"
+
 #define DRIVER_NAME "sprd-sdhci"
 #define SDHCI_SPRD_DUMP(f, x...) \
 	pr_err("%s: " DRIVER_NAME ": " f, mmc_hostname(host->mmc), ## x)
@@ -67,6 +70,7 @@
 #define  SDHCI_SPRD_DLL_EN		BIT(21)
 #define  SDHCI_SPRD_DLL_SEARCH_MODE	BIT(16)
 #define  SDHCI_SPRD_DLL_INIT_COUNT	0xc00
+#define SDHCI_SPRD_DLL_EN_MASK		(SDHCI_SPRD_DLL_EN | SDHCI_SPRD_DLL_ALL_CPST_EN)
 #ifdef CONFIG_MMC_SPRD_SDHCR11P3
 #define  SDHCI_SPRD_DLL_PHASE_INTERNAL	0x2
 #else
@@ -76,7 +80,7 @@
 #define SDHCI_SPRD_REG_32_DLL_DLY	0x204
 
 #define SDHCI_SPRD_REG_32_DLL_DLY_OFFSET	0x208
-#define  SDHCIBSPRD_IT_WR_DLY_INV		BIT(5)
+#define  SDHCI_SPRD_BIT_WR_DLY_INV		BIT(5)
 #define  SDHCI_SPRD_BIT_CMD_DLY_INV		BIT(13)
 #define  SDHCI_SPRD_BIT_POSRD_DLY_INV		BIT(21)
 #define  SDHCI_SPRD_BIT_NEGRD_DLY_INV		BIT(29)
@@ -154,6 +158,8 @@
 #define SDHCI_IP_VER_R10 10
 #define SDHCI_IP_VER_R11 11
 
+static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host);
+
 struct ranges_t {
 	int start;
 	int end;
@@ -190,6 +196,9 @@ struct sdhci_sprd_host {
 	struct register_hotplug reg_debounce_cn;
 	struct register_hotplug reg_rmldo_en;
 	unsigned char	power_mode;
+	struct mmc_card *card;
+	bool vqmmc_enabled;
+	bool init_flag;
 	bool support_swcq;
 	bool support_cqe;
 	bool support_ice;
@@ -203,6 +212,8 @@ struct sdhci_sprd_host {
 	bool tuning_merged;
 	bool cmd_dly_all_pass;
 	bool wait_read_idle;
+	bool mask_excp;
+	u8 min_data_timeout;
 #ifdef CONFIG_SPRD_DEBUG
 	u64 timestamp[10];
 #endif
@@ -217,19 +228,23 @@ enum sdhci_sprd_tuning_type {
 
 struct sdhci_sprd_phy_cfg {
 	const char *property;
-	u8 timing;
+	u32 clk_freq;
 };
 
+/* The index of the matrix means the corresponding timing */
 static const struct sdhci_sprd_phy_cfg sdhci_sprd_phy_cfgs[] = {
-	{ "sprd,phy-delay-legacy", MMC_TIMING_LEGACY, },
-	{ "sprd,phy-delay-sd-highspeed", MMC_TIMING_SD_HS, },
-	{ "sprd,phy-delay-sd-uhs-sdr50", MMC_TIMING_UHS_SDR50, },
-	{ "sprd,phy-delay-sd-uhs-sdr104", MMC_TIMING_UHS_SDR104, },
-	{ "sprd,phy-delay-mmc-highspeed", MMC_TIMING_MMC_HS, },
-	{ "sprd,phy-delay-mmc-ddr52", MMC_TIMING_MMC_DDR52, },
-	{ "sprd,phy-delay-mmc-hs200", MMC_TIMING_MMC_HS200, },
-	{ "sprd,phy-delay-mmc-hs400", MMC_TIMING_MMC_HS400, },
-	{ "sprd,phy-delay-mmc-hs400es", MMC_TIMING_MMC_HS400 + 1, },
+	{ "sprd,phy-delay-legacy", HIGH_SPEED_MAX_DTR},
+	{ "sprd,phy-delay-mmc-highspeed", MMC_HIGH_52_MAX_DTR},
+	{ "sprd,phy-delay-sd-highspeed", HIGH_SPEED_MAX_DTR},
+	{ "sprd,phy-delay-sd-uhs-sdr12", UHS_SDR12_MAX_DTR},
+	{ "sprd,phy-delay-sd-uhs-sdr25", UHS_SDR25_MAX_DTR},
+	{ "sprd,phy-delay-sd-uhs-sdr50", UHS_SDR50_MAX_DTR},
+	{ "sprd,phy-delay-sd-uhs-sdr104", UHS_SDR104_MAX_DTR},
+	{ "sprd,phy-delay-sd-uhs-ddr50", UHS_DDR50_MAX_DTR},
+	{ "sprd,phy-delay-mmc-ddr52", MMC_HIGH_DDR_MAX_DTR},
+	{ "sprd,phy-delay-mmc-hs200", MMC_HS200_MAX_DTR},
+	{ "sprd,phy-delay-mmc-hs400", MMC_HS200_MAX_DTR},
+	{ "sprd,phy-delay-mmc-hs400es", MMC_HS200_MAX_DTR},
 };
 
 #define TO_SPRD_HOST(host) sdhci_pltfm_priv(sdhci_priv(host))
@@ -249,7 +264,10 @@ static int mask_to_offset(u32 mask)
 	return 0;
 }
 
-static void sdhci_sprd_health_and_powp(void *data, struct mmc_card *card)
+#include "sdhci-sprd-sp.c"
+
+/* extra process for eMMC in mmc_init_card */
+static void sdhci_sprd_extra_proc(void *data, struct mmc_card *card)
 {
 	int err;
 
@@ -257,9 +275,11 @@ static void sdhci_sprd_health_and_powp(void *data, struct mmc_card *card)
 	err = sprd_mmc_health_init(card);
 	if (err)
 		pr_err("sprd_mmc_health_init: function error = %d\n", err);
+
 	/* mmc powp handle */
 	if (!mmc_check_wp_fn(card->host))
 		mmc_set_powp(card);
+
 	/* print mmc device info */
 	pr_info("%s: manfid= 0x%06x, name= %s, prv= 0x%x\n",
 		mmc_hostname(card->host), card->cid.manfid,
@@ -273,6 +293,20 @@ static void sdhci_sprd_health_and_powp(void *data, struct mmc_card *card)
 		mmc_hostname(card->host), card->ext_csd.pre_eol_info,
 		card->ext_csd.device_life_time_est_typ_a,
 		card->ext_csd.device_life_time_est_typ_b);
+
+	/* Some mmc need perform some special ops */
+	mmc_special_ops_needed(card);
+}
+
+static void sdhci_sprd_init_card(struct mmc_host *mmc, struct mmc_card *card)
+{
+	struct sdhci_host *host = mmc_priv(mmc);
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+
+	if (HOST_IS_SD_TYPE(mmc)) {
+		sprd_host->card = card;
+		sprd_host->init_flag = true;
+	}
 }
 
 static void sdhci_sprd_init_config(struct sdhci_host *host)
@@ -301,6 +335,16 @@ static inline u32 sdhci_sprd_readl(struct sdhci_host *host, int reg)
 	    readl(sprd_host->cqe_mem + CQHCI_ISGE)))
 		sts |= SDHCI_INT_CQE;
 
+	/*
+	 * Some emmc need mask exception bit to avoid enterring recovery too many times.
+	 * Mask exception bit(BIT(6)) in every R1/R1B if needed, except a QSR Query CMD13.
+	 */
+	if (sprd_host->mask_excp && likely(reg == SDHCI_RESPONSE) &&
+		(sts & R1_EXCEPTION_EVENT) && host->cmd &&
+		((host->cmd->flags & MMC_RSP_R1) == MMC_RSP_R1) &&
+		!((host->cmd->opcode == MMC_SEND_STATUS) && (host->cmd->arg & BIT(15))))
+		sts &= ~R1_EXCEPTION_EVENT;
+
 	return sts;
 }
 
@@ -313,6 +357,17 @@ static inline void sdhci_sprd_writel(struct sdhci_host *host, u32 val, int reg)
 	if (unlikely(reg == SDHCI_SIGNAL_ENABLE || reg == SDHCI_INT_ENABLE))
 		val = val & SDHCI_SPRD_INT_SIGNAL_MASK;
 
+	/* for debug */
+	if (unlikely(reg == SDHCI_INT_STATUS) && (val &
+		(SDHCI_INT_CMD_MASK | SDHCI_INT_DATA_MASK | SDHCI_INT_BUS_POWER))) {
+#ifdef CONFIG_SPRD_DEBUG
+		mmc_debug_update(host, NULL, val);
+#else
+		if (true == debug_en)
+			mmc_debug_update(host, NULL, val);
+#endif
+	}
+
 	writel_relaxed(val, host->ioaddr + reg);
 }
 
@@ -324,7 +379,17 @@ static inline void sdhci_sprd_writew(struct sdhci_host *host, u16 val, int reg)
 	if (unlikely(reg == SDHCI_BLOCK_COUNT))
 		return;
 
-	if ((strcmp(mmc_hostname(host->mmc), "mmc1") == 0) &&
+	/* for debug */
+	if (unlikely(reg == SDHCI_COMMAND)) {
+#ifdef CONFIG_SPRD_DEBUG
+		mmc_debug_update(host, host->cmd, 0);
+#else
+		if (true == debug_en)
+			mmc_debug_update(host, host->cmd, 0);
+#endif
+	}
+
+	if ((HOST_IS_SD_TYPE(host->mmc)) &&
 		(reg == SDHCI_COMMAND) &&
 		(host->cmd->opcode == SEND_SD_SWITCH) &&
 		(host->clock <= 400000) &&
@@ -339,13 +404,23 @@ static inline void sdhci_sprd_writeb(struct sdhci_host *host, u8 val, int reg)
 	u32 status;
 	u64 i = 0;
 
-	/* Spec indicates the tuning process should be shorter than 150ms for 40
-	 * executions of tuning command, and therefore data timeout value should
-	 * be shorter than before for single tuning commond in Spreadtrum's platform.
-	 */
-	if (unlikely(reg == SDHCI_TIMEOUT_CONTROL) && host->cmd &&
-	   (host->cmd->opcode == SEND_TUNING_BLOCK || host->cmd->opcode == SEND_TUNING_BLOCK_HS200))
-		val = 0x4;
+	if (unlikely(reg == SDHCI_TIMEOUT_CONTROL)) {
+		/*
+		 * Spec indicates the tuning process should be shorter than 150ms for 40
+		 * executions of tuning command, and therefore data timeout value should
+		 * be shorter than before for single tuning commond in Spreadtrum's platform.
+		 */
+		if (sprd_host->tuning_flag)
+			val = 0x4;
+		/*
+		 * If a T-card's data response is later than normal card, it may failed in
+		 * reading few blocks when set a small data timeout value.
+		 * Need increase data timetout value for the kind of T-cards with a minimum
+		 * data timeout parameter to ensure stability.
+		 */
+		else if (val < sprd_host->min_data_timeout)
+			val = sprd_host->min_data_timeout;
+	}
 
 	if (unlikely(reg == SDHCI_SOFTWARE_RESET)) {
 		/*
@@ -402,6 +477,42 @@ static inline void sdhci_sprd_sd_clk_on(struct sdhci_host *host)
 	sdhci_writew(host, ctrl, SDHCI_CLOCK_CONTROL);
 }
 
+static void sdhci_sprd_enable_clk(struct sdhci_host *host, u16 clk)
+{
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	ktime_t timeout;
+
+	clk |= SDHCI_CLOCK_INT_EN;
+	sdhci_writew(host, clk, SDHCI_CLOCK_CONTROL);
+
+	/* Wait max 150 ms */
+	timeout = ktime_add_ms(ktime_get(), 150);
+	while (1) {
+		bool timedout = ktime_after(ktime_get(), timeout);
+
+		clk = sdhci_readw(host, SDHCI_CLOCK_CONTROL);
+		if (clk & SDHCI_CLOCK_INT_STABLE)
+			break;
+		if (timedout) {
+			pr_err("%s: Internal clock never stabilised.\n",
+			       mmc_hostname(host->mmc));
+			sdhci_err_stats_inc(host, CTRL_TIMEOUT);
+			sdhci_sprd_dump_vendor_regs(host);
+			return;
+		}
+		udelay(10);
+	}
+
+	/*
+	 * avoid SDHCI_CLOCK_CARD_EN set before VDDSDIO is enabled
+	 * and SDHCI_CLOCK_CARD_EN not set in mmc_host_set_uhs_voltage
+	 */
+	if (HOST_IS_SD_TYPE(host->mmc) && !sprd_host->vqmmc_enabled)
+		return;
+
+	sdhci_sprd_sd_clk_on(host);
+}
+
 static inline void
 sdhci_sprd_set_dll_invert(struct sdhci_host *host, u32 mask, bool en)
 {
@@ -450,21 +561,17 @@ static inline void _sdhci_sprd_set_clock(struct sdhci_host *host,
 	div = sdhci_sprd_calc_div(sprd_host->base_rate, clk);
 	div = ((div & 0x300) >> 2) | ((div & 0xFF) << 8);
 
-	sdhci_enable_clk(host, div);
+	sdhci_sprd_enable_clk(host, div);
 
-	/* enable auto gate sdhc_enable_auto_gate */
+	val = sdhci_readl(host, SDHCI_SPRD_REG_32_BUSY_POSI);
+	mask = SDHCI_SPRD_BIT_OUTR_CLK_AUTO_EN | SDHCI_SPRD_BIT_INNR_CLK_AUTO_EN;
+	/* Enable CLK_AUTO when the clock is greater than 400K. */
 	if (clk > 400000) {
-		val = sdhci_readl(host, SDHCI_SPRD_REG_32_BUSY_POSI);
-		mask = SDHCI_SPRD_BIT_OUTR_CLK_AUTO_EN |
-			SDHCI_SPRD_BIT_INNR_CLK_AUTO_EN;
 		if (mask != (val & mask)) {
 			val |= mask;
 			sdhci_writel(host, val, SDHCI_SPRD_REG_32_BUSY_POSI);
 		}
 	} else {
-		val = sdhci_readl(host, SDHCI_SPRD_REG_32_BUSY_POSI);
-		mask = SDHCI_SPRD_BIT_OUTR_CLK_AUTO_EN |
-			SDHCI_SPRD_BIT_INNR_CLK_AUTO_EN;
 		if (val & mask) {
 			val &= ~mask;
 			sdhci_writel(host, val, SDHCI_SPRD_REG_32_BUSY_POSI);
@@ -477,23 +584,18 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 	u32 tmp;
 
 	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
-	tmp &= ~(SDHCI_SPRD_DLL_EN | SDHCI_SPRD_DLL_ALL_CPST_EN);
-	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
-	/* wait 1ms */
-	usleep_range_state(1000, 1250, TASK_UNINTERRUPTIBLE);
+	if ((tmp & SDHCI_SPRD_DLL_EN_MASK) == SDHCI_SPRD_DLL_EN_MASK)
+		return;
 
-	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
+	tmp &= ~SDHCI_SPRD_DLL_EN_MASK;
+	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
+
 	tmp |= SDHCI_SPRD_DLL_ALL_CPST_EN | SDHCI_SPRD_DLL_SEARCH_MODE |
 		SDHCI_SPRD_DLL_INIT_COUNT | SDHCI_SPRD_DLL_PHASE_INTERNAL;
 	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
-	/* wait 1ms */
-	usleep_range_state(1000, 1250, TASK_UNINTERRUPTIBLE);
 
-	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
 	tmp |= SDHCI_SPRD_DLL_EN;
 	sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
-	/* wait 1ms */
-	usleep_range_state(1000, 1250, TASK_UNINTERRUPTIBLE);
 
 	if (read_poll_timeout(sdhci_readl, tmp, (tmp & SDHCI_SPRD_DLL_LOCKED),
 		2000, USEC_PER_SEC, false, host, SDHCI_SPRD_REG_32_DLL_STS0)) {
@@ -502,7 +604,41 @@ static void sdhci_sprd_enable_phy_dll(struct sdhci_host *host)
 			 mmc_hostname(host->mmc),
 			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_STS0),
 			 sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG));
+		pr_info("%s: CLK_CTRL : 0x%x, HOST_CTRL2 : 0x%x\n",
+			 mmc_hostname(host->mmc),
+			 sdhci_readl(host, SDHCI_CLOCK_CONTROL),
+			 sdhci_readl(host, SDHCI_AUTO_CMD_STATUS));
+		if (!IS_ERR(host->mmc->supply.vmmc))
+			pr_info("%s: vmmc voltage is %d uV\n",
+				mmc_hostname(host->mmc),
+				regulator_get_voltage(host->mmc->supply.vmmc));
+		if (!IS_ERR(host->mmc->supply.vqmmc))
+			pr_info("%s: vqmmc voltage is %d uV\n",
+				mmc_hostname(host->mmc),
+				regulator_get_voltage(host->mmc->supply.vqmmc));
 	}
+}
+
+static void sdhci_sprd_disable_phy_dll(struct sdhci_host *host)
+{
+	u32 tmp;
+
+	tmp = sdhci_readl(host, SDHCI_SPRD_REG_32_DLL_CFG);
+
+	if ((tmp & SDHCI_SPRD_DLL_EN_MASK) == SDHCI_SPRD_DLL_EN_MASK) {
+		tmp &= ~SDHCI_SPRD_DLL_EN_MASK;
+		sdhci_writel(host, tmp, SDHCI_SPRD_REG_32_DLL_CFG);
+	}
+}
+
+static bool sdhci_sprd_dll_en_allowed(struct sdhci_host *host)
+{
+	u8 reg = sdhci_readb(host, SDHCI_HOST_CONTROL2) & 0xF;
+
+	if (reg < SDHCI_CTRL_UHS_SDR50 || reg == SDHCI_CTRL_UHS_DDR50)
+		return false;
+
+	return true;
 }
 
 static bool sdhci_sprd_check_invert(struct sdhci_host *host)
@@ -513,10 +649,100 @@ static bool sdhci_sprd_check_invert(struct sdhci_host *host)
 	return false;
 }
 
+static int sdhci_sprd_timing_matching(struct sdhci_host *host, unsigned int clock)
+{
+	struct mmc_host *mmc = host->mmc;
+	int timing = mmc->ios.timing;
+
+	switch (timing) {
+	case MMC_TIMING_LEGACY:
+		/* consider there is no significant diff in delay when clk below 50MHz */
+		if (clock < sdhci_sprd_phy_cfgs[timing].clk_freq)
+			return timing;
+		break;
+	case MMC_TIMING_MMC_HS:
+		if ((clock == MMC_HIGH_26_MAX_DTR) || (clock == MMC_HIGH_52_MAX_DTR))
+			return timing;
+		break;
+	case MMC_TIMING_SD_HS:
+	case MMC_TIMING_UHS_SDR12:
+	case MMC_TIMING_UHS_SDR25:
+	case MMC_TIMING_UHS_SDR50:
+	case MMC_TIMING_UHS_SDR104:
+	case MMC_TIMING_UHS_DDR50:
+	case MMC_TIMING_MMC_DDR52:
+	case MMC_TIMING_MMC_HS200:
+	case MMC_TIMING_MMC_HS400:
+		if (clock == sdhci_sprd_phy_cfgs[timing].clk_freq) {
+			if (mmc->ios.enhanced_strobe)
+				return timing + 1;
+			else
+				return timing;
+		}
+		break;
+	default:
+		pr_warn("%s: unknown timing %d\n", mmc_hostname(mmc), timing);
+		break;
+	};
+
+	return -EINVAL;
+}
+
+static int sdhci_sprd_clock_matching(struct mmc_host *mmc, unsigned int clock)
+{
+	int timing = mmc->ios.timing;
+	/*
+	 * consider there is no significant diff in delay when clk below 50MHz
+	 * and use the same delay with LEGACY timing
+	 */
+	if (clock < HIGH_SPEED_MAX_DTR)
+		return MMC_TIMING_LEGACY;
+
+	if (HOST_IS_EMMC_TYPE(mmc)) {
+		switch (clock) {
+		case MMC_HIGH_52_MAX_DTR:
+			return MMC_TIMING_MMC_HS;
+		case MMC_HS200_MAX_DTR:
+			return MMC_TIMING_MMC_HS200;
+		};
+	} else {
+		switch (clock) {
+		case HIGH_SPEED_MAX_DTR:
+			return MMC_TIMING_SD_HS;
+		case UHS_SDR50_MAX_DTR:
+			return MMC_TIMING_UHS_SDR50;
+		case UHS_SDR104_MAX_DTR:
+			return MMC_TIMING_UHS_SDR104;
+		};
+	}
+
+	pr_warn("%s: uncommon clk frequency %d in timing %d\n",
+		mmc_hostname(mmc), clock, timing);
+
+	return -EINVAL;
+}
+
+static int sdhci_sprd_timing_check(struct sdhci_host *host, unsigned int clock)
+{
+	struct mmc_host *mmc = host->mmc;
+	int timing;
+
+	/* if clock matched current timing, return current timing */
+	timing = sdhci_sprd_timing_matching(host, clock);
+	if (timing >= 0)
+		return timing;
+
+	/* if not matched above, return corresponding timing to clock (if have) */
+	return sdhci_sprd_clock_matching(mmc, clock);
+}
+
 static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 {
-	bool en = false, clk_changed = false;
-	u16 clk;
+	struct mmc_host *mmc = host->mmc;
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	bool en = false;
+	u32 *p = sprd_host->phy_delay;
+	int timing = -EINVAL;
 
 	if (clock == 0) {
 		sdhci_writew(host, 0, SDHCI_CLOCK_CONTROL);
@@ -528,11 +754,8 @@ static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 			en = true;
 		sdhci_sprd_set_dll_invert(host, SDHCI_SPRD_BIT_CMD_DLY_INV |
 					  SDHCI_SPRD_BIT_POSRD_DLY_INV, en);
-		clk_changed = true;
 	} else {
-		clk = sdhci_readw(host, SDHCI_CLOCK_CONTROL);
-		clk |= SDHCI_CLOCK_CARD_EN;
-		sdhci_writew(host, clk, SDHCI_CLOCK_CONTROL);
+		sdhci_sprd_sd_clk_on(host);
 	}
 
 	/*
@@ -541,8 +764,31 @@ static void sdhci_sprd_set_clock(struct sdhci_host *host, unsigned int clock)
 	 * is used to track the clock frequency to make the clock work more
 	 * stable. Otherwise deviation may occur of the higher clock.
 	 */
-	if (clk_changed && clock > SDHCI_SPRD_PHY_DLL_CLK)
+	if (clock > SDHCI_SPRD_PHY_DLL_CLK && sdhci_sprd_dll_en_allowed(host))
 		sdhci_sprd_enable_phy_dll(host);
+	else
+		sdhci_sprd_disable_phy_dll(host);
+
+	/* Matching suitable timing delay refer to clock frequency */
+	timing = sdhci_sprd_timing_check(host, clock);
+	if (timing >= 0)
+		sdhci_writel(host, p[timing], SDHCI_SPRD_REG_32_DLL_DLY);
+
+	/*
+	 * Print manfid/prod_name and do some special ops for some special t-cards
+	 */
+	if (sprd_host->init_flag && clock >= HIGH_SPEED_MAX_DTR) {
+		struct mmc_card *card = sprd_host->card;
+
+		/* print mmc device info */
+		pr_info("%s: manfid= 0x%06x, name= %s\n",
+			mmc_hostname(mmc), card->cid.manfid, card->cid.prod_name);
+
+		/* Some mmc need perform some special ops */
+		mmc_special_ops_needed(card);
+
+		sprd_host->init_flag = false;
+	}
 }
 
 static unsigned int sdhci_sprd_get_max_clock(struct sdhci_host *host)
@@ -560,9 +806,7 @@ static unsigned int sdhci_sprd_get_min_clock(struct sdhci_host *host)
 static void sdhci_sprd_set_uhs_signaling(struct sdhci_host *host,
 					 unsigned int timing)
 {
-	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	struct mmc_host *mmc = host->mmc;
-	u32 *p = sprd_host->phy_delay;
 	u16 ctrl_2;
 	bool en = false;
 
@@ -609,11 +853,6 @@ static void sdhci_sprd_set_uhs_signaling(struct sdhci_host *host,
 
 	sdhci_sprd_set_dll_invert(host, SDHCI_SPRD_BIT_CMD_DLY_INV |
 		SDHCI_SPRD_BIT_POSRD_DLY_INV, en);
-
-	if (!mmc->ios.enhanced_strobe)
-		sdhci_writel(host, p[timing], SDHCI_SPRD_REG_32_DLL_DLY);
-	else
-		sdhci_writel(host, p[MMC_TIMING_MMC_HS400 + 1], SDHCI_SPRD_REG_32_DLL_DLY);
 }
 
 static void sdhci_sprd_hw_reset(struct sdhci_host *host)
@@ -654,6 +893,8 @@ static void sdhci_sprd_request_done(struct sdhci_host *host,
 				    struct mmc_request *mrq)
 {
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+
+	trace_mmc_cmd_done(host->mmc, mrq);
 
 	/* Validate if the request was from software queue firstly. */
 	if (HOST_IS_EMMC_TYPE(host->mmc) && sprd_host->support_swcq) {
@@ -743,27 +984,14 @@ static int sprd_calc_tuning_range(struct sdhci_sprd_host *host, int *value_t)
 	/*
 	 * first: 0 <= i < mid_dll_cnt
 	 * tuning range: (0 ~ mid_dll_cnt) && (dll_cnt ~ dll_cnt + mid_dll_cnt)
-	 */
-	for (i = 0; i < mid_dll_cnt; i++) {
-		if ((!prev_vl) && value_t[i] && value_t[i + dll_cnt]) {
-			range_count++;
-			ranges[range_count - 1].start = i;
-		}
-
-		if (value_t[i] && value_t[i + dll_cnt]) {
-			ranges[range_count - 1].end = i;
-			pr_debug("recalculate tuning ok: %d\n", i);
-		} else
-			pr_debug("recalculate tuning fail: %d\n", i);
-
-		prev_vl = value_t[i] && value_t[i + dll_cnt];
-	}
-
-	/*
+	 *
 	 * second: mid_dll_cnt <= i < dll_cnt
 	 * tuning range: mid_dll_cnt ~ dll_cnt
 	 */
-	for (i = mid_dll_cnt; i < dll_cnt; i++) {
+	for (i = 0; i < dll_cnt; i++) {
+		if (i < mid_dll_cnt)
+			value_t[i] &= value_t[i + dll_cnt];
+
 		if ((!prev_vl) && value_t[i]) {
 			range_count++;
 			ranges[range_count - 1].start = i;
@@ -778,8 +1006,6 @@ static int sprd_calc_tuning_range(struct sdhci_sprd_host *host, int *value_t)
 		prev_vl = value_t[i];
 	}
 
-	host->ranges = ranges;
-
 	return range_count;
 }
 
@@ -790,7 +1016,7 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	u32 *p = sprd_host->phy_delay;
 	int err = 0;
 	int i = 0;
-	bool value, first_vl;
+	bool value, continuous;
 	int *value_t;
 	int length;
 	unsigned int range_count = 0;
@@ -823,10 +1049,10 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	pr_info("%s: dll config 0x%08x, dll count %d, tuning length: %d\n",
 		mmc_hostname(mmc), dll_cfg, dll_cnt, length);
 
-	sprd_host->ranges = kmalloc_array(length + 1, sizeof(*sprd_host->ranges), GFP_KERNEL);
+	sprd_host->ranges = kmalloc_array(length, sizeof(*sprd_host->ranges), GFP_KERNEL);
 	if (!sprd_host->ranges)
 		return -ENOMEM;
-	value_t = kmalloc_array(length + 1, sizeof(*value_t), GFP_KERNEL);
+	value_t = kmalloc_array(length, sizeof(*value_t), GFP_KERNEL);
 	if (!value_t) {
 		kfree(sprd_host->ranges);
 		sprd_host->ranges = NULL;
@@ -842,7 +1068,7 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 	}
 
 	/* config dma mode in tuning. */
-	if (!cfg_use_adma && (host->flags & SDHCI_USE_ADMA) && strcmp(mmc_hostname(mmc), "mmc0")) {
+	if (!cfg_use_adma && (host->flags & SDHCI_USE_ADMA) && !HOST_IS_EMMC_TYPE(mmc)) {
 		cfg_use_adma = true;
 		host->flags &= ~SDHCI_USE_ADMA;
 		if (host->flags & SDHCI_USE_SDMA)
@@ -864,14 +1090,10 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 			if (read_poll_timeout(sdhci_readl, tmp, (!(tmp & SDHCI_DOING_READ) &&
 			    ((tmp & SDHCI_DATA_LVL_MASK) == SDHCI_DATA_LVL_MASK)),
 			    USEC_PER_MSEC, 4 * USEC_PER_SEC, false, host, SDHCI_PRESENT_STATE)) {
-#ifdef CONFIG_SPRD_DEBUG
-				panic("wait host controller idle timeout, please check");
-#else
 				pr_err("%s: wait host controller idle timeout, please check\n",
 					mmc_hostname(mmc));
 				err = -EIO;
 				goto out;
-#endif
 			}
 			sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
 			sprd_host->wait_read_idle = false;
@@ -916,20 +1138,17 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 
 		sprd_host->tuning_flag = 0;
 
-		if (value) {
+		value_t[i] = value;
+		if (value)
 			pr_debug("%s tuning ok: %d\n", mmc_hostname(mmc), i);
-			value_t[i] = value;
-		} else {
+		else
 			pr_debug("%s tuning fail: %d\n", mmc_hostname(mmc), i);
-			value_t[i] = value;
-		}
-	} while (++i <= length);
+	} while (++i < length);
 
 	mid_dll_cnt = length - dll_cnt;
 	sprd_host->dll_cnt = dll_cnt;
 	sprd_host->mid_dll_cnt = mid_dll_cnt;
 
-	first_vl = (value_t[0] && value_t[dll_cnt]);
 	if (type == SDHCI_SPRD_TUNING_SD_HS)
 		range_count = sprd_calc_hs_mode_tuning_range(sprd_host, value_t);
 	else
@@ -947,17 +1166,13 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 				&& (sprd_host->ranges[0].start == 0)) {
 			sprd_host->ranges[0].start = sprd_host->ranges[range_count - 1].start;
 			range_count--;
-
-			if (sprd_host->ranges[0].end >= mid_dll_cnt)
-				sprd_host->ranges[0].end = mid_dll_cnt;
 		}
 	} else {
-		if ((range_count > 1) && first_vl && value) {
+		continuous = value_t[0] && value_t[dll_cnt - 1];
+		/* combine the head and tail tuning range if they're continuous */
+		if ((range_count > 1) && continuous) {
 			sprd_host->ranges[0].start = sprd_host->ranges[range_count - 1].start;
 			range_count--;
-
-			if (sprd_host->ranges[0].end >= mid_dll_cnt)
-				sprd_host->ranges[0].end = mid_dll_cnt;
 		}
 	}
 
@@ -988,6 +1203,17 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 		sprd_host->cmd_dly_all_pass = true;
 	else
 		sprd_host->cmd_dly_all_pass = false;
+
+	/*
+	 * If more than half of dll_cnt delay value is not suitable, we would assume that
+	 * it is better for this SD card to tune the command and data signal separately.
+	 */
+	if (HOST_IS_SD_TYPE(mmc) && sprd_host->tuning_merged == true &&
+		longest_range_len < dll_cnt / 2) {
+		pr_err("%s: the best tuning range too short\n", mmc_hostname(mmc));
+		err = -EIO;
+		goto out;
+	}
 
 	mid_step = sprd_host->ranges[longest_range].start + longest_range_len / 2;
 	mid_step %= dll_cnt;
@@ -1039,6 +1265,7 @@ static int sdhci_sprd_execute_tuning(struct mmc_host *mmc, u32 opcode)
 	struct sdhci_host *host = mmc_priv(mmc);
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	enum sdhci_sprd_tuning_type type = SDHCI_SPRD_TUNING_DEFAULT;
+	bool old_tm = sprd_host->tuning_merged;
 	int err = 0;
 
 retry_tuning:
@@ -1047,21 +1274,25 @@ retry_tuning:
 	 * if a sd card failed in tuning CMD and DATA line merged,
 	 * it must tuning CMD Line and DATA Line separately afterwards
 	 */
-	if (!strcmp(mmc_hostname(mmc), "mmc1")) {
+	if (HOST_IS_SD_TYPE(mmc)) {
 		if (sprd_host->tuning_merged == false &&
 			((mmc->ios.timing == MMC_TIMING_UHS_SDR104) ||
-			 (mmc->ios.timing == MMC_TIMING_UHS_SDR50)))
+			 (mmc->ios.timing == MMC_TIMING_UHS_SDR50))) {
 			type = SDHCI_SPRD_TUNING_SD_UHS_CMD;
-		else if (mmc->ios.timing == MMC_TIMING_SD_HS)
+		} else if (mmc->ios.timing == MMC_TIMING_SD_HS) {
 			type = SDHCI_SPRD_TUNING_SD_HS;
+			sprd_host->tuning_merged = false;
+		}
 	}
 
 	err = sdhci_sprd_tuning(mmc, opcode, type);
-	if (!strcmp(mmc_hostname(mmc), "mmc1") && err && sprd_host->tuning_merged) {
+	if (HOST_IS_SD_TYPE(mmc) && err && sprd_host->tuning_merged) {
 		pr_err("%s: cmd and data tuning merged failed, afterwards tuning separately\n",
 			mmc_hostname(mmc));
 		sprd_host->tuning_merged = false;
 		goto retry_tuning;
+	} else if (type == SDHCI_SPRD_TUNING_SD_HS) {
+		sprd_host->tuning_merged = old_tm;
 	}
 
 	if (!err && (type == SDHCI_SPRD_TUNING_SD_UHS_CMD)) {
@@ -1148,30 +1379,27 @@ static void sdhci_sprd_fast_hotplug_enable(struct sdhci_sprd_host *sprd_host)
 }
 
 static void sdhci_sprd_signal_voltage_on_off(struct sdhci_host *host,
-	u32 on_off)
+	bool on_off)
 {
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
 	const char *name = mmc_hostname(host->mmc);
 
 	if (IS_ERR(host->mmc->supply.vqmmc))
 		return;
 
 	if (on_off) {
-		if (!regulator_is_enabled(host->mmc->supply.vqmmc)) {
+		if (!sprd_host->vqmmc_enabled) {
 			if (regulator_enable(host->mmc->supply.vqmmc))
 				pr_err("%s: signal voltage enable fail!\n", name);
-			else if (regulator_is_enabled(host->mmc->supply.vqmmc))
-				pr_debug("%s: signal voltage enable success!\n", name);
 			else
-				pr_err("%s: signal voltage enable hw fail!\n", name);
+				sprd_host->vqmmc_enabled = true;
 		}
 	} else {
-		if (regulator_is_enabled(host->mmc->supply.vqmmc)) {
+		if (sprd_host->vqmmc_enabled) {
 			if (regulator_disable(host->mmc->supply.vqmmc))
-				pr_err("%s: signal voltage disable fail\n", name);
-			else if (!regulator_is_enabled(host->mmc->supply.vqmmc))
-				pr_debug("%s: signal voltage disable success!\n", name);
+				pr_err("%s: signal voltage disable fail!\n", name);
 			else
-				pr_err("%s: signal voltage disable hw fail\n", name);
+				sprd_host->vqmmc_enabled = false;
 		}
 	}
 }
@@ -1183,13 +1411,16 @@ static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 	struct mmc_host *mmc = host->mmc;
 	int ret;
 
-	if (sprd_host->power_mode == mmc->ios.power_mode)
+	if (sprd_host->power_mode == mode)
 		return;
 
 	switch (mode) {
 	case MMC_POWER_OFF:
-		if (sprd_host->reg_protect_enable.regmap
-				&& host->mmc_host_ops.get_cd(host->mmc))
+		/*
+		 * disable hotplug configuration when sd card power off, in order to
+		 * ensure power sequence by using software for the next power on.
+		 */
+		if (sprd_host->reg_protect_enable.regmap)
 			sdhci_sprd_fast_hotplug_disable(sprd_host);
 
 		if (!host->mmc_host_ops.get_cd(host->mmc)) {
@@ -1208,20 +1439,19 @@ static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 			mmc->ios.vdd = old_vdd;
 			mmc->ios.signal_voltage = old_signal_voltage;
 
-			// restore tuning cmd and data merged after card removed
+			/* restore tuning cmd and data merged after card removed */
 			sprd_host->tuning_merged = true;
+
+			/* restore minimum data timeout parameter */
+			sprd_host->min_data_timeout = 0;
 		}
 
-		sdhci_sprd_signal_voltage_on_off(host, 0);
+		sdhci_sprd_signal_voltage_on_off(host, false);
 		if (!IS_ERR(mmc->supply.vmmc))
 			mmc_regulator_set_ocr(host->mmc, mmc->supply.vmmc, 0);
 		break;
 	case MMC_POWER_ON:
-	case MMC_POWER_UP:
-		if (!IS_ERR(mmc->supply.vmmc))
-			mmc_regulator_set_ocr(host->mmc, mmc->supply.vmmc, vdd);
-		usleep_range_state(200, 250, TASK_UNINTERRUPTIBLE);
-		sdhci_sprd_signal_voltage_on_off(host, 1);
+		sdhci_sprd_signal_voltage_on_off(host, true);
 
 		if (sprd_host->reg_detect_polar.regmap && sprd_host->reg_protect_enable.regmap
 			&& sprd_host->reg_detect_polar.regmap
@@ -1229,9 +1459,13 @@ static void sdhci_sprd_set_power(struct sdhci_host *host, unsigned char mode,
 			&& host->mmc_host_ops.get_cd(host->mmc))
 			sdhci_sprd_fast_hotplug_enable(sprd_host);
 		break;
+	case MMC_POWER_UP:
+		if (!IS_ERR(mmc->supply.vmmc))
+			mmc_regulator_set_ocr(host->mmc, mmc->supply.vmmc, vdd);
+		break;
 	}
 
-	sprd_host->power_mode = mmc->ios.power_mode;
+	sprd_host->power_mode = mode;
 }
 
 static void sdhci_sprd_disable_sd_cache(struct sdhci_host *host)
@@ -1331,7 +1565,7 @@ static void sdhci_sprd_dump_vendor_regs(struct sdhci_host *host)
 	if (sprd_host->tuning_flag)
 		return;
 
-	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sprd_host->support_swcq)
+	if (HOST_IS_EMMC_TYPE(host->mmc) && sprd_host->support_swcq)
 		host->mmc->cqe_ops->cqe_timeout(host->mmc, host->mmc->ongoing_mrq, &flag);
 
 	command = SDHCI_GET_CMD(sdhci_readw(host, SDHCI_COMMAND));
@@ -1475,13 +1709,38 @@ static void sdhci_sprd_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	sdhci_request(mmc, mrq);
 }
 
+static struct mmc_request *get_mrq_in_swcq(struct mmc_host *mmc, struct mmc_request *mrq)
+{
+	struct mmc_request *p_mrq = NULL;
+	struct sdhci_host *host = mmc_priv(mmc);
+	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	struct mmc_swcq *swcq = mmc->cqe_private;
+	int index;
+
+	if (!sprd_host->support_swcq || !swcq->cmdq_mode)
+		return p_mrq;
+
+	for (index = 0; index < swcq->cmdq_depth; index++) {
+		if (swcq->cmdq_slot[index].ext_mrq == mrq) {
+			p_mrq = swcq->cmdq_slot[index].mrq;
+			break;
+		}
+	}
+
+	return p_mrq;
+}
+
 static int sdhci_sprd_request_atomic(struct mmc_host *mmc,
 				      struct mmc_request *mrq)
 {
 	struct sdhci_host *host = mmc_priv(mmc);
 	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
+	struct mmc_blk_data *main_md = dev_get_drvdata(&mmc->card->dev);
+	struct mmc_request *p_mrq = get_mrq_in_swcq(mmc, mrq);
 
 	sdhci_sprd_check_auto_cmd23(mmc, mrq);
+
+	trace_mmc_cmd_send(mmc, main_md->disk, mrq, p_mrq);
 
 	if (sprd_host->support_swcq) {
 		if (HOST_IS_EMMC_TYPE(mmc) && mmc->card && mmc_card_cmdq(mmc->card))
@@ -1552,8 +1811,6 @@ static void sdhci_sprd_hs400_enhanced_strobe(struct mmc_host *mmc,
 					     struct mmc_ios *ios)
 {
 	struct sdhci_host *host = mmc_priv(mmc);
-	struct sdhci_sprd_host *sprd_host = TO_SPRD_HOST(host);
-	u32 *p = sprd_host->phy_delay;
 	u16 ctrl_2;
 
 	if (!ios->enhanced_strobe)
@@ -1568,17 +1825,14 @@ static void sdhci_sprd_hs400_enhanced_strobe(struct mmc_host *mmc,
 	sdhci_writew(host, ctrl_2, SDHCI_HOST_CONTROL2);
 
 	sdhci_sprd_sd_clk_on(host);
-
-	/* Set the PHY DLL delay value for HS400 enhanced strobe mode */
-	sdhci_writel(host, p[MMC_TIMING_MMC_HS400 + 1],
-		     SDHCI_SPRD_REG_32_DLL_DLY);
 }
 
+/* Parse delay which configured in dts and store */
 static void sdhci_sprd_phy_param_parse(struct sdhci_sprd_host *sprd_host,
 				       struct device_node *np)
 {
 	u32 *p = sprd_host->phy_delay;
-	int ret, i, index;
+	int ret, i;
 	u32 val[4];
 
 	for (i = 0; i < ARRAY_SIZE(sdhci_sprd_phy_cfgs); i++) {
@@ -1587,8 +1841,7 @@ static void sdhci_sprd_phy_param_parse(struct sdhci_sprd_host *sprd_host,
 		if (ret)
 			continue;
 
-		index = sdhci_sprd_phy_cfgs[i].timing;
-		p[index] = val[0] | (val[1] << 8) | (val[2] << 16) | (val[3] << 24);
+		p[i] = val[0] | (val[1] << 8) | (val[2] << 16) | (val[3] << 24);
 	}
 }
 
@@ -1809,6 +2062,7 @@ static int sdhci_sprd_cqe_add_host(struct sdhci_host *host,
 	sprd_host->cqe_mem = cq_host->mmio;
 	host->mmc->caps2 |= MMC_CAP2_CQE | MMC_CAP2_CQE_DCMD;
 	cq_host->ops = &sdhci_sprd_cqhci_ops;
+	cq_host->mmc = host->mmc;
 
 	dma64 = host->flags & SDHCI_USE_64_BIT_DMA;
 
@@ -1826,6 +2080,8 @@ static int sdhci_sprd_cqe_add_host(struct sdhci_host *host,
 		goto cleanup;
 	}
 
+	cq_host->caps |= CQHCI_TASK_DESC_SZ_128;
+
 	/* Enable force hw reset during cqe recovery */
 	host->mmc->cqe_recovery_reset_always = true;
 
@@ -1835,7 +2091,7 @@ cleanup:
 	return ret;
 }
 
-#if !IS_MODULE(CONFIG_MMC_CQHCI)
+#if !IS_ENABLED(CONFIG_MMC_CQHCI)
 int cqhci_resume(struct mmc_host *mmc)
 {
 	return -EINVAL;
@@ -1869,7 +2125,7 @@ irqreturn_t cqhci_irq(struct mmc_host *mmc, u32 intmask, int cmd_error,
  */
 static void sdhci_sprd_register_vendor_hook(struct sdhci_host *host)
 {
-	if (!strcmp(mmc_hostname(host->mmc), "mmc1")) {
+	if (HOST_IS_SD_TYPE(host->mmc)) {
 		register_trace_android_rvh_mmc_sd_cmdline_timing(
 			sdhci_sprd_sd_cmdline_tuning,
 			NULL);
@@ -1877,9 +2133,9 @@ static void sdhci_sprd_register_vendor_hook(struct sdhci_host *host)
 			sdhci_sprd_sd_dataline_tuning,
 			NULL);
 	}
-	if (!strcmp(mmc_hostname(host->mmc), "mmc0")) {
+	if (HOST_IS_EMMC_TYPE(host->mmc)) {
 		register_trace_android_rvh_mmc_partition_status(
-			sdhci_sprd_health_and_powp,
+			sdhci_sprd_extra_proc,
 			NULL);
 	}
 }
@@ -1895,7 +2151,7 @@ static void mmc_hsq_status(void *data, const struct blk_mq_queue_data *bd, int *
 
 	*ret = 0;
 
-	if (!queue_flag && (!strcmp(mmc_hostname(mmc), "mmc0"))) {
+	if (!queue_flag && HOST_IS_EMMC_TYPE(mmc)) {
 		blk_queue_flag_set(QUEUE_FLAG_SAME_FORCE, q);
 		q->limits.discard_granularity = card->pref_erase << 9;
 		q->limits.max_hw_discard_sectors = UINT_MAX;
@@ -1903,13 +2159,25 @@ static void mmc_hsq_status(void *data, const struct blk_mq_queue_data *bd, int *
 		queue_flag = true;
 	}
 
-	if (!strcmp(mmc_hostname(mmc), "mmc1")) {
+	if (HOST_IS_SD_TYPE(mmc)) {
 		q->limits.discard_granularity = card->pref_erase << 9;
 		q->limits.max_hw_discard_sectors = UINT_MAX;
 		q->limits.max_discard_sectors = UINT_MAX;
 	}
 
 	req->cmd_flags &= ~REQ_FUA;
+}
+
+struct mmc_host *g_mmc_host[3];
+
+static void sdhci_sprd_record_mmc_host(struct mmc_host *mmc)
+{
+	int index = mmc->index;
+
+	if (mmc->index > 2)
+		return;
+
+	g_mmc_host[index] = mmc;
 }
 
 static int sdhci_sprd_probe(struct platform_device *pdev)
@@ -1921,17 +2189,19 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	struct mmc_hsq *hsq;
 	struct clk *clk;
 	int ret = 0;
-	struct device_node *node = pdev->dev.of_node;
 
 	host = sdhci_pltfm_init(pdev, &sdhci_sprd_pdata, sizeof(*sprd_host));
 	if (IS_ERR(host))
 		return PTR_ERR(host);
+
+	sdhci_sprd_record_mmc_host(host->mmc);
 
 	host->dma_mask = DMA_BIT_MASK(64);
 	pdev->dev.dma_mask = &host->dma_mask;
 	host->mmc_host_ops.request = sdhci_sprd_request;
 	host->mmc_host_ops.hs400_enhanced_strobe =
 		sdhci_sprd_hs400_enhanced_strobe;
+	host->mmc_host_ops.init_card = sdhci_sprd_init_card;
 	/*
 	 * We can not use the standard ops to change and detect the voltage
 	 * signal for Spreadtrum SD host controller, since our voltage regulator
@@ -2009,13 +2279,13 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 	sprd_host->timestamp[0] = sched_clock();
 #endif
 
-	if (of_property_read_bool(node, "supports-swcq")) {
+	if (of_property_read_bool(np, "supports-swcq")) {
 		sprd_host->support_swcq = true;
 	} else {
 		sprd_host->support_swcq = false;
-		if (of_property_read_bool(node, "supports-cqe")) {
+		if (of_property_read_bool(np, "supports-cqe")) {
 			sprd_host->support_cqe = true;
-			if (of_property_read_bool(node, "supports-ice"))
+			if (of_property_read_bool(np, "supports-ice"))
 				sprd_host->support_ice = true;
 			else
 				sprd_host->support_ice = false;
@@ -2066,15 +2336,15 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	sdhci_sprd_init_config(host);
 	host->version = sdhci_readw(host, SDHCI_HOST_VERSION);
-	sprd_host->version = ((host->version & SDHCI_VENDOR_VER_MASK) >>
-			       SDHCI_VENDOR_VER_SHIFT);
+	sprd_host->version = ((host->version & SDHCI_SPEC_VER_MASK) >>
+			       SDHCI_SPEC_VER_SHIFT);
 
 	if (of_device_is_compatible(np, "sprd,sdhci-r10"))
 		sprd_host->ip_ver = SDHCI_IP_VER_R10;
 	else
 		sprd_host->ip_ver = SDHCI_IP_VER_R11;
 
-	sprd_host->power_mode = MMC_POWER_OFF;
+	sprd_host->power_mode = MMC_POWER_UNDEFINED;
 
 #ifdef CONFIG_SPRD_DEBUG
 	sprd_host->timestamp[3] = sched_clock();
@@ -2144,7 +2414,7 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 		if (ret)
 			goto err_cleanup_host;
 	} else {
-		if (!strcmp(mmc_hostname(host->mmc), "mmc0")) {
+		if (HOST_IS_EMMC_TYPE(host->mmc)) {
 			register_trace_android_vh_mmc_check_status(mmc_hsq_status, NULL);
 			queue_flag = false;
 		}
@@ -2180,11 +2450,15 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 			goto err_cleanup_host;
 	}
 
-	if (!of_property_read_bool(node, "no-ffu")) {
+	if (!of_property_read_bool(np, "no-ffu")) {
 		ret = mmc_ffu_init(host);
 		if (ret)
 			goto err_cleanup_host;
 	}
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[8] = sched_clock();
+#endif
 
 	/* disable polling scan for sdiocard */
 	if ((host->mmc->caps2 & MMC_CAP2_NO_SD)
@@ -2201,6 +2475,10 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);
+
+#ifdef CONFIG_SPRD_DEBUG
+	sprd_host->timestamp[9] = sched_clock();
+#endif
 
 	return 0;
 
@@ -2337,6 +2615,7 @@ static struct platform_driver sdhci_sprd_driver = {
 	.remove = sdhci_sprd_remove,
 	.driver = {
 		.name = "sdhci_sprd_r11",
+		.probe_type = PROBE_PREFER_ASYNCHRONOUS,
 		.of_match_table = sdhci_sprd_of_match,
 		.pm = &sdhci_sprd_pm_ops,
 	},

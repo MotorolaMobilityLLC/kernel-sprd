@@ -160,6 +160,7 @@ struct mmc_swcq {
 	bool timer_running;/*cmdq checking timer running state*/
 	bool mode_need_change;/*mode need change state*/
 	bool hsq_running;/*1: hsq is running 0: hsq in not running*/
+	bool switch_en;/*1:enable switch 0: disable switch*/
 	struct swcq_check *check_slot;/*slot for checking, duplicate of slot*/
 	struct swcq_node *cmd_node_array;/*node pool(workaround to replace link of mmc_host)*/
 	struct swcq_node *data_node_array;/*node pool(workaround to replace link of mmc_host)*/
