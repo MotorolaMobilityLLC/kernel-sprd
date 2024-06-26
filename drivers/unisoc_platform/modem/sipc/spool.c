@@ -19,10 +19,10 @@
 #include <linux/cdev.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/of_device.h>
 #include <linux/platform_device.h>
 #include <linux/poll.h>
 #include <linux/slab.h>
-#include <linux/of_device.h>
 #include <linux/sipc.h>
 
 #include "spool.h"

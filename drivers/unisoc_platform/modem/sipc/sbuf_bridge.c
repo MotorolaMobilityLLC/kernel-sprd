@@ -22,9 +22,9 @@
 #include <linux/slab.h>
 #include <linux/workqueue.h>
 
-#include "sprd_actions_queue.h"
 #include "sbuf.h"
 #include "sipc_priv.h"
+#include "sprd_actions_queue.h"
 
 /* actions */
 enum {

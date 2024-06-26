@@ -13,12 +13,12 @@
 
 #ifndef __SIPC_PRIV_H
 #define __SIPC_PRIV_H
-#include <linux/ktime.h>
 #include <linux/device.h>
 #include <linux/interrupt.h>
+#include <linux/ktime.h>
 #include <linux/mailbox_client.h>
 #include <linux/mailbox_controller.h>
-#include <../drivers/unisoc_platform/modem/power_manager/sprd_mpm.h>
+#include "../drivers/unisoc_platform/modem/power_manager/sprd_mpm.h"
 
 enum {
 	SIPC_BASE_MBOX = 0,

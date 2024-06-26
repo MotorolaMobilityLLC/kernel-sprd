@@ -16,34 +16,29 @@
 #endif
 #define pr_fmt(fmt) "sprd-sipx: " fmt
 
-#include <linux/kernel.h>
-#include <linux/module.h>
-#include <linux/wait.h>
-#include <linux/interrupt.h>
-#include <linux/sched.h>
-#include <linux/kthread.h>
+#include <linux/cdev.h>
 #include <linux/delay.h>
-#include <linux/slab.h>
+#include <linux/if_ether.h>
+#include <linux/interrupt.h>
 #include <linux/io.h>
+#include <linux/kernel.h>
+#include <linux/kthread.h>
 #include <linux/list.h>
+#include <linux/log2.h>
+#include <linux/module.h>
+#include <linux/of_device.h>
+#include <linux/platform_device.h>
+#include <linux/sched.h>
+#include <linux/seq_file.h>
+#include <linux/slab.h>
+#include <linux/sipc.h>
 #include <linux/spinlock.h>
 #include <linux/uaccess.h>
-#include <linux/cdev.h>
-#include <linux/seq_file.h>
-#include <linux/log2.h>
-#include <linux/platform_device.h>
-#include <linux/if_ether.h>
-#include <linux/sipc.h>
-#include <linux/of_device.h>
-
-/* debug{ */
-#include <linux/delay.h>
-/* }debug */
-
+#include <linux/wait.h>
 #include <uapi/linux/sched/types.h>
 
-#include "sipx.h"
 #include "sipc_priv.h"
+#include "sipx.h"
 
 #define SIPX_BLOCK_PENDING      (32)
 

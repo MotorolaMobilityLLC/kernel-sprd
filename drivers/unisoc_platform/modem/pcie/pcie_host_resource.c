@@ -14,23 +14,23 @@
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/kernel.h>
+#include <linux/mdm_ctrl.h>
 #include <linux/pci.h>
 #include <linux/pcie-rc-sprd.h>
 #include <linux/sched.h>
 #include <linux/sipc.h>
 #include <linux/slab.h>
-#include <linux/soc/sprd/sprd_pcie_ep_device.h>
 #include <linux/soc/sprd/sprd_mpm.h>
+#include <linux/soc/sprd/sprd_pcie_ep_device.h>
 #include <linux/types.h>
 #include <linux/wait.h>
-#include <linux/mdm_ctrl.h>
 
 #ifdef CONFIG_SPRD_SIPA
 #include "pcie_sipa_res.h"
 #endif
 
-#include "../include/sprd_pcie_resource.h"
 #include "../include/sprd_actions_queue.h"
+#include "../include/sprd_pcie_resource.h"
 
 #define PCIE_REMOVE_SCAN_GAP	msecs_to_jiffies(200)
 #define MAX_PMS_WAIT_TIME	5000

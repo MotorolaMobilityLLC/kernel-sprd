@@ -21,15 +21,16 @@
 #include <linux/of_irq.h>
 #include <linux/platform_device.h>
 #include <linux/sched.h>
+#include <linux/sipc.h>
+#include <linux/sizes.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/wait.h>
-#include <linux/sipc.h>
-#include <linux/sizes.h>
-#include "sipc_priv.h"
+
 #if IS_ENABLED(CONFIG_UNISOC_SIPC)
 #include "../drivers/unisoc_platform/sysdump/sysdump.h"
 #endif
+#include "sipc_priv.h"
 
 #if defined(CONFIG_DEBUG_FS)
 void sipc_debug_putline(struct seq_file *m, char c, int n)

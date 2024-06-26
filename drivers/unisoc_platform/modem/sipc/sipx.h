@@ -15,11 +15,12 @@
 #ifndef __SIPX_H
 #define __SIPX_H
 
-#include "sblock.h"
-#include <linux/hrtimer.h>
 #include <asm/cacheflush.h>
-#include <linux/dma-mapping.h>
 #include <linux/dma-direction.h>
+#include <linux/dma-mapping.h>
+#include <linux/hrtimer.h>
+
+#include "sblock.h"
 
 #define SIPX_STATE_IDLE		0
 #define SIPX_STATE_READY	0x7c7d7e7f

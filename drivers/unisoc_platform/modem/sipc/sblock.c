@@ -29,15 +29,15 @@
 #include <linux/sched.h>
 #include <linux/sched/task.h>
 #include <linux/seq_file.h>
+#include <linux/sipc.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/uaccess.h>
 #include <linux/wait.h>
-#include <linux/sipc.h>
 #include <uapi/linux/sched/types.h>
 
-#include "sipc_priv.h"
 #include "sblock.h"
+#include "sipc_priv.h"
 
 #if defined(CONFIG_DEBUG_FS)
 struct sblock_device {

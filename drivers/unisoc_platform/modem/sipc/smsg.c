@@ -23,25 +23,25 @@
 #include <linux/kernel.h>
 #include <linux/kthread.h>
 #include <linux/module.h>
-#include <linux/sched.h>
-#include <linux/seq_file.h>
-#include <linux/slab.h>
-#include <linux/soc/sprd/sprd_pdbg.h>
-#include <linux/wait.h>
 #include <linux/module.h>
 #include <linux/of_address.h>
 #include <linux/of_device.h>
 #include <linux/of_irq.h>
 #include <linux/platform_device.h>
-#include <linux/spinlock.h>
-#include <linux/sizes.h>
-
-#include <linux/syscore_ops.h>
+#include <linux/sched.h>
+#include <linux/seq_file.h>
 #include <linux/sipc.h>
+#include <linux/sizes.h>
+#include <linux/slab.h>
+#include <linux/soc/sprd/sprd_pdbg.h>
+#include <linux/spinlock.h>
+#include <linux/syscore_ops.h>
+#include <linux/wait.h>
 
+#include "sblock.h"
 #include "sipc_priv.h"
 #include "sipx.h"
-#include "sblock.h"
+
 #include "../drivers/unisoc_platform/modem/mailbox/unisoc-mailbox.h"
 
 #define SMSG_TXBUF_ADDR		(0)
@@ -500,13 +500,13 @@ int smsg_ch_open(u8 dst, u8 channel, int timeout)
 	if (!ch)
 		return -ENOMEM;
 
-	sprintf(ch->tx_name, "smsg-%d-%d", dst, channel);
+	snprintf(ch->tx_name, sizeof(ch->tx_name), "smsg-%d-%d-tx", dst, channel);
 
 	ch->tx_pms = sprd_pms_create(dst, ch->tx_name, true);
 	if (!ch->tx_pms)
 		pr_warn("create pms %s failed!\n", ch->tx_name);
 
-	sprintf(ch->rx_name, "smsg-%d-%d-rx", dst, channel);
+	snprintf(ch->rx_name, sizeof(ch->rx_name), "smsg-%d-%d-rx", dst, channel);
 	ch->rx_pms = sprd_pms_create(dst, ch->rx_name, true);
 	if (!ch->rx_pms)
 		pr_warn("create pms %s failed!\n", ch->rx_name);
@@ -634,14 +634,6 @@ int smsg_senddie(u8 dst)
 	msg.type = SMSG_TYPE_DIE;
 	msg.flag = 0;
 	msg.value = 0;
-	/*
-	 *#ifdef CONFIG_SPRD_MAILBOX
-	 *if (ipc->type == SIPC_BASE_MBOX) {
-	 *	mbox_just_sent(ipc->core_id, *((u64 *)&msg));
-	 *	return 0;
-	 *}
-	 *#endif
-	 */
 
 	rc = mbox_send_message(ipc->chan, &msg);
 	if (rc < 0) {

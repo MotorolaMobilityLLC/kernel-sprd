@@ -27,8 +27,8 @@
 #include "pcie_sipa_res.h"
 #endif
 
-#include "../include/sprd_pcie_resource.h"
 #include "../include/sprd_actions_queue.h"
+#include "../include/sprd_pcie_resource.h"
 
 #define MAX_PMS_WAIT_TIME	(5000*12) /* need wait epf bind ready */
 #define PCIE_REMOVE_SCAN_GAP	msecs_to_jiffies(100)

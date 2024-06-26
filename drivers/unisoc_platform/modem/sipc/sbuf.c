@@ -17,26 +17,26 @@
 #endif
 #define pr_fmt(fmt) "sprd-sbuf: " fmt
 
+#include <asm/pgtable.h>
 #include <linux/cdev.h>
 #include <linux/delay.h>
-#include <linux/kernel.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
+#include <linux/kernel.h>
 #include <linux/kthread.h>
-#include <linux/module.h>
 #include <linux/mm.h>
+#include <linux/module.h>
+#include <linux/poll.h>
 #include <linux/sched.h>
 #include <linux/seq_file.h>
 #include <linux/slab.h>
+#include <linux/sipc.h>
 #include <linux/uaccess.h>
 #include <linux/wait.h>
-#include <linux/poll.h>
-#include <linux/sipc.h>
-#include <asm/pgtable.h>
 #include <uapi/linux/sched/types.h>
 
-#include "sipc_priv.h"
 #include "sbuf.h"
+#include "sipc_priv.h"
 
 #define VOLA_SBUF_SMEM volatile struct sbuf_smem_header
 #define VOLA_SBUF_RING volatile struct sbuf_ring_header
