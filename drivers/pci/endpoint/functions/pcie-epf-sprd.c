@@ -19,25 +19,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include <linux/debugfs.h>
 #include <linux/delay.h>
 #include <linux/io.h>
-#include <linux/module.h>
-#include <linux/list.h>
-#include <linux/slab.h>
-#include <linux/pci_ids.h>
-#include <linux/random.h>
 #include <linux/kthread.h>
-#include <linux/sched.h>
-#include <uapi/linux/sched/types.h>
+#include <linux/list.h>
+#include <linux/module.h>
 #include <linux/pci-epc.h>
 #include <linux/pci-epf.h>
+#include <linux/pci_ids.h>
 #include <linux/pci_regs.h>
 #include <linux/pcie-epf-sprd.h>
+#include <linux/random.h>
+#include <linux/sched.h>
+#include <linux/slab.h>
 #include <linux/soc/sprd/hwfeature.h>
 #include <linux/workqueue.h>
+#include <uapi/linux/sched/types.h>
 
 #include "../../controller/dwc/pcie-designware.h"
-#include <linux/debugfs.h>
+
 #define SPRD_EPF_NAME "pci_epf_sprd"
 
 /* doorbell reg define */
@@ -47,7 +48,7 @@
 
 /* used 0x18 and 0x1c to save the smem base and size. */
 #define DOOR_BELL_SMEMBASE	0x18
-#define DOOR_BELL_SMEMSIZE	0x1C
+#define DOOR_BELL_SMEMSIZE	0x1c
 
 #define IPA_HW_IRQ_CNT		4
 #define IPA_HW_IRQ_BASE		16
