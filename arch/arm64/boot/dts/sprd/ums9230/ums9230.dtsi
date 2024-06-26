@@ -577,6 +577,9 @@
 				power-state = <&pmu_apb_regs
 					REG_PMU_APB_PWR_STATUS_DBG_6
 					MASK_PMU_APB_PD_MM_STATE>;
+				cam-soft-rst-sel = <&pmu_apb_regs
+					REG_PMU_APB_SOFT_RST_SEL_0
+					MASK_PMU_APB_MM_SOFT_RST>;
 				aon-apb-mm-eb = <&aon_apb_regs
 					REG_AON_APB_APB_EB0
 					MASK_AON_APB_MM_EB>;
