@@ -369,10 +369,16 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 	 */
 	qh = musb_ep_get_qh(hw_ep, is_in);
 
+	/*
+	 * musb->lock had been unlocked in musb_giveback, so qh may
+	 * be freed, need to get it again
+	 */
+	qh = musb_ep_get_qh(hw_ep, is_in);
+
 	/* reclaim resources (and bandwidth) ASAP; deschedule it, and
 	 * invalidate qh as soon as list_empty(&hep->urb_list)
 	 */
-	if (qh != NULL && list_empty(&qh->hep->urb_list)) {
+	if (qh && list_empty(&qh->hep->urb_list)) {
 		struct list_head	*head;
 		struct dma_controller	*dma = musb->dma_controller;
 
@@ -3707,7 +3713,6 @@ int musb_host_setup(struct musb *musb, int power_budget)
 		return ret;
 
 	device_wakeup_enable(hcd->self.controller);
-	device_wakeup_enable(&hcd->self.root_hub->dev);
 	return 0;
 }
 EXPORT_SYMBOL_GPL(musb_host_setup);

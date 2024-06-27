@@ -391,18 +391,6 @@
 			polling-delay = <0>;
 		};
 
-		left_thmzone: left-thmzone {
-			status = "disabled";
-			polling-delay-passive = <0>;
-			polling-delay = <0>;
-		};
-
-		right_thmzone: right-thmzone {
-			status = "disabled";
-			polling-delay-passive = <0>;
-			polling-delay = <0>;
-		};
-
 		env_thmzone: env-thmzone {
 			status = "disabled";
 			polling-delay-passive = <0>;

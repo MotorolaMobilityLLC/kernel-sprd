@@ -532,6 +532,8 @@ static void ufs_sprd_base_info_dump(struct seq_file *m, char **dump_pos)
 		"INVALID MODE",
 	};
 
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+
 	PRINT_SWITCH(m, dump_pos, "ufs_hba=0x%lx\n", (unsigned long)hba_tmp);
 
 	PRINT_SWITCH(m, dump_pos, "UFS Host state=%d\n", hba->ufshcd_state);
@@ -565,6 +567,12 @@ static void ufs_sprd_base_info_dump(struct seq_file *m, char **dump_pos)
 			hba->pwr_info.lane_rx, hba->pwr_info.lane_tx,
 			names[hba->pwr_info.pwr_rx], names[hba->pwr_info.pwr_tx],
 			hba->pwr_info.hs_rate);
+
+	PRINT_SWITCH(m, dump_pos,
+			"elo_info:0x%x, lifetime_est_a:0x%x, lifetime_est_b:0x%x\n",
+			host->pre_eol_info,
+			host->life_time_est_typ_a,
+			host->life_time_est_typ_b);
 
 	sdev_ufs = hba->sdev_ufs_device;
 	if (sdev_ufs)

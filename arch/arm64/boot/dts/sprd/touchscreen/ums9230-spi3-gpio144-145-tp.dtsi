@@ -31,6 +31,9 @@
 		status = "ok";
 		spi-max-frequency = <8000000>;	//4800000,9600000,15000000,19200000
 
+		/*-----------------focaltech for ft8725------------------------*/
+		focaltech,max-touch-number_for_8725 = <10>;
+
 		/*------------------focaltech_ft8756------------------*/
 		focaltech,max-touch-number = <5>;
 		focaltech,display-coords =  <0 0 1080 2400>;

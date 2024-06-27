@@ -62,7 +62,7 @@ static int flush_getcnt;
 struct shub_data *g_sensor;
 static int shub_send_event_to_iio(struct shub_data *sensor, u8 *data, u16 len);
 static void shub_synctimestamp(struct shub_data *sensor);
-
+static void shub_assert(struct shub_data *sensor);
 /**
  * send data
  * handler time must less than 5s
@@ -294,6 +294,9 @@ static void shub_cm4_read_callback(struct shub_data *sensor,
 	case SHUB_SET_TIMESYNC_SUBTYPE:
 		shub_synctimestamp(sensor);
 		break;
+	case SHUB_GET_SENSORHUB_ASSERT_SUBTYPE:
+		shub_assert(sensor);
+		break;
 	default:
 		break;
 	}
@@ -406,6 +409,18 @@ static void shub_synctimestamp(struct shub_data *sensor)
 			  sizeof(struct cnter_to_boottime));
 }
 
+static void shub_assert(struct shub_data *sensor)
+{
+	struct shub_mode_info assert_info;
+
+	sensor->mcu_mode = SHUB_BOOT;
+
+	assert_info.cmd = HAL_SHUB_MODE_STORE;
+	assert_info.info = SHUB_BOOT;
+	dev_info(&sensor->sensor_pdev->dev, "get assert info!\n");
+	shub_send_event_to_iio(sensor, (u8 *)&assert_info,
+		       sizeof(assert_info));
+}
 static void shub_synctime_work(struct work_struct *work)
 {
 	struct shub_data *sensor = container_of((struct delayed_work *)work,
@@ -855,7 +870,7 @@ static ssize_t sensorlist_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
 	int err;
-	u32 number = 0;
+	int number = 0;
 	u32 len = 0;
 	u8 data[4];
 	u8 *sensorlist = NULL;
@@ -867,6 +882,14 @@ static ssize_t sensorlist_show(struct device *dev,
 	err = shub_sipc_read(sensor, SHUB_GET_PHYSICAL_SENSOR_NUMBER_SUBTYPE, data, sizeof(number));
 	if (err >= 0) {
 		memcpy(&number, data, sizeof(number));
+		dev_info(&sensor->sensor_pdev->dev, "sensor number = %d\n", number);
+	} else {
+		dev_info(&sensor->sensor_pdev->dev,
+				"sipc read sensorlist support number fail, err = %d\n", err);
+		return err;
+	}
+
+	if (number >= 0) {
 		len = number * sizeof(struct sensor_info_t);
 		sensorlist = kzalloc(len, GFP_KERNEL);
 		if (!sensorlist)
@@ -886,9 +909,8 @@ static ssize_t sensorlist_show(struct device *dev,
 			return err;
 		}
 	} else {
-		dev_info(&sensor->sensor_pdev->dev,
-				"sipc read sensorlist support number fail, err = %d\n", err);
-		return err;
+		memcpy(buf, &number, sizeof(number));
+		return 0;
 	}
 
 	if (len > MAX_STRING_SIZE) {

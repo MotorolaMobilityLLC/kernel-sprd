@@ -8,6 +8,7 @@
 #include <trace/hooks/sched.h>
 #include <trace/hooks/dtask.h>
 #include <trace/hooks/topology.h>
+#include <trace/hooks/ftrace_dump.h>
 #include <trace/events/power.h>
 #include <linux/kmemleak.h>
 
@@ -609,6 +610,18 @@ static void android_vh_update_topology_flags_workfn(void *unused, void *unused2)
 	schedule_work(&sched_init_work);
 }
 
+static void ftrace_dump_printk(void *unused, struct trace_seq *trace_buf, bool *dump_printk)
+{
+	*dump_printk = false;
+}
+
+#ifdef CONFIG_UNISOC_SCHED_DEBUG_ATOMIC
+static void android_rvh_schedule_bug(void *unused, void *prev)
+{
+	panic("scheduling while atomic\n");
+}
+#endif
+
 #define UNI_VENDOR_DATA_TEST(unistruct, kstruct)		\
 	BUILD_BUG_ON(sizeof(unistruct) > (sizeof(u64) *	\
 			ARRAY_SIZE(((kstruct *)0)->android_vendor_data1)))
@@ -621,6 +634,12 @@ static __init int sched_module_init(void)
 
 	register_trace_android_vh_update_topology_flags_workfn(
 			android_vh_update_topology_flags_workfn, NULL);
+
+	register_trace_android_vh_ftrace_dump_buffer(ftrace_dump_printk, NULL);
+
+#ifdef CONFIG_UNISOC_SCHED_DEBUG_ATOMIC
+	register_trace_android_rvh_schedule_bug(android_rvh_schedule_bug, NULL);
+#endif
 
 #ifdef CONFIG_UNISOC_WORKAROUND_L3_HANG
 	timer_setup(&stop_machine_timer, stop_machine_time_out, TIMER_DEFERRABLE);

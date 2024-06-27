@@ -43,7 +43,7 @@ enum {
 static void slp_info_update_ap(struct subsys_slp_info_data *subsys_data, u32 stage);
 static void slp_info_update_soc(struct subsys_slp_info_data *subsys_data, u32 stage);
 static void slp_info_update_shmem(struct subsys_slp_info_data *subsys_data, u32 stage);
-static void slp_info_update_shmem_ext(struct subsys_slp_info_data *subsys_data);
+static void slp_info_update_shmem_ext(struct subsys_slp_info_data *subsys_data, u32 stage);
 
 static inline int slp_hwspin_lock(struct hwspinlock *hwlock)
 {
@@ -260,9 +260,12 @@ static void slp_info_update_shmem(struct subsys_slp_info_data *subsys_data, u32 
 	slp_total_time_compensate(slp_info_get, slp_info_get->cur_slp_state);
 }
 
-static void slp_info_update_shmem_ext(struct subsys_slp_info_data *subsys_data)
+static void slp_info_update_shmem_ext(struct subsys_slp_info_data *subsys_data, u32 stage)
 {
 	if (!subsys_data || !subsys_data->slp_info)
+		return;
+
+	if (stage != STAGE_INFO_GET)
 		return;
 
 	pdbg_notifier_call_chain(subsys_data->index, subsys_data->slp_info);
@@ -342,20 +345,18 @@ static int sprd_slp_info_dt_parse(struct device *dev, struct slp_info_data *slp_
 	return 0;
 }
 
-static void slp_info_update(struct subsys_slp_info_data *subsys_data, u32 stage)
+static void do_slp_info_update(struct subsys_slp_info_data *subsys_data, u32 stage)
 {
 	if (subsys_data->update_ext && subsys_data->info_update_ext)
-		subsys_data->info_update_ext(subsys_data);
+		subsys_data->info_update_ext(subsys_data, stage);
 	else if (!subsys_data->update_ext && subsys_data->info_update)
 		subsys_data->info_update(subsys_data, stage);
 }
 
-static void slp_info_update_locked(struct slp_info_data *slp_data, u32 type_mask, u32 stage)
+static void slp_info_update(struct slp_info_data *slp_data, u32 type_mask, u32 stage)
 {
 	struct subsys_slp_info_data *subsys_data;
 	u32 i;
-
-	mutex_lock(&slp_data->lock.mtx);
 
 	for (i = 0; i < slp_data->subsys_datas_cnt; i++) {
 		subsys_data = &slp_data->subsys_datas[i];
@@ -366,13 +367,11 @@ static void slp_info_update_locked(struct slp_info_data *slp_data, u32 type_mask
 		if (!(type_mask & TO_MASK(subsys_data->index)))
 			continue;
 
-		slp_info_update(subsys_data, stage);
+		do_slp_info_update(subsys_data, stage);
 
 		if (type_mask == TO_MASK(subsys_data->index))
 			break;
 	}
-
-	mutex_unlock(&slp_data->lock.mtx);
 }
 
 static int slp_info_show(struct seq_file *seq, void *offset)
@@ -388,7 +387,7 @@ static int slp_info_show(struct seq_file *seq, void *offset)
 
 	mutex_lock(&subsys_data->lock->mtx);
 
-	slp_info_update(subsys_data, STAGE_INFO_GET);
+	do_slp_info_update(subsys_data, STAGE_INFO_GET);
 
 	name = subsys_data_vars[subsys_data->index].name;
 	num += scnprintf(str + num, INFO_LEN - num, "%20s:", "subsystem_name(%s)");
@@ -461,10 +460,10 @@ static void slp_info_notify_handler(void *data, unsigned long cmd)
 
 	switch (cmd) {
 	case SPRD_CPU_PM_ENTER:
-		slp_info_update_locked(slp_data, MASK_AP_SOC, STAGE_SLP_ENTER);
+		slp_info_update(slp_data, MASK_AP_SOC, STAGE_SLP_ENTER);
 		break;
 	case SPRD_CPU_PM_EXIT:
-		slp_info_update_locked(slp_data, MASK_AP_SOC, STAGE_SLP_EXIT);
+		slp_info_update(slp_data, MASK_AP_SOC, STAGE_SLP_EXIT);
 		break;
 	default:
 		break;

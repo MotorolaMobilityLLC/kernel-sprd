@@ -832,6 +832,9 @@ struct sipa_plat_drv_cfg {
 	struct clk *ipa_core_parent;
 	struct clk *ipa_core_default;
 
+	/* vip attrs */
+	struct sipa_vip_attrs *vip_attrs;
+
 	u32 enable_cnt;
 	u32 suspend_stage;
 

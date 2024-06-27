@@ -240,9 +240,10 @@
 
 			dmc_controller: dmc-controller@31050000 {
 				compatible = "sprd,pub-dmc";
-				reg = <0x0 0x3000 0x0 0x100>,
-					<0x0 0x31050000 0x0 0x7000>,
-					<0x0 0x31000000 0x0 0x654>;
+				reg = <0x0 0x3000 0x0 0x100>,	    /* proc_res */
+					<0x0 0x31050000 0x0 0x7000>,/* mon_res */
+					<0x0 0x31000000 0x0 0x660>, /* dmc_res */
+					<0x0 0x31001000 0x0 0x810>; /* phy0/1_res */
 			};
 		};
 
@@ -450,6 +451,7 @@
 #include "audio.dtsi"
 #include "power.dtsi"
 #include "ptm.dtsi"
+#include "pnp.dtsi"
 #include "qos.dtsi"
 #include "sdio.dtsi"
 #include "sensorhub.dtsi"

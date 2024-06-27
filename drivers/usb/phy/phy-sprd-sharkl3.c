@@ -468,19 +468,29 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	regmap_update_bits(phy->pmic, SC2721_CHARGE_DET_FGU_CTRL,
 			   BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB,
 			   BIT_DP_DM_AUX_EN);
-	msleep(300);
-	iio_read_channel_processed(phy->dp, &dp_voltage);
+
+	for (cnt = 0; cnt < 20; cnt++) {
+		iio_read_channel_processed(phy->dp, &dp_voltage);
+		if (dp_voltage > VOLT_LO_LIMIT) {
+			dev_info(x->dev, "[%s][%d] dp_voltage:%d\n",
+				 __func__, cnt, dp_voltage);
+			break;
+		}
+		msleep(20);
+	}
+	cnt = 20;
 	if (dp_voltage > VOLT_LO_LIMIT) {
 		do {
 			if (phy->shutdown)
 				return UNKNOWN_TYPE;
-
 			iio_read_channel_processed(phy->dm, &dm_voltage);
 			if (dm_voltage > VOLT_LO_LIMIT) {
 				type = DCP_TYPE;
 				break;
 			}
 			msleep(100);
+			if (x->chg_state != USB_CHARGER_PRESENT)
+				break;
 			cnt--;
 			iio_read_channel_processed(phy->dp, &dp_voltage);
 			if (dp_voltage  < VOLT_HI_LIMIT) {
@@ -489,6 +499,7 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 			}
 		} while ((x->chg_state == USB_CHARGER_PRESENT) && cnt > 0);
 	}
+
 	regmap_update_bits(phy->pmic, SC2721_CHARGE_DET_FGU_CTRL,
 			   BIT_DP_DM_AUX_EN | BIT_DP_DM_BC_ENB, 0);
 	dev_info(x->dev, "correct type is %x\n", type);

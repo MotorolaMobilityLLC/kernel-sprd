@@ -723,7 +723,8 @@ static void sprd_fchg_work(struct work_struct *data)
 
 	if (ret) {
 		dev_err(info->dev, "%s, failed to get fchg type\n", __func__);
-		goto out;
+		mutex_unlock(&info->lock);
+		return;
 	}
 
 	if (info->pd_extcon && (val.intval == POWER_SUPPLY_USB_TYPE_PD ||
@@ -734,18 +735,14 @@ static void sprd_fchg_work(struct work_struct *data)
 		info->sfcp_enable = false;
 		info->customized_fchg_enable = false;
 		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
-		mutex_unlock(&info->lock);
-		cm_notify_event(info->psy, CM_EVENT_FAST_CHARGE, NULL);
-		goto out1;
+		goto out;
 	} else if (info->pd_extcon && val.intval == POWER_SUPPLY_USB_TYPE_PD_PPS) {
 		info->pps_enable = true;
 		info->pd_enable = false;
 		info->sfcp_enable = false;
 		info->customized_fchg_enable = false;
 		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_ADAPTIVE;
-		mutex_unlock(&info->lock);
-		cm_notify_event(info->psy, CM_EVENT_FAST_CHARGE, NULL);
-		goto out1;
+		goto out;
 	} else if (info->sfcp_extcon && val.intval == POWER_SUPPLY_CHARGE_TYPE_FAST) {
 		info->sfcp_enable = true;
 		info->pps_enable = false;
@@ -753,9 +750,7 @@ static void sprd_fchg_work(struct work_struct *data)
 		info->pd_enable = false;
 		info->customized_fchg_enable = false;
 		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
-		mutex_unlock(&info->lock);
-		cm_notify_event(info->psy, CM_EVENT_FAST_CHARGE, NULL);
-		goto out1;
+		goto out;
 	} else if (info->customized_fchg_extcon && val.intval == POWER_SUPPLY_CHARGE_TYPE_FAST) {
 		info->customized_fchg_enable = true;
 		info->pps_enable = false;
@@ -763,9 +758,7 @@ static void sprd_fchg_work(struct work_struct *data)
 		info->pd_enable = false;
 		info->sfcp_enable = false;
 		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
-		mutex_unlock(&info->lock);
-		cm_notify_event(info->psy, CM_EVENT_FAST_CHARGE, NULL);
-		goto out1;
+		goto out;
 	} else if (info->pd_extcon && val.intval == POWER_SUPPLY_USB_TYPE_C) {
 		if (info->pd_enable)
 			sprd_pd_fixed_adjust_voltage(info, SPRD_FCHG_VOLTAGE_5V);
@@ -775,16 +768,20 @@ static void sprd_fchg_work(struct work_struct *data)
 		info->pps_active = false;
 		if (!info->sfcp_enable && !info->customized_fchg_enable)
 			info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_UNKNOWN;
+
+		mutex_unlock(&info->lock);
+		dev_info(info->dev, "%s[%d]: extcon: %s, fchg_type: %d\n", __func__, __LINE__,
+			 info->pd_extcon ? "pd" : (info->sfcp_extcon ? "sfcp" : "customized"),
+			 info->fchg_type);
+		return;
 	}
 
 out:
 	mutex_unlock(&info->lock);
-
-out1:
-	dev_info(info->dev, "%s, pd_extcon = %d, sfcp_extcon = %d, customized_extcon = %d, "
-		 "fchg type = %d\n",
-		 __func__, info->pd_extcon, info->sfcp_extcon, info->customized_fchg_extcon,
+	dev_info(info->dev, "%s, extcon: %s, fchg_type: %d\n", __func__,
+		 info->pd_extcon ? "pd" : (info->sfcp_extcon ? "sfcp" : "customized"),
 		 info->fchg_type);
+	cm_notify_event(info->psy, CM_EVENT_FAST_CHARGE, NULL);
 }
 
 static int sprd_fchg_change(struct notifier_block *nb,
@@ -1022,6 +1019,39 @@ static int sprd_update_source_capabilities(struct sprd_fchg_info *info, const u3
 	mutex_unlock(&info->lock);
 
 	return ret;
+}
+
+static void sprd_force_set_fixed_fchg_type(struct sprd_fchg_info *info)
+{
+	if (!info) {
+		pr_err("%s[%d]: info is NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
+	if (!info->support_fchg)
+		return;
+
+	dev_dbg(info->dev, "%s, fchg type = %d, pps_enable = %d\n",
+		__func__, info->fchg_type, info->pps_enable);
+	mutex_lock(&info->lock);
+	if (info->fchg_type == POWER_SUPPLY_CHARGE_TYPE_ADAPTIVE) {
+		info->fchg_type = POWER_SUPPLY_CHARGE_TYPE_FAST;
+
+		if (info->pps_enable) {
+			info->pd_enable = true;
+			info->pps_enable = false;
+			info->pps_active = false;
+			info->sfcp_enable = false;
+			info->customized_fchg_enable = false;
+			info->support_pd_pps = false;
+		}
+	}
+
+	mutex_unlock(&info->lock);
+
+	dev_info(info->dev, "%s, fchg_type = %d, pps: %d, pd: %d, sfcp: %d, customized: %d\n",
+		 __func__, info->fchg_type, info->pps_enable, info->pd_enable, info->sfcp_enable,
+		 info->customized_fchg_enable);
 }
 
 static int sprd_get_fchg_type(struct sprd_fchg_info *info, u32 *type)
@@ -1263,6 +1293,7 @@ struct sprd_fchg_info *sprd_fchg_info_register(struct device *dev)
 	info->ops->extcon_init = sprd_fchg_extcon_init;
 	info->ops->fchg_detect = sprd_fchg_detect;
 	info->ops->get_fchg_type = sprd_get_fchg_type;
+	info->ops->force_set_fixed_fchg_type = sprd_force_set_fixed_fchg_type;
 	info->ops->get_fchg_vol_max = sprd_get_fchg_voltage_max;
 	info->ops->get_fchg_cur_max = sprd_get_fchg_current_max;
 	info->ops->enable_fixed_fchg = sprd_enable_fixed_fchg;

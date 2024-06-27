@@ -376,9 +376,7 @@ static int ws_proc_init(struct wakeup_info_data *data, struct proc_dir_entry *di
 
 static int sprd_pdbg_ws_show(struct wakeup_info_data *data)
 {
-	u64 major, domain_id, hwirq;
-	u64 r_value[PDBG_INFO_NUM+1];
-	u64 r_value_h[PDBG_INFO_NUM+1];
+	u32 major, domain_id, hwirq;
 	int ret = 0;
 
 	if (!data) {
@@ -386,11 +384,8 @@ static int sprd_pdbg_ws_show(struct wakeup_info_data *data)
 		return -EINVAL;
 	}
 
-	if (!sprd_pdbg_regs_get_once(PDBG_WS, r_value, r_value_h)) {
-		major = r_value[0];
-		domain_id = r_value[1];
-		hwirq =  r_value[2];
-	} else {
+	if (sprd_pdbg_ws_info_trans(&major, &domain_id, &hwirq)) {
+		SPRD_PDBG_ERR("sprd_pdbg_ws_info_trans error\n");
 		return -EINVAL;
 	}
 
@@ -404,7 +399,7 @@ static int sprd_pdbg_ws_show(struct wakeup_info_data *data)
 		return 0;
 	}
 
-	ret = ws_parse(data, (u32)major, (u32)domain_id, (u32)hwirq, data->log_buf);
+	ret = ws_parse(data, major, domain_id, hwirq, data->log_buf);
 	SPRD_PDBG_INFO("%s\n", data->log_buf);
 
 	return ret;

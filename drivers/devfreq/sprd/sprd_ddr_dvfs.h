@@ -1,4 +1,10 @@
 /* SPDX-License-Identifier: GPL-2.0 */
+//
+// Unisoc ddr dvfs driver
+//
+// Copyright (C) 2022 Unisoc, Inc.
+// Author: Mingmin Ling <mingmin.ling@unisoc.com
+
 #ifndef __SPRD_DVFS_DRV_H__
 #define __SPRD_DVFS_DRV_H__
 
@@ -15,33 +21,41 @@ struct dvfs_hw_callback {
 };
 
 enum DDR_DFS_STATE_STEP {
-	scenario_dfs_enter = 1,
-	exit_scene,
-	auto_dfs_on_off,
-	scaling_force_ddr_freq,
-	scene_boost_enter,
-	set_backdoor,
-	dfs_on_off,
-	change_point,
-	scene_freq_set,
-	get_overflow_t,
-	set_overflow_t,
-	get_underflow_t,
-	set_underflow_t,
-	get_dvfs_status_t,
-	get_dvfs_auto_status_t,
-	get_cur_freq_t,
-	get_freq_table_t,
-	send_freq_request_t,
+	SCENARIO_DFS_ENTER = 1,
+	EXIT_SCENE,
+	AUTO_DFS_ON_OFF,
+	SCALING_FORCE_DDR_FREQ,
+	SCENE_BOOST_ENTER,
+	SET_BACKDOOR,
+	DFS_ON_OFF,
+	CHANGE_POINT,
+	SCENE_FREQ_SET,
+	GET_OVERFLOW_T,
+	SET_OVERFLOW_T,
+	GET_UNDERFLOW_T,
+	SET_UNDERFLOW_T,
+	GET_DVFS_STATUS_T,
+	GET_DVFS_AUTO_STATUS_T,
+	GET_DVFS_FORCE_FREQ_T,
+	GET_CUR_FREQ_T,
+	GET_FREQ_TABLE_T,
+	SEND_FREQ_REQUEST_T,
 };
 
+#define PARSE_FLOW_ERR 0x5a5a5a5a
+#define DDR_DVFS_INIT_DONE 1
 #define DDR_DB_NODE_NUM 32
+#define INFO_LEN_MAX 128
+#define DDR_DUMP_BUFFER (DDR_DB_NODE_NUM * INFO_LEN_MAX)
 #define SCENE_MAX 25
+#define COMM_MAX 25
+#define DEFAULT_VOL 750
 struct DDR_DFS_STEP_T {
 	enum DDR_DFS_STATE_STEP step;
 	int status;
 	u32 buff;
 	char scene[SCENE_MAX];
+	char comm[COMM_MAX];
 	int pid;
 	ktime_t time;
 };
@@ -67,12 +81,16 @@ struct governor_callback {
 	int (*get_dvfs_auto_status)(unsigned int *data);
 	int (*dvfs_auto_enable)(void);
 	int (*dvfs_auto_disable)(void);
+	int (*dvfs_perf_mode_enable)(bool en);
 	int (*get_cur_freq)(unsigned int *data);
 	int (*get_freq_table)(unsigned long *data, unsigned int sel);
-	int (*ddrinfo_dfs_step_show)(char **arg, char **step_status,
-				     char **scene, u32 *buff, int *pid, ktime_t *time, u32 i);
+	int (*ddrinfo_dfs_step_parse)(char **arg, char **step_status, char **scene, u32 *buff,
+				      int *pid, char **comm, ktime_t *time, u32 i);
 	void (*ddr_dfs_step_add)(enum DDR_DFS_STATE_STEP cur_step, int status,
-				 char *scene, u32 buff, int pid, ktime_t time);
+				 char *scene, u32 buff, int pid, char *comm, ktime_t time);
+	int (*get_request_freq)(unsigned int *data);
+	int (*send_freq_request)(unsigned int freq);
+	int (*get_force_freq)(unsigned int *data);
 };
 
 /*functions supportd by dvfs core to specific drivers*/
@@ -80,9 +98,8 @@ int dvfs_core_init(struct platform_device *pdev);
 int dvfs_core_clear(struct platform_device *pdev);
 void dvfs_core_hw_callback_register(struct dvfs_hw_callback *hw_callback);
 void dvfs_core_hw_callback_clear(struct dvfs_hw_callback *hw_callback);
+unsigned long get_min_freq(void);
 unsigned long get_max_freq(void);
-int send_freq_request(unsigned int freq);
-int get_request_freq(unsigned int *data);
 int send_vote_request(unsigned int freq);
 
 /*EXPORT_SYMBOLs supoorted by governor for other kernel drivers*/

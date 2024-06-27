@@ -17,6 +17,7 @@
 #include <dt-bindings/soc/sprd,qogirl6-regs.h>
 #include <linux/rpmb.h>
 #include <linux/reset.h>
+#include <linux/nvmem-consumer.h>
 
 #include "ufshcd.h"
 #include "ufshcd-pltfrm.h"
@@ -377,6 +378,11 @@ int syscon_get_args(struct device *dev, struct ufs_sprd_host *host)
 	if (ret < 0)
 		return ret;
 
+	ret = ufs_sprd_get_syscon_reg(dev->of_node, &priv->ap_apb_cfg_frc_on,
+				      "ap_apb_cfg_frc_on");
+	if (ret < 0)
+		return ret;
+
 	return ret;
 }
 
@@ -428,6 +434,23 @@ static int ufs_sprd_priv_parse_dt(struct device *dev,
 		priv->ap_apb_ufs_glb_rst = NULL;
 		return -ENODEV;
 	}
+
+	priv->ufs_cali_lanes = ufs_efuse_calib_data(pdev,
+						"ufs_cali_lanes");
+	if (priv->ufs_cali_lanes == -EPROBE_DEFER) {
+		dev_err(&pdev->dev,
+			"%s:get ufs_cali_lanes failed!\n", __func__);
+		return -EPROBE_DEFER;
+	}
+
+	priv->ufs_trimbg = 0xf & (priv->ufs_cali_lanes >> 0x0);
+	priv->ufs_rxtrim = 0xf & (priv->ufs_cali_lanes >> 0x4);
+	priv->ufs_txtrim = 0xf & (priv->ufs_cali_lanes >> 0x8);
+
+	dev_err(&pdev->dev, "%s: ufs_cali_lanes: 0x%x,trimbg=0x%x,rxtrim=0x%x,txtrim=0x%x\n",
+		__func__, priv->ufs_cali_lanes, priv->ufs_trimbg,
+		priv->ufs_rxtrim, priv->ufs_txtrim);
+
 
 	res = platform_get_resource_byname(pdev,
 					IORESOURCE_MEM, "ufs_analog_reg");
@@ -1118,6 +1141,9 @@ out:
 static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 					enum ufs_notify_change_status status)
 {
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9230_data *priv =
+		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
 	int err = 0;
 
 	switch (status) {
@@ -1142,6 +1168,19 @@ static int ufs_sprd_link_startup_notify(struct ufs_hba *hba,
 		break;
 	case POST_CHANGE:
 		hba->clk_gating.delay_ms = 10;
+
+		/* keep UFS cfgclk AON in runtime state */
+		regmap_update_bits(priv->ap_apb_cfg_frc_on.regmap,
+				   priv->ap_apb_cfg_frc_on.reg,
+				   priv->ap_apb_cfg_frc_on.mask,
+				   priv->ap_apb_cfg_frc_on.mask);
+
+		/* keep UFS MPHY_ANA_POWERDOWN FRC in runtime state */
+		ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_REG_SEL_CFG_0_ANA_POWERDOWN_MASK,
+				MPHY_REG_SEL_CFG_0_ANA_POWERDOWN_VAL, MPHY_REG_SEL_CFG_0);
+		ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_POWER_REG_ANA_POWERDOWN_MASK,
+				0, MPHY_POWER_REG);
+
 		break;
 	default:
 		err = -EINVAL;
@@ -1176,7 +1215,7 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 		err = -EINVAL;
 		break;
 	}
-	ufs_sprd_pwr_change_compare(hba, status, final_params, err);
+	ufs_sprd_pwr_change_compare(hba, status, final_params, &err);
 
 out:
 	return err;
@@ -1313,6 +1352,10 @@ static void ufs_sprd_fixup_dev_quirks(struct ufs_hba *hba)
 static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 						enum ufs_notify_change_status status)
 {
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9230_data *priv =
+		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
+
 	switch (status) {
 	case PRE_CHANGE:
 		break;
@@ -1320,6 +1363,16 @@ static int ufs_sprd_suspend(struct ufs_hba *hba, enum ufs_pm_op pm_op,
 		hba->rpm_lvl = UFS_PM_LVL_1;
 		hba->spm_lvl = UFS_PM_LVL_5;
 		hba->uic_link_state = UIC_LINK_OFF_STATE;
+
+		/* close UFS cfgclk AON in suspend state */
+		regmap_update_bits(priv->ap_apb_cfg_frc_on.regmap,
+				   priv->ap_apb_cfg_frc_on.reg,
+				   priv->ap_apb_cfg_frc_on.mask,
+				   0);
+
+		/* restore UFS MPHY_ANA_POWERDOWN ctl by PMU */
+		ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_REG_SEL_CFG_0_ANA_POWERDOWN_MASK,
+				0, MPHY_REG_SEL_CFG_0);
 		break;
 	default:
 		break;
@@ -1338,9 +1391,17 @@ static int ufs_sprd_device_reset(struct ufs_hba *hba)
 static void ufs_sprd_dbg_register_dump(struct ufs_hba *hba)
 {
 	u32 data = 0;
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
+	struct ufs_sprd_ums9230_data *priv =
+		(struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
 
 	sprd_ufs_print_err_cnt(hba);
 	ufs_sprd_get_debug_regs(hba, UFS_EVT_CNT, &data);
+
+	dev_err(hba->dev, "%s: MPHY_REG_SEL_CFG_0:0x%x,MPHY_POWER_REG:0x%x", __func__,
+			readl(priv->ufs_analog_reg + MPHY_REG_SEL_CFG_0),
+			readl(priv->ufs_analog_reg + MPHY_POWER_REG));
+
 	sprd_ufs_debug_err_dump(hba);
 }
 
@@ -1362,7 +1423,7 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 			priv = (struct ufs_sprd_ums9230_data *) host->ufs_priv_data;
 
 		if (!ufshcd_is_link_hibern8(hba) || priv == NULL) {
-			dev_err(hba->dev, "%s during ufs init or setup clock not in h8", __func__);
+			dev_info(hba->dev, "%s during ufs init or setup clock not in h8", __func__);
 			return 0;
 		}
 

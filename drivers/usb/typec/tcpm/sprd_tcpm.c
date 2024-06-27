@@ -86,6 +86,7 @@ struct sprd_pd_rx_event {
 	((port)->try_src_count == 0 && (port)->try_role == TYPEC_SOURCE && \
 	(port)->port_type == TYPEC_PORT_DRP)
 
+static void sprd_tcpm_unregister_altmodes(struct sprd_tcpm_port *port);
 static struct sprd_typec_device_ops *g_sprd_typec_device_ops;
 int sprd_tcpm_typec_device_ops_register(struct sprd_typec_device_ops *ops)
 {
@@ -1276,6 +1277,21 @@ static void sprd_tcpm_register_partner_altmodes(struct sprd_tcpm_port *port)
 	}
 }
 
+static void sprd_tcpm_typec_altmode_attention(struct sprd_tcpm_port *port,
+					      struct typec_altmode *adev, u32 vdo)
+{
+	const struct typec_altmode *pdev;
+
+	pdev = typec_altmode_get_partner(adev);
+	if (!pdev) {
+		sprd_tcpm_log(port, "%s:line%d: NULL pointer!!!", __func__, __LINE__);
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
+	typec_altmode_attention(adev, vdo);
+}
+
 #define supports_modal(port)	SPRD_PD_IDH_MODAL_SUPP((port)->partner_ident.id_header)
 
 static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
@@ -1334,7 +1350,7 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 			/* Attention command does not have response */
 			if (adev) {
 				sprd_tcpm_source_release_wake_lock(port);
-				typec_altmode_attention(adev, p[1]);
+				sprd_tcpm_typec_altmode_attention(port, adev, p[1]);
 				cancel_delayed_work(&port->dp_work);
 				if (port->tcpc->dp_altmode_notify) {
 					sprd_tcpm_log(port, "%s:line%d CMD_ATTENTION", __func__, __LINE__);
@@ -1498,6 +1514,7 @@ static void sprd_tcpm_send_vdm(struct sprd_tcpm_port *port,
 	else
 		timeout = 100;
 
+	port->vdm_queue = true;
 	sprd_mod_vdm_delayed_work(port, timeout);
 }
 
@@ -1576,6 +1593,7 @@ static void sprd_vdm_run_state_machine(struct sprd_tcpm_port *port)
 			u32 temp = 0;
 
 			sprd_tcpm_log(port, "ufp, retry send discovery ident");
+			sprd_tcpm_unregister_altmodes(port);
 			sprd_tcpm_send_vdm(port, SPRD_USB_SID_PD, SPRD_CMD_DISCOVER_IDENT,
 					   &temp, 0);
 			port->vdm_discovery_id_retry = 0;
@@ -1584,6 +1602,7 @@ static void sprd_vdm_run_state_machine(struct sprd_tcpm_port *port)
 
 			port->vdm_retries = 0;
 			port->vdm_state = VDM_STATE_BUSY;
+			port->vdm_sent = true;
 			timeout = sprd_vdm_ready_timeout(port->vdo_data[0]);
 			sprd_mod_vdm_delayed_work(port, timeout);
 		}
@@ -1970,12 +1989,21 @@ static void sprd_tcpm_pps_complete(struct sprd_tcpm_port *port, int result)
 	}
 }
 
+static void sprd_tcpm_check_vdm_send_conflict(struct sprd_tcpm_port *port)
+{
+	if (port->data_role == TYPEC_HOST && port->vdm_queue && !port->vdm_sent) {
+		sprd_tcpm_log(port, "%s: delay send vdm", __func__);
+		sprd_mod_vdm_delayed_work(port, 100);
+	}
+}
+
 static void sprd_tcpm_pd_ctrl_request(struct sprd_tcpm_port *port,
 				      const struct sprd_pd_message *msg)
 {
 	enum sprd_pd_ctrl_msg_type type = sprd_pd_header_type_le(msg->header);
 	enum sprd_tcpm_state next_state;
 
+	sprd_tcpm_check_vdm_send_conflict(port);
 	switch (type) {
 	case SPRD_PD_CTRL_GOOD_CRC:
 	case SPRD_PD_CTRL_PING:
@@ -2596,9 +2624,10 @@ static unsigned int sprd_tcpm_pd_select_pps_apdo(struct sprd_tcpm_port *port)
 					max_op_mv = min(max_src_mv, max_snk_mv);
 					src_mw = (max_op_mv * src_ma) / 1000;
 					/* Prefer higher voltages if available */
-					if ((src_mw == max_mw &&
-					     max_op_mv > max_mv) ||
-					    src_mw > max_mw) {
+					if (src_mw > max_mw ||
+					    (src_mw == max_mw && max_op_mv > max_mv) ||
+					    (src_mw < max_mw && max_mv <= SPRD_PPS_5V_PROG_MAX &&
+					     max_op_mv >= SPRD_PPS_5V_PROG_MAX)) {
 						src_pdo = i;
 						snk_pdo = j;
 						max_mw = src_mw;
@@ -3020,6 +3049,7 @@ static void sprd_tcpm_unregister_altmodes(struct sprd_tcpm_port *port)
 	int i;
 
 	for (i = 0; i < modep->altmodes; i++) {
+		sprd_tcpm_log_force(port, "%s:line%d:, i = %d", __func__, __LINE__, i);
 		typec_unregister_altmode(port->partner_altmode[i]);
 		port->partner_altmode[i] = NULL;
 	}
@@ -3043,6 +3073,8 @@ static void sprd_tcpm_reset_port(struct sprd_tcpm_port *port)
 	port->update_ext_src_caps = false;
 	port->xts_limit_cur = false;
 	port->vdm_discovery_id_retry = 0;
+	port->vdm_sent = false;
+	port->vdm_queue = false;
 
 	/*
 	 * First Rx ID should be 0; set this to a sentinel of -1 so that
@@ -3168,6 +3200,15 @@ static inline enum sprd_tcpm_state sprd_unattached_state(struct sprd_tcpm_port *
 	}
 
 	return SNK_UNATTACHED;
+}
+
+static void sprd_tcpm_check_retry_send_vdm(struct sprd_tcpm_port *port)
+{
+	if (port->power_role_swap && port->data_role == TYPEC_HOST && port->pd_capable &&
+	    !port->send_discover && !port->vdm_sent) {
+		sprd_tcpm_log(port, "retry send vdm");
+		port->send_discover = true;
+	}
 }
 
 static void sprd_tcpm_check_send_discover(struct sprd_tcpm_port *port)
@@ -3698,6 +3739,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		sprd_tcpm_typec_pr_swap_no_chk_detach(port, false);
 		sprd_tcpm_update_limit_current(port);
 		sprd_tcpm_swap_complete(port, 0);
+		sprd_tcpm_check_retry_send_vdm(port);
 		sprd_tcpm_check_send_discover(port);
 		sprd_tcpm_fixed_pd_complete(port);
 		sprd_tcpm_pps_complete(port, port->pps_status);

@@ -54,7 +54,9 @@ struct sprd_hsphy {
 	atomic_t		reset;
 	atomic_t		inited;
 	bool			is_host;
-	bool			avdd1v8_chipsleep_off;
+	bool			avdd1v8_pd_en_changed;
+	bool			avdd1v2_pd_en_changed;
+	bool			dcdcmm_pd_en_changed;
 	bool			shutdown;
 };
 
@@ -127,7 +129,9 @@ struct sprd_hsphy {
 #define REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_PHY             0x001C
 #define REG_ANLG_PHY_G0L_ANALOG_USB20_REG_SEL_CFG_0         0x0020
 
-#define FULLSPEED_USB33_TUNE				3300000
+#define FULLSPEED_USB33_TUNE			3300000
+#define REG_ANA_UMP9621_SLP_DCDC_PD_CTRL	0xa0ac
+#define MASK_ANA_UMP9621_SLP_DCDCMODEM_PD_EN	0x4
 
 #define CHGR_DET_FGU_CTRL		0x23a0
 #define DP_DM_FS_ENB			BIT(14)
@@ -233,6 +237,69 @@ static int sprd_hsphy_cali_mode(void)
 		return 1;
 	else
 		return 0;
+}
+
+static int sprd_hsphy_set_wakeup(struct usb_phy *x, bool keep_wakeup)
+{
+	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
+	u32 reg = 0;
+
+	if (!atomic_read(&phy->inited)) {
+		dev_dbg(x->dev, "phy is already shut down, no need set wakeup\n");
+		return -1;
+	}
+
+	if (!phy->pmic) {
+		dev_dbg(x->dev, "pmic is null, cannot set wakeup\n");
+		return -1;
+	}
+
+	dev_info(x->dev, "%s, keep_wakeup %d\n", __func__, keep_wakeup);
+
+	if (keep_wakeup) {
+		/* AVDD18 & AVDD12 & DCDCMM */
+		regmap_read(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1, &reg);
+		if (reg & MASK_ANA_SLP_LDO_AVDD18_PD_EN) {
+			phy->avdd1v8_pd_en_changed = true;
+			regmap_update_bits(phy->pmic,
+					REG_ANA_SLP_LDO_PD_CTRL1, MASK_ANA_SLP_LDO_AVDD18_PD_EN, 0);
+		}
+		if (reg & MASK_ANA_SLP_LDO_AVDD12_PD_EN) {
+			phy->avdd1v2_pd_en_changed = true;
+			regmap_update_bits(phy->pmic,
+					REG_ANA_SLP_LDO_PD_CTRL1, MASK_ANA_SLP_LDO_AVDD12_PD_EN, 0);
+		}
+
+		regmap_read(phy->pmic, REG_ANA_UMP9621_SLP_DCDC_PD_CTRL, &reg);
+		if (reg & MASK_ANA_UMP9621_SLP_DCDCMODEM_PD_EN) {
+			phy->dcdcmm_pd_en_changed = true;
+			regmap_update_bits(phy->pmic,
+				REG_ANA_UMP9621_SLP_DCDC_PD_CTRL,
+				MASK_ANA_UMP9621_SLP_DCDCMODEM_PD_EN, 0);
+		}
+	} else {
+		if (phy->avdd1v8_pd_en_changed) {
+			regmap_update_bits(phy->pmic,
+				REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+			phy->avdd1v8_pd_en_changed = 0;
+		}
+		if (phy->avdd1v2_pd_en_changed) {
+			regmap_update_bits(phy->pmic,
+				REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD12_PD_EN, MASK_ANA_SLP_LDO_AVDD12_PD_EN);
+			phy->avdd1v2_pd_en_changed = 0;
+		}
+		if (phy->dcdcmm_pd_en_changed) {
+			regmap_update_bits(phy->pmic,
+				REG_ANA_UMP9621_SLP_DCDC_PD_CTRL,
+				MASK_ANA_UMP9621_SLP_DCDCMODEM_PD_EN,
+				MASK_ANA_UMP9621_SLP_DCDCMODEM_PD_EN);
+			phy->dcdcmm_pd_en_changed = 0;
+		}
+	}
+
+	return 0;
 }
 
 static inline void sprd_hsphy_reset_core(struct sprd_hsphy *phy)
@@ -403,11 +470,6 @@ static int sprd_hsphy_init(struct usb_phy *x)
 		REG_ANLG_PHY_G0L_ANALOG_USB20_USB20_UTMI_CTL1,
 		msk, reg);
 
-	/*if avdd1v8 is off on chipsleep, set avdd1v8 force on for usb lowpower */
-	if (phy->avdd1v8_chipsleep_off)
-		regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
-				MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
-
 	if (phy->refclk_cfg.regmap_ptr) {
 		reg = msk = phy->refclk_cfg.args[1] | phy->refclk_cfg.args[2];
 		ret |= regmap_update_bits(phy->refclk_cfg.regmap_ptr,
@@ -437,12 +499,6 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 
 	dev_info(x->dev, "[%s]enter usbm_event_is_active(%d), usbm_ssphy_get_onoff(%d)\n",
 		__func__, sprd_usbm_event_is_active(), sprd_usbm_ssphy_get_onoff());
-
-	/*if avdd1v8 is off on chipsleep, clear avdd1v8 force on for usb lowpower */
-	if (phy->avdd1v8_chipsleep_off)
-		regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
-				MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
-
 
 	sprd_usbm_hsphy_set_onoff(0);
 	if (!sprd_usbm_ssphy_get_onoff()) {
@@ -803,9 +859,6 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		return ret;
 	}
 
-	phy->avdd1v8_chipsleep_off = device_property_read_bool(dev,
-					"avdd1v8-chipsleep-off");
-
 	boot_cali = sprd_hsphy_cali_mode();
 
 	if (boot_cali) {
@@ -869,6 +922,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	phy->phy.type = USB_PHY_TYPE_USB2;
 	phy->phy.vbus_nb.notifier_call = sprd_hsphy_vbus_notify;
 	phy->phy.charger_detect = sprd_hsphy_charger_detect;
+	phy->phy.set_wakeup = sprd_hsphy_set_wakeup;
 	otg->usb_phy = &phy->phy;
 	phy->ops.dpdm_switch_to_phy = sprd_hsphy_dpdm_switch_to_phy;
 	phy->ops.get_dpdm_from_phy = sprd_hsphy_get_dpdm_from_phy;

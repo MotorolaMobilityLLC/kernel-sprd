@@ -13,6 +13,9 @@
 #include "ufs-sprd.h"
 #include "ufs-sprd-rpmb.h"
 
+#define PWRON_OR_RST_OCCURED_ASC	0x29
+#define PWRON_OR_RST_OCCURED_ASCQ	0x00
+
 static inline u16 ufs_sprd_wlun_to_scsi_lun(u8 upiu_wlun_id)
 {
 	return (upiu_wlun_id & ~UFS_UPIU_WLUN_ID) | SCSI_W_LUN_BASE;
@@ -80,7 +83,8 @@ retry:
 
 	if (ret && scsi_sense_valid(&sshdr) &&
 	    sshdr.sense_key == UNIT_ATTENTION &&
-	    sshdr.asc == 0x29 && sshdr.ascq == 0x00)
+	    sshdr.asc == PWRON_OR_RST_OCCURED_ASC &&
+	    sshdr.ascq == PWRON_OR_RST_OCCURED_ASCQ)
 		/*
 		 * Device reset might occur several times,
 		 * give it one more chance
@@ -135,7 +139,8 @@ retry:
 
 	if (ret && scsi_sense_valid(&sshdr) &&
 	    sshdr.sense_key == UNIT_ATTENTION &&
-	    sshdr.asc == 0x29 && sshdr.ascq == 0x00)
+	    sshdr.asc == PWRON_OR_RST_OCCURED_ASC &&
+	    sshdr.ascq == PWRON_OR_RST_OCCURED_ASCQ)
 		/*
 		 * Device reset might occur several times,
 		 * give it one more chance

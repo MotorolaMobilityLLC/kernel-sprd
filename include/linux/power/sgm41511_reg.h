@@ -309,6 +309,7 @@
 
 #define REG0B_PN_MASK			0x78
 #define REG0B_PN_SHIFT			3
+#define SGM41511_DEV_ID			0x2
 
 #define REG0B_DEV_REV_MASK		0x03
 #define REG0B_DEV_REV_SHIFT		0

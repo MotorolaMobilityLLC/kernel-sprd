@@ -263,6 +263,7 @@ static int regulator_set_voltage_sel_sprd(struct regulator_dev *rdev, unsigned i
 					      rdev->desc->name, rdev->desc->vsel_reg, sel);
 			pr_str[1] = NULL;
 			kobject_uevent_env(&rdev->dev.kobj, KOBJ_CHANGE, pr_str);
+			kfree(pr_str[0]);
 		}
 	}
 	return regulator_set_voltage_sel_regmap(rdev, sel);
@@ -477,11 +478,14 @@ static int debugfs_voltage_get(void *data, u64 *val)
 	int sel, ret;
 	struct regulator_dev *rdev = data;
 
+	if (!rdev || !rdev->desc->ops->get_voltage_sel || !rdev->desc->ops->list_voltage)
+		return -EINVAL;
+
 	sel = rdev->desc->ops->get_voltage_sel(rdev);
 	if (sel < 0)
 		return sel;
-	ret = rdev->desc->ops->list_voltage(rdev, sel);
 
+	ret = rdev->desc->ops->list_voltage(rdev, sel);
 	*val = ret / 1000;
 
 	return 0;
@@ -492,10 +496,18 @@ static int debugfs_voltage_set(void *data, u64 val)
 	int selector;
 	struct regulator_dev *rdev = data;
 
+	if (!rdev || !rdev->desc->ops->set_voltage_sel)
+		return -EINVAL;
+
 	val = val * 1000;
+	if (val < rdev->desc->min_uV)
+		return -EINVAL;
 	selector = regulator_map_voltage_linear(rdev,
 						val - rdev->desc->uV_step / 2,
 						val + rdev->desc->uV_step / 2);
+
+	if (selector < 0)
+		return selector;
 
 	return rdev->desc->ops->set_voltage_sel(rdev, selector);
 }
@@ -505,16 +517,24 @@ DEFINE_SIMPLE_ATTRIBUTE(fops_ldo, debugfs_voltage_get, debugfs_voltage_set, "%ll
 
 static void ump9620_regulator_debugfs_init(struct regulator_dev *rdev)
 {
-	debugfs_root = debugfs_create_dir(rdev->desc->name, NULL);
+	struct dentry *debugfs;
 
 	if (IS_ERR_OR_NULL(debugfs_root)) {
-		dev_warn(&rdev->dev, "Failed to create debugfs directory\n");
-		rdev->debugfs = NULL;
+		debugfs_root = debugfs_create_dir("sprd_regulator", NULL);
+		if (IS_ERR_OR_NULL(debugfs_root)) {
+			dev_warn(&rdev->dev, "Failed to recreate debugfs directory\n");
+			return;
+		}
+	}
+
+	debugfs = debugfs_create_dir(rdev->desc->name, debugfs_root);
+	if (IS_ERR_OR_NULL(debugfs)) {
+		dev_warn(&rdev->dev, "Failed to create %s directory\n", rdev->desc->name);
 		return;
 	}
 
-	debugfs_create_file("enable", 0644, debugfs_root, rdev, &fops_enable);
-	debugfs_create_file("voltage", 0644, debugfs_root, rdev, &fops_ldo);
+	debugfs_create_file("enable", 0644, debugfs, rdev, &fops_enable);
+	debugfs_create_file("voltage", 0644, debugfs, rdev, &fops_ldo);
 }
 
 static int ump9620_regulator_unlock(struct regmap *regmap)
@@ -528,7 +548,6 @@ static int ump9620_regulator_probe(struct platform_device *pdev)
 	struct regmap *regmap;
 	struct regulator_config config = { };
 	struct regulator_dev *rdev;
-	bool debugfs_en;
 
 	regmap = dev_get_regmap(pdev->dev.parent, NULL);
 	if (!regmap) {
@@ -545,18 +564,21 @@ static int ump9620_regulator_probe(struct platform_device *pdev)
 	config.dev = &pdev->dev;
 	config.regmap = regmap;
 
-	debugfs_en = device_property_read_bool(&pdev->dev, "regulator-debugfs-enable");
+	debugfs_root = debugfs_lookup("sprd_regulator", NULL);
+	if (!debugfs_root)
+		debugfs_root = debugfs_create_dir("sprd_regulator", NULL);
+
+	if (IS_ERR(debugfs_root))
+		dev_warn(&pdev->dev, "Failed to create debugfs directory\n");
+
 	for (i = 0; i < ARRAY_SIZE(regulators); i++) {
 		rdev = devm_regulator_register(&pdev->dev, &regulators[i], &config);
 		if (IS_ERR(rdev)) {
 			dev_err(&pdev->dev, "failed to register regulator %s\n",
 				regulators[i].name);
-			return PTR_ERR(rdev);
+			continue;
 		}
-		if (debugfs_en)
-			ump9620_regulator_debugfs_init(rdev);
-		else
-			dev_err(&pdev->dev, "regulator debugfs is disabled\n");
+		ump9620_regulator_debugfs_init(rdev);
 	}
 
 	return 0;

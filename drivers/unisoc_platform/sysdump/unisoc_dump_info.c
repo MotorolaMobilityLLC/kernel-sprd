@@ -43,6 +43,7 @@
 #endif
 #include <trace/hooks/vendor_hooks.h>
 #include <trace/hooks/debug.h>
+#include <trace/hooks/ftrace_dump.h>
 
 #include "unisoc_dump_info.h"
 #include "unisoc_sysdump.h"
@@ -50,6 +51,19 @@
 #include <linux/module.h>
 #include <linux/sched.h>
 #include "../../../kernel/sched/sched.h"
+
+
+#ifdef CONFIG_UNISOC_MINIDUMP_FTRACE
+#include <linux/ring_buffer.h>
+
+#define FTRACE_BUF_SIZE		(SZ_8K * CONFIG_UNISOC_MINIDUMP_FTRACE_SIZE_KB)
+#define FTRACE_BUF_SIZE_PER_CPU	(FTRACE_BUF_SIZE / 8)
+
+static char *ftrace_buf_addr;
+static size_t ftrace_buf_current;
+static bool minidump_ftrace_in_oops;
+static bool minidump_ftrace_dump = true;
+#endif
 
 static struct seq_buf *unisoc_task_seq_buf;
 static struct seq_buf *unisoc_rq_seq_buf;
@@ -911,6 +925,125 @@ static void unisoc_free_stack_regs_stats(void)
 	unisoc_sr_seq_buf = NULL;
 }
 
+#ifdef CONFIG_UNISOC_MINIDUMP_FTRACE
+static void minidump_add_trace_event(char *buf, size_t size)
+{
+	char *addr;
+
+	if (!READ_ONCE(ftrace_buf_addr) || (size > (size_t)FTRACE_BUF_SIZE))
+		return;
+
+	if ((ftrace_buf_current + size) > (size_t)FTRACE_BUF_SIZE)
+		ftrace_buf_current = 0;
+	addr = ftrace_buf_addr + ftrace_buf_current;
+	memcpy(addr, buf, size);
+	ftrace_buf_current += size;
+}
+
+static void unisoc_ftrace_oops_enter(void *unused, bool *enter_check)
+{
+	if (!minidump_ftrace_in_oops) {
+		minidump_ftrace_in_oops = true;
+		*enter_check = false;
+	} else {
+		*enter_check = true;
+	}
+}
+
+static void unisoc_ftrace_oops_exit(void *unused, bool *exit_check)
+{
+	minidump_ftrace_in_oops = false;
+	flush_cache_all();
+}
+
+static void unisoc_update_trace_fmt(void *unused, bool *format_check)
+{
+	*format_check = false;
+}
+
+static void unisoc_buf_size_check(void *unused, unsigned long buffer_size,
+			      bool *size_check)
+{
+	if (!minidump_ftrace_dump) {
+		*size_check = true;
+		return;
+	}
+
+	if (buffer_size > (FTRACE_BUF_SIZE_PER_CPU + PAGE_SIZE)) {
+		pr_err("Skip md ftrace buffer dump for: %#lx\n", buffer_size);
+		minidump_ftrace_dump = false;
+		*size_check = true;
+	}
+}
+
+static void unisoc_dump_trace_buf(void *unused, struct trace_seq *trace_buf, bool *dump_printk)
+{
+	*dump_printk = false;
+
+	if (minidump_ftrace_in_oops && minidump_ftrace_dump)
+		minidump_add_trace_event(trace_buf->buffer, trace_buf->seq.len);
+}
+
+static void unisoc_minidump_add_ftrace_section(void)
+{
+	void *buf;
+
+	buf = kzalloc(FTRACE_BUF_SIZE, GFP_KERNEL);
+	if (!buf)
+		return;
+
+	if (minidump_save_extend_information("kftrace", __pa((unsigned long)buf),
+					    __pa((unsigned long)(buf + FTRACE_BUF_SIZE))) != 0) {
+		kfree(buf);
+		return;
+	}
+
+	register_trace_android_vh_ftrace_oops_enter(unisoc_ftrace_oops_enter, NULL);
+	register_trace_android_vh_ftrace_oops_exit(unisoc_ftrace_oops_exit, NULL);
+	register_trace_android_vh_ftrace_size_check(unisoc_buf_size_check, NULL);
+	register_trace_android_vh_ftrace_format_check(unisoc_update_trace_fmt, NULL);
+	register_trace_android_vh_ftrace_dump_buffer(unisoc_dump_trace_buf, NULL);
+
+	/* Complete registration before adding enteries */
+	smp_mb();
+	WRITE_ONCE(ftrace_buf_addr, buf);
+}
+
+static void unisoc_minidump_release_ftrace_section(void)
+{
+	unregister_trace_android_vh_ftrace_oops_enter(unisoc_ftrace_oops_enter, NULL);
+	unregister_trace_android_vh_ftrace_oops_exit(unisoc_ftrace_oops_exit, NULL);
+	unregister_trace_android_vh_ftrace_size_check(unisoc_buf_size_check, NULL);
+	unregister_trace_android_vh_ftrace_format_check(unisoc_update_trace_fmt, NULL);
+	unregister_trace_android_vh_ftrace_dump_buffer(unisoc_dump_trace_buf, NULL);
+
+	kfree(ftrace_buf_addr);
+	ftrace_buf_addr = NULL;
+}
+#else
+static void unisoc_ftrace_oops_enter(void *unused, bool *ftrace_check)
+{
+	*ftrace_check = true;
+}
+
+static void unisoc_dump_trace_buf(void *unused, struct trace_seq *trace_buf, bool *dump_printk)
+{
+	*dump_printk = false;
+}
+
+static void unisoc_minidump_add_ftrace_section(void)
+{
+	register_trace_android_vh_ftrace_oops_enter(unisoc_ftrace_oops_enter, NULL);
+	register_trace_android_vh_ftrace_dump_buffer(unisoc_dump_trace_buf, NULL);
+}
+
+static void unisoc_minidump_release_ftrace_section(void)
+{
+	unregister_trace_android_vh_ftrace_oops_enter(unisoc_ftrace_oops_enter, NULL);
+	unregister_trace_android_vh_ftrace_dump_buffer(unisoc_dump_trace_buf, NULL);
+}
+
+#endif
 static int unisoc_kinfo_panic_event(struct notifier_block *self,
 				  unsigned long val, void *reason)
 {
@@ -937,6 +1070,7 @@ static int __init unisoc_dumpinfo_init(void)
 		register_trace_android_vh_ipi_stop(trace_ipi_stop, NULL);
 	minidump_add_current_stack();
 	minidump_add_irq_stack();
+	unisoc_minidump_add_ftrace_section();
 	atomic_notifier_chain_register(&panic_notifier_list,
 					&unisoc_kinfo_panic_event_nb);
 
@@ -956,6 +1090,7 @@ static void __exit unisoc_dumpinfo_exit(void)
 	minidump_release_section("meminfo", unisoc_mem_seq_buf);
 	unisoc_mem_seq_buf = NULL;
 	unisoc_free_stack_regs_stats();
+	unisoc_minidump_release_ftrace_section();
 
 	sprd_dump_io_exit();
 }

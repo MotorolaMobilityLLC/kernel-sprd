@@ -60,7 +60,7 @@ struct sprd_ssphy {
 	u32			phy_tune2;
 	u32			revision;
 	atomic_t		reset;
-	atomic_t		inited;
+	atomic_t		use_count;
 	atomic_t		susped;
 	bool			is_host;
 	bool			shutdown;
@@ -335,6 +335,10 @@ static void usb_config_4_cts(struct sprd_ssphy *phy)
 	reg |= BIT(3);
 	regmap_write(phy->ipa_usb31_dp, 0x20, reg);
 
+	/* select new CDR logic, repaire usb31 10G problem */
+	reg |= BIT(11);
+	regmap_write(phy->ipa_usb31_dp, 0x20, reg);
+
 	/*phy reg addr 0x0021 SUP_DIG_LVL_OVER_IN*/
 	reg = 0x10021;
 	regmap_write(phy->ipa_usb31_dp, 0x8, reg);
@@ -430,12 +434,16 @@ static int sprd_ssphy_init(struct usb_phy *x)
 	int	ret = 0;
 	int timeout;
 
-	if (atomic_read(&phy->inited)) {
-		dev_info(x->dev, "%s is already inited!\n", __func__);
+	sprd_usbm_mutex_lock();
+	atomic_inc(&phy->use_count);
+	if (atomic_read(&phy->use_count) > 1) {
+		dev_info(x->dev, "%s is already inited use_count[%d]\n", __func__,
+			 atomic_read(&phy->use_count));
+		sprd_usbm_mutex_unlock();
 		return 0;
 	}
-
-	sprd_usbm_mutex_lock();
+	dev_info(x->dev, "[%s] enters use_count [%d]!\n", __func__,
+		 atomic_read(&phy->use_count));
 
 	ptn38003a_mode_usb32_set(1);
 
@@ -624,8 +632,6 @@ static int sprd_ssphy_init(struct usb_phy *x)
 		MASK_PMU_APB_REG_USB31_PHY_PCS_PWR_STABLE;
 	regmap_update_bits(phy->pmu_apb, REG_PMU_APB_SNPS_PHY_PWR_STABLE, msk, reg);
 
-	atomic_set(&phy->inited, 1);
-
 	sprd_usbm_mutex_unlock();
 	return ret;
 }
@@ -636,12 +642,16 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
 	u32 msk = 0, reg = 0;
 
-	if (!atomic_read(&phy->inited)) {
-		dev_dbg(x->dev, "%s is already shut down\n", __func__);
+	sprd_usbm_mutex_lock();
+	dev_info(x->dev, "[%s] enters %d\n", __func__, atomic_read(&phy->use_count));
+	atomic_dec(&phy->use_count);
+	if (atomic_read(&phy->use_count)) {
+		dev_info(x->dev, "%s is used use_count [%d]\n", __func__,
+			 atomic_read(&phy->use_count));
+		sprd_usbm_mutex_unlock();
 		return;
 	}
 
-	sprd_usbm_mutex_lock();
 	dev_info(x->dev, "[%s]enter usbm_event_is_active(%d), usbm_hsphy_get_onoff(%d)\n",
 		__func__, sprd_usbm_event_is_active(), sprd_usbm_hsphy_get_onoff());
 
@@ -760,7 +770,6 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 
 	ptn38003a_mode_usb32_set(0);
 
-	atomic_set(&phy->inited, 0);
 	atomic_set(&phy->reset, 0);
 	sprd_usbm_mutex_unlock();
 }
@@ -1032,7 +1041,7 @@ static int sprd_ssphy_notify_connect(struct usb_phy *x,
 	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
 	u32 msk = 0, reg = 0;
 
-	if (!atomic_read(&phy->inited)) {
+	if (!atomic_read(&phy->use_count)) {
 		dev_info(x->dev, "%s phy is not inited!\n", __func__);
 		return 0;
 	}
@@ -1063,7 +1072,7 @@ static int sprd_ssphy_notify_disconnect(struct usb_phy *x,
 	struct sprd_ssphy *phy = container_of(x, struct sprd_ssphy, phy);
 	u32 msk = 0;
 
-	if (!atomic_read(&phy->inited)) {
+	if (!atomic_read(&phy->use_count)) {
 		dev_info(x->dev, "%s phy is not inited!\n", __func__);
 		return 0;
 	}

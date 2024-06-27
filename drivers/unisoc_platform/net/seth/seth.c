@@ -508,6 +508,7 @@ static int seth_tx_pkt(void *data, struct sk_buff *skb, int is_ack)
 	struct seth *seth = netdev_priv(data);
 	struct seth_init_data *pdata = seth->pdata;
 	struct ethhdr *ethh;
+	struct iphdr *iph;
 	int seth_uid = 0;
 	int ret, uid;
 	struct pdcp *p;
@@ -544,10 +545,19 @@ static int seth_tx_pkt(void *data, struct sk_buff *skb, int is_ack)
 	/* For LAN forwarding to seth, sk is null. */
 	if (skb->sk && seth_vip_enable) {
 		seth_uid = skb->sk->sk_uid.val;
+		dev_dbg(&seth->netdev->dev,
+			"%s seth_uid is %d\n",
+			__func__, seth_uid);
 
 		/* For vip data we need to transmit skb firstly in band0. */
 		for (uid = 0; uid < MAX_UID_NUM; uid++) {
 			if (seth_uid == seth_vip_uids[uid]) {
+				iph = ip_hdr(skb);
+
+				dev_dbg(&seth->netdev->dev,
+					"Vip skb %40ph ip.id 0x%x\n",
+					skb->data, htons(iph->id));
+
 				p->priority = true;
 				/* PDCP discard timer come from
 				 * cp value, cp doesn't care about
@@ -818,6 +828,8 @@ static int seth_ioctl(struct net_device *dev, struct ifreq *ifr, void __user *da
 
 	switch (cmd) {
 	case SIOC_SETH_SET_UID:
+		seth_vip_enable = true;
+
 		ret = copy_from_user(&vip_uid, data, sizeof(vip_uid));
 
 		dev_info(&dev->dev, "copy from userspace vip_uid is %d\n", vip_uid);
@@ -836,7 +848,10 @@ static int seth_ioctl(struct net_device *dev, struct ifreq *ifr, void __user *da
 	case SIOC_SETH_DEL_UID:
 		dev_info(&dev->dev, "delete all the vip uids");
 
+		seth_vip_enable = false;
+
 		memset(seth_vip_uids, 0, sizeof(seth_vip_uids));
+
 		break;
 	default:
 		dev_err(&dev->dev, "Ioctl cmd not support.\n");

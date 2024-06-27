@@ -95,7 +95,7 @@
 		};
 
 		pmic_fgu: fgu@c00 {
-			compatible = "sprd,sc27xx-fgu", "sprd,sc2730-fgu";
+			compatible = "sprd,sc27xx-fgu", "sprd,sc2730-fgu", "sprd,sprd-fgu";
 			reg = <0xc00>;
 			bat-detect-gpio = <&pmic_eic 3 GPIO_ACTIVE_HIGH>;
 			nvmem-cell-names = "fgu_calib";
@@ -128,7 +128,7 @@
 			sprd,smpl-timer-threshold = <250>;
 		};
 
-		poweroff@1820 {
+		pmic_pwroff: poweroff@1820 {
 			compatible = "sprd,sc27xx-poweroff", "sprd,sc2730-poweroff";
 			reg = <0x1820>;
 		};

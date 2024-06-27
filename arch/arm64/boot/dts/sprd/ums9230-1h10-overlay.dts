@@ -31,6 +31,7 @@
 #include "lcd/lcd_gc9305_spi_qvga.dtsi"
 #include "lcd/lcd_g40396_truly_mipi_fhd.dtsi"
 #include "lcd/lcd_nt36672e_truly_mipi_fhd_nodsc.dtsi"
+#include "lcd/lcd_ft8725_boe_mipi_fhd_nodsc.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "touchscreen/ums9230-spi3-gpio144-145-tp.dtsi"
 #include "battery/ums9230-1h10-overlay.dtsi"
@@ -490,6 +491,11 @@
 	sprd,sr-height = <1600>;
 };
 
+&lcd_ft8725_boe_mipi_fhd_nodsc {
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1600>;
+};
+
 &ddr_dfs {
 	  sprd-scene = "boost", "lcdon", "lcdoff", "camlow",
 			"camhigh", "camveryhigh", "faceid", "top", "boot-opt";
@@ -576,4 +582,8 @@
 	sprd,hw-channels1 = <2 0x18cc>, <3 0x18cc>, <13 0x1854>, <15 0x1874>,
 			<17 0x1844>, <19 0x1844>, <21 0x1864>, <30 0x1820>,
 			<32 0x197c>, <33 0x1988>, <35 0x19b8>, <39 0x19ac>;
+};
+
+&sprd_wlan {
+	sprd,enable-chr;
 };

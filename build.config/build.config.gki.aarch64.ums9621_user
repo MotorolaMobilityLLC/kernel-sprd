@@ -60,8 +60,6 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/codec/sprd/ucp1301
 ../modules/kernel5.15/audio/sprd/codec/sprd/pdm_r2p0
 ../modules/kernel5.15/audio/sprd/dai/tdm
-../modules/common/io/block
-../modules/common/io/iowait
 ../modules/common/camera/power
 ../modules/common/camera/cam_sys
 ../modules/common/camera/cpp
@@ -95,6 +93,7 @@ fi
 FILES="${FILES}
 arch/arm64/boot/dts/sprd/ums9621-base.dtb
 arch/arm64/boot/dts/sprd/ums9621-1h10-overlay.dtbo
+arch/arm64/boot/dts/sprd/ums9621-1h10_go-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9621-1h10_uob-overlay.dtbo
 vmlinux
 "

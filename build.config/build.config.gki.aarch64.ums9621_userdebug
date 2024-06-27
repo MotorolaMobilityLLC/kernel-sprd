@@ -8,10 +8,10 @@ UMS9621_BASE_CONFIG="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/gki_defconfig
                      ${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_gki_qogirn6l.fragment
                     "
 if [[ $BSP_PRODUCT_NAME_TAIL == "Skynet" ]]; then
-	UMS9621_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_${BSP_PRODUCT_NAME_TAIL}.fragment"
-elif [[ $BSP_PRODUCT_NAME_TAIL == "Syzkaller" ]]; then
 	UMS9621_BASE_CONFIG+="${FRAGMENT_CONFIG}"
-	FRAGMENT_CONFIG="${KERNEL_DIR}/arch/arm64/configs/sprd_${BSP_PRODUCT_NAME_TAIL}.fragment"
+	FRAGMENT_CONFIG="${KERNEL_DIR}/arch/arm64/configs/sprd_kasan_Skynet.fragment"
+elif [[ $BSP_PRODUCT_NAME_TAIL == "Syzkaller" ]]; then
+	UMS9621_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_Syzkaller.fragment"
 fi
 
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \
@@ -70,8 +70,6 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd/codec/sprd/ucp1301
 ../modules/kernel5.15/audio/sprd/codec/sprd/pdm_r2p0
 ../modules/kernel5.15/audio/sprd/dai/tdm
-../modules/common/io/block
-../modules/common/io/iowait
 ../modules/common/camera/power
 ../modules/common/camera/cam_sys
 ../modules/common/camera/cpp
@@ -105,6 +103,7 @@ fi
 FILES="${FILES}
 arch/arm64/boot/dts/sprd/ums9621-base.dtb
 arch/arm64/boot/dts/sprd/ums9621-1h10-overlay.dtbo
+arch/arm64/boot/dts/sprd/ums9621-1h10_go-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9621-1h10_uob-overlay.dtbo
 vmlinux
 "

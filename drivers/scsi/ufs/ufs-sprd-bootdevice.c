@@ -9,6 +9,7 @@
 
 #include "ufs.h"
 #include "ufshcd.h"
+#include "ufs-sprd.h"
 #include "ufs-sprd-bootdevice.h"
 
 struct ufs_bootdevice bootdevice;
@@ -459,7 +460,10 @@ int sprd_ufs_proc_init(struct ufs_hba *hba)
 	struct proc_dir_entry *bootdevice_dir;
 	struct proc_dir_entry *prEntry;
 	struct device *dev = hba->dev;
-	int i, node;
+	int i, node, err;
+	u8 hlth_desc_buf[QUERY_DESC_MAX_SIZE];
+
+	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 
 	bootdevice_dir = proc_mkdir("bootdevice", NULL);
 	if (!bootdevice_dir) {
@@ -478,6 +482,29 @@ int sprd_ufs_proc_init(struct ufs_hba *hba)
 			return -1;
 		}
 	}
+
+	/* Device Health Descriptor */
+	err = ufshcd_read_desc_param(hba, QUERY_DESC_IDN_HEALTH, 0, 0,
+				     hlth_desc_buf,
+				     hba->desc_size[QUERY_DESC_IDN_HEALTH]);
+	if (err) {
+		dev_err(hba->dev, "%s: Failed reading health Desc. err = %d\n",
+			__func__, err);
+		return err;
+	}
+
+	host->pre_eol_info =
+		hlth_desc_buf[HEALTH_DESC_PARAM_EOL_INFO];
+	host->life_time_est_typ_a =
+		hlth_desc_buf[HEALTH_DESC_PARAM_LIFE_TIME_EST_A];
+	host->life_time_est_typ_b =
+		hlth_desc_buf[HEALTH_DESC_PARAM_LIFE_TIME_EST_B];
+
+	dev_info(hba->dev,
+		 "elo_info:%x, life_time_estimation_a:%x, life_time_estimation_b:%x\n",
+		 host->pre_eol_info,
+		 host->life_time_est_typ_a,
+		 host->life_time_est_typ_b);
 
 	return 0;
 }

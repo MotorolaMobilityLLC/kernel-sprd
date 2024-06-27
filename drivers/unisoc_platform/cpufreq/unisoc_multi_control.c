@@ -10,6 +10,47 @@
 static LIST_HEAD(sprd_mc_list);
 static DEFINE_PER_CPU(struct sprd_multi_control *, sprd_mc_data);
 
+static ssize_t show_user_max_freq(struct cpufreq_policy *policy, char *buf)
+{
+	struct sprd_multi_control *sprd_mc;
+
+	list_for_each_entry(sprd_mc, &sprd_mc_list, node) {
+		if (sprd_mc->policy == policy)
+			return sprintf(buf, "%u\n", sprd_mc->user_max_freq);
+	}
+
+	return -EINVAL;
+}
+
+static ssize_t store_user_max_freq(struct cpufreq_policy *policy,
+							const char *buf, size_t count)
+{
+	unsigned int val = 0;
+	struct sprd_multi_control *sprd_mc;
+	int ret;
+
+	ret = kstrtouint(buf, 10, &val);
+	if (ret)
+		return -EINVAL;
+
+	list_for_each_entry(sprd_mc, &sprd_mc_list, node) {
+		if (sprd_mc->policy == policy) {
+			ret = freq_qos_update_request(&sprd_mc->qos_req, val);
+			if (ret < 0) {
+				pr_err("Failed to update freq constraint\n");
+				return -EINVAL;
+			}
+
+			sprd_mc->user_max_freq = val;
+			pr_info("Update cpu%d policy max freq constraint to %u\n",
+				policy->cpu, val);
+			return count;
+		}
+	}
+
+	return -EINVAL;
+}
+
 static ssize_t show_high_level_freq_max(struct cpufreq_policy *policy, char *buf)
 {
 	struct sprd_multi_control *sprd_mc;
@@ -239,7 +280,7 @@ static ssize_t store_high_level_freq_min(struct cpufreq_policy *policy,
 	return -EINVAL;
 }
 
-
+cpufreq_attr_rw(user_max_freq);
 cpufreq_attr_rw(high_level_freq_max);
 cpufreq_attr_rw(high_level_freq_min);
 cpufreq_attr_rw(high_level_freq_control_enable);
@@ -315,6 +356,7 @@ static void trace_cpufreq_target(void *data, struct cpufreq_policy *policy,
 }
 
 static const struct attribute *multi_control_attrs[] = {
+	&user_max_freq.attr,
 	&high_level_freq_max.attr,
 	&high_level_freq_min.attr,
 	&high_level_freq_control_enable.attr,
@@ -331,6 +373,7 @@ static void multi_control_exit(void)
 
 	unregister_trace_android_vh_cpufreq_target(trace_cpufreq_target, NULL);
 	list_for_each_entry_safe(sprd_mc, temp_sprd_mc, &sprd_mc_list, node) {
+		freq_qos_remove_request(&sprd_mc->qos_req);
 		sysfs_remove_files(&sprd_mc->policy->kobj, multi_control_attrs);
 		for_each_cpu(cpu, sprd_mc->policy->related_cpus)
 			per_cpu(sprd_mc_data, cpu) = NULL;
@@ -393,6 +436,15 @@ static int __init sprd_multi_control_init(void)
 #ifdef CONFIG_UNISOC_FIX_FREQ
 			sprd_mc->scaling_fixed_freq = 0;
 #endif
+			ret = freq_qos_add_request(&policy->constraints,
+				   &sprd_mc->qos_req, FREQ_QOS_MAX,
+				   FREQ_QOS_MAX_DEFAULT_VALUE);
+			if (ret < 0) {
+				pr_err("Failed to add freq constraint\n");
+				cpufreq_cpu_put(policy);
+				goto qos_fail;
+			}
+
 			ret = sysfs_create_files(&sprd_mc->policy->kobj, multi_control_attrs);
 			if (ret) {
 				cpufreq_cpu_put(policy);
@@ -406,6 +458,8 @@ static int __init sprd_multi_control_init(void)
 	return 0;
 
 create_files_failed:
+	freq_qos_remove_request(&sprd_mc->qos_req);
+qos_fail:
 	for_each_cpu(i, sprd_mc->policy->related_cpus)
 		per_cpu(sprd_mc_data, i) = NULL;
 	kfree(sprd_mc);

@@ -55,7 +55,7 @@
 			reg = < 0x0>;
 			enable-method = "psci";
 			sprd,freq-domain = <&cpufreq_cluster0 0>;
-			cpu-idle-states = <&CORE_PD>;
+			cpu-idle-states = <&CORE_PD &APSYS_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <100>;
 			#cooling-cells = <2>;
@@ -68,7 +68,7 @@
 			reg = <0x100>;
 			enable-method = "psci";
 			sprd,freq-domain = <&cpufreq_cluster0 0>;
-			cpu-idle-states = <&CORE_PD>;
+			cpu-idle-states = <&CORE_PD &APSYS_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <100>;
 			#cooling-cells = <2>;
@@ -80,7 +80,7 @@
 			reg = <0x200>;
 			enable-method = "psci";
 			sprd,freq-domain = <&cpufreq_cluster0 0>;
-			cpu-idle-states = <&CORE_PD>;
+			cpu-idle-states = <&CORE_PD &APSYS_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <100>;
 			#cooling-cells = <2>;
@@ -92,7 +92,7 @@
 			reg = <0x300>;
 			enable-method = "psci";
 			sprd,freq-domain = <&cpufreq_cluster0 0>;
-			cpu-idle-states = <&CORE_PD>;
+			cpu-idle-states = <&CORE_PD &APSYS_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <100>;
 			#cooling-cells = <2>;
@@ -104,7 +104,7 @@
 			reg = <0x400>;
 			enable-method = "psci";
 			sprd,freq-domain = <&cpufreq_cluster1 1>;
-			cpu-idle-states = <&CORE_PD>;
+			cpu-idle-states = <&CORE_PD &APSYS_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <153>;
 			#cooling-cells = <2>;
@@ -116,7 +116,7 @@
 			reg = <0x500>;
 			enable-method = "psci";
 			sprd,freq-domain = <&cpufreq_cluster1 1>;
-			cpu-idle-states = <&CORE_PD>;
+			cpu-idle-states = <&CORE_PD &APSYS_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <153>;
 			#cooling-cells = <2>;
@@ -128,7 +128,7 @@
 			reg = <0x600>;
 			enable-method = "psci";
 			sprd,freq-domain = <&cpufreq_cluster1 1>;
-			cpu-idle-states = <&CORE_PD>;
+			cpu-idle-states = <&CORE_PD &APSYS_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <153>;
 			#cooling-cells = <2>;
@@ -140,7 +140,7 @@
 			reg = <0x700>;
 			enable-method = "psci";
 			sprd,freq-domain = <&cpufreq_cluster1 1>;
-			cpu-idle-states = <&CORE_PD>;
+			cpu-idle-states = <&CORE_PD &APSYS_PD>;
 			capacity-dmips-mhz = <1024>;
 			dynamic-power-coefficient = <153>;
 			#cooling-cells = <2>;
@@ -156,6 +156,14 @@
 			min-residency-us = <2500>;
 			local-timer-stop;
 			arm,psci-suspend-param = <0x00010000>;
+		};
+		APSYS_PD: apsys_pd {
+			compatible = "arm,idle-state";
+			entry-latency-us = <12000>;
+			exit-latency-us = <12000>;
+			min-residency-us = <15000>;
+			local-timer-stop;
+			arm,psci-suspend-param = <0x02010000>;
 		};
 	};
 
@@ -196,6 +204,10 @@
 	psci {
 		compatible = "arm,psci-0.2";
 		method = "smc";
+	};
+
+	pnp_debug: sprd-pnp {
+		compatible = "sprd,pnp";
 	};
 
 	cpufreq_cluster0: cpufreq-cluster0 {
@@ -793,6 +805,18 @@
 
 	iram_reserved: sp-iram@d000 {
 		reg = <0xd000 0x2000>;
+	};
+
+	freq_limit: freq-limit {
+		compatible = "sprd,freq-limit";
+		sprd,device-sign = <0x3>;
+		sprd,devfreq-cells = <&gpu>;
+	};
+
+	sprd_bcl: sprd_bcl {
+		compatible = "sprd,bcl";
+		bcl-soc-thres = <4>, <3>;
+		bcl-vbat-thres = <3450>, <3350>;
 	};
 };
 

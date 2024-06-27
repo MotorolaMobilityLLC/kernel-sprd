@@ -16,6 +16,7 @@
 #ifndef __SPRD_SIP_SVC_H__
 #define __SPRD_SIP_SVC_H__
 
+#include <linux/arm-smccc.h>
 #include <linux/init.h>
 #include <linux/types.h>
 
@@ -89,7 +90,8 @@ struct sprd_sip_svc_dbg_ops {
 struct sprd_sip_svc_pwr_ops {
 	struct sprd_sip_svc_rev_info rev;
 	int (*get_wakeup_source)(u32 *major, u32 *second, u32 *thrid);
-	u64 (*get_pdbg_info)(u32 scene, u32 phase, u64 *r0, u64 *r1, u64 *r2, u64 *r3);
+	u64 (*pdbg_info_trans)(u32 scene, u32 priv0, u32 priv1, u32 priv2,
+			       struct arm_smccc_res *ret);
 };
 
 /**
@@ -124,7 +126,7 @@ struct sprd_sip_svc_dvfs_ops {
 	int (*pmic_set)(u32 cluster, u32 num);
 	int (*bin_set)(u32 cluster, u32 bin);
 	int (*version_set)(u32 cluster, u64 *ver);
-	int (*dvfs_init)(u32 flag);
+	int (*dvfs_init)(u32 flag, u32 flag2, u32 flag3);
 	int (*dvfs_debug_init)(void);
 };
 
@@ -178,6 +180,23 @@ struct sprd_sip_svc_gpu_ops {
 	int (*update_voltage_list)(u32 temp, u32 pos);
 };
 
+#if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
+/**
+ * struct sprd_sip_svc_cachedump_ops - represents the various operations
+ * provided by SPRD SIP CACHEDUMP
+ *
+ * @cachedump_func_api: execute cachedump function
+ * @mesi: 0x1001 means save INVALID and MODIFED dcache
+ * @sec: 0x1 means save no_security dcache
+ * @valid: 0x1100 means save A64+A32 in A76, but means save Invalid+T32 in A55
+ */
+struct sprd_sip_svc_cachedump_ops {
+	struct sprd_sip_svc_rev_info rev;
+
+	int (*cachedump_func_api)(uint8_t mesi, uint8_t sec, uint8_t valid);
+};
+#endif
+
 /**
  * struct sprd_sip_svc_handle - Handle returned to SPRD SIP clients for usage
  *
@@ -194,6 +213,10 @@ struct sprd_sip_svc_handle {
 	struct sprd_sip_svc_storage_ops storage_ops;
 	struct sprd_sip_svc_npu_ops npu_ops;
 	struct sprd_sip_svc_gpu_ops gpu_ops;
+
+#if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
+	struct sprd_sip_svc_cachedump_ops cachedump_ops;
+#endif
 };
 
 /**

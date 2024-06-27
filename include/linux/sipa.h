@@ -27,6 +27,9 @@
 
 #define SIPA_RECV_CMN_FIFO_NUM 8
 
+/* The number of uids from userspace about vip data */
+#define MAX_UID_NUM 9
+
 /**
  * enum sipa_term_type - names for the various IPA source / destination ID
  */
@@ -144,6 +147,26 @@ enum sipa_rm_event {
 typedef void (*sipa_rm_notify_cb)(void *user_data,
 				  enum sipa_rm_event event,
 				  unsigned long data);
+
+/**
+ * struct sipa_vip_attrs - vip stuff from userspace
+ *
+ * @vip_uids: store the uid values of the VIP
+ *		applications in the array.
+ *
+ * @MAX_UID_NUM: set to 9 defaultly.
+ *
+ * @vip_enable: when opening the VIP applications,
+ *		this node will be enabled and it
+ *		can be switched on and off manually.
+ */
+struct sipa_vip_attrs {
+	int vip_enable;
+	int vip_uids[MAX_UID_NUM];
+};
+
+struct sipa_vip_attrs *sipa_eth_vip_attrs(void);
+
 /**
  * struct sipa_rm_register_params - information needed to
  *      register IPA RM client with IPA RM

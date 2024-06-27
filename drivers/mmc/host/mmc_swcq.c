@@ -20,6 +20,8 @@
 #include <linux/fs.h>
 #include <linux/seq_file.h>
 #include <trace/hooks/mmc.h>
+#define CREATE_TRACE_POINTS
+#include "trace_mmc_swcq.h"
 
 #define SCHED_WORK(x) queue_work(system_unbound_wq, x)
 #define SCHED_PUMP_WORK(x, t) queue_delayed_work(system_unbound_wq, x, t)
@@ -44,19 +46,6 @@ static const char *const dbg_type_name[DBG_TYPE_NUM][2] = {
 	{"CMDQ_WORK_FINISH", "cmdq_sleep"},
 };
 
-struct fixup_mmc_device {
-	unsigned int manfid;
-	char name[8];
-};
-
-/* these devices currently have problems in cmdq mode */
-static struct fixup_mmc_device fixup_device[] = {
-	{CID_MANFID_SAMSUNG, "GX6BAB"},
-	{CID_MANFID_SAMSUNG, "GX6BMB"},
-	{CID_MANFID_SAMSUNG, "QE63BB"},
-	{CID_MANFID_SAMSUNG, "QE63MB"},
-	{CID_MANFID_HYNIX, "HBG4a2"},
-};
 /**************debug log*******************/
 #ifdef CONFIG_SPRD_DEBUG
 #define SWCQ_ARRAY_SIZE 14	/* 2^(14-2) = 4096ms */
@@ -1021,7 +1010,7 @@ static void mmc_swcq_pump_requests(struct mmc_swcq *swcq)
 		return;
 	}
 
-	if (!swcq->timer_running && swcq->cmdq_support) {
+	if (!swcq->timer_running && swcq->cmdq_support && swcq->switch_en) {
 		swcq->timer_running = true;
 		mod_timer(&swcq->check_timer, jiffies + msecs_to_jiffies(swcq->timeout));
 	}
@@ -1783,6 +1772,8 @@ bool mmc_swcq_finalize_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	struct mmc_swcq *swcq = mmc->cqe_private;
 	unsigned long flags;
 
+	trace_mmc_request_end(mmc, mrq);
+
 	spin_lock_irqsave(&swcq->lock, flags);
 	if (swcq->enabled && (atomic_read(&swcq->work_on) ||
 	atomic_read(&swcq->cmdq_cnt) || atomic_read(&swcq->busy))) {
@@ -1884,6 +1875,7 @@ static int mmc_swcq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	struct mmc_swcq *swcq = mmc->cqe_private;
 	int tag = mrq->tag;
 	unsigned long flags;
+	struct mmc_blk_data *main_md = NULL;
 
 	spin_lock_irqsave(&swcq->lock, flags);
 	if (!swcq->enabled) {
@@ -1916,6 +1908,13 @@ static int mmc_swcq_request(struct mmc_host *mmc, struct mmc_request *mrq)
 	dbg_add_host_log(mmc, MMC_SWCQ_RQ, 0, 0, mrq);
 
 	spin_unlock_irqrestore(&swcq->lock, flags);
+
+	if (mmc->card != NULL) {
+		main_md = dev_get_drvdata(&mmc->card->dev);
+		if (main_md != NULL && main_md->disk != NULL)
+			trace_mmc_request_begin(mmc, main_md->disk, mrq);
+	}
+
 	mmc_swcq_pump_requests(swcq);
 
 	return 0;
@@ -1982,18 +1981,6 @@ static void mmc_swcq_disable(struct mmc_host *mmc)
 	spin_unlock_irqrestore(&swcq->lock, flags);
 }
 
-static bool fixup_device_judge(struct mmc_card *card)
-{
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(fixup_device); i++)
-		if (card->cid.manfid == fixup_device[i].manfid &&
-			!strcmp(card->cid.prod_name, fixup_device[i].name))
-			return true;
-
-	return false;
-}
-
 /*mmc-card-init, cqe_enable, add card, mmc_init_queue */
 static int mmc_swcq_enable(struct mmc_host *mmc, struct mmc_card *card)
 {
@@ -2005,11 +1992,9 @@ static int mmc_swcq_enable(struct mmc_host *mmc, struct mmc_card *card)
 	if (!swcq->initialized && card) {
 		swcq->initialized = true;
 		swcq->cmdq_depth = card->ext_csd.cmdq_depth;
-		swcq->cmdq_support = fixup_device_judge(card) ?
-			false : card->ext_csd.cmdq_support;
+		swcq->cmdq_support = card->ext_csd.cmdq_support;
 		if (!swcq->cmdq_support)
-			pr_err("%s : emmc not support CMDQ! manfid= 0x%06x, name= %s\n",
-				mmc_hostname(mmc), card->cid.manfid, card->cid.prod_name);
+			pr_info("%s: emmc not support CMDQ!\n", mmc_hostname(mmc));
 		card->reenable_cmdq = false;
 	}
 
@@ -2178,7 +2163,8 @@ out:
 
 	atomic_set(&swcq->random_cnt, 0);
 	atomic_set(&swcq->sequential_cnt, 0);
-	mod_timer(&swcq->check_timer, jiffies + msecs_to_jiffies(swcq->timeout));
+	if (swcq->switch_en)
+		mod_timer(&swcq->check_timer, jiffies + msecs_to_jiffies(swcq->timeout));
 
 }
 
@@ -2279,14 +2265,54 @@ static const struct proc_ops swcq_cmdqmode_fops = {
 	.proc_release = single_release,
 };
 
+static int sprd_swcq_switch_en_show(struct seq_file *m, void *v)
+{
+	struct mmc_swcq *swcq = g_swcq;
+
+	seq_printf(m, "switch_en: %d\n", swcq->switch_en);
+
+	return 0;
+}
+
+static ssize_t sprd_swcq_switch_en_write(struct file *file,
+		const char __user *buffer, size_t count, loff_t *pos)
+{
+	struct mmc_swcq *swcq = g_swcq;
+	char val;
+
+	if (count > 0) {
+		if (get_user(val, buffer))
+			return -EFAULT;
+
+		swcq->switch_en = (val == '1') ? true : false;
+	}
+
+	return count;
+}
+
+static int sprd_swcq_switch_en_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sprd_swcq_switch_en_show, inode->i_private);
+}
+
+static const struct proc_ops swcq_switch_en_fops = {
+	.proc_open = sprd_swcq_switch_en_open,
+	.proc_read = seq_read,
+	.proc_write = sprd_swcq_switch_en_write,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
+};
+
 static const struct proc_ops *proc_fops_list[] = {
 	&swcq_cmd_fops,
 	&swcq_cmdqmode_fops,
+	&swcq_switch_en_fops,
 };
 
 static char * const sprd_emmc_node_info[] = {
 	"cmd_history",
-	"cmdq_mode"
+	"cmdq_mode",
+	"switch_en"
 };
 
 int sprd_create_swcq_proc_init(void)
@@ -2452,6 +2478,7 @@ int mmc_swcq_init(struct mmc_swcq *swcq, struct mmc_host *mmc)
 	swcq->timer_running = false;
 	swcq->mode_need_change = true;
 	swcq->pump_busy = false;
+	swcq->switch_en = true;
 	swcq->recovery_cnt = 0;
 	swcq->r1_address_error = 0;
 	swcq->r1_block_len_error = 0;

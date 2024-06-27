@@ -39,6 +39,12 @@
 #define PageSkipedLock(page) test_bit(PG_skiped_lock, &(page)->flags)
 #define TestClearPageSkipedLock(page) test_and_clear_bit(PG_skiped_lock, &(page)->flags)
 
+#define PG_migrating (__NR_PAGEFLAGS + 4)
+#define SetPageMigrating(page) set_bit(PG_migrating, &(page)->flags)
+#define TestPageMigrating(page) test_bit(PG_migrating, &(page)->flags)
+#define TestClearPageMigrating(page) test_and_clear_bit(PG_migrating, &(page)->flags)
+#define ClearPageMigrating(page) clear_bit(PG_migrating, &(page)->flags)
+
 bool async_shrink_lruvec_setup;
 static struct task_struct *shrink_lruvec_tsk;
 static atomic_t shrink_lruvec_runnable = ATOMIC_INIT(0);
@@ -214,6 +220,16 @@ static void page_trylock_set(void *data, struct page *page)
 	SetPageNoLockDelay(page);
 }
 
+static void page_migrating_set(void *data, struct page *page)
+{
+	SetPageMigrating(page);
+}
+
+static void page_migrating_clear(void *data, struct page *page)
+{
+	ClearPageMigrating(page);
+}
+
 static void page_trylock_clear(void *data, struct page *page)
 {
 	ClearPageNoLockDelay(page);
@@ -240,6 +256,9 @@ static void do_page_trylock(void *data, struct page *page, struct rw_semaphore *
 {
 	*success = false;
 	if (unlikely(!async_shrink_lruvec_setup))
+		return;
+
+	if (TestPageMigrating(page))
 		return;
 
 	if (TestClearPageNoLockDelay(page)) {
@@ -286,6 +305,9 @@ int kshrink_lruvec_init(void)
 	register_trace_android_vh_page_trylock_clear(page_trylock_clear, NULL);
 	register_trace_android_vh_page_trylock_get_result(page_trylock_get_result, NULL);
 	register_trace_android_vh_do_page_trylock(do_page_trylock, NULL);
+	register_trace_android_vh_set_page_migrating(page_migrating_set, NULL);
+	register_trace_android_vh_clear_page_migrating(page_migrating_clear, NULL);
+
 	init_waitqueue_head(&shrink_lruvec_wait);
 	spin_lock_init(&l_inactive_lock);
 	shrink_lruvec_tsk = kthread_run(shrink_lruvecd, pgdat, "kshrink_lruvecd");
@@ -309,4 +331,6 @@ void kshrink_lruvec_exit(void)
 	unregister_trace_android_vh_page_trylock_clear(page_trylock_clear, NULL);
 	unregister_trace_android_vh_page_trylock_set(page_trylock_set, NULL);
 	unregister_trace_android_vh_handle_failed_page_trylock(handle_failed_page_trylock, NULL);
+	unregister_trace_android_vh_set_page_migrating(page_migrating_set, NULL);
+	unregister_trace_android_vh_clear_page_migrating(page_migrating_clear, NULL);
 }

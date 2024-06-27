@@ -481,6 +481,8 @@ static int bq2597x_set_batovp_alarm_th(struct bq2597x_charger_info *bq, int thre
 
 	if (threshold < BQ2597X_BAT_OVP_ALM_BASE)
 		threshold = BQ2597X_BAT_OVP_ALM_BASE;
+	else if (threshold > BQ2597X_BAT_OVP_ALM_MAX)
+		threshold = BQ2597X_BAT_OVP_ALM_MAX;
 
 	val = (threshold - BQ2597X_BAT_OVP_ALM_BASE) / BQ2597X_BAT_OVP_ALM_LSB;
 
@@ -587,6 +589,8 @@ static int bq2597x_set_busovp_alarm_th(struct bq2597x_charger_info *bq, int thre
 
 	if (threshold < BQ2597X_BUS_OVP_ALM_BASE)
 		threshold = BQ2597X_BUS_OVP_ALM_BASE;
+	else if (threshold > BQ2597X_BUS_OVP_ALM_MAX)
+		threshold = BQ2597X_BUS_OVP_ALM_MAX;
 
 	val = (threshold - BQ2597X_BUS_OVP_ALM_BASE) / BQ2597X_BUS_OVP_ALM_LSB;
 
@@ -615,6 +619,8 @@ static int bq2597x_set_busocp_th(struct bq2597x_charger_info *bq, int threshold)
 
 	if (threshold < BQ2597X_BUS_OCP_BASE)
 		threshold = BQ2597X_BUS_OCP_BASE;
+	else if (threshold > BQ2597X_BUS_OCP_MAX)
+		threshold = BQ2597X_BUS_OCP_MAX;
 
 	val = (threshold - BQ2597X_BUS_OCP_BASE) / BQ2597X_BUS_OCP_LSB;
 
@@ -644,6 +650,8 @@ static int bq2597x_set_busocp_alarm_th(struct bq2597x_charger_info *bq, int thre
 
 	if (threshold < BQ2597X_BUS_OCP_ALM_BASE)
 		threshold = BQ2597X_BUS_OCP_ALM_BASE;
+	else if (threshold > BQ2597X_BUS_OCP_ALM_MAX)
+		threshold = BQ2597X_BUS_OCP_ALM_MAX;
 
 	val = (threshold - BQ2597X_BUS_OCP_ALM_BASE) / BQ2597X_BUS_OCP_ALM_LSB;
 

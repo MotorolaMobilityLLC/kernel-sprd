@@ -11,6 +11,7 @@
 #include <linux/mfd/sc27xx-pmic.h>
 #include <linux/of_device.h>
 #include <linux/of_platform.h>
+#include <linux/pm_wakeirq.h>
 #include <linux/regmap.h>
 #include <linux/spi/spi.h>
 #include <uapi/linux/usb/charger.h>
@@ -41,6 +42,9 @@
 #define SPRD_UMP9620_SLAVE_ID           0x0
 #define SPRD_UMP9621_SLAVE_ID           0x8000
 #define SPRD_UMP9622_SLAVE_ID           0xc000
+#define SPRD_UIP8520_IRQ_BASE           0x80
+#define SPRD_UIP8520_IRQ_NUMS           12
+#define SPRD_UIP8520_SLAVE_ID           0x14000
 
 #define SPRD_PMIC_EIC_IE		0x18
 #define SPRD_PMIC_EIC_RIS		0x1c
@@ -50,6 +54,7 @@
 #define SPRD_SC2721_EIC_BASE		0x280
 #define SPRD_SC2720_EIC_BASE		0x280
 #define SPRD_UMP9620_EIC_BASE		0x280
+#define SPRD_UIP8520_EIC_BASE		0x280
 
 /* PMIC charger detection definition */
 #define SPRD_PMIC_CHG_DET_DELAY_US	200000
@@ -129,6 +134,13 @@ static const struct sprd_pmic_data ump9620_data = {
 	.irq_base = SPRD_UMP9620_IRQ_BASE,
 	.eic_base = SPRD_UMP9620_EIC_BASE,
 	.num_irqs = SPRD_UMP9620_IRQ_NUMS,
+};
+
+static const struct sprd_pmic_data uip8520_data = {
+	.slave_id = SPRD_UIP8520_SLAVE_ID,
+	.irq_base = SPRD_UIP8520_IRQ_BASE,
+	.eic_base = SPRD_UIP8520_EIC_BASE,
+	.num_irqs = SPRD_UIP8520_IRQ_NUMS,
 };
 
 static const struct sprd_pmic_data ump9621_data = {
@@ -242,24 +254,19 @@ static int sprd_pmic_spi_write(void *context, const void *data, size_t count)
 	struct spi_device *spi = to_spi_device(dev);
 	const struct sprd_pmic_data *pdata;
 	int ret;
-	u32 mdata1[2];
-	u32 *pmdata2;
+	u32 mdata[2];
 
+	/* The pmic only supports operation of 16bit data and 16bit addr*/
+	if (count > 8) {
+		dev_err(&spi->dev, "data count exceed!\n");
+		return -EINVAL;
+	}
 	pdata = ((struct sprd_pmic *)spi_get_drvdata(spi))->pdata;
 
-	if (count <= 8) {
-		memcpy(mdata1, data, count);
-		*mdata1 += pdata->slave_id;
-		ret = spi_write(spi, (const void *)mdata1, count);
-	} else {
-		pmdata2 = kzalloc(count, GFP_KERNEL);
-		if (!pmdata2)
-			return -ENOMEM;
-		memcpy(pmdata2, data, count);
-		*pmdata2 += pdata->slave_id;
-		ret = spi_write(spi, (const void *)pmdata2, count);
-		kfree(pmdata2);
-	}
+	mdata[0] = *((u32 *)data);
+	mdata[1] = *((u32 *)data + 1);
+	*mdata += pdata->slave_id;
+	ret = spi_write(spi, (const void *)mdata, count);
 
 	if (ret)
 		pr_err("pmic mfd write failed!\n");
@@ -309,6 +316,39 @@ static const struct regmap_config sprd_pmic_config = {
 	.max_register = 0xffff,
 };
 
+static void sprd_pmic_minidump_init(struct spi_device *spi)
+{
+	int ret;
+
+	sprd_pmicint_buf = devm_kzalloc(&spi->dev, SPRD_PRINT_BUF_LEN, GFP_KERNEL);
+	if (IS_ERR_OR_NULL(sprd_pmicint_buf))
+		goto error_sprd_pmicint_buf;
+
+	sprd_pmicint_seq_buf = devm_kzalloc(&spi->dev, sizeof(*sprd_pmicint_seq_buf), GFP_KERNEL);
+	if (IS_ERR_OR_NULL(sprd_pmicint_seq_buf))
+		goto error_sprd_pmicint_seq_buf;
+
+	ret = minidump_save_extend_information("sprd-pmic-spi",
+					       __pa((unsigned long)(sprd_pmicint_buf)),
+					       __pa((unsigned long)(sprd_pmicint_buf) +
+						    SPRD_PRINT_BUF_LEN));
+
+	if (ret)
+		goto error_sprd_pmicint_minidump;
+
+	seq_buf_init(sprd_pmicint_seq_buf, sprd_pmicint_buf, SPRD_PRINT_BUF_LEN);
+	return;
+
+error_sprd_pmicint_minidump:
+	devm_kfree(&spi->dev, sprd_pmicint_seq_buf);
+error_sprd_pmicint_seq_buf:
+	sprd_pmicint_seq_buf = NULL;
+	devm_kfree(&spi->dev, sprd_pmicint_buf);
+error_sprd_pmicint_buf:
+	sprd_pmicint_buf = NULL;
+	dev_err(&spi->dev, "alloc sprd-pmic-spi fail\n");
+}
+
 static int sprd_pmic_probe(struct spi_device *spi)
 {
 	struct sprd_pmic *ddata;
@@ -337,29 +377,8 @@ static int sprd_pmic_probe(struct spi_device *spi)
 	ddata->dev = &spi->dev;
 	ddata->pdata = pdata;
 
-	if (pdata->irq_base) {
-		sprd_pmicint_buf = devm_kzalloc(&spi->dev, SPRD_PRINT_BUF_LEN,
-				GFP_KERNEL);
-		if (!sprd_pmicint_buf)
-			ret = -ENOMEM;
-
-		sprd_pmicint_seq_buf = devm_kzalloc(&spi->dev, sizeof(*sprd_pmicint_seq_buf),
-				GFP_KERNEL);
-		if (!sprd_pmicint_seq_buf)
-			ret = -ENOMEM;
-
-		ret = minidump_save_extend_information("sprd-pmic-spi",
-				__pa((unsigned long)(sprd_pmicint_buf)),
-				__pa((unsigned long)(sprd_pmicint_buf) +
-					SPRD_PRINT_BUF_LEN));
-
-		if (ret) {
-			dev_err(&spi->dev, "alloc sprd-pmic-spi fail\n");
-			kfree(sprd_pmicint_seq_buf);
-		}
-
-		seq_buf_init(sprd_pmicint_seq_buf, sprd_pmicint_buf, SPRD_PRINT_BUF_LEN);
-	}
+	if (pdata->irq_base)
+		sprd_pmic_minidump_init(spi);
 
 	if (spi->irq) {
 		ddata->irq = spi->irq;
@@ -385,7 +404,7 @@ static int sprd_pmic_probe(struct spi_device *spi)
 			ddata->irqs[i].mask = BIT(i);
 
 		ret = devm_regmap_add_irq_chip(&spi->dev, ddata->regmap, ddata->irq, IRQF_ONESHOT, 0,
-			&ddata->irq_chip, &ddata->irq_data);
+					       &ddata->irq_chip, &ddata->irq_data);
 		if (ret) {
 			dev_err(&spi->dev, "Failed to add PMIC irq chip %d\n", ret);
 			return ret;
@@ -398,33 +417,22 @@ static int sprd_pmic_probe(struct spi_device *spi)
 		return ret;
 	}
 
-	device_init_wakeup(&spi->dev, true);
+	if (ddata->irq) {
+		device_init_wakeup(&spi->dev, true);
+		dev_pm_set_wake_irq(&spi->dev, ddata->irq);
+	}
+
 	return 0;
 }
 
-#ifdef CONFIG_PM_SLEEP
-static int sprd_pmic_suspend(struct device *dev)
+static int sprd_pmic_remove(struct spi_device *spi)
 {
-	struct sprd_pmic *ddata = dev_get_drvdata(dev);
-
-	if (device_may_wakeup(dev))
-		enable_irq_wake(ddata->irq);
-
+	if (device_may_wakeup(&spi->dev)) {
+		dev_pm_clear_wake_irq(&spi->dev);
+		device_init_wakeup(&spi->dev, false);
+	}
 	return 0;
 }
-
-static int sprd_pmic_resume(struct device *dev)
-{
-	struct sprd_pmic *ddata = dev_get_drvdata(dev);
-
-	if (device_may_wakeup(dev))
-		disable_irq_wake(ddata->irq);
-
-	return 0;
-}
-#endif
-
-static SIMPLE_DEV_PM_OPS(sprd_pmic_pm_ops, sprd_pmic_suspend, sprd_pmic_resume);
 
 static const struct of_device_id sprd_pmic_match[] = {
 	{ .compatible = "sprd,sc2720", .data = &sc2720_data },
@@ -434,6 +442,7 @@ static const struct of_device_id sprd_pmic_match[] = {
 	{ .compatible = "sprd,ump9620", .data = &ump9620_data },
 	{ .compatible = "sprd,ump9621", .data = &ump9621_data },
 	{ .compatible = "sprd,ump9622", .data = &ump9622_data },
+	{ .compatible = "sprd,uip8520", .data = &uip8520_data },
 	{},
 };
 MODULE_DEVICE_TABLE(of, sprd_pmic_match);
@@ -446,6 +455,7 @@ static const struct spi_device_id sprd_pmic_spi_ids[] = {
 	{ .name = "ump9620", .driver_data = (unsigned long)&ump9620_data },
 	{ .name = "ump9621", .driver_data = (unsigned long)&ump9621_data },
 	{ .name = "ump9622", .driver_data = (unsigned long)&ump9622_data },
+	{ .name = "uip8520", .driver_data = (unsigned long)&uip8520_data },
 	{},
 };
 MODULE_DEVICE_TABLE(spi, sprd_pmic_spi_ids);
@@ -454,9 +464,9 @@ static struct spi_driver sprd_pmic_driver = {
 	.driver = {
 		.name = "sc27xx-pmic",
 		.of_match_table = sprd_pmic_match,
-		.pm = &sprd_pmic_pm_ops,
 	},
 	.probe = sprd_pmic_probe,
+	.remove = sprd_pmic_remove,
 	.id_table = sprd_pmic_spi_ids,
 };
 

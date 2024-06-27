@@ -88,7 +88,10 @@ struct sprd_hsphy {
 	atomic_t		inited;
 	bool			is_host;
 	bool			shutdown;
-	bool			avdd1v8_chipsleep_off;
+	bool			avdd1v8_pd_en_changed;
+	bool			avdd1v2_pd_en_changed;
+	bool			dcdcmm_pd_en_changed;
+	bool			dcdcgpu_pd_en_changed;
 	struct iio_channel	*dp;
 	struct iio_channel	*dm;
 };
@@ -274,6 +277,95 @@ static int sprd_hostphy_set(struct usb_phy *x, int on)
 	return ret;
 }
 
+static int sprd_hsphy_set_pmic_pd_en(struct usb_phy *x, bool on)
+{
+	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
+	u32 reg = 0;
+
+	if (!atomic_read(&phy->inited)) {
+		dev_dbg(x->dev, "%s, phy is already shut down, no need to set pmic pd!\n",
+				__func__);
+		return -1;
+	}
+
+	if (!phy->pmic) {
+		dev_dbg(x->dev, "pmic is null, cannot set pmic avdd18/avdd12/dcdcmm/dcdcgpu!\n");
+		return -1;
+	}
+
+	dev_info(x->dev, "%s, bool on: %d\n", __func__, on);
+
+	if (on) {
+		/* Pmic + ufs : ldo set avdd18/avdd12/dcdcmodme/dcdcgpu pd_en off
+		 * pmic + emmc: ldo set avdd18/avdd12/dcdcmodme/dcdcgpu pd_en on
+		 *
+		 * Pmic + emmc board system set avdd18/avdd12/dcdcmodme/dcdcgpu power down
+		 * while system enter into suspend.
+		 */
+
+		/* Lowpower usbphy rely on avdd18 to remote wakeup.
+		 * If avdd1v8 pd_en is on, set avdd1v8 pd_en off.
+		 */
+		regmap_read(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1, &reg);
+		if (reg & MASK_ANA_SLP_LDO_AVDD18_PD_EN) {
+			phy->avdd1v8_pd_en_changed = true;
+			regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+		}
+
+		/* Power on avdd18 cause leakage of electricity,which is ums9620 defect.
+		 * To solve the soc problem, power on avdd12/dcdcmodme/dcdcgpu as workaround.
+		 */
+		/* Set avdd12/dcdcmm/dcdcgpu power on while suspend */
+		if (reg & MASK_ANA_SLP_LDO_AVDD12_PD_EN) {
+			phy->avdd1v2_pd_en_changed = true;
+			regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD12_PD_EN, ~MASK_ANA_SLP_LDO_AVDD12_PD_EN);
+		}
+
+		if (reg & MASK_ANA_SLP_DCDCMODEM_PD_EN) {
+			phy->dcdcmm_pd_en_changed = true;
+			regmap_update_bits(phy->pmic, REG_ANA_SLP_DCDC_PD_CTRL,
+				MASK_ANA_SLP_DCDCMODEM_PD_EN, ~MASK_ANA_SLP_DCDCMODEM_PD_EN);
+		}
+
+		regmap_read(phy->pmic, REG_ANA_SLP_DCDC_PD_CTRL, &reg);
+		if (reg & MASK_ANA_SLP_DCDCGPU_PD_EN) {
+			phy->dcdcgpu_pd_en_changed = true;
+			regmap_update_bits(phy->pmic, REG_ANA_SLP_DCDC_PD_CTRL,
+				MASK_ANA_SLP_DCDCGPU_PD_EN, ~MASK_ANA_SLP_DCDCGPU_PD_EN);
+		}
+	} else {
+		/*clear avdd18/avdd12/dcdcmodem/dcdcgpu pd_en */
+		if (phy->avdd1v8_pd_en_changed) {
+			regmap_update_bits(phy->pmic,
+				REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
+			phy->avdd1v8_pd_en_changed = 0;
+		}
+		if (phy->avdd1v2_pd_en_changed) {
+			regmap_update_bits(phy->pmic,
+				REG_ANA_SLP_LDO_PD_CTRL1,
+				MASK_ANA_SLP_LDO_AVDD12_PD_EN, MASK_ANA_SLP_LDO_AVDD12_PD_EN);
+			phy->avdd1v2_pd_en_changed = 0;
+		}
+		if (phy->dcdcmm_pd_en_changed) {
+			regmap_update_bits(phy->pmic,
+				REG_ANA_SLP_DCDC_PD_CTRL,
+				MASK_ANA_SLP_DCDCMODEM_PD_EN, MASK_ANA_SLP_DCDCMODEM_PD_EN);
+			phy->dcdcmm_pd_en_changed = 0;
+		}
+		if (phy->dcdcgpu_pd_en_changed) {
+			regmap_update_bits(phy->pmic,
+				REG_ANA_SLP_DCDC_PD_CTRL,
+				MASK_ANA_SLP_DCDCGPU_PD_EN, MASK_ANA_SLP_DCDCGPU_PD_EN);
+			phy->dcdcgpu_pd_en_changed = 0;
+		}
+	}
+
+	return 0;
+}
+
 static int sprd_hsphy_init(struct usb_phy *x)
 {
 	struct sprd_hsphy *phy = container_of(x, struct sprd_hsphy, phy);
@@ -332,11 +424,6 @@ static int sprd_hsphy_init(struct usb_phy *x)
 		REG_ANLG_PHY_G2_ANALOG_USB20_USB20_UTMI_CTL1,
 		msk, reg);
 
-	/*if avdd1v8 is off on chipsleep, set avdd1v8 force on for usb lowpower */
-	if (phy->avdd1v8_chipsleep_off)
-		regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
-				MASK_ANA_SLP_LDO_AVDD18_PD_EN, ~MASK_ANA_SLP_LDO_AVDD18_PD_EN);
-
 	if (!atomic_read(&phy->reset)) {
 		sprd_hsphy_reset_core(phy);
 		atomic_set(&phy->reset, 1);
@@ -356,10 +443,6 @@ static void sprd_hsphy_shutdown(struct usb_phy *x)
 		dev_dbg(x->dev, "%s is already shut down\n", __func__);
 		return;
 	}
-	/*if avdd1v8 is off on chipsleep, clear avdd1v8 force on for usb lowpower */
-	if (phy->avdd1v8_chipsleep_off)
-		regmap_update_bits(phy->pmic, REG_ANA_SLP_LDO_PD_CTRL1,
-				MASK_ANA_SLP_LDO_AVDD18_PD_EN, MASK_ANA_SLP_LDO_AVDD18_PD_EN);
 
 	/* usb vbus */
 	msk = MASK_AON_APB_OTG_VBUS_VALID_PHYREG;
@@ -809,9 +892,6 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 		goto platform_device_err;
 	}
 
-	phy->avdd1v8_chipsleep_off = device_property_read_bool(dev,
-					"avdd1v8-chipsleep-off");
-
 	calimode = sprd_hsphy_cali_mode();
 	if (calimode) {
 		phy->vdd_vol = FULLSPEED_USB33_TUNE;
@@ -893,6 +973,7 @@ static int sprd_hsphy_probe(struct platform_device *pdev)
 	phy->phy.type = USB_PHY_TYPE_USB2;
 	phy->phy.vbus_nb.notifier_call = sprd_hsphy_vbus_notify;
 	phy->phy.charger_detect = sprd_hsphy_charger_detect;
+	phy->phy.set_wakeup = sprd_hsphy_set_pmic_pd_en;
 	otg->usb_phy = &phy->phy;
 	phy->ops.dpdm_switch_to_phy = sprd_hsphy_dpdm_switch_to_phy;
 	phy->ops.get_dpdm_from_phy = sprd_hsphy_get_dpdm_from_phy;

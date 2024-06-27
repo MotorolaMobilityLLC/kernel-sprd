@@ -14,12 +14,10 @@
 		vdd-mphy-supply = <&vddufs1v2>;
 		vdd-hba-supply = <&vddsram>;
 		clock-names = "ufs_eb",
-			"ufs_cfg_eb",
 			"ufs_hclk",
 			"ufs_hclk_source",
 			"ufs_rco_100M";
 		clocks = <&apahb_gate CLK_UFS_EB>,
-			<&apahb_gate CLK_UFS_CFG_EB>,
 			<&aonapb_clk CLK_UFS_AON>,
 			<&g5l_pll CLK_TGPLL_256M>,
 			<&rco_100m>;
@@ -28,7 +26,6 @@
 		resets = <&apahb_gate RESET_AP_AHB_UFS_SOFT_RST>,
 			<&aonapb_gate RESET_AON_APB_UFSDEV_SOFT_RST>;
 		freq-table-hz = <0 0>,
-			<0 0>,
 			<0 0>,
 			<0 0>,
 			<0 0>;
@@ -41,6 +38,7 @@
 			MASK_AON_APB_UFSDEV_REFCLK_EN>;
 		usb31pllv_ref2mphy_en = <&aon_apb_regs  REG_AON_APB_USB31PLL_CTRL_MISC
 			MASK_AON_APB_REG_ANALOG_USB31PLLV_REF2MPHY_EN>;
+		ufs_cfg_eb = <&ap_ahb_regs REG_AP_AHB_AHB_EB1 MASK_AP_AHB_UFS_CFG_EB>;
 
 		nvmem-cells = <&ufs_cali_lane1>, <&ufs_cali_lane0>;
 		nvmem-cell-names = "ufs_cali_lane1", "ufs_cali_lane0";

@@ -31,6 +31,7 @@
 #include "lcd/lcd_nt36672c_truly_mipi_fhd.dtsi"
 #include "lcd/amoled_g3655fp103ff_visionox_mipi_fhd.dtsi"
 #include "lcd/lcd_td4320_truly_mipi_fhd.dtsi"
+#include "lcd/lcd_ft8725_boe_mipi_fhd.dtsi"
 #include "lcd/lcd_dummy_mipi.dtsi"
 #include "reserved-memory/ums9621-1h10-overlay.dtsi"
 #include "touchscreen/ums9621-spi1-gpio13-14-tp.dtsi"
@@ -95,7 +96,8 @@
 
 				wlan {
 					compatible = "sprd,sc2355-sdio-wifi";
-					enable-n79;
+					sprd,enable-n79;
+					sprd,enable-chr;
 				};
 
 				gnss {
@@ -145,10 +147,9 @@
 			};
 
 			skin_sensor: skin-sensor {
-				compatible = "sprd, skin-thermal";
+				compatible = "sprd,virt-thm";
 				#thermal-sensor-cells = <0>;
-				sensor-names = "front-thmzone",
-						"back-thmzone";
+				thmzone-cells = <&front_thmzone>, <&back_thmzone>;
 			};
 
 			sprd-uid {
@@ -462,6 +463,17 @@
 &lcd_nt36672e_truly_mipi_fhd {
 	sprd,reset-off-sequence = <1 5>;
 
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1600>;
+
+	sprd,phy-bit-clock = <1106000>;
+	sprd,dpi-clk-pixelpll;
+	sprd,dpi-clk-div = <0>;
+	sprd,video-lp-cmd-enable = <0>;
+	sprd,hporch-lp-disable = <0>;
+};
+
+&lcd_ft8725_boe_mipi_fhd {
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
 

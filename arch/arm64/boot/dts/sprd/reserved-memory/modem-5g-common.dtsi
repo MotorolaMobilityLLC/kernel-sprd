@@ -82,6 +82,11 @@
 			reg = <0x0 0xbe000000 0x0 0x009e4000>;
 		};
 
+		/* Only for debug version, will be removed if user version */
+		cachedump_reserved: cachedump-mem@bb200000 {
+			reg = <0x0 0xbb200000 0x0 0x00251000>; /* 2372k */
+		};
+
 		/* Only for userdebug, will be removed in user mode by lk */
 		uboot_reserved: sysdump-uboot@bf000000 {
 			reg = <0x0 0xbf000000 0x0 0x01000000>;

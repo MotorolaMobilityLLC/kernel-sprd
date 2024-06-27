@@ -81,6 +81,7 @@ enum cm_event_types {
 	CM_EVENT_INT,
 	CM_EVENT_BATT_OVERVOLTAGE,
 	CM_EVENT_IGNORE_HARD_RESET,
+	CM_EVENT_BATT_AGING,
 	CM_EVENT_OTHERS,
 };
 
@@ -116,11 +117,13 @@ enum cm_charge_status {
 enum cm_fast_charge_command {
 	CM_FAST_CHARGE_NORMAL_CMD = 1,
 	CM_FAST_CHARGE_OVP_ENABLE_CMD,
+	CM_FAST_CHARGE_MAX_OVP_ENABLE_CMD,
 	CM_FAST_CHARGE_OVP_DISABLE_CMD,
 	CM_PPS_CHARGE_ENABLE_CMD,
 	CM_PPS_CHARGE_DISABLE_CMD,
 	CM_POWER_PATH_ENABLE_CMD,
 	CM_POWER_PATH_DISABLE_CMD,
+	CM_BUCK_MAX_TERMINA_VOL,
 };
 
 enum cm_present_command {
@@ -319,7 +322,7 @@ struct cm_ir_compensation {
 };
 
 /*
- * struct cm_fault_status
+ * struct cm_cp_fault_status
  * @bat_ovp_fault: record battery over voltage fault event
  * @bat_ocp_fault: record battery over current fault event
  * @bus_ovp_fault: record bus over voltage fault event
@@ -330,7 +333,7 @@ struct cm_ir_compensation {
  * @vbus_error_lo: record the bus voltage is low event
  * @vbus_error_hi: record the bus voltage is high event
  */
-struct cm_fault_status {
+struct cm_cp_fault_status {
 	bool bat_ovp_fault;
 	bool bat_ocp_fault;
 	bool bus_ovp_fault;
@@ -343,7 +346,7 @@ struct cm_fault_status {
 };
 
 /*
- * struct cm_alarm_status
+ * struct cm_cp_alarm_status
  * @bat_ovp_alarm: record battery over voltage alarm event
  * @bat_ocp_alarm: record battery over current alarm event
  * @bus_ovp_alarm: record bus over voltage alarm event
@@ -353,7 +356,7 @@ struct cm_fault_status {
  * @bus_therm_alarm: record bus over temperature alarm event
  * @die_therm_alarm: record die over temperature alarm event
  */
-struct cm_alarm_status {
+struct cm_cp_alarm_status {
 	bool bat_ovp_alarm;
 	bool bat_ocp_alarm;
 	bool bus_ovp_alarm;
@@ -362,6 +365,64 @@ struct cm_alarm_status {
 	bool bat_therm_alarm;
 	bool bus_therm_alarm;
 	bool die_therm_alarm;
+};
+
+struct cm_charge_pump_info {
+	int vbat_uV;
+	int ibat_uA;
+	int ibus_uA;
+	int vbus_uV;
+
+	int cp_est_ibat;
+
+	int cp_ibus_limit;
+	int cp_ibus_limit_max;
+	int cp_ibus_limit_min;
+
+	bool cp_soft_alarm_event;
+	bool cp_fault_event;
+
+	struct cm_cp_fault_status flt;
+	struct cm_cp_alarm_status alm;
+};
+
+struct cm_buck_info {
+	int buck_est_ibat;
+	int buck_est_ibus;
+
+	int buck_ibat_limit;
+	int buck_ibus_limit;
+	int buck_last_ibat_limit;
+	int buck_ibat_limit_max;
+	int buck_ibus_limit_max;
+
+	int buck_cv_vol;
+
+	int buck_start_work_temp_th;
+	int buck_start_work_ibat_th;
+	int buck_ibat_max_p;
+	int buck_default_ibat_max;
+
+	int buck_target_ibat;
+	int buck_target_ibat_max;
+
+	bool buck_bat_ovp_alarm;
+	bool buck_bat_ovp;
+
+	bool buck_is_inited;
+	bool buck_is_running;
+};
+
+struct cm_adaptive_fchg_info {
+	int adapter_max_ibus;
+	int adapter_max_vbus;
+
+	int request_vbus;
+	int request_ibus;
+
+	int last_request_vbus;
+
+	int adjust_cnt;
 };
 
 /*
@@ -376,7 +437,6 @@ struct cm_alarm_status {
  * @cp_target_vbat: record target battery voltage
  * @cp_target_ibus: record target bus current
  * @cp_target_vbus: record target bus voltage
- * @cp_last_target_vbus: record the last request target bus voltage
  * @cp_max_ibat: record the upper limit of  battery current
  * @cp_max_ibus: record the upper limit of  bus current
  * @adapter_max_ibus: record the max current of bus
@@ -393,32 +453,31 @@ struct cm_alarm_status {
  * @flt: record the all fault status
  * @alm: record the all alarm status
  */
-struct cm_charge_pump_status {
-	bool cp_running;
+struct cm_cp_state_machine {
+	bool running;
 	bool check_cp_threshold;
 	bool recovery;
-	int cp_state;
-	int cp_target_ibat;
-	int cp_target_vbat;
-	int cp_target_ibus;
-	int cp_target_vbus;
-	int cp_last_target_vbus;
-	int cp_max_ibat;
-	int cp_max_ibus;
-	int adapter_max_ibus;
-	int adapter_max_vbus;
+	int state;
+
+	int target_ibat;
+	int target_vbat;
+	int target_ibus;
+	int target_vbus;
+
+	int default_max_ibat;
+	int default_max_ibus;
+
 	int vbat_uV;
+	int vout_uV;
 	int ibat_uA;
 	int ibus_uA;
 	int vbus_uV;
+
 	int tune_vbus_retry;
-	int cp_taper_trigger_cnt;
-	int cp_adjust_cnt;
-	int cp_ibat_ucp_cnt;
-	int cp_taper_current;
-	bool cp_soft_alarm_event;
-	bool cp_fault_event;
-	bool cp_state_tune_log;
+	int taper_trigger_cnt;
+	int ibat_ucp_cnt;
+	int taper_current;
+	bool state_tune_log;
 
 	int jeita_status;
 	int last_jeita_status;
@@ -433,8 +492,13 @@ struct cm_charge_pump_status {
 
 	int ir_vbat;
 
-	struct cm_fault_status flt;
-	struct cm_alarm_status alm;
+	int bat_temp;
+
+	bool is_need_disable_buck;
+
+	struct cm_charge_pump_info cp_info;
+	struct cm_buck_info buck_info;
+	struct cm_adaptive_fchg_info adaptive_fchg;
 };
 
 struct cm_charge_current {
@@ -623,6 +687,7 @@ struct charger_desc {
 
 	enum data_source battery_present;
 
+	const char **psy_alt_charger_adpt_stat;
 	const char **psy_charger_stat;
 	const char **psy_alt_cp_adpt_stat;
 	const char **psy_cp_stat;
@@ -726,13 +791,16 @@ struct charger_desc {
 	u32 alt_cp_nums;
 	bool enable_alt_cp_adapt;
 
+	u32 alt_charger_nums;
+	bool enable_alt_charger_adapt;
+
 	bool cm_check_int;
 	bool cm_check_fault;
 	u32 fast_charger_type;
 
 	int fchg_ocv_threshold;
 
-	struct cm_charge_pump_status cp;
+	struct cm_cp_state_machine cp_sm;
 	struct cm_ir_compensation ir_comp;
 
 	struct cm_charge_current cur;
@@ -751,6 +819,8 @@ struct charger_desc {
 
 	u32 pd_port_partner;
 	u32 charge_type_poll_count;
+
+	bool support_cp_buck_work_tgt;
 };
 
 #define PSY_NAME_MAX	30

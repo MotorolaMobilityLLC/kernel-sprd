@@ -30,6 +30,8 @@
 #define SBLOCK_BLK_STATE_DONE		0
 #define SBLOCK_BLK_STATE_PENDING	1
 
+#define MAX_NOT_CONTINUE_CNT 21
+
 struct sblock_blks {
 	u32	addr;	/*phy address*/
 	u32	length;
@@ -182,6 +184,8 @@ struct sb_prepare_info {
 	u32 recv_last_addr;
 	u8 first_release_flag;
 	u8 first_recv_flag;
+	u8 release_not_continue_cnt;
+	u8 receive_not_continue_cnt;
 };
 
 struct slog_config {

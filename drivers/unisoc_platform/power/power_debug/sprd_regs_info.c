@@ -29,8 +29,7 @@ static inline void sprd_pdbg_regs_msg_print(char *regs_msg, int *buf_cnt, bool p
 static int sprd_pdbg_regs_get(struct regs_info_data *regs_info, char *regs_msg, bool print_out)
 {
 	u64 slp_deep, slp_light, eb_ap1, eb_ap2, eb_aon1, eb_aon2, pd, lpc;
-	u64 r_value[PDBG_INFO_NUM+1] = {0};
-	u64 r_value_h[PDBG_INFO_NUM+1] = {0};
+	u64 r_value[PDBG_INFO_NUM + 1] = {0};
 	int buf_cnt = 0, cnt_num, cnt_low, cnt_high, cnt, i;
 	char *pval;
 
@@ -39,7 +38,7 @@ static int sprd_pdbg_regs_get(struct regs_info_data *regs_info, char *regs_msg, 
 		return -EINVAL;
 	}
 
-	if (!sprd_pdbg_regs_get_once(PDBG_R_SLP, r_value, r_value_h)) {
+	if (!sprd_pdbg_regs_get_once(PDBG_R_SLP, r_value)) {
 		slp_deep = r_value[0];
 		slp_light = r_value[1];
 		buf_cnt += scnprintf(regs_msg + buf_cnt, REGS_LOG_BUF_MAX - buf_cnt,
@@ -47,7 +46,7 @@ static int sprd_pdbg_regs_get(struct regs_info_data *regs_info, char *regs_msg, 
 		sprd_pdbg_regs_msg_print(regs_msg, &buf_cnt, print_out);
 	}
 
-	if (!sprd_pdbg_regs_get_once(PDBG_R_EB, r_value, r_value_h)) {
+	if (!sprd_pdbg_regs_get_once(PDBG_R_EB, r_value)) {
 		eb_ap1 = r_value[0];
 		eb_ap2 = r_value[1];
 		eb_aon1 = r_value[2];
@@ -57,14 +56,14 @@ static int sprd_pdbg_regs_get(struct regs_info_data *regs_info, char *regs_msg, 
 		sprd_pdbg_regs_msg_print(regs_msg, &buf_cnt, print_out);
 	}
 
-	if (!sprd_pdbg_regs_get_once(PDBG_R_PD, r_value, r_value_h)) {
+	if (!sprd_pdbg_regs_get_once(PDBG_R_PD, r_value)) {
 		pd = r_value[0];
 		buf_cnt += scnprintf(regs_msg + buf_cnt, REGS_LOG_BUF_MAX - buf_cnt,
 				    PD_FMT, pd);
 		sprd_pdbg_regs_msg_print(regs_msg, &buf_cnt, print_out);
 	}
 
-	if (!sprd_pdbg_regs_get_once(PDBG_R_DCNT, r_value, r_value_h)) {
+	if (!sprd_pdbg_regs_get_once(PDBG_R_DCNT, r_value)) {
 		pval = (char *)&r_value[4];
 		pval -= 2;
 		cnt_num = *pval;
@@ -82,7 +81,7 @@ static int sprd_pdbg_regs_get(struct regs_info_data *regs_info, char *regs_msg, 
 		sprd_pdbg_regs_msg_print(regs_msg, &buf_cnt, print_out);
 	}
 
-	if (!sprd_pdbg_regs_get_once(PDBG_R_LCNT, r_value, r_value_h)) {
+	if (!sprd_pdbg_regs_get_once(PDBG_R_LCNT, r_value)) {
 		pval = (char *)&r_value[4];
 		pval -= 2;
 		cnt_num = *pval;
@@ -100,7 +99,7 @@ static int sprd_pdbg_regs_get(struct regs_info_data *regs_info, char *regs_msg, 
 		sprd_pdbg_regs_msg_print(regs_msg, &buf_cnt, print_out);
 	}
 
-	if (!sprd_pdbg_regs_get_once(PDBG_R_LPC, r_value, r_value_h)) {
+	if (!sprd_pdbg_regs_get_once(PDBG_R_LPC, r_value)) {
 		lpc = r_value[0];
 		if (lpc != PDBG_IGNORE_MAGIC) {
 			buf_cnt += scnprintf(regs_msg + buf_cnt, REGS_LOG_BUF_MAX - buf_cnt,
@@ -136,6 +135,11 @@ static int sprd_regs_info_proc_init(struct regs_info_data *data, struct proc_dir
 
 static void sprd_pdbg_regs_info_show(struct regs_info_data *regs_info)
 {
+	sprd_pdbg_regs_get(regs_info, regs_info->log_buf, true);
+}
+
+static void sprd_pdbg_regs_info_show_locked(struct regs_info_data *regs_info)
+{
 	mutex_lock(&regs_info->regs_info_mutex);
 	sprd_pdbg_regs_get(regs_info, regs_info->log_buf, true);
 	mutex_unlock(&regs_info->regs_info_mutex);
@@ -147,8 +151,10 @@ static void regs_info_notify_handler(void *data, unsigned long cmd)
 
 	switch (cmd) {
 	case SPRD_CPU_PM_ENTER:
-	case SPRD_PM_MONITOR:
 		sprd_pdbg_regs_info_show(regs_info);
+		break;
+	case SPRD_PM_MONITOR:
+		sprd_pdbg_regs_info_show_locked(regs_info);
 		break;
 	default:
 		break;

@@ -36,11 +36,6 @@
 
 #include "sdhci.h"
 
-#ifdef CONFIG_SPRD_DEBUG
-#include "sdhci-sprd-debug.h"
-#include "sdhci-sprd-debug.c"
-#endif
-
 #define DRIVER_NAME "sdhci"
 
 #define DBG(f, x...) \
@@ -1702,7 +1697,6 @@ static bool sdhci_send_command(struct sdhci_host *host, struct mmc_command *cmd)
 	if (host->use_external_dma)
 		sdhci_external_dma_pre_transfer(host, cmd);
 #ifdef CONFIG_SPRD_DEBUG
-	mmc_debug_update(host, cmd, 0);
 	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sdhci_data_line_cmd(cmd)) {
 		mod_timer(&host->debug_timer, jiffies + 256);
 		host->cnt_time = ktime_to_ms(ktime_get());
@@ -3612,9 +3606,6 @@ static irqreturn_t sdhci_irq(int irq, void *dev_id)
 		if (intmask & SDHCI_INT_DATA_MASK)
 			sdhci_data_irq(host, intmask & SDHCI_INT_DATA_MASK);
 
-#ifdef CONFIG_SPRD_DEBUG
-		mmc_debug_update(host, NULL, intmask);
-#endif
 		if (intmask & SDHCI_INT_BUS_POWER)
 			pr_err("%s: Card is consuming too much power!\n",
 				mmc_hostname(host->mmc));

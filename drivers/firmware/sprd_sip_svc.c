@@ -154,12 +154,11 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x0501)
 
-#define SPRD_SIP_SVC_PWR_PDBG_INFO_GET					\
-	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+#define SPRD_SIP_SVC_PDBG_INFO_TRANS					\
+	ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,				\
 			   ARM_SMCCC_SMC_32,				\
 			   ARM_SMCCC_OWNER_SIP,				\
-			   0x0502))
-
+			   0x0502)
 /* SIP dvfs operations */
 #define SPRD_SIP_SVC_DVFS_REV						\
 	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
@@ -294,6 +293,21 @@
 			   ARM_SMCCC_SMC_32,				\
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x0802))
+
+#if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
+/* SIP cache dump operations */
+#define SPRD_SIP_SVC_CACHEDUMP_REV					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			    ARM_SMCCC_SMC_32,				\
+			    ARM_SMCCC_OWNER_SIP,			\
+			    0x0A00))
+
+#define SPRD_SIP_SVC_CACHEDUMP_FUNC_API					\
+	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
+			    ARM_SMCCC_SMC_32,				\
+			    ARM_SMCCC_OWNER_SIP,			\
+			    0x0A01))
+#endif
 
 #define SPRD_SIP_RET_UNK	0xFFFFFFFFUL
 
@@ -442,23 +456,15 @@ static int sprd_sip_svc_pwr_get_wakeup_source(u32 *major, u32 *second, u32 *thri
 	return res.a0;
 }
 
-static u64 sprd_sip_svc_pwr_get_pdbg_info(u32 scene, u32 phase, u64 *r0, u64 *r1, u64 *r2, u64 *r3)
+static u64 sprd_sip_svc_pdbg_info_trans(u32 scene, u32 priv0, u32 priv1, u32 priv2,
+					struct arm_smccc_res *ret)
 {
 	struct arm_smccc_res res;
 
-	arm_smccc_smc(SPRD_SIP_SVC_PWR_PDBG_INFO_GET, scene, phase, 0, 0, 0, 0, 0, &res);
+	arm_smccc_smc(SPRD_SIP_SVC_PDBG_INFO_TRANS, scene, priv0, priv1, priv2, 0, 0, 0, &res);
 
-	if (r0 != NULL)
-		*r0 = res.a0;
-
-	if (r1 != NULL)
-		*r1 = res.a1;
-
-	if (r2 != NULL)
-		*r2 = res.a2;
-
-	if (r3 != NULL)
-		*r3 = res.a3;
+	if (ret != NULL)
+		*ret = res;
 
 	return res.a0;
 }
@@ -575,12 +581,12 @@ static int sprd_sip_svc_dvfs_version_set(u32 cluster, u64 *ver)
 	return sprd_sip_remap_err(res.a0);
 }
 
-static int sprd_sip_svc_dvfs_init(u32 flag)
+static int sprd_sip_svc_dvfs_init(u32 flag, u32 flag2, u32 flag3)
 {
 	struct arm_smccc_res res;
 
 	arm_smccc_smc(SPRD_SIP_SVC_DVFS_INIT,
-		      flag, 0, 0, 0, 0, 0, 0, &res);
+		      flag, flag2, flag3, 0, 0, 0, 0, &res);
 
 	return sprd_sip_remap_err(res.a0);
 }
@@ -699,6 +705,18 @@ static int sprd_sip_svc_npu_set_volts(u32 high_temp)
 	return sprd_sip_remap_err(res.a0);
 }
 
+#if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
+static int sprd_sip_svc_cachedump_func_api(uint8_t mesi, uint8_t sec, uint8_t valid)
+{
+	struct arm_smccc_res res;
+
+	arm_smccc_smc(SPRD_SIP_SVC_CACHEDUMP_FUNC_API,
+			mesi, sec, valid, 0, 0, 0, 0, &res);
+
+	return res.a0;
+}
+#endif
+
 static int __init sprd_sip_svc_init(void)
 {
 	int ret = 0;
@@ -742,7 +760,7 @@ static int __init sprd_sip_svc_init(void)
 	sprd_sip_svc_handle.pwr_ops.rev.minor_ver = res.a1;
 
 	sprd_sip_svc_handle.pwr_ops.get_wakeup_source = sprd_sip_svc_pwr_get_wakeup_source;
-	sprd_sip_svc_handle.pwr_ops.get_pdbg_info = sprd_sip_svc_pwr_get_pdbg_info;
+	sprd_sip_svc_handle.pwr_ops.pdbg_info_trans = sprd_sip_svc_pdbg_info_trans;
 
 	/* init dvfs_ops */
 	arm_smccc_smc(SPRD_SIP_SVC_DVFS_REV, 0, 0, 0, 0, 0, 0, 0, &res);
@@ -813,6 +831,19 @@ static int __init sprd_sip_svc_init(void)
 	pr_notice("SPRD SIP SVC GPU:v%d.%d detected in firmware.\n",
 		sprd_sip_svc_handle.gpu_ops.rev.major_ver,
 		sprd_sip_svc_handle.gpu_ops.rev.minor_ver);
+
+#if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
+	/* init cachedump_ops */
+	arm_smccc_smc(SPRD_SIP_SVC_CACHEDUMP_REV, 0, 0, 0, 0, 0, 0, 0, &res);
+	sprd_sip_svc_handle.cachedump_ops.rev.major_ver = (u32)(res.a0);
+	sprd_sip_svc_handle.cachedump_ops.rev.minor_ver = (u32)(res.a1);
+
+	sprd_sip_svc_handle.cachedump_ops.cachedump_func_api = sprd_sip_svc_cachedump_func_api;
+
+	pr_notice("SPRD SIP SVC CACHEDUMP:v%d.%d detected in firmware.\n",
+			sprd_sip_svc_handle.cachedump_ops.rev.major_ver,
+			sprd_sip_svc_handle.cachedump_ops.rev.minor_ver);
+#endif
 
 	return ret;
 }
