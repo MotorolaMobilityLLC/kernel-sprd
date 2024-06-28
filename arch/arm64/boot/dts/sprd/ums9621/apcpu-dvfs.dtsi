@@ -45,7 +45,7 @@
 		cpufreq_clus0: cpufreq-clus0 {
 			sprd,voltage-margin = <20>;             /* Cycle    */
 			sprd,transition-delay = <500>;          /* us       */
-			sprd,temp-threshold = <0 65>;           /* u32 list */
+			sprd,temp-threshold = <65>;           /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
 			nvmem-cell-names = "cpu_bin_lit";
 			nvmem-cells = <&cpu_bin_lit>;
@@ -58,7 +58,7 @@
 		cpufreq_clus1: cpufreq-clus1 {
 			sprd,voltage-margin = <20>;             /* Cycle    */
 			sprd,transition-delay = <500>;          /* us       */
-			sprd,temp-threshold = <0 65>;           /* u32 list */
+			sprd,temp-threshold = <65>;           /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
 			nvmem-cell-names = "cpu_bin_mid1";
 			nvmem-cells = <&cpu_bin_mid1>;
@@ -71,7 +71,7 @@
 		cpufreq_clus2: cpufreq-clus2 {
 			sprd,voltage-margin = <20>;             /* Cycle    */
 			sprd,transition-delay = <500>;          /* us       */
-			sprd,temp-threshold = <0 65>;           /* u32 list */
+			sprd,temp-threshold = <65>;           /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
 			nvmem-cell-names = "cpu_bin_mid2";
 			nvmem-cells = <&cpu_bin_mid2>;
