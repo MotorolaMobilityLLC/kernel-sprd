@@ -496,7 +496,6 @@ static int sprd_pamu3_set_suspend(struct usb_phy *x, int a)
 {
 	struct sprd_pamu3 *pamu3 = container_of(x, struct sprd_pamu3, pam);
 	u32 value;
-	int timeout = 2;
 
 	if (!atomic_read(&pamu3->inited)) {
 		dev_warn(pamu3->dev, "is already disabled\n");
@@ -505,17 +504,6 @@ static int sprd_pamu3_set_suspend(struct usb_phy *x, int a)
 
 	if (atomic_dec_return(&pamu3->ref)) {
 		sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_START);
-		value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
-		value |= PAMU3_CTL0_BIT_RELEASE;
-		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
-		do {
-			value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
-			if (!timeout--) {
-				dev_warn(pamu3->dev,
-					 "failed to stop PAMU3!!!\n");
-				break;
-			}
-		} while (!(value & PAMU3_CTL0_BIT_DONE));
 	} else {
 		value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
 		value &= ~(PAMU3_CTL0_BIT_USB_EN | PAMU3_CTL0_BIT_PAM_EN |
