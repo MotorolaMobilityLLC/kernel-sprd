@@ -20,6 +20,9 @@
 #include <linux/sched.h>
 #include <linux/sipa.h>
 #include <linux/netdevice.h>
+#include <linux/ipv6.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
 #include <uapi/linux/sched/types.h>
 
 #include "sipa_priv.h"
@@ -397,6 +400,9 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 {
 	unsigned long flags;
 	dma_addr_t dma_addr;
+        //struct ipv6hdr *ipv6;
+        struct iphdr *ip;
+        struct tcphdr *tcp;
 	struct sipa_skb_dma_addr_pair *node;
 	struct sipa_node_desc_tag *des;
 
@@ -451,6 +457,28 @@ int sipa_skb_sender_send_data(struct sipa_skb_sender *sender,
 				      sender->ep->send_fifo.idx, 1);
 	sipa_hal_add_rx_fifo_wptr(sender->dev,
 				  sender->ep->send_fifo.idx, 1);
+
+        ip = (struct iphdr *)(skb->data + 14);
+        tcp = (struct tcphdr *)(skb->data + 20 + 14);
+        if (ip->version == 0x4 && ip->protocol == 0x6
+            && htons(ip->tot_len) < 300) {
+            pr_info("send ack tcp->seq = %llu, ack = %llu, src_port = %d, dst_port = %d\n",
+                htonl(tcp->seq),
+                htonl(tcp->ack_seq),
+                htons(tcp->source),htons(tcp->dest));
+        }
+        #if 0
+            ipv6 = (struct ipv6hdr *)(skb->data + 14);
+            tcp = (struct tcphdr *)(skb->data + 40 + 14);
+            if (ipv6->version == 0x6 && ipv6->nexthdr == 0x6
+                && htons(ipv6->payload_len) < 300) {
+                pr_info("send ack tcp->seq = %llu, ack = %llu, src_port = %d, dst_port = %d\n",
+                    htonl(tcp->seq),
+                    htonl(tcp->ack_seq),
+                    htons(tcp->source),htons(tcp->dest));
+            }
+        #endif
+
 	spin_unlock_irqrestore(&sender->send_lock, flags);
 
 	return 0;
