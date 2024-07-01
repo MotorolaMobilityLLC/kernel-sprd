@@ -395,13 +395,6 @@ static int sprd_bcl_probe(struct platform_device *pdev)
 		return -ENXIO;
 	}
 
-	bcl_data->psy_nb.notifier_call = sprd_bcl_callback;
-	ret = power_supply_reg_notifier(&bcl_data->psy_nb);
-	if (ret) {
-		dev_err(dev, "%s, failed to register notifier, ret = %d\n", __func__, ret);
-		return -EPROBE_DEFER;
-	}
-
 	bcl_data->ops.get_temp = sprd_bcl_get_level;
 	bcl_data->ops.set_emul_temp = sprd_bcl_set_level;
 	platform_set_drvdata(pdev, bcl_data);
@@ -425,6 +418,14 @@ static int sprd_bcl_probe(struct platform_device *pdev)
 						 "bcl-vbat-thres");
 	if (bcl_data->bcl_level_thres_table->vbat_thres_cols < 0)
 		dev_err(&pdev->dev, "%s vbat_thres_table is not define!!!\n", __func__);
+
+	bcl_data->psy_nb.notifier_call = sprd_bcl_callback;
+	ret = power_supply_reg_notifier(&bcl_data->psy_nb);
+	if (ret) {
+		dev_err(dev, "%s, failed to register notifier, ret = %d\n", __func__, ret);
+		thermal_zone_device_unregister(bcl_data->tz_dev);
+		return -EPROBE_DEFER;
+	}
 
 	ret = sprd_bcl_register_sysfs(bcl_data);
 	if (ret)
