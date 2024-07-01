@@ -31,7 +31,7 @@ static unsigned long iowait_threshold = 500;          // ms
 module_param(iowait_threshold, ulong, 0664);
 MODULE_PARM_DESC(iowait_threshold, "iowait print threshold in milliseconds");
 
-static unsigned long balance_panic_threshold = 200;   // second
+static unsigned long balance_panic_threshold = 300;   // second
 module_param(balance_panic_threshold, ulong, 0664);
 MODULE_PARM_DESC(balance_panic_threshold, "balance_dirty_pages panic threshold in seconds");
 
