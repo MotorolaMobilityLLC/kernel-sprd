@@ -22,6 +22,7 @@
 #include <linux/mmc/host.h>
 #include <linux/mmc/mmc.h>
 #include <linux/mmc/sd.h>
+#include <linux/mmc/sdio.h>
 #include <linux/uaccess.h>
 #include <trace/hooks/mmc.h>
 
@@ -50,15 +51,14 @@
  * 128blocks  256blocks  512blocks  1024blocks  2048blocks  4096blocks
  */
 struct mmc_debug_info {
-	char name[8];
 	u32 cmd;
 	u32 arg;
 	u32 blocks;
 	u32 intmask;
-	u32 cnt_time;
 	u64 read_total_blocks;
 	u64 write_total_blocks;
 	struct mmc_request *mrq;
+	ktime_t cnt_time;
 	ktime_t start_time;
 	ktime_t end_time;
 	unsigned long read_total_time;
@@ -66,10 +66,19 @@ struct mmc_debug_info {
 	unsigned long cmd_2_end[MMC_ARRAY_SIZE];
 	unsigned long data_2_end[MMC_ARRAY_SIZE];
 	unsigned long block_len[MMC_ARRAY_SIZE];
-	u64 wspeed;
-	u64 wspeed_mod;
-	u64 rspeed;
-	u64 rspeed_mod;
+};
+
+struct mmc_debug_timer {
+	ktime_t cnt_time;
+	struct sdhci_host *host;
+	struct timer_list debug_timer;	/* Timer for debug data */
+};
+
+struct mmc_debug_worker {
+	struct sdhci_host *host;
+	struct mmc_debug_info info;
+	spinlock_t lock;
+	struct work_struct print_work;
 };
 
 #define rq_log(array, fmt, ...) \
@@ -78,9 +87,9 @@ struct mmc_debug_info {
 		array[4], array[5], array[6], array[7], array[8], \
 		array[9], array[10], array[11], array[12], array[13])
 
-static struct mmc_debug_info mmc_debug[3] = {
-	{.name = "mmc0"}, {.name = "mmc1"}, {.name = "mmc2"}
-};
+static struct mmc_debug_info mmc_debug[3];
+struct mmc_debug_timer mmc_timer[3];
+struct mmc_debug_worker mmc_worker[3];
 
 static void mmc_debug_is_emmc(struct sdhci_host *host, struct mmc_debug_info *info)
 {
@@ -95,48 +104,58 @@ static void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host
 {
 	u64 read_speed = 0;
 	u64 write_speed = 0;
+	u64 wspeed_temp = 0, rspeed_temp = 0;
+	u64 wspeed_mod = 0, rspeed_mod = 0;
+	const char *name = mmc_hostname(host->mmc);
 
-	if ((ktime_to_ms(ktime_get()) - info->cnt_time) > (10000ULL)) {
-		/* calculate read/write speed */
-		if (info->read_total_time) {
-			read_speed = info->read_total_blocks * 50000;
-			do_div(read_speed, info->read_total_time);
-		}
-		if (info->write_total_time) {
-			write_speed = info->write_total_blocks * 50000;
-			do_div(write_speed, info->write_total_time);
-		}
-
-		/* print debug messages of mmc io */
-		rq_log(info->cmd_2_end, "|__c2e%9s", info->name);
-		rq_log(info->data_2_end, "|__d2e%9s", info->name);
-		rq_log(info->block_len, "|__blocks%6s", info->name);
-		info->rspeed = read_speed;
-		info->wspeed = write_speed;
-		info->rspeed_mod = do_div(info->rspeed, 100);
-		info->wspeed_mod = do_div(info->wspeed, 100);
-		pr_err("|__speed%7s: r= %lld.%lldM/s, w= %lld.%lldM/s, r_blk= %lld, w_blk= %lld\n",
-			info->name, info->rspeed, info->rspeed_mod, info->wspeed, info->wspeed_mod,
-			info->read_total_blocks, info->write_total_blocks);
-		if ((read_speed > MMC_SPEED_0M && read_speed < MMC_SPEED_1M) ||
-			(write_speed > MMC_SPEED_0M && write_speed < MMC_SPEED_1M))
-			mmc_debug_is_emmc(host, info);
-
-		/* clear mmc_debug structure except name and speed */
-		memset(&info->cmd, 0, sizeof(struct mmc_debug_info) - 40);
-		info->cnt_time = ktime_to_ms(ktime_get());
+	/* calculate read/write speed */
+	if (info->read_total_time) {
+		read_speed = info->read_total_blocks * 48828;
+		do_div(read_speed, info->read_total_time);
 	}
+	if (info->write_total_time) {
+		write_speed = info->write_total_blocks * 48828;
+		do_div(write_speed, info->write_total_time);
+	}
+
+	/* print debug messages of mmc io */
+	rq_log(info->cmd_2_end, "|__c2e%9s", name);
+	rq_log(info->data_2_end, "|__d2e%9s", name);
+	rq_log(info->block_len, "|__blocks%6s", name);
+	rspeed_temp = read_speed;
+	wspeed_temp = write_speed;
+	rspeed_mod = do_div(rspeed_temp, 100);
+	wspeed_mod = do_div(wspeed_temp, 100);
+	pr_err("|__speed%7s: r= %lld.%lldM/s, w= %lld.%lldM/s, r_blk= %lld, w_blk= %lld\n",
+		name, rspeed_temp, rspeed_mod, wspeed_temp, wspeed_mod,
+		info->read_total_blocks, info->write_total_blocks);
+
+	sdhci_sprd_mmc_update_throughput(host, rspeed_temp, wspeed_temp,
+		info->read_total_blocks, info->write_total_blocks);
+
 }
 
-static void mmc_debug_calc(struct mmc_debug_info *info)
+static void mmc_debug_print_handler(struct work_struct *work)
+{
+	struct mmc_debug_worker *wk = container_of(work, struct mmc_debug_worker, print_work);
+	struct mmc_debug_info info_temp;
+	unsigned long flags;
+
+	spin_lock_irqsave(&wk->lock, flags);
+	memcpy(&info_temp, &wk->info, sizeof(struct mmc_debug_info));
+	spin_unlock_irqrestore(&wk->lock, flags);
+
+	mmc_debug_print(&info_temp, wk->host);
+}
+
+static void mmc_debug_calc(struct sdhci_host *host, struct mmc_debug_info *info)
 {
 	u32 cmd = info->cmd;
 
 	/* judge sdio read/write cmd type */
-	if (!strcmp(info->name, "mmc2") &&
+	if ((host->mmc->index == 2) &&
 		(cmd == SD_IO_RW_DIRECT || cmd == SD_IO_RW_EXTENDED))
 		cmd = info->arg >> 31 ? MMC_EXECUTE_WRITE_TASK : MMC_EXECUTE_READ_TASK;
-
 
 	/* record read/write info */
 	if (cmd == MMC_READ_MULTIPLE_BLOCK || cmd == MMC_EXECUTE_READ_TASK ||
@@ -154,6 +173,10 @@ static void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info 
 {
 	u8 index;
 	u32 msecs;
+	u32 polling_times;
+	struct mmc_debug_worker *work = NULL;
+	unsigned long flags;
+	const char *name = mmc_hostname(host->mmc);
 
 	if (info->intmask & SDHCI_INT_RESPONSE) {
 		/* cmd interrupt respond */
@@ -163,7 +186,7 @@ static void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info 
 		info->cmd_2_end[index]++;
 		if (index >= 11) {
 			pr_err("%s: cmd rsp over 1s! cmd= %d blk= %d arg= %x mrq= %p rsp= %x\n",
-			info->name, info->cmd, info->blocks, info->arg,
+			name, info->cmd, info->blocks, info->arg,
 			info->mrq, sdhci_readl(host, SDHCI_RESPONSE));
 			mmc_debug_is_emmc(host, info);
 		}
@@ -179,28 +202,32 @@ static void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info 
 		info->data_2_end[index]++;
 		if (index >= 11) {
 			pr_err("%s: data rsp over 1s! cmd= %d blk= %d arg= %x mrq= 0x%p\n",
-				info->name, info->cmd, info->blocks, info->arg, info->mrq);
+				name, info->cmd, info->blocks, info->arg, info->mrq);
 			mmc_debug_is_emmc(host, info);
 		}
-		mmc_debug_calc(info);
+		mmc_debug_calc(host, info);
 		info->start_time = 0;
-		mmc_debug_print(info, host);
+
+		polling_times = sdhci_sprd_mmc_update_polling_times();
+		if ((ktime_to_ms(ktime_get()) - info->cnt_time) > (polling_times * 1000ULL)) {
+			work = &mmc_worker[host->mmc->index];
+
+			spin_lock_irqsave(&work->lock, flags);
+			memcpy(&work->info, info, sizeof(struct mmc_debug_info));
+			spin_unlock_irqrestore(&work->lock, flags);
+
+			/* clear mmc_debug structure */
+			memset(info, 0, sizeof(struct mmc_debug_info));
+			info->cnt_time = ktime_to_ms(ktime_get());
+
+			schedule_work(&work->print_work);
+		}
 	}
 }
 
 void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 intmask)
 {
-	struct mmc_debug_info *info = NULL;
-	u8 i;
-
-	/* select mmc type */
-	for (i = 0; i <= 2; i++) {
-		if (!strcmp(mmc_hostname(host->mmc), mmc_debug[i].name))
-			info = &mmc_debug[i];
-	}
-
-	if (!info)
-		return;
+	struct mmc_debug_info *info = &mmc_debug[host->mmc->index];
 
 	if (!intmask && cmd) {
 		/* send cmd */
@@ -219,3 +246,68 @@ void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 intm
 		mmc_debug_handle_rsp(host, info);
 }
 EXPORT_SYMBOL(mmc_debug_update);
+
+/* add mmc debug timer to check whether the hardware times out */
+static void sdhci_timeout_debug_timer(struct timer_list *t)
+{
+	struct mmc_debug_timer *info = from_timer(info, t, debug_timer);
+	struct sdhci_host *host = info->host;
+	unsigned long flags;
+	u32 intmask;
+
+	spin_lock_irqsave(&host->lock, flags);
+
+	intmask = sdhci_readl(host, SDHCI_INT_STATUS);
+	pr_err("%s: waiting for interrupt over %lldms! (256ms timer) int_state = 0x%x\n",
+		mmc_hostname(host->mmc), ktime_to_ms(ktime_get()) - info->cnt_time, intmask);
+	sdhci_dumpregs(host);
+
+	spin_unlock_irqrestore(&host->lock, flags);
+}
+
+void sdhci_sprd_mod_debug_timer(struct sdhci_host *host, unsigned long time)
+{
+	struct mmc_debug_timer *info = &mmc_timer[host->mmc->index];
+
+	mod_timer(&info->debug_timer, time);
+	info->cnt_time = ktime_to_ms(ktime_get());
+}
+EXPORT_SYMBOL(sdhci_sprd_mod_debug_timer);
+
+void sdhci_sprd_del_debug_timer(struct sdhci_host *host)
+{
+	struct mmc_debug_timer *info = &mmc_timer[host->mmc->index];
+
+	del_timer(&info->debug_timer);
+}
+EXPORT_SYMBOL(sdhci_sprd_del_debug_timer);
+
+void sdhci_sprd_del_debug_timer_sync(struct sdhci_host *host)
+{
+	struct mmc_debug_timer *info = &mmc_timer[host->mmc->index];
+
+	del_timer_sync(&info->debug_timer);
+}
+EXPORT_SYMBOL(sdhci_sprd_del_debug_timer_sync);
+
+void sdhci_sprd_debug_timer_setup(struct sdhci_host *host)
+{
+	struct mmc_debug_timer *info = &mmc_timer[host->mmc->index];
+
+	info->host = host;
+	timer_setup(&info->debug_timer, sdhci_timeout_debug_timer, 0);
+}
+EXPORT_SYMBOL(sdhci_sprd_debug_timer_setup);
+
+void sdhci_sprd_debug_init(struct sdhci_host *host)
+{
+	struct mmc_debug_worker *work = &mmc_worker[host->mmc->index];
+
+	spin_lock_init(&work->lock);
+
+	work->host = host;
+	INIT_WORK(&work->print_work, mmc_debug_print_handler);
+	sdhci_sprd_debug_timer_setup(host);
+}
+EXPORT_SYMBOL(sdhci_sprd_debug_init);
+

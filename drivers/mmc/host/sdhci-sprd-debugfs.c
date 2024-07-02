@@ -23,9 +23,11 @@
 #include "../core/host.h"
 #include "../core/mmc_ops.h"
 #include "sdhci.h"
+#include "mmc_swcq.h"
 
-#include "sdhci-sprd-debug.h"
-#include "sdhci-sprd-debug.c"
+#define MMC_PROC_MODE 0777
+
+#define SPRD_SPEED_INFO_VALID 2048
 
 #define SPRD_SPEED_MODE_NAME_MAX	20
 #define SPRD_SPEED_MODE_NAME_MIN	2
@@ -34,15 +36,53 @@
 #define SD_TIMING 1
 #define NOT_SUPPORT 3
 
-bool debug_en;
-atomic_t force_err;
-
 struct mmc_speed_config {
 	char *name;
 	u8 support; /* support: sd or mmc */
 	u32 caps; /* sd: need modify host caps */
 	u32 type; /* mmc: need modify mmc_avail_type */
 };
+
+struct mmc_through_put {
+	u64 read;
+	u64 write;
+	u64 read_blk;
+	u64 write_blk;
+};
+
+static struct mmc_through_put mmc_throughput[3];
+static u32 mmc_debug_polling_times = 5;
+static u32 mmc_throughput_threshold = 30;
+atomic_t mmc_debug_en;
+atomic_t force_err;
+static u32 force_err_count;
+
+static long atol(const char *s)
+{
+	unsigned long ret = 0;
+	unsigned long d;
+	int neg = 0;
+
+	if (*s == '-') {
+		neg = 1;
+		s++;
+	}
+
+	while (1) {
+		d = (*s++) - '0';
+		if (d > 9)
+			break;
+		ret *= 10;
+		ret += d;
+	}
+
+	return neg ? -ret : ret;
+}
+
+static int atoi(const char *s)
+{
+	return atol(s);
+}
 
 static const struct mmc_speed_config mmc_speed[] = {
 	{"LEGACY", SD_TIMING, MMC_CAP_SD_HIGHSPEED, 0}, /* MMC_TIMING_LEGACY: 0 */
@@ -202,7 +242,7 @@ static const struct proc_ops sdhci_sprd_set_timing_fops = {
 
 static int sdhci_sprd_reset_show(struct seq_file *file, void *data)
 {
-	seq_puts(file, "triger\n");
+	seq_printf(file, "reset triger: %d\n", force_err_count);
 
 	return 0;
 }
@@ -229,7 +269,7 @@ static bool decode_state(const char *buf, size_t n)
 static ssize_t sdhci_sprd_reset_write(struct file *filp, const char __user *ubuf,
 				   size_t cnt, loff_t *ppos)
 {
-	struct mmc_host *host = filp->f_mapping->host->i_private;
+	struct mmc_host *host = PDE_DATA(file_inode(filp));
 	char temp[7];
 
 	if (copy_from_user(&temp, ubuf, sizeof(temp)))
@@ -238,46 +278,33 @@ static ssize_t sdhci_sprd_reset_write(struct file *filp, const char __user *ubuf
 	if (!decode_state(temp, sizeof(temp)))
 		return -EINVAL;
 
-	if (!host->card)
-		return -EOPNOTSUPP;
-
-	atomic_set(&force_err, 1);
+	atomic_set(&force_err, true);
+	force_err_count++;
 	pr_info("%s: triger hw_reset\n", mmc_hostname(host));
 
 	return cnt;
 }
 
-static const struct file_operations sdhci_sprd_reset_fops = {
-	.open = sdhci_sprd_reset_open,
-	.read = seq_read,
-	.write = sdhci_sprd_reset_write,
-	.release = single_release,
+static const struct proc_ops sdhci_sprd_reset_fops = {
+	.proc_open = sdhci_sprd_reset_open,
+	.proc_read = seq_read,
+	.proc_write = sdhci_sprd_reset_write,
+	.proc_release = single_release,
 };
 
-void sdhci_sprd_add_host_debugfs(struct sdhci_host *host)
+static int sdhci_sprd_debug_en_show(struct seq_file *file, void *data)
 {
-	struct mmc_host *mmc = host->mmc;
-
-	if (!mmc->debugfs_root || (mmc->index > 0))
-		return;
-
-	debugfs_create_file_unsafe("hw_reset", 0600, mmc->debugfs_root, mmc,
-				   &sdhci_sprd_reset_fops);
-}
-
-static int sdhci_sprd_debugen_show(struct seq_file *file, void *data)
-{
-	seq_printf(file, "%d\n", debug_en);
+	seq_printf(file, "%d\n", atomic_read(&mmc_debug_en));
 
 	return 0;
 }
 
-static int sdhci_sprd_debugen_open(struct inode *inode, struct file *file)
+static int sdhci_sprd_debug_en_open(struct inode *inode, struct file *file)
 {
-	return single_open(file, sdhci_sprd_debugen_show, inode->i_private);
+	return single_open(file, sdhci_sprd_debug_en_show, inode->i_private);
 }
 
-static ssize_t sdhci_sprd_debugen_write(struct file *filp, const char __user *ubuf,
+static ssize_t sdhci_sprd_debug_en_write(struct file *filp, const char __user *ubuf,
 				   size_t cnt, loff_t *ppos)
 {
 	char val;
@@ -289,97 +316,228 @@ static ssize_t sdhci_sprd_debugen_write(struct file *filp, const char __user *ub
 		return -EFAULT;
 
 	if (val == '1')
-		debug_en = 1;
+		atomic_set(&mmc_debug_en, true);
 	else
-		debug_en = 0;
+		atomic_set(&mmc_debug_en, false);
 
 end:
 	return cnt;
 }
 
-static const struct proc_ops sdhci_sprd_debugen_fops = {
-	.proc_open = sdhci_sprd_debugen_open,
+static const struct proc_ops sdhci_sprd_debug_en_fops = {
+	.proc_open = sdhci_sprd_debug_en_open,
 	.proc_read = seq_read,
-	.proc_write = sdhci_sprd_debugen_write,
+	.proc_write = sdhci_sprd_debug_en_write,
 	.proc_release = single_release,
 };
 
-static int sdhci_sprd_debuginfo_show(struct seq_file *file, void *data)
+static int sdhci_sprd_debug_polling_times_show(struct seq_file *file, void *data)
 {
-	struct mmc_host *mmc = file->private;
-
-	if (!mmc) {
-		pr_err("no mmc");
-		return 0;
-	}
-
-	seq_printf(file, "r= %lld.%lldM/s, w= %lld.%lldM/s\n", mmc_debug[mmc->index].rspeed,
-		   mmc_debug[mmc->index].rspeed_mod, mmc_debug[mmc->index].wspeed,
-		   mmc_debug[mmc->index].wspeed_mod);
+	seq_printf(file, "%d\n", mmc_debug_polling_times);
 
 	return 0;
 }
 
-static int sdhci_sprd_debuginfo_open(struct inode *inode, struct file *file)
+static int sdhci_sprd_debug_polling_times_open(struct inode *inode, struct file *file)
 {
-	return single_open(file, sdhci_sprd_debuginfo_show, PDE_DATA(inode));
+	return single_open(file, sdhci_sprd_debug_polling_times_show, inode);
 }
 
-static const struct proc_ops sdhci_sprd_debuginfo_fops = {
-	.proc_open = sdhci_sprd_debuginfo_open,
+static ssize_t sdhci_sprd_debug_polling_times_write(struct file *filp,
+				const char __user *ubuf, size_t cnt, loff_t *ppos)
+{
+	char val[10];
+	int pt;
+
+	if (cnt <= 0)
+		goto end;
+
+	if (copy_from_user(val, ubuf, 10))
+		return -EFAULT;
+
+	pt = atoi(val);
+	if (pt > 0)
+		mmc_debug_polling_times = pt;
+
+end:
+	return cnt;
+}
+
+static const struct proc_ops sdhci_sprd_debug_polling_times_fops = {
+	.proc_open = sdhci_sprd_debug_polling_times_open,
 	.proc_read = seq_read,
+	.proc_write = sdhci_sprd_debug_polling_times_write,
 	.proc_release = single_release,
 };
 
-void sdhci_sprd_add_host_debug(struct sdhci_host *host)
+static int sdhci_sprd_throughput_show(struct seq_file *file, void *data)
 {
-	static struct proc_dir_entry *debug_parent;
-	static struct proc_dir_entry *debug_en_data;
-	struct mmc_host *mmc = host->mmc;
+	struct mmc_host *mmc;
 
-	debug_parent = proc_mkdir(mmc_hostname(host->mmc), NULL);
+	mmc = PDE_DATA(file->private);
+	if (!mmc)
+		return 0;
+
+	seq_printf(file, "%lld\n", mmc_throughput[mmc->index].read);
+	seq_printf(file, "%lld\n", mmc_throughput[mmc->index].write);
+	seq_printf(file, "%lld\n", mmc_throughput[mmc->index].read_blk);
+	seq_printf(file, "%lld\n", mmc_throughput[mmc->index].write_blk);
+	return 0;
+}
+
+static int sdhci_sprd_throughput_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, sdhci_sprd_throughput_show, inode);
+}
+
+static ssize_t sdhci_sprd_throughput_write(struct file *filp, const char __user *ubuf,
+					size_t cnt, loff_t *ppos)
+{
+	char val[10];
+	int tt;
+
+	if (cnt <= 0)
+		goto end;
+
+	if (copy_from_user(val, ubuf, 10))
+		return -EFAULT;
+
+	tt = atoi(val);
+	if (tt > 0)
+		mmc_throughput_threshold = tt;
+
+	pr_info("%s: debug polling times %d\n", __func__, mmc_throughput_threshold);
+
+end:
+	return cnt;
+}
+
+static const struct proc_ops sdhci_sprd_throughput_fops = {
+	.proc_open = sdhci_sprd_throughput_open,
+	.proc_read = seq_read,
+	.proc_write = sdhci_sprd_throughput_write,
+	.proc_release = single_release,
+};
+
+static const struct proc_ops *proc_fops_mmc_list[] = {
+	&sdhci_sprd_reset_fops,
+	&sdhci_sprd_debug_en_fops,
+	&sdhci_sprd_debug_polling_times_fops,
+	&sdhci_sprd_throughput_fops,
+	&sdhci_sprd_set_timing_fops,
+};
+
+static char * const sprd_mmc_node_info[] = {
+	"hw_reset",
+	"debug_en",
+	"debug_polling_times",
+	"throughput",
+	"set_timing"
+};
+
+void sdhci_sprd_add_host_debugfs(struct sdhci_host *host)
+{
+	struct proc_dir_entry *debug_parent;
+	struct proc_dir_entry *debug_data;
+	struct mmc_host *mmc = host->mmc;
+	int i, node;
+
+	debug_parent = proc_mkdir(mmc_hostname(mmc), NULL);
 	if (!debug_parent) {
 		pr_err("%s: failed to create sprd_host_debug proc entry\n",
 			__func__);
-
 		goto err;
 	}
 
-	if (host->mmc->index == 0) {
-		debug_en_data = proc_create_data("debug_enable", 0660, debug_parent,
-			&sdhci_sprd_debugen_fops, NULL);
-		if (!debug_en_data) {
-			pr_err("%s: failed to create node: /proc/%s/debug_enable\n",
-				__func__, mmc_hostname(mmc));
-
-			goto err;
-		}
-	}
-
-	if ((host->mmc->index == 0) || (host->mmc->index == 1)) {
-		debug_en_data = proc_create_data("debug_info", 0664, debug_parent,
-			&sdhci_sprd_debuginfo_fops, mmc);
-		if (!debug_en_data) {
-			pr_err("%s: failed to create node: /proc/%s/debug_enable\n",
-				__func__, mmc_hostname(mmc));
-
-			goto err;
-		}
-	}
-
-	if (host->mmc->index != 2) {
-		debug_en_data = proc_create_data("set_timing", 0660, debug_parent,
-			&sdhci_sprd_set_timing_fops, mmc);
-		if (!debug_en_data) {
+	if (mmc->index == 1) {
+		debug_data = proc_create_data("set_timing", MMC_PROC_MODE,
+			debug_parent, &sdhci_sprd_set_timing_fops, mmc);
+		if (!debug_data) {
 			pr_err("%s: failed to create node: /proc/%s/set_timing\n",
 				__func__, mmc_hostname(mmc));
+			goto err;
+		}
+	}
 
+	if (mmc->index > 0)
+		return;
+
+	atomic_set(&mmc_debug_en, true);
+	atomic_set(&force_err, false);
+
+	node = ARRAY_SIZE(sprd_mmc_node_info);
+	for (i = 0; i < node; i++) {
+		debug_data = proc_create_data(sprd_mmc_node_info[i], MMC_PROC_MODE,
+			debug_parent, proc_fops_mmc_list[i], mmc);
+		if (!debug_data) {
+			pr_err("%s: failed to create node: /proc/%s/%s\n",
+				__func__, mmc_hostname(mmc), sprd_mmc_node_info[i]);
 			goto err;
 		}
 	}
 
 	return;
+
 err:
-	//call the function will cause gki error
 	remove_proc_subtree(mmc_hostname(mmc), NULL);
 }
+EXPORT_SYMBOL(sdhci_sprd_add_host_debugfs);
+
+bool sdhci_sprd_mmc_debug_judge(void)
+{
+	return atomic_read(&mmc_debug_en);
+}
+EXPORT_SYMBOL(sdhci_sprd_mmc_debug_judge);
+
+void sdhci_sprd_force_error(bool enable)
+{
+	atomic_set(&force_err, enable);
+}
+EXPORT_SYMBOL(sdhci_sprd_force_error);
+
+int sdhci_sprd_should_force_error(void)
+{
+	return atomic_read(&force_err);
+}
+EXPORT_SYMBOL(sdhci_sprd_should_force_error);
+
+void sdhci_sprd_mmc_update_throughput(struct sdhci_host *host,
+		u64 read, u64 write, u64 read_blk, u64 write_blk)
+{
+	struct mmc_host *mmc = host->mmc;
+	char type[20];
+	char event[30];
+	char *envp[3] = {type, event, NULL};
+
+	if (mmc->index > 0)
+		return;
+
+	if ((read < mmc_throughput_threshold && read_blk > SPRD_SPEED_INFO_VALID) ||
+		(write < mmc_throughput_threshold && write_blk > SPRD_SPEED_INFO_VALID)) {
+		snprintf(type, ARRAY_SIZE(type), "MMCTYPE=%s", "EMMC");
+		snprintf(event, ARRAY_SIZE(event), "SPEED=%lld, %lld, BLOCKS=%lld, %lld",
+			read, write, read_blk, write_blk);
+		kobject_uevent_env(&host->mmc->class_dev.kobj, KOBJ_CHANGE, envp);
+	}
+
+	mmc_throughput[mmc->index].read_blk = read_blk;
+	mmc_throughput[mmc->index].write_blk = write_blk;
+
+	if (read_blk <= SPRD_SPEED_INFO_VALID)
+		mmc_throughput[mmc->index].read = -1;
+	else
+		mmc_throughput[mmc->index].read = read;
+
+	if (write_blk <= SPRD_SPEED_INFO_VALID)
+		mmc_throughput[mmc->index].write = -1;
+	else
+		mmc_throughput[mmc->index].write = write;
+}
+EXPORT_SYMBOL(sdhci_sprd_mmc_update_throughput);
+
+u32 sdhci_sprd_mmc_update_polling_times(void)
+{
+	return mmc_debug_polling_times;
+}
+EXPORT_SYMBOL(sdhci_sprd_mmc_update_polling_times);
+

@@ -26,6 +26,12 @@
 #include "mmc_hsq.h"
 
 #include "mmc_swcq.h"
+
+#include "sdhci-sprd-debugfs.h"
+#ifndef CONFIG_SPRD_DEBUG
+#include "sdhci-sprd-debugfs.c"
+#endif
+
 #include "sdhci-sprd-swcq.h"
 #include "sdhci-sprd-swcq.c"
 
@@ -43,9 +49,6 @@
 
 #include "sdhci-sprd-health.h"
 #include "sdhci-sprd-health.c"
-
-#include "sdhci-sprd-debugfs.h"
-#include "sdhci-sprd-debugfs.c"
 
 #define CREATE_TRACE_POINTS
 #include "trace_mmc_sprd.h"
@@ -357,17 +360,6 @@ static inline void sdhci_sprd_writel(struct sdhci_host *host, u32 val, int reg)
 	if (unlikely(reg == SDHCI_SIGNAL_ENABLE || reg == SDHCI_INT_ENABLE))
 		val = val & SDHCI_SPRD_INT_SIGNAL_MASK;
 
-	/* for debug */
-	if (unlikely(reg == SDHCI_INT_STATUS) && (val &
-		(SDHCI_INT_CMD_MASK | SDHCI_INT_DATA_MASK | SDHCI_INT_BUS_POWER))) {
-#ifdef CONFIG_SPRD_DEBUG
-		mmc_debug_update(host, NULL, val);
-#else
-		if (true == debug_en)
-			mmc_debug_update(host, NULL, val);
-#endif
-	}
-
 	writel_relaxed(val, host->ioaddr + reg);
 }
 
@@ -378,16 +370,6 @@ static inline void sdhci_sprd_writew(struct sdhci_host *host, u16 val, int reg)
 	/* SDHCI_BLOCK_COUNT is Read Only on Spreadtrum's platform */
 	if (unlikely(reg == SDHCI_BLOCK_COUNT))
 		return;
-
-	/* for debug */
-	if (unlikely(reg == SDHCI_COMMAND)) {
-#ifdef CONFIG_SPRD_DEBUG
-		mmc_debug_update(host, host->cmd, 0);
-#else
-		if (true == debug_en)
-			mmc_debug_update(host, host->cmd, 0);
-#endif
-	}
 
 	if ((HOST_IS_SD_TYPE(host->mmc)) &&
 		(reg == SDHCI_COMMAND) &&
@@ -896,8 +878,8 @@ static void sdhci_sprd_request_done(struct sdhci_host *host,
 
 	trace_mmc_cmd_done(host->mmc, mrq);
 
-	if (HOST_IS_EMMC_TYPE(host->mmc) &&
-		atomic_read(&force_err) && mrq && mrq->cmd && mrq->data) {
+	if (HOST_IS_EMMC_TYPE(host->mmc) && sdhci_sprd_should_force_error() &&
+		mrq && mrq->cmd && mrq->data) {
 		if (((mrq->cmd->opcode == MMC_READ_SINGLE_BLOCK) ||
 			(mrq->cmd->opcode == MMC_READ_MULTIPLE_BLOCK) ||
 			(mrq->cmd->opcode == MMC_WRITE_BLOCK) ||
@@ -907,7 +889,7 @@ static void sdhci_sprd_request_done(struct sdhci_host *host,
 			mrq->data->error = -EILSEQ;
 			pr_info("%s: fill error to cmd:%d, mrq %p\n",
 				mmc_hostname(host->mmc), mrq->cmd->opcode, mrq);
-			atomic_set(&force_err, 0);
+			sdhci_sprd_force_error(false);
 		}
 	}
 
@@ -2508,10 +2490,8 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	sdhci_sprd_register_vendor_hook(host);
 
-#ifdef CONFIG_SPRD_DEBUG
 	sdhci_sprd_add_host_debugfs(host);
-#endif
-	sdhci_sprd_add_host_debug(host);
+	sdhci_sprd_debug_init(host);
 
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);
@@ -2553,6 +2533,8 @@ static int sdhci_sprd_remove(struct platform_device *pdev)
 
 	if (!mmc_check_wp_fn(host->mmc))
 		mmc_wp_remove(host->mmc);
+
+	sdhci_sprd_del_debug_timer_sync(host);
 
 	mmc_ffu_remove(host);
 	sdhci_remove_host(host, 0);

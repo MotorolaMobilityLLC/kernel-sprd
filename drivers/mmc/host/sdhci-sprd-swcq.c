@@ -4,7 +4,11 @@
 //
 // Copyright (C) 2021 UNISOC, Inc.
 // Author: Zhongwu Zhu <zhongwu.zhu@unisoc.com>
-#include "sdhci-sprd-debugfs.h"
+
+#include "sdhci-sprd-debug.h"
+#ifndef CONFIG_SPRD_DEBUG
+#include "sdhci-sprd-debug.c"
+#endif
 
 #define _DRIVER_NAME "sprd-sdhci-swcq"
 #define DBG(f, x...) \
@@ -249,6 +253,10 @@ static void sdhci_sprd_mod_timer(struct sdhci_host *host, struct mmc_request *mr
 		mod_timer(&host->data_timer, timeout);
 	else
 		mod_timer(&host->timer, timeout);
+
+	if (sdhci_sprd_mmc_debug_judge() && HOST_IS_EMMC_TYPE(host->mmc) &&
+		sdhci_sprd_data_line_cmd(mrq->cmd))
+		sdhci_sprd_mod_debug_timer(host, jiffies + 256);
 }
 
 static void sdhci_sprd_del_timer(struct sdhci_host *host, struct mmc_request *mrq)
@@ -257,10 +265,10 @@ static void sdhci_sprd_del_timer(struct sdhci_host *host, struct mmc_request *mr
 		del_timer(&host->data_timer);
 	else
 		del_timer(&host->timer);
-#ifdef CONFIG_SPRD_DEBUG
-	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sdhci_sprd_data_line_cmd(mrq->cmd))
-		del_timer(&host->debug_timer);
-#endif
+
+	if (sdhci_sprd_mmc_debug_judge() && HOST_IS_EMMC_TYPE(host->mmc) &&
+		sdhci_sprd_data_line_cmd(mrq->cmd))
+		sdhci_sprd_del_debug_timer(host);
 }
 
 static inline bool sdhci_sprd_auto_cmd12(struct sdhci_host *host,
@@ -1389,6 +1397,9 @@ static irqreturn_t sdhci_sprd_irq(int irq, void *dev_id)
 		if (intmask & SDHCI_INT_DATA_MASK)
 			sdhci_sprd_data_irq(host, intmask & SDHCI_INT_DATA_MASK);
 
+		if (sdhci_sprd_mmc_debug_judge())
+			mmc_debug_update(host, NULL, intmask);
+
 		if (intmask & SDHCI_INT_BUS_POWER)
 			pr_err("%s: Card is consuming too much power!\n",
 				mmc_hostname(host->mmc));
@@ -1527,6 +1538,9 @@ static irqreturn_t raw_sdhci_irq(int irq, void *dev_id)
 
 		if (intmask & SDHCI_INT_DATA_MASK)
 			sdhci_sprd_data_irq(host, intmask & SDHCI_INT_DATA_MASK);
+
+		if (sdhci_sprd_mmc_debug_judge())
+			mmc_debug_update(host, NULL, intmask);
 
 		if (intmask & SDHCI_INT_BUS_POWER)
 			pr_err("%s: Card is consuming too much power!\n",
@@ -2044,12 +2058,8 @@ static bool sdhci_sprd_send_command(struct sdhci_host *host, struct mmc_command 
 		timeout += 4 * HZ;
 	sdhci_sprd_mod_timer(host, cmd->mrq, timeout);
 
-#ifdef CONFIG_SPRD_DEBUG
-	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sdhci_sprd_data_line_cmd(cmd)) {
-		mod_timer(&host->debug_timer, jiffies + 256);
-		host->cnt_time = ktime_to_ms(ktime_get());
-	}
-#endif
+	if (sdhci_sprd_mmc_debug_judge())
+		mmc_debug_update(host, cmd, 0);
 
 	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->opcode, flags), SDHCI_COMMAND);
 

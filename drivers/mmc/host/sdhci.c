@@ -36,6 +36,13 @@
 
 #include "sdhci.h"
 
+#ifdef CONFIG_SPRD_DEBUG
+#include "sdhci-sprd-debugfs.h"
+#include "sdhci-sprd-debugfs.c"
+#include "sdhci-sprd-debug.h"
+#include "sdhci-sprd-debug.c"
+#endif
+
 #define DRIVER_NAME "sdhci"
 
 #define DBG(f, x...) \
@@ -471,6 +478,10 @@ static void sdhci_mod_timer(struct sdhci_host *host, struct mmc_request *mrq,
 		mod_timer(&host->data_timer, timeout);
 	else
 		mod_timer(&host->timer, timeout);
+#ifdef CONFIG_SPRD_DEBUG
+	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sdhci_data_line_cmd(mrq->cmd))
+		sdhci_sprd_mod_debug_timer(host, jiffies + 256);
+#endif
 }
 
 static void sdhci_del_timer(struct sdhci_host *host, struct mmc_request *mrq)
@@ -481,7 +492,7 @@ static void sdhci_del_timer(struct sdhci_host *host, struct mmc_request *mrq)
 		del_timer(&host->timer);
 #ifdef CONFIG_SPRD_DEBUG
 	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sdhci_data_line_cmd(mrq->cmd))
-		del_timer(&host->debug_timer);
+		sdhci_sprd_del_debug_timer(host);
 #endif
 }
 
@@ -1696,11 +1707,13 @@ static bool sdhci_send_command(struct sdhci_host *host, struct mmc_command *cmd)
 
 	if (host->use_external_dma)
 		sdhci_external_dma_pre_transfer(host, cmd);
+
 #ifdef CONFIG_SPRD_DEBUG
-	if (!strcmp(mmc_hostname(host->mmc), "mmc0") && sdhci_data_line_cmd(cmd)) {
-		mod_timer(&host->debug_timer, jiffies + 256);
-		host->cnt_time = ktime_to_ms(ktime_get());
-	}
+	if (!strcmp(mmc_hostname(host->mmc), "mmc0")) {
+		if (sdhci_sprd_mmc_debug_judge())
+			mmc_debug_update(host, cmd, 0);
+	} else
+		mmc_debug_update(host, cmd, 0);
 #endif
 
 	sdhci_writew(host, SDHCI_MAKE_CMD(cmd->opcode, flags), SDHCI_COMMAND);
@@ -3253,25 +3266,6 @@ static void sdhci_timeout_data_timer(struct timer_list *t)
 	spin_unlock_irqrestore(&host->lock, flags);
 }
 
-#ifdef CONFIG_SPRD_DEBUG
-static void sdhci_timeout_debug_timer(struct timer_list *t)
-{
-	struct sdhci_host *host;
-	unsigned long flags;
-	u32 intmask;
-
-	host = from_timer(host, t, debug_timer);
-
-	spin_lock_irqsave(&host->lock, flags);
-
-	intmask = sdhci_readl(host, SDHCI_INT_STATUS);
-	pr_err("%s: waiting for interrupt over %dms! (256ms timer) int_state = 0x%x\n",
-		mmc_hostname(host->mmc), ktime_to_ms(ktime_get()) - host->cnt_time, intmask);
-	sdhci_dumpregs(host);
-
-	spin_unlock_irqrestore(&host->lock, flags);
-}
-#endif
 /*****************************************************************************\
  *                                                                           *
  * Interrupt handling                                                        *
@@ -3605,6 +3599,14 @@ static irqreturn_t sdhci_irq(int irq, void *dev_id)
 
 		if (intmask & SDHCI_INT_DATA_MASK)
 			sdhci_data_irq(host, intmask & SDHCI_INT_DATA_MASK);
+
+#ifdef CONFIG_SPRD_DEBUG
+		if (!strcmp(mmc_hostname(host->mmc), "mmc0")) {
+			if (sdhci_sprd_mmc_debug_judge())
+				mmc_debug_update(host, NULL, intmask);
+		} else
+			mmc_debug_update(host, NULL, intmask);
+#endif
 
 		if (intmask & SDHCI_INT_BUS_POWER)
 			pr_err("%s: Card is consuming too much power!\n",
@@ -4836,9 +4838,6 @@ int __sdhci_add_host(struct sdhci_host *host)
 
 	timer_setup(&host->timer, sdhci_timeout_timer, 0);
 	timer_setup(&host->data_timer, sdhci_timeout_data_timer, 0);
-#ifdef CONFIG_SPRD_DEBUG
-	timer_setup(&host->debug_timer, sdhci_timeout_debug_timer, 0);
-#endif
 
 	init_waitqueue_head(&host->buf_ready_int);
 
@@ -4943,9 +4942,6 @@ void sdhci_remove_host(struct sdhci_host *host, int dead)
 
 	del_timer_sync(&host->timer);
 	del_timer_sync(&host->data_timer);
-#ifdef CONFIG_SPRD_DEBUG
-	del_timer_sync(&host->debug_timer);
-#endif
 
 	destroy_workqueue(host->complete_wq);
 
