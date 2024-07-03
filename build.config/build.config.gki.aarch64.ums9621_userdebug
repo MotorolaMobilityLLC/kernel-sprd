@@ -11,7 +11,8 @@ if [[ $BSP_PRODUCT_NAME_TAIL == "Skynet" ]]; then
 	UMS9621_BASE_CONFIG+="${FRAGMENT_CONFIG}"
 	FRAGMENT_CONFIG="${KERNEL_DIR}/arch/arm64/configs/sprd_kasan_Skynet.fragment"
 elif [[ $BSP_PRODUCT_NAME_TAIL == "Syzkaller" ]]; then
-	UMS9621_BASE_CONFIG+="${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/sprd_Syzkaller.fragment"
+	UMS9621_BASE_CONFIG+="${FRAGMENT_CONFIG}"
+	FRAGMENT_CONFIG="${KERNEL_DIR}/arch/arm64/configs/sprd_${BSP_PRODUCT_NAME_TAIL,,}.fragment"
 fi
 
 PRE_DEFCONFIG_CMDS="KCONFIG_CONFIG=${ROOT_DIR}/${KERNEL_DIR}/arch/arm64/configs/${DEFCONFIG} \
