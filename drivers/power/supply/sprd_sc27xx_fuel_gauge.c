@@ -137,8 +137,6 @@
 #define SC27XX_FGU_RELAX_CUR_THRESHOLD_MA	30
 #define SC27XX_FGU_RELAX_CNT_THRESHOLD		320
 
-#define SC27XX_FGU_CLBCNT_MAX_RANGE_VAL		0x100000000
-
 static int init_clbcnt;
 static int start_work_clbcnt;
 static int latest_clbcnt;
@@ -1001,9 +999,6 @@ static int sc27xx_fgu_get_clbcnt(struct sprd_fgu_info *info, int *clb_cnt)
 		return ret;
 
 	*clb_cnt = ccl | (cch << 16);
-
-	if (cch & 0x2000)
-		*clb_cnt = *clb_cnt - SC27XX_FGU_CLBCNT_MAX_RANGE_VAL;
 
 	return ret;
 }

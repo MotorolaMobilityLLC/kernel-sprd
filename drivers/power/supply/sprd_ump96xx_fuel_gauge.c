@@ -131,8 +131,6 @@
 #define UMP96XX_FGU_RELAX_CUR_THRESHOLD_MA	30
 #define UMP96XX_FGU_RELAX_CNT_THRESHOLD		320
 
-#define UMP96XX_FGU_CLBCNT_MAX_RANGE_VAL	0x100000000
-
 static s64 init_clbcnt;
 static s64 start_work_clbcnt;
 static s64 latest_clbcnt;
@@ -972,9 +970,6 @@ static int ump96xx_fgu_get_clbcnt(struct sprd_fgu_info *info, s64 *clb_cnt)
 		return ret;
 
 	*clb_cnt = ccl | (cch << 16);
-
-	if (cch & 0x2000)
-		*clb_cnt = *clb_cnt - UMP96XX_FGU_CLBCNT_MAX_RANGE_VAL;
 
 	return ret;
 }
