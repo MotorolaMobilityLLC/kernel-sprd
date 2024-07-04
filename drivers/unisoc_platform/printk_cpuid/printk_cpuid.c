@@ -44,16 +44,13 @@ print_ext_header(void *a, char *caller, size_t size, u32 id, int *ret)
 
 static int __init printk_cpuid_init(void)
 {
-	unsigned long flag;
 
-	local_irq_save(flag);
 	if (register_trace_android_vh_printk_caller_id(encode_caller_id, NULL))
 		goto fail1;
 	if (register_trace_android_vh_printk_caller(decode_caller_id, NULL))
 		goto fail2;
 	if (register_trace_android_vh_printk_ext_header(print_ext_header, NULL))
 		goto fail3;
-	local_irq_restore(flag);
 
 	pr_info("add cpu ID info to kernel log\n");
 	return 0;
@@ -64,19 +61,15 @@ fail2:
 	unregister_trace_android_vh_printk_caller_id(encode_caller_id, NULL);
 fail1:
 	pr_err("failed to register vendor hooks\n");
-	local_irq_restore(flag);
 	return -1;
 }
 
 static void __exit printk_cpuid_exit(void)
 {
-	unsigned long flag;
 
-	local_irq_save(flag);
 	unregister_trace_android_vh_printk_caller_id(encode_caller_id, NULL);
 	unregister_trace_android_vh_printk_caller(decode_caller_id, NULL);
 	unregister_trace_android_vh_printk_ext_header(print_ext_header, NULL);
-	local_irq_restore(flag);
 
 	pr_err("module exited, above logs' caller will be wrong!\n");
 }
