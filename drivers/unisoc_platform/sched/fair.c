@@ -1518,19 +1518,22 @@ void check_parent_vip_status(struct task_struct *tsk)
 	pid_t pid = tsk->pid, tgid = tsk->tgid;
 	struct task_struct *tg_tsk;
 
-	if (uni_task_group_idx(tsk) != VIP_GROUP)
-		return;
-
 	rcu_read_lock();
+
+	if (uni_task_group_idx(tsk) != VIP_GROUP)
+		goto unlock;
+
 	if (pid != tgid) {
 		tg_tsk = get_pid_task(find_vpid(tgid), PIDTYPE_PID);
 		if (!tg_tsk)
 			goto unlock;
 
 		if (test_vip_task(tg_tsk) && uni_task_group_idx(tg_tsk) == VIP_GROUP) {
+			rcu_read_unlock();
 			if (cpu_notify_vip_fork_task(tgid, pid, tg_tsk->comm))
 				pr_debug("cpu-netlink fail:vip-task:%s(%d) fork task(%d) to vip-group\n",
 					  tg_tsk->comm, tgid, pid);
+			rcu_read_lock();
 		}
 		put_task_struct(tg_tsk);
 	}
