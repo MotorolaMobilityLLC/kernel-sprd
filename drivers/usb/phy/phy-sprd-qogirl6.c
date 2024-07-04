@@ -323,13 +323,13 @@ static int sprd_hsphy_set_pmic_pd_en(struct usb_phy *x, bool on)
 				MASK_ANA_SLP_LDO_AVDD12_PD_EN, ~MASK_ANA_SLP_LDO_AVDD12_PD_EN);
 		}
 
+		regmap_read(phy->pmic, REG_ANA_SLP_DCDC_PD_CTRL, &reg);
 		if (reg & MASK_ANA_SLP_DCDCMODEM_PD_EN) {
 			phy->dcdcmm_pd_en_changed = true;
 			regmap_update_bits(phy->pmic, REG_ANA_SLP_DCDC_PD_CTRL,
 				MASK_ANA_SLP_DCDCMODEM_PD_EN, ~MASK_ANA_SLP_DCDCMODEM_PD_EN);
 		}
 
-		regmap_read(phy->pmic, REG_ANA_SLP_DCDC_PD_CTRL, &reg);
 		if (reg & MASK_ANA_SLP_DCDCGPU_PD_EN) {
 			phy->dcdcgpu_pd_en_changed = true;
 			regmap_update_bits(phy->pmic, REG_ANA_SLP_DCDC_PD_CTRL,
