@@ -24,21 +24,26 @@
 #define FROM                   3   // 2^FROM ms
 #define IO_ARRAY_SIZE          12  // last column: 2^(FROM+IO_ARRAY_SIZE-2) ms
 
-/*
- * convert ms to index:
- * [0]     [1]      [2]          [3]          [...] [N]
- * <2^FROM >=2^FROM >=2^(FROM+1) >=2^(FROM+2)  ...  >=2^(FROM+N-1)
- */
+#define OP_TYPE			4
+
+/* R:read W:write F:flush D:discard */
+static const char op_char[OP_TYPE] = {'R', 'W', 'F', 'D'};
+
+struct op_info {
+	unsigned long comp_count;
+	unsigned long comp_sectors;
+	unsigned long op_i2i[IO_ARRAY_SIZE];
+	unsigned long op_i2c[IO_ARRAY_SIZE];
+};
+
 struct io_disk_info {
 	char disk_name[DISK_NAME_LEN_MAX];
 	spinlock_t lock;
 
 	unsigned long rq_count;
 	unsigned long rq_count_bak;
-	unsigned long insert2issue[IO_ARRAY_SIZE];
-	unsigned long insert2issue_bak[IO_ARRAY_SIZE];
-	unsigned long issue2complete[IO_ARRAY_SIZE];
-	unsigned long issue2complete_bak[IO_ARRAY_SIZE];
+	struct op_info opinfo[OP_TYPE];
+	struct op_info opinfo_bak[OP_TYPE];
 };
 
 struct io_debug_info {
@@ -64,26 +69,25 @@ static struct io_debug_info io_debug = {
 	},
 };
 
+/*
+ * convert ms to index:
+ * [0]     [1]      [2]          [3]          [...] [N]
+ * <2^FROM >=2^FROM >=2^(FROM+1) >=2^(FROM+2)  ...  >=2^(FROM+N-1)
+ */
+
 static inline unsigned int ms_to_index(unsigned int ms)
 {
 	ms >>= FROM;
 	return ms > 0 ? min((IO_ARRAY_SIZE - 1), ilog2(ms) + 1) : 0;
 }
 
-#define io_log(array, fmt, ...) \
-	pr_info(fmt "[%3ld-%5ldms]:%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n", \
-		##__VA_ARGS__, 1UL << FROM, 1UL << (FROM + IO_ARRAY_SIZE - 2), \
-		array[0], array[1], array[2], array[3], \
-		array[4], array[5], array[6], array[7], \
-		array[8], array[9], array[10], array[11])
-
 static void _io_backup_log(u64 complete)
 {
 	struct io_disk_info *info;
 	unsigned long lock_flags;
-	int size, i;
+	int size, i, j;
 
-	size = sizeof(unsigned long) * IO_ARRAY_SIZE;
+	size = sizeof(struct op_info);
 
 	for (i = 0; i < MAX_STORAGE_NUM; i++) {
 		info = &io_debug.disk_info[i];
@@ -96,27 +100,50 @@ static void _io_backup_log(u64 complete)
 		}
 
 		info->rq_count = 0;
-		memcpy(info->insert2issue_bak, info->insert2issue, size);
-		memset(info->insert2issue, 0, size);
-		memcpy(info->issue2complete_bak, info->issue2complete, size);
-		memset(info->issue2complete, 0, size);
+		memset(info->opinfo_bak, 0, OP_TYPE * size);
+		for (j = 0; j < OP_TYPE; j++) {
+			if (!info->opinfo[j].comp_count)
+				continue;
+			memcpy(&info->opinfo_bak[j], &info->opinfo[j], size);
+			memset(&info->opinfo[j], 0, size);
+		}
 		spin_unlock_irqrestore(&info->lock, lock_flags);
 	}
+
+}
+
+#define array_log(array, fmt, ...) \
+	pr_info(fmt "[%3ld-%5ldms]:%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n", \
+		##__VA_ARGS__, 1UL << FROM, 1UL << (FROM + IO_ARRAY_SIZE - 2), \
+		array[0], array[1], array[2], array[3], \
+		array[4], array[5], array[6], array[7], \
+		array[8], array[9], array[10], array[11])
+
+static void pr_iolog(struct io_disk_info *info, int type)
+{
+	pr_info("|_%-10s %c complete: %6lu request %8lu sectors\n", info->disk_name, op_char[type],
+		info->opinfo_bak[type].comp_count, info->opinfo_bak[type].comp_sectors);
+	array_log(info->opinfo_bak[type].op_i2i, "|_%-10s %c i2i", info->disk_name, op_char[type]);
+	array_log(info->opinfo_bak[type].op_i2c, "|_%-10s %c i2c", info->disk_name, op_char[type]);
 
 }
 
 static void _io_print_info(void)
 {
 	struct io_disk_info *info;
-	int i;
+	int i, j;
 
 	for (i = 0; i < MAX_STORAGE_NUM; i++) {
 		info = &io_debug.disk_info[i];
 		if (!info->rq_count_bak)
 			continue;
-
-		io_log(info->insert2issue_bak, "|_i2i%10s", info->disk_name);
-		io_log(info->issue2complete_bak, "|_i2c%10s", info->disk_name);
+		pr_info("|_%-10s total complete %lu requests\n",
+			info->disk_name, info->rq_count_bak);
+		for (j = 0; j < OP_TYPE; j++) {
+			if (!info->opinfo_bak[j].comp_count)
+				continue;
+			pr_iolog(info, j);
+		}
 	}
 }
 
@@ -158,6 +185,7 @@ static void complete_handler_post(struct kprobe *p, struct pt_regs *regs,
 	unsigned long lock_flags;
 	u64 complete_ns, issue_time_ns, insert_time_ns, msecs;
 	unsigned int index;
+	int op_type;
 	int i;
 
 	if (rq == NULL || rq->rq_disk == NULL)
@@ -166,6 +194,9 @@ static void complete_handler_post(struct kprobe *p, struct pt_regs *regs,
 	complete_ns = ktime_get_ns();
 	insert_time_ns = rq->start_time_ns;
 	issue_time_ns = rq->io_start_time_ns;
+
+	if (insert_time_ns == 0 || issue_time_ns == 0 || issue_time_ns < insert_time_ns)
+		return;
 
 	for (i = 0; i < MAX_STORAGE_NUM; i++) {
 		info = &io_debug.disk_info[i];
@@ -177,23 +208,27 @@ static void complete_handler_post(struct kprobe *p, struct pt_regs *regs,
 	if (i >= MAX_STORAGE_NUM)
 		return;
 
-	spin_lock_irqsave(&info->lock, lock_flags);
-
-	if (insert_time_ns == 0 || issue_time_ns == 0 || issue_time_ns < insert_time_ns) {
-		spin_unlock_irqrestore(&info->lock, lock_flags);
+	op_type = req_op(rq);
+	if (op_type >= OP_TYPE)
 		return;
-	}
 
+	spin_lock_irqsave(&info->lock, lock_flags);
+	/* statistics req number */
 	++info->rq_count;
+	++info->opinfo[op_type].comp_count;
+
+	/* accumulate total sectors */
+	info->opinfo[op_type].comp_sectors += blk_rq_sectors(rq);
+
 	/* start/insert to issue */
 	msecs = ktime_to_ms(issue_time_ns - insert_time_ns);
 	index = ms_to_index(msecs);
-	++info->insert2issue[index];
+	++info->opinfo[op_type].op_i2i[index];
 
 	/* issue to complete */
 	msecs = ktime_to_ms(complete_ns - issue_time_ns);
 	index = ms_to_index(msecs);
-	++info->issue2complete[index];
+	++info->opinfo[op_type].op_i2c[index];
 	spin_unlock_irqrestore(&info->lock, lock_flags);
 
 	spin_lock_irqsave(&io_debug.lock, lock_flags);
