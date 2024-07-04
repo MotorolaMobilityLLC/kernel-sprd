@@ -316,7 +316,7 @@
 			reg = <6>;
 			sprd,ringnr = <1>;
 			sprd,size-rxbuf = <0x40>;
-			sprd,size-txbuf = <0x20>;
+			sprd,size-txbuf = <0x40>;
 		};
 
 		data0_gnss:channel@7 {
