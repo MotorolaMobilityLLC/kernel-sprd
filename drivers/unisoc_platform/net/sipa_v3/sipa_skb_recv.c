@@ -21,9 +21,6 @@
 #include <linux/sipa.h>
 #include <linux/netdevice.h>
 #include <uapi/linux/sched/types.h>
-#include <linux/ipv6.h>
-#include <linux/ip.h>
-#include <linux/tcp.h>
 
 #include "sipa_dummy.h"
 #include "sipa_hal.h"
@@ -699,9 +696,6 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 	dma_addr_t addr;
 	bool need_unmap = false;
 	int ret;
-        struct iphdr *ip;
-        //struct ipv6hdr *ipv6;
-        struct tcphdr *tcp;
 	enum sipa_cmn_fifo_index id;
 	struct sk_buff *recv_skb = NULL;
 	struct sipa_node_desc_tag *node = NULL;
@@ -770,26 +764,6 @@ struct sk_buff *sipa_recv_skb(struct sipa_skb_receiver *receiver,
 	skb_put(recv_skb, node->length);
 	atomic_dec(&receiver->check_flag);
 
-        #if 0
-           ipv6 = (struct ipv6hdr *)(recv_skb->data + 14);
-           tcp = (struct tcphdr *)(recv_skb->data + 40 + 14);
-           if (ipv6->version == 0x6 && ipv6->nexthdr == 0x6
-               && htons(ipv6->payload_len) > 1000) {
-               pr_info("recv data tcp->seq = %llu, ack = %llu, src_port = %d, dst_port = %d\n",
-                  htonl(tcp->seq),
-                  htonl(tcp->ack_seq),
-                  htons(tcp->source),htons(tcp->dest));
-           }
-        #endif
-          ip = (struct iphdr *)(recv_skb->data + 14);
-          tcp = (struct tcphdr *)(recv_skb->data + 20 + 14);
-          if (ip->version == 0x4 && ip->protocol == 0x6
-              && htons(ip->tot_len) > 1000) {
-              pr_info("recv data tcp->seq = %llu, ack = %llu, src_port = %d, dst_port = %d\n",
-                 htonl(tcp->seq),
-                 htonl(tcp->ack_seq),
-                 htons(tcp->source),htons(tcp->dest));
-          }
 	return recv_skb;
 
 recv_err:
