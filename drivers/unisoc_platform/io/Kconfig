@@ -37,3 +37,12 @@ config UNISOC_FILEMAP_DEBUG
 	When the filemap related trace event is enabled, print the file
 	name associated with the page.
 
+config UNISOC_IOMONITOR
+	tristate "vfs iomonitor support"
+	depends on ARCH_SPRD
+	help
+	Monitor VFS interfaces based on the kprobe to count the IO volume of
+	processes, the IO statstics can be obtained by cat io_stat node.
+	The function needs to be enabled by manually enabling The
+	/proc/io_monitor/enable node.
+
