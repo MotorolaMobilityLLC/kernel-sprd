@@ -134,6 +134,12 @@
 				const-offset = <1000>;
 			};
 
+			skin_sensor: skin-sensor {
+				compatible = "sprd,virt-thm";
+				#thermal-sensor-cells = <0>;
+				thmzone-cells = <&front_thmzone>, <&back_thmzone>;
+			};
+
 			env_sensor: env-sensor {
 				compatible = "sprd,shell-thermal";
 				#thermal-sensor-cells = <0>;
@@ -167,6 +173,10 @@
 
 &chosen {
 	bootargs_ext = "";
+};
+
+&skin_thmzone {
+	thermal-sensors = <&skin_sensor>;
 };
 
 &front_thmzone {
