@@ -597,7 +597,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		return ret;
 	}
 
-	ret = bq2560x_charger_set_termina_vol(info, voltage_max_microvolt);
+	ret = bq2560x_charger_set_termina_vol(info, 4112);
 	if (ret) {
 		dev_err(info->dev, "set bq2560x terminal vol failed\n");
 		return ret;

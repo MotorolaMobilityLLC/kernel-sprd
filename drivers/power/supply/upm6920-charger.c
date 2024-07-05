@@ -593,7 +593,7 @@ static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
 		return ret;
 	}
 
-	ret = upm6920_charger_set_termina_vol(info, voltage_max_microvolt);
+	ret = upm6920_charger_set_termina_vol(info, 4112);
 	if (ret) {
 		dev_err(info->dev, "set upm6920 terminal vol failed\n");
 		return ret;

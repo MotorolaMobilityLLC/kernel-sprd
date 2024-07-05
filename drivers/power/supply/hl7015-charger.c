@@ -498,7 +498,7 @@ static int hl7015_charger_hw_init(struct hl7015_charger_info *info)
 		return ret;
 	}
 
-	ret = hl7015_charger_set_termina_vol(info, voltage_max_microvolt);
+	ret = hl7015_charger_set_termina_vol(info, 4112);
 	if (ret) {
 		dev_err(info->dev, "set hl7015 terminal vol failed\n");
 		return ret;
