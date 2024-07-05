@@ -65,6 +65,7 @@ static const struct mmc_mfrs_special mmc_special_coll[] = {
 	{MANFID_SAMSUNG, "QE63MB", "cmdq",     "disable cmdq", mmc_disable_cmdq},
 	{MANFID_HYNIX,   "HBG4a2", "cmdq",     "disable cmdq", mmc_disable_cmdq},
 	{MANFID_YMTC,    "Y0S064", "excp",     "mask exception bit in R1/R1b", mmc_mask_excp},
+	{MANFID_YMTC,    "Y0S128", "excp",     "mask exception bit in R1/R1b", mmc_mask_excp},
 	{MANFID_YMTC,    "Y0S064", "ds",       "fix drvier strength Type4", mmc_fixup_ds_type4},
 	/* T-card */
 	{MANFID_SANDISK, "SU02G",  "min_timeout", "set data timeout min to 4", mmc_set_min_timeout4}
