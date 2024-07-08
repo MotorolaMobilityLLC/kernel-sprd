@@ -20,7 +20,7 @@
 			reg = <0x2000>;
 		};
 		pmic_tsensor: tsensor@20f8 {
-			compatible = "sprd,ump9622-tsensor";
+			compatible = "sprd,ump96xx-tsensor";
 			#thermal-sensor-cells = <1>;
 			reg = <0x20f8>;
 			#address-cells = <1>;
