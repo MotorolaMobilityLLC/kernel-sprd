@@ -318,6 +318,8 @@
 			MASK_PMU_APB_PD_PCIE_FORCE_SHUTDOWN
 			0x2000000>;
 
+	sprd,pcie-syscons = <&anlg_phy_pcie3_regs>, <&pcie_apb_regs>;
+
 	ep-poweron-late;
 	status = "okay";
 };
