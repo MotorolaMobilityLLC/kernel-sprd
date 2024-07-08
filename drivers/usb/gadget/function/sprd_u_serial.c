@@ -81,6 +81,9 @@
 #define WRITE_BUF_SIZE		8192		/* TX only */
 #define GS_CONSOLE_BUF_SIZE	8192
 
+/* Prevents race conditions while accessing gser->ioport */
+static DEFINE_SPINLOCK(serial_port_lock);
+
 /* console info */
 struct gs_console {
 	struct console		console;
@@ -273,6 +276,15 @@ __acquires(&port->port_lock)
 		spin_lock(&port->port_lock);
 		port->write_busy = false;
 
+		/* If port_usb is NULL, gserial disconnect is called
+		 * while the spinlock is dropped and all requests are
+		 * freed. Free the current requests here.
+		 */
+		if (!port->port_usb) {
+			sprd_gs_free_req(in, req);
+			break;
+		}
+
 		if (status) {
 			pr_debug("%s: %s %s err %d\n",
 					__func__, "queue", in->name, status);
@@ -281,10 +293,6 @@ __acquires(&port->port_lock)
 		}
 
 		port->write_started++;
-
-		/* abort immediately after disconnect */
-		if (!port->port_usb)
-			break;
 	}
 
 	if (do_tty_wake && port->port.tty)
@@ -302,7 +310,13 @@ __acquires(&port->port_lock)
 */
 {
 	struct list_head	*pool = &port->read_pool;
-	struct usb_ep		*out = port->port_usb->out;
+	struct usb_ep		*out;
+
+
+	if (!port->port_usb)
+		return 0;
+
+	out = port->port_usb->out;
 
 	while (!list_empty(pool)) {
 		struct usb_request	*req;
@@ -328,6 +342,15 @@ __acquires(&port->port_lock)
 		status = usb_ep_queue(out, req, GFP_ATOMIC);
 		spin_lock(&port->port_lock);
 
+		/* If port_usb is NULL, gserial disconnect is called
+		 * while the spinlock is dropped and all requests are
+		 * freed. Free the current requests here.
+		 */
+		if (!port->port_usb) {
+			sprd_gs_free_req(out, req);
+			break;
+		}
+
 		if (status) {
 			pr_debug("%s: %s %s err %d\n",
 					__func__, "queue", out->name, status);
@@ -335,10 +358,6 @@ __acquires(&port->port_lock)
 			break;
 		}
 		port->read_started++;
-
-		/* abort immediately after disconnect */
-		if (!port->port_usb)
-			break;
 	}
 	return port->read_started;
 }
@@ -536,6 +555,7 @@ static int gs_start_io(struct gs_port *port)
 {
 	struct list_head	*head = &port->read_pool;
 	struct usb_ep		*ep = port->port_usb->out;
+	struct usb_ep		*epin = port->port_usb->in;
 	int			status;
 	unsigned		started;
 
@@ -550,7 +570,7 @@ static int gs_start_io(struct gs_port *port)
 	if (status)
 		return status;
 
-	status = gs_alloc_requests(port->port_usb->in, &port->write_pool,
+	status = gs_alloc_requests(epin, &port->write_pool,
 			gs_write_complete, &port->write_allocated);
 	if (status) {
 		gs_free_requests(ep, head, &port->read_allocated);
@@ -574,7 +594,7 @@ static int gs_start_io(struct gs_port *port)
 	}
 
 	gs_free_requests(ep, head, &port->read_allocated);
-	gs_free_requests(port->port_usb->in, &port->write_pool,
+	gs_free_requests(epin, &port->write_pool,
 		&port->write_allocated);
 	status = -EIO;
 
@@ -689,7 +709,7 @@ raced_with_open:
 		goto exit;
 	}
 
-	pr_debug("gs_close: ttyGS%d (%p,%p) ...\n", port->port_num, tty, file);
+	pr_info("%s: ttyGS%d (%p,%p) ...\n", __func__, port->port_num, tty, file);
 
 	gser = port->port_usb;
 	if (gser && !port->suspended && gser->disconnect)
@@ -1380,8 +1400,9 @@ void sprd_gserial_disconnect(struct gserial *gser)
 	if (!port)
 		return;
 
+	spin_lock_irqsave(&serial_port_lock, flags);
 	/* tell the TTY glue not to do I/O here any more */
-	spin_lock_irqsave(&port->port_lock, flags);
+	spin_lock(&port->port_lock);
 
 	gs_console_disconnect(port);
 
@@ -1396,7 +1417,8 @@ void sprd_gserial_disconnect(struct gserial *gser)
 			tty_hangup(port->port.tty);
 	}
 	port->suspended = false;
-	spin_unlock_irqrestore(&port->port_lock, flags);
+	spin_unlock(&port->port_lock);
+	spin_unlock_irqrestore(&serial_port_lock, flags);
 
 	/* disable endpoints, aborting down any active I/O */
 	usb_ep_disable(gser->out);
@@ -1414,6 +1436,7 @@ void sprd_gserial_disconnect(struct gserial *gser)
 		port->write_allocated = port->write_started = 0;
 
 	spin_unlock_irqrestore(&port->port_lock, flags);
+	pr_info("gserial disconnect succeeded\n");
 }
 EXPORT_SYMBOL_GPL(sprd_gserial_disconnect);
 
@@ -1430,10 +1453,19 @@ EXPORT_SYMBOL_GPL(sprd_gserial_suspend);
 
 void sprd_gserial_resume(struct gserial *gser)
 {
-	struct gs_port *port = gser->ioport;
+	struct gs_port *port;
 	unsigned long	flags;
 
-	spin_lock_irqsave(&port->port_lock, flags);
+	spin_lock_irqsave(&serial_port_lock, flags);
+	port = gser->ioport;
+
+	if (!port) {
+		spin_unlock_irqrestore(&serial_port_lock, flags);
+		return;
+	}
+
+	spin_lock(&port->port_lock);
+	spin_unlock(&serial_port_lock);
 	port->suspended = false;
 	if (!port->start_delayed) {
 		spin_unlock_irqrestore(&port->port_lock, flags);
