@@ -12,14 +12,14 @@
 #include <linux/platform_data/sprd_ump96xx_tsensor.h>
 
 #define UMP96XX_TSEN_OSC_TEMP(h, l) \
-	(((((h & GENMASK(5, 3)) << 16) | (l & GENMASK(15, 0))) << 4) & 0xFFFFF)
+	(((((h & GENMASK(5, 3)) >> 3 << 16) | (l & GENMASK(15, 0))) << 4) & 0x3FFFFF)
 #define UMP96XX_TSEN_TSEN_TEMP(h, l) \
-	(((((h & GENMASK(2, 0)) << 16) | (l & GENMASK(15, 0))) << 4) & 0xFFFFF)
+	(((((h & GENMASK(2, 0)) << 16) | (l & GENMASK(15, 0))) << 4) & 0x3FFFFF)
 
 #define UMP96XX_TSEN_INDEX_MASK		GENMASK(7, 0)
 #define UMP96XX_TSEN_INDEX_SHIFT	12
 #define UMP96XX_TSEN_FRAC_MASK		GENMASK(11, 0)
-#define ABNORMAL_TEMP			160000
+#define ABNORMAL_TEMP			97697
 
 /* Temperature query table according to integral index */
 /* crystal name:TSX
@@ -106,59 +106,60 @@ struct ump96xx_tsen {
 	int v2t_table_id;
 };
 
-static int ump96xx_tsensor_read_config(struct ump96xx_tsen *tsen)
+static int ump96xx_tsensor_config(struct regmap *regmap, u32 base)
 {
 	int ret;
 
-	ret = regmap_update_bits(tsen->regmap, UMP96XX_XTL_WAIT_CTRL0,
+	ret = regmap_update_bits(regmap, UMP96XX_XTL_WAIT_CTRL0,
 				 UMP96XX_XTL_EN, UMP96XX_XTL_EN);
 	if (ret)
 		return ret;
 
-	ret = regmap_update_bits(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL0,
+	ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL0,
 				 UMP96XX_TSEN_CLK_SRC_SEL, UMP96XX_TSEN_CLK_SRC_SEL);
 	if (ret)
 		return ret;
 
-	ret = regmap_update_bits(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL1,
+	ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL1,
 				 UMP96XX_TSEN_26M_EN, UMP96XX_TSEN_26M_EN);
 	if (ret)
 		return ret;
 
-	ret = regmap_update_bits(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL3,
+	ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL3,
 				 UMP96XX_TSEN_ADCLDO_EN, UMP96XX_TSEN_ADCLDO_EN);
 	if (ret)
 		return ret;
 
-	ret = regmap_update_bits(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL1,
+	ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL1,
 				 UMP96XX_TSEN_SDADC_EN, UMP96XX_TSEN_SDADC_EN);
 	if (ret)
 		return ret;
 
-	ret = regmap_update_bits(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL3,
+	ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL3,
 				 UMP96XX_TSEN_UGBUF_EN, UMP96XX_TSEN_UGBUF_EN);
 	if (ret)
 		return ret;
 
-	return regmap_update_bits(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL6,
-				 UMP96XX_TSEN_SEL_EN, UMP96XX_TSEN_SEL_EN);
+	ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL3,
+				 UMP96XX_TSEN_EN, UMP96XX_TSEN_EN);
+	return ret;
 }
 
-static int ump96xx_tsensor_osc_rawdata_read(struct ump96xx_tsen *tsen, int *rawdata)
+static int ump96xx_tsensor_osc_rawdata_read(struct regmap *regmap, u32 base, signed long *rawdata)
 {
 	int ret, th, tl;
 
-	ret = ump96xx_tsensor_read_config(tsen);
+	ret = ump96xx_tsensor_config(regmap, base);
 	if (ret)
 		return ret;
 
-	ret = regmap_update_bits(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL3,
+	ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL6,
+				 UMP96XX_TSEN_SEL_EN, UMP96XX_TSEN_SEL_EN);
+	if (ret)
+		return ret;
+
+	ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL3,
 				 UMP96XX_TSEN_SEL_CH, UMP96XX_TSEN_SEL_CH);
-	if (ret)
-		return ret;
-
-	ret = regmap_update_bits(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL3,
-				 UMP96XX_TSEN_EN, UMP96XX_TSEN_EN);
 	if (ret)
 		return ret;
 
@@ -168,12 +169,12 @@ static int ump96xx_tsensor_osc_rawdata_read(struct ump96xx_tsen *tsen, int *rawd
 	 */
 	msleep(21);
 
-	ret = regmap_read(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL5, &tl);
+	ret = regmap_read(regmap, base + UMP96XX_TSEN_CTRL5, &tl);
 	if (ret)
 		return ret;
 
 
-	ret = regmap_read(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL6, &th);
+	ret = regmap_read(regmap, base + UMP96XX_TSEN_CTRL6, &th);
 	if (ret)
 		return ret;
 
@@ -184,10 +185,11 @@ static int ump96xx_tsensor_osc_rawdata_read(struct ump96xx_tsen *tsen, int *rawd
 
 static int ump96xx_tsensor_osc_temp_read(struct ump96xx_tsen *tsen, int *temp)
 {
-	int ret, rawdata;
+	int ret;
+	signed long rawdata;
 
 	mutex_lock(&tsen_mutex);
-	ret = ump96xx_tsensor_osc_rawdata_read(tsen, &rawdata);
+	ret = ump96xx_tsensor_osc_rawdata_read(tsen->regmap, tsen->base, &rawdata);
 	mutex_unlock(&tsen_mutex);
 	if (ret)
 		return ret;
@@ -196,26 +198,42 @@ static int ump96xx_tsensor_osc_temp_read(struct ump96xx_tsen *tsen, int *temp)
 	 * According to the requirements of design document,
 	 * tsensor osc temp = 3641500 - (4856 * rawdata) / 1000
 	 */
-	*temp = 3641500 - (((4856 * (rawdata >> 4)) / 1000) << 4);
+	*temp = (int)(3641500 - ((4856 * rawdata) / 1000));
 
 	return ret;
 }
 
-static int ump96xx_tsensor_out_rawdata_read(struct ump96xx_tsen *tsen, int *rawdata)
+static int ump96xx_tsensor_get_tsx_rawdata(struct regmap *regmap, u32 base, int *rawdata)
 {
 	int ret, th, tl;
 
-	ret = ump96xx_tsensor_read_config(tsen);
+	ret = regmap_read(regmap, base + UMP96XX_TSEN_CTRL4, &tl);
 	if (ret)
 		return ret;
 
-	ret = regmap_update_bits(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL3,
-				 UMP96XX_TSEN_SEL_CH, 0x0);
+	ret = regmap_read(regmap, base + UMP96XX_TSEN_CTRL6, &th);
 	if (ret)
 		return ret;
 
-	ret = regmap_update_bits(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL3,
-				 UMP96XX_TSEN_EN, UMP96XX_TSEN_EN);
+	*rawdata = UMP96XX_TSEN_TSEN_TEMP(th, tl);
+
+	return ret;
+}
+
+static int ump96xx_tsensor_out_rawdata_read(struct regmap *regmap, u32 base, int *rawdata)
+{
+	int ret;
+
+	ret = ump96xx_tsensor_config(regmap, base);
+	if (ret)
+		return ret;
+
+	ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL6,
+				 UMP96XX_TSEN_SEL_EN, UMP96XX_TSEN_SEL_EN);
+	if (ret)
+		return ret;
+
+	ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL3, UMP96XX_TSEN_SEL_CH, 0x0);
 	if (ret)
 		return ret;
 
@@ -225,29 +243,14 @@ static int ump96xx_tsensor_out_rawdata_read(struct ump96xx_tsen *tsen, int *rawd
 	 */
 	msleep(21);
 
-	ret = regmap_read(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL4, &tl);
-	if (ret)
-		return ret;
-
-	ret = regmap_read(tsen->regmap, tsen->base + UMP96XX_TSEN_CTRL6, &th);
-	if (ret)
-		return ret;
-
-	*rawdata = UMP96XX_TSEN_TSEN_TEMP(th, tl);
+	ret = ump96xx_tsensor_get_tsx_rawdata(regmap, base, rawdata);
 
 	return ret;
 }
 
-static int ump96xx_tsensor_out_temp_read(struct ump96xx_tsen *tsen, int *temp,
-					 int v2t_table[], int len)
+static void ump96xx_tsensor_cal_tsx_temp(int v2t_table[], int len, int rawdata, int *temp)
 {
-	int ret, rawdata, index, frac, t;
-
-	mutex_lock(&tsen_mutex);
-	ret = ump96xx_tsensor_out_rawdata_read(tsen, &rawdata);
-	mutex_unlock(&tsen_mutex);
-	if (ret)
-		return ret;
+	int index, frac, t;
 
 	index = (rawdata >> UMP96XX_TSEN_INDEX_SHIFT) & UMP96XX_TSEN_INDEX_MASK;
 	frac = rawdata & UMP96XX_TSEN_FRAC_MASK;
@@ -256,20 +259,33 @@ static int ump96xx_tsensor_out_temp_read(struct ump96xx_tsen *tsen, int *temp,
 	 * According to the requirements of design document,get the index accrding
 	 * to the integral result, and query the current temperature value according to
 	 * the index.
-	 * t = (v2t_table[index] * (0x1000-frac) + v2t_table[index+1] * frac + 0x800) / 4096;
+	 * t = (v2t_table[index] * (0x1000-frac) + v2t_table[index+1] * frac + 0x800) / >> 12;
 	 */
 	if (index != len / 4 - 1)
 		t = (v2t_table[index] * (0x1000 - frac) + v2t_table[index + 1] *
-			frac + 0x800) / 4096;
+			frac + 0x800) >> 12;
 	else
 		t = v2t_table[index];
 
 	/*
 	 * According to the requirements of design document,
-	 * tsensor out temp = (t * 1000) / 4096 + 25000
+	 * tsensor out temp = ((t * 1000) >> 12) + 25000
 	 */
-	*temp = (t * 1000) / 4096 + 25000;
+	*temp = ((t * 1000) >> 12) + 25000;
+}
 
+static int ump96xx_tsensor_out_temp_read(struct ump96xx_tsen *tsen, int *temp,
+					 int v2t_table[], int len)
+{
+	int ret, rawdata;
+
+	mutex_lock(&tsen_mutex);
+	ret = ump96xx_tsensor_out_rawdata_read(tsen->regmap, tsen->base, &rawdata);
+	mutex_unlock(&tsen_mutex);
+	if (ret)
+		return ret;
+
+	ump96xx_tsensor_cal_tsx_temp(v2t_table, len, rawdata, temp);
 	return ret;
 }
 
@@ -337,14 +353,12 @@ static int ump96xx_tsensor_get_temp(void *data, int *temp)
 		ret = ump96xx_tsensor_osc_temp_read(tsen, temp);
 		return ret;
 	}
-	if (tsen->id == 1) {
-		if (!tsen->v2t_table_id) {
-			len = sizeof(v2t_table_0);
-			ret = ump96xx_tsensor_out_temp_read(tsen, temp, v2t_table_0, len);
-		} else {
-			len = sizeof(v2t_table_1);
-			ret = ump96xx_tsensor_out_temp_read(tsen, temp, v2t_table_1, len);
-		}
+	if (tsen->v2t_table_id) {
+		len = sizeof(v2t_table_1);
+		ret = ump96xx_tsensor_out_temp_read(tsen, temp, v2t_table_1, len);
+	} else {
+		len = sizeof(v2t_table_0);
+		ret = ump96xx_tsensor_out_temp_read(tsen, temp, v2t_table_0, len);
 	}
 
 	return ret;
@@ -354,121 +368,27 @@ static const struct thermal_zone_of_device_ops tsensor_thermal_ops = {
 	.get_temp = ump96xx_tsensor_get_temp,
 };
 
-static int tsen_enable(struct regmap *regmap, unsigned int base)
+static int tsen_enable(struct regmap *regmap, u32 base)
 {
-	unsigned int value = 0, tmp = 0;
 	int ret = 0;
 
-	if (modem_flag | gnss_flag) {
-		pr_info("one device has enabled tsen\n");
+	if (gnss_flag)
 		return ret;
-	}
-
-	ret = regmap_update_bits(regmap, UMP96XX_XTL_WAIT_CTRL0,
-				 UMP96XX_XTL_EN, UMP96XX_XTL_EN);
-	regmap_read(regmap, UMP96XX_XTL_WAIT_CTRL0, &value);
-	pr_info("addr=0x%x, wait_ctrl0=0x%x\n", UMP96XX_XTL_WAIT_CTRL0, value);
-	if (ret) {
-		pr_err("update XTL_WAIT_CTRL0 error\n");
-		return ret;
-	}
-
-	ret = regmap_update_bits(regmap, (base + UMP96XX_TSEN_CTRL0),
-				 UMP96XX_TSEN_CLK_SRC_SEL, UMP96XX_TSEN_CLK_SRC_SEL);
-	regmap_read(regmap, base + UMP96XX_TSEN_CTRL0, &value);
-	pr_info("addr=0x%x, tsen_ctrl0=0x%x\n", base + UMP96XX_TSEN_CTRL0, value);
-	if (ret) {
-		pr_err("update TSEN_CTRL0 error\n");
-		return ret;
-	}
-
-	ret = regmap_read(regmap, (base + UMP96XX_TSEN_CTRL1), &value);
-	if (ret) {
-		pr_err("read TSEN_CTRL1 error\n");
-		return ret;
-	};
-	tmp = value | UMP96XX_TSEN_26M_EN | UMP96XX_TSEN_SDADC_EN;
-	ret = regmap_write(regmap, (base + UMP96XX_TSEN_CTRL1), tmp);
-	regmap_read(regmap, base + UMP96XX_TSEN_CTRL1, &value);
-	pr_info("addr=0x%x, tsen_ctrl1=0x%x\n", base + UMP96XX_TSEN_CTRL1,
-	       value);
-	if (ret) {
-		pr_err("write TSEN_CTRL1 error\n");
-		return ret;
-	};
-
-	ret = regmap_read(regmap, (base + UMP96XX_TSEN_CTRL3), &value);
-	if (ret) {
-		pr_err("read TSEN_CTRL3 error\n");
-		return ret;
-	}
-	tmp = value | UMP96XX_TSEN_ADCLDO_EN | UMP96XX_TSEN_UGBUF_EN | UMP96XX_TSEN_EN;
-	ret = regmap_write(regmap, (base + UMP96XX_TSEN_CTRL3), tmp);
-	regmap_read(regmap, base + UMP96XX_TSEN_CTRL3, &value);
-	pr_info("addr=0x%x, tsen_ctrl3=0x%x\n", base + UMP96XX_TSEN_CTRL3,
-	       value);
-	if (ret) {
-		pr_err("write TSEN_CTRL3 error\n");
-		return ret;
-	}
-
-	regmap_read(regmap, base + UMP96XX_TSEN_CTRL6, &value);
-	tmp = value & (~UMP96XX_TSEN_SEL_EN);
-	ret = regmap_write(regmap, base + UMP96XX_TSEN_CTRL6, tmp);
-	regmap_read(regmap, base + UMP96XX_TSEN_CTRL6, &value);
-	pr_info("%s, CTRL6=0x%x\n", __func__, value);
+	ret = ump96xx_tsensor_config(regmap, base);
 	if (ret)
-		pr_err("write TSEN_CTRL6 error\n");
+		return ret;
+
+	ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL6, UMP96XX_TSEN_SEL_EN, 0x0);
 	return ret;
 }
 
-static int tsen_disable(struct regmap *regmap, unsigned int base)
+static int tsen_disable(struct regmap *regmap, u32 base)
 {
-	unsigned int value, tmp;
 	int ret = 0;
 
-	if (!modem_flag && !gnss_flag) {
-		ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL0,
-					 UMP96XX_TSEN_CLK_SRC_SEL, 0);
-		if (ret) {
-			pr_err("dis: update TSEN_CTRL0 error\n");
-			return ret;
-		}
-
-		ret = regmap_read(regmap, (base + UMP96XX_TSEN_CTRL1), &value);
-		if (ret) {
-			pr_err("dis:read TSEN_CTRL1 error\n");
-			return ret;
-		}
-		tmp = UMP96XX_TSEN_26M_EN | UMP96XX_TSEN_SDADC_EN;
-		tmp = value & (~tmp);
-		ret = regmap_write(regmap, (base + UMP96XX_TSEN_CTRL1), tmp);
-		if (ret) {
-			pr_err("dis:write TSEN_CTRL1 error\n");
-			return ret;
-		}
-
-		ret = regmap_read(regmap, (base + UMP96XX_TSEN_CTRL3), &value);
-		if (ret) {
-			pr_err("dis:read TSEN_CTRL3 error\n");
-			return ret;
-		}
-		tmp = UMP96XX_TSEN_ADCLDO_EN | UMP96XX_TSEN_UGBUF_EN | UMP96XX_TSEN_EN;
-		tmp = value & (~tmp);
-		ret = regmap_write(regmap, (base + UMP96XX_TSEN_CTRL3), tmp);
-		if (ret) {
-			pr_err("dis:write TSEN_CTRL3 error\n");
-			return ret;
-		}
-
-		ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL6,
-				UMP96XX_TSEN_SEL_EN, 0);
-		if (ret) {
-			pr_err("dis:write TSEN_CTRL6 error\n");
-			return ret;
-		}
-	} else
-		pr_debug("one of device need use tsen, do not close!\n");
+	if (gnss_flag)
+		return ret;
+	ret = ump96xx_tsensor_disable(regmap, base);
 
 	return ret;
 }
@@ -478,11 +398,11 @@ int gnss_tsen_control(struct regmap *regmap, unsigned int base, bool en)
 	int ret = 0;
 
 	mutex_lock(&modem_gnss_mtx);
-	if (en) {
+	if (en && !gnss_flag) {
 		ret = tsen_enable(regmap, base);
 		if (!ret)
 			gnss_flag = true;
-	} else {
+	} else if (!en && gnss_flag) {
 		/*whether it close success or not, flag need to be false,
 		 * then modem can close
 		 */
@@ -498,59 +418,53 @@ static int modem_tsen_control(struct regmap *regmap, unsigned int base, bool en)
 {
 	int ret = 0;
 
-	mutex_lock(&modem_gnss_mtx);
-	if (en) {
+	if (en && !modem_flag) {
+		mutex_lock(&modem_gnss_mtx);
 		ret = tsen_enable(regmap, base);
 		if (!ret)
 			modem_flag = true;
 	} else {
-		modem_flag = false;
 		ret = tsen_disable(regmap, base);
+		modem_flag = false;
+		mutex_unlock(&modem_gnss_mtx);
 	}
-	mutex_unlock(&modem_gnss_mtx);
 	return ret;
 }
 
-static int modem_tsen_read(struct regmap *regmap, unsigned int base, int *temp,
+static void modem_tsen_read(struct regmap *regmap, u32 base, int *temp,
 			   int v2t_table[], int len)
 {
-	int ret = 0, th = 0, tl = 0, rawdata = 0;
-	int index, frac, t, i = 0;
+	int ret, rawdata, i = 0;
 
 	mutex_lock(&tsen_mutex);
+	if (!gnss_flag) {
+		ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL6,
+					 UMP96XX_TSEN_SEL_EN, UMP96XX_TSEN_SEL_EN);
+		if (ret) {
+			mutex_unlock(&tsen_mutex);
+			return;
+		}
+		ret = regmap_update_bits(regmap, base + UMP96XX_TSEN_CTRL3,
+					 UMP96XX_TSEN_SEL_CH, 0x0);
+		if (ret) {
+			mutex_unlock(&tsen_mutex);
+			return;
+		}
+	}
+
 	do {
-		mdelay(10);
-		ret = regmap_read(regmap, (base + UMP96XX_TSEN_CTRL4), &tl);
+		msleep(20);
+
+		ret = ump96xx_tsensor_get_tsx_rawdata(regmap, base, &rawdata);
 		if (ret) {
-			pr_err("read TSEN_CTRL4 error\n");
 			mutex_unlock(&tsen_mutex);
-			return ret;
+			return;
 		}
-
-		ret = regmap_read(regmap, (base +  UMP96XX_TSEN_CTRL6), &th);
-		if (ret) {
-			pr_err("read TSEN_CTRL6 error\n");
-			mutex_unlock(&tsen_mutex);
-			return ret;
-		}
-
-		rawdata = UMP96XX_TSEN_TSEN_TEMP(th, tl);
-		pr_debug("rawdata=%d, th=0x%x, tl=0x%x\n", rawdata, th, tl);
-
-		index = (rawdata >> UMP96XX_TSEN_INDEX_SHIFT) & UMP96XX_TSEN_INDEX_MASK;
-		frac = rawdata & UMP96XX_TSEN_FRAC_MASK;
-		if (index != len / 4 - 1)
-			t = (v2t_table[index] * (0x1000 - frac) +
-				v2t_table[index + 1] * frac + 0x800) / 4096;
-		else
-			t = v2t_table[index];
-		*temp = (t * 1000) / 4096 + 25000;
-
+		ump96xx_tsensor_cal_tsx_temp(v2t_table, len, rawdata, temp);
 		i++;
-		pr_info("i=%d, temp=%d\n", i, *temp);
-	} while ((rawdata == 0) && (i < 5));
+	} while ((*temp >= ABNORMAL_TEMP) && (i < 3));
+
 	mutex_unlock(&tsen_mutex);
-	return ret;
 }
 
 static ssize_t modem_tsen_show(struct device_driver *dev, char *buf)
@@ -564,12 +478,12 @@ static ssize_t modem_tsen_show(struct device_driver *dev, char *buf)
 
 	if (tsen_mager.v2t_table_id == 0) {
 		len = sizeof(v2t_table_0);
-		ret = modem_tsen_read(tsen_mager.regmap, tsen_mager.base,
-				      &tsen_temp, v2t_table_0, len);
+		modem_tsen_read(tsen_mager.regmap, tsen_mager.base,
+				&tsen_temp, v2t_table_0, len);
 	} else if (tsen_mager.v2t_table_id == 1) {
 		len = sizeof(v2t_table_1);
-		ret = modem_tsen_read(tsen_mager.regmap, tsen_mager.base,
-				      &tsen_temp, v2t_table_1, len);
+		modem_tsen_read(tsen_mager.regmap, tsen_mager.base,
+				&tsen_temp, v2t_table_1, len);
 	}
 
 	ret = modem_tsen_control(tsen_mager.regmap, tsen_mager.base, false);
@@ -600,13 +514,13 @@ static int ump96xx_tsen_probe(struct platform_device *pdev)
 
 	regmap = dev_get_regmap(pdev->dev.parent, NULL);
 	if (!regmap) {
-		dev_err(&pdev->dev, "failed to get efuse regmap\n");
+		dev_err(&pdev->dev, "failed to get regmap\n");
 		return -ENODEV;
 	}
 
 	ret = of_property_read_u32(np, "reg", &base);
 	if (ret) {
-		dev_err(&pdev->dev, "failed to get efuse base address\n");
+		dev_err(&pdev->dev, "failed to get base address\n");
 		return ret;
 	}
 
@@ -651,7 +565,7 @@ static int ump96xx_tsen_probe(struct platform_device *pdev)
 
 //module_platform_driver(ump96xx_tsen_driver);
 static const struct of_device_id ump96xx_tsen_of_match[] = {
-	{ .compatible = "sprd,ump9622-tsensor",},
+	{ .compatible = "sprd,ump96xx-tsensor",},
 	{ }
 };
 

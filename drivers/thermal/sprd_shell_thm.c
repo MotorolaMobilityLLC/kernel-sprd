@@ -41,7 +41,6 @@ struct shell_sensor {
 
 struct sprd_thermal_zone {
 	struct thermal_zone_device *therm_dev;
-	struct mutex th_lock;
 	struct device *dev;
 	const struct thermal_zone_of_device_ops *ops;
 	char name[THM_NAME_LENGTH];
@@ -73,10 +72,8 @@ static void sprd_get_virt_temp(struct shell_sensor *psensor, int *temp, int inde
 			*temp = diff_temp > 0 ? psensor->last_temp + psensor->virt_temp_diff :
 						psensor->last_temp - psensor->virt_temp_diff;
 		}
-		psensor->last_temp = *temp;
-	} else {
-		psensor->last_temp = sum_temp;
 	}
+	psensor->last_temp = *temp;
 }
 
 static int sprd_get_temp(struct shell_sensor *psensor, int *temp)
@@ -108,8 +105,8 @@ static int sprd_get_temp(struct shell_sensor *psensor, int *temp)
 			old_index = index - 1 < 0 ? psensor->ntemp - 1 : index - 1;
 			old_temp = psensor->hty_temp[i][old_index];
 			diff_temp = psensor->hty_temp[i][index] - old_temp;
-			if (!psensor->ntc_temp_diff &&
-				(abs(diff_temp) > psensor->ntc_temp_diff[i])) {
+			if (psensor->ntc_temp_diff &&
+			    (abs(diff_temp) > psensor->ntc_temp_diff[i])) {
 				tmp_temp = diff_temp > 0 ? old_temp + psensor->ntc_temp_diff[i] :
 							   old_temp - psensor->ntc_temp_diff[i];
 				psensor->hty_temp[i][index] = tmp_temp;
@@ -229,14 +226,20 @@ static int sprd_temp_sen_parse_dt(struct device *dev, struct shell_sensor *psens
 	}
 
 	count = (size_t)of_property_count_strings(np, "sensor-names");
-	if (count < 0) {
+	if (count <= 0) {
 		dev_err(dev, "sensor names not found\n");
 		return count;
 	}
 
 	psensor->thm_zones = devm_kmalloc_array(dev, count, sizeof(struct thermal_zone_device *),
 						GFP_KERNEL);
+	if (!psensor->thm_zones)
+		return -ENOMEM;
+
 	psensor->sensor_names = devm_kmalloc_array(dev, count, sizeof(char *), GFP_KERNEL);
+	if (!psensor->sensor_names)
+		return -ENOMEM;
+
 	psensor->nsensor = count;
 	for (i = 0; i < count; i++) {
 		ret = of_property_read_string_index(np, "sensor-names", i,
@@ -248,7 +251,7 @@ static int sprd_temp_sen_parse_dt(struct device *dev, struct shell_sensor *psens
 	}
 
 	count = (size_t)of_property_count_elems_of_size(np, "temp-coeff", sizeof(u32));
-	if (count < 0) {
+	if (count <= 0) {
 		dev_err(dev, "temp coeff not found\n");
 		return count;
 	}
@@ -262,10 +265,18 @@ static int sprd_temp_sen_parse_dt(struct device *dev, struct shell_sensor *psens
 	psensor->ntemp = count/psensor->nsensor;
 
 	tmp_coeff = devm_kmalloc_array(dev, psensor->nsensor, sizeof(int *), GFP_KERNEL);
+	if (!tmp_coeff)
+		return -ENOMEM;
+
 	tmp_hty_temp = devm_kmalloc_array(dev, psensor->nsensor, sizeof(int *), GFP_KERNEL);
+	if (!tmp_hty_temp)
+		return -ENOMEM;
+
 	while (k < psensor->nsensor) {
 		tmp_coeff[k] = devm_kmalloc_array(dev, psensor->ntemp, sizeof(int), GFP_KERNEL);
 		tmp_hty_temp[k] = devm_kmalloc_array(dev, psensor->ntemp, sizeof(int), GFP_KERNEL);
+		if (!tmp_coeff[k] || !tmp_hty_temp[k])
+			return -ENOMEM;
 		k++;
 	}
 	psensor->coeff = tmp_coeff;
@@ -326,7 +337,7 @@ int sprd_thm_init(struct sprd_thermal_zone *pzone)
 	if (IS_ERR_OR_NULL(pzone->therm_dev)) {
 		pr_err("Register thermal zone device failed.\n");
 		return PTR_ERR(pzone->therm_dev);
-	};
+	}
 
 	return 0;
 }
@@ -372,8 +383,6 @@ static int sprd_shell_thm_probe(struct platform_device *pdev)
 	if (!pzone)
 		return -ENOMEM;
 
-	mutex_init(&pzone->th_lock);
-
 	pzone->dev = &pdev->dev;
 	pzone->id = sensor_id;
 	pzone->ops = &sprd_shell_thm_ops;
@@ -400,7 +409,6 @@ static int sprd_shell_thm_remove(struct platform_device *pdev)
 
 	cancel_delayed_work_sync(&psensor->read_temp_work);
 	thermal_zone_device_unregister(pzone->therm_dev);
-	mutex_destroy(&pzone->th_lock);
 	return 0;
 }
 
