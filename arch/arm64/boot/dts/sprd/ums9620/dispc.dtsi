@@ -372,11 +372,36 @@
 		power-domains = <&vpu_pd_top>;
 	};
 
+	perf_dummy_crtc: perf_dummy_crtc{
+		compatible = "sprd,perf-dummy-crtc";
+		status = "okay";
+		reg = <0x0 0x31000000 0x0 0x1000>;
+
+		dma-coherent;
+		perf_dummy_crtc_port: port {
+			perf_dummy_crtc_out: endpoint {
+				remote-endpoint = <&perf_dummy_connector_in>;
+			};
+		};
+	};
+
+	perf_dummy_connector: perf_dummy_connector {
+		compatible = "sprd,perf-dummy-connector";
+		status = "okay";
+
+		port {
+			perf_dummy_connector_in: endpoint {
+				remote-endpoint = <&perf_dummy_crtc_out>;
+			};
+		};
+	};
+
 	display-subsystem {
 		compatible = "sprd,display-subsystem";
 		ports = <&dpu_port>, <&dpu1_port>;
 		gsp = <&gsp0>, <&gsp1>;
 		perf_ports = <&perf_dpu_port>;
+		perf_dummy_ports = <&perf_dummy_crtc_port>;
 	};
 };
 
@@ -489,6 +514,61 @@
 		};
 
 		dummy_timing2: timing2 {
+			clock-frequency = <384000000>;
+			hactive = <1080>;
+			vactive = <2408>; /*2408*/
+			hback-porch = <56>;
+			hfront-porch = <130>;
+			vback-porch = <30>;
+			vfront-porch = <46>;
+			hsync-len = <12>;
+			vsync-len = <10>;
+		};
+	};
+};
+
+&perf_dummy_connector {
+	sprd,dummy-panel-work-mode = <1>;
+	sprd,dummy-panel-color-format = "rgb888";
+	sprd,dpi-clk-pixelpll;
+	sprd,width-mm = <68>;
+	sprd,height-mm = <152>;
+
+	sprd,hw-vrr-en;
+	sprd,vrr-enabled;
+	sprd,vrr-max-layers = <2>;
+
+	sprd,sr-width = <720>;
+	sprd,sr-height = <1640>;
+
+	display-timings {
+		native-mode = <&dummy_crtc_timing0>;
+
+		dummy_crtc_timing0: timing0 {
+			clock-frequency = <384000000>;
+			hactive = <1080>;
+			vactive = <2408>; /*2408*/
+			hback-porch = <56>;
+			hfront-porch = <130>;
+			vback-porch = <30>;
+			vfront-porch = <2559>;
+			hsync-len = <12>;
+			vsync-len = <10>;
+		};
+
+		dummy_crtc_timing1: timing1 {
+			clock-frequency = <384000000>;
+			hactive = <1080>;
+			vactive = <2408>; /*2408*/
+			hback-porch = <56>;
+			hfront-porch = <130>;
+			vback-porch = <30>;
+			vfront-porch = <890>;
+			hsync-len = <12>;
+			vsync-len = <10>;
+		};
+
+		dummy_crtc_timing2: timing2 {
 			clock-frequency = <384000000>;
 			hactive = <1080>;
 			vactive = <2408>; /*2408*/
