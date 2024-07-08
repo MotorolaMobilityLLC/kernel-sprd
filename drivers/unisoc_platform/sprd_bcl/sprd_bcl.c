@@ -26,6 +26,7 @@ struct sprd_bcl_device {
 	struct thermal_zone_device_ops ops;
 	struct power_supply *bcl_psy;
 	struct notifier_block psy_nb;
+	struct work_struct notify_thermald_work;
 	int bcl_level;
 	int debug_bcl_level;
 	int bcl_soc_thres_offset;
@@ -157,8 +158,10 @@ static int sprd_bcl_judge_bcl_level(struct sprd_bcl_device *data, int soc, int v
 	return bcl_level;
 }
 
-static void sprd_bcl_notify_thermald(struct sprd_bcl_device *data)
+static void sprd_bcl_notify_thermald_work(struct work_struct *work)
 {
+	struct sprd_bcl_device *data = container_of(work, struct sprd_bcl_device,
+						    notify_thermald_work);
 	int ret, bat_soc, vbat_uv, bcl_level;
 	static int last_bcl_level;
 
@@ -176,7 +179,7 @@ static void sprd_bcl_notify_thermald(struct sprd_bcl_device *data)
 
 	bcl_level = sprd_bcl_judge_bcl_level(data, bat_soc, vbat_uv / 1000);
 	if (bcl_level != last_bcl_level) {
-		dev_info(bcl_data->dev, "%s %d bat_soc = %d, vbat_uv = %d, last_bcl_level = %d, bcl_level = %d.\n",
+		dev_info(data->dev, "%s %d bat_soc = %d, vbat_uv = %d, last_bcl_level = %d, bcl_level = %d.\n",
 			 __func__, __LINE__, bat_soc, vbat_uv, last_bcl_level, bcl_level);
 		bcl_data->bcl_level = bcl_level;
 		last_bcl_level = bcl_level;
@@ -193,7 +196,7 @@ static int sprd_bcl_callback(struct notifier_block *nb, unsigned long event, voi
 	    strcmp(psy->desc->name, SPRD_BCL_FGU_NAME))
 		return NOTIFY_OK;
 
-	sprd_bcl_notify_thermald(bcl_data);
+	schedule_work(&bcl_data->notify_thermald_work);
 
 	return NOTIFY_OK;
 }
@@ -271,7 +274,7 @@ static ssize_t sprd_bcl_soc_thres_offset_store(struct device *dev,
 
 	if (bcl_soc_thres_offset != data->bcl_soc_thres_offset) {
 		data->bcl_soc_thres_offset = bcl_soc_thres_offset;
-		sprd_bcl_notify_thermald(data);
+		schedule_work(&bcl_data->notify_thermald_work);
 		dev_info(data->dev, "Try to set [bcl_soc_thres_offset] to [%d]\n",
 			 bcl_soc_thres_offset);
 	}
@@ -321,7 +324,7 @@ static ssize_t sprd_bcl_vbat_thres_offset_store(struct device *dev,
 
 	if (bcl_vbat_thres_offset != data->bcl_vbat_thres_offset) {
 		data->bcl_vbat_thres_offset = bcl_vbat_thres_offset;
-		sprd_bcl_notify_thermald(data);
+		schedule_work(&bcl_data->notify_thermald_work);
 		dev_info(data->dev, "Try to set [bcl_vbat_thres_offset] to [%d]\n",
 			 bcl_vbat_thres_offset);
 	}
@@ -419,6 +422,8 @@ static int sprd_bcl_probe(struct platform_device *pdev)
 	if (bcl_data->bcl_level_thres_table->vbat_thres_cols < 0)
 		dev_err(&pdev->dev, "%s vbat_thres_table is not define!!!\n", __func__);
 
+	INIT_WORK(&bcl_data->notify_thermald_work, sprd_bcl_notify_thermald_work);
+
 	bcl_data->psy_nb.notifier_call = sprd_bcl_callback;
 	ret = power_supply_reg_notifier(&bcl_data->psy_nb);
 	if (ret) {
@@ -440,6 +445,8 @@ static int sprd_bcl_remove(struct platform_device *pdev)
 {
 	if (!IS_ERR_OR_NULL(bcl_data->tz_dev))
 		thermal_zone_device_unregister(bcl_data->tz_dev);
+	if (work_pending(&bcl_data->notify_thermald_work))
+		cancel_work_sync(&bcl_data->notify_thermald_work);
 
 	return 0;
 }
