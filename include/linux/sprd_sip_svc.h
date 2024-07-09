@@ -183,13 +183,12 @@ struct sprd_sip_svc_gpu_ops {
  *
  * @cachedump_func_api: execute cachedump function
  * @mesi: 0x1001 means save INVALID and MODIFED dcache
- * @sec: 0x1 means save no_security dcache
  * @valid: 0x1100 means save A64+A32 in A76, but means save Invalid+T32 in A55
  */
 struct sprd_sip_svc_cachedump_ops {
 	struct sprd_sip_svc_rev_info rev;
 
-	int (*cachedump_func_api)(uint8_t mesi, uint8_t sec, uint8_t valid);
+	int (*cachedump_func_api)(uint8_t mesi, uint8_t valid);
 };
 #endif
 

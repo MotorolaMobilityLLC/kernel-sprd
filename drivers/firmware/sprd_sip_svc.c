@@ -687,12 +687,12 @@ static int sprd_sip_svc_npu_set_volts(u32 high_temp)
 }
 
 #if IS_ENABLED(CONFIG_UNISOC_CACHEDUMP)
-static int sprd_sip_svc_cachedump_func_api(uint8_t mesi, uint8_t sec, uint8_t valid)
+static int sprd_sip_svc_cachedump_func_api(uint8_t mesi, uint8_t valid)
 {
 	struct arm_smccc_res res;
 
 	arm_smccc_smc(SPRD_SIP_SVC_CACHEDUMP_FUNC_API,
-			mesi, sec, valid, 0, 0, 0, 0, &res);
+			mesi, valid, 0, 0, 0, 0, 0, &res);
 
 	return res.a0;
 }
