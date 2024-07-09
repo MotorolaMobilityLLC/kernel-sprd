@@ -299,6 +299,11 @@ static int sprd_pcie_host_uninit(struct platform_device *pdev)
 		dev_warn(&pdev->dev,
 			"set pcie uninit syscons fail, return %d\n", ret);
 
+	ret = sprd_pcie_syscon_cache_setting(pdev, "sprd,pcie-syscons", true);
+	if (ret < 0)
+		dev_err(&pdev->dev,
+			"set pcie syscons cache fail, return %d\n", ret);
+
 	if (!ctrl->is_suspended) {
 		ctrl->is_powered = 0;
 		ret = pm_runtime_put_sync(&pdev->dev);
@@ -385,6 +390,11 @@ power_off:
 		dev_err(&pdev->dev,
 			"set pcie shutdown syscons fail, return %d\n", ret);
 
+	ret = sprd_pcie_syscon_cache_setting(pdev, "sprd,pcie-syscons", true);
+	if (ret < 0)
+		dev_err(&pdev->dev,
+			"set pcie syscons cache fail, return %d\n", ret);
+
 	ret = pm_runtime_put_sync(&pdev->dev);
 	if (ret < 0)
 		dev_warn(&pdev->dev,
@@ -436,6 +446,11 @@ static int sprd_pcie_host_reinit(struct platform_device *pdev)
 		}
 	}
 
+	ret = sprd_pcie_syscon_cache_setting(pdev, "sprd,pcie-syscons", false);
+	if (ret < 0)
+		dev_err(&pdev->dev,
+			"set pcie syscons cache fail, return %d\n", ret);
+
 	ret = sprd_pcie_syscon_setting(pdev, "sprd,pcie-resume-syscons");
 	if (ret < 0) {
 		dev_err(&pdev->dev,
@@ -482,6 +497,11 @@ static int sprd_pcie_host_reinit(struct platform_device *pdev)
 
 power_off:
 	sprd_pcie_syscon_setting(pdev, "sprd,pcie-suspend-syscons");
+
+	ret = sprd_pcie_syscon_cache_setting(pdev, "sprd,pcie-syscons", true);
+	if (ret < 0)
+		dev_err(&pdev->dev,
+			"set pcie syscons cache fail, return %d\n", ret);
 err_get_sync:
 	if (!ctrl->is_suspended) {
 		err = pm_runtime_put_sync(&pdev->dev);
@@ -633,6 +653,11 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	if (device_property_read_bool(dev, "no-pcie")) {
 		dev_info(dev, "no pcie device\n");
 		sprd_pcie_syscon_setting(pdev, "sprd,pcie-shutdown-syscons");
+
+		ret = sprd_pcie_syscon_cache_setting(pdev, "sprd,pcie-syscons", true);
+		if (ret < 0)
+			dev_err(&pdev->dev,
+				"set pcie syscons cache fail, return %d\n", ret);
 		return 0;
 	}
 
@@ -693,6 +718,11 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 
 power_off:
 	sprd_pcie_syscon_setting(pdev, "sprd,pcie-shutdown-syscons");
+
+	ret = sprd_pcie_syscon_cache_setting(pdev, "sprd,pcie-syscons", true);
+	if (ret < 0)
+		dev_err(&pdev->dev,
+			"set pcie syscons cache fail, return %d\n", ret);
 err_get_sync:
 	ret = pm_runtime_put_sync(&pdev->dev);
 	if (ret < 0)

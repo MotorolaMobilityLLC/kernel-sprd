@@ -137,6 +137,33 @@ int sprd_pcie_syscon_setting(struct platform_device *pdev, char *env)
 }
 EXPORT_SYMBOL(sprd_pcie_syscon_setting);
 
+int sprd_pcie_syscon_cache_setting(struct platform_device *pdev, char *env, bool enable)
+{
+	struct device_node *np = pdev->dev.of_node;
+	int i, count, err;
+	struct of_phandle_args out_args;
+	struct regmap *iomap;
+
+	if (!of_find_property(np, env, NULL)) {
+		dev_info(&pdev->dev,
+			 "there isn't property %s in dts\n", env);
+		return 0;
+	}
+	count = of_property_count_elems_of_size(np, env, sizeof(u32));
+
+	for (i = 0; i < count; i++) {
+		err = of_parse_phandle_with_fixed_args(np, env, 0,
+				i, &out_args);
+		if (err < 0)
+			return err;
+		iomap = syscon_node_to_regmap(out_args.np);
+		regcache_cache_only(iomap, enable);
+	}
+
+	return err;
+}
+EXPORT_SYMBOL(sprd_pcie_syscon_cache_setting);
+
 int sprd_pcie_enter_pcipm_l2(struct dw_pcie *pci)
 {
 	u32 reg;
