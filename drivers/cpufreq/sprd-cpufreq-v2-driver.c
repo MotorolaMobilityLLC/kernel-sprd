@@ -68,18 +68,17 @@ static int sprd_cpufreq_boost_judge(struct cpufreq_policy *policy)
 		cluster->boost_enable = false;
 		pr_info("policy[%d] disables boost it is %lu seconds after boot up\n",
 			 policy->cpu, SPRD_CPUFREQ_BOOST_DURATION / HZ);
+		return OUT_BOOST;
 	}
 
-	if (cluster->boost_enable) {
-		if (policy->max >= policy->cpuinfo.max_freq ||
-		    policy->min == policy->max)
-			return ON_BOOST;
+	if (policy->max < policy->cpuinfo.max_freq) {
 		cluster->boost_enable = false;
 		pr_info("policy[%d] disables boost due to policy max(%d<%d)\n",
 			policy->cpu, policy->max, policy->cpuinfo.max_freq);
+		return OUT_BOOST;
 	}
 
-	return OUT_BOOST;
+	return ON_BOOST;
 }
 
 static int sprd_nvmem_info_read(struct device_node *node, const char *name, u32 *value)
@@ -101,10 +100,9 @@ static int sprd_nvmem_info_read(struct device_node *node, const char *name, u32 
 	}
 
 	buf = nvmem_cell_read(cell, &len);
-	if (IS_ERR(buf)) {
-		nvmem_cell_put(cell);
+	nvmem_cell_put(cell);
+	if (IS_ERR(buf))
 		return PTR_ERR(buf);
-	}
 
 	if (len > sizeof(u32))
 		len = sizeof(u32);
@@ -113,8 +111,6 @@ static int sprd_nvmem_info_read(struct device_node *node, const char *name, u32 
 
 	kfree(buf);
 	buf = NULL;
-
-	nvmem_cell_put(cell);
 
 	return 0;
 }
@@ -313,7 +309,7 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 		node->temp_table = new_table;
 	}
 
-	policy->suspend_freq = policy->freq_table[0].frequency;
+	policy->suspend_freq = policy->freq_table[DVFS_SUSPEND_INDEX].frequency;
 
 	return 0;
 }
@@ -496,7 +492,6 @@ static int sprd_cpufreq_table_verify(struct cpufreq_policy_data *policy_data)
 static int sprd_cpufreq_set_target_index(struct cpufreq_policy *policy, u32 index)
 {
 	struct cluster_info *cluster;
-	unsigned int freq;
 	int ret;
 
 	cluster = (struct cluster_info *)policy->driver_data;
@@ -505,7 +500,7 @@ static int sprd_cpufreq_set_target_index(struct cpufreq_policy *policy, u32 inde
 		return -EINVAL;
 	}
 
-	if (cluster->boost_enable) {
+	if (unlikely(cluster->boost_enable)) {
 		ret = sprd_cpufreq_boost_judge(policy);
 		if (ret == ON_BOOST)
 			return 0;
@@ -519,17 +514,12 @@ static int sprd_cpufreq_set_target_index(struct cpufreq_policy *policy, u32 inde
 	}
 
 	ret = cluster->freq_set(cluster->id, index);
-	if (ret) {
+	if (ret)
 		pr_err("set cluster %u index %u error(%d)\n", cluster->id, index, ret);
-		mutex_unlock(&cluster->mutex);
-		return ret;
-	}
-
-	freq = policy->freq_table[index].frequency;
 
 	mutex_unlock(&cluster->mutex);
 
-	return 0;
+	return ret;
 }
 
 static u32 sprd_cpufreq_get(u32 cpu)
@@ -572,9 +562,9 @@ static int sprd_cpufreq_suspend(struct cpufreq_policy *policy)
 		return 0;
 	}
 
-	if (cluster->boost_enable) {
+	if (unlikely(cluster->boost_enable)) {
 		cluster->boost_enable = false;
-		sprd_cpufreq_set_target_index(policy, 0);
+		sprd_cpufreq_set_target_index(policy, DVFS_SUSPEND_INDEX);
 	}
 
 	return cpufreq_generic_suspend(policy);

@@ -41,6 +41,8 @@
 #define DVFS_TEMP_MAX_TICKS		(3)
 #define DVFS_TEMP_UPDATE_MS		(1500)
 
+#define DVFS_SUSPEND_INDEX		(0)
+
 struct temp_node {
 	int temp;
 	struct cpufreq_frequency_table *temp_table;

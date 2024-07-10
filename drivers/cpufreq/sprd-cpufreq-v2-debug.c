@@ -47,6 +47,10 @@ static size_t table_cat(struct cpufreq_policy *policy, char *buf, size_t len)
 	}
 
 	size = scnprintf(buf, len, "     DVFS Table(%d)\nFreq(Hz)\tVolt(uV)\n", cluster_info->temp_level_node->temp);
+	if (size >= len) {
+		dev_err(chip.dev, "%s: buf len is error\n", __func__);
+		goto out_error;
+	}
 
 	for (i = 0, rate = 0; i < opp_num; i++, rate++) {
 		dev_opp = dev_pm_opp_find_freq_ceil(cpu_dev, &rate);
@@ -82,15 +86,15 @@ static ssize_t sprd_debug_table_read(struct file *file, char __user *buf, size_t
 	struct cpufreq_policy *policy = file->private_data;
 	char *str;
 	size_t size;
-	ssize_t ret;
+	ssize_t ret = 0;
 
 	str = kcalloc(MAX_SIZE, sizeof(char), GFP_KERNEL);
 	if (!str)
 		return -ENOMEM;
 
 	size = table_cat(policy, str, MAX_SIZE);
-
-	ret = simple_read_from_buffer(buf, len, ppos, str, size);
+	if (size)
+		ret = simple_read_from_buffer(buf, len, ppos, str, size);
 
 	kfree(str);
 
