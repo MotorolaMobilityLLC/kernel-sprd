@@ -98,6 +98,8 @@ FILES="${FILES}
 arch/arm64/boot/dts/sprd/ums9620-base.dtb
 arch/arm64/boot/dts/sprd/ums9620-1h10-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9620-2h10-overlay.dtbo
+arch/arm64/boot/dts/sprd/uis7870sc-2h10-overlay.dtbo
+arch/arm64/boot/dts/sprd/uis7885-2h10-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9620-2h10_uob-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9620-2h10_uob_marlin3-overlay.dtbo
 arch/arm64/boot/dts/sprd/ums9620-2h10_w6dl_UOB-overlay.dtbo
