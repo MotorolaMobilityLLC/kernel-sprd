@@ -138,14 +138,18 @@ static netdev_tx_t sipa_eth_start_xmit(struct sk_buff *skb,
 
 	ret = sipa_nic_tx(sipa_eth->nic_id, pdata->src_id, netid, skb);
 	if (unlikely(ret != 0)) {
-		pr_err("fail to send, ret %d\n", ret);
+        pr_err("%s fail to send, ret %d\n",
+               dev->name, ret);
+        stats->tx_dropped++;
 		stats->tx_errors++;
-		spin_lock_irqsave(&queue_lock, queue_lock_flags);
-		if (sipa_nic_check_flow_ctrl(sipa_eth->nic_id)) {
+        if (ret == -EAGAIN ||
+            sipa_nic_check_flow_ctrl(sipa_eth->nic_id)) {
+            spin_lock_irqsave(&queue_lock, queue_lock_flags);
 			netif_stop_queue(dev);
+            spin_unlock_irqrestore(&queue_lock, queue_lock_flags);
 			pr_info("stop queue on dev %s\n", dev->name);
+            return NETDEV_TX_BUSY;
 		}
-		spin_unlock_irqrestore(&queue_lock, queue_lock_flags);
 		sipa_nic_trigger_flow_ctrl_work(sipa_eth->nic_id, ret);
 		return NETDEV_TX_BUSY;
 	}
