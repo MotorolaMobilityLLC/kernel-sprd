@@ -36,57 +36,57 @@ struct sprd_thermal_ctl {
 	struct cpufreq_policy	*policy;
 	struct list_head	node;
 	int			cluster_id;
+	unsigned int		user_min_freq;
 	bool			flag;
 };
 
 static LIST_HEAD(thermal_policy_list);
-static unsigned int user_min_freq[MAX_CLUSTER_NUM];
 
-static ssize_t
-user_min_freq_show(struct device *dev, struct device_attribute *attr,
-		char *buf)
+static ssize_t show_ipa_min_freq(struct cpufreq_policy *policy, char *buf)
 {
-	struct thermal_cooling_device *cdev = to_cooling_device(dev);
-
-	return sprintf(buf, "%d\n", user_min_freq[cdev->id]);
-}
-
-static ssize_t
-user_min_freq_store(struct device *dev, struct device_attribute *attr,
-		const char *buf, size_t count)
-{
-	unsigned int val;
 	struct sprd_thermal_ctl *thm_ctl;
-	struct cpufreq_policy	*policy = NULL;
-	struct thermal_cooling_device *cdev = to_cooling_device(dev);
-
-	if (kstrtou32(buf, 10, &val))
-		return -EINVAL;
 
 	list_for_each_entry(thm_ctl, &thermal_policy_list, node) {
-		if (thm_ctl->cluster_id == cdev->id) {
-			policy = thm_ctl->policy;
-			break;
-		}
+		if (thm_ctl->policy == policy)
+			return sprintf(buf, "%u\n", thm_ctl->user_min_freq);
 	}
 
-	if (!policy)
+	return -EINVAL;
+}
+
+static ssize_t store_ipa_min_freq(struct cpufreq_policy *policy,
+							const char *buf, size_t count)
+{
+	unsigned int val = 0;
+	struct sprd_thermal_ctl *thm_ctl;
+	int ret;
+
+	ret = kstrtouint(buf, 10, &val);
+	if (ret)
 		return -EINVAL;
 
 	if (val > policy->cpuinfo.max_freq || val < policy->cpuinfo.min_freq)
 		return -EINVAL;
 
-	user_min_freq[cdev->id] = val;
+	list_for_each_entry(thm_ctl, &thermal_policy_list, node) {
+		if (thm_ctl->policy == policy) {
+			thm_ctl->user_min_freq = val;
+			return count;
+		}
+	}
 
-	return count;
+	return -EINVAL;
 }
 
-static DEVICE_ATTR_RW(user_min_freq);
+#define ipa_freq_attr_rw(_name) \
+static struct freq_attr _name = \
+__ATTR(_name, 0644, show_##_name, store_##_name)
 
-static void unisoc_thermal_remove_sys(void *data, struct device *dev, int val)
-{
-	device_remove_file(dev, &dev_attr_user_min_freq);
-}
+ipa_freq_attr_rw(ipa_min_freq);
+static const struct attribute *ipa_freq_attrs[] = {
+	&ipa_min_freq.attr,
+	NULL,
+};
 
 static void unisoc_thermal_register(void *data, struct cpufreq_policy *policy)
 {
@@ -103,24 +103,16 @@ static void unisoc_thermal_register(void *data, struct cpufreq_policy *policy)
 	}
 
 	list_for_each_entry(thm_ctl, &thermal_policy_list, node)
-		if (thm_ctl->policy == policy) {
-			device_create_file(&policy->cdev->device,
-					   &dev_attr_user_min_freq);
+		if (thm_ctl->policy == policy)
 			return;
-		}
 
 	list_for_each_entry(thm_ctl, &thermal_policy_list, node)
 		if (thm_ctl->policy == NULL) {
 			thm_ctl->policy = policy;
 			thm_ctl->cluster_id = policy->cdev->id;
+			thm_ctl->user_min_freq = policy->cpuinfo.min_freq;
 			thm_ctl->flag = 1;
 			pr_info("Success to get policy for cdev%d\n", policy->cdev->id);
-
-			user_min_freq[policy->cdev->id] = policy->cpuinfo.min_freq;
-			if (device_create_file(&policy->cdev->device,
-					       &dev_attr_user_min_freq))
-				pr_err("Failed to create min_freq for cdev%d\n",
-				       policy->cdev->id);
 			break;
 		}
 }
@@ -292,22 +284,22 @@ static struct cpufreq_policy *find_next_cpufreq_policy(struct cpufreq_policy *cu
 static unsigned int get_user_min_freq(struct cpufreq_policy *policy)
 {
 	struct sprd_thermal_ctl *thm_ctl;
-	int id = -1;
+	unsigned int var = 0;
 
 	list_for_each_entry(thm_ctl, &thermal_policy_list, node) {
 		if (!thm_ctl->flag)
 			continue;
 
 		if (policy == thm_ctl->policy) {
-			id = thm_ctl->cluster_id;
+			var = thm_ctl->user_min_freq;
 			break;
 		}
 	}
 
-	if (id < 0)
-		return policy->min;
+	if (!var)
+		var = policy->cpuinfo.min_freq;
 
-	return user_min_freq[id];
+	return var;
 }
 
 static void unisoc_modify_thermal_target_freq(void *data,
@@ -317,20 +309,16 @@ static void unisoc_modify_thermal_target_freq(void *data,
 	struct cpufreq_policy *cpufreq_policy_find;
 
 	curr_max_freq = cpufreq_quick_get_max(policy->cpu);
-
 	cpufreq_policy_find = find_next_cpufreq_policy(policy);
-	if (cpufreq_policy_find && curr_max_freq > *target_freq) {
+
+	if (cpufreq_policy_find && *target_freq < curr_max_freq) {
 		user_min_freq = get_user_min_freq(cpufreq_policy_find);
-		if (cpufreq_policy_find->max > user_min_freq)
+		if (cpufreq_policy_find->max != user_min_freq)
 			*target_freq = curr_max_freq;
-		user_min_freq = get_user_min_freq(policy);
-		if (*target_freq < user_min_freq)
-			*target_freq = user_min_freq;
-	} else if (curr_max_freq > *target_freq) {
-		user_min_freq = get_user_min_freq(policy);
-		if (*target_freq < user_min_freq)
-			*target_freq = user_min_freq;
 	}
+
+	user_min_freq = get_user_min_freq(policy);
+	*target_freq = clamp(*target_freq, user_min_freq, policy->cpuinfo.max_freq);
 
 	cpufreq_cdev_debug(policy, *target_freq);
 }
@@ -418,6 +406,26 @@ user_power_range_store(struct device *dev, struct device_attribute *attr,
 static DEVICE_ATTR_RW(thm_enable);
 static DEVICE_ATTR_RW(user_power_range);
 
+static int unisoc_cpufreq_cb(struct notifier_block *nb,
+			      unsigned long val, void *data)
+{
+	struct cpufreq_policy *policy = data;
+	int ret;
+
+	if (val != CPUFREQ_CREATE_POLICY)
+		return 0;
+
+	ret = sysfs_create_files(&policy->kobj, ipa_freq_attrs);
+	if (ret)
+		pr_err("Failed to create ipa_min_freq\n");
+
+	return ret;
+}
+
+static struct notifier_block cpufreq_policy_notify = {
+	.notifier_call = unisoc_cpufreq_cb
+};
+
 static int sprd_thermal_ctl_init(void)
 {
 	int i, ret;
@@ -456,10 +464,15 @@ static int sprd_thermal_ctl_init(void)
 		goto remove_file;
 	}
 
+	ret = cpufreq_register_notifier(&cpufreq_policy_notify, CPUFREQ_POLICY_NOTIFIER);
+	if (ret) {
+		pr_err("Failed to register cpufreq notifier.");
+		goto remove_user_power_range;
+	}
+
 	get_ipa_trips(soc_tz);
 
 	register_trace_android_vh_thermal_register(unisoc_thermal_register, NULL);
-	register_trace_android_vh_cpufreq_offline(unisoc_thermal_remove_sys, NULL);
 	register_trace_android_vh_enable_thermal_power_throttle(
 					unisoc_enable_thermal_power_throttle, NULL);
 	register_trace_android_vh_modify_thermal_throttle_update(
@@ -471,14 +484,14 @@ static int sprd_thermal_ctl_init(void)
 
 	return 0;
 
+remove_user_power_range:
+	device_remove_file(&soc_tz->device, &dev_attr_user_power_range);
+
 remove_file:
 	device_remove_file(&soc_tz->device, &dev_attr_thm_enable);
 
 fail:
 	list_for_each_entry_safe(thm_ctl, tmp_thm_ctl, &thermal_policy_list, node) {
-		if (thm_ctl->policy)
-			device_remove_file(&thm_ctl->policy->cdev->device,
-					   &dev_attr_user_min_freq);
 		list_del(&thm_ctl->node);
 		kfree(thm_ctl);
 	}
@@ -490,12 +503,11 @@ static void sprd_thermal_ctl_exit(void)
 {
 	struct sprd_thermal_ctl *thm_ctl, *tmp_thm_ctl;
 
+	cpufreq_unregister_notifier(&cpufreq_policy_notify, CPUFREQ_POLICY_NOTIFIER);
 	unregister_trace_android_vh_thermal_register(unisoc_thermal_register, NULL);
 
 	list_for_each_entry_safe(thm_ctl, tmp_thm_ctl, &thermal_policy_list, node) {
-		if (thm_ctl->policy)
-			device_remove_file(&thm_ctl->policy->cdev->device,
-					   &dev_attr_user_min_freq);
+		sysfs_remove_files(&thm_ctl->policy->kobj, ipa_freq_attrs);
 		list_del(&thm_ctl->node);
 		kfree(thm_ctl);
 	}
