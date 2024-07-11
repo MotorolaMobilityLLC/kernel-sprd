@@ -498,10 +498,10 @@ static int sprd_pcie_host_reinit(struct platform_device *pdev)
 power_off:
 	sprd_pcie_syscon_setting(pdev, "sprd,pcie-suspend-syscons");
 
-	ret = sprd_pcie_syscon_cache_setting(pdev, "sprd,pcie-syscons", true);
-	if (ret < 0)
+	err = sprd_pcie_syscon_cache_setting(pdev, "sprd,pcie-syscons", true);
+	if (err < 0)
 		dev_err(&pdev->dev,
-			"set pcie syscons cache fail, return %d\n", ret);
+			"set pcie syscons cache fail, return %d\n", err);
 err_get_sync:
 	if (!ctrl->is_suspended) {
 		err = pm_runtime_put_sync(&pdev->dev);
@@ -647,7 +647,7 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 	struct device *dev = &pdev->dev;
 	struct dw_pcie *pci;
 	struct sprd_pcie *ctrl;
-	int ret;
+	int ret, err;
 	size_t len = strlen(dev_name(dev)) + 10;
 
 	if (device_property_read_bool(dev, "no-pcie")) {
@@ -719,16 +719,16 @@ static int sprd_pcie_probe(struct platform_device *pdev)
 power_off:
 	sprd_pcie_syscon_setting(pdev, "sprd,pcie-shutdown-syscons");
 
-	ret = sprd_pcie_syscon_cache_setting(pdev, "sprd,pcie-syscons", true);
-	if (ret < 0)
+	err = sprd_pcie_syscon_cache_setting(pdev, "sprd,pcie-syscons", true);
+	if (err < 0)
 		dev_err(&pdev->dev,
-			"set pcie syscons cache fail, return %d\n", ret);
+			"set pcie syscons cache fail, return %d\n", err);
 err_get_sync:
-	ret = pm_runtime_put_sync(&pdev->dev);
-	if (ret < 0)
+	err = pm_runtime_put_sync(&pdev->dev);
+	if (err < 0)
 		dev_warn(&pdev->dev,
 			 "pm runtime put fail: %d, usage_count:%d\n",
-			 ret, atomic_read(&pdev->dev.power.usage_count));
+			 err, atomic_read(&pdev->dev.power.usage_count));
 	pm_runtime_disable(dev);
 
 	return ret;
