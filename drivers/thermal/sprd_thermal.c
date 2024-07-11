@@ -76,6 +76,7 @@ struct sprd_thermal_sensor {
 	struct sprd_thermal_data *data;
 	struct device *dev;
 	struct list_head node;
+	struct mutex lock;
 	u32 rawdata;
 	int cal_slope;
 	int cal_offset;
@@ -215,6 +216,7 @@ static int sprd_thm_read_temp(void *devdata, int *temp)
 	struct sprd_thermal_sensor *sen = devdata;
 	int data = 0;
 
+	mutex_lock(&sen->lock);
 	if (sen->ready) {
 		sen->rawdata = readl(sen->data->base+SPRD_THM_TEMP(sen->id))&SPRD_THM_RAW_READ_MSK;
 		data = sprd_thm_rawdata_to_temp(sen, sen->rawdata);
@@ -223,7 +225,7 @@ static int sprd_thm_read_temp(void *devdata, int *temp)
 	} else {
 		*temp = sen->lasttemp;
 	}
-
+	mutex_unlock(&sen->lock);
 	return 0;
 }
 
@@ -342,7 +344,7 @@ static int sprd_thm_probe(struct platform_device *pdev)
 	struct device_node *np = pdev->dev.of_node;
 	struct device_node *sen_child;
 	struct sprd_thermal_data *thm;
-	struct sprd_thermal_sensor *sen;
+	struct sprd_thermal_sensor *sen, *tmp;
 	const struct sprd_thm_variant_data *pdata;
 	int ret = 0;
 	u32 val;
@@ -420,12 +422,14 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		}
 
 		sprd_thm_sensor_init(thm, sen);
+		mutex_init(&sen->lock);
 
 		sen->tzd = devm_thermal_zone_of_sensor_register(sen->dev, sen->id,
 								sen, &sprd_thm_ops);
 		if (IS_ERR(sen->tzd)) {
 			dev_err(&pdev->dev, "register thermal zone failed %d\n", sen->id);
 			ret = PTR_ERR(sen->tzd);
+			mutex_destroy(&sen->lock);
 			goto of_put;
 		}
 
@@ -445,6 +449,8 @@ static int sprd_thm_probe(struct platform_device *pdev)
 
 of_put:
 	of_node_put(sen_child);
+	list_for_each_entry_safe(sen, tmp, &thm->senlist, node)
+		mutex_destroy(&sen->lock);
 disable_clk:
 	clk_disable_unprepare(thm->clk);
 	return ret;
@@ -460,8 +466,10 @@ static int sprd_thm_suspend(struct device *dev)
 	cancel_delayed_work_sync(&thm->wait_temp_ready_work);
 
 	list_for_each_entry_safe(sen, temp, &thm->senlist, node) {
+		mutex_lock(&sen->lock);
 		sen->ready = false;
 		sprd_thm_update_bits(thm->base + SPRD_THM_CTL, SPRD_THM_SEN(sen->id), 0);
+		mutex_unlock(&sen->lock);
 	}
 
 	/* Bug 1550142 Deepsleep AVDD1V8 power consumption is too high */
@@ -507,13 +515,14 @@ static int sprd_thm_resume(struct device *dev)
 static int sprd_thm_remove(struct platform_device *pdev)
 {
 	struct sprd_thermal_data *thm = platform_get_drvdata(pdev);
-	struct sprd_thermal_sensor *sen, *temp;
+	struct sprd_thermal_sensor *sen, *tmp;
 
 	atomic_set(&thm->quit_worker_flag, 1);
 	cancel_delayed_work_sync(&thm->wait_temp_ready_work);
 
-	list_for_each_entry_safe(sen, temp, &thm->senlist, node) {
+	list_for_each_entry_safe(sen, tmp, &thm->senlist, node) {
 		devm_thermal_zone_of_sensor_unregister(&pdev->dev, sen->tzd);
+		mutex_destroy(&sen->lock);
 	}
 
 	clk_disable_unprepare(thm->clk);

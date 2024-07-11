@@ -84,6 +84,7 @@ struct sprd_thermal_data {
 	struct delayed_work thm_resume_work;
 	struct device *dev;
 	struct clk *clk;
+	struct mutex lock;
 	void __iomem *thm_base;
 	u32 rawdata;
 	u32 otp_rawdata;
@@ -216,6 +217,7 @@ static int sprd_thm_temp_read(void *devdata, int *temp)
 	struct sprd_thermal_data *thm = devdata;
 	int sensor_temp;
 
+	mutex_lock(&thm->lock);
 	if (thm->ready_flag) {
 		thm->rawdata = readl(thm->thm_base + SPRD_THM_LAST_TEMPER0_READ);
 		thm->rawdata = thm->rawdata & SPRD_THM_RAW_READ_MSK;
@@ -225,7 +227,7 @@ static int sprd_thm_temp_read(void *devdata, int *temp)
 	} else {
 		*temp = thm->lasttemp;
 	}
-
+	mutex_unlock(&thm->lock);
 	return 0;
 }
 
@@ -410,7 +412,7 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "sprd thm hw init failed\n");
 		goto disable_clk;
 	}
-
+	mutex_init(&thm->lock);
 	thm->thmzone_dev =
 	    devm_thermal_zone_of_sensor_register(thm->dev, thm->id,
 						 thm, &sprd_thm_ops);
@@ -418,6 +420,7 @@ static int sprd_thm_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "register thermal zone failed %d\n",
 			thm->id);
 		ret = PTR_ERR(thm->thmzone_dev);
+		mutex_destroy(&thm->lock);
 		goto disable_clk;
 	}
 
@@ -436,6 +439,7 @@ static int sprd_thm_remove(struct platform_device *pdev)
 
 	thermal_zone_device_unregister(thm->thmzone_dev);
 	cancel_delayed_work_sync(&thm->thm_resume_work);
+	mutex_destroy(&thm->lock);
 
 	return 0;
 }
@@ -445,8 +449,10 @@ static int sprd_thm_suspend(struct device *dev)
 	struct sprd_thermal_data *thm = dev_get_drvdata(dev);
 
 	flush_delayed_work(&thm->thm_resume_work);
+	mutex_lock(&thm->lock);
 	thm->ready_flag = 0;
 	sprd_hw_thm_suspend(thm);
+	mutex_unlock(&thm->lock);
 	clk_disable_unprepare(thm->clk);
 
 	return 0;
