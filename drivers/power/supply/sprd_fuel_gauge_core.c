@@ -2726,11 +2726,13 @@ static irqreturn_t sprd_fgu_bat_detection(int irq, void *dev_id)
 {
 	struct sprd_fgu_data *data = dev_id;
 	int state;
+	struct sprd_fgu_info *fgu_info;
 
 	if (!data) {
 		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
 		return IRQ_HANDLED;
 	}
+	fgu_info = data->fgu_info;
 
 	if (!sprd_fgu_probe_is_ready(data)) {
 		dev_err(data->dev, "%s wait probe timeout\n", __func__);
@@ -2747,6 +2749,9 @@ static irqreturn_t sprd_fgu_bat_detection(int irq, void *dev_id)
 	}
 
 	data->bat_present = !!state;
+
+	if (!data->bat_present)
+		fgu_info->ops->enable_fgu_int(fgu_info, SPRD_FGU_VOLT_LOW_INT_CMD, false);
 
 	mutex_unlock(&data->lock);
 
@@ -4906,10 +4911,12 @@ static int sprd_fgu_suspend(struct device *dev)
 	    data->chg_sts == POWER_SUPPLY_STATUS_FULL)
 		return 0;
 
-	ret = fgu_info->ops->enable_fgu_int(fgu_info, SPRD_FGU_VOLT_LOW_INT_CMD, true);
-	if (ret) {
-		dev_err(data->dev, "failed to enable low voltage interrupt\n");
-		return ret;
+	if (data->bat_present) {
+		ret = fgu_info->ops->enable_fgu_int(fgu_info, SPRD_FGU_VOLT_LOW_INT_CMD, true);
+		if (ret) {
+			dev_err(data->dev, "failed to enable low voltage interrupt\n");
+			return ret;
+		}
 	}
 
 	ret = sprd_fgu_get_vbat_ocv(data, &ocv_uv);
