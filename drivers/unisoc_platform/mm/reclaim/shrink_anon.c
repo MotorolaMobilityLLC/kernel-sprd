@@ -23,10 +23,10 @@
 static atomic_t display_off = ATOMIC_LONG_INIT(0);
 static struct task_struct *shrink_anon_thread;
 static int empty_round_count;
-static unsigned long sysctl_mem_free_pages_limit = 64000;
+static unsigned long sysctl_mem_free_pages_limit = 25600;
 static int sysctl_cpuload_limit = 40;
 static unsigned long sysctl_reclaim_pages_per_cycle = 2560;
-static unsigned long long sysctl_shrink_anon_exceed_ms = 5000;
+static unsigned long long sysctl_shrink_anon_exceed_ms = 10000;
 static unsigned long sysctl_empty_round_check_pages = 256;
 static int sysctl_max_empty_round_sleep_ms = 300000;
 
