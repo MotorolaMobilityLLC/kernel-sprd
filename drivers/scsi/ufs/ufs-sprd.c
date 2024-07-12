@@ -408,12 +408,6 @@ static void ufs_sprd_vh_check_int_errors(void *data,
 		ufshcd_vops_dbg_register_dump(hba);
 }
 
-static void ufs_sprd_vh_update_sysfs(void *data,
-					struct ufs_hba *hba)
-{
-	ufs_sprd_sysfs_add_nodes(hba);
-}
-
 static void ufs_sprd_vh_send_cmd(void *data,
 				  struct ufs_hba *hba,
 				  struct ufshcd_lrb *lrbp)
@@ -478,7 +472,6 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 	register_trace_android_vh_ufs_send_tm_command(ufs_sprd_vh_send_tm_cmd, NULL);
 	register_trace_android_vh_ufs_check_int_errors(ufs_sprd_vh_check_int_errors, NULL);
 	register_trace_android_vh_ufs_send_command(ufs_sprd_vh_send_cmd, NULL);
-	register_trace_android_vh_ufs_update_sysfs(ufs_sprd_vh_update_sysfs, NULL);
 
 	/* Perform generic probe */
 	of_id = of_match_node(ufs_sprd_of_match, pdev->dev.of_node);
@@ -492,6 +485,7 @@ static int ufs_sprd_probe(struct platform_device *pdev)
 	ufs_sprd_rpmb_add(hba);
 	sprd_ufs_proc_init(hba);
 	ufs_sprd_sysfs_add_health_device_nodes(hba);
+	ufs_sprd_sysfs_add_nodes(hba);
 	INIT_WORK(&ufs_perf.wb_size_work, ufshcd_wb_size_work_handler);
 out:
 	return err;
