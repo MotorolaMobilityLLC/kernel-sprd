@@ -123,7 +123,7 @@ void set_shrink_lruvecd_cpus(void)
 	struct cpumask *cpumask = &mask;
 	pg_data_t *pgdat = NODE_DATA(0);
 	unsigned int cpu = 0, cpufreq_max_tmp = 0;
-	struct cpufreq_policy *policy_max;
+	struct cpufreq_policy *policy_max = NULL;
 	static bool set_slabd_cpus_success;
 
 	if (unlikely(!async_shrink_lruvec_setup))
@@ -145,7 +145,9 @@ void set_shrink_lruvecd_cpus(void)
 	}
 
 	cpumask_copy(cpumask, cpumask_of_node(pgdat->node_id));
-	cpumask_andnot(cpumask, cpumask, policy_max->related_cpus);
+	if (policy_max) {
+		cpumask_andnot(cpumask, cpumask, policy_max->related_cpus);
+	}
 
 	if (!cpumask_empty(cpumask)) {
 		set_cpus_allowed_ptr(shrink_lruvec_tsk, cpumask);
