@@ -30,7 +30,7 @@
 #define NODE_BUF_SIZE	4096
 #define TEMP_BUF_LEN	96
 
-#define CPU_CONSUMPTION_RATE_THRESHOLD 20
+#define CPU_CONSUMPTION_RATE_THRESHOLD 50
 
 /**
  * struct cpu_consumption_stat - a statistic window to monitor a specified activity
