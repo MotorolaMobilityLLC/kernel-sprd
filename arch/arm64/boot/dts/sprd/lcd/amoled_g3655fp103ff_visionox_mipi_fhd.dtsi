@@ -14,8 +14,8 @@
 					sprd,dsi-work-mode = <4>; /* cmd panel dpu run dpi mode*/
 					sprd,dsi-lane-number = <4>;
 					sprd,dsi-color-format = "dsc";
-					sprd,dpi-actual-pclk = <384000000>;
-					sprd,phy-bit-clock = <1000000>;	/* kbps */
+					sprd,dpi-actual-pclk = <400000000>;
+					sprd,phy-bit-clock = <1100000>;	/* kbps */
 					sprd,phy-escape-clock = <20000>;/* kHz */
 					sprd,panel-type = <1>;
 
@@ -100,39 +100,39 @@
 						native-mode = <&g3655fp103ff_visionox_timing0>;
 
 						g3655fp103ff_visionox_timing0: timing0 {
-							clock-frequency = <376000000>;
+							clock-frequency = <384000000>;
 							hactive = <1080>;
 							vactive = <2400>;
 							hback-porch = <100>;
 							hfront-porch = <92>;
 							hsync-len = <8>;
-							vsync-len = <20>;
-							vback-porch = <12>;
-							vfront-porch = <2460>;
+							vsync-len = <40>;
+							vback-porch = <24>;
+							vfront-porch = <2536>;
 						};
 
 						g3655fp103ff_visionox_timing1: timing1 {
-							clock-frequency = <376000000>;
+							clock-frequency = <384000000>;
 							hactive = <1080>;
 							vactive = <2400>;
 							hback-porch = <100>;
 							hfront-porch = <92>;
 							hsync-len = <8>;
-							vsync-len = <20>;
-							vback-porch = <12>;
-							vfront-porch = <830>;
+							vsync-len = <40>;
+							vback-porch = <24>;
+							vfront-porch = <870>;
 						};
 
 						g3655fp103ff_visionox_timing2: timing2 {
-							clock-frequency = <376000000>;
+							clock-frequency = <384000000>;
 							hactive = <1080>;
 							vactive = <2400>;
 							hback-porch = <100>;
 							hfront-porch = <92>;
 							hsync-len = <8>;
-							vsync-len = <20>;
-							vback-porch = <12>;
-							vfront-porch = <10>;
+							vsync-len = <40>;
+							vback-porch = <24>;
+							vfront-porch = <36>;
 						};
 					};
 
