@@ -229,7 +229,7 @@ static unsigned long unisoc_effective_cpu_util(int cpu, unsigned long util_cfs,
 
 	boost_util = walt_uclamp_rq_util_with(cpu_rq(cpu), boost_util, NULL);
 
-	return min(boost_util, max);;
+	return min(boost_util, max);
 }
 #else
 static unsigned long unisoc_effective_cpu_util(int cpu, unsigned long util_cfs,

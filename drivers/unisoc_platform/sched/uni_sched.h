@@ -124,6 +124,7 @@ extern unsigned int sysctl_walt_busy_threshold;
 extern unsigned int sysctl_sched_walt_init_task_load_pct;
 extern unsigned int sysctl_sched_walt_cpu_high_irqload;
 extern unsigned int sysctl_walt_account_irq_time;
+extern unsigned int sysctl_walt_boost_irqload;
 
 #define scale_demand(d) ((d) / (walt_ravg_window >> SCHED_CAPACITY_SHIFT))
 

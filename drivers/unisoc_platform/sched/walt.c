@@ -65,6 +65,10 @@ unsigned long walt_cpu_util_freq(int cpu)
 		walt_cpu_util = max(walt_cpu_util, prev_runnable_sum);
 	}
 
+	if (sysctl_walt_boost_irqload)
+		walt_cpu_util += div64_u64(capacity_orig_of(cpu) * uni_rq->avg_irqload,
+						(u64)walt_ravg_window);
+
 	return min_t(unsigned long, walt_cpu_util, capacity_orig_of(cpu));
 }
 

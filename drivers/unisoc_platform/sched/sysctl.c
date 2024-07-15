@@ -27,6 +27,7 @@ static int two_thousand = 2000;
 unsigned int sysctl_walt_account_irq_time = 1;
 unsigned int sysctl_sched_long_running_rt_task_ms = CONFIG_UNISOC_RT_TIMEOUT_DETECT_MS;
 unsigned int sysctl_sched_rt_task_timeout_panic;
+unsigned int sysctl_walt_boost_irqload;
 #endif
 unsigned int sysctl_sched_task_util_prefer_little;
 unsigned int sysctl_cpu_multi_thread_opt;
@@ -414,6 +415,15 @@ struct ctl_table sched_table[] = {
 		.proc_handler	= proc_dointvec_minmax,
 		.extra1		= SYSCTL_ZERO,
 		.extra2		= SYSCTL_INT_MAX,
+	},
+	{
+		.procname       = "sched_walt_boost_irqload",
+		.data           = &sysctl_walt_boost_irqload,
+		.maxlen         = sizeof(unsigned int),
+		.mode           = 0644,
+		.proc_handler   = proc_dointvec_minmax,
+		.extra1		= SYSCTL_ZERO,
+		.extra2		= SYSCTL_ONE,
 	},
 #endif
 	{
