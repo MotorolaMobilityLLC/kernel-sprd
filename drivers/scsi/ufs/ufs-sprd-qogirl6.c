@@ -634,16 +634,60 @@ int ufs_sprd_reset(struct ufs_sprd_host *host)
 			MPHY_TACTIVATE_TIME_200US, MPHY_TACTIVATE_TIME_LANE0);
 	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_TACTIVATE_TIME_200US,
 			MPHY_TACTIVATE_TIME_200US, MPHY_TACTIVATE_TIME_LANE1);
-	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_RXHSG3SYNCCAP_MASK,
-			MPHY_RXHSG3SYNCCAP_VAL, MPHY_DIG_CFG72_LANE0);
-	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_RXHSG3SYNCCAP_MASK,
-			MPHY_RXHSG3SYNCCAP_VAL, MPHY_DIG_CFG72_LANE1);
 
-	/* add cdr count time */
-	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_RX_STEP4_CYCLE_G3_MASK,
-			MPHY_RX_STEP4_CYCLE_G3_VAL, MPHY_DIG_CFG60_LANE0);
-	ufs_sprd_rmwl(priv->ufs_analog_reg, MPHY_RX_STEP4_CYCLE_G3_MASK,
-			MPHY_RX_STEP4_CYCLE_G3_VAL, MPHY_DIG_CFG60_LANE1);
+	/* mphy cfg: DCVS */
+	ufs_sprd_rmwl(priv->ufs_analog_reg, BIT(18), BIT(18), MPHY_DIG_CFG0_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, BIT(18), BIT(18), MPHY_DIG_CFG0_LANE1);
+
+	/* mphy cfg: LANE 0 manual afe */
+	ufs_sprd_rmwl(priv->ufs_analog_reg, BIT(15), BIT(15), MPHY_DIG_CFG0_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, BIT(0), BIT(0), MPHY_DIG_CFG1_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, BIT(3), BIT(3), MPHY_DIG_CFG1_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MASK_OFFK_INIT_AFE,
+		VAL_OFFK_INIT_AFE, MPHY_DIG_CFG0_LANE0);
+
+	/* mphy cfg: LANE 1 manual afe */
+	ufs_sprd_rmwl(priv->ufs_analog_reg, BIT(15), BIT(15), MPHY_DIG_CFG0_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, BIT(0), BIT(0), MPHY_DIG_CFG1_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, BIT(3), BIT(3), MPHY_DIG_CFG1_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MASK_OFFK_INIT_AFE,
+		VAL_OFFK_INIT_AFE, MPHY_DIG_CFG0_LANE1);
+
+	/* mphy cfg: config hs sync length */
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_HS_G2_SYNC_LENGTH | MASK_HS_G3_SYNC_LENGTH),
+		(VAL_SYNC_LENGTH_CFG << 8 | VAL_SYNC_LENGTH_CFG), MPHY_DIG_CFG72_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MASK_HS_G1_SYNC_LENGTH,
+		(VAL_SYNC_LENGTH_CFG << 8), MPHY_DIG_CFG70_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_HS_G2_SYNC_LENGTH | MASK_HS_G3_SYNC_LENGTH),
+		(VAL_SYNC_LENGTH_CFG << 8 | VAL_SYNC_LENGTH_CFG), MPHY_DIG_CFG72_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, MASK_HS_G1_SYNC_LENGTH,
+		(VAL_SYNC_LENGTH_CFG << 8), MPHY_DIG_CFG70_LANE1);
+
+	/* mphy cfg: config hs step cycle */
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP4_CYCLE | MASK_RX_STEP3_CYCLE),
+		(VAL_RX_STEP4_CYCLE | VAL_RX_STEP3_CYCLE), MPHY_DIG_CFG56_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP2_CYCLE | MASK_RX_STEP1_CYCLE),
+		(VAL_RX_STEP2_CYCLE | VAL_RX_STEP1_CYCLE), MPHY_DIG_CFG57_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP4_CYCLE | MASK_RX_STEP3_CYCLE),
+		(VAL_RX_STEP4_CYCLE | VAL_RX_STEP3_CYCLE), MPHY_DIG_CFG58_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP2_CYCLE | MASK_RX_STEP1_CYCLE),
+		(VAL_RX_STEP2_CYCLE | VAL_RX_STEP1_CYCLE), MPHY_DIG_CFG59_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP4_CYCLE | MASK_RX_STEP3_CYCLE),
+		(VAL_RX_STEP4_CYCLE | VAL_RX_STEP3_CYCLE), MPHY_DIG_CFG60_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP2_CYCLE | MASK_RX_STEP1_CYCLE),
+		(VAL_RX_STEP2_CYCLE | VAL_RX_STEP1_CYCLE), MPHY_DIG_CFG61_LANE0);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP4_CYCLE | MASK_RX_STEP3_CYCLE),
+		(VAL_RX_STEP4_CYCLE | VAL_RX_STEP3_CYCLE), MPHY_DIG_CFG56_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP2_CYCLE | MASK_RX_STEP1_CYCLE),
+		(VAL_RX_STEP2_CYCLE | VAL_RX_STEP1_CYCLE), MPHY_DIG_CFG57_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP4_CYCLE | MASK_RX_STEP3_CYCLE),
+		(VAL_RX_STEP4_CYCLE | VAL_RX_STEP3_CYCLE), MPHY_DIG_CFG58_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP2_CYCLE | MASK_RX_STEP1_CYCLE),
+		(VAL_RX_STEP2_CYCLE | VAL_RX_STEP1_CYCLE), MPHY_DIG_CFG59_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP4_CYCLE | MASK_RX_STEP3_CYCLE),
+		(VAL_RX_STEP4_CYCLE | VAL_RX_STEP3_CYCLE), MPHY_DIG_CFG60_LANE1);
+	ufs_sprd_rmwl(priv->ufs_analog_reg, (MASK_RX_STEP2_CYCLE | MASK_RX_STEP1_CYCLE),
+		(VAL_RX_STEP2_CYCLE | VAL_RX_STEP1_CYCLE), MPHY_DIG_CFG61_LANE1);
 
 	/* cbline reset */
 	regmap_update_bits(priv->ahb_ufs_cb.regmap,
