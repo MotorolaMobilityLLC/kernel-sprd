@@ -52,8 +52,6 @@
 #define CM_UNKNOW_TYPE_CURRENT_THRESHOLD_L	500000
 
 #define CM_CAP_ONE_PERCENT			10
-#define CM_HCAP_DECREASE_STEP			8
-#define CM_HCAP_THRESHOLD			995
 #define CM_CAP_FULL_PERCENT			1000
 #define CM_MAGIC_NUM				0x5A5AA5A5
 #define CM_CAPACITY_LEVEL_CRITICAL		0
@@ -8039,7 +8037,6 @@ static void cm_batt_works(struct work_struct *work)
 	int period_time, flush_time, cur_temp, board_temp = 0;
 	int chg_cur = 0, chg_limit_cur = 0, input_cur = -EINVAL;
 	int chg_vol = 0, vbat_avg = 0, ibat_avg = 0, recharge_uv = 0;
-	static int last_fuel_cap = CM_MAGIC_NUM;
 	int work_cycle = CM_CAP_CYCLE_TRACK_TIME_15S;
 
 	ret = get_vbat_now_uV(cm, &batt_uV);
@@ -8114,10 +8111,6 @@ static void cm_batt_works(struct work_struct *work)
 	}
 
 	fuel_cap = clamp(fuel_cap, 0, CM_CAP_FULL_PERCENT);
-
-	if (last_fuel_cap == CM_MAGIC_NUM)
-		last_fuel_cap = fuel_cap;
-
 	cur_time = ktime_to_timespec64(ktime_get_boottime());
 
 	if (is_full_charged(cm))
@@ -8168,7 +8161,6 @@ static void cm_batt_works(struct work_struct *work)
 
 	switch (cm->desc->charger_status) {
 	case POWER_SUPPLY_STATUS_CHARGING:
-		last_fuel_cap = fuel_cap;
 		if (fuel_cap < cm->desc->cap) {
 			if (batt_uA >= 0) {
 				fuel_cap = cm->desc->cap;
@@ -8239,19 +8231,7 @@ static void cm_batt_works(struct work_struct *work)
 		 * the cap is not allowed to increase.
 		 */
 		if (fuel_cap >= cm->desc->cap) {
-			last_fuel_cap = fuel_cap;
 			fuel_cap = cm->desc->cap;
-		} else if (cm->desc->cap >= CM_HCAP_THRESHOLD) {
-			if (last_fuel_cap - fuel_cap >= CM_HCAP_DECREASE_STEP) {
-				if (cm->desc->cap - fuel_cap >= CM_CAP_ONE_PERCENT)
-					fuel_cap = cm->desc->cap - CM_CAP_ONE_PERCENT;
-				else
-					fuel_cap = cm->desc->cap - CM_HCAP_DECREASE_STEP;
-
-				last_fuel_cap -= CM_HCAP_DECREASE_STEP;
-			} else {
-				fuel_cap = cm->desc->cap;
-			}
 		} else {
 			if (period_time < cm->desc->cap_one_time) {
 				if ((cm->desc->cap - fuel_cap) >= 5)
@@ -8274,7 +8254,6 @@ static void cm_batt_works(struct work_struct *work)
 		break;
 
 	case POWER_SUPPLY_STATUS_FULL:
-		last_fuel_cap = fuel_cap;
 		cm->desc->update_capacity_time = cur_time.tv_sec;
 		recharge_uv = cm->desc->fullbatt_uV - cm->desc->fullbatt_vchkdrop_uV - 50000;
 		if ((batt_ocV < recharge_uv) && (batt_uA < 0)) {
