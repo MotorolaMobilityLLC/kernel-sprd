@@ -186,20 +186,23 @@ struct gsp_r9p0_hdr10_cfg {
 	int maxcll;
 	int maxscl[3];
 	int max_maxscl;
-	int maxpanel;
 
-	int tone_map_en;
-	int sm_en;
-	int profile; /* 0: profile A; 1: profile B */
+	double max_master_luminance;
+	double min_master_luminance;
+	double manual_max_luminance;
 
-	__u8 num_bezier_curve_anchors;
-	__u16 bezier_curve_anchors[15];
+	double csc2_ratio;
+	double beta_ratio;
+	double norm_ratio;
+
+	double norm_ratio_step2;
+	double beta_ratio_step2;
 
 	bool reg_hdr_slp;
 	bool reg_hdr_bypass_csc1;
 	bool reg_hdr_bypass_degamma;
 	bool reg_hdr_bypass_csc2;
-	bool reg_hdr_maxcll_gain_bypass;
+	bool reg_hdr_csc2_gain_bypass;
 	bool reg_hdr_bypass_gamma;
 	bool reg_hdr_bypass_csc3;
 	bool reg_hdr_force_in_range_csc1;
@@ -224,11 +227,6 @@ struct gsp_r9p0_hdr10_cfg {
 	int reg_hdr_csc1_yls;
 	int reg_hdr_csc1_uls;
 	int reg_hdr_csc1_vls;
-
-	int reg_hdr_dgmlut_addr;
-	int reg_hdr_rgmlut_addr;
-	int reg_hdr_dgmlut_data;
-	int reg_hdr_rgmlut_data;
 
 	int reg_hdr_csc2_c11;
 	int reg_hdr_csc2_c12;
@@ -257,7 +255,6 @@ struct gsp_r9p0_hdr10_cfg {
 	int reg_hdr_rg_step2;
 	int reg_hdr_rg_step3;
 	int reg_hdr_rg_step4;
-	bool reg_hdr_before_gamma;
 	int reg_hdr_diff_sat_thr;
 	int reg_hdr_csc3_a11;
 	int reg_hdr_csc3_a12;
@@ -283,9 +280,8 @@ struct gsp_r9p0_hdr10_cfg {
 	int reg_hdr_tm1_beta_gain;
 	int reg_hdr_tm2_beta_gain;
 	int reg_hdr_tm3_beta_gain;
-	int reg_hdr_tmlut_addr;
-	int reg_hdr_tmlut_data;
 
+	__u32 hdr_degamma_lut_type;
 	__u32 hdr_tone_mapping_lut_table[HDR_TM_LUT_SIZE];
 };
 
