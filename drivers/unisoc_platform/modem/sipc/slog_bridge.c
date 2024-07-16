@@ -13,6 +13,7 @@
 
 #include <linux/delay.h>
 #include <linux/kernel.h>
+#include <linux/kthread.h>
 #include <linux/module.h>
 #include <linux/mutex.h>
 #include <linux/of_device.h>
@@ -21,15 +22,15 @@
 #include <linux/sipc.h>
 #include <linux/slab.h>
 #include <linux/workqueue.h>
-#include <linux/kthread.h>
 #include <uapi/linux/sched/types.h>
 
-#include "sprd_actions_queue.h"
 #include "sblock.h"
 #include "sipc_priv.h"
+#include "sprd_actions_queue.h"
 
 #define SLOG_POLL_ALL	(0xffff)
 #define MAX_RX_BLOCK	8
+#define ACTION_NAME_LEN	20
 
 static struct slog_config slog_cfg[] = {
 	{SIPC_ID_PSCP, "pscp"},
@@ -56,7 +57,7 @@ struct slog_cb {
 /* sblock bridge action struct */
 struct slog_action {
 	void	*actions;
-	char	name[20];
+	char	name[ACTION_NAME_LEN];
 	struct slog_bridge	*sb;
 };
 
@@ -512,8 +513,16 @@ static void slog_bridge_write_to_usb(struct slog_bridge *sb,
 			if (ret < 0) {
 				sb->write_failed_cnt++;
 				/* means usb is busy, write later. */
-				dev_err(sb->dev, "dst = %d, vser_pass_user_write fail ret = %d addr = 0x%p fail cnt = %d\n",
+				if ((ret == -ENODEV) && (sb->write_failed_cnt%1000 == 1)) {
+					dev_err(sb->dev,
+					"dst = %d, vser_pass_user_write fail ret = %d addr = 0x%p fail cnt = %d\n",
+					sblock_rx_cur->dst, ret, blk_rx.addr,
+					sb->write_failed_cnt);
+				} else if (ret != -ENODEV) {
+					dev_err(sb->dev,
+					"dst = %d, vser_pass_user_write fail ret = %d addr = 0x%p fail cnt = %d\n",
 					sblock_rx_cur->dst, ret, blk_rx.addr, sb->write_failed_cnt);
+				}
 				slog_block_release(sb, blk, blk_rx.length);
 				continue;
 			}
