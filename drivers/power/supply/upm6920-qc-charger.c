@@ -718,7 +718,7 @@ static int upm6920qc_charger_probe(struct platform_device *pdev)
 		goto err_regmap_exit;
 	}
 
-	info->vdd = devm_regulator_get_optional(dev, "vdd");
+	info->vdd = devm_regulator_get(dev, "vdd");
 	if (IS_ERR(info->vdd)) {
 		dev_warn(dev, "unable to get ssphy vdd supply\n");
 		info->vdd = NULL;
