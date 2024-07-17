@@ -4771,9 +4771,14 @@ disable_int:
 static void sprd_fgu_shutdown(struct platform_device *pdev)
 {
 	struct sprd_fgu_data *data = platform_get_drvdata(pdev);
+        struct sprd_fgu_info *fgu_info;
 
 	if (!data)
 		return;
+
+        fgu_info = data->fgu_info;
+        fgu_info->ops->enable_fgu_int(fgu_info,SPRD_FGU_VOLT_LOW_INT_CMD,false);
+        pr_err("%s:line%d: fgu int disable!!!\n",__func__,__LINE__);
 
 	cancel_delayed_work_sync(&data->fgu_work);
 	cancel_delayed_work_sync(&data->cap_track_work);
