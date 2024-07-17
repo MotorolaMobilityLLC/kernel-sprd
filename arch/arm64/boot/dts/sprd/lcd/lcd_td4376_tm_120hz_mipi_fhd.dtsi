@@ -20,7 +20,7 @@
 					sprd,height-mm = <156>;
 					sprd,vrr-enabled;
 					sprd,esd-check-enable = <1>;
-					sprd,esd-check-mode = <0>;
+					sprd,esd-check-mode = <1>;
 					sprd,esd-check-period = <2000>;
 					sprd,esd-check-register = <0xA>;
 					sprd,esd-check-value = <0x9c>;
@@ -144,8 +144,8 @@
 							clock-frequency = <384000000>;
 							hactive = <1080>;
 							vactive = <2400>;
-							hback-porch = <652>;
-							hfront-porch = <116>;
+							hback-porch = <400>;
+							hfront-porch = <368>;
 							vback-porch = <30>;
 							vfront-porch = <1020>;
 							hsync-len = <4>;
