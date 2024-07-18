@@ -226,7 +226,7 @@ static int write_limit_store(struct cgroup_subsys_state *css,
 	if (limit < 0 || !css)
 		return -EINVAL;
 
-	if (limit < MIN_WRITE_LIMIT) {
+	if (limit && limit < MIN_WRITE_LIMIT) {
 		limit = MIN_WRITE_LIMIT;
 		pr_info("iolimit bytes too small, set to minimum: %lld\n", limit);
 	}
