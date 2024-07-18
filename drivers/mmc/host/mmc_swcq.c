@@ -2073,7 +2073,7 @@ static void check_cmdq_timer(struct timer_list *t)
 
 	if (swcq->cmdq_mode) {
 		/*from cmdq to hsq checking*/
-		if (atomic_read(&swcq->sequential_cnt) != 0) {
+		if (atomic_read(&swcq->sequential_cnt) >= atomic_read(&swcq->random_cnt)) {
 			reason = 1;
 			result = false;
 		} else {
