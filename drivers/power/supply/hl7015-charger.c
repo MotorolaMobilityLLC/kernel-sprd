@@ -718,6 +718,23 @@ static u32 hl7015_iinlim[]=
 100,150,500,900,1000,1500,2000,3000,
 };
 
+static u32 hl7015_charger_get_limit_current(struct hl7015_charger_info *info, u32 *limit_cur)
+{
+	u8 reg_val;
+	int ret;
+
+	ret = hl7015_read(info, HL7015_REG_0, &reg_val);
+	if (ret < 0)
+		return ret;
+
+	reg_val &= HL7015_REG_LIMIT_CURRENT_MASK;
+	*limit_cur = hl7015_iinlim[reg_val]  * 1000;
+
+	dev_info(info->dev, "%s;%d;\n",__func__,*limit_cur/1000);
+
+	return 0;
+}
+
 static int hl7015_charger_set_limit_current(struct hl7015_charger_info *info,
 					     u32 limit_cur, bool enable)
 {
@@ -726,6 +743,20 @@ static int hl7015_charger_set_limit_current(struct hl7015_charger_info *info,
 	int i=0;
 
 	dev_info(info->dev, "%s;%d;\n",__func__,limit_cur/1000);
+
+	mutex_lock(&info->input_limit_cur_lock);
+	if (enable) {
+		ret = hl7015_charger_get_limit_current(info, &limit_cur);
+		if (ret) {
+			dev_err(info->dev, "get limit cur failed\n");
+			goto out;
+		}
+
+		if (limit_cur == info->actual_limit_cur)
+			goto out;
+		limit_cur = info->actual_limit_cur;
+		dev_info(info->dev, "set limit current limit_cur = %d\n", limit_cur);
+	}
 
 	if (limit_cur >= HL7015_LIMIT_CURRENT_MAX)
 		limit_cur = HL7015_LIMIT_CURRENT_MAX;
@@ -743,25 +774,12 @@ static int hl7015_charger_set_limit_current(struct hl7015_charger_info *info,
 	
 	info->actual_limit_cur = hl7015_iinlim[i] * 1000;
 
+out:
+	mutex_unlock(&info->input_limit_cur_lock);
+
 	return ret;
 }
 
-static u32 hl7015_charger_get_limit_current(struct hl7015_charger_info *info, u32 *limit_cur)
-{
-	u8 reg_val;
-	int ret;
-
-	ret = hl7015_read(info, HL7015_REG_0, &reg_val);
-	if (ret < 0)
-		return ret;
-
-	reg_val &= HL7015_REG_LIMIT_CURRENT_MASK;
-	*limit_cur = hl7015_iinlim[reg_val]  * 1000;
-
-	dev_info(info->dev, "%s;%d;\n",__func__,*limit_cur/1000);
-
-	return 0;
-}
 
 static int hl7015_charger_get_health(struct hl7015_charger_info *info, u32 *health)
 {
@@ -814,9 +832,9 @@ static int hl7015_charger_feed_watchdog(struct hl7015_charger_info *info)
 	if (info->otg_enable)
 		return ret;
 
-//	ret = hl7015_charger_set_limit_current(info, 0, true);
-//	if (ret)
-//		dev_err(info->dev, "set limit cur failed\n");
+	ret = hl7015_charger_set_limit_current(info, 0, true);
+	if (ret)
+		dev_err(info->dev, "set limit cur failed\n");
 
 	return ret;
 }
