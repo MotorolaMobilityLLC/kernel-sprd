@@ -26,6 +26,8 @@ struct sprd_multi_control {
 	unsigned int high_level_limit_max;
 	unsigned int high_level_limit_min;
 	unsigned int hl_control_enabled;
+	unsigned int user_max_freq;
+	struct freq_qos_request qos_req;
 
 #ifdef CONFIG_UNISOC_FIX_FREQ
 	/* fix freq for debug */

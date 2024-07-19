@@ -259,6 +259,7 @@ static int cpu_get_cur_state(struct thermal_cooling_device *cdev,
 static void update_idle_cpus(struct cpu_cooling_device *cpu_cdev)
 {
 	int cpu, first, ncpus;
+	struct cpumask run_cpus;
 
 	first = cpumask_first(&cpu_cdev->allowed_cpus);
 	ncpus = cpumask_weight(&cpu_cdev->allowed_cpus);
@@ -274,6 +275,10 @@ static void update_idle_cpus(struct cpu_cooling_device *cpu_cdev)
 		else
 			cpumask_clear_cpu(cpu, &cpu_cdev->idle_cpus);
 	}
+
+	cpumask_andnot(&run_cpus, &cpu_cdev->allowed_cpus,
+			&cpu_cdev->idle_cpus);
+	cpu_cdev->run_cpus = cpumask_weight(&run_cpus);
 }
 
 static DEFINE_MUTEX(core_ctl_lock);
@@ -424,16 +429,15 @@ static void cpu_update_target_cpus(struct cpu_cooling_device *cpu_cdev)
 
 	state = cpu_cdev->target_state;
 	update_idle_cpus(cpu_cdev);
-	cpumask_andnot(&run_cpus, &cpu_cdev->allowed_cpus,
-			&cpu_cdev->idle_cpus);
-	cpu_cdev->run_cpus = cpumask_weight(&run_cpus);
 	cur_run_cpus = cpu_cdev->run_cpus;
 	next_run_cpus = cpu_cdev->table[state].cpus;
 
 	if (cur_run_cpus > next_run_cpus)
 		cpu_down_cpus(cpu_cdev, cur_run_cpus, next_run_cpus);
-	else
+	else if (cur_run_cpus < next_run_cpus)
 		cpu_up_cpus(cpu_cdev, cur_run_cpus, next_run_cpus);
+	else
+		return;
 
 	cpumask_andnot(&run_cpus, &cpu_cdev->allowed_cpus,
 			&cpu_cdev->idle_cpus);
@@ -469,6 +473,10 @@ static int cpu_set_cur_state(struct thermal_cooling_device *cdev,
 	/* Request state should be less than max_level */
 	if (WARN_ON(state > cpu_cdev->max_level))
 		return -EINVAL;
+
+	/* Update the number of running cpu and cooling level */
+	update_idle_cpus(cpu_cdev);
+	cpu_cdev->level = get_level(cpu_cdev, cpu_cdev->run_cpus);
 
 	/* Check if the old cooling action is same as new cooling action */
 	if (cpu_cdev->level == state)

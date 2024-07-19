@@ -201,7 +201,6 @@ static int drain_rq_cpu_stop(void *data)
 	if (wrq->enqueue_counter)
 		pr_err("cpu: %d task was re-enqueued", cpu_of(rq));
 
-	pr_info("pause cpu: %d", cpu_of(rq));
 	rq_unlock_irqrestore(rq, &rf);
 
 	return 0;
@@ -387,6 +386,31 @@ static void update_halt_cpus(struct cpumask *cpus)
 	}
 }
 
+static void check_halt_reason(struct cpumask *cpus, enum pause_reason reason)
+{
+	int cpu;
+	struct halt_cpu_state *halt_cpu_state;
+
+	for_each_cpu(cpu, cpus) {
+		halt_cpu_state = per_cpu_ptr(&halt_state, cpu);
+		if (halt_cpu_state->reason &&
+		    ((halt_cpu_state->reason & reason) != reason))
+			cpumask_clear_cpu(cpu, cpus);
+	}
+}
+
+static void dump_halt_cpus(void)
+{
+	int cpu;
+	struct halt_cpu_state *halt_cpu_state;
+
+	for_each_cpu(cpu, cpu_halt_mask) {
+		halt_cpu_state = per_cpu_ptr(&halt_state, cpu);
+		pr_info("pause cpu:%d reason:%d\n", cpu, halt_cpu_state->reason);
+	}
+
+}
+
 /* cpus will be modified */
 int core_halt_cpus(struct cpumask *cpus, enum pause_reason reason)
 {
@@ -414,6 +438,7 @@ int core_halt_cpus(struct cpumask *cpus, enum pause_reason reason)
 	else
 		update_reasons(&requested_cpus, true, reason);
 unlock:
+	dump_halt_cpus();
 	raw_spin_unlock_irqrestore(&halt_lock, flags);
 
 	return ret;
@@ -435,6 +460,10 @@ int core_start_cpus(struct cpumask *cpus, enum pause_reason reason)
 	unsigned long flags;
 
 	raw_spin_lock_irqsave(&halt_lock, flags);
+	check_halt_reason(cpus, reason);
+	if (cpumask_empty(cpus))
+		goto unlock;
+
 	cpumask_copy(&requested_cpus, cpus);
 	update_reasons(&requested_cpus, false, reason);
 
@@ -450,6 +479,7 @@ int core_start_cpus(struct cpumask *cpus, enum pause_reason reason)
 		update_reasons(&requested_cpus, true, reason);
 	}
 
+unlock:
 	raw_spin_unlock_irqrestore(&halt_lock, flags);
 
 	return ret;
