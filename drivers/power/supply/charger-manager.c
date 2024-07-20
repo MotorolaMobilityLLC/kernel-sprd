@@ -2158,7 +2158,8 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 	if (target_cur >= CM_FAST_CHARGE_ENABLE_CURRENT &&
 	    thm_cur >= CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT &&
 	    batt_ocv >= CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD &&
-	    batt_ocv < fchg_ocv_threshold)
+	    batt_ocv < fchg_ocv_threshold &&
+	     batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
 		return true;
 	else if (batt_ocv >= CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD &&
 		 batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
@@ -8168,7 +8169,7 @@ static void cm_batt_works(struct work_struct *work)
 		fuel_cap_buf = (fuel_cap * CHARGE_SOC_VALUE_FACTOR) / 1000;
 	}
 
-	if( (!charge_done)  &&  check_charge_done(cm)  && term_vol>=4400000)
+	if( (!charge_done)  &&  check_charge_done(cm)  && term_vol>=4400000 && batt_uV > 4300000)
 	{
 		charge_done = true;
 		dev_err(cm->dev, "%s;full;fuel_cap=%d,%d,\n", __func__,
