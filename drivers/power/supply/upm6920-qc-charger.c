@@ -208,6 +208,7 @@ static int upm6920qc_hsphy_set_dpdm(struct upm6920qc_charger_info *info ,  int o
 	int cnt=5;
 	u32 val;
 	static int bc1p2_connetc=1;
+	static u32 avdd18=0x82;
 	//#define SC2730_CHG_PD		0x19e8
 	//#define SC2730_CHARGE_STATUS		0x1b9c
 	//#define SC2730_CHG_DET_FGU_CTRL		0x1ba0
@@ -215,6 +216,7 @@ static int upm6920qc_hsphy_set_dpdm(struct upm6920qc_charger_info *info ,  int o
 	//#define UMP9620_CHG_DET_FGU_CTRL	0x23a0
 	#define CHARGE_PD		0x21e8
 	#define CHG_DET_FGU_CTRL	0x23a0
+	#define SLP_LDO_PD_CTRL1 0x2254
 
 
 	dev_err(info->dev, "%s;on=%d;connect=%d;\n",__func__,on,bc1p2_connetc);
@@ -227,6 +229,7 @@ static int upm6920qc_hsphy_set_dpdm(struct upm6920qc_charger_info *info ,  int o
 			ret = regmap_update_bits(info->pmic, CHG_DET_FGU_CTRL,      //CHGR_DET_FGU_CTRL
 				 1,
 				 0);         //        to bc1.2 ,bc1.2 enable
+			ret = regmap_update_bits(info->pmic, SLP_LDO_PD_CTRL1,0x02,avdd18 & 0x02);     // avdd18 
 
 			cnt=5;
 			do {
@@ -255,6 +258,10 @@ static int upm6920qc_hsphy_set_dpdm(struct upm6920qc_charger_info *info ,  int o
 
 			if (info->vdd)
 				ret = regulator_enable(info->vdd);
+
+			ret = regmap_read(info->pmic, SLP_LDO_PD_CTRL1, &avdd18);
+			
+			ret = regmap_update_bits(info->pmic, SLP_LDO_PD_CTRL1,0x02,0);     // avdd18 not enable sleep
 
 			ret = regmap_update_bits(info->pmic, CHARGE_PD,     // 0x1e8 vddusb33 power up
 				 1,
