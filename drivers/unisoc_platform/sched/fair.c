@@ -1128,16 +1128,90 @@ static void android_rvh_update_misfit_status(void *data, struct task_struct *p,
 	rq->misfit_task_load = max_t(unsigned long, walt_task_util(p), 1);
 }
 
+#ifdef CONFIG_UNISOC_WORKAROUND_VRUNTIME_BIG_GAP
+
+#define WMULT_CONST	(~0U)
+#define WMULT_SHIFT	32
+
+static void __update_inv_weight(struct load_weight *lw)
+{
+	unsigned long w;
+
+	if (likely(lw->inv_weight))
+		return;
+
+	w = scale_load_down(lw->weight);
+
+	if (BITS_PER_LONG > 32 && unlikely(w >= WMULT_CONST))
+		lw->inv_weight = 1;
+	else if (unlikely(!w))
+		lw->inv_weight = WMULT_CONST;
+	else
+		lw->inv_weight = WMULT_CONST / w;
+}
+
+static u64 __calc_delta(u64 delta_exec, unsigned long weight, struct load_weight *lw)
+{
+	u64 fact = scale_load_down(weight);
+	u32 fact_hi = (u32)(fact >> 32);
+	int shift = WMULT_SHIFT;
+	int fs;
+
+	__update_inv_weight(lw);
+
+	if (unlikely(fact_hi)) {
+		fs = fls(fact_hi);
+		shift -= fs;
+		fact >>= fs;
+	}
+
+	fact = mul_u32_u32(fact, lw->inv_weight);
+
+	fact_hi = (u32)(fact >> 32);
+	if (fact_hi) {
+		fs = fls(fact_hi);
+		shift -= fs;
+		fact >>= fs;
+	}
+
+	return mul_u64_u32_shr(delta_exec, fact, shift);
+}
+/*
+ * delta /= w
+ */
+static inline u64 calc_delta_fair(u64 delta, struct sched_entity *se)
+{
+	if (unlikely(se->load.weight != NICE_0_LOAD))
+		delta = __calc_delta(delta, NICE_0_LOAD, &se->load);
+
+	return delta;
+}
+
+#define VRUNTIME_LIMIT (10 * NSEC_PER_SEC)
+#endif
+
 static void android_rvh_place_entity(void *data, struct cfs_rq *cfs_rq,
 				struct sched_entity *se, int initial, u64 *vruntime)
 {
 	struct cfs_rq *se_cfs_rq;
 	u64 sleep_time;
 
+	se_cfs_rq = cfs_rq_of(se);
+
+#ifdef CONFIG_UNISOC_WORKAROUND_VRUNTIME_BIG_GAP
+	if (entity_is_task(se) && (((s64)(se->vruntime - *vruntime)) > VRUNTIME_LIMIT)) {
+		u64 delta = VRUNTIME_LIMIT;
+		struct sched_entity *curr = se_cfs_rq->curr;
+
+		if (curr)
+			delta = calc_delta_fair(VRUNTIME_LIMIT, curr);
+
+		se->vruntime = *vruntime + delta;
+		return;
+	}
+#endif
 	if (se->exec_start == 0)
 		return;
-
-	se_cfs_rq = cfs_rq_of(se);
 
 	sleep_time = rq_clock_task(rq_of(se_cfs_rq));
 
