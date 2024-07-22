@@ -13,6 +13,8 @@
 					sprd,output-bpc = <8>;
 					sprd,dsc-enable = <1>;
 					sprd,dual-dsi-enable = <0>;
+					sprd,need-vblank-adj;
+					sprd,vblank-adj-val = <28>;
 
 					sprd,phy-bit-clock = <1125000>;
 					sprd,phy-escape-clock = <20000>;/* kHz */
