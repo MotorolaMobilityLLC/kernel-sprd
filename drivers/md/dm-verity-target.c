@@ -293,13 +293,13 @@ static void print_block_data(unsigned long long blocknr, u8 *data_to_dump, int l
 			ch = *(data_to_dump + bh_offset + j);
 			if (bh_offset + j < len) {
 				if (isascii(ch) && isprint(ch))
-					snprintf(row_data + j, 1, "%c", ch);
+					snprintf(row_data + j, sizeof(row_data) - j, "%c", ch);
 				else
-					snprintf(row_data + j, 1, ".");
-				snprintf(row_hex + (j * 3), 3, "%02X ", ch);
+					snprintf(row_data + j, sizeof(row_data) - j, ".");
+				snprintf(row_hex + (j * 3), sizeof(row_hex) - (j * 3), "%02X ", ch);
 			} else {
-				snprintf(row_data + j, 1, " ");
-				snprintf(row_hex + (j * 3), 3, "   ");
+				snprintf(row_data + j, sizeof(row_data) - j, " ");
+				snprintf(row_hex + (j * 3), sizeof(row_hex) - (j * 3), "   ");
 			}
 		}
 
@@ -345,17 +345,19 @@ static int verity_handle_err_debug(struct dm_verity *v, enum verity_block_type t
 		    type_str, block);
 
 	for (i = 0 ; i < v->salt_size; i++)
-		snprintf(hex_str + (i * 2), 2, "%02X", *(v->salt + i));
+		snprintf(hex_str + (i * 2), sizeof(hex_str) - (i * 2), "%02X", *(v->salt + i));
 	DMERR("salt(%dbyte) is : %s", v->salt_size, hex_str);
 
 	memset(hex_str, 0, HASH_LEN_MAX);
 	for (i = 0 ; i < v->digest_size; i++)
-		snprintf(hex_str + (i * 2), 2, "%02X", *(verity_io_real_digest(v, io) + i));
+		snprintf(hex_str + (i * 2), sizeof(hex_str) - (i * 2), "%02X",
+			 *(verity_io_real_digest(v, io) + i));
 	DMERR("real digest(%dbyte) is : %s", v->digest_size, hex_str);
 
 	memset(hex_str, 0, HASH_LEN_MAX);
 	for (i = 0 ; i < v->digest_size; i++)
-		snprintf(hex_str + (i * 2), 2, "%02X", *(verity_io_want_digest(v, io) + i));
+		snprintf(hex_str + (i * 2), sizeof(hex_str) - (i * 2), "%02X",
+			 *(verity_io_want_digest(v, io) + i));
 	DMERR("want digest(%dbyte) is : %s", v->digest_size, hex_str);
 
 	if (!(strcmp(type_str, "metadata")) || !(strcmp(type_str, "data"))) {
