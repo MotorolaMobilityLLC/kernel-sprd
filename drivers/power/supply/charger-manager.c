@@ -2158,9 +2158,16 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 	if (target_cur >= CM_FAST_CHARGE_ENABLE_CURRENT &&
 	    thm_cur >= CM_FAST_CHARGE_ENABLE_THERMAL_CURRENT &&
 	    batt_ocv >= CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD &&
-	    batt_ocv < fchg_ocv_threshold &&
-	     batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
-		return true;
+	    batt_ocv < fchg_ocv_threshold )
+	{
+		if(cm->desc->reach_fchg_first )
+		{
+			cm->desc->reach_fchg_first = false;
+			return true;
+		}
+		else if ( batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
+			return true;
+	}
 	else if (batt_ocv >= CM_FAST_CHARGE_START_VOLTAGE_LTHRESHOLD &&
 		 batt_uA >= CM_FAST_CHARGE_ENABLE_CURRENT)
 		return true;
@@ -4673,7 +4680,7 @@ static void jeita_info_init(struct cm_jeita_info *jeita_info)
 	jeita_info->temp_down_trigger = 0;
 	jeita_info->jeita_changed = true;
 	jeita_info->jeita_status = 0;
-	jeita_info->jeita_temperature = -200;
+	jeita_info->jeita_temperature = 250;
 }
 
 static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
@@ -5237,6 +5244,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 				cm->desc->cp.cp_target_vbus = 0;
 				cm->desc->usb_charge_en = false;
 				cm->desc->charger_type = 0;
+				cm->desc->reach_fchg_first = true;
 			}
 
 			ret = get_wireless_charger_type(cm, &cm->desc->charger_type);
@@ -5314,6 +5322,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->xts_limit_cur = false;
 		cm->desc->adapter_max_vbus = 0;
 		cm->desc->charge_type_poll_count = 0;
+		cm->desc->reach_fchg_first = true;
 	}
 
 	cm_update_charger_type_status(cm);
