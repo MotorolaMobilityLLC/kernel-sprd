@@ -86,6 +86,12 @@
 /* RTC OF 2021-08-06 15 : 44*/
 #define SPRD_FGU_MISCDATA_RTC_TIME			(1621355101)
 #define SPRD_FGU_SHUTDOWN_TIME				(15 * 60)
+/* debug value config */
+#define SPRD_FGU_DEBUG_TEMP_CELSIUS			200
+#define SPRD_FGU_DEBUG_VBAT_NOW_UV			4000000
+#define SPRD_FGU_DEBUG_CUR_NOW_UV			1000000
+#define SPRD_FGU_DEBUG_VBUS_UV				5000000
+#define SPRD_FGU_DEBUG_OCV_UV				4000000
 /* others define */
 #define SPRD_FGU_CAP_CALC_WORK_8S			8
 #define SPRD_FGU_CAP_CALC_WORK_15S			15
@@ -1822,12 +1828,17 @@ static void sprd_fgu_suspend_calib_cap_calib(struct sprd_fgu_data *data)
 		 __func__, fgu_info->slp_cap_calib.resume_ocv_cap,
 		 data->normal_temp_cap, data->init_cap);
 
-	if (fgu_info->slp_cap_calib.resume_ocv_cap > data->normal_temp_cap + 30)
-		data->init_cap += (fgu_info->slp_cap_calib.resume_ocv_cap -
-				   data->normal_temp_cap - 30);
-	else if (fgu_info->slp_cap_calib.resume_ocv_cap < data->normal_temp_cap - 30)
-		data->init_cap -= (data->normal_temp_cap -
-				   fgu_info->slp_cap_calib.resume_ocv_cap - 30);
+	if (fgu_info->slp_cap_calib.resume_ocv_cap >
+	    data->normal_temp_cap + SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF) {
+		data->normal_temp_cap = fgu_info->slp_cap_calib.resume_ocv_cap -
+			SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF;
+		data->init_cap = fgu_info->ops->adjust_cap(fgu_info, data->normal_temp_cap);
+	} else if (fgu_info->slp_cap_calib.resume_ocv_cap <
+		   data->normal_temp_cap - SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF) {
+		data->normal_temp_cap = fgu_info->slp_cap_calib.resume_ocv_cap +
+			SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF;
+		data->init_cap = fgu_info->ops->adjust_cap(fgu_info, data->normal_temp_cap);
+	}
 
 	data->track.lpocv_info.valid = true;
 	data->track.lpocv_info.ocv_uv = fgu_info->slp_cap_calib.resume_ocv_uv;
@@ -2187,7 +2198,7 @@ static int sprd_fgu_set_property(struct power_supply *psy,
 		if (val->intval == SPRD_FGU_DEBUG_EN_CMD) {
 			dev_info(data->dev, "Change battery temperature to debug mode\n");
 			data->debug_info.temp_debug_en = true;
-			data->debug_info.debug_temp = 200;
+			data->debug_info.debug_temp = SPRD_FGU_DEBUG_TEMP_CELSIUS;
 			break;
 		} else if (val->intval == SPRD_FGU_DEBUG_DIS_CMD) {
 			dev_info(data->dev, "Recovery battery temperature to normal mode\n");
@@ -2227,7 +2238,7 @@ static int sprd_fgu_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
 		if (val->intval == SPRD_FGU_DEBUG_EN_CMD) {
 			dev_info(data->dev, "Change voltage_now to debug mode\n");
-			data->debug_info.debug_vbat_now = 4000000;
+			data->debug_info.debug_vbat_now = SPRD_FGU_DEBUG_VBAT_NOW_UV;
 			data->debug_info.vbat_now_debug_en = true;
 			break;
 		} else if (val->intval == SPRD_FGU_DEBUG_DIS_CMD) {
@@ -2247,7 +2258,7 @@ static int sprd_fgu_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
 		if (val->intval == SPRD_FGU_DEBUG_EN_CMD) {
 			dev_info(data->dev, "Change current_now to debug mode\n");
-			data->debug_info.debug_cur_now = 1000000;
+			data->debug_info.debug_cur_now = SPRD_FGU_DEBUG_CUR_NOW_UV;
 			data->debug_info.cur_now_debug_en = true;
 			break;
 		} else if (val->intval == SPRD_FGU_DEBUG_DIS_CMD) {
@@ -2267,7 +2278,7 @@ static int sprd_fgu_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
 		if (val->intval == SPRD_FGU_DEBUG_EN_CMD) {
 			dev_info(data->dev, "Change charge voltage to debug mode\n");
-			data->debug_info.debug_chg_vol = 5000000;
+			data->debug_info.debug_chg_vol = SPRD_FGU_DEBUG_VBUS_UV;
 			data->debug_info.chg_vol_debug_en = true;
 			break;
 		} else if (val->intval == SPRD_FGU_DEBUG_DIS_CMD) {
@@ -2287,7 +2298,7 @@ static int sprd_fgu_set_property(struct power_supply *psy,
 	case POWER_SUPPLY_PROP_VOLTAGE_OCV:
 		if (val->intval == SPRD_FGU_DEBUG_EN_CMD) {
 			dev_info(data->dev, "Change OCV voltage to debug mode\n");
-			data->debug_info.debug_ocv = 4000000;
+			data->debug_info.debug_ocv = SPRD_FGU_DEBUG_OCV_UV;
 			data->debug_info.ocv_debug_en = true;
 			break;
 		} else if (val->intval == SPRD_FGU_DEBUG_DIS_CMD) {
@@ -2479,7 +2490,7 @@ static bool sprd_fgu_discharging_current_trend(struct sprd_fgu_data *data)
 	return is_discharging;
 }
 
-static bool sprd_fgu_discharging_cc_mah_trend(struct sprd_fgu_data *data)
+static bool sprd_fgu_discharging_cc_uah_trend(struct sprd_fgu_data *data)
 {
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
 	int cur_cc_uah, ret;
@@ -2509,7 +2520,7 @@ static bool sprd_fgu_discharging_trend(struct sprd_fgu_data *data)
 		goto charging;
 	}
 
-	if (!sprd_fgu_discharging_cc_mah_trend(data)) {
+	if (!sprd_fgu_discharging_cc_uah_trend(data)) {
 		discharging =  false;
 		goto charging;
 	}
@@ -2713,6 +2724,7 @@ static irqreturn_t sprd_fgu_interrupt(int irq, void *dev_id)
 		sprd_fgu_capacity_calibration(data, true);
 		power_supply_changed(data->battery);
 		dev_info(data->dev, "volt_low_int ocurred!!\n");
+		fgu_info->ops->enable_fgu_int(fgu_info, SPRD_FGU_VOLT_LOW_INT_CMD, false);
 		fgu_info->ops->clr_fgu_int_bit(fgu_info, SPRD_FGU_VOLT_LOW_INT_CMD);
 	}
 
@@ -4892,7 +4904,7 @@ static void sprd_fgu_sr_calib_suspend_check(struct sprd_fgu_data *data)
 static int sprd_fgu_suspend(struct device *dev)
 {
 	struct sprd_fgu_data *data = dev_get_drvdata(dev);
-	int ret, ocv_uv;
+	int ret, ocv_uv, vol_mv;
 	struct sprd_fgu_info *fgu_info;
 
 	if (!data) {
@@ -4911,7 +4923,11 @@ static int sprd_fgu_suspend(struct device *dev)
 	    data->chg_sts == POWER_SUPPLY_STATUS_FULL)
 		return 0;
 
-	if (data->bat_present) {
+	ret = fgu_info->ops->get_vbat_now(fgu_info, &vol_mv);
+	if (ret)
+		return ret;
+
+	if (data->bat_present && vol_mv > SPRD_FGU_LOW_VBAT_REGION) {
 		ret = fgu_info->ops->enable_fgu_int(fgu_info, SPRD_FGU_VOLT_LOW_INT_CMD, true);
 		if (ret) {
 			dev_err(data->dev, "failed to enable low voltage interrupt\n");
