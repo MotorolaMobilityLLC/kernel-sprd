@@ -152,6 +152,11 @@ static void sched_show_task_local(struct task_struct *p)
 	unsigned int nr_entries;
 	unsigned long stack_entries[NR_FRAME];
 
+	if ((p->__state == TASK_DEAD) || (p->exit_state == EXIT_ZOMBIE)
+			|| (p->exit_state == EXIT_DEAD)) {
+		pr_err("the status of the %s is %d!\n", p->comm, p->__state);
+		return;
+	}
 	state = p->__state ? __ffs(p->__state) + 1 : 0;
 	pr_err("%-15.15s %c", p->comm, state < sizeof(stat_nam) - 1 ? stat_nam[state] : '?');
 #if BITS_PER_LONG == 32
@@ -310,6 +315,11 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 	current_task = find_task_by_vpid(tid);
 	if (current_task == NULL)
 		return -ESRCH;
+	if ((current_task->__state == TASK_DEAD) || (current_task->exit_state == EXIT_ZOMBIE)
+			|| (current_task->exit_state == EXIT_DEAD)) {
+		pr_err("the thread is invalid, do nothing\n");
+		return -EFAULT;
+	}
 	user_ret = task_pt_regs(current_task);
 
 	if (!user_mode(user_ret)) {
@@ -322,8 +332,8 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 		return ret;
 	}
 #ifdef CONFIG_ARM		/* 32bit */
-	pr_err(" pc/lr/sp 0x%08lx/0x%08lx/0x%08lx\n", user_ret->ARM_pc, user_ret->ARM_lr,
-	     user_ret->ARM_sp);
+	log_to_hang_info(" pc/lr/sp 0x%08lx/0x%08lx/0x%08lx\n",
+		user_ret->ARM_pc, user_ret->ARM_lr, user_ret->ARM_sp);
 
 	userstack_start = (unsigned long)user_ret->ARM_sp;
 	vma = current_task->mm->mmap;
@@ -476,8 +486,6 @@ static int save_native_threadinfo_by_tid(pid_t tid)
 			}
 			for (copied = 0; copied < frames; copied++) {
 				pr_err("frame:#%d: pc(%016lx)\n", copied, native_bt[copied]);
-				/* #00 pc 0x6c760  /system/lib64/ libc.so (__epoll_pwait+8) */
-				log_to_hang_info(" #%d pc %016lx\n", copied, native_bt[copied]);
 			}
 			pr_err("tid(%d:%s),frame %d. tmpfp(0x%lx),userstack_start(0x%lx), ",
 				tid, current_task->comm, frames, tmpfp, userstack_start);
@@ -503,25 +511,30 @@ static void show_bt_by_pid(int task_pid)
 		log_to_hang_info("%s: %d: %s.\n", __func__, task_pid, t->comm);
 //		save_native_thread_maps(task_pid);	/* catch maps to Userthread_maps */
 		do {
-			if (t) {
+			if (t && (t->__state != TASK_DEAD) && (t->exit_state != EXIT_ZOMBIE)
+					&& (t->exit_state != EXIT_DEAD)) {
 				pid_t tid = 0;
 
 				tid = task_pid_vnr(t);
+				if (t->__state > TASK_STATE_MAX) {
+					pr_err("the state of the task is invalid\n");
+					continue;
+				}
 				state = t->__state ? __ffs(t->__state) + 1 : 0;
 				pr_err("lhd: %-15.15s %c pid(%d),tid(%d)",
 				     t->comm, state < sizeof(stat_nam) - 1 ? stat_nam[state] : '?',
 				     task_pid, tid);
 
-				sched_show_task_local(t);	/* catch kernel bt */
-
 				log_to_hang_info("%s sysTid=%d, pid=%d\n", t->comm, tid, task_pid);
 
+				/* catch kernel bt */
+				sched_show_task_local(t);
+				/* change send ptrace_stop to send signal stop */
 				send_sig_info(SIGSTOP, SEND_SIG_PRIV, t);
-				/* change send ptrace_stop to send signal stop */
-				save_native_threadinfo_by_tid(tid);	/* catch user-space bt */
-				/* change send ptrace_stop to send signal stop */
-				if (stat_nam[state] != 'T')
-					send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
+				/* catch user-space bt */
+				save_native_threadinfo_by_tid(tid);
+				/* change send ptrace_stop to send signal contiue */
+				send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
 			}
 			if ((++count) % 5 == 4)
 				msleep(20);
@@ -546,7 +559,8 @@ static int find_core_task(void)
 			if (!strlen(core_task[i].name))
 				break;
 			/* ZO process stack is NULL, record its pid & name */
-			if ((task->__state == TASK_DEAD) && (task->exit_state == EXIT_ZOMBIE)) {
+			if ((task->__state == TASK_DEAD) || (task->exit_state == EXIT_ZOMBIE)
+					|| (task->exit_state == EXIT_DEAD)) {
 				log_to_hang_info("[Native Hang detect]: ZO Task :pid = %d",
 						task->pid);
 				log_to_hang_info(" name = %s\n", task->comm);
