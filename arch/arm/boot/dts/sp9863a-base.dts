@@ -233,7 +233,7 @@
 	/* first value is device eye-patt setting, the second is host */
 	sprd,hsphy-tunehsamp = /bits/ 8 <0x03 0x03>;
 	sprd,hsphy-tuneeq = /bits/ 8 <0x00 0x00>;
-	sprd,hsphy-tfregres = /bits/ 8 <0x1e 0x1e>;
+	sprd,hsphy-tfregres = /bits/ 8 <0x1e 0x26>;
 	status = "okay";
 };
 
