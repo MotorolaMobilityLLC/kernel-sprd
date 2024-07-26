@@ -526,8 +526,9 @@ static int ump96xx_tsen_probe(struct platform_device *pdev)
 
 	ret = of_property_read_u32(np, "v2t_table_id", &tsx_table_id);
 	if (ret) {
-		dev_err(&pdev->dev, "failed to get v2t table id\n");
+		dev_info(&pdev->dev, "cannot get v2t table id, use default\n");
 		tsx_table_id = 1;
+		ret = 0;
 	}
 
 	tsen_mager.dev = &pdev->dev;
