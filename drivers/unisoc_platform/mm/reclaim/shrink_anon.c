@@ -5,6 +5,7 @@
 
 #include <linux/mm.h>
 #include <linux/module.h>
+#include <trace/hooks/vmscan.h>
 #include <linux/notifier.h>
 #include <linux/fb.h>
 #include <linux/delay.h>
@@ -19,6 +20,7 @@
 #include "reclaim.h"
 
 #define SHRINK_ANON_NAME "shrink_anon"
+#define SCAN_ANON 2
 
 static atomic_t display_off = ATOMIC_LONG_INIT(0);
 static struct task_struct *shrink_anon_thread;
@@ -263,9 +265,18 @@ static struct notifier_block shrink_anon_notifier = {
 	.notifier_call = shrink_anon_call,
 };
 
+static void unisoc_tune_scan_type(void *data, char *scan_balance)
+{
+	if (strstr(current->comm, SHRINK_ANON_NAME)) {
+		*scan_balance = SCAN_ANON;
+	}
+}
+
 void shrink_anon_init(void)
 {
 	int ret = 0;
+
+	register_trace_android_vh_tune_scan_type(unisoc_tune_scan_type, NULL);
 
 	ret = register_unisoc_shrink_anon_notifier(&shrink_anon_notifier);
 	if (ret)
@@ -284,6 +295,8 @@ void shrink_anon_init(void)
 
 void shrink_anon_exit(void)
 {
+	unregister_trace_android_vh_tune_scan_type(unisoc_tune_scan_type, NULL);
+
 	if (unregister_unisoc_shrink_anon_notifier(&shrink_anon_notifier))
 		pr_info("failed to unregister unisoc_shrink_anon_notifier");
 
