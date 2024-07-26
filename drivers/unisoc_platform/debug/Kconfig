@@ -23,6 +23,17 @@ config SPRD_DEBUG_GIC
 	  this is a debug feature that recored gic to handler
 	  all irqs
 
+config UNISOC_SYZKALLER_TEST
+	bool "UNISOC syzkaller test mask"
+	depends on UNISOC_DEBUG
+	default n
+	help
+	  This configuration is to mask the syzkaller test.
+
+	  If you need to configure the syzkaller project for test,
+	  please set it to Y. In a normal version of userdebug,
+	  please keep the configuration as the default value.
+
 source "drivers/unisoc_platform/debug/busmonitor/Kconfig"
 source "drivers/unisoc_platform/debug/data_collector/Kconfig"
 source "drivers/unisoc_platform/debug/djtag/Kconfig"
