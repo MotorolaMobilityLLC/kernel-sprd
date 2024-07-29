@@ -225,7 +225,7 @@ static enum power_supply_property default_bcl_props[] = {
 
 static const struct power_supply_desc sprd_bcl_desc = {
 	.name = "sprd_bcl",
-	.type = POWER_SUPPLY_TYPE_BATTERY,
+	.type = POWER_SUPPLY_TYPE_UNKNOWN,
 	.properties = default_bcl_props,
 	.num_properties = ARRAY_SIZE(default_bcl_props),
 	.get_property = sprd_bcl_get_property,
