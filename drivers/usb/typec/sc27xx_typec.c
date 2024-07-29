@@ -386,6 +386,11 @@ static int sc27xx_connect_set_status_use_pdhubc2c(struct sc27xx_typec *sc, u32 s
 		spin_unlock(&sc->lock);
 
 		sc27xx_set_current_status_detach_or_attach(1);
+		if (sc->vbus_only_connect) {
+			sc->vbus_only_connect = false;
+			dev_info(sc->dev, "typec connect vbus_only_disconnect\n");
+			extcon_set_state_sync(sc->edev, EXTCON_SINK, false);
+		}
 		extcon_set_state_sync(sc->edev, EXTCON_SINK, true);
 		extcon_set_state_sync(sc->edev, EXTCON_USB, true);
 		dev_info(sc->dev, "%s sink connect !\n", __func__);
