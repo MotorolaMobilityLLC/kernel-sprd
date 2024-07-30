@@ -525,6 +525,10 @@ static int hl7015_charger_hw_init(struct hl7015_charger_info *info)
 				  0);
 	hl7015_update_bits(info, HL7015_REG_D, 0x80, 0x80);
 
+	ret = hl7015_update_bits(info, HL7015_REG_1,   //otg current:  0:1A 1:2.1A
+				  0x01,
+				  0);
+
 	info->current_charge_limit_cur = HL7015_REG_ICHG_LSB * 1000;
 	info->current_input_limit_cur = HL7015_REG_IINDPM_LSB * 1000;
 
