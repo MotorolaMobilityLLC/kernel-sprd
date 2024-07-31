@@ -12,21 +12,21 @@
  * Spreadtrum SoCs.
  */
 
-#include <linux/delay.h>
+#include <linux/bitops.h>
 #include <linux/debugfs.h>
+#include <linux/delay.h>
 #include <linux/fs.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/module.h>
-#include <linux/spinlock.h>
-#include <linux/bitops.h>
 #include <linux/pci.h>
 #include <linux/pci_regs.h>
 #include <linux/pci_ids.h>
 #include <linux/pcie-rc-sprd.h>
 #include <linux/sched.h>
-#include <uapi/linux/sched/types.h>
+#include <linux/spinlock.h>
 #include <linux/soc/sprd/sprd_pcie_ep_device.h>
+#include <uapi/linux/sched/types.h>
 
 #include "../include/sprd_pcie_resource.h"
 
@@ -115,6 +115,8 @@ enum dev_pci_barno {
 
 #define PCIE_SAVE_REGION_NUM	(IATU_MAX_REGION * 2)
 #define PCIE_SAVE_REG_NUM	8
+#define ASSIGN_CPU_RANGE 7
+#define ASSIGN_CPU_FIRST 1
 
 struct sprd_ep_dev_notify {
 	void  (*notify)(int event, void *data);
@@ -163,6 +165,8 @@ static struct sprd_pci_ep_dev_save g_ep_save[PCIE_EP_NR];
 static struct sprd_pci_ep_dev *g_ep_dev[PCIE_EP_NR];
 static irq_handler_t ep_dev_handler[PCIE_EP_NR][PCIE_MSI_MAX_IRQ];
 static void *ep_dev_handler_data[PCIE_EP_NR][PCIE_MSI_MAX_IRQ];
+static void *ep_dev_handler_assign_cpu[PCIE_EP_NR][PCIE_MSI_MAX_IRQ];
+static void *ep_dev_handler_data_assign_cpu[PCIE_EP_NR][PCIE_MSI_MAX_IRQ];
 static struct sprd_ep_dev_notify g_ep_dev_notify[PCIE_EP_NR];
 
 static int sprd_ep_dev_get_bar(int ep);
@@ -177,6 +181,16 @@ static void __iomem *sprd_ep_dev_map_bar(int ep, int bar,
 					 size_t size);
 static int sprd_ep_dev_unmap_bar(int ep, int bar);
 static void sprd_pci_ep_dev_backup(struct sprd_pci_ep_dev *ep_dev);
+
+u32 sprd_read_pcie_link_status(int ep)
+{
+
+	if (ep >= PCIE_EP_NR || !g_ep_dev[ep])
+		return 0;
+
+	return g_ep_dev[ep]->link_status;
+}
+EXPORT_SYMBOL_GPL(sprd_read_pcie_link_status);
 
 int sprd_ep_dev_register_notify(int ep,
 				void (*notify)(int event, void *data),
@@ -209,6 +223,73 @@ int sprd_ep_dev_unregister_notify(int ep)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(sprd_ep_dev_unregister_notify);
+
+int sprd_ep_dev_register_irq_handler_assign_cpu(int ep, int irq,
+				     void (*handler)(void *data), void *data)
+{
+	struct sprd_pci_ep_dev *ep_dev;
+
+	if (ep >= PCIE_EP_NR || irq >= PCIE_MSI_MAX_IRQ)
+		return -EINVAL;
+
+	ep_dev_handler_assign_cpu[ep][irq] = handler;
+	ep_dev_handler_data_assign_cpu[ep][irq] = data;
+	ep_dev = g_ep_dev[ep];
+
+	if (handler && ep_dev &&
+	    (BIT(irq) & ep_dev->bak_irq_status)) {
+		ep_dev->bak_irq_status &= ~BIT(irq);
+		handler(data);
+	}
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(sprd_ep_dev_register_irq_handler_assign_cpu);
+
+int sprd_ep_dev_register_irq_handler_assign_cpu_ex(int ep,
+					int from_irq,
+					int to_irq,
+					void (*handler)(void *data),
+					void *data)
+{
+	int i, ret;
+
+	for (i = from_irq; i < to_irq + 1; i++) {
+		ret = sprd_ep_dev_register_irq_handler_assign_cpu(ep,
+							i, handler, data);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
+
+int sprd_ep_dev_unregister_irq_handler_assign_cpu(int ep, int irq)
+{
+	if (ep < PCIE_EP_NR && irq < PCIE_MSI_MAX_IRQ) {
+		ep_dev_handler[ep][irq] = NULL;
+		ep_dev_handler_data[ep][irq] = NULL;
+		return 0;
+	}
+
+	return -EINVAL;
+}
+EXPORT_SYMBOL_GPL(sprd_ep_dev_unregister_irq_handler_assign_cpu);
+
+int sprd_ep_dev_unregister_irq_handler_assign_cpu_ex(int ep,
+					  int from_irq,
+					  int to_irq)
+{
+	int i, ret;
+
+	for (i = from_irq; i < to_irq + 1; i++) {
+		ret = sprd_ep_dev_unregister_irq_handler_assign_cpu(ep, i);
+		if (ret)
+			return ret;
+	}
+
+	return 0;
+}
 
 int sprd_ep_dev_register_irq_handler(int ep, int irq,
 				     irq_handler_t handler, void *data)
@@ -843,12 +924,34 @@ static int sprd_ep_dev_unmap_bar(int ep, int bar)
 	return 0;
 }
 
+int sprd_pci_ep_dev_assign_cpu_do_handler(int irq, void (*handler)(void *data), void *data)
+{
+	int cpu_id;
+	int ret = -1;
+
+	cpu_id = (irq - IPA_HW_IRQ_BASE) % ASSIGN_CPU_RANGE + ASSIGN_CPU_FIRST;
+	pr_info("%s: try assign_irq_%d_to_cpu:%d\n", __func__, irq, cpu_id);
+	if (cpu_id != smp_processor_id() && cpu_online(cpu_id)) {
+		if (!smp_call_function_single(cpu_id, handler, data, 0)) {
+			pr_info("%s: success smp_call_function_single irq:%d cpu_id:%d\n",
+				__func__, irq, cpu_id);
+			ret = 0;
+			goto exit;
+		}
+	}
+
+	pr_err("%s: assign_irq_%d_cpu_%d failed\n", __func__, irq, cpu_id);
+
+exit:
+	return ret;
+}
+
 static irqreturn_t sprd_pci_ep_dev_irqhandler(int irq, void *dev_ptr)
 {
 	struct sprd_pci_ep_dev *ep_dev = dev_ptr;
 	struct pci_dev *pdev = ep_dev->pdev;
 	struct device *dev = &pdev->dev;
-	irq_handler_t handler;
+	irq_handler_t handler, assign_cup_handler;
 
 	dev_dbg(dev, "ep: irq handler. irq = %d\n",  irq);
 
@@ -1065,6 +1168,8 @@ static int sprd_pci_ep_dev_probe(struct pci_dev *pdev,
 
 	/* default , PCIE_EP_PROBE */
 	ep_dev->event = PCIE_EP_PROBE;
+	ep_dev->link_status = dw_pcie_readl_dbi(pci, PCIE_PORT_DEBUG0);
+	dev_info(dev, "%s: pcie link status=0x%x\n", __func__, ep_dev->link_status);
 	g_ep_dev[ep_dev->ep] = ep_dev;
 
 	if (!ep_dev->bar[BAR_1] || !ep_dev->bar[BAR_3]) {
