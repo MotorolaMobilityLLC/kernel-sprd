@@ -1,5 +1,5 @@
 
-config SPRD_PCIE_EP_DEVICE
+config UNISOC_PCIE_EP_DEVICE
 	tristate "SPRD PCIE EP device"
 	default n
 	depends on PCI_MSI
@@ -9,7 +9,7 @@ config SPRD_PCIE_EP_DEVICE
 	  raise doorbell interrupt,map/ummap pcie memory.
 	  Set M or Y for this module if want to use it.
 
-config SPRD_PCIE_DOORBELL_WORKAROUND
+config UNISOC_PCIE_DOORBELL_WORKAROUND
 	bool "SPRD PCIE DOORBELL WORKAROUND"
 	default n
 	depends on PCIE_EPF_SPRD

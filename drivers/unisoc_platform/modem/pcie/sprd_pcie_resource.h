@@ -16,12 +16,12 @@
 #ifndef _SPRD_PCIE_RESOURCE_H
 #define _SPRD_PCIE_RESOURCE_H
 
-#ifdef CONFIG_SPRD_PCIE_EP_DEVICE
+#ifdef CONFIG_UNISOC_PCIE_EP_DEVICE
 #include <linux/platform_device.h>
 #endif
 #include <linux/soc/sprd/hwfeature.h>
 
-#if defined(CONFIG_SPRD_PCIE_EP_DEVICE) || defined(CONFIG_PCIE_EPF_SPRD)
+#if defined(CONFIG_UNISOC_PCIE_EP_DEVICE) || defined(CONFIG_PCIE_EPF_SPRD)
 /*
  * sprd_pcie_wait_resource
  * Returns:
@@ -52,7 +52,7 @@ int sprd_register_pcie_resource_first_ready(u32 dst,
 					    void *data);
 #endif
 
-#ifdef CONFIG_SPRD_PCIE_EP_DEVICE
+#ifdef CONFIG_UNISOC_PCIE_EP_DEVICE
 int sprd_pcie_resource_host_init(u32 dst, u32 ep_dev,
 				 struct platform_device *pcie_dev);
 
@@ -101,6 +101,6 @@ void sprd_pcie_img_load_done(u32 dst);
 bool sprd_pcie_ep_power_on(void);
 #else
 static inline int sprd_pcie_wait_remove_resource(u32 dst) { return 0; }
-#endif /* CONFIG_SPRD_PCIE_EP_DEVICE */
+#endif /* CONFIG_UNISOC_PCIE_EP_DEVICE */
 
 #endif /* _SPRD_PCIE_RESOURCE_H */

@@ -22,11 +22,11 @@
 #include <linux/list.h>
 #include <linux/mm.h>
 #include <linux/module.h>
-#include <linux/vmalloc.h>
 #include <linux/sched.h>
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/sipc.h>
+#include <linux/module.h>
 
 #include "sipc_priv.h"
 
@@ -36,7 +36,7 @@
  * 0x280000000(orca side) to 0x80000000(roc1
  * side), and the size must be 256M
  */
-#ifdef CONFIG_SPRD_IPA_PCIE_WORKROUND
+#ifdef CONFIG_UNISOC_IPA_PCIE_WORKROUND
 #define IPA_SRC_BASE	0x280000000
 #define IPA_DST_BASE	0x80000000
 #define IPA_SIZE	0x10000000
@@ -183,7 +183,7 @@ static void *pcie_modem_ram_vmap(phys_addr_t start, size_t size, E_MMAP_TYPE mty
 		return NULL;
 	}
 
-#ifdef CONFIG_SPRD_PCIE_EP_DEVICE
+#ifdef CONFIG_UNISOC_PCIE_EP_DEVICE
 	return sprd_ep_map_memory(PCIE_EP_MODEM, start, size);
 #endif
 
@@ -196,7 +196,7 @@ static void *pcie_modem_ram_vmap(phys_addr_t start, size_t size, E_MMAP_TYPE mty
 
 static void pcie_modem_ram_unmap(const void *mem)
 {
-#ifdef CONFIG_SPRD_PCIE_EP_DEVICE
+#ifdef CONFIG_UNISOC_PCIE_EP_DEVICE
 	return sprd_ep_unmap_memory(PCIE_EP_MODEM, mem);
 #endif
 
