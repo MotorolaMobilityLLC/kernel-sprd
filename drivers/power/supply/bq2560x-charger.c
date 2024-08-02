@@ -1778,11 +1778,16 @@ static void bq2560x_charger_otg_work(struct work_struct *work)
 		}
 
 		otg_valid = bq2560x_charger_check_otg_valid(info);
+		if(!otg_valid)
+			ret = bq2560x_update_bits(info, BQ2560X_REG_1,
+						  BQ2560X_REG_OTG_MASK,
+						  BQ2560X_REG_OTG_MASK);
+
 	} while (!otg_valid && retry++ < BQ2560X_OTG_RETRY_TIMES);
 
 	if (retry >= BQ2560X_OTG_RETRY_TIMES) {
 		dev_err(info->dev, "Restart OTG failed\n");
-		return;
+	//	return;
 	}
 
 out:

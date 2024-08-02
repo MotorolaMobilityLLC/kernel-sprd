@@ -1664,11 +1664,15 @@ static void hl7015_charger_otg_work(struct work_struct *work)
 		}
 
 		otg_valid = hl7015_charger_check_otg_valid(info);
+		if(!otg_valid)
+			ret = hl7015_update_bits(info, HL7015_REG_1,
+						  HL7015_REG_OTG_MASK,
+						  HL7015_REG_OTG_MASK);
 	} while (!otg_valid && retry++ < HL7015_OTG_RETRY_TIMES);
 
 	if (retry >= HL7015_OTG_RETRY_TIMES) {
 		dev_err(info->dev, "Restart OTG failed\n");
-		return;
+		//return;
 	}
 
 out:
