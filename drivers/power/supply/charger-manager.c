@@ -4679,7 +4679,7 @@ static void jeita_info_init(struct cm_jeita_info *jeita_info)
 	jeita_info->temp_up_trigger = 0;
 	jeita_info->temp_down_trigger = 0;
 	jeita_info->jeita_changed = true;
-	jeita_info->jeita_status = 0;
+	jeita_info->jeita_status = 4;
 	jeita_info->jeita_temperature = 250;
 }
 
@@ -4720,7 +4720,7 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 	recovery_temp_status = i + 1;
 
 	if (jeita_info->jeita_changed) {
-		jeita_status = 0;
+		jeita_status = 4;
 		jeita_info_init(&desc->jeita_info);
 		dev_info(cm->dev, "%s: jeita_changed= %d\n", __func__,
 			 jeita_info->jeita_changed);
@@ -4734,7 +4734,7 @@ static int cm_manager_get_jeita_status(struct charger_manager *cm, int cur_temp)
 		cm_jeita_temp_goes_up(desc, temp_status, recovery_temp_status, &jeita_status);
 
 out:
-	dev_info(cm->dev, "%s: jeita status:(%d) %d %d, temperature:%d, jeita_size:%d\n",
+	dev_info(cm->dev, "%s: jeita status1:(%d) %d %d, temperature:%d, jeita_size:%d\n",
 		 __func__, jeita_status, temp_status, recovery_temp_status,
 		 cur_temp, desc->jeita_tab_size);
 
