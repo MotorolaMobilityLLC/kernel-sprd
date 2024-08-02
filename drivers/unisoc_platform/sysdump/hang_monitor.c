@@ -535,7 +535,6 @@ static void show_bt_by_pid(int task_pid)
 {
 	struct task_struct *t, *p;
 	struct pid *pid;
-	int count = 0;
 	unsigned int state;
 	int exit_state;
 	char stat_nam[] = TASK_STATE_TO_CHAR_STR;
@@ -548,6 +547,7 @@ static void show_bt_by_pid(int task_pid)
 		exit_state = t->exit_state;
 		log_to_hang_info("%s: %d: %s.\n", __func__, task_pid, t->comm);
 //		save_native_thread_maps(task_pid);	/* catch maps to Userthread_maps */
+		/* lock for while_each_thread */
 		rcu_read_lock();
 		do {
 			if (t && (state != TASK_DEAD) && (exit_state != EXIT_ZOMBIE)
@@ -574,8 +574,6 @@ static void show_bt_by_pid(int task_pid)
 				/* change send ptrace_stop to send signal contiue */
 				send_sig_info(SIGCONT, SEND_SIG_PRIV, t);
 			}
-			if ((++count) % 5 == 4)
-				msleep(20);
 			log_to_hang_info("---\n");
 		} while_each_thread(p, t);
 		rcu_read_unlock();
