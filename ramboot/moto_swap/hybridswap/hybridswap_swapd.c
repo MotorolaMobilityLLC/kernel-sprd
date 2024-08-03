@@ -1323,8 +1323,10 @@ static bool zram_need_swapout(void)
 	if (zram_wm_ok && avail_buffer_wm_ok && ufs_wm_ok)
 		return true;
 
+#if 0 // ontim: there are too many log when zram_wm_ok=0
 	hybp(HYB_INFO, "zram_wm_ok %d avail_buffer_wm_ok %d ufs_wm_ok %d\n",
 			zram_wm_ok, avail_buffer_wm_ok, ufs_wm_ok);
+#endif
 
 	return false;
 }
