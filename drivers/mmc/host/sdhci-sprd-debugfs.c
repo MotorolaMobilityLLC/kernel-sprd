@@ -25,8 +25,6 @@
 #include "sdhci.h"
 #include "mmc_swcq.h"
 
-#define MMC_PROC_MODE 0777
-
 #define SPRD_SPEED_INFO_VALID 2048
 
 #define SPRD_SPEED_MODE_NAME_MAX	20
@@ -48,6 +46,11 @@ struct mmc_through_put {
 	u64 write;
 	u64 read_blk;
 	u64 write_blk;
+};
+
+struct sprd_mmc_node_info {
+	char *name;
+	umode_t mode;
 };
 
 static struct mmc_through_put mmc_throughput[3];
@@ -427,12 +430,12 @@ static const struct proc_ops *proc_fops_mmc_list[] = {
 	&sdhci_sprd_set_timing_fops,
 };
 
-static char * const sprd_mmc_node_info[] = {
-	"hw_reset",
-	"debug_en",
-	"debug_polling_times",
-	"throughput",
-	"set_timing"
+static const struct sprd_mmc_node_info mmc_node_info[] = {
+	{"hw_reset", 0600},
+	{"debug_en", 0666},
+	{"debug_polling_times", 0666},
+	{"throughput", 0666},
+	{"set_timing", 0660},
 };
 
 void sdhci_sprd_add_host_debugfs(struct sdhci_host *host)
@@ -450,7 +453,7 @@ void sdhci_sprd_add_host_debugfs(struct sdhci_host *host)
 	}
 
 	if (mmc->index == 1) {
-		debug_data = proc_create_data("set_timing", MMC_PROC_MODE,
+		debug_data = proc_create_data("set_timing", 0660,
 			debug_parent, &sdhci_sprd_set_timing_fops, mmc);
 		if (!debug_data) {
 			pr_err("%s: failed to create node: /proc/%s/set_timing\n",
@@ -465,13 +468,13 @@ void sdhci_sprd_add_host_debugfs(struct sdhci_host *host)
 	atomic_set(&mmc_debug_en, true);
 	atomic_set(&force_err, false);
 
-	node = ARRAY_SIZE(sprd_mmc_node_info);
+	node = ARRAY_SIZE(mmc_node_info);
 	for (i = 0; i < node; i++) {
-		debug_data = proc_create_data(sprd_mmc_node_info[i], MMC_PROC_MODE,
+		debug_data = proc_create_data(mmc_node_info[i].name, mmc_node_info[i].mode,
 			debug_parent, proc_fops_mmc_list[i], mmc);
 		if (!debug_data) {
 			pr_err("%s: failed to create node: /proc/%s/%s\n",
-				__func__, mmc_hostname(mmc), sprd_mmc_node_info[i]);
+				__func__, mmc_hostname(mmc), mmc_node_info[i].name);
 			goto err;
 		}
 	}
