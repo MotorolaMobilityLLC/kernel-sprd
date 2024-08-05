@@ -210,8 +210,6 @@ trusty:
 tty:
 
 unisoc_platform:
-unisoc_platform:net:
-unisoc_platform:soc:
 unisoc_platform:audio:
 unisoc_platform:binder:
 unisoc_platform:cpufreq:
@@ -222,11 +220,14 @@ unisoc_platform:mailbox:
 unisoc_platform:misc:
 unisoc_platform:mm:
 unisoc_platform:modem_loader:
+unisoc_platform:net:
 unisoc_platform:sched:
-unisoc_platform:sipc:
 unisoc_platform:sfp:
-unisoc_platform:thermal:
+unisoc_platform:sipc:
+unisoc_platform:soc:
 unisoc_platform:sprdwcn:
+unisoc_platform:sysdump:
+unisoc_platform:thermal:
 unisoc_platform:wlan:
 
 usb:core:
