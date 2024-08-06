@@ -389,6 +389,7 @@ static inline void multi_control_failed(void)
 	int cpu;
 
 	list_for_each_entry_safe(sprd_mc, temp_sprd_mc, &sprd_mc_list, node) {
+		freq_qos_remove_request(&sprd_mc->qos_req);
 		sysfs_remove_files(&sprd_mc->policy->kobj, multi_control_attrs);
 		for_each_cpu(cpu, sprd_mc->policy->related_cpus)
 			per_cpu(sprd_mc_data, cpu) = NULL;
