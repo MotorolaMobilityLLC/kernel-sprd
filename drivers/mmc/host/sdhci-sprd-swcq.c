@@ -1970,6 +1970,15 @@ static bool sdhci_sprd_send_command(struct sdhci_host *host, struct mmc_command 
 	struct mmc_swcq *swcq = mmc->cqe_private;
 	u32 intmask;
 
+#ifdef CONFIG_SPRD_DEBUG
+	if (host->cmd) {
+		pr_err("%s: host->cmd%d\n", mmc_hostname(host->mmc), host->cmd->opcode);
+
+		if (cmd)
+			pr_err("%s: now cmd%d\n", mmc_hostname(host->mmc), cmd->opcode);
+	}
+#endif
+
 	WARN_ON(host->cmd);
 
 	dbg_add_host_log(host->mmc, MMC_SEND_CMD, cmd->opcode, cmd->arg, cmd->mrq);
