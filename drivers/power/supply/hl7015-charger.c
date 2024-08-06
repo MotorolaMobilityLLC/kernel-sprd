@@ -191,6 +191,7 @@ struct hl7015_charger_info {
 	bool probe_initialized;
 	bool use_typec_extcon;
 	bool shutdown_flag;
+	bool ovp_need_9v;
 
 	char charge_ic_vendor_name[50];
 	int chip_type;
@@ -368,9 +369,15 @@ static int
 hl7015_charger_set_ovp(struct hl7015_charger_info *info, u32 vol)
 {
 	if( vol  == HL7015_FCHG_OVP_9V)
-		hl7015_update_bits(info, HL7015_REG_D, 0x30, 0x20);
+	{
+		//hl7015_update_bits(info, HL7015_REG_D, 0x30, 0x20);
+		info->ovp_need_9v = true;
+	}	
 	else
+	{
 		hl7015_update_bits(info, HL7015_REG_D, 0x30, 0x10);
+		info->ovp_need_9v = false;
+	}
 
 	return 0;
 }
@@ -680,6 +687,8 @@ static void hl7015_charger_stop_charge(struct hl7015_charger_info *info, bool pr
 	ret = hl7015_charger_enable_wdg(info, false);
 	if (ret)
 		dev_err(info->dev, "Failed to update wdg\n");
+
+	info->ovp_need_9v = false;
 }
 
 static int hl7015_charger_set_current(struct hl7015_charger_info *info, u32 cur)
@@ -815,6 +824,7 @@ static void hl7015_dump_register(struct hl7015_charger_info *info)
 static int hl7015_charger_feed_watchdog(struct hl7015_charger_info *info)
 {
 	int ret = 0;
+	u32 vbus;
 	u64 duration, curr = ktime_to_ms(ktime_get());
 
 	ret = hl7015_update_bits(info, HL7015_REG_1,
@@ -839,6 +849,18 @@ static int hl7015_charger_feed_watchdog(struct hl7015_charger_info *info)
 	ret = hl7015_charger_set_limit_current(info, 0, true);
 	if (ret)
 		dev_err(info->dev, "set limit cur failed\n");
+
+	if( info->ovp_need_9v)
+	{
+		ret = hl7015_charger_get_charge_voltage(info, &vbus);
+		if( vbus > 7000000)
+		{
+			dev_err(info->dev, "%s;%d;set vindpm 1.7;\n",__func__,vbus);
+			hl7015_update_bits(info, HL7015_REG_D, 0x30, 0x20);
+			info->ovp_need_9v = false;
+		}
+
+	}
 
 	return ret;
 }
