@@ -1101,6 +1101,7 @@ static bool musb_sprd_lowpower_configuration_onoff(struct sprd_glue *glue, int o
 
 		/* switch hclk to suspend clk source */
 		clk_set_parent(glue->hclk_src_sel, glue->hclk_suspend_src);
+		usb_phy_set_wakeup(glue->xceiv, 1);
 	} else {
 		/* cancel pubsys deep bypass */
 		regmap_read(glue->pubsys_bypass.regmap_ptr,
@@ -1117,6 +1118,7 @@ static bool musb_sprd_lowpower_configuration_onoff(struct sprd_glue *glue, int o
 
 		/* switch hclk to default clk */
 		clk_set_parent(glue->hclk_src_sel, glue->hclk_default_src);
+		usb_phy_set_wakeup(glue->xceiv, 0);
 	}
 
 	return true;
