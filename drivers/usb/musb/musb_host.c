@@ -364,11 +364,6 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 
 	musb_giveback(musb, urb, status);
 
-	/* musb->lock been unlock in musb_giveback,so sometimes qh may
-	 * been free,need get qh again
-	 */
-	qh = musb_ep_get_qh(hw_ep, is_in);
-
 	/*
 	 * musb->lock had been unlocked in musb_giveback, so qh may
 	 * be freed, need to get it again
