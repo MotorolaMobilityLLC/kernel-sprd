@@ -5,7 +5,6 @@
 #include "sprd-cpufreq-v2.h"
 #include <linux/delay.h>
 #include <linux/jiffies.h>
-#include <linux/nvmem-consumer.h>
 #include <linux/pm_qos.h>
 #include <linux/thermal.h>
 
@@ -79,40 +78,6 @@ static int sprd_cpufreq_boost_judge(struct cpufreq_policy *policy)
 	}
 
 	return ON_BOOST;
-}
-
-static int sprd_nvmem_info_read(struct device_node *node, const char *name, u32 *value)
-{
-	struct nvmem_cell *cell;
-	void *buf;
-	size_t len = 0;
-	int ret = 0;
-
-	cell = of_nvmem_cell_get(node, name);
-	if (IS_ERR(cell)) {
-		ret = PTR_ERR(cell);
-		if (ret == -EPROBE_DEFER)
-			pr_warn("cell for cpufreq not ready, retry\n");
-		else
-			pr_err("failed to get cell for cpufreq\n");
-
-		return ret;
-	}
-
-	buf = nvmem_cell_read(cell, &len);
-	nvmem_cell_put(cell);
-	if (IS_ERR(buf))
-		return PTR_ERR(buf);
-
-	if (len > sizeof(u32))
-		len = sizeof(u32);
-
-	memcpy(value, buf, len);
-
-	kfree(buf);
-	buf = NULL;
-
-	return 0;
 }
 
 static int sprd_temp_list_init(struct list_head *head)
@@ -766,10 +731,8 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 {
 	int (*ops)(u32 id, u32 val);
 	struct cluster_prop *p;
-	struct device_node *hwf;
 	int i, ret;
 	u32 dcdc_id, pmic_type = 0;
-	const char *dvfs_bin;
 	char dcdc_supply[32] = "sprd,pmic-type";
 	struct cluster_prop props[] = {
 		{
@@ -841,53 +804,8 @@ static int sprd_cluster_props_init(struct cluster_info *cluster)
 		}
 	}
 
-	if (of_property_read_bool(cluster->node, "sprd,multi-version")) {
-		hwf = of_find_node_by_path("/hwfeature/auto");
-		if (IS_ERR_OR_NULL(hwf)) {
-			pr_err("no hwfeature/auto node found\n");
-			return PTR_ERR(hwf);
-		}
-
-		cluster->version = (u64 *)of_get_property(hwf, "efuse", NULL);
-		ret = cluster->version_set(cluster->id, cluster->version);
-		if (ret) {
-			pr_err("set cluster %u 'version' value error\n", cluster->id);
-			return ret;
-		}
-	}
-
 	if (of_property_read_bool(cluster->node, "sprd,cpufreq-boost"))
 		cluster->boost_enable = true;
-
-	ret = of_property_read_string_index(cluster->node, "nvmem-cell-names", 1, &dvfs_bin);
-	if (ret >= 0) {
-		ret = sprd_nvmem_info_read(cluster->node, dvfs_bin, &cluster->bin);
-		if (ret) {
-			pr_err("error in reading dvfs bin_1 value\n");
-			return ret;
-		}
-
-		if (cluster->bin)
-			goto dvfs_bin_set;
-	}
-
-	ret = of_property_read_string_index(cluster->node, "nvmem-cell-names", 0, &dvfs_bin);
-	if (ret < 0) {
-		pr_warn("Warning: no 'dvfs_bin' appointed\n");
-	} else {
-		ret = sprd_nvmem_info_read(cluster->node, dvfs_bin, &cluster->bin);
-		if (ret) {
-			pr_err("read dvfs bin value error(%d)\n", ret);
-			return ret;
-		}
-	}
-
-dvfs_bin_set:
-	ret = cluster->bin_set(cluster->id, cluster->bin);
-	if (ret) {
-		pr_err("set cluster %u 'binning' value error\n", cluster->id);
-		return ret;
-	}
 
 	return 0;
 }
@@ -913,8 +831,6 @@ static int sprd_cluster_ops_init(struct cluster_info *cluster)
 	cluster->freq_get = ops->freq_get;
 	cluster->pair_get = ops->pair_get;
 	cluster->pmic_set = ops->pmic_set;
-	cluster->bin_set = ops->bin_set;
-	cluster->version_set = ops->version_set;
 	cluster->dvfs_init = ops->dvfs_init;
 	cluster->dvfs_debug_init = ops->dvfs_debug_init;
 

@@ -109,8 +109,6 @@ struct sprd_sip_svc_pwr_ops {
  * @pair_get: get freq and volt of index
  *
  * @pmic_set: set the dcdc_cpu uses pmic type
- * @bin_set: set cluster bin info
- * @version_set: set SOC version info
  * @dvfs_init: apcpu hwdvfs logic init entry
  */
 struct sprd_sip_svc_dvfs_ops {
@@ -124,8 +122,6 @@ struct sprd_sip_svc_dvfs_ops {
 	int (*freq_get)(u32 cluster, u64 *freq);
 	int (*pair_get)(u32 cluster, u32 index, u64 *freq, u64 *vol);
 	int (*pmic_set)(u32 cluster, u32 num);
-	int (*bin_set)(u32 cluster, u32 bin);
-	int (*version_set)(u32 cluster, u64 *ver);
 	int (*dvfs_init)(u32 flag, u32 flag2, u32 flag3);
 	int (*dvfs_debug_init)(void);
 };

@@ -214,18 +214,6 @@
 			   ARM_SMCCC_OWNER_SIP,				\
 			   0x0608))
 
-#define SPRD_SIP_SVC_DVFS_BIN_SET					\
-	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
-			   ARM_SMCCC_SMC_32,				\
-			   ARM_SMCCC_OWNER_SIP,				\
-			   0x0609))
-
-#define SPRD_SIP_SVC_DVFS_VERSION_SET					\
-	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
-			   ARM_SMCCC_SMC_32,				\
-			   ARM_SMCCC_OWNER_SIP,				\
-			   0x060a))
-
 #define SPRD_SIP_SVC_DVFS_INIT						\
 	(ARM_SMCCC_CALL_VAL(ARM_SMCCC_FAST_CALL,			\
 			   ARM_SMCCC_SMC_32,				\
@@ -574,26 +562,6 @@ static int sprd_sip_svc_dvfs_pmic_set(u32 cluster, u32 num)
 	return sprd_sip_remap_err(res.a0);
 }
 
-static int sprd_sip_svc_dvfs_bin_set(u32 cluster, u32 bin)
-{
-	struct arm_smccc_res res;
-
-	arm_smccc_smc(SPRD_SIP_SVC_DVFS_BIN_SET,
-		      cluster, bin, 0, 0, 0, 0, 0, &res);
-
-	return sprd_sip_remap_err(res.a0);
-}
-
-static int sprd_sip_svc_dvfs_version_set(u32 cluster, u64 *ver)
-{
-	struct arm_smccc_res res;
-
-	arm_smccc_smc(SPRD_SIP_SVC_DVFS_VERSION_SET,
-		      cluster, *ver, 0, 0, 0, 0, 0, &res);
-
-	return sprd_sip_remap_err(res.a0);
-}
-
 static int sprd_sip_svc_dvfs_init(u32 flag, u32 flag2, u32 flag3)
 {
 	struct arm_smccc_res res;
@@ -800,8 +768,6 @@ static int __init sprd_sip_svc_init(void)
 	sprd_sip_svc_handle.dvfs_ops.freq_get = sprd_sip_svc_dvfs_freq_get;
 	sprd_sip_svc_handle.dvfs_ops.pair_get = sprd_sip_svc_dvfs_pair_get;
 	sprd_sip_svc_handle.dvfs_ops.pmic_set = sprd_sip_svc_dvfs_pmic_set;
-	sprd_sip_svc_handle.dvfs_ops.bin_set = sprd_sip_svc_dvfs_bin_set;
-	sprd_sip_svc_handle.dvfs_ops.version_set = sprd_sip_svc_dvfs_version_set;
 	sprd_sip_svc_handle.dvfs_ops.dvfs_init = sprd_sip_svc_dvfs_init;
 	sprd_sip_svc_handle.dvfs_ops.dvfs_debug_init = sprd_sip_svc_dvfs_debug_init;
 

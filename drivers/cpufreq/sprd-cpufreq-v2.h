@@ -77,12 +77,6 @@ struct cluster_info {
 	u32 pmic_type;
 	int (*pmic_set)(u32 cluster, u32 num);
 
-	u32 bin;
-	int (*bin_set)(u32 cluster, u32 bin);
-
-	u64 *version;
-	int (*version_set)(u32 cluster, u64 *ver);
-
 	u32 transition_delay;
 
 	u32 table_entry_num;
