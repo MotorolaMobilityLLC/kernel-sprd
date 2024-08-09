@@ -101,7 +101,7 @@
 #define HL7015_OTG_VALID_MS			500
 #define HL7015_FEED_WATCHDOG_VALID_MS		50
 #define HL7015_OTG_RETRY_TIMES			10
-#define HL7015_LIMIT_CURRENT_MAX		3000000
+#define HL7015_LIMIT_CURRENT_MAX		2000000
 #define HL7015_LIMIT_CURRENT_OFFSET		100000
 #define HL7015_REG_IINDPM_LSB			100
 
@@ -161,6 +161,7 @@ struct hl7015_charger_info {
 	struct delayed_work otg_work;
 	struct delayed_work wdt_work;
 	struct delayed_work cur_work;
+	struct delayed_work vindpm_work;
 	struct regmap *pmic;
 	struct gpio_desc *gpiod;
 	struct extcon_dev *typec_extcon;
@@ -192,6 +193,7 @@ struct hl7015_charger_info {
 	bool use_typec_extcon;
 	bool shutdown_flag;
 	bool ovp_need_9v;
+	int  ovp_check_count;
 
 	char charge_ic_vendor_name[50];
 	int chip_type;
@@ -372,7 +374,10 @@ hl7015_charger_set_ovp(struct hl7015_charger_info *info, u32 vol)
 	{
 		//hl7015_update_bits(info, HL7015_REG_D, 0x30, 0x20);
 		info->ovp_need_9v = true;
-	}	
+		info->ovp_check_count=0;
+
+		schedule_delayed_work(&info->vindpm_work, msecs_to_jiffies(10));
+	}
 	else
 	{
 		hl7015_update_bits(info, HL7015_REG_D, 0x30, 0x10);
@@ -824,7 +829,6 @@ static void hl7015_dump_register(struct hl7015_charger_info *info)
 static int hl7015_charger_feed_watchdog(struct hl7015_charger_info *info)
 {
 	int ret = 0;
-	u32 vbus;
 	u64 duration, curr = ktime_to_ms(ktime_get());
 
 	ret = hl7015_update_bits(info, HL7015_REG_1,
@@ -849,18 +853,6 @@ static int hl7015_charger_feed_watchdog(struct hl7015_charger_info *info)
 	ret = hl7015_charger_set_limit_current(info, 0, true);
 	if (ret)
 		dev_err(info->dev, "set limit cur failed\n");
-
-	if( info->ovp_need_9v)
-	{
-		ret = hl7015_charger_get_charge_voltage(info, &vbus);
-		if( vbus > 7000000)
-		{
-			dev_err(info->dev, "%s;%d;set vindpm 1.7;\n",__func__,vbus);
-			hl7015_update_bits(info, HL7015_REG_D, 0x30, 0x20);
-			info->ovp_need_9v = false;
-		}
-
-	}
 
 	return ret;
 }
@@ -1620,6 +1612,38 @@ hl7015_charger_feed_watchdog_work(struct work_struct *work)
 	else
 		schedule_delayed_work(&info->wdt_work, HZ * 15);
 }
+static void
+hl7015_charger_check_vindpm_work(struct work_struct *work)
+{
+	struct delayed_work *dwork = to_delayed_work(work);
+	struct hl7015_charger_info *info = container_of(dwork,
+							 struct hl7015_charger_info,
+							 vindpm_work);
+	int ret;
+	u32 vbus;
+
+	if( info->ovp_need_9v)
+	{
+		ret = hl7015_charger_get_charge_voltage(info, &vbus);
+		if( vbus > 7000000)
+		{
+			dev_err(info->dev, "%s;%d;set vindpm 1.7;\n",__func__,vbus);
+			hl7015_update_bits(info, HL7015_REG_D, 0x30, 0x20);
+			info->ovp_need_9v = false;
+		}
+		else
+		{
+			if (info->ovp_check_count < 50)
+			{
+				info->ovp_check_count ++;
+				schedule_delayed_work(&info->vindpm_work, msecs_to_jiffies(100));
+			}
+			else
+				info->ovp_need_9v = false;
+		}
+
+	}
+}
 
 #if IS_ENABLED(CONFIG_REGULATOR)
 static bool hl7015_charger_check_otg_valid(struct hl7015_charger_info *info)
@@ -2062,6 +2086,7 @@ static int hl7015_charger_probe(struct i2c_client *client,
 	alarm_init(&info->otg_timer, ALARM_BOOTTIME, NULL);
 	INIT_DELAYED_WORK(&info->otg_work, hl7015_charger_otg_work);
 	INIT_DELAYED_WORK(&info->wdt_work, hl7015_charger_feed_watchdog_work);
+	INIT_DELAYED_WORK(&info->vindpm_work, hl7015_charger_check_vindpm_work);
 
 	/*
 	 * only master to support otg
