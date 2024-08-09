@@ -89,15 +89,5 @@
 		thm2_sen0: thm2-sen0@3f{
 			reg = <0x3f 0x1>;
 		};
-
-		dvfs_bin_cpu0: dvfs-bin-cpu0@17{
-			reg = <0x17 0x4>;
-			bits = <0 3>;
-		};
-
-		dvfs_bin_cpu1: dvfs-bin-cpu1@1b{
-			reg = <0x1b 0x4>;
-			bits = <0 3>;
-		};
 	};
 };

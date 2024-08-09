@@ -129,15 +129,5 @@
 		cpu_flag: cpu-flag@50 {
 			reg = <0x50 0x4>;
 		};
-
-		dvfs_bin_cpu0: dvfs-bin@17 {
-			reg = <0x17 0x1>;
-			bits = <0 3>;
-		};
-
-		dvfs_bin_cpu1: dvfs-bin@1b {
-			reg = <0x1b 0x1>;
-			bits = <0 3>;
-		};
 	};
 };

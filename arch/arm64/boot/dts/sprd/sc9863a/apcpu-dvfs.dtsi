@@ -43,10 +43,7 @@
 		compatible = "sprd,cpufreq-v2";
 
 		cpufreq_clus0: cpufreq_clus0{
-				nvmem-cells = <&dvfs_bin_cpu0>;
-				nvmem-cell-names = "dvfs_bin";
 				sprd,cpufreq-boost;
-				sprd,multi-version;
 				sprd,dcdc-id = <4 136>;
 				sprd,pmic-type = <2>;
 				sprd,temp-threshold = <10 65>;
@@ -57,10 +54,7 @@
 		};
 
 		cpufreq_clus1: cpufreq_clus1 {
-				nvmem-cells = <&dvfs_bin_cpu1>;
-				nvmem-cell-names = "dvfs_bin";
 				sprd,cpufreq-boost;
-				sprd,multi-version;
 				sprd,pmic-type = <0>;
 				sprd,temp-threshold = <10 65>;
 				sprd,transition-delay = <500>;

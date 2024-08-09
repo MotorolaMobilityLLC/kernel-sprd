@@ -47,9 +47,6 @@
 			sprd,transition-delay = <500>;          /* us       */
 			sprd,temp-threshold = <65>;           /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
-			nvmem-cell-names = "cpu_bin_lit";
-			nvmem-cells = <&cpu_bin_lit>;
-			sprd,multi-version;
 			sprd,cpufreq-boost;
 
 			#freq-domain-cells = <1>;
@@ -60,9 +57,6 @@
 			sprd,transition-delay = <500>;          /* us       */
 			sprd,temp-threshold = <65>;           /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
-			nvmem-cell-names = "cpu_bin_mid1";
-			nvmem-cells = <&cpu_bin_mid1>;
-			sprd,multi-version;
 			sprd,cpufreq-boost;
 
 			#freq-domain-cells = <1>;
@@ -73,9 +67,6 @@
 			sprd,transition-delay = <500>;          /* us       */
 			sprd,temp-threshold = <65>;           /* u32 list */
 			sprd,thmzone-names = "soc-thmzone";
-			nvmem-cell-names = "cpu_bin_mid2";
-			nvmem-cells = <&cpu_bin_mid2>;
-			sprd,multi-version;
 			sprd,cpufreq-boost;
 
 			#freq-domain-cells = <1>;

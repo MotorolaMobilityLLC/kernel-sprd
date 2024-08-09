@@ -28,8 +28,6 @@
 
 		cpufreq_clus0: cpufreq-clus0 {
 			sprd,temp-threshold = <65>;
-			nvmem-cell-names = "dvfs_bin";
-			nvmem-cells = <&dvfs_bin_cpu0>;
 			sprd,cpufreq-boost;
 			sprd,pmic-type = <0>;
 			sprd,transition-delay = <500>;
@@ -40,8 +38,6 @@
 
 		cpufreq_clus1: cpufreq-clus1 {
 			sprd,temp-threshold = <65>;
-			nvmem-cell-names = "dvfs_bin";
-			nvmem-cells = <&dvfs_bin_cpu1>;
 			sprd,cpufreq-boost;
 			sprd,pmic-type = <0>;
 			sprd,transition-delay = <500>;
