@@ -5336,16 +5336,14 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 
 static void cm_get_charging_status(struct charger_manager *cm, int *status)
 {
-	if (is_charging(cm)) {
-		cm->battery_status = POWER_SUPPLY_STATUS_CHARGING;
-	} else if (is_ext_pwr_online(cm)) {
 		if (is_full_charged(cm))
 			cm->battery_status = POWER_SUPPLY_STATUS_FULL;
+	else if (is_charging(cm))
+		cm->battery_status = POWER_SUPPLY_STATUS_CHARGING;
+	else if (is_ext_pwr_online(cm))
+		cm->battery_status = POWER_SUPPLY_STATUS_NOT_CHARGING;
 		else
-			cm->battery_status = POWER_SUPPLY_STATUS_NOT_CHARGING;
-	} else {
 		cm->battery_status = POWER_SUPPLY_STATUS_DISCHARGING;
-	}
 
 	*status = cm->battery_status;
 }
