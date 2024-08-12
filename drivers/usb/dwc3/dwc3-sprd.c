@@ -959,6 +959,7 @@ static int dwc3_sprd_audio_notifier(struct notifier_block *nb,
 
 	/* dwc3 only need to proccess "false" event */
 	if (!event) {
+		pm_wakeup_event(sdwc->dev, 500);
 		spin_lock_irqsave(&sdwc->lock, flags);
 		sdwc->is_audio_dev = true;
 		spin_unlock_irqrestore(&sdwc->lock, flags);
@@ -1945,8 +1946,8 @@ static int dwc3_sprd_pm_resume(struct device *dev)
 
 is_runtime_suspended:
 	/* kick in hotplug state machine */
-	queue_work(sdwc->dwc3_wq, &sdwc->evt_prepare_work);
 	atomic_set(&sdwc->pm_suspended, 0);
+	queue_work(sdwc->dwc3_wq, &sdwc->evt_prepare_work);
 
 	return ret;
 }
