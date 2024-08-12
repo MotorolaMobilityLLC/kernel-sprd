@@ -817,7 +817,6 @@
 	sprd_bcl: sprd_bcl {
 		compatible = "sprd,bcl";
 		bcl-soc-thres = <4>, <3>;
-		bcl-vbat-thres = <3450>, <3350>;
 	};
 };
 
