@@ -2059,6 +2059,13 @@ static int sc27xx_pd_typec_connect(struct sc27xx_pd *pd)
 	if (!pd->use_pdhub_c2c)
 		return 0;
 
+	if (pd->vbus_only) {
+		pd->vbus_only = false;
+		sprd_pd_log(pd, "typec connect, unregister typec partner, first");
+		typec_unregister_partner(pd->sprd_tcpm_port->partner);
+		pd->sprd_tcpm_port->partner = NULL;
+	}
+
 	sprd_pd_log(pd, "is_sink = %d, is_source = %d", pd->is_sink, pd->is_source);
 
 	if (!pd->is_sink && !pd->is_source)
