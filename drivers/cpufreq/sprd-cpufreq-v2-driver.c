@@ -317,8 +317,7 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 static void sprd_cpufreq_temp_work_func(struct work_struct *work)
 {
 	int temp = 0, ret;
-	unsigned int freq, cpu;
-	struct cpumask cluster_online_mask;
+	unsigned int freq;
 	struct delayed_work *dwork = to_delayed_work(work);
 	struct cluster_info *cluster =
 		container_of(dwork, struct cluster_info, temp_work);
@@ -348,10 +347,7 @@ static void sprd_cpufreq_temp_work_func(struct work_struct *work)
 		return;
 	}
 
-	cpumask_and(&cluster_online_mask, &cluster->cpus, cpu_online_mask);
-	cpu = cpumask_first(&cluster_online_mask);
-
-	freq = sprd_cpufreq_update_opp(cpu, temp);
+	freq = sprd_cpufreq_update_opp(cluster, temp);
 	if (freq)
 		pr_info("cluster[%u] update max freq[%u] by temp[%d]\n",
 			cluster->id, freq, temp);
@@ -390,6 +386,7 @@ static int sprd_cpufreq_init(struct cpufreq_policy *policy)
 
 	policy->transition_delay_us = cluster->transition_delay;
 	policy->driver_data = cluster;
+	cluster->policy_data = policy;
 
 	/* init dvfs table use current temp */
 	ret = sprd_policy_table_update(policy, cluster->temp_currt_node);
@@ -1035,35 +1032,27 @@ static int sprd_cpufreq_driver_remove(struct platform_device *pdev)
 }
 
 /**
- * sprd_cpufreq_update_opp() - returns the max freq of a cpu and update dvfs
+ * sprd_cpufreq_update_opp() - returns the max freq of a cluster and update dvfs
  * table by temp_now
  *
- * @cpu: which cpu you want to update dvfs table
- * @now_temp: current temperature on this cpu, mini-degree.
+ * @cluster: which cluster you want to update dvfs table
+ * @now_temp: current temperature on this cluster, mini-degree.
  *
  * Return:
  * 1.cluster is not working, then return 0
  * 2.succeed to update dvfs table then return max freq(KHZ) of this cluster
  */
-unsigned int sprd_cpufreq_update_opp(unsigned int cpu, int now_temp)
+unsigned int sprd_cpufreq_update_opp(struct cluster_info *cluster, int now_temp)
 {
 	struct cpufreq_policy *policy;
-	struct cluster_info *cluster;
 	int temp = now_temp / 1000;
 	struct temp_node *node;
 	u64 freq;
 	int ret;
 
-	policy = cpufreq_cpu_get(cpu);
+	policy = cluster->policy_data;
 	if (!policy) {
-		pr_err("get cpu %u policy error\n", cpu);
-		return 0;
-	}
-
-	cluster = (struct cluster_info *)policy->driver_data;
-	if (!cluster || !cluster->pair_get) {
-		pr_err("cpu %u cluster info error\n", cpu);
-		cpufreq_cpu_put(policy);
+		pr_err("get cluster %u policy error\n", cluster->id);
 		return 0;
 	}
 
@@ -1127,13 +1116,11 @@ unsigned int sprd_cpufreq_update_opp(unsigned int cpu, int now_temp)
 
 	udelay(100);
 
-	cpufreq_cpu_put(policy);
 	mutex_unlock(&cluster->mutex);
 
 	return (unsigned int)freq;
 
 ret_error:
-	cpufreq_cpu_put(policy);
 	mutex_unlock(&cluster->mutex);
 
 	return 0;

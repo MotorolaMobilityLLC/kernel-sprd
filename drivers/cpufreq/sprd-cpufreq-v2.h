@@ -52,6 +52,7 @@ struct temp_node {
 struct cluster_info {
 	u32 id, cpu;
 	struct cpumask cpus;
+	struct cpufreq_policy *policy_data;
 
 	struct delayed_work temp_work;
 	bool temp_enable;
@@ -104,7 +105,7 @@ struct cluster_info {
 	int (*pair_get)(u32 cluster, u32 index, u64 *freq, u64 *vol);
 };
 
-unsigned int sprd_cpufreq_update_opp(unsigned int cpu, int now_temp);
+unsigned int sprd_cpufreq_update_opp(struct cluster_info *cluster, int now_temp);
 
 int sprd_cluster_num(void);
 
