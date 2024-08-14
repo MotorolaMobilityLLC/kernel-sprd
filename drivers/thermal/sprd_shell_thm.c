@@ -163,7 +163,8 @@ static void sensor_read_temp_work(struct work_struct *work)
 	if (ret)
 		pr_debug("shell_sensor: %s; temp: %d", psensor->pzone->name, psensor->cur_temp);
 
-	schedule_delayed_work(&psensor->read_temp_work, msecs_to_jiffies(PERIOD));
+	mod_delayed_work(system_freezable_power_efficient_wq,
+			 &psensor->read_temp_work, msecs_to_jiffies(PERIOD));
 }
 
 const struct thermal_zone_of_device_ops sprd_shell_thm_ops = {
@@ -314,8 +315,6 @@ static int sprd_shell_thm_resume(struct platform_device *pdev)
 
 	psensor->index = 0;
 	psensor->init_flag = 1;
-	queue_delayed_work(system_power_efficient_wq, &psensor->read_temp_work,
-			   msecs_to_jiffies(PERIOD));
 
 	return 0;
 }
@@ -323,9 +322,6 @@ static int sprd_shell_thm_resume(struct platform_device *pdev)
 static int sprd_shell_thm_suspend(struct platform_device *pdev, pm_message_t
 				    state)
 {
-	struct shell_sensor *psensor = platform_get_drvdata(pdev);
-
-	cancel_delayed_work(&psensor->read_temp_work);
 	return 0;
 }
 
@@ -397,7 +393,8 @@ static int sprd_shell_thm_probe(struct platform_device *pdev)
 
 	psensor->pzone = pzone;
 	platform_set_drvdata(pdev, psensor);
-	schedule_delayed_work(&psensor->read_temp_work, msecs_to_jiffies(PERIOD));
+	mod_delayed_work(system_freezable_power_efficient_wq,
+			 &psensor->read_temp_work, msecs_to_jiffies(PERIOD));
 	dev_info(&pdev->dev, "sprd_shell_thermal probe success\n");
 	return 0;
 }
