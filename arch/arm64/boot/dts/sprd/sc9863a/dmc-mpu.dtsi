@@ -31,7 +31,7 @@
 			"SHARED2","SHARED3", "SHARED4",
 			"SHARED5","SHARED6", "SHARED7";
 		sprd,ranges = <0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
-			<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
+			<0 0 0 0>, <0 0x89600000 0 0x8e980000>, <0 0x89600000 0 0x8e980000>,
 			<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
 			<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
 			<0 0 0 0>, <0 0 0 0>, <0 0 0 0>,
@@ -41,8 +41,8 @@
 			<DISABLE MON_INSIDE MON_WRITE>,
 			<DISABLE MON_INSIDE MON_WRITE>,
 			<DISABLE MON_INSIDE MON_WRITE>,
-			<DISABLE MON_INSIDE MON_WRITE>,
-			<DISABLE MON_INSIDE MON_WRITE>,
+			<ENABLE MON_OUTSIDE MON_WRITE>,
+			<ENABLE MON_OUTSIDE MON_WRITE>,
 			<DISABLE MON_INSIDE MON_WRITE>,
 			<DISABLE MON_INSIDE MON_WRITE>,
 			<DISABLE MON_INSIDE MON_WRITE>,
@@ -56,7 +56,7 @@
 		sprd,id-config =
 			<MPUID 0 0xffff>, <MPUID 0 0xffff>,
 			<MPUID 0 0xffff>, <MPUID 0 0xffff>,
-			<MPUID 0 0xffff>, <MPUID 0 0xffff>,
+			<MPUID 0xf8 0x7 >, <MPUID 0 0xffff>,
 			<MPUID 0 0xffff>, <MPUID 0 0xffff>,
 			<MPUID 0 0xffff>, <MPUID 0 0xffff>,
 			<MPUID 0 0xffff>, <MPUID 0 0xffff>,
@@ -67,5 +67,7 @@
 			<0>, <0>, <0>, <0>, <0>,
 			<0>;
 		sprd,ddr-offset = <0x80000000>;
+		sprd.panic;
+		status = "okay";
 	};
 };
