@@ -284,6 +284,7 @@
 				"clk_src_512m",
 				"clk_dpu_core",
 				"clk_dpu_dpi",
+				"clk_dpuvsp_disp_eb",
 				"clk_ipa_apb_dispc1_eb";
 		clocks = <&g5l_pll CLK_TGPLL_128M>,
 				  <&g5l_pll CLK_TGPLL_192M>,
@@ -294,6 +295,7 @@
 				  <&g5l_pll CLK_TGPLL_512M>,
 				  <&ipa_clk CLK_IPA_DPU>,
 				  <&ipa_clk CLK_IPA_DPI>,
+				  <&aonapb_gate CLK_DPU_VSP_EB>,
 				  <&ipadispc_gate CLK_IPA_DPU1_EB>;
 		dpu1_port: port {
 			dpu1_out: endpoint {
