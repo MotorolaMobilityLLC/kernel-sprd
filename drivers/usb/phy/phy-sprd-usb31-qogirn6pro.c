@@ -422,8 +422,8 @@ static void sprd_ssphy_power_control(struct sprd_ssphy *phy)
 	/* usb31pll force on, chip sleep bypass allpllpd */
 	reg = msk = MASK_PMU_APB_USB31PLLV_FRC_ON;
 	regmap_update_bits(phy->pmu_apb, REG_PMU_APB_USB31PLLV_REL_CFG, msk, reg);
-	reg = msk = MASK_PMU_APB_PAD_OUT_CHIP_SLEEP_PLL_PD_MASK;
-	regmap_update_bits(phy->pmu_apb, REG_PMU_APB_PAD_OUT_CHIP_SLEEP_CFG, msk, reg);
+	//reg = msk = MASK_PMU_APB_PAD_OUT_CHIP_SLEEP_PLL_PD_MASK;
+	//regmap_update_bits(phy->pmu_apb, REG_PMU_APB_PAD_OUT_CHIP_SLEEP_CFG, msk, reg);
 
 }
 
@@ -762,8 +762,8 @@ static void sprd_ssphy_shutdown(struct usb_phy *x)
 
 	msk = MASK_PMU_APB_USB31PLLV_FRC_ON;
 	regmap_update_bits(phy->pmu_apb, REG_PMU_APB_USB31PLLV_REL_CFG, msk, 0);
-	msk = MASK_PMU_APB_PAD_OUT_CHIP_SLEEP_PLL_PD_MASK;
-	regmap_update_bits(phy->pmu_apb, REG_PMU_APB_PAD_OUT_CHIP_SLEEP_CFG, msk, 0);
+	//msk = MASK_PMU_APB_PAD_OUT_CHIP_SLEEP_PLL_PD_MASK;
+	//regmap_update_bits(phy->pmu_apb, REG_PMU_APB_PAD_OUT_CHIP_SLEEP_CFG, msk, 0);
 	msk = MASK_PMU_APB_REG_USB31_PHY_UPCS_PWR_STABLE |
 		MASK_PMU_APB_REG_USB31_PHY_PCS_PWR_STABLE;
 	regmap_update_bits(phy->pmu_apb, REG_PMU_APB_SNPS_PHY_PWR_STABLE, msk, 0);
