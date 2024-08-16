@@ -502,9 +502,8 @@ static int sprd_pamu3_set_suspend(struct usb_phy *x, int a)
 		return 0;
 	}
 
-	if (atomic_dec_return(&pamu3->ref)) {
+	if (!atomic_dec_return(&pamu3->ref)) {
 		sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_START);
-	} else {
 		value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
 		value &= ~(PAMU3_CTL0_BIT_USB_EN | PAMU3_CTL0_BIT_PAM_EN |
 			   PAMU3_CTL0_BIT_RELEASE);
@@ -513,6 +512,7 @@ static int sprd_pamu3_set_suspend(struct usb_phy *x, int a)
 		atomic_set(&pamu3->inited, 0);
 		sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_END);
 	}
+
 	return 0;
 }
 
