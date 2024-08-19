@@ -34,6 +34,7 @@
 
 #define SPRD_IPA_POWERON_POLL_US 50
 #define SPRD_IPA_POWERON_TIMEOUT 5000
+#define SPRD_IPA_POWERON_ROUND_TIMEOUT 500
 
 #define REG_APB_EB 0x0
 #define REG_ANALOG_USB31_PLL_V_USB31PLL_CTRL0 0x0
@@ -68,8 +69,15 @@ static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
 {
 	int ret = 0;
 	u32 val = 0;
+	int cnt = 5;
+	int fail_round = 5;
 
-	if (reg_info->rmap)
+	if (!reg_info->rmap) {
+		dev_err(drv->dev, "ipa-sys state rmap not exit\n");
+		return -EINVAL;
+	}
+
+	while (cnt--) {
 		ret = regmap_read_poll_timeout(reg_info->rmap,
 					       reg_info->reg,
 					       val,
@@ -77,9 +85,16 @@ static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
 						 & 0x1F00) >> 8) == 0,
 					       SPRD_IPA_POWERON_POLL_US,
 					       SPRD_IPA_POWERON_TIMEOUT);
-	else
-		usleep_range((SPRD_IPA_POWERON_TIMEOUT >> 2) + 1, 5000);
+		if (ret) {
+			cnt = 5;
+			usleep_range((SPRD_IPA_POWERON_ROUND_TIMEOUT >> 2) + 1,
+					SPRD_IPA_POWERON_ROUND_TIMEOUT);
+			fail_round--;
+		}
 
+		if (!fail_round)
+			break;
+	}
 	if (ret)
 		dev_err(drv->dev,
 			"Polling check power on reg timed out: %x\n", val);
@@ -120,8 +135,10 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 					 reg_info->reg,
 					 reg_info->mask,
 					 ~reg_info->mask);
-		if (ret < 0)
-			dev_warn(drv->dev, "clear ipa dslp en fail\n");
+		if (ret < 0) {
+			dev_err(drv->dev, "clear ipa dslp en fail\n");
+			goto ERR_EN;
+		}
 	}
 
 	/* check pd_ipa_auto_shutdown_en */
@@ -131,8 +148,8 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 				  reg_info->reg,
 				  &val);
 		if (ret < 0) {
-			dev_warn(drv->dev,
-				 "read ipa sys autoshutdownen error\n");
+			dev_err(drv->dev, "read ipa sys autoshutdownen err\n");
+			goto ERR_EN;
 		}
 
 		if (!((val & reg_info->mask) >> 24)) {
@@ -140,16 +157,20 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 						 reg_info->reg,
 						 reg_info->mask,
 						 reg_info->mask);
-			if (ret < 0)
-				dev_warn(drv->dev, "set ipa sys autoshutdown en\n");
+			if (ret < 0) {
+				dev_err(drv->dev, "set ipa sys autoshutdown en\n");
+				goto ERR_EN;
+			}
 		}
 	}
 
 	/* wait ipa_sys power on */
 	reg_info = &drv->regs[IPA_SYS_STATE];
 	ret = sipa_sys_wait_power_on(drv, reg_info);
-	if (ret)
-		dev_warn(drv->dev, "wait pwr on timeout\n");
+	if (ret) {
+		dev_err(drv->dev, "wait pwr on timeout\n");
+		goto ERR_EN;
+	}
 
 	/* enable ipa_access eb bit, for asic initail value fault */
 	reg_info = &drv->regs[IPA_SYS_ACCESSEN];
@@ -158,8 +179,10 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 					 reg_info->reg,
 					 reg_info->mask,
 					 reg_info->mask);
-		if (ret < 0)
-			dev_warn(drv->dev, "update access en fail\n");
+		if (ret < 0) {
+			dev_err(drv->dev, "update access en fail\n");
+			goto ERR_EN;
+		}
 	}
 
 	/* set ipa core clock */
@@ -183,6 +206,7 @@ int sipa_sys_do_power_on_cb_v3(void *priv)
 	/*let ufs hibernate exit*/
 	ufs_cfg(drv);
 
+ERR_EN:
 	return ret;
 }
 
