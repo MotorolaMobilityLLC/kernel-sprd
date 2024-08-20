@@ -178,6 +178,15 @@ struct dwc3_sprd {
 	bool			support_suspend;
 };
 
+struct sprd_dwc3_usb_udc {
+	struct usb_gadget_driver	*driver;
+	struct usb_gadget		*gadget;
+	struct device			dev;
+	struct list_head		list;
+	bool				vbus;
+	bool				started;
+};
+
 #define DWC3_SUSPEND_COUNT	100
 #define DWC3_UDC_START_COUNT	1000
 #define DWC3_START_TIMEOUT	200
@@ -619,6 +628,7 @@ static int dwc3_sprd_otg_start_peripheral(struct dwc3_sprd *sdwc, int on)
 
 		sdwc->glue_dr_mode = USB_DR_MODE_PERIPHERAL;
 	} else {
+		struct sprd_dwc3_usb_udc *sprd_udc;
 		dev_info(sdwc->dev, "%s: turn off gadget %s\n",
 					__func__, dwc->gadget->name);
 
@@ -630,7 +640,12 @@ static int dwc3_sprd_otg_start_peripheral(struct dwc3_sprd *sdwc, int on)
 		dev_info(sdwc->dev, "dwc->connected %d\n", dwc->connected);
 
 		dwc3_flush_all_events(sdwc);
-		usb_udc_vbus_handler(dwc->gadget, false);
+
+		sprd_udc = (struct sprd_dwc3_usb_udc *)dwc->gadget->udc;
+		if (sprd_udc)
+			sprd_udc->vbus = false;
+		dwc->gadget->ops->pullup(dwc->gadget, 0);
+
 		usb_role_switch_set_role(dwc->role_sw, USB_ROLE_DEVICE);
 		/*dp/dm change to others*/
 		if (sdwc->use_pdhub_c2c)
