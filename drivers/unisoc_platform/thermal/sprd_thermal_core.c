@@ -168,7 +168,8 @@ static void unisoc_enable_thermal_power_throttle(void *data, bool *enable, bool 
 	if (!thm_enable)
 		*enable = false;
 
-	if (user_power_range)
+	/* we only do thermal control of high temperature. */
+	if (user_power_range && soc_tz->temperature >= 0)
 		*override = true;
 
 	need_update = (!user_power_range && last_user_power_range);

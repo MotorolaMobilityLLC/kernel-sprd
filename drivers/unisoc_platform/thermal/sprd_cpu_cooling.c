@@ -69,7 +69,7 @@ struct cluster_power_coefficients {
 	u32 hotplug_period;
 	u32 min_cpufreq;
 	u32 min_cpunum;
-	u32 max_temp;
+	int max_temp;
 	int leak_core_base;
 	int leak_cluster_base;
 	struct scale_coeff core_temp_scale;
@@ -108,7 +108,7 @@ struct cpu_power_ops {
 
 	u32 (*get_cluster_min_cpunum_p)(int cooling_id);
 
-	u32 (*get_cluster_max_temp_p)(int cooling_id);
+	int (*get_cluster_max_temp_p)(int cooling_id);
 
 	u32 (*get_cluster_cycle_p)(int cooling_id);
 
@@ -134,6 +134,7 @@ struct cpu_cooling_device {
 	int round;
 	int cycle;
 	int min_cpus;
+	int max_temp;
 	int nsensor;
 	int update_flag;
 	unsigned int total;
@@ -145,7 +146,6 @@ struct cpu_cooling_device {
 	unsigned int min_freq;
 	unsigned int max_freq;
 	unsigned int total_freq;
-	unsigned int max_temp;
 	unsigned long target_state;
 	struct cpumask allowed_cpus;
 	struct run_cpus_table *table;
@@ -606,7 +606,7 @@ static int cpu_power2state(struct thermal_cooling_device *cdev, u32 power,
 	} else
 		*state = get_level(cpu_cdev, cpus);
 
-	pr_debug("cpu%u temp:%u cur_freq:%u cur_cpus:%d target_cpus:%d\n",
+	pr_debug("cpu%u temp:%d cur_freq:%u cur_cpus:%d target_cpus:%d\n",
 		cpu, cpu_tz->temperature, cpu_cdev->cur_freq, cpu_cdev->run_cpus, cpus);
 
 	return 0;
@@ -880,7 +880,7 @@ static ssize_t sprd_cpu_show_min_freq(struct device *dev,
 	if (id < 0)
 		return -EINVAL;
 
-	return sprintf(buf, "%u\n", cluster_data[id].min_cpufreq);
+	return snprintf(buf, 10, "%u\n", cluster_data[id].min_cpufreq);
 }
 
 static ssize_t sprd_cpu_store_min_freq(struct device *dev,
@@ -911,7 +911,7 @@ static ssize_t sprd_cpu_show_min_core_num(struct device *dev,
 	if (id < 0)
 		return -EINVAL;
 
-	return sprintf(buf, "%u\n", cluster_data[id].min_cpunum);
+	return snprintf(buf, 3, "%u\n", cluster_data[id].min_cpunum);
 }
 
 static ssize_t sprd_cpu_store_min_core_num(struct device *dev,
@@ -944,7 +944,7 @@ static ssize_t sprd_cpu_show_max_ctrl_temp(struct device *dev,
 	if (id < 0)
 		return -EINVAL;
 
-	return sprintf(buf, "%u\n", cluster_data[id].max_temp);
+	return snprintf(buf, 8, "%d\n", cluster_data[id].max_temp);
 }
 
 static ssize_t sprd_cpu_store_max_ctrl_temp(struct device *dev,
@@ -954,9 +954,9 @@ static ssize_t sprd_cpu_store_max_ctrl_temp(struct device *dev,
 	struct thermal_cooling_device *cdev = to_cooling_device(dev);
 	struct cpu_cooling_device *cpu_cdev = cdev->devdata;
 	int id = get_cluster_id(cpumask_any(&cpu_cdev->allowed_cpus));
-	unsigned long val;
+	int val;
 
-	if (id < 0 || kstrtoul(buf, 10, &val))
+	if (id < 0 || kstrtoint(buf, 10, &val))
 		return -EINVAL;
 
 	cluster_data[id].max_temp = val;
@@ -1026,7 +1026,7 @@ static u32 get_cluster_min_cpunum(int cluster_id)
 	return cluster_data[cluster_id].min_cpunum;
 }
 
-static u32 get_cluster_max_temp(int cluster_id)
+static int get_cluster_max_temp(int cluster_id)
 {
 	return cluster_data[cluster_id].max_temp;
 }
@@ -1062,27 +1062,29 @@ static u64 get_cluster_dyn_power(int cluster_id,
  *Tscale = 0.0000825T^3 - 0.0117T^2 + 0.608T - 8.185
  * return Tscale * 1000
  */
-static u64 get_cluster_temperature_scale(int cluster_id, unsigned long temp)
+static u64 get_cluster_temperature_scale(int cluster_id, int temp)
 {
 	u64 t_scale = 0;
-	struct scale_coeff *coeff =
-		&cluster_data[cluster_id].cluster_temp_scale;
+	struct scale_coeff *coeff = &cluster_data[cluster_id].cluster_temp_scale;
 
 	t_scale = coeff->scale_a * temp * temp * temp
 		+ coeff->scale_b * temp * temp
 		+ coeff->scale_c * temp
 		+ coeff->scale_d;
 
-	do_div(t_scale, 10000);
+	if ((s64)t_scale > 0) {
+		do_div(t_scale, 10000);
+		return t_scale;
+	}
 
-	return t_scale;
+	return 0;
 }
 
 /*
  *Tscale = 0.0000825T^3 - 0.0117T^2 + 0.608T - 8.185
  * return Tscale * 1000
  */
-static u64 get_core_temperature_scale(int cluster_id, unsigned long temp)
+static u64 get_core_temperature_scale(int cluster_id, int temp)
 {
 	u64 t_scale = 0;
 	struct scale_coeff *coeff = &cluster_data[cluster_id].core_temp_scale;
@@ -1092,9 +1094,12 @@ static u64 get_core_temperature_scale(int cluster_id, unsigned long temp)
 		+ coeff->scale_c * temp
 		+ coeff->scale_d;
 
-	do_div(t_scale, 10000);
+	if ((s64)t_scale > 0) {
+		do_div(t_scale, 10000);
+		return t_scale;
+	}
 
-	return t_scale;
+	return 0;
 }
 
 /*
@@ -1126,11 +1131,14 @@ static u64 get_cluster_voltage_scale(int cluster_id, unsigned long u_volt)
 
 	data = coeff->scale_d * 1000;
 
-	v_scale = (u64)(cubic + square + common + data);
+	v_scale = cubic + square + common + data;
 
-	do_div(v_scale, 100);
+	if ((s64)v_scale > 0) {
+		do_div(v_scale, 100);
+		return v_scale;
+	}
 
-	return v_scale;
+	return 0;
 }
 
 /*
@@ -1162,11 +1170,14 @@ static u64 get_core_voltage_scale(int cluster_id, unsigned long u_volt)
 
 	data = coeff->scale_d * 1000;
 
-	v_scale = (u64)(cubic + square + common + data);
+	v_scale = cubic + square + common + data;
 
-	do_div(v_scale, 100);
+	if ((s64)v_scale > 0) {
+		do_div(v_scale, 100);
+		return v_scale;
+	}
 
-	return v_scale;
+	return 0;
 }
 
 /* voltage in uV and temperature in mC */
@@ -1193,31 +1204,36 @@ static int get_static_power(cpumask_t *cpumask, unsigned int interval,
 	core_v_scale =
 		get_core_voltage_scale(cluster_id, u_volt);
 
-	/* In order to avoid the computational problem caused by the error.*/
-	if ((core_t_scale * core_v_scale) > 1000000) {
-		tmp_power = (core_t_scale * core_v_scale) / 1000000;
-		*power = (nr_cpus * cpu_coeff * tmp_power) / 100;
+	if (core_t_scale && core_v_scale) {
+		/* In order to avoid the computational problem caused by the error.*/
+		if ((core_t_scale * core_v_scale) > 1000000) {
+			tmp_power = (core_t_scale * core_v_scale) / 1000000;
+			*power = (nr_cpus * cpu_coeff * tmp_power) / 100;
+		} else {
+			tmp_power = (core_t_scale * core_v_scale) / 100000;
+			*power = (nr_cpus * cpu_coeff * tmp_power) / 1000;
+		}
 	} else {
-		tmp_power = (core_t_scale * core_v_scale) / 100000;
-		*power = (nr_cpus * cpu_coeff * tmp_power) / 1000;
+		*power = 0;
 	}
 
 	if (nr_cpus) {
 		/* get cluster-Tscale * 1000 */
-		cluster_t_scale = get_cluster_temperature_scale(cluster_id,
-							temperature / 1000);
+		cluster_t_scale = get_cluster_temperature_scale(cluster_id, temperature / 1000);
 		/* get cluster-Vscale * 1000 */
 		cluster_v_scale = get_cluster_voltage_scale(cluster_id, u_volt);
-		/* get coeff * 100 */
-		cache_coeff = get_cache_static_power_coeff(cluster_id);
-		if ((cluster_v_scale * cluster_t_scale) > 1000000) {
-			tmp_power =
-				(cluster_v_scale * cluster_t_scale) / 1000000;
-			*power += (cache_coeff * tmp_power) / 100;
-		} else {
-			tmp_power =
-				(cluster_v_scale * cluster_t_scale) / 100000;
-			*power += (cache_coeff * tmp_power) / 1000;
+
+		if (cluster_t_scale && cluster_v_scale) {
+			/* get coeff * 100 */
+			cache_coeff = get_cache_static_power_coeff(cluster_id);
+
+			if ((cluster_v_scale * cluster_t_scale) > 1000000) {
+				tmp_power = (cluster_v_scale * cluster_t_scale) / 1000000;
+				*power += (cache_coeff * tmp_power) / 100;
+			} else {
+				tmp_power = (cluster_v_scale * cluster_t_scale) / 100000;
+				*power += (cache_coeff * tmp_power) / 1000;
+			}
 		}
 	}
 
@@ -1253,13 +1269,18 @@ static int get_core_static_power(cpumask_t *cpumask, unsigned int interval,
 	core_v_scale =
 		get_core_voltage_scale(cluster_id, u_volt);
 
-	/* In order to avoid the computational problem caused by the error.*/
-	if ((core_t_scale * core_v_scale) > 1000000) {
-		tmp_power = (core_t_scale * core_v_scale) / 1000000;
-		*power = (nr_cpus * cpu_coeff * tmp_power) / 100;
-	} else {
-		tmp_power = (core_t_scale * core_v_scale) / 100000;
-		*power = (nr_cpus * cpu_coeff * tmp_power) / 1000;
+	*power = 0;
+
+	/* do not care negative core_t_scale */
+	if (core_t_scale && core_v_scale) {
+		/* In order to avoid the computational problem caused by the error.*/
+		if ((core_t_scale * core_v_scale) > 1000000) {
+			tmp_power = (core_t_scale * core_v_scale) / 1000000;
+			*power = (nr_cpus * cpu_coeff * tmp_power) / 100;
+		} else {
+			tmp_power = (core_t_scale * core_v_scale) / 100000;
+			*power = (nr_cpus * cpu_coeff * tmp_power) / 1000;
+		}
 	}
 
 	pr_debug("cluster:%d cpus:%d m_volt:%lu core_static_power:%u\n",
