@@ -374,6 +374,7 @@ static int sipa_dummy_rx_poll(struct napi_struct *napi, int budget)
 						    napi);
 	struct sipa_dummy *dummy = netdev_priv(ring->ndev);
 
+	sipa_nic_switch_core(ring->fifoid);
 	num = sipa_nic_sync_recv_pkts(budget, ring->fifoid);
 	pkts = sipa_dummy_rx_clean(dummy, num, napi, ring->fifoid);
 	sipa_nic_add_tx_fifo_rptr(pkts, ring->fifoid);

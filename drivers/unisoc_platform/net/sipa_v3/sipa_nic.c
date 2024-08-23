@@ -629,6 +629,7 @@ int sipa_nic_rx(struct sk_buff **out_skb, int *netid,
 
 	if (*out_skb) {
 		ipa->fifo_rate[fifoid]++;
+		ipa->fifo_rate2[fifoid]++;
 		return 0;
 	} else {
 		return -ENODATA;
@@ -779,6 +780,24 @@ u32 sipa_nic_sync_recv_pkts(u32 budget, int fifoid)
 						    budget);
 }
 EXPORT_SYMBOL(sipa_nic_sync_recv_pkts);
+
+void sipa_nic_switch_core(int fifoid)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	if (!ipa->enable_sw_core || ipa->cpu_num >= 4 /*core4*/ || ipa->sw_mc_set_rps_doing)
+		return;
+
+	ipa->fifo_ops.get_filled_depth(SIPA_FIFO_MAP0_OUT + fifoid, ipa->cmn_fifo_cfg,
+					      &(ipa->rx_filled), &(ipa->tx_filled));
+
+	if (ipa->tx_filled > SIPA_SW_TO_MIDDLECORE_THRD) {
+		ipa->sw_mc_set_rps_doing = true;
+		hrtimer_cancel(&ipa->sw_little_core_timer);
+		hrtimer_start(&ipa->sw_little_core_timer, ms_to_ktime(0), HRTIMER_MODE_REL);
+	}
+}
+EXPORT_SYMBOL(sipa_nic_switch_core);
 
 int sipa_nic_add_tx_fifo_rptr(u32 num, int fifoid)
 {
