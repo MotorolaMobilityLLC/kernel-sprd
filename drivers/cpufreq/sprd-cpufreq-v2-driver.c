@@ -217,6 +217,7 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 	struct cpufreq_frequency_table *new_table __maybe_unused;
 	struct cluster_info *cluster;
 	struct device *cpu;
+	u32 table_entry_num = 0;
 	u64 freq, vol;
 	int i, ret;
 
@@ -234,11 +235,13 @@ static int sprd_policy_table_update(struct cpufreq_policy *policy, struct temp_n
 
 	pr_info("update cluster %u temp %d dvfs table\n", cluster->id, node->temp);
 
-	ret = cluster->table_update(cluster->id, node->temp, &cluster->table_entry_num);
+	ret = cluster->table_update(cluster->id, node->temp, &table_entry_num);
 	if (ret) {
 		pr_err("update cluster %u temp %d table error\n", cluster->id, node->temp);
 		return ret;
 	}
+
+	cluster->table_entry_num = table_entry_num;
 
 	pr_debug("cluster %u dvfs table entry num is %u\n", cluster->id, cluster->table_entry_num);
 
@@ -470,7 +473,7 @@ static int sprd_cpufreq_set_target_index(struct cpufreq_policy *policy, u32 inde
 
 	mutex_lock(&cluster->mutex);
 
-	if (index >= cluster->table_entry_num) {
+	if (unlikely(cluster->table_entry_num && index >= cluster->table_entry_num)) {
 		pr_info("cluster %u index %u has been reduced\n", cluster->id, index);
 		index = cluster->table_entry_num - 1;
 	}
