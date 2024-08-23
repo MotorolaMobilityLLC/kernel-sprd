@@ -50,6 +50,10 @@
 
 #define SIPA_FIFO_REG_SIZE	0x80
 
+#define SIPA_SW_TO_LITTLECORE_THRD 3   //3 times
+#define SIPA_SW_TO_MIDDLECORE_THRD 300  //300 nodes in common tx fifo
+#define SW_TO_LITTLECORE_NODE_NUM 2000  //recv packets per second
+
 enum sipa_hal_evt_type {
 	SIPA_HAL_TX_FIFO_THRESHOLD_SW	= 0x00400000,
 	SIPA_HAL_EXIT_FLOW_CTRL		= 0x00100000,
@@ -877,6 +881,17 @@ struct sipa_plat_drv_cfg {
 	bool hrtimer_eb;
 	/*protect cp flow ctrl */
 	spinlock_t flow_lock;
+
+	/* common TX fifo > 500, switch to middle core, and when node's
+	 * count in common TX fido < 2000, switch to little core
+	 */
+	bool sw_mc_set_rps_doing;
+	bool is_middle_core;
+	struct hrtimer sw_little_core_timer;
+	u32 fifo_rate2[SIPA_MULTI_IRQ_NUM];
+	u32 rx_filled, tx_filled;
+	u32 low_rate_cont_times;  //lower rate continuous times
+	bool enable_sw_core;
 
 #ifdef CONFIG_DEBUG_FS
 	struct dentry *debugfs_root;

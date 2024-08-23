@@ -646,6 +646,7 @@ static int sipa_prepare_suspend(struct device *dev)
 		if (!ipa->cp_flow)
 			hrtimer_cancel(&ipa->daemon_timer);
 		ipa->cp_flow = 0;
+		hrtimer_cancel(&ipa->sw_little_core_timer);
 		sipa_single_little_core(SIPA_USER_RECOVERY);
 		sipa_set_enabled(false);
 		ipa->suspend_stage |= SIPA_EB_SUSPEND;
@@ -1584,9 +1585,12 @@ static int sipa_set_rps_thread(void *data)
 	while (!kthread_should_stop()) {
 		wait_event_interruptible(ipa->set_rps_waitq, ipa->set_rps == 1);
 		if (!ipa->hrtimer_eb && ipa->cpu_num > core3 &&
-		    ipa->sipa_cpu_type == 1)
+		    ipa->sipa_cpu_type == 1) {
 			sipa_dummy_set_rps_mode(1);
-		else {
+		} else if(ipa->sw_mc_set_rps_doing) {  //switch to middle core done, set rps
+			sipa_dummy_set_rps_mode(1);
+			ipa->sw_mc_set_rps_doing = false;  //switch core and set rps done
+		} else {
 			if (ipa->sipa_cpu_type == 2)
 				sipa_dummy_set_rps_cpus(1 << 7);
 			else
@@ -1860,6 +1864,51 @@ static u32 sipa_get_idle_perc(enum sipa_core core_num)
 }
 #endif
 
+static enum hrtimer_restart sipa_sw_little_core_timer_handler(struct hrtimer *timer)
+{
+	int i;
+	struct sipa_plat_drv_cfg *ipa = container_of(timer,
+						     struct sipa_plat_drv_cfg,
+						     sw_little_core_timer);
+
+	if (ipa->cpu_num >= core4 && !ipa->is_middle_core) {
+		//aleady switch to middle core at other place
+		ipa->sw_mc_set_rps_doing = false;
+		return HRTIMER_NORESTART;
+	} else if (ipa->sw_mc_set_rps_doing) {
+		sipa_single_middle_core();
+		ipa->is_middle_core = true;
+		dev_info(ipa->dev, "<%s:%d> [%d, %d] ipa->cpu_num = %d", __func__, __LINE__,
+			ipa->rx_filled, ipa->tx_filled, ipa->cpu_num);
+		goto restart;
+	} else if (ipa->cpu_num >= core4 && ipa->cpu_num < core7 &&
+	    !ipa->multi_mode) {
+		if (ipa->fifo_rate2[0] < SW_TO_LITTLECORE_NODE_NUM)
+			ipa->low_rate_cont_times++;
+		else
+			ipa->low_rate_cont_times = 0;
+
+		if (ipa->low_rate_cont_times >= SIPA_SW_TO_LITTLECORE_THRD) {
+			sipa_single_little_core(SIPA_USER_RECOVERY);
+			ipa->is_middle_core = false;
+			ipa->low_rate_cont_times = 0;
+			dev_info(ipa->dev, "<%s:%d> ipa->cpu_num = %d, [%d, %d]", __func__, __LINE__,
+				ipa->cpu_num, ipa->fifo_rate2[0], SW_TO_LITTLECORE_NODE_NUM);
+			return HRTIMER_NORESTART;
+		}
+	} else {  //aleady is little core or is multi mode
+		return HRTIMER_NORESTART;
+	}
+
+restart:
+
+	for (i = 0; i < num_possible_cpus(); i++)
+		ipa->fifo_rate2[i] = 0;
+
+	hrtimer_forward_now(timer, ms_to_ktime(1000));
+	return HRTIMER_RESTART;
+}
+
 static enum hrtimer_restart sipa_daemon_timer_handler(struct hrtimer *timer)
 {
 	int i;
@@ -1967,7 +2016,7 @@ void sipa_irq_affinity_change(bool flag)
 
 	ipa->cp_flow++;
 
-	if (ipa->udp_port)
+	if (ipa->udp_port || ipa->is_middle_core)
 		ipa->cp_flow--;
 
 	if (ipa->cp_flow == 1) {
@@ -1989,6 +2038,50 @@ void sipa_irq_affinity_change(bool flag)
 	spin_unlock_irqrestore(&ipa->flow_lock, flags);
 }
 EXPORT_SYMBOL(sipa_irq_affinity_change);
+
+static ssize_t switch_core_show(struct device *dev,
+			     struct device_attribute *attr,
+			     char *buf)
+{
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+	char *a = "Usage:\n";
+	char *b = "\t0: disable switch core\n";
+	char *c = "\t1: enable switch core when instantaneous rate is too higher\n";
+
+	return sprintf(buf, "%d\n%s%s%s\n", (ipa->enable_sw_core ? 1 : 0), a, b, c);
+}
+
+ static ssize_t switch_core_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf,
+				   size_t count)
+{
+	u8 cmd;
+	struct sipa_plat_drv_cfg *ipa = sipa_get_ctrl_pointer();
+
+	if (sscanf(buf, "%4hhx\n", &cmd) != 1)
+		return -EINVAL;
+
+	switch (cmd) {
+		case 0:
+			dev_info(ipa->dev, "disable switch core\n");
+			ipa->enable_sw_core = false;
+			break;
+
+		case 1:
+			dev_info(ipa->dev, "enable switch core when instantaneous rate is too higher\n");
+			ipa->enable_sw_core = true;
+			break;
+
+		default:
+			dev_info(ipa->dev, "cmd[%s] is error param, must be 0 or 1\n", buf);
+			break;
+	}
+
+	return count;
+}
+
+static DEVICE_ATTR_RW(switch_core);
 
 static ssize_t user_set_show(struct device *dev,
 			     struct device_attribute *attr,
@@ -2063,6 +2156,7 @@ static DEVICE_ATTR_RW(flex_multi);
 static struct attribute *sipa_attrs[] = {
 	&dev_attr_user_set.attr,
 	&dev_attr_flex_multi.attr,
+	&dev_attr_switch_core.attr,
 	NULL,
 };
 ATTRIBUTE_GROUPS(sipa);
@@ -2122,6 +2216,11 @@ static int sipa_plat_drv_probe(struct platform_device *pdev_p)
 
 	hrtimer_init(&ipa->daemon_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	ipa->daemon_timer.function = sipa_daemon_timer_handler;
+
+	hrtimer_init(&ipa->sw_little_core_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	ipa->sw_little_core_timer.function = sipa_sw_little_core_timer_handler;
+	dev_info(dev, "<%s:%d> add sw_little_core_timer.");
+	ipa->enable_sw_core = true;
 
 	init_waitqueue_head(&ipa->set_rps_waitq);
 	ipa->set_rps_thread = kthread_create(sipa_set_rps_thread, ipa,

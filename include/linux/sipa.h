@@ -397,6 +397,8 @@ bool sipa_nic_check_flow_ctrl(enum sipa_nic_id nic_id);
 
 u32 sipa_nic_sync_recv_pkts(u32 budget, int fifoid);
 
+void sipa_nic_switch_core(int fifoid);
+
 int sipa_nic_add_tx_fifo_rptr(u32 num, int fifoid);
 
 void sipa_nic_update_need_fill_cnt(u32 num, int fifoid);
