@@ -70,6 +70,7 @@ static netdev_tx_t sipa_usb_start_xmit(struct sk_buff *skb,
 	struct net_device_stats *stats;
 	int ret = 0;
 	int netid;
+	u32 len;
 
 	stats = usb->stats;
 	if (usb->state != DEV_ON) {
@@ -89,6 +90,11 @@ static netdev_tx_t sipa_usb_start_xmit(struct sk_buff *skb,
 		return ret;
 	}
 
+	/* skb maybe freed by tx free thread
+	 * after called sipa_nic_tx
+	 */
+	len = skb->len;
+
 	ret = sipa_nic_tx(usb->nic_id, pdata->src_id, netid, skb);
 	if (unlikely(ret != 0)) {
 		pr_err("sipa_usb fail to send skb, ret %d\n", ret);
@@ -103,7 +109,7 @@ static netdev_tx_t sipa_usb_start_xmit(struct sk_buff *skb,
 
 	/* update netdev statistics */
 	stats->tx_packets++;
-	stats->tx_bytes += skb->len;
+	stats->tx_bytes += len;
 
 	return NETDEV_TX_OK;
 }
