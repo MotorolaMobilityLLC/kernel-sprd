@@ -288,6 +288,8 @@ struct sc27xx_typec {
 	struct delayed_work vbus_only_work;
 	bool use_pdhub_c2c;
 	bool is_support_typec_analog_earphone;
+	struct timespec64 last_time;
+	u32 less_500ms_count;
 };
 #if IS_ENABLED(CONFIG_SPRD_TYPEC_TCPM)
 struct sprd_typec_device_ops sc27xx_typec_ops;
@@ -629,6 +631,31 @@ static int sc27xx_typec_random_tdrp(struct sc27xx_typec *sc)
 	return ret;
 }
 
+bool sc27xx_typec_check(struct sc27xx_typec *sc)
+{
+	struct timespec64 cur_time;
+	struct timespec64 delta_time;
+	bool ret = true;
+
+	cur_time = ktime_to_timespec64(ktime_get_boottime());
+	delta_time = timespec64_sub(cur_time, sc->last_time);
+
+	dev_err(sc->dev, "%s: count=%lu last=%lu.%06u delta=%lu.%06u\n", __func__, sc->less_500ms_count,
+		(long)sc->last_time.tv_sec, (int)(sc->last_time.tv_nsec/1000),
+		(long)delta_time.tv_sec, (int)(delta_time.tv_nsec/1000) );
+	if(delta_time.tv_sec == 0 && delta_time.tv_nsec < 500*1000*1000) {
+		if(sc->less_500ms_count > 3)
+			ret = false;
+		sc->less_500ms_count ++;
+	} else {
+		sc->less_500ms_count =0;
+	}
+
+	sc->last_time = cur_time;
+
+	return ret;
+}
+
 static irqreturn_t sc27xx_typec_interrupt(int irq, void *data)
 {
 	struct sc27xx_typec *sc = data;
@@ -649,10 +676,13 @@ static irqreturn_t sc27xx_typec_interrupt(int irq, void *data)
 	sc->state &= sc->var_data->state_mask;
 
 	if (event & SC27XX_ATTACH_INT) {
-		ret = sc27xx_typec_connect(sc, sc->state);
-		sc27xx_typec_connect_state = 1;
-		if (ret)
-			dev_warn(sc->dev, "failed to register partner\n");
+		if(sc27xx_typec_check(sc))
+		{
+			ret = sc27xx_typec_connect(sc, sc->state);
+			sc27xx_typec_connect_state = 1;
+			if (ret)
+				dev_warn(sc->dev, "failed to register partner\n");
+		}
 	} else if (event & SC27XX_DETACH_INT) {
 		sc27xx_typec_disconnect(sc, sc->state);
 		sc27xx_typec_connect_state = 0;
@@ -1373,6 +1403,8 @@ static int sc27xx_typec_probe(struct platform_device *pdev)
 	sc->use_pdhub_c2c = of_property_read_bool(node, "use_pdhub_c2c");
 	sc->is_support_typec_analog_earphone = !of_property_read_bool(node,
 					"no_support_typec_analog_earphone");
+	memset(&sc->last_time, 0, sizeof(sc->last_time));
+	sc->less_500ms_count = 0;
 
 	if (mode < TYPEC_PORT_DFP || mode > TYPEC_PORT_DRP
 	    || mode == TYPEC_PORT_UFP) {
