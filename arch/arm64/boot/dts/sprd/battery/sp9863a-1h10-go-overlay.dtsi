@@ -39,6 +39,8 @@
 				<131160 1550>, <113000 1600>, <97790 1650>;
 	capacity-temp-table = <25 100>, <10 97>, <(-10) 60>;
 	resistance-temp-table = <20 100>, <10 243>, <(-10) 468>;
+	temp-advance-fullcap-table = <50 100>, <25 100>, <10 100>, <0 100>,
+		<(-10) 100>, <(-20) 100>;
 
 	charge-sdp-current-microamp = <500000 500000>;
 	charge-dcp-current-microamp = <1150000 3000000>;
