@@ -617,8 +617,6 @@ struct cm_jeita_info {
  * @trigger_cnt: The number of times the battery is fully charged
  * @uvlo_trigger_cnt: The number of times the battery voltage is
  *	less than under voltage lock out
- * @low_temp_trigger_cnt: The number of times the battery temperature
- *	is less than 10 degree.
  * @uvlo_shutdown_mode:
  *	Determine which polling mode will be used
  * @cap_one_time: The percentage of electricity is not
@@ -732,7 +730,6 @@ struct charger_desc {
 	int first_trigger_cnt;
 	int uvlo_trigger_cnt;
 	enum uvlo_shutdown_modes uvlo_shutdown_mode;
-	int low_temp_trigger_cnt;
 
 	u32 cap_one_time;
 	u32 default_cap_one_time;
@@ -775,7 +772,6 @@ struct charger_desc {
 	struct cap_remap_table *cap_remap_table;
 	int cap_remap_table_len;
 	int cap_remap_total_cnt;
-	int cap_remap_full_percent;
 	bool is_fast_charge;
 	bool enable_fast_charge;
 	bool fixed_fchg_running;

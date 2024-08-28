@@ -383,6 +383,33 @@ static int sprd_battery_parse_battery_resistance_temp_table(struct sprd_battery_
 	return 0;
 }
 
+static int sprd_battery_parse_battery_remap_full_percent_table(struct sprd_battery_info *info,
+							       struct device_node *battery_np,
+							       struct power_supply *psy)
+{
+	struct sprd_battery_temp_fullcap_table *battery_temp_fullcap_table;
+	const __be32 *list;
+	int index, len;
+
+	list = of_get_property(battery_np, "temp-advance-fullcap-table", &len);
+	if (!list || !len)
+		return 0;
+
+	info->battery_temp_fullcap_table_len = len / (2 * sizeof(__be32));
+	battery_temp_fullcap_table = info->battery_temp_fullcap_table =
+		devm_kcalloc(&psy->dev, info->battery_temp_fullcap_table_len,
+			     sizeof(*battery_temp_fullcap_table), GFP_KERNEL);
+	if (!info->battery_temp_fullcap_table)
+		return -ENOMEM;
+
+	for (index = 0; index < info->battery_temp_fullcap_table_len; index++) {
+		battery_temp_fullcap_table[index].temp = be32_to_cpu(*list++);
+		battery_temp_fullcap_table[index].temp *= 10;
+		battery_temp_fullcap_table[index].advance_fullcap = be32_to_cpu(*list++);
+	}
+	return 0;
+}
+
 static int sprd_battery_parse_battery_internal_resistance_table(struct sprd_battery_info *info,
 								struct device_node *battery_np,
 								struct power_supply *psy)
@@ -813,6 +840,12 @@ int sprd_battery_get_battery_info(struct power_supply *psy,
 	err = sprd_battery_parse_battery_internal_resistance_table(info, battery_np, psy);
 	if (err) {
 		dev_err(&psy->dev, "Fail to get factory internal resist table, ret = %d\n", err);
+		return err;
+	}
+
+	err = sprd_battery_parse_battery_remap_full_percent_table(info, battery_np, psy);
+	if (err) {
+		dev_err(&psy->dev, "Fail to get remap full percent table, ret = %d\n", err);
 		return err;
 	}
 

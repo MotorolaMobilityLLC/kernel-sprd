@@ -34,9 +34,16 @@
 #define SPRD_FGU_NORMAL_POWERON				0x5
 #define SPRD_FGU_RTC2_RESET_VALUE			0xA05
 /* uusoc vbat */
-#define SPRD_FGU_LOW_VBAT_REGION			3400
 #define SPRD_FGU_LOW_VBAT_REC_REGION			3450
-#define SPRD_FGU_LOW_VBAT_UUSOC_STEP			7
+#define SPRD_FGU_LOW_VBAT_REGION			3400
+#define SPRD_FGU_LOW_VBAT_REGION0			3400
+#define SPRD_FGU_LOW_VBAT_REGION1			3350
+#define SPRD_FGU_ABSOLUTE_LOW_VBAT_REGION		3300
+#define SPRD_FGU_LOW_TEMP_LOW_VBAT_REGION		3200
+
+#define SPRD_FGU_LOW_VBAT_UUSOC_STEP0			7
+#define SPRD_FGU_LOW_VBAT_UUSOC_STEP1			4
+#define SPRD_FGU_ABSOLUTE_LOW_VBAT_UUSOC_STEP		2
 /* sleep calib */
 #define SPRD_FGU_SLP_CAP_CALIB_SLP_TIME			300
 #define SPRD_FGU_CAP_CALIB_TEMP_LOW			100
@@ -56,7 +63,7 @@
 #define SPRD_FGU_SR_MAX_VOL_MV				4500
 #define SPRD_FGU_SR_MIN_VOL_MV				3400
 /* discharing calibration */
-#define SPRD_FGU_CAP_CALIB_ALARM_CAP			30
+#define SPRD_FGU_CALIB_CAP30				30
 /* track cap */
 #define SPRD_FGU_TRACK_CAP_START_VOLTAGE		3650
 #define SPRD_FGU_TRACK_CAP_START_CURRENT		50
@@ -76,7 +83,6 @@
 #define SPRD_FGU_CAPACITY_TRACK_3S			3
 #define SPRD_FGU_CAPACITY_TRACK_15S			15
 #define SPRD_FGU_CAPACITY_TRACK_100S			100
-#define SPRD_FGU_WORK_MS				msecs_to_jiffies(15000)
 #define SPRD_FGU_PROBE_TIMEOUT				msecs_to_jiffies(500)
 /* unuse cap */
 #define SPRD_FGU_RESIST_ALG_REIST_CNT			40
@@ -93,8 +99,8 @@
 #define SPRD_FGU_DEBUG_VBUS_UV				5000000
 #define SPRD_FGU_DEBUG_OCV_UV				4000000
 /* others define */
-#define SPRD_FGU_CAP_CALC_WORK_8S			8
-#define SPRD_FGU_CAP_CALC_WORK_15S			15
+#define SPRD_FGU_NORMAL_WORK_15S			15
+#define SPRD_FGU_QUICKEN_WORK_8S			8
 #define SPRD_FGU_CAP_CALC_WORK_LOW_TEMP			50
 #define SPRD_FGU_CAP_CALC_WORK_LOW_CAP			50
 #define SPRD_FGU_CAP_CALC_WORK_BIG_CURRENT		3000
@@ -109,12 +115,23 @@
 #define SPRD_FGU_DEBUG_DIS_CMD				0x5a5a5a5a
 #define SPRD_FGU_GOOD_HEALTH_CMD			0x7f7f7f7f
 #define SPRD_FGU_FCC_PERCENT				1000
+#define SPRD_FGU_RESERVE_SOC				20
 #define SPRD_FGU_EXTCON_SINK				3
 #define SPRD_FGU_GET_CHG_TYPE_RETRY_CNT			12
 #define SPRD_FGU_CALIB_LOW_DENS_CAP_DIFF		30
 #define SPRD_FGU_CALIB_HIGH_DENS_CAP_DIFF		150
 #define SPRD_FGU_IS_SWITCH_BAT_PARA_VOL_THRES		4100
 #define SPRD_FGU_REG_MAX				0x260
+#define SPRD_FGU_FULL_PERCENT				100
+#define SPRD_FGU_RESUME_TEMP_BUFF			1
+
+#define OCV_ALARM_NUM	(5)
+#define OCV_ERR			BIT(0)
+#define VBAT_ERR		BIT(1)
+#define VBAT_AVG_ERR		BIT(2)
+#define VBAT_CUR_ERR		BIT(3)
+#define VBAT_CUR_AVG_ERR	BIT(4)
+
 #define interpolate(x, x1, y1, x2, y2) \
 	((y1) + ((((y2) - (y1)) * ((x) - (x1))) / ((x2) - (x1))))
 
@@ -219,6 +236,22 @@ struct sprd_fgu_cap_remap_table {
 	int hb;
 };
 
+struct ocv_alarm {
+	unsigned int calib_cap;
+	int ocv_alarm_cap;
+};
+
+struct sprd_fgu_vbat_info {
+	struct ocv_alarm ocv_alarm_info[OCV_ALARM_NUM];
+	int ocv_uv;
+	int vbatt_mv;
+	int vbat_avg_mv;
+	int vbat_cur_ma;
+	int vbat_cur_avg_ma;
+	unsigned int vbat_err;
+	bool absolute_charger_mode;
+};
+
 /*
  * struct sprd_fgu_data: describe the FGU device
  * @regmap: regmap for register access
@@ -260,6 +293,7 @@ struct sprd_fgu_data {
 	struct gpio_desc *gpiod;
 	struct iio_channel *channel;
 	struct iio_channel *charge_chan;
+	struct sprd_fgu_vbat_info vbat_info;
 	bool bat_present;
 	int internal_resist;
 	int total_mah;
@@ -269,6 +303,10 @@ struct sprd_fgu_data {
 	int alarm_cap;
 	int boot_cap;
 	int normal_temp_cap;
+	int temp_cap;
+	int smooth_soc;
+	int smooth_soc_decimal;
+	int normal_cap_diff;
 	int bat_soc;
 	int uusoc_mah;
 	int init_mah;
@@ -280,6 +318,7 @@ struct sprd_fgu_data {
 	int temp_table_len;
 	int cap_table_len;
 	int resist_table_len;
+	int fullcap_table_len;
 	int cap_calib_dens_ocv_table_len;
 	int first_calib_volt;
 	int first_calib_cap;
@@ -287,8 +326,6 @@ struct sprd_fgu_data {
 	unsigned int comp_resistance;
 	int batt_ovp_threshold;
 	int index;
-	int ocv_uv;
-	int batt_mv;
 	int temp_buff[SPRD_FGU_TEMP_BUFF_CNT];
 	int cur_now_buff[SPRD_FGU_CURRENT_BUFF_CNT];
 	bool dischg_trend[SPRD_FGU_DISCHG_CNT];
@@ -307,6 +344,7 @@ struct sprd_fgu_data {
 	struct power_supply_battery_ocv_table *cap_table;
 	struct power_supply_vol_temp_table *temp_table;
 	struct power_supply_capacity_temp_table *cap_temp_table;
+	struct sprd_battery_temp_fullcap_table *temp_fullcap_table;
 	struct power_supply_resistance_temp_table *resist_table;
 	struct usb_phy *usb_phy;
 	struct notifier_block usb_notify;
@@ -316,9 +354,8 @@ struct sprd_fgu_data {
 	struct sprd_battery_cycles_fcc_table *battery_cycles_fcc_table;
 
 	struct sprd_fgu_sysfs *sysfs;
-	struct delayed_work fgu_work;
 	struct delayed_work cap_track_work;
-	struct delayed_work cap_calculate_work;
+	struct delayed_work fgu_work;
 	struct sprd_fgu_info *fgu_info;
 
 	/* typec extcon */
@@ -377,15 +414,22 @@ struct sprd_fgu_data {
 
 static bool charge_mode;
 static bool cali_or_auto_mode;
-static void sprd_fgu_capacity_calibration(struct sprd_fgu_data *data, bool int_mode);
+static void sprd_fgu_capacity_calibration(struct sprd_fgu_data *data, int *cap);
 static void sprd_fgu_discharging_calibration(struct sprd_fgu_data *data, int *cap);
 static int sprd_fgu_resistance_algo(struct sprd_fgu_data *data, int cur_ua, int vol_uv);
 static int sprd_fgu_get_bat_para_table(struct sprd_fgu_data *data, int aging_bat_id);
+static bool sprd_fgu_discharging_trend(struct sprd_fgu_data *data);
 
 static inline int sprd_fgu_uah2current(int uah, int times)
 {
 	/* To avoid data overflow, divide uah by 100 firstly */
 	return DIV_ROUND_CLOSEST(uah * 36, times * 10);
+}
+
+static inline void sprd_fgu_cap1_check(struct sprd_fgu_data *data, int *cap)
+{
+	if (*cap < 5 && data->vbat_info.vbatt_mv > SPRD_FGU_POCV_VOLT_THRESHOLD)
+		*cap = 5;
 }
 
 static int sprd_fgu_ocv2cap(struct power_supply_battery_ocv_table *table,
@@ -651,8 +695,12 @@ static int sprd_fgu_capacity_remap(struct sprd_fgu_data *data, int fuel_cap)
 {
 	int i, temp, cap = 0;
 
-	if (!data->cap_remap_table)
+	if (!data->cap_remap_table) {
+		if (fuel_cap < 400 && fuel_cap >= 150)
+			fuel_cap = DIV_ROUND_CLOSEST((fuel_cap - SPRD_FGU_RESERVE_SOC) * 1000,
+						     1000 - SPRD_FGU_RESERVE_SOC);
 		return fuel_cap;
+	}
 
 	if (fuel_cap < 0) {
 		fuel_cap = 0;
@@ -887,13 +935,11 @@ static int sprd_fgu_get_rtc_time(struct sprd_fgu_data *data, s64 *time)
 
 static void sprd_fgu_capacity_loss_by_temperature(struct sprd_fgu_data *data, int *cap)
 {
-	int temp_cap, ret;
-	struct sprd_fgu_info *fgu_info = data->fgu_info;
-
 	if (data->cap_table_len <= 0)
 		return;
 
-	temp_cap = sprd_fgu_temp2cap(data->cap_temp_table, data->cap_table_len, data->bat_temp);
+	data->temp_cap = sprd_fgu_temp2cap(data->cap_temp_table,
+					   data->cap_table_len, data->bat_temp);
 	/*
 	 * Battery capacity at different temperatures, we think
 	 * the change is linear, the follow the formula: y = ax + k
@@ -908,7 +954,7 @@ static void sprd_fgu_capacity_loss_by_temperature(struct sprd_fgu_data *data, in
 	 * Capacity_temp = (Capacity_Percentage(current) -
 	 * Capacity_Delta) * 100 /(100 - Capacity_Delta)
 	 */
-	*cap = DIV_ROUND_CLOSEST((*cap + temp_cap - 1000) * 1000, temp_cap);
+	*cap = DIV_ROUND_CLOSEST((*cap + data->temp_cap - 1000) * 1000, data->temp_cap);
 	if (*cap < 0) {
 		dev_info(data->dev, "%s Capacity_temp < 0, adjust !!!\n", __func__);
 		*cap = 0;
@@ -916,17 +962,134 @@ static void sprd_fgu_capacity_loss_by_temperature(struct sprd_fgu_data *data, in
 		dev_info(data->dev, "%s Capacity_temp > 1000, adjust !!!\n", __func__);
 		*cap = SPRD_FGU_FCC_PERCENT;
 	}
+}
 
-	if (*cap <= 5) {
-		ret =  fgu_info->ops->get_vbat_now(fgu_info, &data->batt_mv);
-		if (ret) {
-			dev_err(data->dev, "get battery vol error.\n");
+static int sprd_fgu_temp2full_percent(struct sprd_fgu_data *data, int *cap)
+{
+	int i;
+
+	if (!data->temp_fullcap_table || data->fullcap_table_len == 0)
+		return SPRD_FGU_FULL_PERCENT;
+
+	if (*cap < 700)
+		return SPRD_FGU_FULL_PERCENT;
+
+	for (i = data->fullcap_table_len - 1; i >= 0; i--) {
+		if (data->bat_temp < data->temp_fullcap_table[i].temp)
+			return data->temp_fullcap_table[i].advance_fullcap;
+	}
+
+	return SPRD_FGU_FULL_PERCENT;
+}
+
+static void sprd_fgu_smooth_to_soc(struct sprd_fgu_data *data, int *cap, int normal_cap_diff)
+{
+	int smooth_cap_diff, adjust_step = 10, cap_info;
+
+	if (data->cap_table_len <= 0)
+		return;
+
+	if (normal_cap_diff == 0) {
+		if (data->support_debug_log)
+			dev_info(data->dev, "sprd normal_cap_diff = 0, adjust_step = NA, temp_cap = %d, smooth_cap_diff = 0, *cap = %d, smooth_soc = %d, smooth_soc_decimal = %d\n",
+				 data->temp_cap, *cap, data->smooth_soc, data->smooth_soc_decimal);
+		*cap = data->smooth_soc;
+		if (data->smooth_soc < 5 && data->smooth_soc >= 1)
+			*cap = 5;
+		return;
+	} else if (normal_cap_diff > 0) {
+		data->cap_remap_full_percent = sprd_fgu_temp2full_percent(data, cap);
+		*cap = *cap * 100 / data->cap_remap_full_percent;
+
+		if (*cap > 1000)
+			*cap  = 1000;
+
+		if (*cap == 1000) {
+			data->smooth_soc = *cap;
+			if (data->support_debug_log)
+				dev_info(data->dev, "sprd normal_cap_diff = %d, adjust_step = NA, temp_cap = %d, smooth_cap_diff = NA, *cap = %d, smooth_soc = %d, smooth_soc_decimal = %d\n",
+					 normal_cap_diff, data->temp_cap, *cap, data->smooth_soc,
+					 data->smooth_soc_decimal);
 			return;
+		} else if (*cap > 970) {
+			adjust_step = 1000 - *cap;
+		} else if (*cap > 920) {
+			adjust_step = 30;
+		} else if (*cap > 650) {
+			adjust_step = 950 - *cap;
+		} else if (*cap > 350) {
+			adjust_step = 300;
+		} else {
+			adjust_step = 650 - *cap;
 		}
 
-		if (data->batt_mv > SPRD_FGU_LOW_VBAT_REGION)
-			*cap = 5;
+		smooth_cap_diff = DIV_ROUND_CLOSEST(100 * normal_cap_diff *
+						    (10000 - (data->smooth_soc - *cap) * 10000 /
+						     adjust_step),
+						    (data->temp_cap *
+						     data->cap_remap_full_percent));
+
+	} else {
+		if (data->bat_temp >= SPRD_FGU_LOW_TEMP_REGION) {
+			cap_info = *cap;
+			*cap = sprd_fgu_capacity_remap(data, cap_info);
+			if (data->support_debug_log)
+				dev_info(data->dev, "sprd cap_info = %d, *cap = %d\n", cap_info,
+					 *cap);
+			sprd_fgu_cap1_check(data, cap);
+		}
+
+		if (*cap == 0) {
+			data->smooth_soc = *cap;
+			if (data->support_debug_log)
+				dev_info(data->dev, "sprd normal_cap_diff = %d, adjust_step = NA, temp_cap = %d, smooth_cap_diff = NA, *cap = %d, smooth_soc = %d, smooth_soc_decimal = %d\n",
+					 normal_cap_diff, data->temp_cap, *cap, data->smooth_soc,
+					 data->smooth_soc_decimal);
+			return;
+		} else if (*cap < 30) {
+			adjust_step = *cap;
+		} else if (*cap < 80) {
+			adjust_step = 30;
+		} else if (*cap < 350) {
+			adjust_step = *cap - 50;
+		} else if (*cap < 650) {
+			adjust_step = 300;
+		} else {
+			adjust_step = *cap - 350;
+		}
+		smooth_cap_diff = DIV_ROUND_CLOSEST(normal_cap_diff *
+						    (10000 + (data->smooth_soc - *cap) * 10000 /
+						     adjust_step),
+						    data->temp_cap);
+
 	}
+
+	data->smooth_soc += smooth_cap_diff / 10;
+	data->smooth_soc_decimal +=  smooth_cap_diff % 10;
+	if (data->smooth_soc_decimal >= 10) {
+		data->smooth_soc_decimal -= 10;
+		data->smooth_soc += 1;
+	} else if (data->smooth_soc_decimal <= -10) {
+		data->smooth_soc_decimal += 10;
+		data->smooth_soc -= 1;
+	}
+
+	if (data->smooth_soc < 0) {
+		dev_info(data->dev, "%s smooth_soc < 0, adjust !!!\n", __func__);
+		data->smooth_soc = 0;
+	} else if (data->smooth_soc > SPRD_FGU_FCC_PERCENT) {
+		dev_info(data->dev, "%s smooth_soc > 1000, adjust !!!\n", __func__);
+		data->smooth_soc = SPRD_FGU_FCC_PERCENT;
+	}
+
+	dev_info(data->dev, "sprd normal_cap_diff = %d, adjust_step = %d, temp_cap = %d, smooth_cap_diff = %d, *cap = %d, smooth_soc = %d, smooth_soc_decimal = %d\n",
+		 normal_cap_diff, adjust_step, data->temp_cap, smooth_cap_diff, *cap,
+		 data->smooth_soc, data->smooth_soc_decimal);
+
+	*cap = data->smooth_soc;
+
+	if (data->smooth_soc < 5 && data->smooth_soc >= 1)
+		*cap = 5;
 }
 
 /* @val: value of battery ocv in mV*/
@@ -1014,6 +1177,10 @@ static void sprd_fgu_dump_info(struct sprd_fgu_data *data)
 	dev_info(data->dev, "init_cap = %d, init_mah = %d, normal_cap = %d, data->cc_mah = %d, Tbat = %d, uusoc_vbat = %d, uusoc_mah = %d, track_sts = %d\n",
 		 data->init_cap, data->init_mah, data->normal_temp_cap, data->cc_uah / 1000,
 		 data->bat_temp, data->uusoc_vbat, data->uusoc_mah, data->track.state);
+	dev_info(data->dev, "ocv_uv = %d, vbatt_mv = %d, vbat_cur_ma = %d, vbat_avg_mv = %d, vbat_cur_avg_ma = %d, absolute_charger_mode = %d, full_percent = %d\n",
+		 data->vbat_info.ocv_uv, data->vbat_info.vbatt_mv, data->vbat_info.vbat_cur_ma,
+		 data->vbat_info.vbat_avg_mv, data->vbat_info.vbat_cur_avg_ma,
+		 data->vbat_info.absolute_charger_mode, data->cap_remap_full_percent);
 }
 
 static bool sprd_fgu_is_in_low_energy_dens(struct sprd_fgu_data *data, int ocv_uv,
@@ -1236,6 +1403,7 @@ static int sprd_fgu_get_boot_capacity(struct sprd_fgu_data *data, int *cap)
 		return ret;
 	}
 	data->boot_volt_uv = pocv_uv;
+	data->vbat_info.vbatt_mv = data->boot_volt_uv;
 
 	/*
 	 * Parse the capacity table to look up the correct capacity percent
@@ -1256,6 +1424,8 @@ static int sprd_fgu_get_boot_capacity(struct sprd_fgu_data *data, int *cap)
 		}
 
 		data->boot_cap = *cap;
+		sprd_fgu_cap1_check(data, &data->boot_cap);
+		data->smooth_soc = data->boot_cap;
 		ret = fgu_info->ops->read_normal_temperature_cap(fgu_info, cap);
 		if (ret) {
 			dev_err(data->dev, "Failed to read normal temperature cap, ret = %d\n",
@@ -1290,12 +1460,14 @@ static int sprd_fgu_get_boot_capacity(struct sprd_fgu_data *data, int *cap)
 	*cap = pocv_cap;
 	sprd_fgu_capacity_loss_by_temperature(data, cap);
 	data->boot_cap = sprd_fgu_capacity_remap(data, *cap);
+	sprd_fgu_cap1_check(data, &data->boot_cap);
 	ret = fgu_info->ops->save_last_cap(fgu_info, data->boot_cap);
 	if (ret) {
 		dev_err(data->dev, "Failed to save last cap, ret = %d\n", ret);
 		return ret;
 	}
 
+	data->smooth_soc = data->boot_cap;
 	data->normal_temp_cap = pocv_cap;
 	ret = fgu_info->ops->save_normal_temperature_cap(fgu_info, data->normal_temp_cap);
 	if (ret) {
@@ -1310,35 +1482,17 @@ static int sprd_fgu_get_boot_capacity(struct sprd_fgu_data *data, int *cap)
 	return fgu_info->ops->save_boot_mode(fgu_info, SPRD_FGU_NORMAL_POWERON);
 }
 
-static int sprd_fgu_uusoc_algo(struct sprd_fgu_data *data, int *uusoc_mah)
+static void sprd_fgu_uusoc_algo(struct sprd_fgu_data *data, int *uusoc_mah)
 {
-	int vol_mv, cur_ma, ret, cur_avg_ma;
 	int resistance_moh = 0, ocv_pzero_uv;
 	int ocv_pzero_cap, ocv_pzero_mah;
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
 
-	ret = fgu_info->ops->get_vbat_now(fgu_info, &vol_mv);
-	if (ret) {
-		dev_info(data->dev, "UUSOC fail to get vbat, ret = %d\n", ret);
-		return ret;
-	}
-
-	ret = fgu_info->ops->get_current_now(fgu_info, &cur_ma);
-	if (ret) {
-		dev_info(data->dev, "UUSOC fail to get cur_ma, ret = %d\n", ret);
-		return ret;
-	}
-
-	ret = fgu_info->ops->get_current_avg(fgu_info, &cur_avg_ma);
-	if (ret) {
-		dev_info(data->dev, "UUSOC fail to get cur_avg_ma, ret = %d\n", ret);
-		return ret;
-	}
-
 	ocv_pzero_uv = data->cap_table[data->table_len - 1].ocv;
-	if (cur_avg_ma < 0) {
-		resistance_moh = sprd_fgu_resistance_algo(data, cur_ma * 1000, vol_mv * 1000);
-		ocv_pzero_uv -= cur_avg_ma * resistance_moh;
+	if (data->vbat_info.vbat_cur_avg_ma < 0) {
+		resistance_moh = sprd_fgu_resistance_algo(data, data->vbat_info.vbat_cur_ma * 1000,
+							  data->vbat_info.vbatt_mv * 1000);
+		ocv_pzero_uv -= data->vbat_info.vbat_cur_avg_ma * resistance_moh;
 	}
 
 	ocv_pzero_cap = sprd_fgu_ocv2cap(data->cap_table, data->table_len, ocv_pzero_uv);
@@ -1347,15 +1501,58 @@ static int sprd_fgu_uusoc_algo(struct sprd_fgu_data *data, int *uusoc_mah)
 	*uusoc_mah = ocv_pzero_mah;
 
 	dev_info(data->dev, "UUSOC: cur_avg_ma = %d, resistance_moh = %d, ocv_pzero_uv = %d, ocv_pzero_cap = %d, ocv_pzero_mah = %d\n",
-		 cur_avg_ma, resistance_moh, ocv_pzero_uv, ocv_pzero_cap, ocv_pzero_mah);
-
-	return 0;
+		 data->vbat_info.vbat_cur_avg_ma, resistance_moh, ocv_pzero_uv, ocv_pzero_cap,
+		 ocv_pzero_mah);
 }
 
-static int sprd_fgu_get_capacity(struct sprd_fgu_data *data, int *cap)
+static void sprd_fgu_get_vbat_info(struct sprd_fgu_data *data)
 {
-	int ret, delta_cap;
-	static int last_fgu_cap = SPRD_FGU_MAGIC_NUMBER;
+	int ret, ocv_mv;
+	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	struct sprd_fgu_vbat_info *vbat_info = &data->vbat_info;
+
+	ret = sprd_fgu_get_vbat_ocv(data, &ocv_mv);
+	if (ret) {
+		dev_err(data->dev, "get_vbat_ocv error.\n");
+		vbat_info->vbat_err |= OCV_ERR;
+	} else {
+		vbat_info->ocv_uv = ocv_mv * 1000;
+	}
+
+	ret = fgu_info->ops->get_vbat_now(fgu_info, &vbat_info->vbatt_mv);
+	if (ret) {
+		dev_err(data->dev, "get_vbat_now error, ret = %d\n", ret);
+		vbat_info->vbat_err |= VBAT_ERR;
+	}
+
+	ret = fgu_info->ops->get_current_now(fgu_info, &vbat_info->vbat_cur_ma);
+	if (ret) {
+		dev_err(data->dev, "get_current_now error, ret = %d\n", ret);
+		vbat_info->vbat_err |= VBAT_CUR_ERR;
+	}
+
+	ret = fgu_info->ops->get_vbat_avg(fgu_info, &vbat_info->vbat_avg_mv);
+	if (ret) {
+		dev_err(data->dev, "get_vbat_avg error.\n");
+		vbat_info->vbat_err |= VBAT_AVG_ERR;
+	}
+
+	ret = fgu_info->ops->get_current_avg(fgu_info, &vbat_info->vbat_cur_avg_ma);
+	if (ret) {
+		dev_err(data->dev, "get_current_avg error, ret = %d\n", ret);
+		vbat_info->vbat_err |= VBAT_CUR_AVG_ERR;
+	}
+
+	if (!sprd_fgu_discharging_trend(data) && data->chg_sts == POWER_SUPPLY_STATUS_CHARGING)
+		vbat_info->absolute_charger_mode = true;
+	else
+		vbat_info->absolute_charger_mode = false;
+}
+
+static int sprd_fgu_get_normal_temp_cap(struct sprd_fgu_data *data, int *cap,
+					bool judge_adjust_mode)
+{
+	int delta_cap, ret, normal_temp_cap, normal_cap_diff;
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
 
 	ret = fgu_info->ops->get_cc_uah(fgu_info, &data->cc_uah, true);
@@ -1370,14 +1567,30 @@ static int sprd_fgu_get_capacity(struct sprd_fgu_data *data, int *cap)
 	 */
 	delta_cap = DIV_ROUND_CLOSEST(data->cc_uah, data->total_mah);
 	*cap = delta_cap + data->init_cap;
+	normal_temp_cap = clamp(*cap, 0, SPRD_FGU_FCC_PERCENT);
+	normal_cap_diff = normal_temp_cap - data->normal_temp_cap;
+	if (unlikely(judge_adjust_mode)) {
+		if (normal_cap_diff != 0)
+			data->normal_temp_cap = normal_temp_cap;
+		return 0;
+	}
+	data->normal_cap_diff = normal_cap_diff;
+	data->normal_temp_cap = normal_temp_cap;
+	return 0;
+}
+
+static int sprd_fgu_get_capacity(struct sprd_fgu_data *data, int *cap)
+{
+	int ret, normal_temp_cap;
+	static int last_fgu_cap = SPRD_FGU_MAGIC_NUMBER;
+	struct sprd_fgu_info *fgu_info = data->fgu_info;
+
+	sprd_fgu_get_vbat_info(data);
+	ret = sprd_fgu_get_normal_temp_cap(data, cap, false);
+	if (ret)
+		return ret;
 
 	sprd_fgu_calc_charge_cycle(data, *cap, &last_fgu_cap);
-
-	data->normal_temp_cap = *cap;
-	if (data->normal_temp_cap < 0)
-		data->normal_temp_cap = 0;
-	else if (data->normal_temp_cap > 1000)
-		data->normal_temp_cap = 1000;
 
 	if (*cap < 0) {
 		*cap = 0;
@@ -1395,11 +1608,11 @@ static int sprd_fgu_get_capacity(struct sprd_fgu_data *data, int *cap)
 	}
 
 	if (data->support_multi_resistance) {
-		ret = sprd_fgu_uusoc_algo(data, &data->uusoc_mah);
-		if (ret) {
-			dev_info(data->dev, "Fail to get uusoc, ret = %d\n", ret);
+		if (data->vbat_info.vbat_err & (VBAT_CUR_ERR | VBAT_CUR_AVG_ERR | VBAT_ERR)) {
+			dev_info(data->dev, "vbat_err = %d\n", data->vbat_info.vbat_err);
 			goto normal_cap_calc;
 		}
+		sprd_fgu_uusoc_algo(data, &data->uusoc_mah);
 
 		data->init_mah = fgu_info->ops->cap2mah(fgu_info, data->total_mah, data->init_cap);
 		*cap = DIV_ROUND_CLOSEST((data->init_mah - data->uusoc_mah) * 1000 + data->cc_uah,
@@ -1420,19 +1633,13 @@ static int sprd_fgu_get_capacity(struct sprd_fgu_data *data, int *cap)
 
 normal_cap_calc:
 	sprd_fgu_capacity_loss_by_temperature(data, cap);
-capacity_calibration:
-	sprd_fgu_capacity_calibration(data, false);
-
-	*cap -= data->uusoc_vbat;
-	if (*cap < 0) {
-		dev_info(data->dev, "Capacity_temp < 0, adjust !!!\n");
-		*cap = 0;
-	} else if (*cap > SPRD_FGU_FCC_PERCENT) {
-		dev_info(data->dev, "Capacity_temp > 1000, adjust !!!\n");
-		*cap = SPRD_FGU_FCC_PERCENT;
-	}
-
 	sprd_fgu_discharging_calibration(data, cap);
+capacity_calibration:
+	sprd_fgu_capacity_calibration(data, cap);
+	ret = sprd_fgu_get_normal_temp_cap(data, &normal_temp_cap, true);
+	if (ret)
+		return ret;
+	sprd_fgu_smooth_to_soc(data, cap, data->normal_cap_diff);
 
 	return 0;
 }
@@ -1612,6 +1819,15 @@ static int sprd_fgu_get_average_temp(struct sprd_fgu_data *data, int temp)
 			data->temp_buff[i] = temp;
 	}
 
+	/*
+	 * We need to clear temp_buff when suspend_resume.
+	 */
+	if (data->temp_buff[SPRD_FGU_RESUME_TEMP_BUFF] == -500) {
+		for (i = 0; i < SPRD_FGU_TEMP_BUFF_CNT; i++)
+			data->temp_buff[i] = temp;
+		return temp;
+	}
+
 	if (data->index >= SPRD_FGU_TEMP_BUFF_CNT)
 		data->index = 0;
 
@@ -1675,6 +1891,9 @@ static int sprd_fgu_get_temp(struct sprd_fgu_data *data, int *temp)
 
 	data->bat_temp = *temp;
 
+	if (data->debug_info.temp_debug_en)
+		data->bat_temp = data->debug_info.debug_temp;
+
 	return 0;
 }
 
@@ -1709,6 +1928,7 @@ static int sprd_fgu_suspend_calib_check_temp(struct sprd_fgu_data *data)
 		dev_err(data->dev, "Suspend calib failed to temp, ret = %d\n", ret);
 		return ret;
 	}
+	data->bat_temp = temp;
 
 	if (temp < SPRD_FGU_CAP_CALIB_TEMP_LOW || temp > SPRD_FGU_CAP_CALIB_TEMP_HI) {
 		dev_err(data->dev, "Suspend calib  temp = %d out range\n", temp);
@@ -1990,14 +2210,8 @@ static int sprd_fgu_get_property(struct power_supply *psy,
 		else if (data->temp_table_len <= 0 ||
 			 (data->bat_present == 0 && cali_or_auto_mode))
 			val->intval = 200;
-		else {
-			ret = sprd_fgu_get_temp(data, &value);
-			if (ret < 0 && !data->debug_info.temp_debug_en)
-				goto error;
-
-			ret = 0;
-			val->intval = value;
-		}
+		else
+			val->intval = data->bat_temp;
 
 		break;
 
@@ -2010,7 +2224,7 @@ static int sprd_fgu_get_property(struct power_supply *psy,
 			val->intval = data->boot_cap;
 			break;
 		}
-		val->intval = sprd_fgu_capacity_remap(data, data->bat_soc);
+		val->intval = data->bat_soc;
 		break;
 
 	case POWER_SUPPLY_PROP_VOLTAGE_AVG:
@@ -2183,7 +2397,8 @@ static int sprd_fgu_set_property(struct power_supply *psy,
 
 	case POWER_SUPPLY_PROP_CALIBRATE:
 		dev_dbg(data->dev, "%s:line%d calib cap = %d\n", __func__, __LINE__, val->intval);
-		data->init_cap = fgu_info->ops->adjust_cap(fgu_info, val->intval);
+		data->normal_temp_cap = val->intval;
+		data->init_cap = fgu_info->ops->adjust_cap(fgu_info, data->normal_temp_cap);
 		break;
 
 	case POWER_SUPPLY_PROP_CHARGE_FULL_DESIGN:
@@ -2413,11 +2628,49 @@ static const struct power_supply_desc sprd_fgu_desc = {
 
 static void sprd_fgu_adjust_uusoc_vbat(struct sprd_fgu_data *data)
 {
-	if (data->batt_mv >= SPRD_FGU_LOW_VBAT_REC_REGION) {
+	if (data->vbat_info.vbatt_mv >= SPRD_FGU_LOW_VBAT_REC_REGION) {
 		data->uusoc_vbat = 0;
-	} else if (data->batt_mv >= SPRD_FGU_LOW_VBAT_REGION) {
-		if (data->uusoc_vbat >= SPRD_FGU_LOW_VBAT_UUSOC_STEP)
-			data->uusoc_vbat -= SPRD_FGU_LOW_VBAT_UUSOC_STEP;
+	} else if (data->vbat_info.vbatt_mv >= SPRD_FGU_LOW_VBAT_REGION0) {
+		if (data->uusoc_vbat >= SPRD_FGU_LOW_VBAT_UUSOC_STEP0)
+			data->uusoc_vbat -= SPRD_FGU_LOW_VBAT_UUSOC_STEP0;
+		else if (data->uusoc_vbat > 0)
+			data->uusoc_vbat = 0;
+	}
+}
+
+static void sprd_fgu_check_uusoc_vbat(struct sprd_fgu_data *data, int *cap, int ocv_adjust)
+{
+	int normal_temp_cap_gap = 0, vbat_adjust = 0;
+
+	if (data->vbat_info.vbatt_mv < SPRD_FGU_LOW_VBAT_REGION1) {
+		normal_temp_cap_gap = data->normal_temp_cap - data->alarm_cap - data->uusoc_vbat;
+
+		if (normal_temp_cap_gap > SPRD_FGU_CALIB_CAP30)
+			vbat_adjust = SPRD_FGU_LOW_VBAT_UUSOC_STEP0;
+		else if (normal_temp_cap_gap > SPRD_FGU_LOW_VBAT_UUSOC_STEP1)
+			vbat_adjust = SPRD_FGU_LOW_VBAT_UUSOC_STEP1;
+		else if (normal_temp_cap_gap > 0)
+			vbat_adjust = normal_temp_cap_gap;
+		else if (data->vbat_info.vbatt_mv < SPRD_FGU_ABSOLUTE_LOW_VBAT_REGION)
+			vbat_adjust = SPRD_FGU_ABSOLUTE_LOW_VBAT_UUSOC_STEP;
+
+		if (ocv_adjust > 0)
+			vbat_adjust = vbat_adjust / 2;
+
+		data->uusoc_vbat += vbat_adjust;
+		dev_info(data->dev, "sprd line%d:batt_mv = %d, ocv_adjust = %d, vbat_adjust = %d, uusoc_vbat = %d\n",
+			__LINE__, data->vbat_info.vbatt_mv, ocv_adjust, vbat_adjust,
+			data->uusoc_vbat);
+	}
+
+	sprd_fgu_adjust_uusoc_vbat(data);
+	*cap -= data->uusoc_vbat;
+	if (*cap < 0) {
+		dev_info(data->dev, "Capacity_temp < 0, adjust !!!\n");
+		*cap = 0;
+	} else if (*cap > SPRD_FGU_FCC_PERCENT) {
+		dev_info(data->dev, "Capacity_temp > 1000, adjust !!!\n");
+		*cap = SPRD_FGU_FCC_PERCENT;
 	}
 }
 
@@ -2425,25 +2678,24 @@ static void sprd_fgu_low_capacity_match_ocv(struct sprd_fgu_data *data)
 {
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
 
-	if (data->ocv_uv < data->min_volt_uv && data->normal_temp_cap > data->alarm_cap) {
+	if (data->vbat_info.ocv_uv < data->min_volt_uv && data->normal_temp_cap > data->alarm_cap) {
 		data->init_cap -= 5;
 		if (data->init_cap < 0)
 			data->init_cap = 0;
-	} else if (data->ocv_uv > data->min_volt_uv && data->normal_temp_cap <= data->alarm_cap) {
+	} else if (data->vbat_info.ocv_uv > data->min_volt_uv &&
+		   data->normal_temp_cap <= data->alarm_cap) {
 		data->init_cap = fgu_info->ops->adjust_cap(fgu_info, data->alarm_cap);
-	} else if (data->ocv_uv <= data->cap_table[data->table_len - 1].ocv) {
+	} else if (data->vbat_info.ocv_uv <= data->cap_table[data->table_len - 1].ocv) {
 		data->init_cap = fgu_info->ops->adjust_cap(fgu_info, 0);
+		dev_info(data->dev, "sprd line%d:ocv_uv = %d, init_cap = %d\n", __LINE__,
+			 data->vbat_info.ocv_uv, data->init_cap);
 	} else if (data->first_calib_volt > 0 && data->first_calib_cap > 0 &&
-		   data->ocv_uv <= data->first_calib_volt &&
+		   data->vbat_info.ocv_uv <= data->first_calib_volt &&
 		   data->normal_temp_cap > data->first_calib_cap) {
 		data->init_cap -= 5;
 		if (data->init_cap < 0)
 			data->init_cap = 0;
-	} else if (data->batt_mv < SPRD_FGU_LOW_VBAT_REGION &&
-		   data->normal_temp_cap > data->alarm_cap)
-		data->uusoc_vbat += SPRD_FGU_LOW_VBAT_UUSOC_STEP;
-
-	sprd_fgu_adjust_uusoc_vbat(data);
+	}
 }
 
 static bool sprd_fgu_discharging_current_trend(struct sprd_fgu_data *data)
@@ -2549,85 +2801,74 @@ charging:
 
 static void sprd_fgu_discharging_calibration(struct sprd_fgu_data *data, int *cap)
 {
-	int ret, calib_alarm_ocv, ibat_now_ma;
-	int vol_mv, vbat_avg_mv, vol_uv, vbat_avg_uv;
+	bool need_adjust_cap = true;
+	int vbat_uv, vbat_avg_uv, i;
+	unsigned int calib_cap;
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	struct sprd_fgu_vbat_info *vbat_info = &data->vbat_info;
 
-	if (data->bat_temp <= SPRD_FGU_LOW_TEMP_REGION) {
-		dev_err(data->dev, "exceed temp range not need to calibrate.\n");
-		return;
-	}
-
-	if (*cap > SPRD_FGU_CAP_CALIB_ALARM_CAP)
+	if (vbat_info->vbat_err & (VBAT_CUR_ERR | VBAT_CUR_AVG_ERR | VBAT_ERR))
 		return;
 
-	/* Get current battery current */
-	ret = fgu_info->ops->get_current_now(fgu_info, &ibat_now_ma);
-	if (ret) {
-		dev_err(data->dev, "failed to get now current.\n");
+	if (*cap >= vbat_info->ocv_alarm_info[OCV_ALARM_NUM - 1].calib_cap)
 		return;
-	}
 
-	if ((data->chg_sts != POWER_SUPPLY_STATUS_CHARGING ||
-	     sprd_fgu_discharging_trend(data)) && ibat_now_ma < 0) {
-		calib_alarm_ocv = sprd_fgu_cap2ocv(data->cap_table,
-						   data->table_len,
-						   SPRD_FGU_CAP_CALIB_ALARM_CAP);
+	if (vbat_info->vbat_cur_ma >= 0 || vbat_info->absolute_charger_mode)
+		goto cap1check;
 
-		/* Get current battery voltage */
-		ret = fgu_info->ops->get_vbat_now(fgu_info, &vol_mv);
-		if (ret) {
-			dev_err(data->dev, "get current battery voltage error.\n");
+	vbat_uv = vbat_info->vbatt_mv * 1000;
+	vbat_avg_uv = vbat_info->vbat_avg_mv * 1000;
+	if (data->bat_temp < SPRD_FGU_LOW_TEMP_REGION)
+		need_adjust_cap = false;
+
+	for (i = OCV_ALARM_NUM - 1; i >= 0; i--) {
+		if (*cap < vbat_info->ocv_alarm_info[i].calib_cap &&
+		    vbat_uv > vbat_info->ocv_alarm_info[i].ocv_alarm_cap &&
+		    vbat_avg_uv > vbat_info->ocv_alarm_info[i].ocv_alarm_cap) {
+			dev_info(data->dev, "%d ocv_cap = %d, vbat = %d, vbat_avg = %d\n",
+				 __LINE__, vbat_info->ocv_alarm_info[i].ocv_alarm_cap,
+				 vbat_uv, vbat_avg_uv);
+			*cap = vbat_info->ocv_alarm_info[i].calib_cap;
+			if (need_adjust_cap) {
+				calib_cap = vbat_info->ocv_alarm_info[i].calib_cap;
+				data->init_cap = fgu_info->ops->adjust_cap(fgu_info, calib_cap);
+			}
 			return;
 		}
-
-		/* Get average value of battery voltage */
-		ret = fgu_info->ops->get_vbat_avg(fgu_info, &vbat_avg_mv);
-		if (ret) {
-			dev_err(data->dev, "get average value of battery voltage error.\n");
-			return;
-		}
-
-		vol_uv = vol_mv * 1000;
-		vbat_avg_uv = vbat_avg_mv * 1000;
-		if (vol_uv > calib_alarm_ocv && vbat_avg_uv > calib_alarm_ocv) {
-			dev_info(data->dev, "%s calib_alarm_ocv = %d, vbat = %d, vbat_avg = %d\n",
-				 __func__, calib_alarm_ocv, vol_uv, vbat_avg_uv);
-			*cap = SPRD_FGU_CAP_CALIB_ALARM_CAP;
-			data->init_cap =
-				fgu_info->ops->adjust_cap(fgu_info, SPRD_FGU_CAP_CALIB_ALARM_CAP);
-		}
 	}
+
+	if (data->bat_temp < SPRD_FGU_LOW_TEMP_REGION &&
+	    vbat_uv <= SPRD_FGU_LOW_TEMP_LOW_VBAT_REGION &&
+	    vbat_avg_uv <= SPRD_FGU_LOW_TEMP_LOW_VBAT_REGION) {
+		if (*cap > data->alarm_cap)
+			*cap = data->alarm_cap;
+		else
+			*cap = 0;
+		return;
+	}
+cap1check:
+	sprd_fgu_cap1_check(data, cap);
 }
 
-static void sprd_fgu_capacity_calibration(struct sprd_fgu_data *data, bool int_mode)
+static void sprd_fgu_capacity_calibration(struct sprd_fgu_data *data, int *cap)
 {
-	int ret, ocv_mv;
-	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	int ocv_adjust;
 
-	ret = sprd_fgu_get_vbat_ocv(data, &ocv_mv);
-	if (ret) {
-		dev_err(data->dev, "get battery ocv error.\n");
+	if (data->vbat_info.vbat_err & (OCV_ERR | VBAT_ERR))
 		return;
-	}
-
-	data->ocv_uv = ocv_mv * 1000;
-
-	ret =  fgu_info->ops->get_vbat_now(fgu_info, &data->batt_mv);
-	if (ret) {
-		dev_err(data->dev, "get battery vol error.\n");
-		return;
-	}
 
 	/*
 	 * If we are in charging mode or the battery temperature is
 	 * 10 degrees or less, then we do not need to calibrate the
 	 * lower capacity.
 	 */
-	if ((!sprd_fgu_discharging_trend(data) &&
-	     data->chg_sts == POWER_SUPPLY_STATUS_CHARGING) ||
-	    data->bat_temp <= SPRD_FGU_LOW_TEMP_REGION) {
+	if (data->vbat_info.absolute_charger_mode) {
 		sprd_fgu_adjust_uusoc_vbat(data);
+		return;
+	}
+
+	if (data->bat_temp < SPRD_FGU_LOW_TEMP_REGION) {
+		sprd_fgu_check_uusoc_vbat(data, cap, 0);
 		return;
 	}
 
@@ -2636,25 +2877,10 @@ static void sprd_fgu_capacity_calibration(struct sprd_fgu_data *data, bool int_m
 		return;
 	}
 
+	ocv_adjust = data->init_cap;
 	sprd_fgu_low_capacity_match_ocv(data);
-
-	if (data->ocv_uv <= data->min_volt_uv) {
-		if (!int_mode)
-			return;
-
-		/*
-		 * After adjusting the battery capacity, we should set the
-		 * lowest alarm voltage instead.
-		 */
-		data->min_volt_uv = data->cap_table[data->table_len - 1].ocv;
-		data->alarm_cap = sprd_fgu_ocv2cap(data->cap_table,
-						   data->table_len, data->min_volt_uv);
-
-		if (data->alarm_cap < 10)
-			data->alarm_cap = 10;
-
-		fgu_info->ops->set_low_overload(fgu_info, data->min_volt_uv / 1000);
-	}
+	ocv_adjust -= data->init_cap;
+	sprd_fgu_check_uusoc_vbat(data, cap, ocv_adjust);
 }
 
 static void sprd_fgu_batt_ovp_notfiy(struct sprd_fgu_data *data)
@@ -2671,10 +2897,38 @@ static void sprd_fgu_batt_ovp_notfiy(struct sprd_fgu_data *data)
 	cm_notify_event(data->battery, CM_EVENT_BATT_OVERVOLTAGE, NULL);
 }
 
+static void sprd_fgu_update_alarm_cap(struct sprd_fgu_data *data)
+{
+	struct sprd_fgu_info *fgu_info = data->fgu_info;
+
+	if (!data->cap_table) {
+		dev_info(data->dev, "%s: cap_table allocate not ready\n", __func__);
+		return;
+	}
+
+	if (data->vbat_info.vbat_err & OCV_ERR)
+		return;
+
+	if (data->vbat_info.ocv_uv <= data->min_volt_uv) {
+		/*
+		 * After adjusting the battery capacity, we should set the
+		 * lowest alarm voltage instead.
+		 */
+		data->min_volt_uv = data->cap_table[data->table_len - 1].ocv;
+		data->alarm_cap = sprd_fgu_ocv2cap(data->cap_table,
+						   data->table_len, data->min_volt_uv);
+
+		if (data->alarm_cap < 10)
+			data->alarm_cap = 10;
+
+		fgu_info->ops->set_low_overload(fgu_info, data->min_volt_uv / 1000);
+	}
+}
+
 static irqreturn_t sprd_fgu_interrupt(int irq, void *dev_id)
 {
 	struct sprd_fgu_data *data = dev_id;
-	int ret, cap;
+	int ret;
 	u32 status = 0;
 	struct sprd_fgu_info *fgu_info;
 
@@ -2718,10 +2972,10 @@ static irqreturn_t sprd_fgu_interrupt(int irq, void *dev_id)
 	 * battery capacity in lower voltage stage.
 	 */
 	if (status & BIT(SPRD_FGU_VOLT_LOW_INT_EVENT)) {
-		ret = sprd_fgu_get_capacity(data, &cap);
+		ret = sprd_fgu_get_capacity(data, &data->bat_soc);
 		if (ret)
 			goto out;
-		sprd_fgu_capacity_calibration(data, true);
+		sprd_fgu_update_alarm_cap(data);
 		power_supply_changed(data->battery);
 		dev_info(data->dev, "volt_low_int ocurred!!\n");
 		fgu_info->ops->enable_fgu_int(fgu_info, SPRD_FGU_VOLT_LOW_INT_CMD, false);
@@ -3438,20 +3692,14 @@ static void sprd_fgu_bat_aging_algo(struct sprd_fgu_data *data)
 
 static int sprd_fgu_cap_calc_work_cycle(struct sprd_fgu_data *data)
 {
-	int ret = 0, temp, cur_ma = 0, delta_cc_uah;
-	int work_cycle = SPRD_FGU_CAP_CALC_WORK_15S;
+	int cur_ma = 0, delta_cc_uah;
+	int work_cycle = SPRD_FGU_NORMAL_WORK_15S;
 	s64 times;
 
-	ret = sprd_fgu_get_temp(data, &temp);
-	if (ret) {
-		dev_err(data->dev, "failed get temp!!\n");
-		return work_cycle;
-	}
-
-	if (temp < SPRD_FGU_CAP_CALC_WORK_LOW_TEMP ||
+	if (data->bat_temp < SPRD_FGU_CAP_CALC_WORK_LOW_TEMP ||
 	    data->bat_soc < SPRD_FGU_CAP_CALC_WORK_LOW_CAP) {
-		dev_info(data->dev, "temp = %d, battery soc = %d\n", temp, data->bat_soc);
-		work_cycle = SPRD_FGU_CAP_CALC_WORK_8S;
+		dev_info(data->dev, "temp = %d, battery soc = %d\n", data->bat_temp, data->bat_soc);
+		work_cycle = SPRD_FGU_QUICKEN_WORK_8S;
 		return work_cycle;
 	}
 
@@ -3462,7 +3710,7 @@ static int sprd_fgu_cap_calc_work_cycle(struct sprd_fgu_data *data)
 			cur_ma = sprd_fgu_uah2current(delta_cc_uah, times);
 			if (cur_ma > SPRD_FGU_CAP_CALC_WORK_BIG_CURRENT) {
 				dev_info(data->dev, "%s cur_ma = %d!!\n", __func__, cur_ma);
-				work_cycle = SPRD_FGU_CAP_CALC_WORK_8S;
+				work_cycle = SPRD_FGU_QUICKEN_WORK_8S;
 			}
 		}
 	}
@@ -3470,12 +3718,12 @@ static int sprd_fgu_cap_calc_work_cycle(struct sprd_fgu_data *data)
 	return work_cycle;
 }
 
-static void sprd_fgu_cap_calculate_work(struct work_struct *work)
+static void sprd_fgu_work(struct work_struct *work)
 {
 	struct delayed_work *dwork = to_delayed_work(work);
-	struct sprd_fgu_data *data = container_of(dwork, struct sprd_fgu_data,
-						  cap_calculate_work);
-	int ret = 0, work_cycle = SPRD_FGU_CAP_CALC_WORK_15S;
+	struct sprd_fgu_data *data = container_of(dwork, struct sprd_fgu_data, fgu_work);
+	int temp;
+	int ret = 0, work_cycle = SPRD_FGU_NORMAL_WORK_15S;
 	struct sprd_fgu_info *fgu_info;
 	struct timespec64 cur_time;
 
@@ -3484,6 +3732,12 @@ static void sprd_fgu_cap_calculate_work(struct work_struct *work)
 		return;
 	}
 	fgu_info = data->fgu_info;
+
+	ret = sprd_fgu_get_temp(data, &temp);
+	if (ret) {
+		dev_err(data->dev, "failed to get temp, ret = %d\n", ret);
+		goto out;
+	}
 
 	ret = fgu_info->ops->get_cc_uah(fgu_info, &data->work_enter_cc_uah, false);
 	if (ret) {
@@ -3517,8 +3771,9 @@ static void sprd_fgu_cap_calculate_work(struct work_struct *work)
 	data->last_cc_uah = data->work_exit_cc_uah;
 
 out:
+	sprd_fgu_dump_info(data);
 	dev_info(data->dev, "battery soc = %d, cycle = %d\n", data->bat_soc, work_cycle);
-	schedule_delayed_work(&data->cap_calculate_work, msecs_to_jiffies(work_cycle * 1000));
+	schedule_delayed_work(&data->fgu_work, msecs_to_jiffies(work_cycle * 1000));
 }
 
 static void sprd_fgu_cap_track_work(struct work_struct *work)
@@ -3574,21 +3829,6 @@ static int sprd_fgu_cap_track_register_usb_notify(struct sprd_fgu_data *data)
 		 data->track.end_vol, data->track.end_cur);
 
 	return ret;
-}
-
-static void sprd_fgu_work(struct work_struct *work)
-{
-	struct delayed_work *dwork = to_delayed_work(work);
-	struct sprd_fgu_data *data = container_of(dwork, struct sprd_fgu_data, fgu_work);
-
-	if (!data) {
-		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
-		return;
-	}
-
-	sprd_fgu_dump_info(data);
-
-	schedule_delayed_work(&data->fgu_work, SPRD_FGU_WORK_MS);
 }
 
 static ssize_t sprd_fgu_dump_info_show(struct device *dev,
@@ -4021,6 +4261,17 @@ static int sprd_fgu_parse_sprd_battery_info(struct sprd_fgu_data *data,
 			return -ENOMEM;
 	}
 
+	data->fullcap_table_len = info->battery_temp_fullcap_table_len;
+	if (data->fullcap_table_len > 0) {
+		data->temp_fullcap_table =
+			devm_kmemdup(data->dev, info->battery_temp_fullcap_table,
+				     data->fullcap_table_len *
+				     sizeof(struct sprd_battery_temp_fullcap_table),
+				     GFP_KERNEL);
+		if (!data->temp_fullcap_table)
+			return -ENOMEM;
+	}
+
 	data->resist_table_len = info->battery_temp_resist_table_len;
 	if (data->resist_table_len > 0) {
 		data->resist_table = devm_kmemdup(data->dev, info->battery_temp_resist_table,
@@ -4252,8 +4503,9 @@ static int sprd_fgu_hw_config(struct sprd_fgu_data *data)
 
 static int sprd_fgu_hw_init(struct sprd_fgu_data *data)
 {
-	int ret;
+	int ret, i;
 	struct sprd_fgu_info *fgu_info = data->fgu_info;
+	struct sprd_fgu_vbat_info *vbat_info = &data->vbat_info;
 	struct timespec64 cur_time;
 
 	data->cur_now_buff[SPRD_FGU_CURRENT_BUFF_CNT - 1] = SPRD_FGU_MAGIC_NUMBER;
@@ -4277,6 +4529,13 @@ static int sprd_fgu_hw_init(struct sprd_fgu_data *data)
 	ret = sprd_fgu_get_bat_para_table(data, 0);
 	if (ret)
 		return ret;
+
+	for (i = 0; i < OCV_ALARM_NUM; i++) {
+		vbat_info->ocv_alarm_info[i].calib_cap = (i + 1) * 10;
+		vbat_info->ocv_alarm_info[i].ocv_alarm_cap =
+			sprd_fgu_cap2ocv(data->cap_table, data->table_len,
+					 vbat_info->ocv_alarm_info[i].calib_cap);
+	}
 
 	data->alarm_cap = sprd_fgu_ocv2cap(data->cap_table, data->table_len, data->min_volt_uv);
 	/*
@@ -4529,13 +4788,13 @@ static int sprd_fgu_probe(struct platform_device *pdev)
 	if (ret)
 		goto err;
 
-	INIT_DELAYED_WORK(&data->fgu_work, sprd_fgu_work);
 	INIT_DELAYED_WORK(&data->cap_track_work, sprd_fgu_cap_track_work);
-	INIT_DELAYED_WORK(&data->cap_calculate_work, sprd_fgu_cap_calculate_work);
-	schedule_delayed_work(&data->fgu_work, 0);
+	INIT_DELAYED_WORK(&data->fgu_work, sprd_fgu_work);
 	schedule_delayed_work(&data->cap_track_work, 0);
-	schedule_delayed_work(&data->cap_calculate_work,
-			      msecs_to_jiffies(SPRD_FGU_CAP_CALC_WORK_15S * 1000));
+	schedule_delayed_work(&data->fgu_work,
+			      msecs_to_jiffies(SPRD_FGU_NORMAL_WORK_15S * 1000));
+
+	sprd_fgu_dump_info(data);
 
 	ret = sprd_fgu_register_sysfs(data);
 	if (ret)
@@ -4828,6 +5087,11 @@ static int sprd_fgu_resume(struct device *dev)
 	}
 	fgu_info = data->fgu_info;
 
+	/*
+	 * We should give a initial temperature value of temp_buff.
+	 */
+	data->temp_buff[SPRD_FGU_RESUME_TEMP_BUFF] = -500;
+
 	sprd_fgu_sr_calib_resume_check(data);
 
 	sprd_fgu_suspend_calib_check(data);
@@ -4844,9 +5108,8 @@ static int sprd_fgu_resume(struct device *dev)
 		return ret;
 	}
 
-	schedule_delayed_work(&data->fgu_work, 0);
 	schedule_delayed_work(&data->cap_track_work, 0);
-	schedule_delayed_work(&data->cap_calculate_work, 0);
+	schedule_delayed_work(&data->fgu_work, 0);
 
 	return 0;
 }
@@ -4954,9 +5217,8 @@ static int sprd_fgu_suspend(struct device *dev)
 		}
 	}
 
-	cancel_delayed_work_sync(&data->fgu_work);
 	cancel_delayed_work_sync(&data->cap_track_work);
-	cancel_delayed_work_sync(&data->cap_calculate_work);
+	cancel_delayed_work_sync(&data->fgu_work);
 
 	sprd_fgu_suspend_calib_config(data);
 
@@ -4975,9 +5237,8 @@ static void sprd_fgu_shutdown(struct platform_device *pdev)
 	if (!data)
 		return;
 
-	cancel_delayed_work_sync(&data->fgu_work);
 	cancel_delayed_work_sync(&data->cap_track_work);
-	cancel_delayed_work_sync(&data->cap_calculate_work);
+	cancel_delayed_work_sync(&data->fgu_work);
 }
 
 static const struct dev_pm_ops sprd_fgu_pm_ops = {

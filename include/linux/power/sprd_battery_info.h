@@ -112,6 +112,11 @@ struct sprd_battery_temp_cap_table {
 	int cap;	/* capacity percentage */
 };
 
+struct sprd_battery_temp_fullcap_table {
+	int temp;	/* celsius */
+	int advance_fullcap;	/* advance fullcap percentage */
+};
+
 struct sprd_battery_info {
 	/* microAmp-hours */
 	int charge_full_design_uah;
@@ -179,6 +184,9 @@ struct sprd_battery_info {
 	struct sprd_battery_temp_cap_table *battery_temp_cap_table;
 	int battery_temp_cap_table_len;
 
+	struct sprd_battery_temp_fullcap_table *battery_temp_fullcap_table;
+	int battery_temp_fullcap_table_len;
+
 	struct sprd_battery_resistance_temp_table *battery_temp_resist_table;
 	int battery_temp_resist_table_len;
 
@@ -190,6 +198,8 @@ struct sprd_battery_info {
 	u32 sprd_battery_step_chg_size;
 
 	struct sprd_battery_ir_compensation ir;
+	u32 remap_full_percent_num;
+	u32 *batt_full_percent;
 };
 
 extern void sprd_battery_put_battery_info(struct power_supply *psy,
