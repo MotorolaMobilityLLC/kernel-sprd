@@ -414,8 +414,7 @@ static inline void sdhci_sprd_writeb(struct sdhci_host *host, u8 val, int reg)
 		   (sprd_host->int_status & SDHCI_INT_ERROR_MASK)) {
 			while (i++ < 20000) {
 				status = sdhci_readl(host, SDHCI_PRESENT_STATE);
-				if (!(status & SDHCI_DOING_READ) &&
-				    ((status & SDHCI_DATA_LVL_MASK) == SDHCI_DATA_LVL_MASK))
+				if (!(status & SDHCI_DOING_READ))
 					break;
 			}
 			if (i >= 20000) {
@@ -1103,8 +1102,7 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 		 * time can be about 4s, which is recommended in Spreadtrum's platform.
 		 */
 		if (sprd_host->wait_read_idle) {
-			if (read_poll_timeout(sdhci_readl, tmp, (!(tmp & SDHCI_DOING_READ) &&
-			    ((tmp & SDHCI_DATA_LVL_MASK) == SDHCI_DATA_LVL_MASK)),
+			if (read_poll_timeout(sdhci_readl, tmp, !(tmp & SDHCI_DOING_READ),
 			    USEC_PER_MSEC, 4 * USEC_PER_SEC, false, host, SDHCI_PRESENT_STATE)) {
 #ifdef CONFIG_SPRD_DEBUG
 				panic("wait host controller idle timeout, please check");
