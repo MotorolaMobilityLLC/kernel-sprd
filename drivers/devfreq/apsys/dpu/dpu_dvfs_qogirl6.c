@@ -23,7 +23,7 @@ static struct ip_dvfs_map_cfg map_table[] = {
 	{2, VOLT70, DPU_CLK_INDEX_256M, DPU_CLK256M},
 	{3, VOLT70, DPU_CLK_INDEX_307M2, DPU_CLK307M2},
 	{4, VOLT75, DPU_CLK_INDEX_384M, DPU_CLK384M},
-	{5, VOLT75, DPU_CLK_INDEX_468M, DPU_CLK468M},
+	{5, VOLT80, DPU_CLK_INDEX_468M, DPU_CLK468M},
 };
 
 static void dpu_hw_dfs_en(struct dpu_dvfs *dpu, bool dfs_en)

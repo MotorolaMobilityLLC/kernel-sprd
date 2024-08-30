@@ -42,6 +42,8 @@ char *qogirl6_dpu_val_to_freq(u32 val)
 		return "307.2M";
 	case 4:
 		return "384M";
+	case 5:
+		return "468M";
 	default:
 		pr_err("invalid frequency value %u\n", val);
 		return "N/A";
