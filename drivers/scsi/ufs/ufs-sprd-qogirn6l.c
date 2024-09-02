@@ -303,11 +303,6 @@ static int ufs_sprd_get_syscon_reg_dt(struct device *dev,
 	ret = ufs_sprd_get_syscon_reg(dev->of_node,
 					&priv->usb31pllv_ref2mphy_en,
 				      "usb31pllv_ref2mphy_en");
-
-	ret = ufs_sprd_get_syscon_reg(dev->of_node,
-					&priv->ufs_cfg_eb,
-				      "ufs_cfg_eb");
-
 	return ret;
 }
 
@@ -420,22 +415,10 @@ static int ufs_sprd_priv_pre_init(struct device *dev,
 {
 	int ret = 0;
 #if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
-	struct sprd_sip_svc_handle *svc_handle;
-#endif
 	struct ufs_sprd_ums9621_data *priv =
 		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
+	struct sprd_sip_svc_handle *svc_handle;
 
-	regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
-			   priv->usb31pllv_ref2mphy_en.reg,
-			   priv->usb31pllv_ref2mphy_en.mask,
-			   priv->usb31pllv_ref2mphy_en.mask);
-
-	regmap_update_bits(priv->ufs_cfg_eb.regmap,
-			   priv->ufs_cfg_eb.reg,
-			   priv->ufs_cfg_eb.mask,
-			   priv->ufs_cfg_eb.mask);
-
-#if IS_ENABLED(CONFIG_SCSI_UFS_CRYPTO)
 	ret = reset_control_assert(priv->ap_ahb_ufs_rst);
 	if (ret) {
 		dev_err(host->hba->dev, "%s assert ufs_soft_rst failed, ret = %d!\n",
@@ -694,7 +677,6 @@ static int ufs_sprd_phy_sram_init_done(struct ufs_hba *hba)
 static int ufs_sprd_phy_init(struct ufs_hba *hba)
 {
 	int ret = 0;
-	u32 ulp_value;
 	struct ufs_sprd_host *host = ufshcd_get_variant(hba);
 	struct ufs_sprd_ums9621_data *priv =
 		(struct ufs_sprd_ums9621_data *) host->ufs_priv_data;
@@ -712,11 +694,6 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	if (ret)
 		return ret;
 
-	regmap_update_bits(priv->phy_sram_ext_ld_done.regmap,
-			   priv->phy_sram_ext_ld_done.reg,
-			   priv->phy_sram_ext_ld_done.mask,
-			   0);
-
 	ufshcd_dme_set(hba, UIC_ARG_MIB(VS_MPHYCFGUPDT), 0x01);
 
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8116), 0xb0);
@@ -895,12 +872,14 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
 
+	regmap_update_bits(priv->phy_sram_ext_ld_done.regmap,
+			   priv->phy_sram_ext_ld_done.reg,
+			   priv->phy_sram_ext_ld_done.mask,
+			   0);
+
 	/* add ultra low power H8 function */
-	if (hba->caps & UFSHCD_CAP_H8_ULP) {
-		ufshcd_dme_get(hba, UIC_ARG_MIB(CBUPLH8), &ulp_value);
-		ulp_value |= ULP_H8_EN;
-		ufshcd_dme_set(hba, UIC_ARG_MIB(CBUPLH8), ulp_value);
-	}
+	if (hba->caps & UFSHCD_CAP_H8_ULP)
+		ufshcd_dme_set(hba, UIC_ARG_MIB(CBUPLH8), ULP_H8_EN);
 
 	ufshcd_dme_set(hba, UIC_ARG_MIB(VS_MPHYDISABLE), 0x0);
 
@@ -945,8 +924,6 @@ static int ufs_sprd_hce_enable_notify(struct ufs_hba *hba,
 		err = ufs_sprd_phy_init(hba);
 		if (err)
 			dev_err(hba->dev, "Phy setup failed (%d)\n", err);
-
-		ufshcd_dme_set(hba, UIC_ARG_MIB(0xd0f9), 0x1);
 		break;
 	default:
 		dev_err(hba->dev, "%s: invalid status %d\n", __func__, status);
@@ -1198,16 +1175,30 @@ static int ufs_sprd_setup_clocks(struct ufs_hba *hba, bool on,
 
 	switch (status) {
 	case PRE_CHANGE:
-		if (on == true) {
+		/* synopsys spec requires that refclk must be opened before cfg_eb */
+		if ((priv != NULL) && ufshcd_is_link_hibern8(hba) && (on == true)) {
 			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
-					   priv->ufsdev_refclk_en.reg,
-					   priv->ufsdev_refclk_en.mask,
-					   priv->ufsdev_refclk_en.mask);
-		} else {
+				priv->ufsdev_refclk_en.reg,
+				priv->ufsdev_refclk_en.mask,
+				priv->ufsdev_refclk_en.mask);
+
+			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
+				priv->usb31pllv_ref2mphy_en.reg,
+				priv->usb31pllv_ref2mphy_en.mask,
+				priv->usb31pllv_ref2mphy_en.mask);
+		}
+
+		if ((priv != NULL) && ufshcd_is_link_hibern8(hba) && (on == false)) {
+			usleep_range(1000, 1100);
 			regmap_update_bits(priv->ufsdev_refclk_en.regmap,
-					   priv->ufsdev_refclk_en.reg,
-					   priv->ufsdev_refclk_en.mask,
-					   0);
+				priv->ufsdev_refclk_en.reg,
+				priv->ufsdev_refclk_en.mask,
+				0);
+
+			regmap_update_bits(priv->usb31pllv_ref2mphy_en.regmap,
+				priv->usb31pllv_ref2mphy_en.reg,
+				priv->usb31pllv_ref2mphy_en.mask,
+				0);
 		}
 		break;
 	case POST_CHANGE:
