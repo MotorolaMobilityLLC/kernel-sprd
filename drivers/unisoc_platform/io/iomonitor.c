@@ -26,7 +26,7 @@ static struct sprd_task io_data;
 static struct proc_dir_entry *iomonitor_dir;
 
 static struct kprobe sprd_vfs_write_kp = {
-	.symbol_name	= "vfs_write",
+	.symbol_name	= "generic_perform_write",
 };
 
 static int sort_column(const void *obj1, const void *obj2)
@@ -66,8 +66,9 @@ static void sprd_task_status_get_value(struct seq_file *m, void *v)
 	cur_time_ms = jiffies_to_msecs(jiffies);
 	last_time_ms = jiffies_to_msecs(last_monitor_jiffies);
 	duration_ms = cur_time_ms - last_time_ms;
-	seq_printf(m, "duration %lu ms collision %lu total_tsk %u\n%-10s\t%32s\t%20s\t\n",
-		   duration_ms, collision_count, probe_count, "PID", "TOTAL_WRITE(bytes)", "COMM");
+	seq_printf(m, "duration %lu ms collision %lu total_tsk %u\n%-10s\t%10s\t%32s\t%20s\t\n",
+		   duration_ms, collision_count, probe_count,
+		   "PID", "UID", "TOTAL_WRITE(bytes)", "COMM");
 
 	last_monitor_jiffies = jiffies;
 	collision_count = 0;
@@ -80,8 +81,8 @@ static void sprd_task_status_get_value(struct seq_file *m, void *v)
 	for (i = 0; i < output_rows; i++) {
 		ti = task_buffer.taskio_list + i;
 		if (ti->tgid)
-			seq_printf(m, "%-10d\t%32llu\t%20s\t\n",
-				   ti->tgid, ti->write_bytes, ti->comm);
+			seq_printf(m, "%-10d\t%10d\t%32llu\t%20s\t\n",
+				   ti->tgid, ti->uid, ti->write_bytes, ti->comm);
 	}
 }
 
@@ -231,19 +232,21 @@ static void sprd_write_monitor(struct kprobe *p, struct pt_regs *regs,
 			       unsigned long flags)
 {
 #ifdef CONFIG_ARM64
-	size_t bytes = regs->regs[2];
+	struct iov_iter *iov = (struct iov_iter *)regs->regs[1];
 	struct file *file = (struct file *)regs->regs[0];
 #endif
 #ifdef CONFIG_ARM
-	size_t bytes = regs->uregs[2];
+	struct iov_iter *iov = (struct iov_iter *)regs->uregs[1];
 	struct file *file = (struct file *)regs->uregs[0];
 #endif
 
 	pid_t tgid = current->tgid;
 	pid_t pid = current->pid;
+
 	int slot = tgid % PID_HASH_LEGNTH;
 	struct sprd_task_io_info *ti;
 	int i;
+	size_t bytes = iov->count;
 
 	if (!iomonitor_enable)
 		return;
@@ -266,6 +269,7 @@ static void sprd_write_monitor(struct kprobe *p, struct pt_regs *regs,
 		} else {
 			probe_count++;
 			ti->tgid = tgid;
+			ti->uid = current->group_leader->cred->uid.val;
 			/*
 			 * Get the name of the main thread to ensure that the tgid is consistent
 			 * with the process name.

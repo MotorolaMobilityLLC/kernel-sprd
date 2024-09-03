@@ -20,6 +20,7 @@
 struct sprd_task_io_info {
 	u64 write_bytes;
 	pid_t tgid;
+	uid_t uid;
 	unsigned short used;
 	char comm[TASK_COMM_LEN];
 };
