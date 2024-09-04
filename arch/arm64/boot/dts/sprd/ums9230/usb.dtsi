@@ -44,6 +44,7 @@
 		phy-names = "usb";
 		dr-mode = "otg";
 		multipoint = "true";
+		core_select = <1 6>;
 		wakeup-source;
 	};
 };
