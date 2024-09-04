@@ -2263,6 +2263,14 @@ static int musb_sprd_probe(struct platform_device *pdev)
 		goto err_core_clk;
 	}
 
+	ret = of_property_read_u32_array(dev->of_node, "core_select",
+			glue->musb->core_select, 2);
+	if (ret) {
+		dev_err(&pdev->dev, "failed to get core_select: %d\n", ret);
+		glue->musb->performance_mode_rdy = false;
+	} else
+		glue->musb->performance_mode_rdy = true;
+
 #if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
 	glue->suspend_clk_src_frc_on.regmap_ptr = syscon_regmap_lookup_by_phandle_args(dev->of_node,
 						"suspend_clk_source_frc_on", 2,

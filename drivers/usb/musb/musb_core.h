@@ -374,6 +374,9 @@ struct musb {
 	bool			session;
 	unsigned long		quirk_retries;
 	bool			is_host;
+	bool			performance_mode;
+	bool			performance_mode_rdy;
+	u32			core_select[2];
 
 #if IS_ENABLED(CONFIG_USB_SPRD_ADAPTIVE)
 	bool			is_adaptive;

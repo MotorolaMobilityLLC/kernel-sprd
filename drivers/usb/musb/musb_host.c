@@ -2927,6 +2927,7 @@ static int musb_urb_enqueue(
 	struct usb_host_endpoint	*hep = urb->ep;
 	struct musb_qh			*qh;
 	struct usb_endpoint_descriptor	*epd = &hep->desc;
+	struct cpumask			mask;
 	int				ret;
 	unsigned			type_reg;
 	unsigned			interval;
@@ -3124,6 +3125,21 @@ static int musb_urb_enqueue(
 	 * we only have work to do in the former case.
 	 */
 	spin_lock_irqsave(&musb->lock, flags);
+
+	if (urb->dev->speed == USB_SPEED_HIGH &&
+		!musb->performance_mode &&
+		qh->type == USB_ENDPOINT_XFER_ISOC &&
+		musb->performance_mode_rdy) {
+		cpumask_set_cpu(musb->core_select[1], &mask);
+		ret = irq_set_affinity(musb->nIrq, &mask);
+		if (ret)
+			dev_err(musb->controller,
+				"%s: irq_%d set affinity on core[%d] failed\n",
+				__func__, musb->nIrq, musb->core_select[1]);
+		else
+			musb->performance_mode = true;
+	}
+
 	if (hep->hcpriv || !next_urb(qh)) {
 		/* some concurrent activity submitted another urb to hep...
 		 * odd, rare, error prone, but legal.
@@ -3249,6 +3265,7 @@ static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 {
 	struct musb			*musb = hcd_to_musb(hcd);
 	struct musb_qh			*qh;
+	struct cpumask		mask;
 	unsigned long			flags;
 	int				is_in  = usb_pipein(urb->pipe);
 	struct usb_host_endpoint	*hep = urb->ep;
@@ -3269,6 +3286,18 @@ static int musb_urb_dequeue(struct usb_hcd *hcd, struct urb *urb, int status)
 	qh = urb->hcpriv;
 	if (!qh)
 		goto done;
+
+	if (musb->performance_mode &&
+		qh->type == USB_ENDPOINT_XFER_ISOC) {
+		cpumask_set_cpu(musb->core_select[0], &mask);
+		ret = irq_set_affinity(musb->nIrq, &mask);
+		if (ret)
+			dev_err(musb->controller,
+				"%s: irq_%d set affinity on core[%d] failed\n",
+				__func__, musb->nIrq, musb->core_select[0]);
+		else
+			musb->performance_mode = false;
+	}
 
 	/*
 	 * Any URB not actively programmed into endpoint hardware can be
@@ -3665,6 +3694,8 @@ int musb_host_alloc(struct musb *musb)
 	musb->adaptive_out_configured = false;
 	musb->adaptive_wake_lock_enable = true;
 #endif
+
+	musb->performance_mode = false;
 
 	return 0;
 }
