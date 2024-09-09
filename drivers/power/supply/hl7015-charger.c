@@ -1785,8 +1785,8 @@ static int hl7015_charger_enable_otg(struct regulator_dev *dev)
 	info->last_wdt_time = ktime_to_ms(ktime_get());
 	schedule_delayed_work(&info->wdt_work,
 			      msecs_to_jiffies(HL7015_FEED_WATCHDOG_VALID_MS));
-	schedule_delayed_work(&info->otg_work,
-			      msecs_to_jiffies(HL7015_OTG_VALID_MS));
+//	schedule_delayed_work(&info->otg_work,
+//			      msecs_to_jiffies(HL7015_OTG_VALID_MS));
 
 	dev_info(info->dev, "%s:line%d:enable_otg\n", __func__, __LINE__);
 
@@ -1812,7 +1812,7 @@ static int hl7015_charger_disable_otg(struct regulator_dev *dev)
 
 	info->otg_enable = false;
 	cancel_delayed_work_sync(&info->wdt_work);
-	cancel_delayed_work_sync(&info->otg_work);
+//	cancel_delayed_work_sync(&info->otg_work);
 	ret = hl7015_update_bits(info, HL7015_REG_1,
 				  HL7015_REG_OTG_MASK,
 				  1 << HL7015_REG_OTG_SHIFT);
