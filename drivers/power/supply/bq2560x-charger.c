@@ -2254,6 +2254,7 @@ static void bq2560x_charger_shutdown(struct i2c_client *client)
 			dev_err(info->dev,
 				"enable charger detection function failed ret = %d\n", ret);
 	}
+	bq2560x_charger_set_power_path_status(info, true);
 	info->shutdown_flag = true;
 }
 
