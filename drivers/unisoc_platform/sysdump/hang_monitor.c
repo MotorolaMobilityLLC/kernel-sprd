@@ -696,8 +696,8 @@ static int hang_detect_thread(void *arg)
 				pr_emerg("[Native Hang Detect] hang_detect_counter:%d, ",
 					atomic_read(&hang_detect_counter));
 				up(&hang_detect_sema);
-				/* wait for wdh 40s and log saving */
-				msleep(40 * 1000);
+				/* wait for wdh 80s and log saving */
+				msleep(80 * 1000);
 				/* check hang_detect_counter before panic */
 				if (atomic_add_negative(0, &hang_detect_counter)) {
 					pr_emerg("we should trigger panic...\n");
