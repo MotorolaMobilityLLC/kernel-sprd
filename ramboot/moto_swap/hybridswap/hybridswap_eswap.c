@@ -4684,16 +4684,30 @@ void hybridswap_record(struct zram *zram, u32 index,
 
 void hybridswap_untrack(struct zram *zram, u32 index)
 {
+	unsigned int cnt = 0;
+	bool break_flag = false;
+
 	if (!hybridswap_core_enabled())
 		return;
 
 	while (zram_test_flag(zram, index, ZRAM_UNDER_WB) ||
 			zram_test_flag(zram, index, ZRAM_BATCHING_OUT)) {
+
+		if (cnt > 900000){
+			break_flag = true;
+			break;
+		}
+
 		zram_slot_unlock(zram, index);
 		udelay(50);
 		zram_slot_lock(zram, index);
+		cnt++;
 	}
 
+	if (break_flag == true){
+		hybp(HYB_ERR, "wb:%lu out:%lu\n", zram_test_flag(zram, index, ZRAM_UNDER_WB), zram_test_flag(zram, index, ZRAM_BATCHING_OUT));
+		return;
+	}
 	hybridswap_swap_sorted_list_del(zram, index);
 }
 
