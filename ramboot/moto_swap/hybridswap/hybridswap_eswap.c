@@ -4,7 +4,6 @@
  */
 
 #define pr_fmt(fmt) "moto_swap: " fmt
-#include <linux/bio.h>
 
 #include <linux/kernel.h>
 #include <linux/device.h>
@@ -2172,10 +2171,10 @@ static void eswap_clear(struct zram *zram, int eswapid)
 		return;
 	}
 
-	index = kzalloc(sizeof(int) * ESWAP_MAX_OBJ_CNT, GFP_NOIO);
+	index = kzalloc(sizeof(int) * ESWAP_MAX_OBJ_CNT, GFP_ATOMIC);
 	if (!index)
 		index = kzalloc(sizeof(int) * ESWAP_MAX_OBJ_CNT,
-				GFP_NOIO | __GFP_NOFAIL);
+				GFP_ATOMIC | __GFP_NOFAIL);
 
 	cnt = swap_maps_fetch_eswap_index(zram->infos, eswapid, index);
 
@@ -2830,16 +2829,6 @@ void swap_sorted_list_add(struct zram *zram, u32 index, struct mem_cgroup *memcg
 		hybp(HYB_ERR, "WB object, index = %d\n", index);
 		return;
 	}
-#ifdef CONFIG_HYBRIDSWAP_ASYNC_COMPRESS
-	if (zram_test_flag(zram, index, ZRAM_CACHED)) {
-		hybp(HYB_ERR, "CACHED object, index = %d\n", index);
-		return;
-	}
-	if (zram_test_flag(zram, index, ZRAM_CACHED_COMPRESS)) {
-		hybp(HYB_ERR, "CACHED_COMPRESS object, index = %d\n", index);
-		return;
-	}
-#endif
 	if (zram_test_flag(zram, index, ZRAM_SAME))
 		return;
 
@@ -2881,16 +2870,6 @@ void swap_sorted_list_add_tail(struct zram *zram, u32 index, struct mem_cgroup *
 		hybp(HYB_ERR, "WB object, index = %d\n", index);
 		return;
 	}
-#ifdef CONFIG_HYBRIDSWAP_ASYNC_COMPRESS
-	if (zram_test_flag(zram, index, ZRAM_CACHED)) {
-		hybp(HYB_ERR, "CACHED object, index = %d\n", index);
-		return;
-	}
-	if (zram_test_flag(zram, index, ZRAM_CACHED_COMPRESS)) {
-		hybp(HYB_ERR, "CACHED_COMPRESS object, index = %d\n", index);
-		return;
-	}
-#endif
 	if (zram_test_flag(zram, index, ZRAM_SAME))
 		return;
 
