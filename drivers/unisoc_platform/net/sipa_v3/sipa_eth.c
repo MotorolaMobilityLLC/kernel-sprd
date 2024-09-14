@@ -349,9 +349,10 @@ static int sipa_eth_probe(struct platform_device *pdev)
 	}
 
 	/* If net_device's type is ARPHRD_PUREIP, will cause problems with clat464 scenario.
-	 * So set the sipa_eth net_device's type to ARPHRD_RAWIP here.
+	 * So set the sipa_eth net_device's type to ARPHRD_RAWIP here. ARPHRD_NONE can meet
+     * clat64 and use GSNN suffix.
 	 */
-	netdev->type = ARPHRD_RAWIP;
+	netdev->type = ARPHRD_NONE;
 	netdev->flags |= IFF_NOARP;
 
 	sipa_eth = netdev_priv(netdev);

@@ -988,9 +988,10 @@ static int seth_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	}
 	/* If net_device's type is ARPHRD_PUREIP, will cause problems with clat464 scenario.
-	 * So set the seth net_device's type to ARPHRD_RAWIP here.
+	 * So set the seth net_device's type to ARPHRD_RAWIP here.ARPHRD_NONE can meet
+     * clat464 and use GSNN suffix.
 	 */
-	netdev->type = ARPHRD_RAWIP;
+	netdev->type = ARPHRD_NONE;
 	netdev->flags |= IFF_NOARP;
 
 	seth = netdev_priv(netdev);
