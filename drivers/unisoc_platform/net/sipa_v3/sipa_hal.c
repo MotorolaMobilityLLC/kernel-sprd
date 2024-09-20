@@ -627,6 +627,16 @@ int sipa_hal_reclaim_unuse_node(struct device *dev,
 	return ipa->fifo_ops.reclaim_cmn_fifo(fifo_id, ipa->cmn_fifo_cfg);
 }
 
+int sipa_hal_reclaim_unuse_intr(struct device *dev,
+				enum sipa_cmn_fifo_index fifo_id)
+{
+	struct sipa_plat_drv_cfg *ipa = dev_get_drvdata(dev);
+
+	return ipa->fifo_ops.traverse_int_bit(fifo_id,
+					      ipa->cmn_fifo_cfg,
+					      0);
+}
+
 int sipa_hal_put_node_to_rx_fifo(struct device *dev,
 				 enum sipa_cmn_fifo_index fifo_id,
 				 struct sipa_node_desc_tag *node,

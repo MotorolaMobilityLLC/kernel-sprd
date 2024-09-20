@@ -1297,6 +1297,27 @@ static int ipa_put_pkt_to_tx_fifo(struct sipa_cmn_fifo_cfg_tag *fifo_cfg,
 	return num;
 }
 
+static int ipa_relm_tx_fifo_unread_free_node(struct sipa_cmn_fifo_cfg_tag *fifo_cfg,
+					     u32 tx_rptr, u32 tx_wptr,
+					     u32 rx_rptr, u32 rx_wptr)
+{
+	u32 depth;
+
+	depth = (tx_wptr - tx_rptr) & (fifo_cfg->rx_fifo.depth - 1);
+
+	/* Ensure that data copy completion before we update rptr/wptr */
+	smp_wmb();
+
+	tx_rptr = tx_wptr;
+	if (ipa_phy_update_tx_fifo_rptr(fifo_cfg->fifo_reg_base,
+					tx_rptr)) {
+		pr_err("sipa reclaim update tx_fifo free node rptr failed\n");
+		return -EIO;
+	}
+
+	return 0;
+}
+
 static int ipa_relm_tx_fifo_unread_node(struct sipa_cmn_fifo_cfg_tag *fifo_cfg,
 					u32 tx_rptr, u32 tx_wptr,
 					u32 rx_rptr,  u32 rx_wptr)
@@ -2320,6 +2341,7 @@ static int ipa_cmn_fifo_phy_add_rx_fifo_wptr(enum sipa_cmn_fifo_index id,
 static int ipa_cmn_fifo_phy_reclaim_cmn_fifo(enum sipa_cmn_fifo_index id,
 					     struct sipa_cmn_fifo_cfg_tag *b)
 {
+	int ret = 0;
 	u32 tx_rptr, tx_wptr, rx_wptr, rx_rptr;
 	struct sipa_cmn_fifo_cfg_tag *fifo_cfg;
 
@@ -2337,14 +2359,35 @@ static int ipa_cmn_fifo_phy_reclaim_cmn_fifo(enum sipa_cmn_fifo_index id,
 	tx_rptr = ipa_phy_get_tx_fifo_rptr(fifo_cfg->fifo_reg_base);
 	tx_wptr = ipa_phy_get_tx_fifo_wptr(fifo_cfg->fifo_reg_base);
 
-	if (tx_wptr != tx_rptr)
-		return ipa_relm_tx_fifo_unread_node(fifo_cfg, tx_rptr, tx_wptr,
-						    rx_rptr, rx_wptr);
-	else if (tx_wptr != rx_wptr)
-		return ipa_relm_unfree_node(fifo_cfg, tx_rptr, tx_wptr,
-					    rx_rptr, rx_wptr);
+	pr_info("reclaim %d start, rx_rptr = 0x%x, rx_wptr = 0x%x, tx_rptr = 0x%x, tx_wptr = 0x%x\n",
+		id, rx_rptr, rx_wptr, tx_rptr, tx_wptr);
 
-	return 0;
+	if (id >= SIPA_FIFO_USB_DL) {
+		if (tx_wptr != tx_rptr)
+			ret = ipa_relm_tx_fifo_unread_node(fifo_cfg,
+							   tx_rptr, tx_wptr,
+							   rx_rptr, rx_wptr);
+		else if (tx_wptr != rx_wptr)
+			ret = ipa_relm_unfree_node(fifo_cfg, tx_rptr, tx_wptr,
+						   rx_rptr, rx_wptr);
+	}
+
+	if (id < SIPA_FIFO_USB_DL) {
+		if (tx_wptr != tx_rptr)
+			ret = ipa_relm_tx_fifo_unread_free_node(fifo_cfg,
+								tx_rptr, tx_wptr,
+								rx_rptr, rx_wptr);
+	}
+
+	rx_rptr = ipa_phy_get_rx_fifo_rptr(fifo_cfg->fifo_reg_base);
+	rx_wptr = ipa_phy_get_rx_fifo_wptr(fifo_cfg->fifo_reg_base);
+	tx_rptr = ipa_phy_get_tx_fifo_rptr(fifo_cfg->fifo_reg_base);
+	tx_wptr = ipa_phy_get_tx_fifo_wptr(fifo_cfg->fifo_reg_base);
+
+	pr_info("reclaim %d end, rx_rptr = 0x%x, rx_wptr = 0x%x, tx_rptr = 0x%x, tx_wptr = 0x%x\n",
+		id, rx_rptr, rx_wptr, tx_rptr, tx_wptr);
+
+	return ret;
 }
 
 static int ipa_cmn_fifo_traverse_int_bit(enum sipa_cmn_fifo_index id,
@@ -2364,7 +2407,9 @@ static int ipa_cmn_fifo_traverse_int_bit(enum sipa_cmn_fifo_index id,
 	int_status &= IPA_INT_INT_STS_GROUP;
 
 	if (!int_status) {
-		ipa_cfg->fifo_irq_callback(ipa_cfg->priv, int_status, id, irq);
+		if (ipa_cfg->fifo_irq_callback)
+			ipa_cfg->fifo_irq_callback(ipa_cfg->priv, int_status,
+						   id, irq);
 		return 0;
 	}
 

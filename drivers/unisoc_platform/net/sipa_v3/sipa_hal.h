@@ -49,6 +49,8 @@ int sipa_hal_get_cmn_fifo_filled_depth(struct device *dev,
 void sipa_hal_enable_pcie_dl_dma(struct device *dev, bool eb);
 int sipa_hal_reclaim_unuse_node(struct device *dev,
 				enum sipa_cmn_fifo_index fifo_id);
+int sipa_hal_reclaim_unuse_intr(struct device *dev,
+				enum sipa_cmn_fifo_index fifo_id);
 void sipa_prepare_modem_power_off(void);
 void sipa_prepare_modem_power_on(void);
 int sipa_hal_put_node_to_rx_fifo(struct device *dev,

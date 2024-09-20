@@ -779,11 +779,18 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 		return -EPROBE_DEFER;
 	}
 
-	dev_dbg(ipa->dev, "%s ep id is %d\n", __func__, in->id);
+	dev_info(ipa->dev, "sipa pam connect ep id %d start\n", in->id);
 
 	sipa_set_enabled(true);
 	ep->connected = true;
 	ep->suspended = false;
+
+	if (ep->id == SIPA_EP_USB) {
+		sipa_hal_reclaim_unuse_node(ipa->dev,
+					    ep->send_fifo.idx);
+		sipa_hal_reclaim_unuse_intr(ipa->dev,
+					    ep->send_fifo.idx);
+	}
 
 	if (ipa->suspend_stage)
 		sipa_resume_for_pam(ipa->dev);
@@ -831,6 +838,8 @@ int sipa_pam_connect(const struct sipa_connect_params *in)
 
 set_recv:
 	sipa_hal_cmn_fifo_stop_recv(ipa->dev, ep->recv_fifo.idx, false);
+
+	dev_info(ipa->dev, "sipa pam connect ep id %d end\n", in->id);
 
 	return 0;
 }
@@ -946,6 +955,9 @@ int sipa_disconnect(enum sipa_ep_id ep_id, enum sipa_disconnect_id stage)
 		return -ENODEV;
 	}
 
+	dev_info(ipa->dev, "sipa pam disconnect ep id %d, start stage = %d\n",
+		 ep_id, stage);
+
 	ep->connected = false;
 	ep->send_notify = NULL;
 	ep->send_priv = 0;
@@ -960,15 +972,25 @@ int sipa_disconnect(enum sipa_ep_id ep_id, enum sipa_disconnect_id stage)
 		break;
 	case SIPA_DISCONNECT_END:
 		ep->suspended = true;
-		if (ep->id == SIPA_EP_USB)
+		if (ep->id == SIPA_EP_USB) {
 			sipa_hal_reclaim_unuse_node(ipa->dev,
 						    ep->recv_fifo.idx);
+			sipa_hal_reclaim_unuse_node(ipa->dev,
+						    ep->send_fifo.idx);
+			sipa_hal_reclaim_unuse_intr(ipa->dev,
+						    ep->recv_fifo.idx);
+			sipa_hal_reclaim_unuse_intr(ipa->dev,
+						    ep->send_fifo.idx);
+		}
 		sipa_set_enabled(false);
 		break;
 	default:
 		dev_err(ipa->dev, "don't have this stage\n");
 		return -EPERM;
 	}
+
+	dev_info(ipa->dev, "sipa pam disconnect ep id %d, end stage = %d\n",
+		 ep_id, stage);
 
 	return 0;
 }
