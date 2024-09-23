@@ -263,6 +263,7 @@ struct upm6920_charger_info {
 
 	char charge_ic_vendor_name[50];
 	int chip_type;
+	bool is_sc89890;
 };
 
 struct upm6920_charger_reg_tab {
@@ -496,12 +497,27 @@ upm6920_charger_set_termina_cur(struct upm6920_charger_info *info, u32 cur)
 {
 	u8 reg_val;
 
-	if (cur < REG05_ITERM_MIN)
-	    cur = REG05_ITERM_MIN;
-	else if (cur > REG05_ITERM_MAX)
-	    cur = REG05_ITERM_MAX;
+	if(info->is_sc89890)
+	{
+		if (cur < 60)
+		    cur = 60;
+		else if (cur > 930)
+		    cur = 930;
 
-	reg_val = (cur - REG05_ITERM_BASE) / REG05_ITERM_LSB;
+		reg_val = (cur - 30) / 60;
+
+	}
+	else{
+
+		if (cur < REG05_ITERM_MIN)
+		    cur = REG05_ITERM_MIN;
+		else if (cur > REG05_ITERM_MAX)
+		    cur = REG05_ITERM_MAX;
+
+		reg_val = (cur - REG05_ITERM_BASE) / REG05_ITERM_LSB;
+
+	}
+
 
 	dev_info(info->dev, "%s:line%d: set termina cur = %d\n", __func__, __LINE__, cur);
 
@@ -614,6 +630,7 @@ static int upm6920_charger_hw_init(struct upm6920_charger_info *info)
 
 	ret = upm6920_update_bits(info, UPM6920_REG_7, 0x08, 0);
 	ret = upm6920_update_bits(info, UPM6920_REG_6, 0x01, 0); //recharge  0:100mv 1:200mv
+	ret = upm6920_update_bits(info, UPM6920_REG_A, 0x07, 0x02); //Iboost 1.2A
 
 	ret = upm6920_charger_enable_wdg(info, false);
 
@@ -761,15 +778,22 @@ static int upm6920_charger_set_current(struct upm6920_charger_info *info, u32 cu
 
 	dev_info(info->dev, "%s:%d;\n", __func__, cur/1000);
 
-    
 	cur = cur / 1000;
-	if (cur < REG04_ICC_MIN) {
-	    cur= REG04_ICC_MIN;
-	} else if (cur > REG04_ICC_MAX) {
-	    cur = REG04_ICC_MAX;
-	}
 
-	reg_val = (cur - REG04_ICC_BASE) / REG04_ICC_LSB;
+	if(info->is_sc89890)
+	{
+		if (cur > 5040) 
+		    cur = 5040;
+		reg_val = cur  / 60;
+	}
+	else
+	{
+		if (cur < REG04_ICC_MIN) 
+		    cur= REG04_ICC_MIN;
+		 else if (cur > REG04_ICC_MAX)
+		    cur = REG04_ICC_MAX;
+		reg_val = (cur - REG04_ICC_BASE) / REG04_ICC_LSB;
+	}
 
 	return upm6920_update_bits(info, UPM6920_REG_4, REG04_ICC_MASK, 
 	                reg_val << REG04_ICC_SHIFT);
@@ -787,7 +811,10 @@ static int upm6920_charger_get_current(struct upm6920_charger_info *info, u32 *c
 
 	reg_val = (reg_val & REG04_ICC_MASK) >> REG04_ICC_SHIFT;
 
-	*cur = (reg_val * REG04_ICC_LSB + REG04_ICC_BASE) * 1000;
+	if(info->is_sc89890)
+		*cur = reg_val * 60  * 1000;
+	else
+		*cur = (reg_val * REG04_ICC_LSB + REG04_ICC_BASE) * 1000;
 
 	return 0;
 }
@@ -1989,6 +2016,13 @@ static int upm6920_charger_probe(struct i2c_client *client,
 		strncpy(info->charge_ic_vendor_name,"UPM6920",20);
 		info->chip_type = CHIP_UPM6920;
 	}
+	else if (  ret >=0  &&  ((val & 0x38) == 0x20) )
+	{
+		strncpy(info->charge_ic_vendor_name,"SC89890H",20);
+		info->chip_type = CHIP_UPM6920;
+		info->is_sc89890 = true;
+	}
+	
 	else	
 	{
 		dev_err(dev, "%s;exit;\n",__func__);
@@ -2192,6 +2226,7 @@ static void upm6920_charger_shutdown(struct i2c_client *client)
 			dev_err(info->dev,
 				"enable charger detection function failed ret = %d\n", ret);
 	}
+	upm6920_charger_set_power_path_status(info, true);
 	info->shutdown_flag = true;
 }
 
