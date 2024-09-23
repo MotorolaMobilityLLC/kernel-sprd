@@ -44,7 +44,6 @@ module_param_named(prefetch_cluster, dm_verity_prefetch_cluster, uint, S_IRUGO |
 struct dm_verity_prefetch_work {
 	struct work_struct work;
 	struct dm_verity *v;
-	unsigned short ioprio;
 	sector_t block;
 	unsigned n_blocks;
 };
@@ -283,12 +282,10 @@ static int verity_verify_level(struct dm_verity *v, struct dm_verity_io *io,
 	int r;
 	sector_t hash_block;
 	unsigned offset;
-	struct bio *bio = dm_bio_from_per_bio_data(io, v->ti->per_io_data_size);
 
 	verity_hash_at_level(v, block, level, &hash_block, &offset);
 
-	data = dm_bufio_read_with_ioprio(v->bufio, hash_block,
-					 &buf, bio_prio(bio));
+	data = dm_bufio_read(v->bufio, hash_block, &buf);
 	if (IS_ERR(data))
 		return PTR_ERR(data);
 
@@ -628,16 +625,14 @@ static void verity_prefetch_io(struct work_struct *work)
 				hash_block_end = v->hash_blocks - 1;
 		}
 no_prefetch_cluster:
-		dm_bufio_prefetch_with_ioprio(v->bufio, hash_block_start,
-					hash_block_end - hash_block_start + 1,
-					pw->ioprio);
+		dm_bufio_prefetch(v->bufio, hash_block_start,
+				  hash_block_end - hash_block_start + 1);
 	}
 
 	kfree(pw);
 }
 
-static void verity_submit_prefetch(struct dm_verity *v, struct dm_verity_io *io,
-				   unsigned short ioprio)
+static void verity_submit_prefetch(struct dm_verity *v, struct dm_verity_io *io)
 {
 	sector_t block = io->block;
 	unsigned int n_blocks = io->n_blocks;
@@ -665,7 +660,6 @@ static void verity_submit_prefetch(struct dm_verity *v, struct dm_verity_io *io,
 	pw->v = v;
 	pw->block = block;
 	pw->n_blocks = n_blocks;
-	pw->ioprio = ioprio;
 	queue_work(v->verify_wq, &pw->work);
 }
 
@@ -708,7 +702,7 @@ static int verity_map(struct dm_target *ti, struct bio *bio)
 
 	verity_fec_init_io(io);
 
-	verity_submit_prefetch(v, io, bio_prio(bio));
+	verity_submit_prefetch(v, io);
 
 	submit_bio_noacct(bio);
 
