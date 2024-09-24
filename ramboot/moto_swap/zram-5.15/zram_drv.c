@@ -567,7 +567,7 @@ static ssize_t writeback_store(struct device *dev,
 	struct page *page;
 	ssize_t ret = len;
 	int mode, err;
-	unsigned long element = 0;
+	unsigned long blk_idx = 0;
 
 	if (sysfs_streq(buf, "idle"))
 		mode = IDLE_WRITEBACK;
@@ -617,9 +617,9 @@ static ssize_t writeback_store(struct device *dev,
 		}
 		spin_unlock(&zram->wb_limit_lock);
 
-		if (!element) {
-			element = alloc_block_bdev(zram);
-			if (!element) {
+		if (!blk_idx) {
+			blk_idx = alloc_block_bdev(zram);
+			if (!blk_idx) {
 				ret = -ENOSPC;
 				break;
 			}
@@ -658,7 +658,7 @@ static ssize_t writeback_store(struct device *dev,
 
 		bio_init(&bio, &bio_vec, 1);
 		bio_set_dev(&bio, zram->bdev);
-		bio.bi_iter.bi_sector = element * (PAGE_SIZE >> 9);
+		bio.bi_iter.bi_sector = blk_idx * (PAGE_SIZE >> 9);
 		bio.bi_opf = REQ_OP_WRITE | REQ_SYNC;
 
 		bio_add_page(&bio, bvec.bv_page, bvec.bv_len,
@@ -702,8 +702,8 @@ static ssize_t writeback_store(struct device *dev,
 		zram_free_page(zram, index);
 		zram_clear_flag(zram, index, ZRAM_UNDER_WB);
 		zram_set_flag(zram, index, ZRAM_WB);
-		zram_set_element(zram, index, element);
-		element = 0;
+		zram_set_element(zram, index, blk_idx);
+		blk_idx = 0;
 		atomic64_inc(&zram->stats.pages_stored);
 		spin_lock(&zram->wb_limit_lock);
 		if (zram->wb_limit_enable && zram->bd_wb_limit > 0)
@@ -713,8 +713,8 @@ next:
 		zram_slot_unlock(zram, index);
 	}
 
-	if (element)
-		free_block_bdev(zram, element);
+	if (blk_idx)
+		free_block_bdev(zram, blk_idx);
 	__free_page(page);
 release_init_lock:
 	up_read(&zram->init_lock);
