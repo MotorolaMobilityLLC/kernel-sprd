@@ -173,6 +173,16 @@
 				const-offset = <3000>;
 			};
 
+			skin_sensor: skin-sensor {
+                                compatible = "sprd, skin-thermal";
+                                #thermal-sensor-cells = <0>;
+                                sensor-names = "back-thmzone",
+                                                "front-thmzone",
+                                                "left-thmzone",
+                                                "right-thmzone";
+                        };
+
+
 			fingerprint@0 {
 				compatible = "microarray,afs121";
 				fpint-gpios = <&eic_async 29 0>;
@@ -190,6 +200,10 @@
 
 &chosen {
 	bootargs_ext = "";
+};
+
+&skin_thmzone {
+        thermal-sensors = <&skin_sensor>;
 };
 
 &front_thmzone {
