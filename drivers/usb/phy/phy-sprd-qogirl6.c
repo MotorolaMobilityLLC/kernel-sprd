@@ -583,7 +583,7 @@ static int sprd_hsphy_vbus_notify(struct notifier_block *nb,
 	if (phy->shutdown)
 		return 0;
 
-	if (phy->is_host) {
+	if (usb_phy->last_event == USB_EVENT_ID) {
 		dev_info(phy->dev, "USB PHY is host mode\n");
 		return 0;
 	}
@@ -828,7 +828,9 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	dev_info(x->dev, "correct type is %x\n", type);
 	if (type != UNKNOWN_TYPE) {
 		x->chg_type = type;
-		usb_phy_notify_charger(x);
+		if (x->chg_type == SDP_TYPE || x->chg_type == CDP_TYPE)
+			usb_phy_set_charger_current(x, DEFAULT_CUR_MIN);
+		schedule_work(&x->chg_work);
 	}
 	return type;
 }

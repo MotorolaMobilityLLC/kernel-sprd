@@ -43,6 +43,7 @@ struct sprd_vchg_info {
 	struct wakeup_source *sprd_vchg_ws;
 	struct power_supply *psy;
 	struct sprd_vchg_ops *ops;
+	int usb_limit;
 	bool pd_extcon_enable;
 	bool pd_hard_reset;
 	bool typec_online;

@@ -156,7 +156,7 @@ struct tcpc_dev {
 	int (*set_cc)(struct tcpc_dev *dev, enum sprd_typec_cc_status cc);
 	int (*get_cc)(struct tcpc_dev *dev, enum sprd_typec_cc_status *cc1,
 		      enum sprd_typec_cc_status *cc2);
-	int (*set_swap)(struct tcpc_dev *dev, bool en, bool role);
+	int (*force_swich_rp_rd)(struct tcpc_dev *dev, enum typec_role pwr_role);
 	int (*set_typec_role)(struct tcpc_dev *tcpc,
 			      enum typec_port_type role,
 			      enum typec_data_role data);
@@ -176,6 +176,9 @@ struct tcpc_dev {
 			   const struct sprd_pd_message *msg);
 	int (*dp_altmode_notify)(struct tcpc_dev *dev, u32 vdo);
 	int (*reset_pd_rx_id)(struct tcpc_dev *dev);
+	int (*set_pd_tx_id)(struct tcpc_dev *dev, unsigned int tx_id);
+	int (*check_tx_goodcrc)(struct tcpc_dev *dev, bool check_tx_goodcrc);
+	int (*enable_tx_auto_retry)(struct tcpc_dev *dev, bool enable_auto_retry);
 };
 
 struct sprd_typec_device_ops {
@@ -190,12 +193,20 @@ struct sprd_typec_device_ops {
 	int (*set_typec_rp_rd)(enum sprd_typec_cc_status cc);
 	int (*set_typec_rp_level)(enum sprd_typec_cc_status cc);
 	void (*set_support_accessory_mode)(struct typec_port *port);
+	int (*typec_pr_swap_no_chk_detach)(bool on);
+	void (*set_typec_err_recovery_enter)(void);
+	void (*typec_notify_sink_ready_state)(void);
 };
 
 struct sprd_charger_ops {
 	const char *name;
 
 	void (*update_ac_usb_online)(bool is_pd_hub);
+	void (*negotiated_limit_current)(enum sprd_pd_pdo_type pdo_type,
+					 int req_vol_uv,
+					 int req_cur_ua,
+					 bool enable_limit);
+	void (*set_rp_limit_current)(int rp_limit);
 };
 
 enum sprd_tcpm_typec_pd_swap {
@@ -312,6 +323,7 @@ enum sprd_tcpm_state {
 	ERROR_RECOVERY,
 	PORT_RESET,
 	PORT_RESET_WAIT_OFF,
+	CHUNK_NOT_SUPP,
 };
 
 static const char * const sprd_tcpm_states[] = {
@@ -411,6 +423,7 @@ static const char * const sprd_tcpm_states[] = {
 	"ERROR_RECOVERY",
 	"PORT_RESET",
 	"PORT_RESET_WAIT_OFF",
+	"CHUNK_NOT_SUPP",
 };
 
 enum sprd_vdm_states {
@@ -431,6 +444,13 @@ enum sprd_pd_msg_request {
 	PD_MSG_CTRL_NOT_SUPP,
 	PD_MSG_DATA_SINK_CAP,
 	PD_MSG_DATA_SOURCE_CAP,
+	PD_MSG_CTRL_GET_REVISION,
+};
+
+enum sprd_pd_chunk_msg_request {
+	PD_CHUNK_MSG_NONE = 0,
+	PD_CHUNK_MSG_CTRL_GET_SINK_CAP_EXT,
+	PD_CHUNK_MSG_EXT_GET_BATTERY_CAP_EXT,
 };
 
 /* Events from low level driver */
@@ -438,6 +458,7 @@ enum sprd_pd_msg_request {
 #define SPRD_TCPM_CC_EVENT		BIT(0)
 #define SPRD_TCPM_VBUS_EVENT		BIT(1)
 #define SPRD_TCPM_RESET_EVENT		BIT(2)
+#define SPRD_TCPM_SOFT_RESET_EVENT	BIT(3)
 
 #define SPRD_LOG_BUFFER_ENTRIES		2048
 #define SPRD_LOG_BUFFER_ENTRY_SIZE	128
@@ -450,6 +471,12 @@ enum sprd_pd_msg_request {
 
 #define SPRD_SVID_DISCOVERY_MAX		16
 #define SPRD_ALTMODE_DISCOVERY_MAX	(SPRD_SVID_DISCOVERY_MAX * MODE_DISCOVERY_MAX)
+
+enum usb_pd_svdm_ver_minor {
+	SVDM_VER_MIMOR_0 = 0,
+	SVDM_VER_MIMOR_1 = 1,
+	SVDM_VER_MIMOR_MAX = SVDM_VER_MIMOR_1,
+};
 
 struct sprd_pd_mode_data {
 	int svid_index;		/* current SVID index		*/
@@ -488,7 +515,10 @@ struct sprd_tcpm_sysfs {
 	char *name;
 	struct attribute_group attr_g;
 	struct device_attribute attr_log_ctl;
-	struct attribute *attrs[2];
+	struct device_attribute attr_vbus_wait_ctl;
+	struct device_attribute attr_tcc_debounce_ctl;
+	struct device_attribute attr_first_pd_cap_delay_ctl;
+	struct attribute *attrs[5];
 
 	struct sprd_tcpm_port *port;
 };
@@ -539,6 +569,7 @@ struct sprd_tcpm_port {
 	int try_src_count;
 
 	enum sprd_pd_msg_request queued_message;
+	enum sprd_pd_chunk_msg_request queued_chunk_message;
 
 	enum sprd_tcpm_state enter_state;
 	enum sprd_tcpm_state prev_state;
@@ -555,7 +586,7 @@ struct sprd_tcpm_port {
 	struct kthread_work state_machine;
 	struct hrtimer vdm_state_machine_timer;
 	struct kthread_work vdm_state_machine;
-	struct delayed_work role_swap_work;
+	struct delayed_work chunk_msg_work;
 	bool state_machine_running;
 
 	struct completion tx_complete;
@@ -567,6 +598,8 @@ struct sprd_tcpm_port {
 	struct completion swap_complete;
 	int swap_status;
 
+	bool try_pr_swap;
+
 	unsigned int negotiated_rev;
 	unsigned int message_id;
 	unsigned int caps_count;
@@ -575,6 +608,7 @@ struct sprd_tcpm_port {
 	bool pd_capable;
 	bool explicit_contract;
 	unsigned int rx_msgid;
+	bool sink_in_hard_reset;
 
 	/* Partner capabilities/requests */
 	u32 sink_request;
@@ -648,16 +682,20 @@ struct sprd_tcpm_port {
 
 	/* power or data role swap */
 	bool role_swap_flag;
-	bool disable_typec_int;
-	bool swap_notify_typec;
 	bool power_role_swap;
 	bool data_role_swap;
 	bool drs_not_vdm;
 	bool power_role_swap_hard_reset;
 	bool can_power_data_role_swap;
+	bool set_rp_limint_en;
 	unsigned int data_role_send_count;
 
 	/* tcpm debug log*/
+	int vbus_wait;
+	int tcc_debounce;
+	int first_pd_cap_delay;
+	void *driver_data;
+	int (*get_vbus_ok)(void* driver_data);
 	struct dentry *dentry;
 	struct mutex logbuffer_lock;	/* log buffer access lock */
 	struct kthread_worker log_kworker;
@@ -677,9 +715,29 @@ struct sprd_tcpm_port {
 	bool log_output_running;
 	bool xts_limit_cur;
 
+	enum usb_pd_svdm_ver_minor default_svdm_ver_minor;
+	enum usb_pd_svdm_ver_minor negotiated_svdm_ver_minor;
+
+	bool negotiated_limit_ic_current;
+
+	int received_get_snk_cap_cnt;
+	bool received_bad_good_crc;
+	bool support_pd_cts;
+	bool support_usb_suspend;
+	bool partner_support_usb_suspend;
+
 	struct wakeup_source *pd_source_ws;
 	struct mutex keep_source_awake_mtx;
 	bool keep_source_awake;
+
+	bool bist_test_data;
+
+	/* chunk */
+	struct completion tx_chunk_request;
+	bool tx_chunk_msg;
+	u8 data[SPRD_PD_EXT_MAX_CHUNK_DATA];
+
+	u64 tx_complete_curr_time;
 };
 
 
@@ -720,6 +778,7 @@ void sprd_tcpm_pd_receive(struct sprd_tcpm_port *port,
 void sprd_tcpm_pd_transmit_complete(struct sprd_tcpm_port *port,
 				    enum sprd_tcpm_transmit_status status);
 void sprd_tcpm_pd_hard_reset(struct sprd_tcpm_port *port);
+void sprd_tcpm_pd_soft_reset(struct sprd_tcpm_port *port);
 void sprd_tcpm_tcpc_reset(struct sprd_tcpm_port *port);
 
 void sprd_tcpm_shutdown(struct sprd_tcpm_port *port);

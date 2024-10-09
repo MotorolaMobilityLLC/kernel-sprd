@@ -499,7 +499,6 @@ static void dwc3_sprd_chg_detect_work(struct work_struct *work)
 			sdwc->charging_mode = true;
 			sdwc->hs_phy->last_event = USB_EVENT_CHARGER;
 			sdwc->ss_phy->last_event = USB_EVENT_CHARGER;
-			break;
 		}
 
 		spin_unlock_irqrestore(&sdwc->lock, flags);
@@ -778,6 +777,9 @@ static void dwc3_sprd_evt_prepare_work(struct work_struct *work)
 
 	if (sdwc->charging_mode || boot_charging) {
 		spin_unlock_irqrestore(&sdwc->lock, flags);
+		if (sdwc->chg_type == SDP_TYPE)
+			usb_phy_set_charger_current(sdwc->ss_phy, 500);
+
 		dev_info(sdwc->dev, "don't need start hotplug_sm_work in charging mode\n");
 		return;
 	}

@@ -56,7 +56,7 @@
 #define RELAX_WAKE_LOCK_DELAY			(msecs_to_jiffies(8000))
 #define CHARGER_DETECT_DELAY			(msecs_to_jiffies(1000))
 #define VBUS_REG_CHECK_DELAY			(msecs_to_jiffies(1000))
-#define MUSB_RUNTIME_CHECK_DELAY		(msecs_to_jiffies(200))
+#define MUSB_RUNTIME_CHECK_DELAY		(msecs_to_jiffies(100))
 #define MUSB_UDC_START_CHECK_DELAY		(msecs_to_jiffies(50))
 #define MUSB_DATA_ENABLE_CHECK_DELAY		(msecs_to_jiffies(200))
 #define MUSB_CHG_WAIT_DETECT_DELAY		(msecs_to_jiffies(500))
@@ -1066,6 +1066,26 @@ static void sprd_musb_reset_context(struct musb *musb)
 	}
 }
 
+static void sprd_musb_reset_controller(struct sprd_glue *glue)
+{
+	struct musb *musb = glue->musb;
+	int ret = 0;
+	dev_info(glue->dev, "%s: enter\n", __func__);
+
+	spin_lock(&musb->lock);
+	usb_phy_vbus_off(glue->xceiv);
+	musb_sprd_disable_all_interrupts(musb);
+	usb_phy_shutdown(glue->xceiv);
+
+	spin_unlock(&musb->lock);
+
+	ret = usb_phy_init(glue->xceiv);
+	if (ret != 0)
+		dev_warn(glue->dev, "usb phy init abnormal %d\n", ret);
+
+	return;
+}
+
 #if IS_ENABLED(CONFIG_MUSB_SPRD_LOWPOWER)
 static bool musb_sprd_lowpower_configuration_onoff(struct sprd_glue *glue, int on)
 {
@@ -1409,16 +1429,7 @@ static int musb_sprd_otg_start_peripheral(struct sprd_glue *glue, int on)
 		musb_reset_all_fifo_2_default(musb);
 
 		usb_phy_vbus_off(glue->xceiv);
-		/*
-		 * Musb controller process go as device default.
-		 * From asic,controller will wait 150ms and then check vbus
-		 * if vbus is powered up.
-		 * Session reg effects relay on vbus checked ok while seted.
-		 * If not sleep,it will contine cost 150ms to check vbus ok
-		 * before session take effect.Which may cause session effect
-		 * timeout and usb switch to host failed Sometimes.
-		 */
-		msleep(150);
+
 		musb_sprd_start_gadget(musb);
 		usb_udc_vbus_handler(&musb->g, true);
 		flush_delayed_work(&musb->gadget_work);
@@ -1529,6 +1540,8 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 		/* Increment pm usage count in host state.*/
 		pm_runtime_get_sync(musb->controller);
 
+		usb_phy_vbus_on(glue->xceiv);
+
 		if (musb->port_mode != MUSB_HOST) {
 			ret = musb_host_setup(musb, plat->power);
 			if (ret) {
@@ -1548,22 +1561,12 @@ static int musb_sprd_otg_start_host(struct sprd_glue *glue, int on)
 			 */
 			dev_info(glue->dev, "host only mode\n");
 		}
+		dev_info(glue->dev, "%s: host setup done\n", __func__);
 		MUSB_HST_MODE(musb);
 		musb->xceiv->otg->state = OTG_STATE_A_IDLE;
 		musb->hops.host_start(musb);
 		musb_reset_all_fifo_2_default(musb);
 
-		usb_phy_vbus_on(glue->xceiv);
-		/*
-		 * Musb controller process go as device default.
-		 * From asic,controller will wait 150ms and then check vbus
-		 * if vbus is powered up.
-		 * Session reg effects relay on vbus checked ok while seted.
-		 * If not sleep,it will contine cost 150ms to check vbus ok
-		 * before session take effect.Which may cause session effect
-		 * timeout and usb switch to host failed Sometimes.
-		 */
-		msleep(150);
 		glue->dr_mode = USB_DR_MODE_HOST;
 		sprd_musb_enable(musb);
 	} else {
@@ -1627,7 +1630,6 @@ static void musb_sprd_chg_detect_work(struct work_struct *work)
 			dev_info(glue->dev, "boot charging mode enter!\n");
 			glue->charging_mode = true;
 			glue->xceiv->last_event = USB_EVENT_CHARGER;
-			break;
 		}
 		glue->chg_state = USB_CHG_STATE_DETECT;
 		fallthrough;
@@ -1829,6 +1831,9 @@ static void musb_sprd_resume_work(struct work_struct *work)
 	}
 
 	if (glue->charging_mode || boot_charging) {
+		if (glue->chg_type == SDP_TYPE)
+			usb_phy_set_charger_current(glue->xceiv, 500);
+
 		dev_info(glue->dev, "don't need start sm_work in charging mode\n");
 		return;
 	}
@@ -2039,6 +2044,22 @@ static void musb_sprd_otg_sm_work(struct work_struct *work)
 		break;
 	case DRD_STATE_RUNTIME_SUSPENDING:
 		if (!pm_runtime_suspended(glue->dev)) {
+			if (test_bit(B_SESS_VLD, &glue->inputs)) {
+				pm_runtime_get_sync(glue->musb->controller);
+				sprd_musb_reset_controller(glue);
+				pm_runtime_put_sync(glue->musb->controller);
+
+				glue->musb->is_active = 0;
+				glue->musb->xceiv->otg->default_a = 0;
+				glue->musb->xceiv->otg->state = OTG_STATE_B_IDLE;
+				MUSB_DEV_MODE(glue->musb);
+				glue->dr_mode = USB_DR_MODE_UNKNOWN;
+				glue->drd_state = DRD_STATE_IDLE;
+				rework = true;
+				dev_info(glue->dev, "skip DRD_STATE_RUNTIME_SUSPENDING\n");
+				break;
+			}
+
 			dev_info(glue->dev, "waiting glue suspended\n");
 			rework = true;
 			delay = MUSB_RUNTIME_CHECK_DELAY;

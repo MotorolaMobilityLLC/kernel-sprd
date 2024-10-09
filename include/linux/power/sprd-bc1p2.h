@@ -46,7 +46,7 @@
 #define SPRD_CHG_BC1P2_REDET_DISABLE	0
 
 #define SPRD_CHG_VBUS_DEBOUNCE		250
-#define SPRD_CHG_INT_DELAY_MS		128
+#define SPRD_CHG_INT_DELAY_MS		64
 #define SPRD_CHG_BC1P2_DETECT_TIME	680
 #define SPRD_CHG_DET_POLL_DELAY		20
 #define SPRD_CHG_VBUS_POLL_COUNT	13
@@ -62,6 +62,7 @@
 #define SPRD_ERROR_REGMAP_READ		2
 #define SPRD_ERROR_CHARGER_INIT		3
 #define SPRD_ERROR_CHARGER_DETDONE	4
+#define DEFAULT_CUR_MIN	66
 
 /* Default current range by charger type. */
 #define DEFAULT_SDP_CUR_MIN	2
@@ -121,8 +122,6 @@ extern void sprd_usb_changed(struct sprd_bc1p2_priv *bc1p2_info, enum usb_charge
 extern int usb_add_bc1p2_init(struct sprd_bc1p2_priv *bc1p2_info, struct usb_phy *x);
 extern void usb_remove_bc1p2(struct sprd_bc1p2_priv *bc1p2_info);
 extern void usb_shutdown_bc1p2(struct sprd_bc1p2_priv *bc1p2_info);
-extern void usb_phy_notify_charger(struct usb_phy *x);
-
 extern enum usb_charger_type sprd_bc1p2_charger_detect(struct usb_phy *x);
 extern enum usb_charger_type sprd_bc1p2_retry_detect(struct usb_phy *x);
 
@@ -135,8 +134,6 @@ static inline int usb_add_bc1p2_init(struct sprd_bc1p2_priv *bc1p2_info, struct 
 }
 static inline void usb_remove_bc1p2(struct sprd_bc1p2_priv *bc1p2_info) {}
 static inline void usb_shutdown_bc1p2(struct sprd_bc1p2_priv *bc1p2_info) {}
-static inline void usb_phy_notify_charger(struct usb_phy *x) {}
-
 static inline enum usb_charger_type sprd_bc1p2_charger_detect(struct usb_phy *x)
 {
 	return UNKNOWN_TYPE;

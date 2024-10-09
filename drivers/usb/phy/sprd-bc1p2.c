@@ -231,29 +231,24 @@ enum usb_charger_type sprd_bc1p2_retry_detect(struct usb_phy *x)
 }
 EXPORT_SYMBOL_GPL(sprd_bc1p2_retry_detect);
 
-static void usb_phy_set_default_current(struct usb_phy *x)
-{
-	x->chg_cur.sdp_min = DEFAULT_SDP_CUR_MIN;
-	x->chg_cur.sdp_max = DEFAULT_SDP_CUR_MAX;
-	x->chg_cur.dcp_min = DEFAULT_DCP_CUR_MIN;
-	x->chg_cur.dcp_max = DEFAULT_DCP_CUR_MAX;
-	x->chg_cur.cdp_min = DEFAULT_CDP_CUR_MIN;
-	x->chg_cur.cdp_max = DEFAULT_CDP_CUR_MAX;
-	x->chg_cur.aca_min = DEFAULT_ACA_CUR_MIN;
-	x->chg_cur.aca_max = DEFAULT_ACA_CUR_MAX;
-}
-
 static void sprd_bc1p2_notify_charger(struct usb_phy *x)
 {
 	switch (bc1p2->detect_state) {
-	case CHG_STATE_DETECTED:
 	case CHG_STATE_UNDETECT:
-		usb_phy_notify_charger(x);
+	case CHG_STATE_DETECTED:
+		if (x->chg_type == SDP_TYPE)
+			usb_phy_set_charger_current(x, DEFAULT_CUR_MIN);
+		schedule_work(&x->chg_work);
+		break;
+	case CHG_STATE_RETRY_DETECT:
+		if (bc1p2->retry_chg_detect_count == 0 && x->chg_type == UNKNOWN_TYPE)
+			schedule_work(&x->chg_work);
 		break;
 	case CHG_STATE_RETRY_DETECTED:
-		if (x->chg_type == UNKNOWN_TYPE)
-			return;
-		usb_phy_notify_charger(x);
+		if (x->chg_type == SDP_TYPE)
+			usb_phy_set_charger_current(x, DEFAULT_CUR_MIN);
+		if (x->chg_type != UNKNOWN_TYPE)
+			schedule_work(&x->chg_work);
 		break;
 	default:
 		break;
@@ -478,29 +473,6 @@ void usb_shutdown_bc1p2(struct sprd_bc1p2_priv *bc1p2_info)
 	}
 }
 EXPORT_SYMBOL_GPL(usb_shutdown_bc1p2);
-
-void usb_phy_notify_charger(struct usb_phy *x)
-{
-	unsigned int min = 0, max = 0;
-
-	switch (x->chg_state) {
-	case USB_CHARGER_PRESENT:
-		usb_phy_get_charger_current(x, &min, &max);
-		atomic_notifier_call_chain(&x->notifier, max, x);
-		break;
-	case USB_CHARGER_ABSENT:
-		usb_phy_set_default_current(x);
-		atomic_notifier_call_chain(&x->notifier, 0, x);
-		break;
-	default:
-		dev_warn(x->dev, "Unknown USB charger state: %d\n",
-			 x->chg_state);
-		return;
-	}
-
-	kobject_uevent(&x->dev->kobj, KOBJ_CHANGE);
-}
-EXPORT_SYMBOL_GPL(usb_phy_notify_charger);
 
 static int sprd_bc1p2_probe(struct platform_device *pdev)
 {

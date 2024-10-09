@@ -76,6 +76,7 @@ enum cm_event_types {
 	CM_EVENT_BATT_COLD,
 	CM_EVENT_EXT_PWR_IN_OUT,
 	CM_EVENT_CHG_START_STOP,
+	CM_EVENT_UPDATE_USB_LIMINT,
 	CM_EVENT_WL_CHG_START_STOP,
 	CM_EVENT_FAST_CHARGE,
 	CM_EVENT_INT,
@@ -119,6 +120,12 @@ enum cm_charge_status {
 	CM_CHARGE_HEALTH_ABNORMAL = BIT(3),
 	CM_CHARGE_DURATION_ABNORMAL = BIT(4),
 	CM_CHARGE_BATT_OVERVOLTAGE = BIT(5),
+};
+
+enum cm_charge_limit_status {
+	CM_CHARGE_USB_LIMIT_CMD = BIT(0),
+	CM_CHARGE_RP_LIMIT_CMD = BIT(1),
+	CM_CHARGE_PD_LIMIT_CMD = BIT(2),
 };
 
 enum cm_fast_charge_command {
@@ -777,6 +784,14 @@ struct charger_desc {
 	bool xts_limit_cur;
 	int adapter_max_vbus;
 
+	bool pd_enable_limit;
+  	bool pd_negotiated_stop_chg;
+	bool pd_negotiated_limit_cur;
+  	bool pd_negotiated_disable_power_path;
+	int pd_req_vol_uv;
+	int pd_req_cur_ua;
+	int rp_limit_current;
+	int limit_status;
 	u32 pd_port_partner;
 	u32 charge_type_poll_count;
 };
@@ -833,6 +848,8 @@ struct charger_manager {
 	struct delayed_work cp_work;
 	struct delayed_work ffc_work;
 	struct delayed_work charger_type_update_work;
+	struct work_struct limit_current_work;
+  	struct work_struct pd_negotiated_limit_current_work;
 	int emergency_stop;
 
 	char psy_name_buf[PSY_NAME_MAX + 1];

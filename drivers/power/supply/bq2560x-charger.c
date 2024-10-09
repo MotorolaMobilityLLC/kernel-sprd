@@ -165,6 +165,7 @@ struct bq2560x_charger_info {
 	bool charging;
 	bool need_disable_Q1;
 	int termination_cur;
+	int voltage_max_microvolt;
 	bool disable_wdg;
 	bool otg_enable;
 	unsigned int irq_gpio;
@@ -392,7 +393,7 @@ bq2560x_charger_set_termina_cur(struct bq2560x_charger_info *info, u32 cur)
 static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 {
 	struct sprd_battery_info bat_info = {};
-	int voltage_max_microvolt, termination_cur;
+	int termination_cur;
 	int ret;
 
 	ret = sprd_battery_get_battery_info(info->psy_usb, &bat_info);
@@ -413,7 +414,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		 * default charge termination current to 120 mA, and default
 		 * charge termination voltage to 4.44V.
 		 */
-		voltage_max_microvolt = 4440;
+		info->voltage_max_microvolt = 4440;
 		termination_cur = 120;
 		info->termination_cur = termination_cur;
 	} else {
@@ -428,7 +429,7 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		info->cur.fchg_limit = bat_info.cur.fchg_limit;
 		info->cur.fchg_cur = bat_info.cur.fchg_cur;
 
-		voltage_max_microvolt = bat_info.constant_charge_voltage_max_uv / 1000;
+		info->voltage_max_microvolt = bat_info.constant_charge_voltage_max_uv / 1000;
 		termination_cur = bat_info.charge_term_current_ua / 1000;
 		info->termination_cur = termination_cur;
 		sprd_battery_put_battery_info(info->psy_usb, &bat_info);
@@ -448,13 +449,13 @@ static int bq2560x_charger_hw_init(struct bq2560x_charger_info *info)
 		}
 	}
 
-	ret = bq2560x_charger_set_vindpm(info, voltage_max_microvolt);
+	ret = bq2560x_charger_set_vindpm(info, info->voltage_max_microvolt);
 	if (ret) {
 		dev_err(info->dev, "set bq2560x vindpm vol failed\n");
 		return ret;
 	}
 
-	ret = bq2560x_charger_set_termina_vol(info, voltage_max_microvolt);
+	ret = bq2560x_charger_set_termina_vol(info, info->voltage_max_microvolt);
 	if (ret) {
 		dev_err(info->dev, "set bq2560x terminal vol failed\n");
 		return ret;
@@ -589,7 +590,7 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info, bool 
 						  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
 			if (ret)
 				dev_err(info->dev, "enable HIZ mode failed\n");
-
+			dev_info(info->dev, "%s:line%d: enable HIZ\n", __func__, __LINE__);
 			info->need_disable_Q1 = false;
 		}
 
@@ -617,6 +618,7 @@ static void bq2560x_charger_stop_charge(struct bq2560x_charger_info *info, bool 
 	}
 
 	if (info->disable_power_path) {
+		dev_info(info->dev, "%s:line%d: enable HIZ\n", __func__, __LINE__);
 		ret = bq2560x_update_bits(info, BQ2560X_REG_0,
 					  BQ2560X_REG_EN_HIZ_MASK,
 					  0x01 << BQ2560X_REG_EN_HIZ_SHIFT);
@@ -686,6 +688,8 @@ static int bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 
 	if (limit_cur >= BQ2560X_LIMIT_CURRENT_MAX)
 		limit_cur = BQ2560X_LIMIT_CURRENT_MAX;
+	else if (limit_cur < BQ2560X_LIMIT_CURRENT_OFFSET)
+		limit_cur = BQ2560X_LIMIT_CURRENT_OFFSET;
 
 	info->last_limit_cur = limit_cur;
 	limit_cur -= BQ2560X_LIMIT_CURRENT_OFFSET;
@@ -698,6 +702,15 @@ static int bq2560x_charger_set_limit_current(struct bq2560x_charger_info *info,
 				  reg_val);
 	if (ret)
 		dev_err(info->dev, "set bq2560x limit cur failed\n");
+	if (limit_cur <= 100) {
+		ret = bq2560x_charger_set_vindpm(info, 5400);
+		if (ret)
+			dev_err(info->dev, "set bq2560x vindpm vol 5400 failed\n");
+	} else {
+		ret = bq2560x_charger_set_vindpm(info, info->voltage_max_microvolt);
+		if (ret)
+			dev_err(info->dev, "set bq2560x vindpm vol 4340 failed\n");
+	}
 
 	dev_info(info->dev, "set limit current reg_val = %#x, actual_limit_cur = %d\n",
 		 reg_val, info->actual_limit_cur);
@@ -738,9 +751,11 @@ static void bq2560x_dump_register(struct bq2560x_charger_info *info)
 	int i, ret, len, idx = 0;
 	u8 reg_val;
 	char buf[256];
+	int read_reg_cnt = 0;
 
 	memset(buf, '\0', sizeof(buf));
 	for (i = 0; i < BQ2560X_REG_NUM; i++) {
+retry_read_reg:
 		ret = bq2560x_read(info,  reg_tab[i].addr, &reg_val);
 		if (ret == 0) {
 			len = snprintf(buf + idx, sizeof(buf) - idx,
@@ -748,6 +763,14 @@ static void bq2560x_dump_register(struct bq2560x_charger_info *info)
 				       reg_tab[i].addr, reg_val);
 			idx += len;
 		}
+
+		/*
+		 * 8.3.9.3 Interrupt to Host:
+		 * To read the current fault status, the host has to read
+		 * REG09 two times consecutively.
+		 */
+		if (i == BQ2560X_REG_9 && !(read_reg_cnt++))
+			goto retry_read_reg;
 	}
 
 	dev_info(info->dev, "%s: %s", __func__, buf);

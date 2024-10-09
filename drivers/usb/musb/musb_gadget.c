@@ -1739,6 +1739,7 @@ static int musb_gadget_vbus_draw(struct usb_gadget *gadget, unsigned mA)
 {
 	struct musb	*musb = gadget_to_musb(gadget);
 
+	pr_info("%s %d %d\n", __func__, __LINE__, mA);
 	return usb_phy_set_power(musb->xceiv, mA);
 }
 

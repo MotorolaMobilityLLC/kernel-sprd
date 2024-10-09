@@ -98,6 +98,27 @@ static int sprd_vchg_change(struct notifier_block *nb, unsigned long limit, void
 	if (info->shutdown_flag)
 		return NOTIFY_OK;
 
+	if (info->use_typec_extcon) {
+		unsigned long usb_limit = limit * 1000;
+
+		if (info->usb_limit == usb_limit)
+			return NOTIFY_OK;
+
+		info->usb_limit = usb_limit;
+		pr_err("%s:line%d: %d\n", __func__, __LINE__, info->usb_limit);
+
+		if (info->usb_phy->chg_type != SDP_TYPE)
+			return NOTIFY_OK;
+
+		if (info->usb_phy->chg_state != USB_CHARGER_PRESENT) {
+			info->usb_limit = -EINVAL;
+			return NOTIFY_OK;
+		}
+
+		cm_notify_event(info->psy, CM_EVENT_UPDATE_USB_LIMINT, NULL);
+		return NOTIFY_OK;
+	}
+
 	if (info->usb_phy->chg_state == USB_CHARGER_PRESENT)
 		chgr_online = true;
 
@@ -341,14 +362,12 @@ static int sprd_vchg_detect_init(struct sprd_vchg_info *info, struct power_suppl
 	info->psy = psy;
 	INIT_WORK(&info->sprd_vchg_work, sprd_vchg_work);
 
-	if (!info->use_typec_extcon) {
-		info->usb_notify.notifier_call = sprd_vchg_change;
-		ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
-		if (ret) {
-			dev_err(dev, "%s:failed to register notifier:%d\n", SPRD_VCHG_TAG, ret);
-			ret = -EINVAL;
-			goto remove_wakeup;
-		}
+	info->usb_notify.notifier_call = sprd_vchg_change;
+	ret = usb_register_notifier(info->usb_phy, &info->usb_notify);
+	if (ret) {
+		dev_err(dev, "%s:failed to register notifier:%d\n", SPRD_VCHG_TAG, ret);
+		ret = -EINVAL;
+		goto remove_wakeup;
 	}
 
 #if IS_ENABLED(CONFIG_SC27XX_PD)

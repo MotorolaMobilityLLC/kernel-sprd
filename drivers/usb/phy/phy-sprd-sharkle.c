@@ -513,7 +513,9 @@ static enum usb_charger_type sprd_hsphy_retry_charger_detect(struct usb_phy *x)
 	dev_info(x->dev, "correct type is %x\n", type);
 	if (type != UNKNOWN_TYPE) {
 		x->chg_type = type;
-		usb_phy_notify_charger(x);
+		if (x->chg_type == SDP_TYPE || x->chg_type == CDP_TYPE)
+			usb_phy_set_charger_current(x, DEFAULT_CUR_MIN);
+		schedule_work(&x->chg_work);
 	}
 	return type;
 }

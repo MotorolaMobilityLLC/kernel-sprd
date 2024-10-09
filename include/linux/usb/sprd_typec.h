@@ -17,6 +17,7 @@ enum sc27xx_typec_pd_swap {
 
 #define	EXTCON_SINK         3
 #define	EXTCON_SOURCE       4
+#define EXTCON_RP_VALUE_CHANGE		13
 
 #if IS_ENABLED(CONFIG_USB_SC27XX_TYPEC)
 extern int sc27xx_get_dr_swap_executing(void);
