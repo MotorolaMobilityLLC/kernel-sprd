@@ -40,7 +40,7 @@
 
 #include "debug.h"
 
-#define DWC3_DEFAULT_AUTOSUSPEND_DELAY	500 /* ms */
+#define DWC3_DEFAULT_AUTOSUSPEND_DELAY	200 /* ms */
 
 /**
  * dwc3_get_dr_mode - Validates and sets dr_mode

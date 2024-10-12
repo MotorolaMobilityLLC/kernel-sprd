@@ -249,7 +249,7 @@ static inline void sprd_ssphy_reset_core(struct sprd_ssphy *phy)
 	 *Reset signal should hold on for a while
 	 *to issue resret process reliable.
 	 */
-	usleep_range(20000, 30000);
+	usleep_range(2000, 3000);
 	msk = MASK_IPA_APB_USB_SOFT_RST | MASK_IPA_APB_PAM_U3_SOFT_RST;
 	regmap_update_bits(phy->ipa_apb, REG_IPA_APB_IPA_RST, msk, 0);
 	msk = MASK_AON_APB_OTG_PHY_SOFT_RST | MASK_AON_APB_OTG_UTMI_SOFT_RST;

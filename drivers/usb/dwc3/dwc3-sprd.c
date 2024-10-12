@@ -611,7 +611,6 @@ static int dwc3_sprd_otg_start_peripheral(struct dwc3_sprd *sdwc, int on)
 
 		__pm_stay_awake(sdwc->wake_lock);
 		usb_phy_vbus_off(sdwc->ss_phy);
-		msleep(100);
 		pm_runtime_get_sync(dwc->dev);
 		/* phy set vbus connected after phy_init*/
 		usb_phy_notify_connect(sdwc->ss_phy, 0);
@@ -674,8 +673,8 @@ static int dwc3_sprd_otg_start_host(struct dwc3_sprd *sdwc, int on)
 	struct dwc3 *dwc = platform_get_drvdata(sdwc->dwc3);
 
 	if (!sdwc->vbus) {
-		sdwc->vbus= devm_regulator_get(sdwc->dev, "vbus");
-		if (IS_ERR_OR_NULL(sdwc->vbus)){
+		sdwc->vbus = devm_regulator_get(sdwc->dev, "vbus");
+		if (IS_ERR_OR_NULL(sdwc->vbus)) {
 			if (!sdwc->vbus)
 				return -EPERM;
 			else
@@ -1054,6 +1053,13 @@ static int usb_clk_prepare_disable(struct dwc3_sprd *sdwc)
 	clk_disable_unprepare(sdwc->ipa_usb31pll_clk);
 	return 0;
 }
+static void dwc3_notify_wait_udc_start_state(struct dwc3_sprd *sdwc)
+{
+    char *envp[] = { "wait_udc_start_state", NULL };
+
+    dev_info(sdwc->dev, "%s\n", __func__);
+    kobject_uevent_env(&sdwc->dev->kobj, KOBJ_CHANGE, envp);
+}
 
 /**
  * dwc3_sprd_hotplug_sm_work - workqueue function.
@@ -1120,17 +1126,6 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 			delay = DWC3_USB_ENABLE_CHECK_DELAY;
 			break;
 		}
-		/*
-		 * The follow ensure that UDC be setted as 25100000.dwc3
-		 * when phone startup with hub plug in. Or UDC would be
-		 * setted as musb_hdrc.1.auto
-		 */
-		if (!dwc3_sprd_is_udc_start(sdwc)) {
-			dev_info(sdwc->dev, "waiting dwc3 udc start\n");
-			rework = true;
-			delay = DWC3_UDC_START_CHECK_DELAY;
-			break;
-		}
 
 		if (!test_bit(ID, &sdwc->inputs)) {
 			dev_dbg(sdwc->dev, "!id\n");
@@ -1145,15 +1140,26 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 		} else if (test_bit(B_SESS_VLD, &sdwc->inputs)) {
 			dev_dbg(sdwc->dev, "b_sess_vld\n");
 			/*
-			 * Increment pm usage count upon cable connect. Count
-			 * is decremented in DRD_STATE_PERIPHERAL state on
-			 * cable disconnect or in bus suspend.
-			 */
-			if (!pm_runtime_suspended(dwc->dev)) {
+			* The follow ensure that UDC be setted as 25100000.dwc3
+			* when phone startup with hub plug in. Or UDC would be
+			* setted as musb_hdrc.1.auto
+			*/
+			if (!dwc3_sprd_is_udc_start(sdwc)) {
+				dev_info(sdwc->dev, "waiting dwc3 udc start\n");
+				dwc3_notify_wait_udc_start_state(sdwc);
+				rework = true;
+				delay = DWC3_UDC_START_CHECK_DELAY;
+				break;
+			} else if (!pm_runtime_suspended(dwc->dev)) {
 				dev_info(sdwc->dev, "waiting dwc3 suspended\n");
 				rework = true;
 				delay = DWC3_RUNTIME_CHECK_DELAY;
 			} else {
+				/*
+				* Increment pm usage count upon cable connect. Count
+				* is decremented in DRD_STATE_PERIPHERAL state on
+				* cable disconnect or in bus suspend.
+				*/
 				pm_runtime_get_sync(sdwc->dev);
 				if (sdwc->use_pdhub_c2c)
 					call_sprd_usbphy_event_notifiers(SPRD_USBPHY_EVENT_TYPEC,
@@ -1428,7 +1434,7 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 	if (IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE) ||
 		IS_ENABLED(CONFIG_USB_DWC3_HOST)) {
 		sdwc->vbus = devm_regulator_get(dev, "vbus");
-		if (IS_ERR(sdwc->vbus)){
+		if (IS_ERR(sdwc->vbus)) {
 			dev_warn(dev, "unable to get vbus supply\n");
 			sdwc->vbus = NULL;
 		}
@@ -1497,6 +1503,9 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 	else
 		usb_mode = "DRD";
 
+	usb_phy_init(sdwc->hs_phy);
+	usb_phy_init(sdwc->ss_phy);
+
 	ret = devm_of_platform_populate(&pdev->dev);
 	if (ret) {
 		dev_err(dev, "failed to add create dwc3 core\n");
@@ -1518,6 +1527,7 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		goto err_susp_clk;
 	}
 
+	dwc->glue_phy = sdwc->ss_phy;
 	sdwc->usb_data_enabled = true;
 	ret = dwc3_sprd_usb_notify_init(pdev, sdwc);
 	if (ret) {

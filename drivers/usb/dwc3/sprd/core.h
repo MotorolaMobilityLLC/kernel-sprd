@@ -1136,6 +1136,7 @@ struct dwc3 {
 
 	struct usb_phy		*usb2_phy;
 	struct usb_phy		*usb3_phy;
+	struct usb_phy		*glue_phy;
 
 	struct phy		*usb2_generic_phy;
 	struct phy		*usb3_generic_phy;

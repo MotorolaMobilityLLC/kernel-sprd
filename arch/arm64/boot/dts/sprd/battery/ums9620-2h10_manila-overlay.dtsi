@@ -425,10 +425,11 @@
 		label = "USB-C";
 		power-role = "dual";
 		try-power-role = "sink";
-		source-pdos = <PDO_FIXED(5000, 400, PDO_FIXED_USB_COMM |
-				PDO_FIXED_DUAL_ROLE | PDO_FIXED_DATA_SWAP)>;
-		sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)>;
-			//	PDO_PPS_APDO(3300, 11000, 3000)>;
+		source-pdos = <PDO_FIXED(5000, 400, PDO_FIXED_USB_COMM | PDO_FIXED_SUSPEND |
+					 PDO_FIXED_DUAL_ROLE | PDO_FIXED_DATA_SWAP)>;
+		sink-pdos = <PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM | PDO_FIXED_DUAL_ROLE |
+				       PDO_FIXED_DATA_SWAP)>;
 		op-sink-microwatt = <10000000>;
+		sprd,support-pd-cts;
 	};
 };
