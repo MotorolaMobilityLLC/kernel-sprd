@@ -458,6 +458,22 @@
 		interrupt-parent = <&ap_gpio>;
 		interrupts = <169 IRQ_TYPE_LEVEL_LOW>;
 	};
+
+	// Speaker up
+	speaker_up: fs1815@34 {
+		compatible = "foursemi,fs1815";
+		reg = <0x34>;
+		fsm,rst-gpio = <&ap_gpio 181 0>;
+		status = "okay";
+	};
+
+	// Speaker down
+	speaker_down: fs1815@35 {
+		compatible = "foursemi,fs1815";
+		reg = <0x35>;
+		fsm,rst-gpio = <&ap_gpio 120 0>;
+		status = "okay";
+	};
 };
 
 &hsphy {
@@ -706,4 +722,9 @@
 		irq-mux = < 2 >; // set csx as irq pin. config this field when connect to aw96308/aw96310
 		status = "okay";
 	};
+};
+
+&sound_vbc_v4_sprd_codec {
+	status = "okay";
+	sprd,spk-ext-pa-info = <0 1 4 0>,<1 1 4 0>,<2 1 4 0>;
 };
