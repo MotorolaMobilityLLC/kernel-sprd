@@ -257,7 +257,7 @@
 	cm-fast-charge-voltage-drop = <700000>;
 
 	/* sprd_fchg parameter */
-	sprd,support-fchg;
+	//sprd,support-fchg;
 	//sprd,support-pd-pps;
 	sprd,pd-fixed-max-microwatt = <18000000>;
 
