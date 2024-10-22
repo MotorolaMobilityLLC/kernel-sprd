@@ -2411,7 +2411,9 @@ void hybridswap_manager_memcg_deinit(struct mem_cgroup *mcg)
 
 		if (last_index == index) {
 			hybp(HYB_ERR, "dup index %d\n", index);
-			dump_stack();
+#ifdef CONFIG_SPRD_DEBUG
+			panic();
+#endif
 		}
 
 		zram_slot_lock(zram, index);
