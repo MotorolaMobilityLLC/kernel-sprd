@@ -6,7 +6,7 @@
  * SPDX-License-Identifier: (GPL-2.0+ OR MIT)
  */
 &ump9621_pmic {
-		power-controller@2000 {
+		power_controller:power-controller@2000 {
 		compatible = "sprd,ump9621-regulator";
 		regulator-debugfs-enable;
 
