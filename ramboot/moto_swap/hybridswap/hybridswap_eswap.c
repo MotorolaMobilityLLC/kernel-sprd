@@ -2412,7 +2412,7 @@ void hybridswap_manager_memcg_deinit(struct mem_cgroup *mcg)
 		if (last_index == index) {
 			hybp(HYB_ERR, "dup index %d\n", index);
 #ifdef CONFIG_SPRD_DEBUG
-			panic();
+			panic("hybridswap_manager_memcg_deinit dup index\n");
 #endif
 		}
 
