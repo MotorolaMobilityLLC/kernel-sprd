@@ -4900,6 +4900,13 @@ static bool _cm_monitor(struct charger_manager *cm)
 
 	target = cm_get_target_status(cm);
 
+	if (cm->desc->pd_negotiated_stop_chg) {
+		target = POWER_SUPPLY_STATUS_CHARGING;
+		cm->charging_status = 0;
+		dev_info(cm->dev, "%s, pd negotiated stop chg is still working\n", __func__);
+		goto done;
+	}
+
 	if (target == POWER_SUPPLY_STATUS_CHARGING) {
 		cm->emergency_stop = 0;
 		cm->charging_status = 0;
@@ -4918,6 +4925,8 @@ static bool _cm_monitor(struct charger_manager *cm)
 	} else {
 		try_charger_enable(cm, false);
 	}
+
+done:
 
 	if (last_target != target) {
 		last_target = target;
@@ -5212,6 +5221,23 @@ static void fast_charge_handler(struct charger_manager *cm)
 	}
 }
 
+static void cm_pd_negotiated_init_cfg(struct charger_manager *cm)
+{
+	cancel_work_sync(&cm->pd_negotiated_limit_current_work);
+	if (cm->desc->pd_negotiated_disable_power_path)
+		cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
+
+	if (cm->desc->pd_negotiated_limit_cur)
+		cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
+					 SPRD_VOTE_TYPE_IBUS,
+					 SPRD_VOTE_TYPE_IBUS_ID_PD_NEGOIIATED_LIMIT,
+					 SPRD_VOTE_CMD_MIN, 0, cm);
+
+	cm->desc->pd_negotiated_stop_chg = false;
+	cm->desc->pd_negotiated_disable_power_path = false;
+	cm->desc->pd_negotiated_limit_cur = false;
+}
+
 /**
  * misc_event_handler - Handler for other events
  * @cm: the Charger Manager representing the battery.
@@ -5279,6 +5305,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 	} else {
 		if (cm->desc->xts_limit_cur)
 			cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
+		cm_pd_negotiated_init_cfg(cm);
 		try_wireless_charger_enable(cm, false);
 		cm_enable_fixed_fchg_handshake(cm, false);
 		try_charger_enable(cm, false);
@@ -5860,6 +5887,10 @@ static int charger_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
+		if (cm->desc->pd_negotiated_stop_chg) {
+			val->intval = POWER_SUPPLY_STATUS_CHARGING;
+			break;
+		}
 		cm_get_charging_status(cm, &val->intval);
 		break;
 
@@ -6246,6 +6277,113 @@ static void cm_update_charger_type_status(struct charger_manager *cm)
 		__func__, __LINE__, usb_main.ONLINE, ac_main.ONLINE, wireless_main.ONLINE);
 }
 
+ 
+static void cm_pd_negotiated_limit_current_work(struct work_struct *work)
+{
+	struct charger_manager *cm = container_of(work, struct charger_manager,
+						  pd_negotiated_limit_current_work);
+
+	dev_info(cm->dev, "sprd: %s, Requesting APDO: %d mV, %d mA, enable_limit: %d\n",
+		 __func__, cm->desc->pd_req_vol_uv / 1000, cm->desc->pd_req_cur_ua / 1000,
+		 cm->desc->pd_enable_limit);
+	dev_info(cm->dev, "sprd: %s, pd_negotiated, disable_power_path: %d, limit_cur: %d, stop_chg: %d\n",
+		 __func__, cm->desc->pd_negotiated_disable_power_path,
+		 cm->desc->pd_negotiated_limit_cur, cm->desc->pd_negotiated_stop_chg);
+
+	if (!cm->desc->pd_enable_limit) {
+		if (cm->desc->pd_negotiated_disable_power_path) {
+			cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
+			cm->desc->pd_negotiated_disable_power_path = false;
+		}
+
+		if (!cm->desc->pd_negotiated_stop_chg && cm->desc->pd_negotiated_limit_cur) {
+			cm->cm_charge_vote->vote(cm->cm_charge_vote, false,
+						 SPRD_VOTE_TYPE_IBUS,
+						 SPRD_VOTE_TYPE_IBUS_ID_PD_NEGOIIATED_LIMIT,
+						 SPRD_VOTE_CMD_MIN, 0, cm);
+			cm->desc->pd_negotiated_limit_cur = false;
+		}
+
+		if (cm->desc->pd_negotiated_stop_chg) {
+			try_charger_enable(cm, true);
+			cm->desc->pd_negotiated_stop_chg = false;
+		}
+
+		return;
+	}
+
+	if (cm->desc->pd_req_cur_ua <= 0) {
+		try_charger_enable(cm, false);
+		cm->desc->pd_negotiated_stop_chg = true;
+		cm_power_path_enable(cm, CM_POWER_PATH_DISABLE_CMD);
+		cm->desc->pd_negotiated_disable_power_path = true;
+		return;
+	}
+
+	if (cm->desc->pd_negotiated_stop_chg) {
+		dev_info(cm->dev, "sprd: %s[%d], start charge!!!\n", __func__, __LINE__);
+		cm_power_path_enable(cm, CM_POWER_PATH_ENABLE_CMD);
+		cm->desc->pd_negotiated_disable_power_path = false;
+		try_charger_enable(cm, true);
+		cm->desc->pd_negotiated_stop_chg = false;
+	}
+
+	if (cm->desc->pd_req_vol_uv < CM_FIXED_FCHG_VOLTAGE_5V_THRESHOLD) {
+		if (cm->desc->pd_req_cur_ua <= 100000) {
+			cm_power_path_enable(cm, CM_POWER_PATH_DISABLE_CMD);
+			cm->desc->pd_negotiated_disable_power_path = true;
+		}
+
+		cm->cm_charge_vote->vote(cm->cm_charge_vote, true,
+					 SPRD_VOTE_TYPE_IBUS,
+					 SPRD_VOTE_TYPE_IBUS_ID_PD_NEGOIIATED_LIMIT,
+					 SPRD_VOTE_CMD_MIN, cm->desc->pd_req_cur_ua, cm);
+		cm->desc->pd_negotiated_limit_cur = true;
+		return;
+	}
+}
+
+void cm_check_pd_negotiated_limit_current(enum sprd_pd_pdo_type pdo_type,
+					  int req_vol_uv,
+					  int req_cur_ua,
+					  bool enable_limit)
+{
+	struct charger_manager *cm;
+	bool found_power_supply = false;
+
+	if (pdo_type != SPRD_PDO_TYPE_FIXED && enable_limit) {
+		pr_err("%s, Unsupport pdo_type[%d]!!!\n", __func__, pdo_type);
+		return;
+	}
+
+	mutex_lock(&cm_list_mtx);
+	list_for_each_entry(cm, &cm_list, entry) {
+		if (cm->charger_psy->desc) {
+			if (strcmp(cm->charger_psy->desc->name, "battery") == 0) {
+				found_power_supply = true;
+				break;
+			}
+		}
+	}
+
+	mutex_unlock(&cm_list_mtx);
+
+	if (!found_power_supply) {
+		pr_err("%s:line%d no cm found!!!\n", __func__, __LINE__);
+		return;
+	}
+
+	if (!cm) {
+		pr_err("%s:line%d NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
+	cm->desc->pd_enable_limit = enable_limit;
+	cm->desc->pd_req_vol_uv = req_vol_uv;
+	cm->desc->pd_req_cur_ua = req_cur_ua;
+	schedule_work(&cm->pd_negotiated_limit_current_work);
+}
+
 void cm_check_pd_update_ac_usb_online(bool is_pd_hub)
 {
 	struct charger_manager *cm;
@@ -6292,6 +6430,7 @@ void cm_check_pd_update_ac_usb_online(bool is_pd_hub)
 static struct sprd_charger_ops cm_sprd_charger_ops = {
 	.name = "sprd_charger_manager",
 	.update_ac_usb_online = cm_check_pd_update_ac_usb_online,
+	.negotiated_limit_current = cm_check_pd_negotiated_limit_current,
 };
 
 /**
@@ -8480,6 +8619,7 @@ static int charger_manager_probe(struct platform_device *pdev)
 	INIT_DELAYED_WORK(&cm->cp_work, cm_cp_work);
 	INIT_DELAYED_WORK(&cm->ir_compensation_work, cm_ir_compensation_works);
 	INIT_DELAYED_WORK(&cm->charger_type_update_work, cm_charger_type_update_work);
+	INIT_WORK(&cm->pd_negotiated_limit_current_work, cm_pd_negotiated_limit_current_work);
 
 	mutex_init(&cm->desc->charge_info_mtx);
 

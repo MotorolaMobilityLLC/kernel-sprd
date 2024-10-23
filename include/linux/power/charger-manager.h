@@ -752,6 +752,13 @@ struct charger_desc {
 
 	bool xts_limit_cur;
 	int adapter_max_vbus;
+	bool pd_enable_limit;
+	bool pd_negotiated_stop_chg;
+	bool pd_negotiated_limit_cur;
+	bool pd_negotiated_disable_power_path;
+	int pd_req_vol_uv;
+	int pd_req_cur_ua;
+
 
 	u32 pd_port_partner;
 	u32 charge_type_poll_count;
@@ -809,6 +816,7 @@ struct charger_manager {
 	struct delayed_work fixed_fchg_work;
 	struct delayed_work cp_work;
 	struct delayed_work charger_type_update_work;
+	struct work_struct pd_negotiated_limit_current_work;
 	int emergency_stop;
 
 	char psy_name_buf[PSY_NAME_MAX + 1];
