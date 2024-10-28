@@ -1063,7 +1063,7 @@ sprd_dma_prep_slave_sg(struct dma_chan *chan, struct scatterlist *sgl,
 		(flags >> SPRD_DMA_TRG_MODE_SHIFT) & SPRD_DMA_TRG_MODE_MASK;
 	schan->int_type = flags & SPRD_DMA_INT_TYPE_MASK;
 
-	sdesc = kzalloc(sizeof(*sdesc), GFP_NOWAIT);
+	sdesc = kzalloc(sizeof(*sdesc), GFP_ATOMIC);
 	if (!sdesc)
 		return NULL;
 

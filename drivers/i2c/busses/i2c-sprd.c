@@ -516,6 +516,7 @@ static int sprd_i2c_dma_handle_msg(struct i2c_adapter *i2c_adap,
 		if (ret != 0) {
 			dev_err(i2c_dev->dev, "RX dma config err, ret = %d\n!", ret);
 			i2c_dev->err = ret;
+			goto err_dma_put;
 		}
 	} else {
 		dma_buf_write = i2c_get_dma_safe_msg_buf(msg, 1);
@@ -537,6 +538,7 @@ static int sprd_i2c_dma_handle_msg(struct i2c_adapter *i2c_adap,
 		if (ret != 0) {
 			dev_err(i2c_dev->dev, "TX dma config err,ret = %d\n!", ret);
 			i2c_dev->err = ret;
+			goto err_dma_put;
 		}
 	}
 
@@ -561,6 +563,7 @@ static int sprd_i2c_dma_handle_msg(struct i2c_adapter *i2c_adap,
 	sprd_i2c_clear_start(i2c_dev);
 	sprd_i2c_enable_dma(i2c_dev, false);
 
+err_dma_put:
 	if (msg->flags & I2C_M_RD) {
 		dma_unmap_single(i2c_dev->dev,
 				i2c_dev->dma.dma_phys_addr,
