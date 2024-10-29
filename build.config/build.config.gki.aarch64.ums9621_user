@@ -70,6 +70,8 @@ EXT_MODULES="
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/sensor
 ../modules/common/camera/mmdvfs
+../modules/kernel5.15/input/misc/sx9375
+../modules/kernel5.15/input/misc/aw_sar
 "
 fi
 #camera module version config
