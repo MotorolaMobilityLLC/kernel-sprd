@@ -72,6 +72,7 @@ EXT_MODULES="
 ../modules/common/camera/mmdvfs
 ../modules/kernel5.15/input/misc/sx9375
 ../modules/kernel5.15/input/misc/aw_sar
+../modules/kernel5.15/input/misc/rf_cable
 "
 fi
 #camera module version config
