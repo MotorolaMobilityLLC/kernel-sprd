@@ -33,12 +33,14 @@
 #include <linux/uaccess.h>
 #include <uapi/linux/sched/types.h>
 #include <linux/reboot.h>
+#include <linux/gpio.h>
 
 #include "shub_common.h"
 #include "shub_core.h"
 #include "shub_opcode.h"
 #include "shub_protocol.h"
 
+#define PL_ELDO_EN 242
 #define MAX_SENSOR_HANDLE 200
 static u8 sensor_status[MAX_SENSOR_HANDLE];
 
@@ -728,6 +730,9 @@ static ssize_t calibrator_data_show(struct device *dev,
 	if (sensor->cal_cmd == CALIB_CHECK_STATUS)
 		return sprintf(buf, "%d\n", sensor->cali_store.udata[0]);
 
+	if (sensor->cal_cmd == CHECK_ID_STATUS)
+                return sprintf(buf, "%d\n", sensor->cali_store.udata[0]);
+
 	for (i = 0; i < CALIBRATION_DATA_LENGTH; i++)
 		n += sprintf(buf + n, "%d ", sensor->cali_store.udata[i]);
 	return n;
@@ -804,11 +809,13 @@ static ssize_t raw_data_als_show(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
-	u8 data[2];
-	u16 *ptr;
+	u8 data[6];
+	u16 *ptr, *ptr1, *ptr2;
 	int err;
 
 	ptr = (u16 *)data;
+	ptr1 = (u16 *)&data[2];
+	ptr2 = (u16 *)&data[4];
 	if (sensor->mcu_mode <= SHUB_CALIDOWNLOAD) {
 		dev_err(&sensor->sensor_pdev->dev, "mcu_mode == SHUB_BOOT!\n");
 		return -EINVAL;
@@ -821,7 +828,7 @@ static ssize_t raw_data_als_show(struct device *dev,
 			"read RegMapR_GetLightRawData failed!\n");
 		return err;
 	}
-	return sprintf(buf, "%d\n", ptr[0]);
+	return sprintf(buf, "%d,%d,%d\n", ptr[0], ptr1[0], ptr2[0]);
 }
 static DEVICE_ATTR_RO(raw_data_als);
 
@@ -829,10 +836,14 @@ static ssize_t raw_data_ps_show(struct device *dev,
 				struct device_attribute *attr, char *buf)
 {
 	struct shub_data *sensor = dev_get_drvdata(dev);
-	u8 data[2];
-	u16 *ptr = (u16 *)data;
+	u8 data[8];
+	u16 *ptr, *ptr1, *ptr2, *ptr3;
 	int err;
 
+	ptr = (u16 *)data;
+        ptr1 = (u16 *)&data[2];
+        ptr2 = (u16 *)&data[4];
+	ptr3 = (u16 *)&data[6];
 	if (sensor->mcu_mode <= SHUB_CALIDOWNLOAD) {
 		dev_err(&sensor->sensor_pdev->dev, "mcu_mode == SHUB_BOOT!\n");
 		return -EINVAL;
@@ -844,7 +855,7 @@ static ssize_t raw_data_ps_show(struct device *dev,
 			"read RegMapR_GetProximityRawData failed!\n");
 		return err;
 	}
-	return sprintf(buf, "%d\n", ptr[0]);
+	return sprintf(buf, "%d,%d,%d,%d\n", ptr[0], ptr1[0], ptr2[0], ptr3[0]);
 }
 static DEVICE_ATTR_RO(raw_data_ps);
 
@@ -1367,6 +1378,7 @@ static int shub_probe(struct platform_device *pdev)
 	struct shub_data *mcu;
 	struct iio_dev *indio_dev;
 	int error;
+	int ret = -1;
 	indio_dev = iio_device_alloc(&pdev->dev, sizeof(*mcu));
 	if (!indio_dev) {
 		dev_err(&pdev->dev, " iio_device_alloc failed\n");
@@ -1462,6 +1474,23 @@ static int shub_probe(struct platform_device *pdev)
 	register_pm_notifier(&mcu->early_suspend);
 	mcu->shub_reboot_notifier.notifier_call = shub_reboot_notifier_fn;
 	register_reboot_notifier(&mcu->shub_reboot_notifier);
+
+        ret = gpio_is_valid(PL_ELDO_EN);
+        if (!ret) {
+                dev_err(&pdev->dev, "%s: Invalid gpio: %d\n", __func__, PL_ELDO_EN);
+        }
+        ret = gpio_request(PL_ELDO_EN, "pl_eldo");
+        switch (ret) {
+        case -EBUSY:
+                dev_err(&pdev->dev, "%s: GPIO %d is already requested\n", __func__, PL_ELDO_EN);
+                break;
+        case 0:
+                break;
+        default:
+                dev_err(&pdev->dev, "%s: Failed to request GPIO %d, ret=%d\n", __func__, PL_ELDO_EN, ret);
+        }
+        ret = gpio_direction_output(PL_ELDO_EN, 1);
+        dev_err(&pdev->dev, "%s: set ret=%d\n", __func__, ret);
 
 	return 0;
 
