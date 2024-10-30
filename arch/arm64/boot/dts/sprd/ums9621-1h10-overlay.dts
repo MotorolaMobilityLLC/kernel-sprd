@@ -60,6 +60,15 @@
 			#address-cells = <2>;
 			#size-cells = <2>;
 
+			gpio-keys {
+				key-volumedown-hmd {
+					label = "HMD Volume Down Key";
+					linux,code = <KEY_VOLUMEDOWN>;
+					gpios = <&ap_gpio 8 GPIO_ACTIVE_LOW>;
+					debounce-interval = <2>;
+					wakeup-source;
+				};
+			};
 			dtbo: dtbo {
 				compatible = "sprd,dtbo-test";
 				reg = <0x0 0x0 0x0 0x11>;
