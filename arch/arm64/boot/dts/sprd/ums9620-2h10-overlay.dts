@@ -181,6 +181,16 @@
 				nvmem-cell-names = "uid_start", "uid_end";
 			};
 
+			usb_cable: usb_cable {
+                		compatible = "sprd,usb_cable_eint";
+                		usbcable-gpio = <&ap_gpio 140 GPIO_ACTIVE_LOW>;
+                		usbcable-gpio1 = <&ap_gpio 178 GPIO_ACTIVE_LOW>;
+                		usbcable-gpio2 = <&ap_gpio 179 GPIO_ACTIVE_LOW>;
+                		usbcable-gpio3 = <&ap_gpio 180 GPIO_ACTIVE_LOW>;
+                		debounce = <256000>;
+                		status = "okay";
+        		};
+
 		};
 	};
 };
@@ -610,3 +620,121 @@
 	sprd,sr-width = <720>;
 	sprd,sr-height = <1600>;
 };
+
+&i2c3 {
+	status = "okay";
+	clock-frequency = <400000>;
+
+	smtc_sar_sx937x:smtc_sar_sx937x@2c {
+		compatible = "semtech,sx937x";
+		reg = <0x2c>;
+		status = "okay";
+		semtech,nirq-gpio = <&ap_gpio 190 GPIO_ACTIVE_HIGH>;
+		/*
+		semtech,nirq-gpio = <&pio 3 0>;
+		pinctrl-names = "smtc_pins_default", "smtc_sar_int_active";
+		pinctrl-0 = <&smtc_pins_default>;
+		pinctrl-1 = <&smtc_sar_int_active>;
+		*/
+		/*main-phases: Phases(aka CH) connected to the antenas for measurement
+		ref-phases: Phases used as temperature reference correction
+		Each bit represents a corresponding phase is for this usage(1) or not(0)
+		Example: 0xF = 0b1 1111, indicates PH0/1/2/3/4 are used as main phase.
+				 0x30 = 0b0110 0000 indicates PH5/6 are used as reference phase.
+		*/
+		semtech,main-phases = <0x1f>;
+		semtech,ref-phases = <0x60>;
+
+		semtech,reg-init = <
+			0x8024 0x7F00
+                        0x4004 0x60
+                        0x4280 0x0
+                        0x8020 0x32
+                        0x8028 0x47F
+                        0x8034 0x486
+                        0x8040 0x47F
+                        0x804C 0x486
+                        0x8058 0x486
+                        0x8064 0x486
+                        0x8070 0x486
+                        0x807C 0x0
+                        0x8030 0xFFF9FD
+                        0x803C 0xFFD9FF
+                        0x8048 0xFFF97F
+                        0x8054 0xFEF9FF
+                        0x8060 0xF7F9FF
+                        0x806C 0xFFF9EF
+                        0x8078 0xBFF9FF
+                        0x8084 0x0
+                        0x8098 0x8C59
+                        0x80B8 0x7A3A
+                        0x80D8 0x3F3F
+                        0x80F8 0x1F1F
+                        0x8118 0x4A4A
+                        0x8138 0x0
+                        0x8158 0x0
+                        0x8178 0x0
+                        0x80A0 0x24240001
+                        0x80C0 0x0E0E0002
+                        0x80E0 0x21210001
+                        0x8100 0x1A1A0002
+                        0x8120 0x22220002
+                        0x8140 0x0
+                        0x8160 0x0
+                        0x8180 0x0
+                        0x8188 0x8000015
+                        0x818C 0x8000016
+                        0x8190 0x0
+                        0x8194 0x0
+                        0x8090 0x2AD67000
+                        0x80B0 0x2AD67000
+                        0x80D0 0x2AD67000
+                        0x80F0 0x2AD67000
+                        0x8110 0x2AD67000
+                        0x8130 0x2AD67000
+                        0x8150 0x2AD67000
+                        0x8170 0x0
+                        0x8088 0x300000
+                        0x80A8 0x300000
+                        0x80C8 0x300000
+                        0x80E8 0x200000
+                        0x8108 0x300000
+                        0x8128 0x300000
+                        0x8148 0x300000
+                        0x8168 0x0
+                        0x808C 0xA020003C
+                        0x80AC 0xA0200050
+                        0x80CC 0xA020003C
+                        0x80EC 0xA020003C
+                        0x810C 0xA020003C
+                        0x812C 0xA020003C
+                        0x814C 0xA020003C
+                        0x816C 0x0
+                        0x4280 0xF
+                        0x8024 0x7F7F
+                        0x4280 0xE
+		>;
+	};
+
+	awinic_sar:awinic_sar@12 {
+		compatible = "awinic,aw_sar";
+		reg = <0x12>;
+		sar-num = < 0 >;
+		irq-gpio = <&ap_gpio 190 GPIO_ACTIVE_HIGH>;
+		/*
+		interrupt-parent = < &tlmm >;
+		interrupts = <72 0>;
+		irq-gpio = <&tlmm 72 0>;
+		*/
+		//vcc0-supply = <&pm660l_l4>;
+		channel_use_flag = <0x1f>;
+		aw_sar,update_fw;
+                aw_sar,use_plug_cail;
+                aw_sar,use_headset_plug_cail;
+		/* private node belongs to aw963xx */
+		start-mode = < 1 >; // 0: start in rom  1: start in ram
+		irq-mux = < 2 >; // set csx as irq pin. config this field when connect to aw96308/aw96310
+		status = "okay";
+	};
+};
+
