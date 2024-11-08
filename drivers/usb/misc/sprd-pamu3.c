@@ -490,44 +490,31 @@ static int sprd_pamu3_init(struct usb_phy *x)
 
 	return 0;
 }
-
-/* pamu3_set_suspend will be called when uether function is removed */
 static int sprd_pamu3_set_suspend(struct usb_phy *x, int a)
 {
-	struct sprd_pamu3 *pamu3 = container_of(x, struct sprd_pamu3, pam);
-	u32 value;
-	int timeout = 2;
+    struct sprd_pamu3 *pamu3 = container_of(x, struct sprd_pamu3, pam);
+    u32 value;
 
-	if (!atomic_read(&pamu3->inited)) {
-		dev_warn(pamu3->dev, "is already disabled\n");
-		return 0;
-	}
+    if (!atomic_read(&pamu3->inited)) {
+        dev_warn(pamu3->dev, "is already disabled\n");
+        return 0;
+    }
 
-	if (atomic_dec_return(&pamu3->ref)) {
-		sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_START);
-		value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
-		value |= PAMU3_CTL0_BIT_RELEASE;
-		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
-		do {
-			value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
-			if (!timeout--) {
-				dev_warn(pamu3->dev,
-					 "failed to stop PAMU3!!!\n");
-				break;
-			}
-		} while (!(value & PAMU3_CTL0_BIT_DONE));
-	} else {
-		value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
-		value &= ~(PAMU3_CTL0_BIT_USB_EN | PAMU3_CTL0_BIT_PAM_EN |
-			   PAMU3_CTL0_BIT_RELEASE);
-		writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
-		clk_disable(pamu3->clk);
-		atomic_set(&pamu3->inited, 0);
-		sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_END);
-	}
-	return 0;
+    //SIPA_DISCONNECT_START means no transfer after now.
+    if (atomic_dec_return(&pamu3->ref)) {
+        sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_START);
+        value = readl_relaxed(pamu3->base + PAM_U3_CTL0);
+        value &= ~(PAMU3_CTL0_BIT_USB_EN | PAMU3_CTL0_BIT_PAM_EN |
+               PAMU3_CTL0_BIT_RELEASE);
+        writel_relaxed(value, pamu3->base + PAM_U3_CTL0);
+        clk_disable(pamu3->clk);
+        sipa_disconnect(SIPA_EP_USB, SIPA_DISCONNECT_END);
+    } else {
+        atomic_set(&pamu3->inited, 0);
+    }
+
+    return 0;
 }
-
 /* PAMU3 attributes */
 static ssize_t max_dl_pkts_show(struct device *dev,
 				struct device_attribute *attr,
