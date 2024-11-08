@@ -110,8 +110,8 @@
 			interrupt-parent = <&ump9620_pmic>;
 			interrupts = <9 IRQ_TYPE_LEVEL_HIGH>;
 			extcon = <&pmic_typec>;
-			nvmem-cells = <&pdrc_calib>, <&pddelta_calib>, <&pddelta_calib>;
-			nvmem-cell-names = "pdrc_calib", "pddelta_calib", "pdref_calib";
+			nvmem-cells = <&pdrc_calib>, <&pddelta_calib>, <&typec_cc_mark>;
+			nvmem-cell-names = "pdrc_calib", "pddelta_calib", "typec_cc_mark";
 		};
 
 		pmic_smpl: smpl@2000 {

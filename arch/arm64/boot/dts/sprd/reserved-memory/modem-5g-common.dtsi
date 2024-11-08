@@ -71,7 +71,7 @@
 
 		/* the reg values may be not accurate, they have been fixed in lk !!! */
 		tos_reserved: tos-mem@b0040000 {
-			reg = <0x0 0xb0040000 0x0 0x03fc0000>;
+			reg = <0x0 0xb0040000 0x0 0x05fc0000>;
 		};
 
 		tos_shm_reserved: sh-mem@b4000000{

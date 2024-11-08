@@ -88,5 +88,10 @@
 		aud_pabst_vcal: calib@30 {
 			reg = <0x30 0x2>;
 		};
+
+		typec_cc_mark: calib@4c {
+			reg = <0x4c 0x2>;
+			bits = <1 1>;
+		};
 	};
 };

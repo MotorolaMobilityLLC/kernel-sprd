@@ -184,7 +184,7 @@
 		soc_thmzone: soc-thmzone {
 			polling-delay-passive = <100>;
 			polling-delay = <1000>;
-			sustainable-power = <3000>;
+			sustainable-power = <4500>;
 			thermal-sensors = <&virtual_sensor  0>;
 			trips {
 				soc_threshold: trip-point@0 {

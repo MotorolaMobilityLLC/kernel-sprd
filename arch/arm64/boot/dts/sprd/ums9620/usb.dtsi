@@ -93,6 +93,8 @@
 			linux,sysdev_is_parent;
 			snps,usb2-gadget-lpm-disable;
 			snps,has_hibernation;
+			snps,dis-u1-entry-quirk;
+			snps,dis-u2-entry-quirk;
 		};
 	};
 

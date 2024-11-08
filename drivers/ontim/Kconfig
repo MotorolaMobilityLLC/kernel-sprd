@@ -1,0 +1,20 @@
+menu "ONTIM hardware info"
+
+config ONTIM_HWINFO
+	tristate "Product Hardward Info"
+	help
+	  Say Y or M here if you want to build hwinfo module
+
+config ONTIM_HWINFO_VENDOR
+	tristate "Product Hardward Info in vendor"
+	help
+	  Say Y or M here if you want to build hwinfo_vendor module
+
+config UPDATE_GPIOS_NO_LIMIT
+	bool "allow to update all gpios"
+	default n
+	help
+	  Say Y if you can update all gpios
+
+endmenu
+

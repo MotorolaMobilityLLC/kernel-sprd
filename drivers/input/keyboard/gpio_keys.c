@@ -61,6 +61,11 @@ struct gpio_keys_drvdata {
 	struct gpio_button_data data[];
 };
 
+#define input_event(dev, type, code, value)  do { \
+	pr_err("input_event: type=0x%x code=%d value=%d\n", type, code, value); \
+	input_event(dev, type, code, value); \
+} while(0)
+
 /*
  * SYSFS interface for enabling/disabling keys and switches:
  *

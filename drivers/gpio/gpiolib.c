@@ -1901,7 +1901,6 @@ static int gpiod_request_commit(struct gpio_desc *desc, const char *label)
 	/* NOTE:  gpio_request() can be called in early boot,
 	 * before IRQs are enabled, for non-sleeping (SOC) GPIOs.
 	 */
-
 	if (test_and_set_bit(FLAG_REQUESTED, &desc->flags) == 0) {
 		desc_set_label(desc, label ? : "?");
 	} else {
@@ -3921,6 +3920,8 @@ struct gpio_desc *__must_check gpiod_get_index(struct device *dev,
 	/* Maybe we have a device name, maybe not */
 	const char *devname = dev ? dev_name(dev) : "?";
 	const struct fwnode_handle *fwnode = dev ? dev_fwnode(dev) : NULL;
+	char comp_name[36];
+	const char *prop_name = NULL;
 
 	dev_dbg(dev, "GPIO lookup for consumer %s\n", con_id);
 
@@ -3951,7 +3952,9 @@ struct gpio_desc *__must_check gpiod_get_index(struct device *dev,
 	 * If a connection label was passed use that, else attempt to use
 	 * the device name as label
 	 */
-	ret = gpiod_request(desc, con_id ? con_id : devname);
+	device_property_read_string(dev, "name", &prop_name);
+	snprintf(comp_name, sizeof(comp_name), "%s:%s", prop_name ? : "NULL", con_id ? : devname);
+	ret = gpiod_request(desc, kstrdup(comp_name, GFP_KERNEL));
 	if (ret) {
 		if (ret == -EBUSY && flags & GPIOD_FLAGS_BIT_NONEXCLUSIVE) {
 			/*
@@ -4384,6 +4387,19 @@ core_initcall(gpiolib_dev_init);
 
 #ifdef CONFIG_DEBUG_FS
 
+// Ontim: Represent each FLAG_XX in drivers/gpio/gpiolib.h
+static const char gpio_flags[] = "-DUTHEISDL--SEOR";
+char *parse_gpio_flags(unsigned long flags)
+{
+	static char ret[sizeof(gpio_flags)];
+	int i, len;
+	len = strlen(gpio_flags);
+	ret[len] = 0;
+	for (i = len - 1; i >= 0; i--, flags >>= 1)
+		ret[i] = (flags & 1) ? gpio_flags[i] : '-';
+	return ret;
+}
+
 static void gpiolib_dbg_show(struct seq_file *s, struct gpio_device *gdev)
 {
 	unsigned		i;
@@ -4393,8 +4409,10 @@ static void gpiolib_dbg_show(struct seq_file *s, struct gpio_device *gdev)
 	bool			is_out;
 	bool			is_irq;
 	bool			active_low;
+	char                    irq[16] = {0};
 
 	for (i = 0; i < gdev->ngpio; i++, gpio++, gdesc++) {
+#if 0 //ONTIM
 		if (!test_bit(FLAG_REQUESTED, &gdesc->flags)) {
 			if (gdesc->name) {
 				seq_printf(s, " gpio-%-3d (%-20.20s)\n",
@@ -4402,17 +4420,24 @@ static void gpiolib_dbg_show(struct seq_file *s, struct gpio_device *gdev)
 			}
 			continue;
 		}
-
+#endif
 		gpiod_get_direction(gdesc);
 		is_out = test_bit(FLAG_IS_OUT, &gdesc->flags);
 		is_irq = test_bit(FLAG_USED_AS_IRQ, &gdesc->flags);
 		active_low = test_bit(FLAG_ACTIVE_LOW, &gdesc->flags);
-		seq_printf(s, " gpio-%-3d (%-20.20s|%-20.20s) %s %s %s%s",
-			gpio, gdesc->name ? gdesc->name : "", gdesc->label,
+		if (is_irq)
+			snprintf(irq, sizeof(irq), "%3d", gpio_to_irq(gpio));
+		else
+			irq[0] = 0;
+		seq_printf(s, " chip%d:gpio-%-3d(gpio%-3d) (%-10s|%-34s) %s %s %s %s %s %s %s",
+			gdev->id, gpio, gpio - gdev->base, gdesc->name ? gdesc->name : "", gdesc->label,
+			parse_gpio_flags(gdesc->flags),
+			test_bit(FLAG_REQUESTED, &gdesc->flags) ? "requested" : "none     ",
 			is_out ? "out" : "in ",
-			gc->get ? (gc->get(gc, i) ? "hi" : "lo") : "?  ",
-			is_irq ? "IRQ " : "",
-			active_low ? "ACTIVE LOW" : "");
+			gc->get ? (gc->get(gc, i) ? "hi" : "lo") : "? ",
+			active_low ? "ACTIVE_LOW " : "ACTIVE_HIGH",
+			is_irq ? "IRQ" : "NA ",
+			irq);
 		seq_printf(s, "\n");
 	}
 }

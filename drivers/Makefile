@@ -6,6 +6,14 @@
 # Rewritten to use lists instead of if-statements.
 #
 
+ifeq ($(BUILD_SMT),YES)
+subdir-ccflags-y += -DSMT_VERSION
+endif
+
+ifeq ($(BUILD_D85),YES)
+subdir-ccflags-y += -DDUAL_85_VERSION
+endif
+
 obj-y				+= irqchip/
 obj-y				+= bus/
 
@@ -189,3 +197,6 @@ obj-$(CONFIG_COUNTER)		+= counter/
 obj-$(CONFIG_MOST)		+= most/
 obj-$(CONFIG_TRUSTY)		+= trusty/
 obj-$(CONFIG_ARCH_SPRD)		+= unisoc_platform/
+
+# Ontim module
+obj-y += ontim/

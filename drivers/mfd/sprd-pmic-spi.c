@@ -192,7 +192,7 @@ EXPORT_SYMBOL_GPL(sprd_pmic_detect_charger_type);
 static char *sprd_pmicint_buf;
 static struct seq_buf *sprd_pmicint_seq_buf;
 static char pmicint_temp_buf[256];
-
+#if 0
 static void sprd_pmic_irq_log_reason(struct sprd_pmic *ddata, u32 mask_status)
 {
 	u32 i = 0;
@@ -205,14 +205,14 @@ static void sprd_pmic_irq_log_reason(struct sprd_pmic *ddata, u32 mask_status)
 		}
 	}
 }
-
+#endif
 static int sprd_pmic_handle_pre_irq(void *irq_drv_data)
 {
-	struct sprd_pmic *ddata = irq_drv_data;
+//	struct sprd_pmic *ddata = irq_drv_data;
 	u32 mask_status = 0, raw_status = 0;
 	u32 eic_mis_status = 0, eic_ris_status = 0;
 	int j;
-
+#if 0
 	if (regmap_read(ddata->regmap, ddata->pdata->irq_base + SPRD_PMIC_INT_MASK_STATUS,
 			&mask_status) < 0) {
 		pr_err("failed to get pmicint mask\n");
@@ -233,7 +233,7 @@ static int sprd_pmic_handle_pre_irq(void *irq_drv_data)
 			&eic_ris_status) < 0) {
 		pr_err("failed to get eic_ris_status\n");
 	}
-
+#endif
 	j = snprintf(pmicint_temp_buf, sizeof(pmicint_temp_buf),
 			"INT-mask=%d raw=%d * EIC-mis=%d ris=%d\n", mask_status, raw_status,
 			eic_mis_status, eic_ris_status);

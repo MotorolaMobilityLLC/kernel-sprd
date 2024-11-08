@@ -16,6 +16,7 @@
 #define PWRON_OR_RST_OCCURED_ASC	0x29
 #define PWRON_OR_RST_OCCURED_ASCQ	0x00
 
+#include "ufs-sprd-debug.h"
 static inline u16 ufs_sprd_wlun_to_scsi_lun(u8 upiu_wlun_id)
 {
 	return (upiu_wlun_id & ~UFS_UPIU_WLUN_ID) | SCSI_W_LUN_BASE;
@@ -184,6 +185,9 @@ static int ufs_rpmb_cmd_seq(struct device *dev,
 	spin_unlock_irqrestore(hba->host->host_lock, flags);
 	if (ret)
 		return ret;
+	#ifdef CONFIG_SPRD_DEBUG
+		host->err_panic = false;
+	#endif
 
 	for (ret = 0, i = 0; i < ncmds && !ret; i++) {
 		cmd = &cmds[i];
@@ -195,7 +199,9 @@ static int ufs_rpmb_cmd_seq(struct device *dev,
 							cmd->nframes);
 	}
 	scsi_device_put(sdev);
-
+	#ifdef CONFIG_SPRD_DEBUG
+		host->err_panic = UFS_DEBUG_ERR_PANIC_DEF;
+	#endif
 	return ret;
 }
 

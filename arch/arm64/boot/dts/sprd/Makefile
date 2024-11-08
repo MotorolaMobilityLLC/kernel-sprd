@@ -63,6 +63,7 @@ ums9230-14c10-go-overlay.dtbo-base := ums9230-base.dtb
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),qogirn6pro)
+ifdef CONFIG_DTB_ORIGINAL
 dtb-$(CONFIG_ARCH_SPRD) += \
 	ums9620-1h10-overlay.dtbo \
 	ums9620-2h10-overlay.dtbo \
@@ -79,6 +80,11 @@ uis7885-2h10-overlay.dtbo-base := ums9620-base.dtb
 ums9620-2h10_uob-overlay.dtbo-base := ums9620-base.dtb
 ums9620-2h10_uob_marlin3-overlay.dtbo-base := ums9620-base.dtb
 ums9620-2h10_w6dl_UOB-overlay.dtbo-base := ums9620-base.dtb
+else
+dtb-$(CONFIG_ARCH_SPRD) := ums9620-2h10-overlay.dtbo ums9620-2h10_manila-overlay.dtbo
+ums9620-2h10-overlay.dtbo-base := ums9620-base.dtb
+ums9620-2h10_manila-overlay.dtbo-base := ums9620-base.dtb
+endif # CONFIG_DTB_ORIGINAL
 endif
 
 ifeq ($(BSP_BUILD_FAMILY),qogirn6l)

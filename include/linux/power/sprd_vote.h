@@ -51,6 +51,7 @@ enum SPRD_VOTE_TYPE_IBUS_ID {
 
 	/* When charge pump is working, buck chargeIC is auxiliary charging */
 	SPRD_VOTE_TYPE_IBUS_ID_BUCK_CHARGEIC_ASSIT,
+	SPRD_VOTE_TYPE_IBUS_ID_PD_NEGOIIATED_LIMIT,
 	SPRD_VOTE_TYPE_IBUS_ID_MAX,
 };
 

@@ -255,9 +255,9 @@ static int sprd_ipc_probe(struct platform_device *pdev)
 
 	return 0;
 out:
-	if (!IS_ERR(ipc->chan))
+	if (!IS_ERR_OR_NULL(ipc->chan))
 		mbox_free_channel(ipc->chan);
-	if (!IS_ERR(ipc->sensor_chan))
+	if (!IS_ERR_OR_NULL(ipc->sensor_chan))
 		mbox_free_channel(ipc->sensor_chan);
 	return ret;
 }
@@ -266,6 +266,10 @@ static int sprd_ipc_remove(struct platform_device *pdev)
 {
 	struct smsg_ipc *ipc = platform_get_drvdata(pdev);
 
+	if (!IS_ERR_OR_NULL(ipc->chan))
+		mbox_free_channel(ipc->chan);
+	if (!IS_ERR_OR_NULL(ipc->sensor_chan))
+		mbox_free_channel(ipc->sensor_chan);
 	smsg_ipc_destroy(ipc);
 	kfree(ipc->smem_ptr);
 

@@ -97,6 +97,20 @@ int ufshcd_decode_ufs_uid(struct ufs_hba *hba)
 		device_desc[DEVICE_DESC_PARAM_MANF_DATE] << 8 |
 		device_desc[DEVICE_DESC_PARAM_MANF_DATE + 1];
 
+	err = ufshcd_read_desc_param(hba, QUERY_DESC_IDN_STRING,
+				     (int)device_desc[DEVICE_DESC_PARAM_MANF_ID],
+				     0,
+				     (u8 *)uc_str, QUERY_DESC_MAX_SIZE);
+	print_hex_dump(KERN_ERR, "ufs_man: ", DUMP_PREFIX_OFFSET, 32, 1, uc_str, min_t(u32, QUERY_DESC_MAX_SIZE, uc_str[QUERY_DESC_LENGTH_OFFSET]), true);
+	if (err)
+		strlcpy(bootdevice.manufacturer_name, "unknown", UFS_MANF_NAME_LEN);
+	else {
+		int i = min_t(u32, UFS_MANF_NAME_LEN, uc_str[QUERY_DESC_LENGTH_OFFSET]);
+		bootdevice.manufacturer_name[i] = 0;
+		for (i--; i >= 0; i--)
+			bootdevice.manufacturer_name[i] = uc_str[QUERY_DESC_HDR_SIZE + 2*i + 1];
+	}
+
 	/* Serial Number String Descriptor */
 	err = ufshcd_read_desc_param(hba, QUERY_DESC_IDN_STRING,
 				     (int)device_desc[DEVICE_DESC_PARAM_SN],
@@ -107,10 +121,12 @@ int ufshcd_decode_ufs_uid(struct ufs_hba *hba)
 			3, err);
 		goto out;
 	}
+	print_hex_dump(KERN_ERR, "ufs_sn:  ", DUMP_PREFIX_OFFSET, 32, 1, uc_str, min_t(u32, QUERY_DESC_MAX_SIZE, uc_str[QUERY_DESC_LENGTH_OFFSET]), true);
 
 	uc_str[QUERY_DESC_MAX_SIZE] = '\0';
 	set_ufs_device_uid(hba, (uint8_t *)uc_str);
 	set_ufs_bootdevice_desc_info(device_desc);
+	print_hex_dump(KERN_ERR, "ufs_cid: ", DUMP_PREFIX_OFFSET, 32, 1, &ufs_uid, sizeof(ufs_uid), true);
 out:
 	kfree(uc_str);
 	return err;
@@ -226,6 +242,24 @@ static int sprd_manid_open(struct inode *inode, struct file *file)
 
 static const struct proc_ops manfid_fops = {
 	.proc_open = sprd_manid_open,
+	.proc_read = seq_read,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release,
+};
+
+static int ufs_manf_name_show(struct seq_file *m, void *v)
+{
+	seq_printf(m, "%s\n", bootdevice.manufacturer_name);
+	return 0;
+}
+
+static int sprd_manf_name_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, ufs_manf_name_show, PDE_DATA(inode));
+}
+
+static const struct proc_ops manf_name_fops = {
+	.proc_open = sprd_manf_name_open,
 	.proc_read = seq_read,
 	.proc_lseek = seq_lseek,
 	.proc_release = single_release,
@@ -430,6 +464,7 @@ static char *const sprd_ufs_node_info[] = {
 	"life_time_est_typ_a",
 	"life_time_est_typ_b",
 	"manfid",
+	"manufacturer_name",
 	"name",
 	"pre_eol_info",
 	"product_name",
@@ -445,6 +480,7 @@ static const struct proc_ops *proc_fops_list[] = {
 	&life_time_est_typ_a_fops,
 	&life_time_est_typ_b_fops,
 	&manfid_fops,
+	&manf_name_fops,
 	&name_fops,
 	&pre_eol_info_fops,
 	&prod_name_fops,

@@ -65,6 +65,29 @@
 			124872 43 >;
 	};
 
+	pa5g_thermistor: pa5g-sensor {
+		compatible = "generic-adc-thermal";
+		#thermal-sensor-cells = <0>;
+		io-channels = <&pmic_adc 3>;
+		io-channel-names = "sensor-channel";
+		temperature-lookup-table = <
+			(-39742) 1131
+			(-29777) 1110
+			(-19480) 1074
+			(-4679) 983
+			10110 838
+			24805 654
+			44922 413
+			54903 316
+			64895 238
+			74884 178
+			84883 133
+			94883 100
+			104880 75
+			114889 57
+			124872 43 >;
+	};
+
 	chg_thermistor: chg-sensor {
 		compatible = "generic-adc-thermal";
 		#thermal-sensor-cells = <0>;
@@ -101,6 +124,12 @@
 		polling-delay-passive = <0>;
 		polling-delay = <0>;
 		thermal-sensors = <&pa_thermistor>;
+	};
+
+	pa5g_thmzone: pa5g-thmzone {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&pa5g_thermistor>;
 	};
 
 	chg_thmzone: chg-thmzone {

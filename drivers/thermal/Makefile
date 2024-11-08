@@ -63,6 +63,7 @@ obj-$(CONFIG_SPRD_DEDICATE_THERMAL)	+= sprd_dedicate_thm.o
 obj-$(CONFIG_SPRD_THERMAL_R5P0) 	+= sprd_thermal_r5p0.o
 obj-$(CONFIG_SPRD_SHELL_THERMAL)	+= sprd_shell_thm.o
 obj-$(CONFIG_SPRD_VIRT_THERMAL)		+= sprd_virt_thm.o
+obj-$(CONFIG_SPRD_SKIN_THERMAL)		+= sprd_skin_thm.o
 obj-$(CONFIG_SC27XX_TSENSOR_THERMAL)	+= sc27xx_tsensor_thermal.o
 obj-$(CONFIG_SPRD_UMP96XX_TSENSOR)  += sprd_ump96xx_tsensor.o
 obj-$(CONFIG_KHADAS_MCU_FAN_THERMAL)	+= khadas_mcu_fan.o

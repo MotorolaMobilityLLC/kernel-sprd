@@ -933,6 +933,36 @@ static void __init print_unknown_bootoptions(void)
 	memblock_free_ptr(unknown_options, len);
 }
 
+#define CMDLINE_SUBLEN 145
+static void print_command_line(char *cmdline)
+{
+	int len = strlen(cmdline);
+	int part = CMDLINE_SUBLEN;
+	char *p, *q;
+	char buf[CMDLINE_SUBLEN + 1];
+	pr_err("Kernel command line:\n");
+	p = cmdline;
+	while (len > 0) {
+		if (part >= len) {
+			q = p + len;
+		} else {
+			q = p + part -1;
+			for (; p < q; q--)
+				if (*q == ' ' || *q == '\t')
+					break;
+			if (p==q)
+				q = p + part;
+			else
+				q++;
+		}
+		len -= q-p;
+		strncpy(buf, p, q - p);
+		buf[q-p] = 0;
+		pr_err("  %s\n", buf);
+		p = q;
+	}
+}
+
 asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 {
 	char *command_line;
@@ -954,6 +984,7 @@ asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 	 */
 	boot_cpu_init();
 	page_address_init();
+	pr_err("%s\n", VERSION_OF);
 	pr_notice("%s", linux_banner);
 	early_security_init();
 	setup_arch(&command_line);
@@ -967,7 +998,11 @@ asmlinkage __visible void __init __no_sanitize_address start_kernel(void)
 	build_all_zonelists(NULL);
 	page_alloc_init();
 
-	pr_notice("Kernel command line: %s\n", saved_command_line);
+	pr_err("%s\n", VERSION_OF); // repeat for console log
+	pr_notice("%s", linux_banner);
+	//pr_notice("Kernel command line: %s\n", saved_command_line);
+	print_command_line(command_line);
+
 	/* parameters may set static keys */
 	jump_label_init();
 	parse_early_param();
