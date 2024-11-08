@@ -2411,9 +2411,7 @@ void hybridswap_manager_memcg_deinit(struct mem_cgroup *mcg)
 
 		if (last_index == index) {
 			hybp(HYB_ERR, "dup index %d\n", index);
-#ifdef CONFIG_SPRD_DEBUG
-			panic("hybridswap_manager_memcg_deinit dup index\n");
-#endif
+			dump_stack();
 		}
 
 		zram_slot_lock(zram, index);
@@ -5536,7 +5534,7 @@ void hybridswap_force_reclaim(struct mem_cgroup *mcg)
 		return;
 
 	mutex_lock(&hybs->swap_lock);
-	require_size = atomic64_read(&hybs->zram_stored_size);
+	require_size = atomic64_read(&hybs->zram_stored_size) / 2;
 	hybs->force_swapout = true;
 	hybridswap_permcg_reclaim(mcg, require_size, &mcg_reclaimed_size);
 	hybs->force_swapout = false;
