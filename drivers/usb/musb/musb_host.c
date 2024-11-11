@@ -369,10 +369,16 @@ static void musb_advance_schedule(struct musb *musb, struct urb *urb,
 	 */
 	qh = musb_ep_get_qh(hw_ep, is_in);
 
+	/*
+	 * musb->lock had been unlocked in musb_giveback, so qh may
+	 * be freed, need to get it again
+	 */
+	qh = musb_ep_get_qh(hw_ep, is_in);
+
 	/* reclaim resources (and bandwidth) ASAP; deschedule it, and
 	 * invalidate qh as soon as list_empty(&hep->urb_list)
 	 */
-	if (qh != NULL && list_empty(&qh->hep->urb_list)) {
+	if (qh && list_empty(&qh->hep->urb_list)) {
 		struct list_head	*head;
 		struct dma_controller	*dma = musb->dma_controller;
 
@@ -726,9 +732,6 @@ void musb_rx_dma_sprd(struct dma_channel *dma_channel,
 		musb_write_rxhubport(musb, epnum, qh->h_port_reg);
 	} else
 		musb_writeb(musb->mregs, MUSB_FADDR, qh->addr_reg);
-
-	/* protocol/endpoint, interval/NAKlimit, i/o size */
-	musb_writeb(hw_ep->regs, MUSB_RXTYPE, qh->type_reg);
 
 	/* NOTE: bulk combining rewrites high bits of maxpacket */
 	/* Set RXMAXP with the FIFO size of the endpoint
@@ -2414,8 +2417,11 @@ success:
 	qh->hw_ep = hw_ep;
 	qh->hep->hcpriv = qh;
 	if (idle) {
-		if (is_in)
+		if (is_in) {
+			/* RXINTERVAL should be set after RXTYPE */
+			musb_writeb(hw_ep->regs, MUSB_RXTYPE, qh->type_reg);
 			musb_writeb(hw_ep->regs, MUSB_RXINTERVAL, qh->intv_reg);
+		}
 		musb_start_urb(musb, is_in, qh);
 	}
 	return 0;

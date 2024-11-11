@@ -453,18 +453,14 @@ static inline void _sdhci_sprd_set_clock(struct sdhci_host *host,
 	sdhci_enable_clk(host, div);
 
 	/* enable auto gate sdhc_enable_auto_gate */
+	val = sdhci_readl(host, SDHCI_SPRD_REG_32_BUSY_POSI);
+	mask = SDHCI_SPRD_BIT_OUTR_CLK_AUTO_EN | SDHCI_SPRD_BIT_INNR_CLK_AUTO_EN;
 	if (clk > 400000) {
-		val = sdhci_readl(host, SDHCI_SPRD_REG_32_BUSY_POSI);
-		mask = SDHCI_SPRD_BIT_OUTR_CLK_AUTO_EN |
-			SDHCI_SPRD_BIT_INNR_CLK_AUTO_EN;
 		if (mask != (val & mask)) {
 			val |= mask;
 			sdhci_writel(host, val, SDHCI_SPRD_REG_32_BUSY_POSI);
 		}
 	} else {
-		val = sdhci_readl(host, SDHCI_SPRD_REG_32_BUSY_POSI);
-		mask = SDHCI_SPRD_BIT_OUTR_CLK_AUTO_EN |
-			SDHCI_SPRD_BIT_INNR_CLK_AUTO_EN;
 		if (val & mask) {
 			val &= ~mask;
 			sdhci_writel(host, val, SDHCI_SPRD_REG_32_BUSY_POSI);
@@ -864,10 +860,14 @@ static int sdhci_sprd_tuning(struct mmc_host *mmc, u32 opcode, enum sdhci_sprd_t
 			if (read_poll_timeout(sdhci_readl, tmp, (!(tmp & SDHCI_DOING_READ) &&
 			    ((tmp & SDHCI_DATA_LVL_MASK) == SDHCI_DATA_LVL_MASK)),
 			    USEC_PER_MSEC, 4 * USEC_PER_SEC, false, host, SDHCI_PRESENT_STATE)) {
+#ifdef CONFIG_SPRD_DEBUG
+				panic("wait host controller idle timeout, please check");
+#else
 				pr_err("%s: wait host controller idle timeout, please check\n",
 					mmc_hostname(mmc));
 				err = -EIO;
 				goto out;
+#endif
 			}
 			sdhci_reset(host, SDHCI_RESET_CMD | SDHCI_RESET_DATA);
 			sprd_host->wait_read_idle = false;
