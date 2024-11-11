@@ -74,6 +74,9 @@
 #include "internal.h"
 
 #include <trace/events/sched.h>
+#ifndef __GENKSYMS__
+#include <trace/hooks/sched.h>
+#endif
 
 EXPORT_TRACEPOINT_SYMBOL_GPL(task_rename);
 
@@ -1242,6 +1245,7 @@ void __set_task_comm(struct task_struct *tsk, const char *buf, bool exec)
 	strlcpy(tsk->comm, buf, sizeof(tsk->comm));
 	task_unlock(tsk);
 	perf_event_comm(tsk, exec);
+	trace_android_rvh_set_task_comm(tsk, exec);
 }
 
 /*
@@ -1419,6 +1423,9 @@ int begin_new_exec(struct linux_binprm * bprm)
 
 out_unlock:
 	up_write(&me->signal->exec_update_lock);
+	if (!bprm->cred)
+		mutex_unlock(&me->signal->cred_guard_mutex);
+
 out:
 	return retval;
 }
