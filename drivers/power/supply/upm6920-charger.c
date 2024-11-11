@@ -471,7 +471,7 @@ upm6920_charger_set_termina_vol(struct upm6920_charger_info *info, u32 vol)
     u8 reg_val;
 
     vol += 8;
-    vol += 16;
+    vol -= 16;
 
     if (vol < REG06_VREG_MIN)
         vol = REG06_VREG_MIN;
