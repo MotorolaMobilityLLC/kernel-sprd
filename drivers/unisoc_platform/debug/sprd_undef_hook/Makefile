@@ -1,1 +1,1 @@
-obj-$(CONFIG_SPRD_UNDEF_HOOK) += sprd_undef_hook.o
+#obj-$(CONFIG_SPRD_UNDEF_HOOK) += sprd_undef_hook.o
