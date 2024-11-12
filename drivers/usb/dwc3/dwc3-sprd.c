@@ -1836,8 +1836,6 @@ static int dwc3_sprd_pm_suspend(struct device *dev)
 	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
 
 	dev_info(dev, "%s: enter\n", __func__);
-	/* advance to flush */
-	flush_workqueue(sdwc->dwc3_wq);
 	if (atomic_read(&sdwc->runtime_suspended))
 		goto runtime_suspended;
 
