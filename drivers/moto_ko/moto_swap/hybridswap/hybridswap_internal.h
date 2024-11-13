@@ -12,6 +12,44 @@
 #include <linux/device.h>
 #include <linux/memcontrol.h>
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+#include <linux/blkdev.h>
+#include <linux/sched/debug.h>
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
+#include <linux/genhd.h>
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+#include "../zram-6.6/zram_drv.h"
+#include "../zram-6.6/zram_drv_internal.h"
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
+#include "../zram-6.1/zram_drv.h"
+#include "../zram-6.1/zram_drv_internal.h"
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#include "../zram-5.15/zram_drv.h"
+#include "../zram-5.15/zram_drv_internal.h"
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+#include "../zram-5.10/zram_drv.h"
+#include "../zram-5.10/zram_drv_internal.h"
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(5, 4, 0)
+#include "../zram-5.4/zram_drv.h"
+#include "../zram-5.4/zram_drv_internal.h"
+#endif
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
+#define MEMCG_OEM_DATA(memcg) ((memcg)->android_oem_data1[0])
+#else
+#define MEMCG_OEM_DATA(memcg) ((memcg)->android_oem_data1)
+#endif
+
+#ifndef BIO_MAX_PAGES
+#define BIO_MAX_PAGES BIO_MAX_VECS
+#endif
+
+#ifndef MEM_CGROUP_ID_MAX
+#define MEM_CGROUP_ID_MAX	((1UL << MEM_CGROUP_ID_SHIFT) - 1)
+#endif
+
 #define ESWAP_SHIFT        15
 #define ESWAP_SIZE         (1UL << ESWAP_SHIFT)
 #define ESWAP_PG_CNT		(ESWAP_SIZE >> PAGE_SHIFT)
@@ -265,13 +303,6 @@ enum hybridswap_event_item {
 	SWAPD_SNAPSHOT_TIMES,
 	SWAPD_SKIP_SHRINK_OF_WINDOW,
 	SWAPD_MANUAL_PAUSE,
-#ifdef CONFIG_OPLUS_JANK
-	SWAPD_CPU_BUSY_SKIP_TIMES,
-	SWAPD_CPU_BUSY_BREAK_TIMES,
-#endif
-#endif
-#ifdef CONFIG_HYBRIDSWAP_ASYNC_COMPRESS
-	AKCOMPRESSD_WAKEUP,
 #endif
 	NR_EVENT_ITEMS
 };
@@ -280,16 +311,6 @@ struct swapd_event_state {
 	unsigned long event[NR_EVENT_ITEMS];
 };
 
-#ifdef CONFIG_HYBRIDSWAP_ASYNC_COMPRESS
-struct cgroup_cache_page {
-	spinlock_t lock;
-	struct list_head head;
-	unsigned int cnt;
-	int id;
-	char compressing;
-	char dead;
-};
-#endif
 
 typedef struct mem_cgroup_hybridswap {
 #ifdef CONFIG_HYBRIDSWAP
@@ -338,9 +359,6 @@ typedef struct mem_cgroup_hybridswap {
 	struct mutex swap_lock;
 	bool in_swapin;
 	bool force_swapout;
-#endif
-#ifdef CONFIG_HYBRIDSWAP_ASYNC_COMPRESS
-	struct cgroup_cache_page cache;
 #endif
 }memcg_hybs_t;
 
@@ -548,18 +566,9 @@ extern unsigned long fetch_nr_zram_total(void);
 extern int swapd_init(struct zram *zram);
 extern void swapd_exit(void);
 extern bool hybridswap_swapd_enabled(void);
+extern unsigned long fetch_totalreserve_pages(void);
 #else
 static inline bool hybridswap_swapd_enabled(void) { return false; }
-#endif
-
-#ifdef CONFIG_HYBRIDSWAP_ASYNC_COMPRESS
-extern spinlock_t cached_idr_lock;
-extern struct idr cached_idr;
-
-extern void __init akcompressd_pre_init(void);
-extern void __exit akcompressd_pre_deinit(void);
-extern int create_akcompressd_task(struct zram *zram);
-extern void clear_page_memcg(struct cgroup_cache_page *cache);
 #endif
 
 #endif /* end of HYBRIDSWAP_INTERNAL_H */
