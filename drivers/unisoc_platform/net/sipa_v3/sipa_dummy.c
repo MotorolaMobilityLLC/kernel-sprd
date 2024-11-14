@@ -372,7 +372,7 @@ static int sipa_dummy_rx_poll(struct napi_struct *napi, int budget)
 						    napi);
 	struct sipa_dummy *dummy = netdev_priv(ring->ndev);
 
-	sipa_nic_switch_core(ring->fifoid);
+        sipa_nic_switch_core(ring->fifoid);
 	num = sipa_nic_sync_recv_pkts(budget, ring->fifoid);
 	pkts = sipa_dummy_rx_clean(dummy, num, napi, ring->fifoid);
 	sipa_nic_add_tx_fifo_rptr(pkts, ring->fifoid);
@@ -934,7 +934,7 @@ static int sipa_dummy_netdev_event_handler(struct notifier_block *nb,
 		ret = NOTIFY_OK;
 		sipa_dummy_netdev_set_state(ndev, true);
 		if (!strncmp(ndev->name, "usb0", 4)) {
-			sipa_nic_set_bypass_mode(false);
+			sipa_nic_set_bypass_mode(true);
 			debug_cnt++;
 		}
 
