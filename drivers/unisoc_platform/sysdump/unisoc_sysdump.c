@@ -526,13 +526,13 @@ void handle_android_debug_symbol(void)
 	void *addr_end_percpu;
 
 	/* data-bss */
-	addr_start = android_debug_symbol(ADS_SDATA);
+/*	addr_start = android_debug_symbol(ADS_SDATA);
 	addr_end = android_debug_symbol(ADS_BSS_END);
 	if (addr_start == NULL || addr_end == NULL)
 		return;
 	minidump_save_extend_information("data-bss", unisoc_virt_to_phys(addr_start),
 			unisoc_virt_to_phys(addr_end));
-
+*/
 	/* per_cpu */
 	addr_start = android_debug_symbol(ADS_PER_CPU_START);
 	addr_end = android_debug_symbol(ADS_PER_CPU_END);
