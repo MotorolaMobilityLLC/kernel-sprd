@@ -200,6 +200,7 @@ struct sprd_battery_info {
 	struct sprd_battery_ir_compensation ir;
 	u32 remap_full_percent_num;
 	u32 *batt_full_percent;
+	const char ** battery_name;
 };
 
 extern void sprd_battery_put_battery_info(struct power_supply *psy,

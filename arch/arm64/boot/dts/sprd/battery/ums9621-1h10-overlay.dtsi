@@ -174,21 +174,21 @@
 	bq2560x_chg: charger@6b {
 		compatible = "ti,bq2560x_chg";
 		reg = <0x6b>;
-		monitored-battery-0 = <&bat>;
+		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
 	};
 	hl7015_chg: charger@6e {
 		compatible = "hl,hl7015_chg";
 		reg = <0x6e>;
-		monitored-battery-0 = <&bat>;
+		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
 	};
 	upm6920_chg: charger@6a {
 		compatible = "uni,upm6920_chg";
 		reg = <0x6a>;
-		monitored-battery-0 = <&bat>;
+		monitored-battery = <&bat>;
 		irq-gpio = <&ap_gpio 185 GPIO_ACTIVE_LOW>;
 		use-typec-extcon;
 	};

@@ -83,7 +83,7 @@ int sprd_battery_parse_battery_id(struct power_supply *psy)
 				ret, result);
 		}
 	}
-	dev_info(&psy->dev, "Batteryid = %d\n", id);
+	dev_info(&psy->dev, "Batteryid = %x\n", id);
 
 	return id;
 }
@@ -667,7 +667,7 @@ int sprd_battery_get_battery_info(struct power_supply *psy,
 	struct device_node *battery_np;
 	const char *value;
 	char *propname;
-	int err, index, battery_id, aging_bat_id, charge_cycle;
+	int err, index, battery_id, battery_id_child,aging_bat_id, charge_cycle;
 
 	info->charge_full_design_uah         = -EINVAL;
 	info->voltage_min_design_uv          = -EINVAL;
@@ -715,7 +715,10 @@ int sprd_battery_get_battery_info(struct power_supply *psy,
 	}
 
 	battery_id = sprd_battery_parse_battery_id(psy);
-	propname = kasprintf(GFP_KERNEL, "monitored-battery-%d", battery_id);
+	battery_id_child  = (battery_id & 0xf0) >> 4;
+	battery_id &= 0x0f;
+//	propname = kasprintf(GFP_KERNEL, "monitored-battery-%d", battery_id);
+	propname = kasprintf(GFP_KERNEL, "monitored-battery", battery_id);
 
 	if (!dynamic_aging_bat_id) {
 		charge_cycle = sprd_battery_parse_charge_cycle(psy);
@@ -724,6 +727,7 @@ int sprd_battery_get_battery_info(struct power_supply *psy,
 		aging_bat_id = dynamic_aging_bat_id;
 	}
 
+	aging_bat_id = battery_id;
 	battery_np = of_parse_phandle(psy->of_node, propname, aging_bat_id);
 	if (!battery_np) {
 		dev_warn(&psy->dev, "Fail to get monitored-battery-%d, aging-bat-id-%d\n",
@@ -737,6 +741,17 @@ int sprd_battery_get_battery_info(struct power_supply *psy,
 
 	if (strcmp("simple-battery", value))
 		return -ENODEV;
+	info->battery_name = devm_kcalloc(&psy->dev,
+					       1,
+					      sizeof(char *),
+					      GFP_KERNEL);
+	if (!info->battery_name)
+		return -ENOMEM;
+
+	of_property_read_string_index(battery_np, "battery_name", battery_id_child,
+				      &info->battery_name[0]);
+	dev_err(&psy->dev, "%s; %s;%d;%d;\n", __func__,info->battery_name[0],
+		             battery_id,battery_id_child);
 
 	of_property_read_u32(battery_np, "charge-full-design-microamp-hours",
 			     &info->charge_full_design_uah);
