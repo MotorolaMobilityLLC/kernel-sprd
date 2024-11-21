@@ -2369,12 +2369,14 @@ void hybridswap_manager_memcg_init(struct zram *zram,
 	hybp(HYB_DEBUG, "new memcg in zram, id = %d.\n", memcg->id.id);
 }
 
+#define DUP_INDEX_RETRY_COUNT 100
 void hybridswap_manager_memcg_deinit(struct mem_cgroup *mcg)
 {
 	struct zram *zram = NULL;
 	struct hyb_info *infos = NULL;
 	struct hybstatus *stat = hybridswap_fetch_stat_obj();
 	int last_index = -1;
+	int retry = 0;
 	memcg_hybs_t *hybs;
 
 	if (!stat) {
@@ -2410,10 +2412,11 @@ void hybridswap_manager_memcg_deinit(struct mem_cgroup *mcg)
 		}
 
 		if (last_index == index) {
-			hybp(HYB_ERR, "dup index %d\n", index);
-#ifdef CONFIG_SPRD_DEBUG
-			panic("hybridswap_manager_memcg_deinit dup index\n");
-#endif
+			if (!(retry % (DUP_INDEX_RETRY_COUNT / 10)))
+				hybp(HYB_ERR, "dup index %d\n", index);
+			if (retry > DUP_INDEX_RETRY_COUNT)
+				break;
+			retry++;
 		}
 
 		zram_slot_lock(zram, index);
@@ -2428,6 +2431,8 @@ void hybridswap_manager_memcg_deinit(struct mem_cgroup *mcg)
 		zram_slot_unlock(zram, index);
 		last_index = index;
 	}
+	if (retry > 0)
+		hybp(HYB_ERR, "break from dup index after retried %d times\n", retry);
 
 	hybp(HYB_DEBUG, "deinit mcg %d %s, entry done\n", mcg->id.id, hybs->name);
 	while (1) {
