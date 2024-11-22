@@ -280,7 +280,7 @@
 	use-typec-extcon;
 };
 
-&power_controller {
+&power_controller_ump9620 {
 	vddvbus:otg-vbus {
 		regulator-name = "vddvbus";
 	};
