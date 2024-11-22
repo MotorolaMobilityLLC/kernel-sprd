@@ -474,12 +474,8 @@
 		interrupts = <111  0>;
 		reset-gpios = <&ap_gpio 186 0x00>;
 		irq-gpios = <&ap_gpio 111 0x00>;
-		// pidle-gpios = <&tlmm 48 0x00>;
 		clkreq-gpios = <&ap_gpio 147 0x00>;
-	//	clock-names = "nfc_clk","source","enable";
-	//	clocks = <&aonapb_clk CLK_AUX2>, <&ext_26m>, <&aonapb_gate CLK_AUX2_EB>;
 		st,clk_pinctrl;
-		// i2c-retry = <0>;
 		status = "ok";
 	};
 };
