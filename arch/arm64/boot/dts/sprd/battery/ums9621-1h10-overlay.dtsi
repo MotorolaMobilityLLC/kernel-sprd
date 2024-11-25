@@ -148,7 +148,7 @@
 	sprd,support-fchg;
 	sprd,pd-fixed-max-microwatt = <27000000>;
 
-	monitored-battery-0 = <&bat>;
+	monitored-battery = <&bat>;
 	cm-capacity-track;
 	cm-keep-awake;
 	cm-support-linear-charge;
@@ -226,7 +226,7 @@
 };
 
 &pmic_fgu {
-	monitored-battery-0 = <&bat>;
+	monitored-battery = <&bat>;
 	fgu-cap-remap-table = <1 2 3>, <2 3 2>, <98 99 2>, <99 100 3>;
 	sprd,calib-resistance-micro-ohms = <2000>;
 	sprd,comp-resistance-mohm = <11>;
