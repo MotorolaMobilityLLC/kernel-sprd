@@ -361,6 +361,9 @@ static int sipa_eth_probe(struct platform_device *pdev)
 	sipa_eth->stats = &netdev->stats;
 	netdev->netdev_ops = &sipa_eth_ops;
 	netdev->watchdog_timeo = 1 * HZ;
+	netdev->header_ops = NULL;
+	netdev->addr_len = 0;  //without ethernet header
+	netdev->hard_header_len = 0;
 
 	random_ether_addr(netdev->dev_addr);
 

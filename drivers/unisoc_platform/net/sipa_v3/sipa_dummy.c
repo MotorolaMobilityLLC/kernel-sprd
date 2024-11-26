@@ -199,6 +199,8 @@ static void sipa_dummy_prepare_skb(struct sk_buff *skb, u32 src_id, u32 dst_id)
 
 		peth->h_proto = skb->protocol;
 		skb_pull_inline(skb, ETH_HLEN);
+		skb_reset_network_header(skb);
+		skb_pop_mac_header(skb);  //without mac header
 		break;
 	default:
 		pr_info("ignore skb from %s\n", sipa_dummy_src2str(src_id));
