@@ -413,11 +413,6 @@ static int upm6920_update_bits(struct upm6920_charger_info *info, u8 reg,
 	return upm6920_write(info, reg, v);
 }
 
-static int upm6920_set_reg(struct upm6920_charger_info *info, int reg)
-{
-	return upm6920_write(info,(reg>>8) & 0xff, reg & 0xff);
-}
-
 static int upm6920_charger_force_vindpm(struct upm6920_charger_info *info)
 {
     return upm6920_update_bits(info, UPM6920_REG_D,
@@ -1111,6 +1106,70 @@ static int upm6920_charger_set_status(struct upm6920_charger_info *info,
 	return ret;
 }
 
+enum adjust_voltage_direct
+{
+	ADJUST_UP=0,
+	ADJUST_DOWN,
+};
+#define VBUS_12V 12000000
+#define VBUS_11V 11000000
+#define VBUS_9V 9000000
+#define VBUS_7V 7000000
+#define VBUS_5V 5000000
+
+// 0.6 0.6  12v
+// 3.3 0.6  9v
+// 0.6 3.3  contimuous mode
+// 3.3 3.3   20v
+// 0.6 hz   5v
+
+static int upm6920_set_qc(struct upm6920_charger_info *info,int voltage)
+{
+
+	dev_info(info->dev, "%s;%d;%d;\n",__func__,voltage);
+
+	if(voltage == VBUS_5V)
+		upm6920_write(info, 0x01, 0x41);      //d+ 0.6
+	else if(voltage == VBUS_9V)
+		upm6920_write(info, 0x01, 0xc9);      //d+ 3.3 , d- 0.6
+	else if(voltage == VBUS_12V)
+		upm6920_write(info, 0x01, 0x49);      //d+ 0.6  d- 0.6
+	else if(voltage == 0)
+		upm6920_write(info, 0x0f, 0x00);      // d+ d-  high impedance
+
+	return 0;
+}
+static int upm6920_set_qc_continue(struct upm6920_charger_info *info,int step,int direction)
+{
+	int i;
+
+	dev_info(info->dev, "%s;step:%d;direction=%d;\n",__func__,step,direction);
+	if(step == 0)
+		return 0;
+
+	upm6920_write(info, 0x01, 0x59);      //d+ 0.6, d- 3.3  enter continue mode
+	msleep(200);
+
+	for(i=0;i< step;i++)
+	{
+		if(direction == ADJUST_UP)
+		{
+			upm6920_write(info, 0x01, 0xd9);      //d+ 3.3, d- 3.3  up
+			msleep(5);
+		}
+		else
+		{
+			upm6920_write(info, 0x01, 0x49);      //d+ 0.6, d- 0.6  down
+			msleep(5);
+		}
+
+		upm6920_write(info, 0x01, 0x59);      //d+ 0.6, d- 3.3 back to continue mode
+		upm6920_write(info, 0x01, 0x59);      //d+ 0.6, d- 3.3 back to continue mode
+		msleep(5);
+	}
+
+	return 0;
+}
 static void upm6920_current_work(struct work_struct *data)
 {
 	struct delayed_work *dwork = to_delayed_work(data);
@@ -1411,12 +1470,14 @@ static int upm6920_charger_usb_set_property(struct power_supply *psy,
 			cancel_delayed_work_sync(&info->wdt_work);
 		}
 		break;
-	case POWER_SUPPLY_PROP_TECHNOLOGY:
-		ret = upm6920_set_reg(info, val->intval);
-		break;
-
 	case POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT:
 		ret = upm6920_charger_set_termina_cur(info, val->intval/1000);
+		break;
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
+		upm6920_set_qc(info, val->intval);
+		break;
+	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
+		upm6920_set_qc_continue(info, val->intval>>8,val->intval&0xff);
 		break;
 
 	default:

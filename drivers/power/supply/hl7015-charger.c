@@ -346,11 +346,6 @@ static int hl7015_update_bits(struct hl7015_charger_info *info, u8 reg,
 	return hl7015_write(info, reg, v);
 }
 
-static int hl7015_set_reg(struct hl7015_charger_info *info, int reg)
-{
-	return hl7015_write(info,(reg>>8) & 0xff, reg & 0xff);
-}
-
 static int
 hl7015_charger_set_vindpm(struct hl7015_charger_info *info, u32 vol)
 {
@@ -1035,7 +1030,70 @@ static int hl7015_charger_set_status(struct hl7015_charger_info *info,
 
 	return ret;
 }
+enum adjust_voltage_direct
+{
+	ADJUST_UP=0,
+	ADJUST_DOWN,
+};
+#define VBUS_12V 12000000
+#define VBUS_11V 11000000
+#define VBUS_9V 9000000
+#define VBUS_7V 7000000
+#define VBUS_5V 5000000
 
+// 0.6 0.6  12v
+// 3.3 0.6  9v
+// 0.6 3.3  contimuous mode
+// 3.3 3.3   20v
+// 0.6 hz   5v
+
+static int hl7015_set_qc(struct hl7015_charger_info *info,int voltage)
+{
+
+	dev_info(info->dev, "%s;%d;%d;\n",__func__,voltage);
+
+	if(voltage == VBUS_5V)
+		hl7015_write(info, 0x0f, 0x80);      //d+ 0.6
+	else if(voltage == VBUS_9V)
+		hl7015_write(info, 0x0f, 0xe0);      //d+ 3.3 , d- 0.6
+	else if(voltage == VBUS_12V)
+		hl7015_write(info, 0x0f, 0xa0);      //d+ 0.6  d- 0.6
+	else if(voltage == 0)
+		hl7015_write(info, 0x0f, 0x00);      // d+ d-  high impedance
+
+	return 0;
+}
+static int hl7015_set_qc_continue(struct hl7015_charger_info *info,int step,int direction)
+{
+	int i;
+
+	dev_info(info->dev, "%s;step:%d;direction=%d;\n",__func__,step,direction);
+	if(step == 0)
+		return 0;
+
+	hl7015_write(info, 0x0f, 0xb0);      //d+ 0.6, d- 3.3  enter continue mode
+	msleep(200);
+
+	for(i=0;i< step;i++)
+	{
+		if(direction == ADJUST_UP)
+		{
+			hl7015_write(info, 0x0f, 0xf0);      //d+ 3.3, d- 3.3  up
+			msleep(5);
+		}
+		else
+		{
+			hl7015_write(info, 0x0f, 0xa0);      //d+ 0.6, d- 0.6  down
+			msleep(5);
+		}
+
+		hl7015_write(info, 0x0f, 0xb0);      //d+ 0.6, d- 3.3 back to continue mode
+		hl7015_write(info, 0x0f, 0xb0);      //d+ 0.6, d- 3.3 back to continue mode
+		msleep(5);
+	}
+
+	return 0;
+}
 static void hl7015_current_work(struct work_struct *data)
 {
 	struct delayed_work *dwork = to_delayed_work(data);
@@ -1336,12 +1394,14 @@ static int hl7015_charger_usb_set_property(struct power_supply *psy,
 			cancel_delayed_work_sync(&info->wdt_work);
 		}
 		break;
-	case POWER_SUPPLY_PROP_TECHNOLOGY:
-		ret = hl7015_set_reg(info, val->intval);
-		break;
-
 	case POWER_SUPPLY_PROP_CHARGE_TERM_CURRENT:
 		ret = hl7015_charger_set_termina_cur(info, val->intval/1000);
+		break;
+	case POWER_SUPPLY_PROP_CONSTANT_CHARGE_VOLTAGE:
+		hl7015_set_qc(info, val->intval);
+		break;
+	case POWER_SUPPLY_PROP_CHARGE_COUNTER:
+		hl7015_set_qc_continue(info, val->intval>>8,val->intval&0xff);
 		break;
 
 	default:
