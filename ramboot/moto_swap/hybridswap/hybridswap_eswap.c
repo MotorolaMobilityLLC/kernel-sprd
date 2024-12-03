@@ -4705,7 +4705,7 @@ void hybridswap_untrack(struct zram *zram, u32 index)
                 }
 //#endif
 
-		if (cnt > 900000){
+		if (cnt > 300000){
 			break_flag = true;
 			break;
 		}
@@ -4718,7 +4718,6 @@ void hybridswap_untrack(struct zram *zram, u32 index)
 
 	if (break_flag == true){
 		hybp(HYB_ERR, "wb:%lu out:%lu\n", zram_test_flag(zram, index, ZRAM_UNDER_WB), zram_test_flag(zram, index, ZRAM_BATCHING_OUT));
-		return;
 	}
 	hybridswap_swap_sorted_list_del(zram, index);
 }
