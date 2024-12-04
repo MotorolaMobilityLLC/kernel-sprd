@@ -1050,7 +1050,7 @@ enum adjust_voltage_direct
 static int hl7015_set_qc(struct hl7015_charger_info *info,int voltage)
 {
 
-	dev_info(info->dev, "%s;%d;%d;\n",__func__,voltage);
+	dev_info(info->dev, "%s;%d;\n",__func__,voltage);
 
 	if(voltage == VBUS_5V)
 		hl7015_write(info, 0x0f, 0x80);      //d+ 0.6

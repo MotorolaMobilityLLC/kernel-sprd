@@ -274,7 +274,9 @@ struct charger_sysfs_ctl_item {
 	struct device_attribute attr_support_fast_charge;
 	struct device_attribute attr_support_step_chg;
 	struct device_attribute attr_unknow_type_cur_control;
-	struct attribute *attrs[13];
+	struct device_attribute attr_soc_control;
+	struct device_attribute attr_battery_name;
+	struct attribute *attrs[15];
 
 	struct charger_manager *cm;
 };
@@ -783,6 +785,7 @@ struct charger_desc {
 	u32 fchg_voltage_check_count;
 	u32 fast_charge_enable_count;
 	u32 fast_charge_disable_count;
+	bool reach_fchg_first;
 	u32 cp_nums;
 	u32 alt_cp_nums;
 	bool enable_alt_cp_adapt;
@@ -812,11 +815,20 @@ struct charger_desc {
 
 	bool xts_limit_cur;
 	int adapter_max_vbus;
+	bool pd_enable_limit;
+	bool pd_negotiated_stop_chg;
+	bool pd_negotiated_limit_cur;
+	bool pd_negotiated_disable_power_path;
+	int pd_req_vol_uv;
+	int pd_req_cur_ua;
+
 
 	u32 pd_port_partner;
 	u32 charge_type_poll_count;
 
 	bool support_cp_buck_work_tgt;
+
+	char battery_name[64];
 };
 
 #define PSY_NAME_MAX	30
@@ -870,6 +882,7 @@ struct charger_manager {
 	struct delayed_work fixed_fchg_work;
 	struct delayed_work cp_work;
 	struct delayed_work charger_type_update_work;
+	struct work_struct pd_negotiated_limit_current_work;
 	int emergency_stop;
 
 	char psy_name_buf[PSY_NAME_MAX + 1];

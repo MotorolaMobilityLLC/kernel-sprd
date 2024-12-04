@@ -1137,7 +1137,7 @@ enum adjust_voltage_direct
 static int bq2560x_set_qc(struct bq2560x_charger_info *info,int voltage)
 {
 
-	dev_info(info->dev, "%s;%d;%d;\n",__func__,voltage);
+	dev_info(info->dev, "%s;%d;\n",__func__,voltage);
 
 	if(voltage == VBUS_5V)
 		bq2560x_write(info, 0x0d, 0x10);      //d+ 0.6

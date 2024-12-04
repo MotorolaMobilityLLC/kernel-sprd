@@ -204,6 +204,10 @@ struct sprd_charger_ops {
 	const char *name;
 
 	void (*update_ac_usb_online)(bool is_pd_hub);
+	void (*negotiated_limit_current)(enum sprd_pd_pdo_type pdo_type,
+					 int req_vol_uv,
+					 int req_cur_ua,
+					 bool enable_limit);
 };
 
 enum sprd_tcpm_typec_pd_swap {

@@ -466,7 +466,7 @@ upm6920_charger_set_termina_vol(struct upm6920_charger_info *info, u32 vol)
     u8 reg_val;
 
     vol += 8;
-    vol += 16;
+    vol -= 16;
 
     if (vol < REG06_VREG_MIN)
         vol = REG06_VREG_MIN;
@@ -1126,7 +1126,7 @@ enum adjust_voltage_direct
 static int upm6920_set_qc(struct upm6920_charger_info *info,int voltage)
 {
 
-	dev_info(info->dev, "%s;%d;%d;\n",__func__,voltage);
+	dev_info(info->dev, "%s;%d;\n",__func__,voltage);
 
 	if(voltage == VBUS_5V)
 		upm6920_write(info, 0x01, 0x41);      //d+ 0.6
@@ -1863,6 +1863,10 @@ static int upm6920_charger_enable_otg(struct regulator_dev *dev)
 	}
 
 	ret = upm6920_update_bits(info, UPM6920_REG_3,
+				  UPM6920_REG_CHG_MASK,
+				  0x0);
+
+	ret = upm6920_update_bits(info, UPM6920_REG_3,
 				  UPM6920_REG_OTG_MASK,
 				  UPM6920_REG_OTG_MASK);
 	if (ret) {
@@ -1919,6 +1923,9 @@ static int upm6920_charger_disable_otg(struct regulator_dev *dev)
 	ret = upm6920_update_bits(info, UPM6920_REG_3,
 				  UPM6920_REG_OTG_MASK,
 				  0 << UPM6920_REG_OTG_SHIFT);
+	ret = upm6920_update_bits(info, UPM6920_REG_3,
+				  UPM6920_REG_CHG_MASK,
+				  0x1 << UPM6920_REG_CHG_SHIFT);
 	if (ret) {
 		dev_err(info->dev, "disable upm6920 otg failed\n");
 		return ret;

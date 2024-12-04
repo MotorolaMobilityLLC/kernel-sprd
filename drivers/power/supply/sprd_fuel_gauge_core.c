@@ -694,6 +694,7 @@ static int sprd_fgu_parse_battery_cycles_fcc_table(struct sprd_fgu_data *data)
 static int sprd_fgu_capacity_remap(struct sprd_fgu_data *data, int fuel_cap)
 {
 	int i, temp, cap = 0;
+	return fuel_cap;
 
 	if (!data->cap_remap_table) {
 		if (fuel_cap < 400 && fuel_cap >= 150)
@@ -3097,7 +3098,7 @@ static int sprd_fgu_extcon_event(struct notifier_block *nb,
 
 	state = extcon_get_state(data->edev, SPRD_FGU_EXTCON_SINK);
 	if (state < 0) {
-		dev_err(data->dev, "failed to get extcon sink state（%d）\n", state);
+		dev_err(data->dev, "failed to get extcon sink state (%d) \n", state);
 		return NOTIFY_OK;
 	}
 
