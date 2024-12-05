@@ -742,8 +742,8 @@ int sprd_battery_get_battery_info(struct power_supply *psy,
 	if (strcmp("simple-battery", value))
 		return -ENODEV;
 	info->battery_name = devm_kcalloc(&psy->dev,
-					       1,
-					      sizeof(char *),
+					       64,
+					      sizeof(char),
 					      GFP_KERNEL);
 	if (!info->battery_name)
 		return -ENOMEM;
