@@ -64,8 +64,8 @@
 			sprd,sc-id = "ums9620 2h10 manila"; // ONTIM
 
 			gpio-keys {
-				key-volumedown-hmd {
-					label = "HMD Volume Down Key";
+				key-volumedown-moto {
+					label = "MOTO Volume Down Key";
 					linux,code = <KEY_VOLUMEDOWN>;
 					gpios = <&ap_gpio 8 GPIO_ACTIVE_LOW>;
 					debounce-interval = <2>;

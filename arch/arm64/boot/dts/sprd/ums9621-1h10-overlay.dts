@@ -61,8 +61,8 @@
 			#size-cells = <2>;
 
 			gpio-keys {
-				key-volumedown-hmd {
-					label = "HMD Volume Down Key";
+				key-volumedown-moto {
+					label = "MOTO Volume Down Key";
 					linux,code = <KEY_VOLUMEDOWN>;
 					gpios = <&ap_gpio 8 GPIO_ACTIVE_LOW>;
 					debounce-interval = <2>;
