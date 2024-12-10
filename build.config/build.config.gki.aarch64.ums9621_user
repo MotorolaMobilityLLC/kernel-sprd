@@ -14,6 +14,9 @@ elif [[ $BSP_DTSONLY_CONFIG == "true" ]]; then
 	SKIP_EXT_MODULES=1
 else
 EXT_MODULES="
+../kernel5.15/kernel5.15/ramboot/moto_mm
+../kernel5.15/kernel5.15/ramboot/moto_mmap_fault
+../kernel5.15/kernel5.15/ramboot/moto_swap
 ../modules/kernel5.15/sample
 ../modules/kernel5.15/gpu/natt
 ../modules/kernel5.15/nfc/st21nfc

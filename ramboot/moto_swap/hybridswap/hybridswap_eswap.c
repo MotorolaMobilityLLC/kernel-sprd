@@ -4685,7 +4685,7 @@ void hybridswap_untrack(struct zram *zram, u32 index)
 	while (zram_test_flag(zram, index, ZRAM_UNDER_WB) ||
 			zram_test_flag(zram, index, ZRAM_BATCHING_OUT)) {
 
-		if (cnt > 900000){
+		if (cnt > 300000){
 			break_flag = true;
 			break;
 		}
@@ -4698,7 +4698,6 @@ void hybridswap_untrack(struct zram *zram, u32 index)
 
 	if (break_flag == true){
 		hybp(HYB_ERR, "wb:%lu out:%lu\n", zram_test_flag(zram, index, ZRAM_UNDER_WB), zram_test_flag(zram, index, ZRAM_BATCHING_OUT));
-		return;
 	}
 	hybridswap_swap_sorted_list_del(zram, index);
 }
@@ -5536,7 +5535,7 @@ void hybridswap_force_reclaim(struct mem_cgroup *mcg)
 		return;
 
 	mutex_lock(&hybs->swap_lock);
-	require_size = atomic64_read(&hybs->zram_stored_size);
+	require_size = atomic64_read(&hybs->zram_stored_size) / 2;
 	hybs->force_swapout = true;
 	hybridswap_permcg_reclaim(mcg, require_size, &mcg_reclaimed_size);
 	hybs->force_swapout = false;
