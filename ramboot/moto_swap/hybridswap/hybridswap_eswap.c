@@ -20,6 +20,8 @@
 #include <linux/sched/task_stack.h>
 #endif
 
+#include <linux/mm_inline.h>
+
 #include "hybridswap_internal.h"
 #include "hybridswap.h"
 
@@ -147,6 +149,9 @@ struct hyb_entries_table {
 	struct hyb_entries_head *(*fetch_node)(int, void *);
 	void *private;
 };
+
+//ontim
+extern bool free_zram_is_ok(void);
 
 #define index_node(index, tab) ((tab)->fetch_node((index), (tab)->private))
 #define next_index(index, tab) (index_node((index), (tab))->next)
@@ -360,6 +365,8 @@ int hybridswap_psi_show(struct seq_file *m, void *v)
 	return 0;
 }
 
+//ontim
+/*
 unsigned long hybridswap_fetch_zram_used_pages(void)
 {
 	struct hybstatus *stat = NULL;
@@ -376,6 +383,7 @@ unsigned long hybridswap_fetch_zram_used_pages(void)
 
 	return atomic64_read(&stat->zram_stored_pages);
 }
+*/
 
 unsigned long long hybridswap_fetch_zram_pagefault(void)
 {
@@ -779,11 +787,11 @@ static void hybridswap_wait_io_finish(struct hybridswap_io_req *req)
 	if (req->io_para.class == HYB_FAULT_OUT) {
 		hybp(HYB_DEBUG, "fault out wait finish start\n");
 		if (!wait_for_completion_io_timeout(&req->io_end_flag,
-#if IS_ENABLED(CONFIG_SPRD_UNISOC_MANUFACTURER_MODULE)
-				msecs_to_jiffies(MAX_FAULT_OUT_TIMEOUT)))
-#else
+//#if IS_ENABLED(CONFIG_SPRD_UNISOC_MANUFACTURER_MODULE)
+//				msecs_to_jiffies(MAX_FAULT_OUT_TIMEOUT)))
+//#else
 				MAX_SCHEDULE_TIMEOUT))
-#endif
+//#endif
 			hybp(HYB_ERR, "fault out io submit timeout");
 
 		return;
@@ -4636,12 +4644,13 @@ void hybridswap_record(struct zram *zram, u32 index,
 	if (!hybridswap_core_enabled())
 		return;
 
+//ontim
 //#if IS_ENABLED(CONFIG_SPRD_UNISOC_MANUFACTURER_MODULE)
-        if ((zram_test_flag(zram, index, ZRAM_UNDER_WB) || zram_test_flag(zram, index, ZRAM_BATCHING_OUT))
-                && current && (current->flags & PF_KTHREAD ) && strstr(current->comm, "f2fs_ckpt-")) {
-                        hybp(HYB_INFO, "Skip f2fs_ckpt record id=%u, comm=%s\n", index, current->comm);
-                        return;
-        }
+//        if ((zram_test_flag(zram, index, ZRAM_UNDER_WB) || zram_test_flag(zram, index, ZRAM_BATCHING_OUT))
+//                && current && (current->flags & PF_KTHREAD ) && strstr(current->comm, "f2fs_ckpt-")) {
+//                        hybp(HYB_INFO, "Skip f2fs_ckpt record id=%u, comm=%s\n", index, current->comm);
+//                        return;
+//        }
 //#endif
 
 	if (!memcg || !memcg->id.id) {
@@ -4655,7 +4664,7 @@ void hybridswap_record(struct zram *zram, u32 index,
 	 * 1: apps, 2: system, 3: uid_0
 	 */
 	if (memcg->id.id < 4) {
-		hybp(HYB_DEBUG, "Skip non app memcg id=%d, comm=%s\n", memcg->id.id, current->comm);
+		//hybp(HYB_DEBUG, "Skip non app memcg id=%d, comm=%s\n", memcg->id.id, current->comm);
 		return;
 	}
 
@@ -4698,11 +4707,12 @@ void hybridswap_untrack(struct zram *zram, u32 index)
 	while (zram_test_flag(zram, index, ZRAM_UNDER_WB) ||
 			zram_test_flag(zram, index, ZRAM_BATCHING_OUT)) {
 
+//ontim
 //#if IS_ENABLED(CONFIG_SPRD_UNISOC_MANUFACTURER_MODULE)
-                if (current && (current->flags & PF_KTHREAD ) && strstr(current->comm, "f2fs_ckpt-")) {
-                        hybp(HYB_INFO, "Skip f2fs_ckpt untrack id=%u, comm=%s\n", index, current->comm);
-                        break;
-                }
+//                if (current && (current->flags & PF_KTHREAD ) && strstr(current->comm, "f2fs_ckpt-")) {
+//                        hybp(HYB_INFO, "Skip f2fs_ckpt untrack id=%u, comm=%s\n", index, current->comm);
+//                        break;
+//                }
 //#endif
 
 		if (cnt > 300000){
@@ -5060,6 +5070,10 @@ static int hybridswap_permcg_reclaimin(struct mem_cgroup *memcg,
 	hybs = MEMCGRP_ITEM_DATA(memcg);
 	if (!hybs)
 		return 0;
+
+//ontim
+        if(!free_zram_is_ok())
+             return 0;
 
 	require_size = hybs->can_eswaped * rq->size / rq->out_size;
 	if (require_size < MIN_RECLAIM_ZRAM_SZ)
@@ -5569,4 +5583,24 @@ void mem_cgroup_id_remove_hook(void *data, struct mem_cgroup *memcg)
 
 	hybridswap_mem_cgroup_deinit(memcg);
 	hybp(HYB_DEBUG, "hybridswap remove mcg id = %d\n", memcg->id.id);
+}
+
+void page_should_be_protected_hook(void *data, struct page* page,
+                                bool *should_protect)
+{
+
+        if (!hybridswap_core_enabled())
+                return;
+
+        if(current_is_kswapd())
+                return;
+        
+        if(!hybridswap_reclaim_work_running())
+                return;
+
+        if(!page_is_file_lru(page)) {
+                *should_protect = true;
+        }
+
+        return;
 }

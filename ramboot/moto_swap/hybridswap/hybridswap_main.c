@@ -225,7 +225,8 @@ memcg_hybs_t *hybridswap_cache_alloc(struct mem_cgroup *memcg, bool atomic)
 
 	return hybs;
 }
-
+//ontim
+extern bool hybridswap_reclaim_work_running(void);
 #ifdef CONFIG_HYBRIDSWAP_SWAPD
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
 static void tune_scan_type_hook(void *data, enum scan_balance *scan_balance)
@@ -242,7 +243,13 @@ static void tune_scan_type_hook(void *data, char *scan_balance)
 #ifdef CONFIG_HYBRIDSWAP_CORE
 	if (unlikely(!hybridswap_core_enabled()))
 		return;
-
+#if 0		
+//ontim
+        if(!current_is_kswapd() && hybridswap_reclaim_work_running()) {
+                *scan_balance = SCAN_FILE;
+                return;
+        }
+#endif
 	/*real zram full, scan file only*/
 	if (!free_zram_is_ok()) {
 		*scan_balance = SCAN_FILE;
@@ -346,6 +353,8 @@ static void mem_cgroup_css_offline_hook(void *data,
 
 #define ERROR_OUT(name) err_out_##name
 
+extern void page_should_be_protected_hook(void *data, struct page* page,
+                                bool *should_protect);
 static int register_all_hooks(void)
 {
 	int rc;
@@ -369,6 +378,7 @@ static int register_all_hooks(void)
 #endif
 	/* tune_scan_type_hook */
 	REGISTER_HOOK(tune_scan_type);
+	REGISTER_HOOK(page_should_be_protected);
 #endif
 	/* tune_swappiness_hook */
 	REGISTER_HOOK(tune_swappiness);
@@ -387,6 +397,8 @@ ERROR_OUT(tune_swappiness):
 #ifdef CONFIG_HYBRIDSWAP_SWAPD
 	UNREGISTER_HOOK(tune_scan_type);
 ERROR_OUT(tune_scan_type):
+	UNREGISTER_HOOK(page_should_be_protected);
+ERROR_OUT(page_should_be_protected):
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
 	UNREGISTER_HOOK(alloc_pages_slowpath);
 ERROR_OUT(alloc_pages_slowpath):
@@ -422,6 +434,7 @@ static void unregister_all_hook(void)
 	UNREGISTER_HOOK(rmqueue);
 #endif
 	UNREGISTER_HOOK(tune_scan_type);
+	UNREGISTER_HOOK(page_should_be_protected);
 #endif
 	UNREGISTER_HOOK(tune_swappiness);
 }

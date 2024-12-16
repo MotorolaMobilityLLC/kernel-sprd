@@ -1268,12 +1268,21 @@ u64 get_hybridswap_meminfo(const char *type)
 }
 EXPORT_SYMBOL(get_hybridswap_meminfo);
 
+//ontim
+static unsigned long zram_used_pages(void)
+{
+	if (unlikely(!swapd_zram))
+		return 0;
+
+	return (u64)atomic64_read(&swapd_zram->stats.pages_stored);
+}
+
 bool zram_watermark_ok(void)
 {
 	long long diff_buffers;
 	long long wm = 0;
 	long long cur_scale = 0;
-	unsigned long zram_used = hybridswap_fetch_zram_used_pages();
+	unsigned long zram_used = zram_used_pages();//ontim hybridswap_fetch_zram_used_pages();
 	const unsigned int percent_constant = 100;
 
 	diff_buffers = fetch_high_mem_watermark_value() -
@@ -1290,7 +1299,7 @@ bool zram_watermark_ok(void)
 
 static inline bool zram_is_low(void)
 {
-	unsigned long nr_used = hybridswap_fetch_zram_used_pages();
+	unsigned long nr_used = zram_used_pages();//ontim hybridswap_fetch_zram_used_pages();
 	unsigned long nr_total = fetch_nr_zram_total();
 
 	return ((nr_total - nr_used) < fetch_free_swap_level_value());
@@ -1298,11 +1307,21 @@ static inline bool zram_is_low(void)
 
 bool free_zram_is_ok(void)
 {
+//ontim
+/*
 	unsigned long nr_used = hybridswap_fetch_zram_used_pages();
 	unsigned long nr_total = fetch_nr_zram_total();
 	unsigned long reserve = nr_total >> 6;
 
 	return (nr_used < (nr_total - reserve));
+*/
+	unsigned long nr_used, nr_tot, nr_rsv;
+
+	nr_tot = fetch_nr_zram_total();
+	nr_used = zram_used_pages();
+	nr_rsv = max(nr_tot >> 6, (unsigned long)SZ_256M >> PAGE_SHIFT);
+
+	return nr_used < (nr_tot - nr_rsv);
 }
 
 bool free_swap_is_low(void)
@@ -1339,7 +1358,7 @@ bool zram_watermark_exceed(void)
 	if (!nr_wm)
 		return false;
 
-	nr_zram_used = hybridswap_fetch_zram_used_pages();
+	nr_zram_used = zram_used_pages();//ontim hybridswap_fetch_zram_used_pages();
 
 	if (nr_zram_used > nr_wm)
 		return true;
@@ -1362,6 +1381,12 @@ static void wakeup_swapd(pg_data_t *pgdat)
 
 	if (!waitqueue_active(&hyb_task->swapd_wait))
 		return;
+
+//ontim
+	if (!free_zram_is_ok()) {
+                //hybp(HYB_INFO, "wakeup_swapd !free_zram_is_ok\n");
+		return;
+        }
 
 	if (atomic_read(&refresh_daemoninit_flag) == 1)
 		wakeup_refresh_daemon();
@@ -1642,7 +1667,7 @@ do_eswap:
 		page_fault_pause_value = atomic_long_read(&page_fault_pause);
 		if (!hybridswap_reclaim_work_running() && (zram_need_swapout() || pagefault)
 				&& !page_fault_pause_value
-				&& jiffies_to_msecs(jiffies - last_reclaimin_jiffies) >= 50) {
+				&& jiffies_to_msecs(jiffies - last_reclaimin_jiffies) >= 100) {
 			wmhigh = fetch_high_mem_watermark_value();
 			available = system_cur_usable_mem();
 
