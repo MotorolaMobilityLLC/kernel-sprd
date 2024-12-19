@@ -51,6 +51,7 @@ EXT_MODULES="
 ../modules/common/camera/flash/flash_drv
 ../modules/common/camera/sensor
 ../modules/common/camera/mmdvfs
+../modules/common/camera/actuator_noise_reduction_drv
 ../modules/kernel5.15/video/sprd-vpu
 ../modules/kernel5.15/video/sprd-vpu-power
 ../modules/kernel5.15/video/sprd-jpg
