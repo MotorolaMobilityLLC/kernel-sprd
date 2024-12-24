@@ -369,6 +369,18 @@
 		reg = <0x42>;
 		extcon = <&pmic_typec>;
 	};
+
+	st21nfc: st21nfc@08 {
+		compatible = "st,st21nfc";
+		reg = <0x08>;
+		interrupt-parent = <&ap_gpio>;
+		interrupts = <111  0>;
+		reset-gpios = <&ap_gpio 186 0x00>;
+		irq-gpios = <&ap_gpio 111 0x00>;
+		clkreq-gpios = <&ap_gpio 147 0x00>;
+		st,clk_pinctrl;
+		status = "ok";
+	};
 };
 
 &i2c4 {
