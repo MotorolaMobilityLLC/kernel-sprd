@@ -7717,7 +7717,7 @@ static int cm_get_bat_info(struct charger_manager *cm)
 	cm->desc->fullbatt_uV = info.fullbatt_voltage_uv;
 	cm->desc->fullbatt_uA = info.fullbatt_current_uA;
 	cm->desc->first_fullbatt_uA = info.first_fullbatt_current_uA;
-	strcpy(cm->desc->battery_name,info.battery_name[0]);
+	strcpy(cm->desc->battery_name,info.battery_name);
 
 	dev_info(cm->dev, "SPRD_BATTERY_INFO: internal_resist= %d, us= %d, constant_charge_voltage_max_uv= %d, fchg_ocv_threshold= %d, cp_max_ibat= %d, cp_max_ibus= %d, sdp_limit= %d, sdp_cur= %d, dcp_limit= %d, dcp_cur= %d, cdp_limit= %d, cdp_cur= %d unknown_limit= %d, unknown_cur= %d, fchg_limit= %d, fchg_cur= %d, flash_limit= %d, flash_cur= %d, wl_bpp_limit= %d, wl_bpp_cur= %d, wl_epp_limit= %d, wl_epp_cur= %d, fullbatt_uV= %d, fullbatt_uA= %d, cm->desc->first_fullbatt_uA= %d, us_upper_limit= %d, rc= %d, cp_upper_limit_offset= %d\n",
 		 cm->desc->internal_resist, cm->desc->ir_comp.us,

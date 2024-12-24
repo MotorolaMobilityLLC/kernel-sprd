@@ -780,8 +780,8 @@ int sprd_battery_get_battery_info(struct power_supply *psy, struct sprd_battery_
 		return -ENOMEM;
 
 	of_property_read_string_index(battery_np, "battery_name", battery_id_child,
-				      &info->battery_name[0]);
-	dev_err(&psy->dev, "%s; %s;%d;%d;\n", __func__,info->battery_name[0],
+				      &info->battery_name);
+	dev_err(&psy->dev, "%s; %s;%d;%d;\n", __func__,info->battery_name,
 		             battery_id,battery_id_child);
 
 	of_property_read_u32(battery_np, "charge-full-design-microamp-hours",
