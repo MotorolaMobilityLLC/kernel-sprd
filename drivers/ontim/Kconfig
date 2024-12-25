@@ -18,3 +18,5 @@ config UPDATE_GPIOS_NO_LIMIT
 
 endmenu
 
+config USER_SW
+	bool "mark for user sw"
