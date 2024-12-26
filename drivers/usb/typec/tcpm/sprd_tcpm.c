@@ -86,6 +86,8 @@ struct sprd_pd_rx_event {
 	((port)->try_src_count == 0 && (port)->try_role == TYPEC_SOURCE && \
 	(port)->port_type == TYPEC_PORT_DRP)
 
+static inline enum sprd_tcpm_state sprd_hard_reset_state(struct sprd_tcpm_port *port);
+
 static void sprd_tcpm_unregister_altmodes(struct sprd_tcpm_port *port);
 static struct sprd_typec_device_ops *g_sprd_typec_device_ops;
 int sprd_tcpm_typec_device_ops_register(struct sprd_typec_device_ops *ops)
@@ -146,11 +148,30 @@ static void sprd_tcpm_set_dr_swap_flag(enum sprd_tcpm_typec_pd_swap flag)
 		g_sprd_typec_device_ops->typec_set_pd_dr_swap_flag(flag);
 }
 
+static void sprd_tcpm_set_typec_err_recover_enter(void)
+{
+	if (g_sprd_typec_device_ops &&
+	    g_sprd_typec_device_ops->set_typec_err_recovery_enter)
+		g_sprd_typec_device_ops->set_typec_err_recovery_enter();
+}
+
 static void sprd_tcpm_set_typec_rp_level(enum sprd_typec_cc_status cc)
 {
 	if (g_sprd_typec_device_ops &&
 	    g_sprd_typec_device_ops->set_typec_rp_level)
 		g_sprd_typec_device_ops->set_typec_rp_level(cc);
+}
+
+static void sprd_tcpm_set_cm_ic_limit_current(enum sprd_pd_pdo_type pdo_type,
+					      int req_vol_uv,
+					      int req_cur_ua,
+					      bool enable_limit)
+{
+	if (g_sprd_charger_ops && g_sprd_charger_ops->negotiated_limit_current)
+		g_sprd_charger_ops->negotiated_limit_current(pdo_type,
+							     req_vol_uv,
+							     req_cur_ua,
+							     enable_limit);
 }
 
 static enum sprd_tcpm_state sprd_tcpm_default_state(struct sprd_tcpm_port *port)
@@ -664,6 +685,111 @@ static ssize_t sprd_tcpm_log_ctl_store(struct device *dev,
 	return count;
 }
 
+static ssize_t sprd_tcpm_vbus_wait_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct sprd_tcpm_sysfs *tcpm_sysfs =
+		 container_of(attr, struct sprd_tcpm_sysfs, attr_vbus_wait_ctl);
+	struct sprd_tcpm_port *port = tcpm_sysfs->port;
+
+	if (!port)
+		return snprintf(buf, PAGE_SIZE, "%s tcpm_sysfs->port is null\n", __func__);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", port->vbus_wait);
+}
+
+static ssize_t sprd_tcpm_vbus_wait_store(struct device *dev,
+				struct device_attribute *attr, const char *buf,
+				size_t count)
+{
+	struct sprd_tcpm_sysfs *tcpm_sysfs =
+		container_of(attr, struct sprd_tcpm_sysfs, attr_vbus_wait_ctl);
+	struct sprd_tcpm_port *port = tcpm_sysfs->port;
+	int value = 0;
+	int ret = 0;
+
+	ret = kstrtoint(buf, 10, &value);
+	if (ret) {
+		dev_err(dev, "input err:%d\n", ret);
+		return count;
+	}
+
+	pr_info("vbus wait input: %d, current %d\n", value, port->vbus_wait);
+
+	port->vbus_wait = value;
+	return count;
+}
+
+static ssize_t sprd_tcpm_tcc_debounce_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct sprd_tcpm_sysfs *tcpm_sysfs =
+		 container_of(attr, struct sprd_tcpm_sysfs, attr_tcc_debounce_ctl);
+	struct sprd_tcpm_port *port = tcpm_sysfs->port;
+
+	if (!port)
+		return snprintf(buf, PAGE_SIZE, "%s tcpm_sysfs->port is null\n", __func__);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", port->tcc_debounce);
+}
+
+static ssize_t sprd_tcpm_tcc_debounce_store(struct device *dev,
+				struct device_attribute *attr, const char *buf,
+				size_t count)
+{
+	struct sprd_tcpm_sysfs *tcpm_sysfs =
+		container_of(attr, struct sprd_tcpm_sysfs, attr_tcc_debounce_ctl);
+	struct sprd_tcpm_port *port = tcpm_sysfs->port;
+	int value = 0;
+	int ret = 0;
+
+	ret = kstrtoint(buf, 10, &value);
+	if (ret) {
+		dev_err(dev, "input err:%d\n", ret);
+		return count;
+	}
+
+	pr_info("tcc debounce input: %d, current %d\n", value, port->tcc_debounce);
+
+	port->tcc_debounce = value;
+	return count;
+}
+
+static ssize_t sprd_tcpm_first_pd_cap_delay_show(struct device *dev,
+				struct device_attribute *attr, char *buf)
+{
+	struct sprd_tcpm_sysfs *tcpm_sysfs =
+		 container_of(attr, struct sprd_tcpm_sysfs, attr_first_pd_cap_delay_ctl);
+	struct sprd_tcpm_port *port = tcpm_sysfs->port;
+
+	if (!port)
+		return snprintf(buf, PAGE_SIZE, "%s tcpm_sysfs->port is null\n", __func__);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", port->first_pd_cap_delay);
+}
+
+static ssize_t sprd_tcpm_first_pd_cap_delay_store(struct device *dev,
+				struct device_attribute *attr, const char *buf,
+				size_t count)
+{
+	struct sprd_tcpm_sysfs *tcpm_sysfs =
+		container_of(attr, struct sprd_tcpm_sysfs, attr_first_pd_cap_delay_ctl);
+	struct sprd_tcpm_port *port = tcpm_sysfs->port;
+	int value = 0;
+	int ret = 0;
+
+	ret = kstrtoint(buf, 10, &value);
+	if (ret) {
+		dev_err(dev, "input err:%d\n", ret);
+		return count;
+	}
+
+	pr_info("pd cap delay input: %d, current %d\n", value, port->first_pd_cap_delay);
+
+	port->first_pd_cap_delay = value;
+	return count;
+}
+
 static int sprd_tcpm_debug_log_register_sysfs(struct sprd_tcpm_port *port)
 {
 	struct sprd_tcpm_sysfs *tcpm_sysfs;
@@ -677,7 +803,10 @@ static int sprd_tcpm_debug_log_register_sysfs(struct sprd_tcpm_port *port)
 	tcpm_sysfs->name = "sprd_tcpm_sysfs";
 	tcpm_sysfs->port = port;
 	tcpm_sysfs->attrs[0] = &tcpm_sysfs->attr_log_ctl.attr;
-	tcpm_sysfs->attrs[1] = NULL;
+	tcpm_sysfs->attrs[1] = &tcpm_sysfs->attr_vbus_wait_ctl.attr;
+	tcpm_sysfs->attrs[2] = &tcpm_sysfs->attr_tcc_debounce_ctl.attr;
+	tcpm_sysfs->attrs[3] = &tcpm_sysfs->attr_first_pd_cap_delay_ctl.attr;
+	tcpm_sysfs->attrs[4] = NULL;
 	tcpm_sysfs->attr_g.name = "debug";
 	tcpm_sysfs->attr_g.attrs = tcpm_sysfs->attrs;
 
@@ -686,6 +815,24 @@ static int sprd_tcpm_debug_log_register_sysfs(struct sprd_tcpm_port *port)
 	tcpm_sysfs->attr_log_ctl.attr.mode = 0644;
 	tcpm_sysfs->attr_log_ctl.show = sprd_tcpm_log_ctl_show;
 	tcpm_sysfs->attr_log_ctl.store = sprd_tcpm_log_ctl_store;
+
+	sysfs_attr_init(&tcpm_sysfs->attr_vbus_wait_ctl.attr);
+	tcpm_sysfs->attr_vbus_wait_ctl.attr.name = "vbus_wait";
+	tcpm_sysfs->attr_vbus_wait_ctl.attr.mode = 0644;
+	tcpm_sysfs->attr_vbus_wait_ctl.show = sprd_tcpm_vbus_wait_show;
+	tcpm_sysfs->attr_vbus_wait_ctl.store = sprd_tcpm_vbus_wait_store;
+
+	sysfs_attr_init(&tcpm_sysfs->attr_tcc_debounce_ctl.attr);
+	tcpm_sysfs->attr_tcc_debounce_ctl.attr.name = "tcc_debounce";
+	tcpm_sysfs->attr_tcc_debounce_ctl.attr.mode = 0644;
+	tcpm_sysfs->attr_tcc_debounce_ctl.show = sprd_tcpm_tcc_debounce_show;
+	tcpm_sysfs->attr_tcc_debounce_ctl.store = sprd_tcpm_tcc_debounce_store;
+
+	sysfs_attr_init(&tcpm_sysfs->attr_first_pd_cap_delay_ctl.attr);
+	tcpm_sysfs->attr_first_pd_cap_delay_ctl.attr.name = "first_pd_cap_delay";
+	tcpm_sysfs->attr_first_pd_cap_delay_ctl.attr.mode = 0644;
+	tcpm_sysfs->attr_first_pd_cap_delay_ctl.show = sprd_tcpm_first_pd_cap_delay_show;
+	tcpm_sysfs->attr_first_pd_cap_delay_ctl.store = sprd_tcpm_first_pd_cap_delay_store;
 
 	/* file node: /sys/class/power_supply/sprd-tcpm-source-psy-sc27xx-pd/debug */
 	ret = sysfs_create_group(&port->psy->dev.kobj, &tcpm_sysfs->attr_g);
@@ -766,12 +913,14 @@ static int sprd_tcpm_pd_transmit(struct sprd_tcpm_port *port,
 	int ret;
 
 	if (msg)
-		sprd_tcpm_log(port, "PD TX, header: %#x", le16_to_cpu(msg->header));
+		sprd_tcpm_log(port, "PD TX, header: %#x", msg->header);
 	else
 		sprd_tcpm_log(port, "PD TX, type: %#x", type);
 
 	reinit_completion(&port->tx_complete);
 	ret = port->tcpc->pd_transmit(port->tcpc, type, msg);
+	port->tx_complete_curr_time = ktime_to_ms(ktime_get_boottime());
+	sprd_tcpm_log(port, "%s: tx_complete_curr_time = %lld ms", __func__, port->tx_complete_curr_time);
 	if (ret < 0)
 		return ret;
 
@@ -994,6 +1143,28 @@ static int sprd_tcpm_set_pwr_role(struct sprd_tcpm_port *port, enum typec_role r
 	return 0;
 }
 
+/*
+ * Transform the PDO to be compliant to PD rev2.0.
+ * Return 0 if the PDO type is not defined in PD rev2.0.
+ * Otherwise, return the converted PDO.
+ */
+static u32 sprd_tcpm_forge_legacy_pdo(struct sprd_tcpm_port *port, u32 pdo, enum typec_role role)
+{
+	switch (sprd_pdo_type(pdo)) {
+	case SPRD_PDO_TYPE_FIXED:
+		if (role == TYPEC_SINK)
+			return pdo & ~SPRD_PDO_FIXED_FRS_CURR_MASK;
+		else
+			return pdo & ~SPRD_PDO_FIXED_UNCHUNK_EXT;
+	case SPRD_PDO_TYPE_VAR:
+	case SPRD_PDO_TYPE_BATT:
+		return pdo;
+	case SPRD_PDO_TYPE_APDO:
+	default:
+		return 0;
+	}
+}
+
 static int sprd_tcpm_pd_send_source_caps(struct sprd_tcpm_port *port)
 {
 	struct sprd_pd_message msg;
@@ -1002,34 +1173,34 @@ static int sprd_tcpm_pd_send_source_caps(struct sprd_tcpm_port *port)
 	memset(&msg, 0, sizeof(msg));
 	if (!port->nr_src_pdo) {
 		/* No source capabilities defined, sink only */
-		msg.header = SPRD_PD_HEADER_LE(SPRD_PD_CTRL_REJECT,
+		msg.header = SPRD_PD_HEADER(SPRD_PD_CTRL_REJECT,
 					       port->pwr_role,
 					       port->data_role,
 					       port->negotiated_rev,
-					       port->message_id, 0);
+					       port->message_id, 0, 0);
 	} else {
 		if (!port->update_ext_src_caps) {
-			msg.header = SPRD_PD_HEADER_LE(SPRD_PD_DATA_SOURCE_CAP,
+			msg.header = SPRD_PD_HEADER(SPRD_PD_DATA_SOURCE_CAP,
 						       port->pwr_role,
 						       port->data_role,
 						       port->negotiated_rev,
 						       port->message_id,
-						       port->nr_src_pdo);
+						       port->nr_src_pdo, 0);
 		} else {
-			msg.header = SPRD_PD_HEADER_LE(SPRD_PD_DATA_SOURCE_CAP,
+			msg.header = SPRD_PD_HEADER(SPRD_PD_DATA_SOURCE_CAP,
 						       port->pwr_role,
 						       port->data_role,
 						       port->negotiated_rev,
 						       port->message_id,
-						       port->nr_src_pdo_ext);
+						       port->nr_src_pdo_ext, 0);
 		}
 	}
 	if (!port->update_ext_src_caps) {
 		for (i = 0; i < port->nr_src_pdo; i++)
-			msg.payload[i] = cpu_to_le32(port->src_pdo[i]);
+			msg.payload[i] = port->src_pdo[i];
 	} else {
 		for (i = 0; i < port->nr_src_pdo_ext; i++)
-			msg.payload[i] = cpu_to_le32(port->src_pdo_ext[i]);
+			msg.payload[i] = port->src_pdo_ext[i];
 	}
 
 	return sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
@@ -1038,26 +1209,266 @@ static int sprd_tcpm_pd_send_source_caps(struct sprd_tcpm_port *port)
 static int sprd_tcpm_pd_send_sink_caps(struct sprd_tcpm_port *port)
 {
 	struct sprd_pd_message msg;
-	int i;
+	u32 pdo;
+	unsigned int i, nr_pdo = 0;
+	u32 snk_pdo[SPRD_PDO_MAX_OBJECTS];
+	unsigned int nr_snk_pdo;
+
+	nr_snk_pdo = port->nr_snk_default_pdo;
+	for (i = 0; i < port->nr_snk_default_pdo; i++)
+		snk_pdo[i] = port->snk_default_pdo[i];
 
 	memset(&msg, 0, sizeof(msg));
-	if (!port->nr_snk_pdo) {
+
+	for (i = 0; i < nr_snk_pdo; i++) {
+		if (port->negotiated_rev >= SPRD_PD_REV30) {
+			msg.payload[nr_pdo++] = snk_pdo[i];
+		} else {
+			pdo = sprd_tcpm_forge_legacy_pdo(port, snk_pdo[i], TYPEC_SINK);
+			if (pdo)
+				msg.payload[nr_pdo++] = pdo;
+		}
+	}
+
+	if (!nr_pdo) {
 		/* No sink capabilities defined, source only */
-		msg.header = SPRD_PD_HEADER_LE(SPRD_PD_CTRL_REJECT,
+		msg.header = SPRD_PD_HEADER(SPRD_PD_CTRL_REJECT,
 					       port->pwr_role,
 					       port->data_role,
 					       port->negotiated_rev,
-					       port->message_id, 0);
+					       port->message_id, 0, 0);
 	} else {
-		msg.header = SPRD_PD_HEADER_LE(SPRD_PD_DATA_SINK_CAP,
+		msg.header = SPRD_PD_HEADER(SPRD_PD_DATA_SINK_CAP,
 					       port->pwr_role,
 					       port->data_role,
 					       port->negotiated_rev,
 					       port->message_id,
-					       port->nr_snk_pdo);
+					       nr_pdo, 0);
 	}
-	for (i = 0; i < port->nr_snk_pdo; i++)
-		msg.payload[i] = cpu_to_le32(port->snk_pdo[i]);
+
+	return sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
+}
+
+static int sprd_tcpm_pd_send_revision(struct sprd_tcpm_port *port)
+{
+	struct sprd_pd_message msg;
+	u32 revision_msg = 0;
+	u32 rmajor = 3;
+	u32 rminor = 1;
+	u32 vmajor = 1;
+	u32 vminor = 8;
+
+	revision_msg = (rmajor << 28  | rminor << 24 | vmajor << 20 | vminor << 16);
+
+	memset(&msg, 0, sizeof(msg));
+	msg.header = SPRD_PD_HEADER(SPRD_PD_DATA_REVISION,
+				       port->pwr_role,
+				       port->data_role,
+				       port->negotiated_rev,
+				       port->message_id, 1, 0);
+	msg.payload[0] = revision_msg;
+
+	sprd_tcpm_log(port, "send revision msg");
+
+	return sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
+}
+
+static int sprd_tcpm_pd_send_ext_msg(struct sprd_tcpm_port *port, u8 msg_type,
+				     const u8 *data, u32 data_len)
+{
+	struct sprd_pd_message msg;
+	int ret;
+	u8 num_objs;
+	u32 len_remain, chunk_len, len_max = SPRD_PD_EXT_MAX_CHUNK_DATA;
+	bool chunked = 1;//must be 1,use chunk,hardware not support unchunked
+	bool req_chunk = 0;// response set to 0,request set to 1
+	u32 chunk_num = 0, offset_data = 0;
+	unsigned long timeout;
+
+	if (data_len > SPRD_PD_EXT_MAX_MSG_LEN) {
+		sprd_tcpm_log(port, "ext msg len exceeds max data_len = %d", data_len);
+		data_len = SPRD_PD_EXT_MAX_MSG_LEN;
+	}
+
+	len_remain = data_len;
+	sprd_tcpm_log(port, "ext chunk msg, len_remain = %d", len_remain);
+	do {
+		chunk_len = min(len_remain, len_max);
+		num_objs = DIV_ROUND_UP(chunk_len + sizeof(u16), sizeof(u32));
+
+		memset(&msg, 0, sizeof(msg));
+		msg.header = SPRD_PD_HEADER_EXT(msg_type, port->pwr_role,
+						   port->data_role, port->negotiated_rev,
+						   port->message_id, num_objs);
+
+		msg.ext_msg.header = SPRD_PD_EXT_HDR(data_len, req_chunk,
+							chunk_num++, chunked);
+
+		memcpy(msg.ext_msg.data, data + offset_data, chunk_len);
+		len_remain -= chunk_len;
+		offset_data += chunk_len;
+
+		sprd_tcpm_log(port, "chunk msg, len_remain = %d, offset_data = %d",
+			      len_remain, offset_data);
+
+		reinit_completion(&port->tx_chunk_request);
+		ret = sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
+		if (ret) {
+			sprd_tcpm_log(port, "failed to send ext msg, ret = %d", ret);
+			return ret;
+		}
+
+		/* wait for request chunk */
+		if (len_remain) {
+			mutex_unlock(&port->lock);
+			port->tx_chunk_msg = true;
+			sprd_tcpm_log(port, "unlock, len_remain = %d", len_remain);
+			timeout = wait_for_completion_timeout(&port->tx_chunk_request,
+							      msecs_to_jiffies(SPRD_PD_T_SENDER_RESPONSE));
+			port->tx_chunk_msg = false;
+			sprd_tcpm_log(port, "lock, len_remain = %d", len_remain);
+			mutex_lock(&port->lock);
+			if (!timeout) {
+				sprd_tcpm_log(port, "time out waiting for chunk rwquest");
+				return -ETIMEDOUT;
+			}
+		}
+	} while (len_remain);
+
+	return 0;
+}
+
+static int sprd_tcpm_pd_send_sink_cap_ext(struct sprd_tcpm_port *port)
+{
+	int ret;
+	struct {
+		u16 vid;
+		u16 pid;
+		u32 xid;
+		u8 fw_version;
+		u8 hw_version;
+		u8 skedb_version;
+		u8 load_step;
+		u16 sink_load_characteristics;
+		u8 compliance;
+		u8 touch_temp;
+		u8 battery_info;
+		u8 sink_modes;
+		u8 sink_minimum_pdp;
+		u8 sink_operational_pdp;
+		u8 sink_maximum_pdp;
+		u8 epr_sink_minimum_pdp;
+		u8 epr_sink_operational_pdp;
+		u8 epr_sink_maximum_pdp;
+	} __packed cap = {0};
+
+	cap.vid = 1782;//according to your product
+	cap.pid = 6360;//according to your product
+	cap.skedb_version = 1;
+	cap.battery_info = 1;
+	ret = sprd_tcpm_pd_send_ext_msg(port, SPRD_PD_EXT_SINK_CAPABILITIES_EXTENDED,
+					(u8 *)&cap, sizeof(cap));
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
+static int sprd_tcpm_pd_send_battery_cap_ext(struct sprd_tcpm_port *port, u8 ext_msg_data)
+{
+	int ret;
+	u8 bat_num;
+	struct {
+		u16 vid;
+		u16 pid;
+		u16 battery_design_capacity;
+		u16 battery_last_full_charge_capacity;
+		u8 battery_type;
+	} __packed bcdb= {1782, 6360, 0xffff, 0xffff, 0};
+
+	bat_num = ext_msg_data;
+
+	if (bat_num)
+		bcdb.battery_type = BIT(0);
+
+	if (bat_num > 7  && bat_num <= 255) {
+		bcdb.vid = 0xffff;
+		bcdb.pid = 0;
+	}
+
+	ret = sprd_tcpm_pd_send_ext_msg(port, SPRD_PD_EXT_BATT_CAP,
+					(u8 *)&bcdb, sizeof(bcdb));
+	if (ret)
+		return ret;
+
+	return 0;
+}
+
+static int sprd_tcpm_pd_send_battery_status(struct sprd_tcpm_port *port, u8 ext_msg_data)
+{
+	int ret;
+	int cap;
+	union power_supply_propval val = {0};
+	u8 bat_num;
+	u32 bsdo = 0xffff0000;
+	struct power_supply *psy_battery;
+	struct sprd_pd_message msg;
+
+	bat_num = ext_msg_data;
+	psy_battery = power_supply_get_by_name("battery");
+	if (!psy_battery) {
+		sprd_tcpm_log(port, "%s, psy_battery is NULL\n", __func__);
+		bsdo |= BIT(8);
+		goto send;
+	}
+
+	if(bat_num) {
+		sprd_tcpm_log(port, "battery %d don't exit", bat_num);
+		bsdo |= BIT(8);
+		goto send;
+	}
+
+	ret = power_supply_get_property(psy_battery, POWER_SUPPLY_PROP_PRESENT, &val);
+	if (ret || !val.intval) {
+		sprd_tcpm_log(port, "%s, failed to get present, ret=%d\n", __func__, ret);
+		goto send;
+	}
+
+	bsdo |= BIT(9);
+
+	ret = power_supply_get_property(psy_battery, POWER_SUPPLY_PROP_STATUS, &val);
+	if (!ret) {
+		switch(val.intval) {
+		case POWER_SUPPLY_STATUS_CHARGING:
+			break;
+		case POWER_SUPPLY_STATUS_DISCHARGING:
+			bsdo |= (1 << 10);
+			break;
+		default:
+			bsdo |= (2 << 10);
+			break;
+		}
+	}
+
+	ret = power_supply_get_property(psy_battery, POWER_SUPPLY_PROP_CAPACITY, &val);
+	if (ret) {
+		sprd_tcpm_log(port, "%s, failed to get capacity, ret=%d\n", __func__, ret);
+		goto send;
+	}
+
+	cap = val.intval;
+
+	bsdo &= 0xffff;
+	bsdo |= cap << 16;//to do Wh
+
+send:
+	memset(&msg, 0, sizeof(msg));
+	msg.header = SPRD_PD_HEADER(SPRD_PD_DATA_BATT_STATUS,
+					   port->pwr_role,
+					   port->data_role,
+					   port->negotiated_rev,
+					   port->message_id, 1, 0);
+	msg.payload[0] = bsdo;
 
 	return sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
 }
@@ -1153,6 +1564,13 @@ static void sprd_tcpm_queue_message(struct sprd_tcpm_port *port,
 	sprd_mod_tcpm_delayed_work(port, 0);
 }
 
+static void sprd_tcpm_queue_chunk_message(struct sprd_tcpm_port *port,
+					  enum sprd_pd_chunk_msg_request message)
+{
+	port->queued_chunk_message = message;
+	queue_delayed_work(system_unbound_wq, &port->chunk_msg_work, 0);
+}
+
 /*
  * VDM/VDO handling functions
  */
@@ -1170,8 +1588,8 @@ static void sprd_tcpm_queue_vdm(struct sprd_tcpm_port *port, const u32 header,
 static void sprd_svdm_consume_identity(struct sprd_tcpm_port *port,
 				       const __le32 *payload, int cnt)
 {
-	u32 vdo = le32_to_cpu(payload[SPRD_VDO_INDEX_IDH]);
-	u32 product = le32_to_cpu(payload[SPRD_VDO_INDEX_PRODUCT]);
+	u32 vdo = payload[SPRD_VDO_INDEX_IDH];
+	u32 product = payload[SPRD_VDO_INDEX_PRODUCT];
 	u32 product_type = 0;
 
 	memset(&port->mode_data, 0, sizeof(port->mode_data));
@@ -1186,7 +1604,7 @@ static void sprd_svdm_consume_identity(struct sprd_tcpm_port *port,
 	}
 
 	port->partner_ident.id_header = vdo;
-	port->partner_ident.cert_stat = le32_to_cpu(payload[SPRD_VDO_INDEX_CSTAT]);
+	port->partner_ident.cert_stat = payload[SPRD_VDO_INDEX_CSTAT];
 	port->partner_ident.product = product;
 
 	typec_partner_set_identity(port->partner);
@@ -1203,7 +1621,7 @@ static bool sprd_svdm_consume_svids(struct sprd_tcpm_port *port,
 	int i;
 
 	for (i = 1; i < cnt; i++) {
-		u32 p = le32_to_cpu(payload[i]);
+		u32 p = payload[i];
 		u16 svid;
 
 		svid = (p >> 16) & 0xffff;
@@ -1250,7 +1668,7 @@ static void sprd_svdm_consume_modes(struct sprd_tcpm_port *port,
 
 		paltmode->svid = pmdata->svids[pmdata->svid_index];
 		paltmode->mode = i;
-		paltmode->vdo = le32_to_cpu(payload[i]);
+		paltmode->vdo = payload[i];
 
 		sprd_tcpm_log(port, " Alternate mode %d: SVID 0x%04x, VDO %d: 0x%08x",
 			      pmdata->altmodes, paltmode->svid,
@@ -1297,17 +1715,20 @@ static void sprd_tcpm_typec_altmode_attention(struct sprd_tcpm_port *port,
 static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 			     const __le32 *payload, int cnt, u32 *response)
 {
+	struct typec_port *typec = port->typec_port;
 	struct typec_altmode *adev;
 	struct typec_altmode *pdev;
 	struct sprd_pd_mode_data *modep;
 	u32 p[SPRD_PD_MAX_PAYLOAD];
+	int svdm_version;
+	int svdm_version_minor;
 	int rlen = 0;
 	int cmd_type;
 	int cmd;
 	int i;
 
 	for (i = 0; i < cnt; i++)
-		p[i] = le32_to_cpu(payload[i]);
+		p[i] = payload[i];
 
 	cmd_type = SPRD_PD_VDO_CMDT(p[0]);
 	cmd = SPRD_PD_VDO_CMD(p[0]);
@@ -1322,10 +1743,36 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 	pdev = typec_match_altmode(port->partner_altmode, SPRD_ALTMODE_DISCOVERY_MAX,
 				   SPRD_PD_VDO_VID(p[0]), SPRD_PD_VDO_OPOS(p[0]));
 
+	svdm_version = typec_get_negotiated_svdm_version(typec);
+	if (svdm_version < 0) {
+		sprd_tcpm_log_force(port, "%s, negotiated svdm_version(%d) is error!!!",
+				    __func__, svdm_version);
+		return 0;
+	}
+
+	svdm_version_minor = port->negotiated_svdm_ver_minor;
+
 	switch (cmd_type) {
 	case SPRD_CMDT_INIT:
 		switch (cmd) {
 		case SPRD_CMD_DISCOVER_IDENT:
+			if (SPRD_PD_VDO_VID(p[0]) != SPRD_USB_SID_PD)
+				break;
+
+			if (IS_ERR_OR_NULL(port->partner))
+				break;
+
+			if (SPRD_PD_VDO_SVDM_VER(p[0]) < svdm_version) {
+				typec_partner_set_svdm_version(port->partner,
+							       SPRD_PD_VDO_SVDM_VER(p[0]));
+				svdm_version = SPRD_PD_VDO_SVDM_VER(p[0]);
+			}
+
+			if (SPRD_PD_VDO_SVDM_VER_MINOR(p[0]) < svdm_version_minor) {
+				svdm_version_minor = SPRD_PD_VDO_SVDM_VER_MINOR(p[0]);
+				port->negotiated_svdm_ver_minor = svdm_version_minor;
+			}
+
 			/* 6.4.4.3.1: Only respond as UFP (device) */
 			if (port->data_role == TYPEC_DEVICE &&
 			    port->nr_snk_vdo) {
@@ -1370,6 +1817,11 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 			response[0] = p[0] | SPRD_VDO_CMDT(SPRD_CMDT_RSP_BUSY);
 			rlen = 1;
 		}
+
+		response[0] = (response[0] &
+			       ~(SPRD_VDO_SVDM_VERS_MASK | SPRD_VDO_SVDM_VERS_MINOR_MASK)) |
+			      (SPRD_VDO_SVDM_VERS(typec_get_negotiated_svdm_version(typec)) |
+			       SPRD_VDO_SVDM_VERS_MINOR(svdm_version_minor));
 		break;
 	case SPRD_CMDT_RSP_ACK:
 		/* silently drop message if we are not connected */
@@ -1378,18 +1830,32 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 
 		switch (cmd) {
 		case SPRD_CMD_DISCOVER_IDENT:
+			if (SPRD_PD_VDO_SVDM_VER(p[0]) < svdm_version)
+				typec_partner_set_svdm_version(port->partner,
+							       SPRD_PD_VDO_SVDM_VER(p[0]));
+
+			if (SPRD_PD_VDO_SVDM_VER_MINOR(p[0]) < svdm_version_minor) {
+				svdm_version_minor = SPRD_PD_VDO_SVDM_VER_MINOR(p[0]);
+				port->negotiated_svdm_ver_minor = svdm_version_minor;
+			}
+
 			/* 6.4.4.3.1 */
 			sprd_svdm_consume_identity(port, payload, cnt);
-			response[0] = SPRD_VDO(SPRD_USB_SID_PD, 1, SPRD_CMD_DISCOVER_SVID);
+			response[0] = SPRD_VDO(SPRD_USB_SID_PD, 1,
+					       typec_get_negotiated_svdm_version(typec),
+					       svdm_version_minor,
+					       SPRD_CMD_DISCOVER_SVID);
 			rlen = 1;
 			break;
 		case SPRD_CMD_DISCOVER_SVID:
 			/* 6.4.4.3.2 */
 			if (sprd_svdm_consume_svids(port, payload, cnt)) {
-				response[0] = SPRD_VDO(SPRD_USB_SID_PD, 1, SPRD_CMD_DISCOVER_SVID);
+				response[0] = SPRD_VDO(SPRD_USB_SID_PD, 1, svdm_version,
+						       svdm_version_minor, SPRD_CMD_DISCOVER_SVID);
 				rlen = 1;
 			} else if (modep->nsvids && supports_modal(port)) {
-				response[0] = SPRD_VDO(modep->svids[0], 1, SPRD_CMD_DISCOVER_MODES);
+				response[0] = SPRD_VDO(modep->svids[0], 1, svdm_version,
+						       svdm_version_minor, SPRD_CMD_DISCOVER_MODES);
 				rlen = 1;
 			}
 			break;
@@ -1401,7 +1867,9 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 				u16 svid = modep->svids[modep->svid_index];
 				if (svid == SPRD_USB_SID_PD || svid == SPRD_USB_SID_DISPLAYPORT ||
 				    svid == SPRD_USB_SID_MHL) {
-					response[0] = SPRD_VDO(svid, 1, SPRD_CMD_DISCOVER_MODES);
+					response[0] = SPRD_VDO(svid, 1, svdm_version,
+							       svdm_version_minor,
+							       SPRD_CMD_DISCOVER_MODES);
 					rlen = 1;
 				} else {
 					sprd_tcpm_register_partner_altmodes(port);
@@ -1415,7 +1883,9 @@ static int sprd_tcpm_pd_svdm(struct sprd_tcpm_port *port,
 				typec_altmode_update_active(pdev, true);
 
 				if (typec_altmode_vdm(adev, p[0], &p[1], cnt)) {
-					response[0] = SPRD_VDO(adev->svid, 1, SPRD_CMD_EXIT_MODE);
+					response[0] = SPRD_VDO(adev->svid, 1, svdm_version,
+							       svdm_version_minor,
+							       SPRD_CMD_EXIT_MODE);
 					response[0] |= SPRD_VDO_OPOS(adev->mode);
 					return 1;
 				}
@@ -1473,7 +1943,7 @@ static void sprd_tcpm_handle_vdm_request(struct sprd_tcpm_port *port,
 {
 	int rlen = 0;
 	u32 response[8] = { };
-	u32 p0 = le32_to_cpu(payload[0]);
+	u32 p0 = payload[0];
 
 	if (port->vdm_state == VDM_STATE_BUSY) {
 		/* If UFP responded busy retry after timeout */
@@ -1486,8 +1956,12 @@ static void sprd_tcpm_handle_vdm_request(struct sprd_tcpm_port *port,
 		port->vdm_state = VDM_STATE_DONE;
 	}
 
-	if (SPRD_PD_VDO_SVDM(p0))
+	if (SPRD_PD_VDO_SVDM(p0)) {
 		rlen = sprd_tcpm_pd_svdm(port, payload, cnt, response);
+	} else {
+		if (port->negotiated_rev >= SPRD_PD_REV30)
+			sprd_tcpm_queue_message(port, PD_MSG_CTRL_NOT_SUPP);
+	}
 
 	if (rlen > 0) {
 		sprd_tcpm_queue_vdm(port, response[0], &response[1], rlen - 1);
@@ -1498,15 +1972,29 @@ static void sprd_tcpm_handle_vdm_request(struct sprd_tcpm_port *port,
 static void sprd_tcpm_send_vdm(struct sprd_tcpm_port *port,
 			       u32 vid, int cmd, const u32 *data, int count)
 {
+	int svdm_version = typec_get_negotiated_svdm_version(port->typec_port);
+	int svdm_version_minor;
 	u32 header;
-	u32 timeout;
+	u32 timeout = 100;
+
+	if (svdm_version < 0) {
+		sprd_tcpm_log_force(port, "%s, negotiated svdm_version(%d) is error!!!",
+				    __func__, svdm_version);
+		return;
+	}
+
+	svdm_version_minor = port->negotiated_svdm_ver_minor;
 
 	if (WARN_ON(count > SPRD_VDO_MAX_SIZE - 1))
 		count = SPRD_VDO_MAX_SIZE - 1;
 
 	/* set VDM header with VID & CMD */
-	header = SPRD_VDO(vid, ((vid & SPRD_USB_SID_PD) == SPRD_USB_SID_PD) ?
-		     1 : (SPRD_PD_VDO_CMD(cmd) <= SPRD_CMD_ATTENTION), cmd);
+	header = SPRD_VDO(vid,
+			  ((vid & SPRD_USB_SID_PD) == SPRD_USB_SID_PD) ?
+			   1 : (SPRD_PD_VDO_CMD(cmd) <= SPRD_CMD_ATTENTION),
+			  svdm_version,
+			  svdm_version_minor,
+			  cmd);
 	sprd_tcpm_queue_vdm(port, header, data, count);
 
 	if (port->vdm_discovery_id_retry == 1)
@@ -1579,13 +2067,13 @@ static void sprd_vdm_run_state_machine(struct sprd_tcpm_port *port)
 
 		/* Prepare and send VDM */
 		memset(&msg, 0, sizeof(msg));
-		msg.header = SPRD_PD_HEADER_LE(SPRD_PD_DATA_VENDOR_DEF,
+		msg.header = SPRD_PD_HEADER(SPRD_PD_DATA_VENDOR_DEF,
 					       port->pwr_role,
 					       port->data_role,
 					       port->negotiated_rev,
-					       port->message_id, port->vdo_count);
+					       port->message_id, port->vdo_count, 0);
 		for (i = 0; i < port->vdo_count; i++)
-			msg.payload[i] = cpu_to_le32(port->vdo_data[i]);
+			msg.payload[i] = port->vdo_data[i];
 		res = sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
 		if (res < 0) {
 			port->vdm_state = VDM_STATE_ERR_SEND;
@@ -1781,10 +2269,21 @@ static int sprd_tcpm_validate_caps(struct sprd_tcpm_port *port, const u32 *pdo,
 static int sprd_tcpm_altmode_enter(struct typec_altmode *altmode, u32 *vdo)
 {
 	struct sprd_tcpm_port *port = typec_altmode_get_drvdata(altmode);
+	int svdm_version;
+	int svdm_version_minor;
 	u32 header;
 
+	svdm_version = typec_get_negotiated_svdm_version(port->typec_port);
+	if (svdm_version < 0) {
+		sprd_tcpm_log_force(port, "%s, negotiated svdm_version(%d) is error!!!",
+				    __func__, svdm_version);
+		return svdm_version;
+	}
+
+	svdm_version_minor = port->negotiated_svdm_ver_minor;
+
 	mutex_lock(&port->lock);
-	header = SPRD_VDO(altmode->svid, 1, SPRD_CMD_ENTER_MODE);
+	header = SPRD_VDO(altmode->svid, 1, svdm_version, svdm_version_minor, SPRD_CMD_ENTER_MODE);
 	header |= SPRD_VDO_OPOS(altmode->mode);
 
 	sprd_tcpm_queue_vdm(port, header, NULL, 0);
@@ -1797,10 +2296,21 @@ static int sprd_tcpm_altmode_enter(struct typec_altmode *altmode, u32 *vdo)
 static int sprd_tcpm_altmode_exit(struct typec_altmode *altmode)
 {
 	struct sprd_tcpm_port *port = typec_altmode_get_drvdata(altmode);
+	int svdm_version;
+	int svdm_version_minor;
 	u32 header;
 
+	svdm_version = typec_get_negotiated_svdm_version(port->typec_port);
+	if (svdm_version < 0) {
+		sprd_tcpm_log_force(port, "%s, negotiated svdm_version(%d) is error!!!",
+				    __func__, svdm_version);
+		return svdm_version;
+	}
+
+	svdm_version_minor = port->negotiated_svdm_ver_minor;
+
 	mutex_lock(&port->lock);
-	header = SPRD_VDO(altmode->svid, 1, SPRD_CMD_EXIT_MODE);
+	header = SPRD_VDO(altmode->svid, 1, svdm_version, svdm_version_minor, SPRD_CMD_EXIT_MODE);
 	header |= SPRD_VDO_OPOS(altmode->mode);
 
 	sprd_tcpm_queue_vdm(port, header, NULL, 0);
@@ -1846,7 +2356,7 @@ static int sprd_tcpm_pd_send_control(struct sprd_tcpm_port *port,
 static void sprd_tcpm_handle_alert(struct sprd_tcpm_port *port,
 				   const __le32 *payload, int cnt)
 {
-	u32 p0 = le32_to_cpu(payload[0]);
+	u32 p0 = payload[0];
 	unsigned int type = sprd_usb_pd_ado_type(p0);
 
 	if (!type) {
@@ -1871,10 +2381,29 @@ static void sprd_tcpm_handle_alert(struct sprd_tcpm_port *port,
 static void sprd_tcpm_pd_data_request(struct sprd_tcpm_port *port,
 				      const struct sprd_pd_message *msg)
 {
-	enum sprd_pd_data_msg_type type = sprd_pd_header_type_le(msg->header);
-	unsigned int cnt = sprd_pd_header_cnt_le(msg->header);
-	unsigned int rev = sprd_pd_header_rev_le(msg->header);
+	enum sprd_pd_data_msg_type type = sprd_pd_header_type(msg->header);
+	unsigned int cnt = sprd_pd_header_cnt(msg->header);
+	unsigned int rev = sprd_pd_header_rev(msg->header);
 	unsigned int i;
+	int ret = 0;
+
+	if (port->received_bad_good_crc) {
+		sprd_tcpm_log_force(port, "sprd: %s, received_bad_good_crc: true --> false",
+				    __func__);
+		port->tcpc->check_tx_goodcrc(port->tcpc, true);
+		port->tcpc->enable_tx_auto_retry(port->tcpc, true);
+		port->received_bad_good_crc = false;
+		ret = port->tcpc->set_pd_tx_id(port->tcpc, port->message_id);
+		if (ret)
+			sprd_tcpm_log(port, "sprd: %s, failed to set tx_id: 0x%x",
+				      __func__, port->message_id);
+	}
+
+	if (port->received_get_snk_cap_cnt) {
+		sprd_tcpm_log_force(port, "sprd: %s, received_get_snk_cap_cnt: %d --> 0",
+				    __func__, port->received_get_snk_cap_cnt);
+		port->received_get_snk_cap_cnt = 0;
+	}
 
 	switch (type) {
 	case SPRD_PD_DATA_SOURCE_CAP:
@@ -1882,7 +2411,7 @@ static void sprd_tcpm_pd_data_request(struct sprd_tcpm_port *port,
 			break;
 
 		for (i = 0; i < cnt; i++)
-			port->source_caps[i] = le32_to_cpu(msg->payload[i]);
+			port->source_caps[i] = msg->payload[i];
 
 		port->nr_source_caps = cnt;
 
@@ -1936,13 +2465,13 @@ static void sprd_tcpm_pd_data_request(struct sprd_tcpm_port *port,
 		if (rev < SPRD_PD_MAX_REV)
 			port->negotiated_rev = rev;
 
-		port->sink_request = le32_to_cpu(msg->payload[0]);
+		port->sink_request = msg->payload[0];
 		sprd_tcpm_set_state(port, SRC_NEGOTIATE_CAPABILITIES, 0);
 		break;
 	case SPRD_PD_DATA_SINK_CAP:
 		/* We don't do anything with this at the moment... */
 		for (i = 0; i < cnt; i++)
-			port->sink_caps[i] = le32_to_cpu(msg->payload[i]);
+			port->sink_caps[i] = msg->payload[i];
 		port->nr_sink_caps = cnt;
 		break;
 	case SPRD_PD_DATA_VENDOR_DEF:
@@ -1954,7 +2483,7 @@ static void sprd_tcpm_pd_data_request(struct sprd_tcpm_port *port,
 		break;
 	case SPRD_PD_DATA_BIST:
 		if (port->state == SRC_READY || port->state == SNK_READY) {
-			port->bist_request = le32_to_cpu(msg->payload[0]);
+			port->bist_request = msg->payload[0];
 			sprd_tcpm_set_state(port, BIST_RX, 0);
 		}
 		break;
@@ -1967,6 +2496,10 @@ static void sprd_tcpm_pd_data_request(struct sprd_tcpm_port *port,
 		sprd_tcpm_queue_message(port, PD_MSG_CTRL_NOT_SUPP);
 		break;
 	default:
+		if (port->negotiated_rev < SPRD_PD_REV30)
+			sprd_tcpm_queue_message(port, PD_MSG_CTRL_REJECT);
+		else
+			sprd_tcpm_queue_message(port, PD_MSG_CTRL_NOT_SUPP);
 		sprd_tcpm_log(port, "Unhandled data message type %#x", type);
 		break;
 	}
@@ -2000,8 +2533,32 @@ static void sprd_tcpm_check_vdm_send_conflict(struct sprd_tcpm_port *port)
 static void sprd_tcpm_pd_ctrl_request(struct sprd_tcpm_port *port,
 				      const struct sprd_pd_message *msg)
 {
-	enum sprd_pd_ctrl_msg_type type = sprd_pd_header_type_le(msg->header);
+	enum sprd_pd_ctrl_msg_type type = sprd_pd_header_type(msg->header);
 	enum sprd_tcpm_state next_state;
+	int ret = 0;
+
+	if (port->received_bad_good_crc &&
+	    (type != SPRD_PD_CTRL_GOOD_CRC && type != SPRD_PD_CTRL_GET_SOURCE_CAP)) {
+		sprd_tcpm_log_force(port, "sprd: %s[%d], received_bad_good_crc: true --> false",
+				    __func__, __LINE__);
+		port->tcpc->check_tx_goodcrc(port->tcpc, true);
+		port->tcpc->enable_tx_auto_retry(port->tcpc, true);
+		port->received_bad_good_crc = false;
+		sprd_tcpm_log_force(port, "sprd: %s[%d], received_get_snk_cap_cnt: %d --> 0",
+				    __func__, __LINE__, port->received_get_snk_cap_cnt);
+		port->received_get_snk_cap_cnt = 0;
+		ret = port->tcpc->set_pd_tx_id(port->tcpc, port->message_id);
+		if (ret)
+			sprd_tcpm_log(port, "sprd: %s, failed to set tx_id: 0x%x",
+				      __func__, port->message_id);
+	}
+
+	if ((type != SPRD_PD_CTRL_GOOD_CRC && type != SPRD_PD_CTRL_GET_SINK_CAP) &&
+	    port->received_get_snk_cap_cnt) {
+		sprd_tcpm_log_force(port, "sprd: %s[%d], received_get_snk_cap_cnt: %d --> 0",
+				    __func__, __LINE__, port->received_get_snk_cap_cnt);
+		port->received_get_snk_cap_cnt = 0;
+	}
 
 	sprd_tcpm_check_vdm_send_conflict(port);
 	switch (type) {
@@ -2012,6 +2569,16 @@ static void sprd_tcpm_pd_ctrl_request(struct sprd_tcpm_port *port,
 		switch (port->state) {
 		case SRC_READY:
 		case SNK_READY:
+			if (port->received_bad_good_crc) {
+				sprd_tcpm_log(port, "sprd: %s, handler bad good crc: soft reset",
+					      __func__);
+				port->tcpc->check_tx_goodcrc(port->tcpc, true);
+				port->tcpc->enable_tx_auto_retry(port->tcpc, true);
+				port->received_bad_good_crc = false;
+				sprd_tcpm_set_state(port, SOFT_RESET_SEND, 0);
+				break;
+			}
+
 			sprd_tcpm_queue_message(port, PD_MSG_DATA_SOURCE_CAP);
 			break;
 		default:
@@ -2023,7 +2590,27 @@ static void sprd_tcpm_pd_ctrl_request(struct sprd_tcpm_port *port,
 		switch (port->state) {
 		case SRC_READY:
 		case SNK_READY:
+			if (port->support_pd_cts)
+				port->received_get_snk_cap_cnt++;
+
+			if (port->received_get_snk_cap_cnt == 3) {
+				sprd_tcpm_log(port, "sprd: %s, waiting for bad good crc",
+					      __func__);
+				port->tcpc->enable_tx_auto_retry(port->tcpc, false);
+				port->tcpc->check_tx_goodcrc(port->tcpc, false);
+				port->received_bad_good_crc = true;
+			}
+
 			sprd_tcpm_queue_message(port, PD_MSG_DATA_SINK_CAP);
+			break;
+		case SNK_TRANSITION_SINK:
+			sprd_tcpm_set_state(port, sprd_hard_reset_state(port), 0);
+			break;
+		case SNK_NEGOTIATE_CAPABILITIES:
+		case SRC_SEND_CAPABILITIES:
+		case SRC_SEND_CAPABILITIES_TIMEOUT:
+			sprd_tcpm_set_state(port, SOFT_RESET_SEND,
+					    SPRD_PD_T_PRO_ERR_SOFTRESET);
 			break;
 		default:
 			sprd_tcpm_queue_message(port, PD_MSG_CTRL_REJECT);
@@ -2135,6 +2722,10 @@ static void sprd_tcpm_pd_ctrl_request(struct sprd_tcpm_port *port,
 		case VCONN_SWAP_SEND:
 			sprd_tcpm_set_state(port, VCONN_SWAP_START, 0);
 			break;
+		case SNK_READY:
+		case SRC_READY:
+			sprd_tcpm_set_state(port, SOFT_RESET_SEND,
+					    SPRD_PD_T_PRO_ERR_SOFTRESET);
 		default:
 			break;
 		}
@@ -2183,7 +2774,10 @@ static void sprd_tcpm_pd_ctrl_request(struct sprd_tcpm_port *port,
 		case SRC_READY:
 		case SNK_READY:
 			/* Currently not supported */
-			sprd_tcpm_queue_message(port, PD_MSG_CTRL_REJECT);
+			if (port->negotiated_rev < SPRD_PD_REV30)
+				sprd_tcpm_queue_message(port, PD_MSG_CTRL_REJECT);
+			else
+				sprd_tcpm_queue_message(port, PD_MSG_CTRL_NOT_SUPP);
 			break;
 		default:
 			sprd_tcpm_queue_message(port, PD_MSG_CTRL_WAIT);
@@ -2195,10 +2789,43 @@ static void sprd_tcpm_pd_ctrl_request(struct sprd_tcpm_port *port,
 	case SPRD_PD_CTRL_FR_SWAP:
 	case SPRD_PD_CTRL_GET_PPS_STATUS:
 	case SPRD_PD_CTRL_GET_COUNTRY_CODES:
+	case SPRD_PD_CTRL_DATA_RESET:
+	case SPRD_PD_CTRL_GET_SOURCE_INFO:
 		/* Currently not supported */
-		sprd_tcpm_queue_message(port, PD_MSG_CTRL_NOT_SUPP);
+		sprd_tcpm_queue_message(port,
+					port->negotiated_rev < SPRD_PD_REV30 ?
+					PD_MSG_CTRL_REJECT : PD_MSG_CTRL_NOT_SUPP);
+		break;
+	case SPRD_PD_CTRL_GET_REVISION:
+		sprd_tcpm_log(port, "SPRD_PD_CTRL_GET_REVISION");
+		/* Currently not supported */
+		switch (port->state) {
+		case SRC_READY:
+		case SNK_READY:
+			sprd_tcpm_log(port, "CTRL_GET_REVISION message type %#x", type);
+			sprd_tcpm_queue_message(port, PD_MSG_CTRL_GET_REVISION);
+			break;
+		default:
+			sprd_tcpm_log(port, "CTRL_WAIT message type %#x", type);
+			sprd_tcpm_queue_message(port, PD_MSG_CTRL_WAIT);
+			break;
+		}
+		break;
+	case SPRD_PD_CTRL_GET_SINK_CAP_EXT:
+		switch (port->state) {
+		case SNK_READY:
+			sprd_tcpm_queue_chunk_message(port, PD_CHUNK_MSG_CTRL_GET_SINK_CAP_EXT);
+			break;
+		default:
+			sprd_tcpm_queue_message(port, PD_MSG_CTRL_WAIT);
+			break;
+		}
 		break;
 	default:
+		if (port->negotiated_rev < SPRD_PD_REV30)
+			sprd_tcpm_queue_message(port, PD_MSG_CTRL_REJECT);
+		else
+			sprd_tcpm_queue_message(port, PD_MSG_CTRL_NOT_SUPP);
 		sprd_tcpm_log(port, "Unhandled ctrl message type %#x", type);
 		break;
 	}
@@ -2207,17 +2834,49 @@ static void sprd_tcpm_pd_ctrl_request(struct sprd_tcpm_port *port,
 static void sprd_tcpm_pd_ext_msg_request(struct sprd_tcpm_port *port,
 					 const struct sprd_pd_message *msg)
 {
-	enum sprd_pd_ext_msg_type type = sprd_pd_header_type_le(msg->header);
-	unsigned int data_size = sprd_pd_ext_header_data_size_le(msg->ext_msg.header);
+	enum sprd_pd_ext_msg_type type = sprd_pd_header_type(msg->header);
+	unsigned int data_size = sprd_pd_ext_header_data_size(msg->ext_msg.header);
+	unsigned int request_chunk = sprd_pd_ext_header_request_chunk(msg->ext_msg.header);
+	int ret = 0;
 
-	if (!(le16_to_cpu(msg->ext_msg.header) & SPRD_PD_EXT_HDR_CHUNKED)) {
+	if (port->received_bad_good_crc) {
+		sprd_tcpm_log_force(port, "sprd: %s, received_bad_good_crc: true --> false",
+				    __func__);
+		port->tcpc->check_tx_goodcrc(port->tcpc, true);
+		port->tcpc->enable_tx_auto_retry(port->tcpc, true);
+		port->received_bad_good_crc = false;
+		ret = port->tcpc->set_pd_tx_id(port->tcpc, port->message_id);
+		if (ret)
+			sprd_tcpm_log(port, "sprd: %s, failed to set tx_id: 0x%x",
+				      __func__, port->message_id);
+	}
+
+	if (port->received_get_snk_cap_cnt) {
+		sprd_tcpm_log_force(port, "sprd: %s, received_get_snk_cap_cnt: %d --> 0",
+				    __func__, port->received_get_snk_cap_cnt);
+		port->received_get_snk_cap_cnt = 0;
+	}
+
+	if (!((msg->ext_msg.header) & SPRD_PD_EXT_HDR_CHUNKED)) {
 		sprd_tcpm_log(port, "Unchunked extended messages unsupported");
 		return;
 	}
 
 	if (data_size > SPRD_PD_EXT_MAX_CHUNK_DATA) {
-		sprd_tcpm_log(port, "Chunk handling not yet supported");
+		sprd_tcpm_set_state(port, CHUNK_NOT_SUPP, SPRD_PD_T_CHUNK_NOT_SUPP);
+		sprd_tcpm_log(port, "Chunk handling not yet supported, data_size = %d", data_size);
 		return;
+	}
+
+	if (request_chunk) {
+		sprd_tcpm_log(port, "request chunk");
+
+		if (port->tx_chunk_msg) {
+			port->tx_chunk_msg = false;
+			if (!completion_done(&port->tx_chunk_request))
+				complete(&port->tx_chunk_request);
+		        return;
+	        }
 	}
 
 	switch (type) {
@@ -2241,7 +2900,12 @@ static void sprd_tcpm_pd_ext_msg_request(struct sprd_tcpm_port *port,
 		break;
 	case SPRD_PD_EXT_SOURCE_CAP_EXT:
 	case SPRD_PD_EXT_GET_BATT_CAP:
+		port->data[0] = msg->ext_msg.data[0];
+		sprd_tcpm_queue_chunk_message(port, PD_CHUNK_MSG_EXT_GET_BATTERY_CAP_EXT);
+		break;
 	case SPRD_PD_EXT_GET_BATT_STATUS:
+		sprd_tcpm_pd_send_battery_status(port, msg->ext_msg.data[0]);
+		break;
 	case SPRD_PD_EXT_BATT_CAP:
 	case SPRD_PD_EXT_GET_MANUFACTURER_INFO:
 	case SPRD_PD_EXT_MANUFACTURER_INFO:
@@ -2254,35 +2918,39 @@ static void sprd_tcpm_pd_ext_msg_request(struct sprd_tcpm_port *port,
 		sprd_tcpm_queue_message(port, PD_MSG_CTRL_NOT_SUPP);
 		break;
 	default:
+	    sprd_tcpm_queue_message(port, PD_MSG_CTRL_NOT_SUPP);
 		sprd_tcpm_log(port, "Unhandled extended message type %#x", type);
 		break;
 	}
 }
-
-static inline enum sprd_tcpm_state sprd_hard_reset_state(struct sprd_tcpm_port *port);
 
 static void sprd_tcpm_pd_rx_handler(struct kthread_work *work)
 {
 	struct sprd_pd_rx_event *event = container_of(work,
 						      struct sprd_pd_rx_event, work);
 	const struct sprd_pd_message *msg = &event->msg;
-	unsigned int cnt = sprd_pd_header_cnt_le(msg->header);
+	unsigned int cnt = sprd_pd_header_cnt(msg->header);
 	struct sprd_tcpm_port *port = event->port;
 	int i;
 
 	mutex_lock(&port->lock);
 
-	sprd_tcpm_log(port, "PD RX, header: %#x [%d][%s]", le16_to_cpu(msg->header),
+	sprd_tcpm_log(port, "PD RX, header: %#x [%d][%s]", msg->header,
 		      port->attached, port->data_role ? "host" : "device");
 
 	for (i = 0; i < cnt; i++) {
 		if (msg->payload[i])
-			sprd_tcpm_log(port, "PD RX, data[%d]=0x%x", i, le32_to_cpu(msg->payload[i]));
+			sprd_tcpm_log(port, "PD RX, data[%d]=0x%x", i, msg->payload[i]);
+	}
+
+	if (port->bist_test_data) {
+		sprd_tcpm_log(port, "%s: bist test data", __func__);
+		goto done;
 	}
 
 	if (port->attached) {
-		enum sprd_pd_ctrl_msg_type type = sprd_pd_header_type_le(msg->header);
-		unsigned int msgid = sprd_pd_header_msgid_le(msg->header);
+		enum sprd_pd_ctrl_msg_type type = sprd_pd_header_type(msg->header);
+		unsigned int msgid = sprd_pd_header_msgid(msg->header);
 
 		/*
 		 * USB PD standard, 6.6.1.2:
@@ -2303,7 +2971,7 @@ static void sprd_tcpm_pd_rx_handler(struct kthread_work *work)
 		 * If both ends believe to be DFP/host, we have a data role
 		 * mismatch.
 		 */
-		if (!!(le16_to_cpu(msg->header) & SPRD_PD_HEADER_DATA_ROLE) ==
+		if (!!((msg->header) & SPRD_PD_HEADER_DATA_ROLE) ==
 		    (port->data_role == TYPEC_HOST)) {
 			if (port->data_role_swap) {
 				sprd_tcpm_log(port, "Data role mismatch, data role swap, ignore");
@@ -2347,10 +3015,10 @@ static int sprd_tcpm_pd_send_control(struct sprd_tcpm_port *port,
 	struct sprd_pd_message msg;
 
 	memset(&msg, 0, sizeof(msg));
-	msg.header = SPRD_PD_HEADER_LE(type, port->pwr_role,
+	msg.header = SPRD_PD_HEADER(type, port->pwr_role,
 				       port->data_role,
 				       port->negotiated_rev,
-				       port->message_id, 0);
+				       port->message_id, 0, 0);
 
 	return sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
 }
@@ -2363,6 +3031,7 @@ static int sprd_tcpm_pd_send_control(struct sprd_tcpm_port *port,
 static bool sprd_tcpm_send_queued_message(struct sprd_tcpm_port *port)
 {
 	enum sprd_pd_msg_request queued_message;
+	int ret = 0;
 
 	do {
 		queued_message = port->queued_message;
@@ -2379,10 +3048,26 @@ static bool sprd_tcpm_send_queued_message(struct sprd_tcpm_port *port)
 			sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_NOT_SUPP);
 			break;
 		case PD_MSG_DATA_SINK_CAP:
-			sprd_tcpm_pd_send_sink_caps(port);
+			ret = sprd_tcpm_pd_send_sink_caps(port);
+			if (ret < 0) {
+				sprd_tcpm_log(port, "Unable to send snk caps, ret=%d", ret);
+				sprd_tcpm_set_state(port, SOFT_RESET_SEND, 0);
+			}
 			break;
 		case PD_MSG_DATA_SOURCE_CAP:
-			sprd_tcpm_pd_send_source_caps(port);
+			ret = sprd_tcpm_pd_send_source_caps(port);
+			if (ret) {
+				sprd_tcpm_log(port, "%s, Unable to send src caps, ret = %d",
+					      __func__, ret);
+				sprd_tcpm_set_state(port, SOFT_RESET_SEND, 0);
+			} else if (!ret) {
+				sprd_tcpm_set_state_cond(port, sprd_hard_reset_state(port),
+							 port->negotiated_rev < SPRD_PD_REV30 ?
+					SPRD_PD_T_SENDER_RESPONSE_PD2 : SPRD_PD_T_SENDER_RESPONSE_PD3);
+			}
+			break;
+		case PD_MSG_CTRL_GET_REVISION:
+			sprd_tcpm_pd_send_revision(port);
 			break;
 		default:
 			break;
@@ -2425,15 +3110,17 @@ static int sprd_tcpm_pd_check_request(struct sprd_tcpm_port *port)
 		if (max > pdo_max && !(rdo & SPRD_RDO_CAP_MISMATCH))
 			return -EINVAL;
 
-		if (type == SPRD_PDO_TYPE_FIXED)
+		if (type == SPRD_PDO_TYPE_FIXED) {
+			port->partner_support_usb_suspend = !(rdo & SPRD_RDO_NO_SUSPEND);
 			sprd_tcpm_log(port,
 				      "Requested %u mV, %u mA for %u / %u mA",
 				      sprd_pdo_fixed_voltage(pdo), pdo_max, op, max);
-		else
+		} else {
 			sprd_tcpm_log(port,
 				      "Requested %u -> %u mV, %u mA for %u / %u mA",
 				      sprd_pdo_min_voltage(pdo), sprd_pdo_max_voltage(pdo),
 				      pdo_max, op, max);
+		}
 		break;
 	case SPRD_PDO_TYPE_BATT:
 		max = sprd_rdo_max_power(rdo);
@@ -2482,6 +3169,7 @@ static int sprd_tcpm_pd_select_pdo(struct sprd_tcpm_port *port, int *sink_pdo, i
 		if (i == 0) {
 			dual_role_power = !!(pdo & SPRD_PDO_FIXED_DUAL_ROLE);
 			usb_comm = !!(pdo & SPRD_PDO_FIXED_USB_COMM);
+			port->partner_support_usb_suspend = !!(pdo & SPRD_PDO_FIXED_SUSPEND);
 		}
 
 		switch (type) {
@@ -2702,7 +3390,9 @@ static int sprd_tcpm_pd_build_request(struct sprd_tcpm_port *port, u32 *rdo)
 		mw = ma * mv / 1000;
 	}
 
-	flags = SPRD_RDO_USB_COMM | SPRD_RDO_NO_SUSPEND;
+	flags = SPRD_RDO_USB_COMM;
+	if (!port->support_usb_suspend || !port->partner_support_usb_suspend)
+		flags |= SPRD_RDO_NO_SUSPEND;
 
 	/* Set mismatch bit if offered power is less than operating power */
 	max_ma = ma;
@@ -2739,6 +3429,13 @@ static int sprd_tcpm_pd_build_request(struct sprd_tcpm_port *port, u32 *rdo)
 	port->req_current_limit = ma;
 	port->req_supply_voltage = mv;
 	port->fixed_pd_voltage = mv;
+	if (!port->xts_limit_cur && port->negotiated_limit_ic_current && mv > 5900) {
+		sprd_tcpm_set_cm_ic_limit_current(SPRD_PDO_TYPE_FIXED, mv * 1000, ma * 1000, false);
+		port->negotiated_limit_ic_current = false;
+	} else if (!port->xts_limit_cur) {
+		sprd_tcpm_set_cm_ic_limit_current(SPRD_PDO_TYPE_FIXED, mv * 1000, ma * 1000, true);
+		port->negotiated_limit_ic_current = true;
+	}
 
 	return 0;
 }
@@ -2754,12 +3451,12 @@ static int sprd_tcpm_pd_send_request(struct sprd_tcpm_port *port)
 		return ret;
 
 	memset(&msg, 0, sizeof(msg));
-	msg.header = SPRD_PD_HEADER_LE(SPRD_PD_DATA_REQUEST,
+	msg.header = SPRD_PD_HEADER(SPRD_PD_DATA_REQUEST,
 				       port->pwr_role,
 				       port->data_role,
 				       port->negotiated_rev,
-				       port->message_id, 1);
-	msg.payload[0] = cpu_to_le32(rdo);
+				       port->message_id, 1, 0);
+	msg.payload[0] = rdo;
 
 	return sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
 }
@@ -2794,7 +3491,9 @@ static int sprd_tcpm_pd_build_pps_request(struct sprd_tcpm_port *port, u32 *rdo)
 		return -EINVAL;
 	}
 
-	flags = SPRD_RDO_USB_COMM | SPRD_RDO_NO_SUSPEND;
+	flags = SPRD_RDO_USB_COMM;
+	if (!port->support_usb_suspend || !port->partner_support_usb_suspend)
+		flags |= SPRD_RDO_NO_SUSPEND;
 
 	op_mw = (op_ma * out_mv) / 1000;
 	if (op_mw < port->operating_snk_mw) {
@@ -2852,12 +3551,12 @@ static int sprd_tcpm_pd_send_pps_request(struct sprd_tcpm_port *port)
 		return ret;
 
 	memset(&msg, 0, sizeof(msg));
-	msg.header = SPRD_PD_HEADER_LE(SPRD_PD_DATA_REQUEST,
+	msg.header = SPRD_PD_HEADER(SPRD_PD_DATA_REQUEST,
 				       port->pwr_role,
 				       port->data_role,
 				       port->negotiated_rev,
-				       port->message_id, 1);
-	msg.payload[0] = cpu_to_le32(rdo);
+				       port->message_id, 1, 0);
+	msg.payload[0] = rdo;
 
 	return sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_SOP, &msg);
 }
@@ -3073,8 +3772,29 @@ static void sprd_tcpm_reset_port(struct sprd_tcpm_port *port)
 	port->update_ext_src_caps = false;
 	port->xts_limit_cur = false;
 	port->vdm_discovery_id_retry = 0;
+	port->bist_test_data = false;
+	port->sink_in_hard_reset = false;
+	port->tx_chunk_msg = false;
 	port->vdm_sent = false;
 	port->vdm_queue = false;
+
+	//sprd: modify
+	port->negotiated_svdm_ver_minor = port->default_svdm_ver_minor;
+	port->partner_support_usb_suspend = false;
+
+	if (port->negotiated_limit_ic_current) {
+		sprd_tcpm_set_cm_ic_limit_current(SPRD_PDO_TYPE_FIXED, 0, 0, false);
+		port->negotiated_limit_ic_current = false;
+	}
+
+	port->received_get_snk_cap_cnt = 0;
+	if (port->received_bad_good_crc) {
+		sprd_tcpm_log(port, "%s, received_bad_good_crc: true --> false",
+			      __func__);
+		port->tcpc->check_tx_goodcrc(port->tcpc, true);
+		port->tcpc->enable_tx_auto_retry(port->tcpc, true);
+		port->received_bad_good_crc = false;
+	}
 
 	/*
 	 * First Rx ID should be 0; set this to a sentinel of -1 so that
@@ -3202,14 +3922,6 @@ static inline enum sprd_tcpm_state sprd_unattached_state(struct sprd_tcpm_port *
 	return SNK_UNATTACHED;
 }
 
-static void sprd_tcpm_check_retry_send_vdm(struct sprd_tcpm_port *port)
-{
-	if (port->power_role_swap && port->data_role == TYPEC_HOST && port->pd_capable &&
-	    !port->send_discover && !port->vdm_sent) {
-		sprd_tcpm_log(port, "retry send vdm");
-		port->send_discover = true;
-	}
-}
 
 static void sprd_tcpm_check_send_discover(struct sprd_tcpm_port *port)
 {
@@ -3267,11 +3979,42 @@ static void sprd_tcpm_update_limit_current(struct sprd_tcpm_port *port)
 	}
 }
 
+static void sprd_tcpm_set_initial_svdm_version(struct sprd_tcpm_port *port)
+{
+	if (!port->partner) {
+		sprd_tcpm_log_force(port, "%s, partner is NULL!!!", __func__);
+		return;
+	}
+
+	switch (port->negotiated_rev) {
+	case SPRD_PD_REV30:
+		break;
+	/*
+	 * 6.4.4.2.3 Structured VDM Version
+	 * 2.0 states "At this time, there is only one version (1.0) defined.
+	 * This field Shall be set to zero to indicate Version 1.0."
+	 * 3.0 states "This field Shall be set to 01b to indicate Version 2.0."
+	 * To ensure that we follow the Power Delivery revision we are currently
+	 * operating on, downgrade the SVDM version to the highest one supported
+	 * by the Power Delivery revision.
+	 */
+	case SPRD_PD_REV20:
+		port->negotiated_svdm_ver_minor = SVDM_VER_MIMOR_0;
+		typec_partner_set_svdm_version(port->partner, SVDM_VER_1_0);
+		break;
+	default:
+		port->negotiated_svdm_ver_minor = SVDM_VER_MIMOR_0;
+		typec_partner_set_svdm_version(port->partner, SVDM_VER_1_0);
+		break;
+	}
+}
+
 static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 {
 	int ret;
 	enum typec_pwr_opmode opmode;
 	unsigned int msecs;
+    u64 curr_time1, curr_time2, duration;
 
 	port->enter_state = port->state;
 	switch (port->state) {
@@ -3302,9 +4045,19 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		else if (sprd_tcpm_port_is_audio(port))
 			sprd_tcpm_set_state(port, AUDIO_ACC_ATTACHED,
 					    SPRD_PD_T_CC_DEBOUNCE);
-		else if (sprd_tcpm_port_is_source(port))
+		else if (sprd_tcpm_port_is_source(port)) {
+			if (!port->vbus_source &&
+				port->get_vbus_ok &&
+				port->get_vbus_ok(port->driver_data)) {
+				pr_info("delay enable vbus %d ms\n", port->vbus_wait);
 			sprd_tcpm_set_state(port, SRC_ATTACHED,
-					    SPRD_PD_T_CC_DEBOUNCE);
+						    port->vbus_wait);
+			} else {
+				pr_info("tcc debounce %d ms\n", port->tcc_debounce);
+				sprd_tcpm_set_state(port, SRC_ATTACHED,
+						    port->tcc_debounce);
+			}
+		}
 		break;
 
 	case SNK_TRY:
@@ -3376,9 +4129,29 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		if (!port->power_role_swap)
 			port->message_id = 0;
 
+		if (port->power_role_swap) {
+			port->message_id = 0;
+			if (port->tcpc->set_pd_tx_id) {
+				sprd_tcpm_log(port, "SRC_STARTUP, set tx id");
+				ret = port->tcpc->set_pd_tx_id(port->tcpc, 0);
+				if (ret)
+					sprd_tcpm_log(port, "SRC_STARTUP, failed to set tx id");
+			}
+			if (port->tcpc->reset_pd_rx_id) {
+				sprd_tcpm_log(port, "SRC_STARTUP, clear rx id");
+				ret = port->tcpc->reset_pd_rx_id(port->tcpc);
+				if (ret)
+					sprd_tcpm_log(port, "SRC_STARTUP, failed to clear rx id");
+			}
+		}
+
+		if (port->power_role_swap) {
+			sprd_tcpm_set_typec_roles(port, TYPEC_PORT_DRP, TYPEC_DEVICE);
+			sprd_tcpm_log(port, "SRC_STARTUP clear power role swap flag");
+		}
 		port->rx_msgid = -1;
 		port->explicit_contract = false;
-		sprd_tcpm_set_state(port, SRC_SEND_CAPABILITIES, 0);
+		sprd_tcpm_set_state(port, SRC_SEND_CAPABILITIES, port->first_pd_cap_delay);
 		break;
 	case SRC_SEND_CAPABILITIES:
 		port->caps_count++;
@@ -3386,7 +4159,17 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 			sprd_tcpm_set_state(port, SRC_READY, 0);
 			break;
 		}
+		curr_time1 = ktime_to_ms(ktime_get_boottime());
+		sprd_tcpm_log(port, "%s:line%d curr_time1 = %lld ms", __func__, __LINE__, curr_time1);
 		ret = sprd_tcpm_pd_send_source_caps(port);
+		curr_time2 = ktime_to_ms(ktime_get_boottime());
+		sprd_tcpm_log(port, "%s:line%d curr_time2 = %lld ms", __func__, __LINE__, curr_time2);
+		duration = curr_time2 - port->tx_complete_curr_time;
+		sprd_tcpm_log(port, "%s:line%d duration = %lld ms", __func__, __LINE__, duration);
+		if (duration > 2  && duration < 15)
+			duration -= 2;
+		else
+			duration = 0;
 		if (ret < 0) {
 			sprd_tcpm_set_state(port, SRC_SEND_CAPABILITIES,
 					    SPRD_PD_T_SEND_SOURCE_CAP);
@@ -3402,7 +4185,8 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 			sprd_tcpm_log(port, "%s:line%d pd_capable true", __func__, __LINE__);
 			if (!port->power_role_swap)
 				sprd_tcpm_set_state_cond(port, SRC_SEND_CAPABILITIES_TIMEOUT,
-							 SPRD_PD_T_SEND_SOURCE_CAP);
+							 port->negotiated_rev < SPRD_PD_REV30 ?
+					(SPRD_PD_T_SENDER_RESPONSE_PD2 - duration) : (SPRD_PD_T_SENDER_RESPONSE_PD3 - duration));
 			else
 				sprd_tcpm_set_state_cond(port, SRC_SEND_CAPABILITIES_TIMEOUT,
 							 SPRD_PD_T_SEND_SOURCE_CAP_RESET);
@@ -3480,6 +4264,8 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 
 		sprd_tcpm_typec_pr_swap_no_chk_detach(port, false);
 		sprd_tcpm_swap_complete(port, 0);
+		if (port->explicit_contract)
+			sprd_tcpm_set_initial_svdm_version(port);
 		sprd_tcpm_check_send_discover(port);
 		/*
 		 * 6.3.5
@@ -3601,8 +4387,30 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		if (!port->power_role_swap)
 			port->message_id = 0;
 
+		if (port->power_role_swap) {
+			port->message_id = 0;
+			if (port->tcpc->set_pd_tx_id) {
+				sprd_tcpm_log(port, "SNK_STARTUP, set tx id");
+				ret = port->tcpc->set_pd_tx_id(port->tcpc, 0);
+				if (ret)
+					sprd_tcpm_log(port, "SNK_STARTUP, failed to set tx id");
+			}
+			if (port->tcpc->reset_pd_rx_id) {
+				sprd_tcpm_log(port, "SNK_STARTUP, clear rx id");
+				ret = port->tcpc->reset_pd_rx_id(port->tcpc);
+				if (ret)
+					sprd_tcpm_log(port, "SNK_STARTUP, failed to clear rx id");
+			}
+		}
+
 		port->rx_msgid = -1;
 		port->explicit_contract = false;
+
+		if (port->power_role_swap) {
+			sprd_tcpm_set_typec_roles(port, TYPEC_PORT_DRP, TYPEC_DEVICE);
+			sprd_tcpm_log(port, "SNK_STARTUP clear power role swap flag");
+		}
+
 		sprd_tcpm_set_state(port, SNK_DISCOVERY, 0);
 		break;
 	case SNK_DISCOVERY:
@@ -3659,10 +4467,17 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 				sprd_tcpm_set_state(port, SOFT_RESET_SEND,
 						    SPRD_PD_T_SINK_WAIT_CAP_PR);
 		} else {
+
+			if (!port->sink_in_hard_reset)
+				msecs = SPRD_PD_T_SINK_WAIT_CAP;
+			else
+				msecs = SPRD_PD_T_SINK_WAIT_CAP + SPRD_PD_T_SRC_RECOVER_MAX +
+					SPRD_PD_T_SRC_TURN_ON;
+
 			if (!port->power_role_swap)
 				sprd_tcpm_set_state(port,
 						    sprd_hard_reset_state(port),
-						    SPRD_PD_T_SINK_WAIT_CAP);
+						    msecs);
 			else
 				sprd_tcpm_set_state(port,
 						    sprd_hard_reset_state(port),
@@ -3671,16 +4486,27 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		break;
 	case SNK_NEGOTIATE_CAPABILITIES:
 		port->pd_capable = true;
+		curr_time1 = ktime_to_ms(ktime_get_boottime());
+		sprd_tcpm_log(port, "%s:line%d curr_time1 = %lld ms", __func__, __LINE__, curr_time1);
 		sprd_tcpm_log(port, "%s:line%d pd_capable true", __func__, __LINE__);
 		port->hard_reset_count = 0;
 		ret = sprd_tcpm_pd_send_request(port);
+		curr_time2 = ktime_to_ms(ktime_get_boottime());
+		sprd_tcpm_log(port, "%s:line%d curr_time2 = %lld ms", __func__, __LINE__, curr_time2);
+		duration = curr_time2 - port->tx_complete_curr_time;
+		sprd_tcpm_log(port, "%s:line%d duration = %lld ms", __func__, __LINE__, duration);
+		if (duration > 2 && duration < 15)
+			duration -= 2;
+		else
+			duration = 0;
 		if (ret < 0) {
 			/* Let the Source send capabilities again. */
 			sprd_tcpm_set_state(port, SNK_WAIT_CAPABILITIES, 0);
 		} else {
 			if (!port->power_role_swap)
 				sprd_tcpm_set_state_cond(port, sprd_hard_reset_state(port),
-							 SPRD_PD_T_SENDER_RESPONSE);
+							 port->negotiated_rev < SPRD_PD_REV30 ?
+					(SPRD_PD_T_SENDER_RESPONSE_PD2 - duration) : (SPRD_PD_T_SENDER_RESPONSE_PD3 - duration));
 			else
 				sprd_tcpm_set_state_cond(port, sprd_hard_reset_state(port),
 							 SPRD_PD_T_SENDER_RESPONSE_RESET);
@@ -3701,7 +4527,8 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 				sprd_tcpm_set_state(port, SNK_READY, 0);
 		} else {
 			sprd_tcpm_set_state_cond(port, sprd_hard_reset_state(port),
-						 SPRD_PD_T_SENDER_RESPONSE);
+						 port->negotiated_rev < SPRD_PD_REV30 ?
+					SPRD_PD_T_SENDER_RESPONSE_PD2 : SPRD_PD_T_SENDER_RESPONSE_PD3);
 		}
 		break;
 	case SNK_TRANSITION_SINK:
@@ -3729,6 +4556,11 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 			sprd_tcpm_log(port, "SNK_READY clear power role swap flag");
 		}
 
+		if (port->explicit_contract &&
+			g_sprd_typec_device_ops &&
+			g_sprd_typec_device_ops->typec_notify_sink_ready_state)
+			g_sprd_typec_device_ops->typec_notify_sink_ready_state();
+
 		port->try_snk_count = 0;
 		port->update_sink_caps = false;
 		if (port->explicit_contract) {
@@ -3736,10 +4568,14 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 			port->pwr_opmode = TYPEC_PWR_MODE_PD;
 		}
 
+		port->sink_in_hard_reset = false;
 		sprd_tcpm_typec_pr_swap_no_chk_detach(port, false);
 		sprd_tcpm_update_limit_current(port);
 		sprd_tcpm_swap_complete(port, 0);
-		sprd_tcpm_check_retry_send_vdm(port);
+
+		if (port->explicit_contract)
+			sprd_tcpm_set_initial_svdm_version(port);
+
 		sprd_tcpm_check_send_discover(port);
 		sprd_tcpm_fixed_pd_complete(port);
 		sprd_tcpm_pps_complete(port, port->pps_status);
@@ -3784,7 +4620,17 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 			port->power_role_swap_hard_reset = true;
 		}
 
+		port->received_get_snk_cap_cnt = 0;
+		if (port->received_bad_good_crc) {
+			sprd_tcpm_log(port, "%s, received_bad_good_crc: true --> false",
+				      __func__);
+			port->tcpc->check_tx_goodcrc(port->tcpc, true);
+			port->tcpc->enable_tx_auto_retry(port->tcpc, true);
+			port->received_bad_good_crc = false;
+		}
+
 		sprd_tcpm_typec_pr_swap_no_chk_detach(port, false);
+		port->bist_test_data = false;
 		port->hard_reset_count++;
 		port->tcpc->set_pd_rx(port->tcpc, false);
 		sprd_tcpm_unregister_altmodes(port);
@@ -3819,6 +4665,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 			sprd_tcpm_set_state(port, SRC_STARTUP, SPRD_PD_T_PS_SOURCE_ON_RESET);
 		break;
 	case SNK_HARD_RESET_SINK_OFF:
+		port->sink_in_hard_reset = true;
 		memset(&port->pps_data, 0, sizeof(port->pps_data));
 		sprd_tcpm_set_vconn(port, false);
 		if (port->pd_capable)
@@ -3836,8 +4683,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		 * If it doesn't toggle, transition to SNK_HARD_RESET_SINK_ON
 		 * directly after timeout.
 		 */
-		sprd_tcpm_set_state(port, SNK_HARD_RESET_SINK_ON, SPRD_PD_T_SAFE_0V +
-				    SPRD_PD_T_SRC_RECOVER_MAX + SPRD_PD_T_SRC_TURN_ON);
+		sprd_tcpm_set_state(port, SNK_HARD_RESET_SINK_ON, SPRD_PD_T_SAFE_0V);
 		break;
 	case SNK_HARD_RESET_WAIT_VBUS:
 		/* Assume we're disconnected if VBUS doesn't come back. */
@@ -3875,6 +4721,14 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 	case SOFT_RESET:
 		port->message_id = 0;
 		port->rx_msgid = -1;
+
+		if (port->tcpc->set_pd_tx_id) {
+			sprd_tcpm_log(port, "soft reset send, clear tx id");
+			ret = port->tcpc->set_pd_tx_id(port->tcpc, 0x0);
+			if (ret)
+				sprd_tcpm_log(port, "failed to clear tx id");
+		}
+
 		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_ACCEPT);
 		if (port->pwr_role == TYPEC_SOURCE)
 			sprd_tcpm_set_state(port, SRC_SEND_CAPABILITIES, 0);
@@ -3884,11 +4738,27 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 	case SOFT_RESET_SEND:
 		port->message_id = 0;
 		port->rx_msgid = -1;
+
+		if (port->tcpc->set_pd_tx_id) {
+			sprd_tcpm_log(port, "soft reset send, clear tx id");
+			ret = port->tcpc->set_pd_tx_id(port->tcpc, 0x0);
+			if (ret)
+				sprd_tcpm_log(port, "failed to clear tx id");
+		}
+
+		if (port->tcpc->reset_pd_rx_id) {//avoid receive the same message id
+			sprd_tcpm_log(port, "soft reset send, clear rx id");
+			ret = port->tcpc->reset_pd_rx_id(port->tcpc);
+			if (ret)
+				sprd_tcpm_log(port, "failed to clear rx id");
+		}
+
 		if (sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_SOFT_RESET))
 			sprd_tcpm_set_state_cond(port, sprd_hard_reset_state(port), 0);
 		else
 			sprd_tcpm_set_state_cond(port, sprd_hard_reset_state(port),
-						 SPRD_PD_T_SENDER_RESPONSE);
+						 port->negotiated_rev < SPRD_PD_REV30 ?
+					SPRD_PD_T_SENDER_RESPONSE_PD2 : SPRD_PD_T_SENDER_RESPONSE_PD3);
 		break;
 
 	/* DR_Swap states */
@@ -3954,7 +4824,8 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 	case PR_SWAP_SEND:
 		port->role_swap_flag = true;
 		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_PR_SWAP);
-		sprd_tcpm_set_state_cond(port, PR_SWAP_SEND_TIMEOUT, SPRD_PD_T_SENDER_RESPONSE);
+		sprd_tcpm_set_state_cond(port, PR_SWAP_SEND_TIMEOUT, port->negotiated_rev < SPRD_PD_REV30 ?
+					SPRD_PD_T_SENDER_RESPONSE_PD2 : SPRD_PD_T_SENDER_RESPONSE_PD3);
 		break;
 	case PR_SWAP_SEND_TIMEOUT:
 		sprd_tcpm_swap_complete(port, -ETIMEDOUT);
@@ -3985,6 +4856,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		break;
 	case PR_SWAP_SRC_SNK_SOURCE_OFF:
 		sprd_tcpm_set_cc(port, SPRD_TYPEC_CC_RD);
+		sprd_tcpm_force_switch_rp_rd(port);
 		/* allow CC debounce */
 		sprd_tcpm_set_state(port, PR_SWAP_SRC_SNK_SOURCE_OFF_CC_DEBOUNCED,
 				    SPRD_PD_T_CC_DEBOUNCE_SWAP);
@@ -4000,13 +4872,11 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		sprd_tcpm_set_pwr_role(port, TYPEC_SINK);
 		if (sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_PS_RDY)) {
 			sprd_tcpm_log(port, "OFF_CC_DEBOUNCED send ps rdy failed");
-			sprd_tcpm_set_pwr_role(port, TYPEC_SOURCE);
-			sprd_tcpm_set_state(port, sprd_hard_reset_state(port), 0);
+			sprd_tcpm_set_state(port, ERROR_RECOVERY, 0);
 			break;
 		}
 
-		sprd_tcpm_force_switch_rp_rd(port);
-		sprd_tcpm_set_state_cond(port, sprd_hard_reset_state(port),
+		sprd_tcpm_set_state_cond(port, ERROR_RECOVERY,
 					 SPRD_PD_T_PS_SOURCE_ON_SWAP);
 		break;
 	case PR_SWAP_SRC_SNK_SINK_ON:
@@ -4019,7 +4889,7 @@ static void sprd_run_state_machine(struct sprd_tcpm_port *port)
 		break;
 	case PR_SWAP_SNK_SRC_SINK_OFF:
 		sprd_tcpm_set_charge(port, false);
-		sprd_tcpm_set_state(port, sprd_hard_reset_state(port), SPRD_PD_T_PS_SOURCE_OFF);
+		sprd_tcpm_set_state(port, ERROR_RECOVERY, SPRD_PD_T_PS_SOURCE_OFF);
 		break;
 	case PR_SWAP_SNK_SRC_SOURCE_ON:
 		sprd_tcpm_log(port, "[%s:line%d] mslssp start", __func__, __LINE__);
@@ -4068,7 +4938,8 @@ source_pr_send_psrdy_retry:
 		break;
 	case VCONN_SWAP_SEND:
 		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_VCONN_SWAP);
-		sprd_tcpm_set_state(port, VCONN_SWAP_SEND_TIMEOUT, SPRD_PD_T_SENDER_RESPONSE);
+		sprd_tcpm_set_state(port, VCONN_SWAP_SEND_TIMEOUT, port->negotiated_rev < SPRD_PD_REV30 ?
+					SPRD_PD_T_SENDER_RESPONSE_PD2 : SPRD_PD_T_SENDER_RESPONSE_PD3);
 		break;
 	case VCONN_SWAP_SEND_TIMEOUT:
 		sprd_tcpm_swap_complete(port, -ETIMEDOUT);
@@ -4107,23 +4978,28 @@ source_pr_send_psrdy_retry:
 		switch (SPRD_BDO_MODE_MASK(port->bist_request)) {
 		case SPRD_BDO_MODE_CARRIER2:
 			sprd_tcpm_pd_transmit(port, SPRD_TCPC_TX_BIST_MODE_2, NULL);
+			sprd_tcpm_set_state(port, sprd_unattached_state(port), 0);
+			break;
+		case SPRD_BDO_MODE_TESTDATA:
+			sprd_tcpm_set_state(port, sprd_ready_state(port), 0);
+			port->bist_test_data = true;
 			break;
 		default:
 			break;
 		}
-		/* Always switch to unattached state */
-		sprd_tcpm_set_state(port, sprd_unattached_state(port), 0);
 		break;
 	case GET_STATUS_SEND:
 		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_GET_STATUS);
-		sprd_tcpm_set_state(port, GET_STATUS_SEND_TIMEOUT, SPRD_PD_T_SENDER_RESPONSE);
+		sprd_tcpm_set_state(port, GET_STATUS_SEND_TIMEOUT, port->negotiated_rev < SPRD_PD_REV30 ?
+					SPRD_PD_T_SENDER_RESPONSE_PD2 : SPRD_PD_T_SENDER_RESPONSE_PD3);
 		break;
 	case GET_STATUS_SEND_TIMEOUT:
 		sprd_tcpm_set_state(port, sprd_ready_state(port), 0);
 		break;
 	case GET_PPS_STATUS_SEND:
 		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_GET_PPS_STATUS);
-		sprd_tcpm_set_state(port, GET_PPS_STATUS_SEND_TIMEOUT, SPRD_PD_T_SENDER_RESPONSE);
+		sprd_tcpm_set_state(port, GET_PPS_STATUS_SEND_TIMEOUT, port->negotiated_rev < SPRD_PD_REV30 ?
+					SPRD_PD_T_SENDER_RESPONSE_PD2 : SPRD_PD_T_SENDER_RESPONSE_PD3);
 		break;
 	case GET_PPS_STATUS_SEND_TIMEOUT:
 		sprd_tcpm_set_state(port, sprd_ready_state(port), 0);
@@ -4143,12 +5019,18 @@ source_pr_send_psrdy_retry:
 	case PORT_RESET:
 		sprd_tcpm_reset_port(port);
 		sprd_tcpm_set_cc(port, SPRD_TYPEC_CC_OPEN);
+		sprd_tcpm_set_typec_err_recover_enter();
 		sprd_tcpm_set_state(port, PORT_RESET_WAIT_OFF, SPRD_PD_T_ERROR_RECOVERY);
 		break;
 	case PORT_RESET_WAIT_OFF:
 		sprd_tcpm_set_state(port,
 				    sprd_tcpm_default_state(port),
 				    port->vbus_present ? SPRD_PD_T_PS_SOURCE_OFF : 0);
+		break;
+	/* Chunk state */
+	case CHUNK_NOT_SUPP:
+		sprd_tcpm_pd_send_control(port, SPRD_PD_CTRL_NOT_SUPP);
+		sprd_tcpm_set_state(port, port->pwr_role == TYPEC_SOURCE ? SRC_READY : SNK_READY, 0);
 		break;
 	default:
 		WARN(1, "Unexpected port state %d\n", port->state);
@@ -4191,6 +5073,43 @@ static void sprd_tcpm_state_machine_work(struct kthread_work *work)
 
 done:
 	port->state_machine_running = false;
+	mutex_unlock(&port->lock);
+}
+
+static void sprd_tcpm_chunk_msg_work(struct work_struct *work)
+{
+	struct sprd_tcpm_port *port = container_of(work, struct sprd_tcpm_port,
+						   chunk_msg_work.work);
+	enum sprd_pd_chunk_msg_request queued_chunk_message;
+
+	if (!port) {
+		pr_err("%s:line%d: NULL pointer!!!\n", __func__, __LINE__);
+		return;
+	}
+
+	sprd_tcpm_log_force(port, "%s:line%d", __func__, __LINE__);
+
+	/*
+	 * note: careful lock
+	 */
+	mutex_lock(&port->lock);
+
+	do {
+		queued_chunk_message = port->queued_chunk_message;
+		port->queued_chunk_message = PD_CHUNK_MSG_NONE;
+
+		switch (queued_chunk_message) {
+		case PD_CHUNK_MSG_CTRL_GET_SINK_CAP_EXT:
+			sprd_tcpm_pd_send_sink_cap_ext(port);
+			break;
+		case PD_CHUNK_MSG_EXT_GET_BATTERY_CAP_EXT:
+			sprd_tcpm_pd_send_battery_cap_ext(port, port->data[0]);
+			break;
+		default:
+			break;
+		}
+	} while (port->queued_chunk_message != PD_CHUNK_MSG_NONE);
+
 	mutex_unlock(&port->lock);
 }
 
@@ -4551,6 +5470,23 @@ static void sprd_tcpm_pd_event_handler(struct kthread_work *work)
 			if (port->tcpc->get_cc(port->tcpc, &cc1, &cc2) == 0)
 				_sprd_tcpm_cc_change(port, cc1, cc2);
 		}
+
+		if (events & SPRD_TCPM_SOFT_RESET_EVENT) {
+			sprd_tcpm_log_force(port, "%s, received soft reset event", __func__);
+			if (port->received_bad_good_crc) {
+				sprd_tcpm_log_force(port, "sprd: %s[%d], received_bad_good_crc: true --> false",
+						    __func__, __LINE__);
+				port->tcpc->check_tx_goodcrc(port->tcpc, true);
+				port->tcpc->enable_tx_auto_retry(port->tcpc, true);
+				port->received_bad_good_crc = false;
+				sprd_tcpm_log_force(port, "sprd: %s[%d], received_get_snk_cap_cnt: %d --> 0",
+						    __func__, __LINE__, port->received_get_snk_cap_cnt);
+				port->received_get_snk_cap_cnt = 0;
+			}
+
+			sprd_tcpm_set_state(port, SOFT_RESET, 0);
+		}
+
 		spin_lock(&port->pd_event_lock);
 	}
 	spin_unlock(&port->pd_event_lock);
@@ -4583,6 +5519,15 @@ void sprd_tcpm_pd_hard_reset(struct sprd_tcpm_port *port)
 	kthread_queue_work(&port->tcpm_kworker, &port->event_work);
 }
 EXPORT_SYMBOL_GPL(sprd_tcpm_pd_hard_reset);
+
+void sprd_tcpm_pd_soft_reset(struct sprd_tcpm_port *port)
+{
+	spin_lock(&port->pd_event_lock);
+	port->pd_events = SPRD_TCPM_SOFT_RESET_EVENT;
+	spin_unlock(&port->pd_event_lock);
+	kthread_queue_work(&port->tcpm_kworker, &port->event_work);
+}
+EXPORT_SYMBOL_GPL(sprd_tcpm_pd_soft_reset);
 
 static int sprd_tcpm_dr_set(struct typec_port *p, enum typec_data_role data)
 {
@@ -5048,6 +5993,16 @@ static int sprd_tcpm_copy_vdos(u32 *dest_vdo, const u32 *src_vdo, unsigned int n
 	return nr_vdo;
 }
 
+static int sprd_tcpm_parse_dt(struct sprd_tcpm_port *port, struct fwnode_handle *fwnode)
+{
+	if (!fwnode)
+		return -EINVAL;
+
+	port->support_pd_cts = fwnode_property_read_bool(fwnode, "sprd,support-pd-cts");
+
+	return 0;
+}
+
 static int sprd_tcpm_fw_get_caps(struct sprd_tcpm_port *port, struct fwnode_handle *fwnode)
 {
 	const char *cap_str;
@@ -5089,6 +6044,12 @@ static int sprd_tcpm_fw_get_caps(struct sprd_tcpm_port *port, struct fwnode_hand
 					     port->src_pdo, port->nr_src_pdo);
 	if ((ret < 0) || sprd_tcpm_validate_caps(port, port->src_pdo, port->nr_src_pdo))
 		return -EINVAL;
+
+	for (i = 0; i < port->nr_src_pdo; i++) {
+		if (sprd_pdo_type(port->src_pdo[i]) == SPRD_PDO_TYPE_FIXED &&
+		    sprd_pdo_fixed_voltage(port->src_pdo[i]) == 5000)
+			port->support_usb_suspend = !!(port->src_pdo[i] & SPRD_PDO_FIXED_SUSPEND);
+	}
 
 	if (port->port_type == TYPEC_PORT_SRC)
 		return 0;
@@ -5649,6 +6610,7 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 	hrtimer_init(&port->vdm_state_machine_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	port->vdm_state_machine_timer.function = sprd_tcpm_vdm_state_machine_timer_handler;
 	INIT_DELAYED_WORK(&port->dp_work, sprd_tcpm_dp_vdm_work);
+	INIT_DELAYED_WORK(&port->chunk_msg_work, sprd_tcpm_chunk_msg_work);
 
 	spin_lock_init(&port->pd_event_lock);
 
@@ -5662,6 +6624,8 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 	wakeup_source_add(port->pd_source_ws);
 
 	port->fixed_pd_voltage = 0;
+	if (sprd_tcpm_parse_dt(port, tcpc->fwnode))
+		pr_err("%s, failed to parse device tree\n", __func__);
 	err = sprd_tcpm_fw_get_caps(port, tcpc->fwnode);
 	if ((err < 0) && tcpc->config)
 		err = sprd_tcpm_copy_caps(port, tcpc->config);
@@ -5676,6 +6640,7 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 	port->typec_caps.fwnode = tcpc->fwnode;
 	port->typec_caps.revision = 0x0120;	/* Type-C spec release 1.2 */
 	port->typec_caps.pd_revision = 0x0300;	/* USB-PD spec release 3.0 */
+	port->typec_caps.svdm_version = SVDM_VER_2_0;
 	port->typec_caps.driver_data = port;
 	port->typec_caps.ops = &sprd_tcpm_ops;
 	port->typec_caps.data = TYPEC_PORT_DRD;
@@ -5724,14 +6689,22 @@ struct sprd_tcpm_port *sprd_tcpm_register_port(struct device *dev, struct tcpc_d
 		}
 	}
 	port->registered = true;
+	port->default_svdm_ver_minor = SVDM_VER_MIMOR_1;
+	port->negotiated_svdm_ver_minor = port->default_svdm_ver_minor;
 
+	init_completion(&port->tx_chunk_request);
 	sprd_tcpm_debug_log_register_sysfs(port);
+
+	port->vbus_wait = 500;
+	port->tcc_debounce = 0;
+	port->first_pd_cap_delay = 100;
 
 	mutex_lock(&port->lock);
 	sprd_tcpm_init(port);
 	mutex_unlock(&port->lock);
 
-	sprd_tcpm_log(port, "%s: registered", dev_name(dev));
+	sprd_tcpm_log(port, "%s: registered, support_pd_cts: %d",
+		      dev_name(dev), port->support_pd_cts);
 	return port;
 
 out_role_sw_put:
