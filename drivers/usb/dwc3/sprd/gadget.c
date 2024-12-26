@@ -2516,6 +2516,7 @@ static int dwc3_gadget_pullup(struct usb_gadget *g, int is_on)
 		dev_info(dwc->dev, " %s suspended is_on: %d \n", __func__, is_on);
 		return 0;
 	}
+
 	/*
 	 * Check the return value for successful resume, or error.  For a
 	 * successful resume, the DWC3 runtime PM resume routine will handle
@@ -2614,6 +2615,9 @@ static void dwc3_gadget_enable_irq(struct dwc3 *dwc)
 
 	if (DWC3_VER_IS_PRIOR(DWC3, 250A))
 		reg |= DWC3_DEVTEN_ULSTCNGEN;
+
+	/* Enable DWC3_DEVTEN_ULSTCNGEN for U3 Event */
+	reg |= DWC3_DEVTEN_ULSTCNGEN;
 
 	/* On 2.30a and above this bit enables U3/L2-L1 Suspend Events */
 	if (!DWC3_VER_IS_PRIOR(DWC3, 230A))
@@ -2865,6 +2869,10 @@ static int dwc3_gadget_vbus_draw(struct usb_gadget *g, unsigned int mA)
 	struct dwc3		*dwc = gadget_to_dwc(g);
 	union power_supply_propval	val = {0};
 	int				ret;
+
+	pr_info("%s %d %d", __func__, __LINE__, mA);
+	if (dwc->glue_phy)
+		return usb_phy_set_power(dwc->glue_phy, mA);
 
 	if (dwc->usb2_phy)
 		return usb_phy_set_power(dwc->usb2_phy, mA);

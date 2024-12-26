@@ -476,11 +476,11 @@ static void adjust_dwc3_max_speed(struct dwc3_sprd *sdwc)
 		spin_lock_irqsave(&dwc->lock, flags);
 		reg = sdwc_readl(dwc->regs, DWC3_DCFG);
 		reg &= ~(DWC3_DCFG_SPEED_MASK);
-		reg |= DWC3_DCFG_HIGHSPEED;
+		reg |= DWC3_DCFG_FULLSPEED;
 		sdwc_writel(dwc->regs, DWC3_DCFG, reg);
 		reg = sdwc_readl(dwc->regs, DWC3_DSTS);
 		spin_unlock_irqrestore(&dwc->lock, flags);
-		dev_info(dwc->dev, "set dwc3 max speed to hs in cali mode, DWC3_DSTS: 0x%x\n", reg);
+		dev_info(dwc->dev, "set dwc3 max speed to fs in cali mode, DWC3_DSTS: 0x%x\n", reg);
 	}
 }
 
@@ -611,7 +611,6 @@ static int dwc3_sprd_otg_start_peripheral(struct dwc3_sprd *sdwc, int on)
 
 		__pm_stay_awake(sdwc->wake_lock);
 		usb_phy_vbus_off(sdwc->ss_phy);
-		msleep(100);
 		pm_runtime_get_sync(dwc->dev);
 		/* phy set vbus connected after phy_init*/
 		usb_phy_notify_connect(sdwc->ss_phy, 0);
@@ -1054,6 +1053,13 @@ static int usb_clk_prepare_disable(struct dwc3_sprd *sdwc)
 	clk_disable_unprepare(sdwc->ipa_usb31pll_clk);
 	return 0;
 }
+static void dwc3_notify_wait_udc_start_state(struct dwc3_sprd *sdwc)
+{
+    char *envp[] = { "wait_udc_start_state", NULL };
+
+    dev_info(sdwc->dev, "%s\n", __func__);
+    kobject_uevent_env(&sdwc->dev->kobj, KOBJ_CHANGE, envp);
+}
 
 /**
  * dwc3_sprd_hotplug_sm_work - workqueue function.
@@ -1120,17 +1126,6 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 			delay = DWC3_USB_ENABLE_CHECK_DELAY;
 			break;
 		}
-		/*
-		 * The follow ensure that UDC be setted as 25100000.dwc3
-		 * when phone startup with hub plug in. Or UDC would be
-		 * setted as musb_hdrc.1.auto
-		 */
-		if (!dwc3_sprd_is_udc_start(sdwc)) {
-			dev_info(sdwc->dev, "waiting dwc3 udc start\n");
-			rework = true;
-			delay = DWC3_UDC_START_CHECK_DELAY;
-			break;
-		}
 
 		if (!test_bit(ID, &sdwc->inputs)) {
 			dev_dbg(sdwc->dev, "!id\n");
@@ -1145,15 +1140,26 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 		} else if (test_bit(B_SESS_VLD, &sdwc->inputs)) {
 			dev_dbg(sdwc->dev, "b_sess_vld\n");
 			/*
-			 * Increment pm usage count upon cable connect. Count
-			 * is decremented in DRD_STATE_PERIPHERAL state on
-			 * cable disconnect or in bus suspend.
+			* The follow ensure that UDC be setted as 25100000.dwc3
+			* when phone startup with hub plug in. Or UDC would be
+			* setted as musb_hdrc.1.auto
 			 */
-			if (!pm_runtime_suspended(dwc->dev)) {
+			if (!dwc3_sprd_is_udc_start(sdwc)) {
+				dev_info(sdwc->dev, "waiting dwc3 udc start\n");
+				dwc3_notify_wait_udc_start_state(sdwc);
+				rework = true;
+				delay = DWC3_UDC_START_CHECK_DELAY;
+				break;
+			} else if (!pm_runtime_suspended(dwc->dev)) {
 				dev_info(sdwc->dev, "waiting dwc3 suspended\n");
 				rework = true;
 				delay = DWC3_RUNTIME_CHECK_DELAY;
 			} else {
+				/*
+				* Increment pm usage count upon cable connect. Count
+				* is decremented in DRD_STATE_PERIPHERAL state on
+				* cable disconnect or in bus suspend.
+				*/
 				pm_runtime_get_sync(sdwc->dev);
 				if (sdwc->use_pdhub_c2c)
 					call_sprd_usbphy_event_notifiers(SPRD_USBPHY_EVENT_TYPEC,
@@ -1521,6 +1527,7 @@ static int dwc3_sprd_probe(struct platform_device *pdev)
 		goto err_susp_clk;
 	}
 
+	dwc->glue_phy = sdwc->ss_phy;
 	sdwc->usb_data_enabled = true;
 	ret = dwc3_sprd_usb_notify_init(pdev, sdwc);
 	if (ret) {
@@ -1829,8 +1836,6 @@ static int dwc3_sprd_pm_suspend(struct device *dev)
 	struct dwc3_sprd *sdwc = dev_get_drvdata(dev);
 
 	dev_info(dev, "%s: enter\n", __func__);
-	/* advance to flush */
-	flush_workqueue(sdwc->dwc3_wq);
 	if (atomic_read(&sdwc->runtime_suspended))
 		goto runtime_suspended;
 
@@ -1966,6 +1971,7 @@ is_runtime_suspended:
 	/* kick in hotplug state machine */
 	atomic_set(&sdwc->pm_suspended, 0);
 	queue_work(sdwc->dwc3_wq, &sdwc->evt_prepare_work);
+
 	return ret;
 }
 
