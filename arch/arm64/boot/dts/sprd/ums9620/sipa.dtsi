@@ -120,11 +120,6 @@
 		sprd,term-type = <0x6>;
 	};
 
-	sipa_usb0: sipa-usb {
-		compatible = "sprd,sipa_usb";
-		sprd,netid = <0>;
-		sprd,term-type = <0x1>;
-	};
 
 	sipa_dummy: sipa-dummy {
 		compatible = "sprd,sipa_dummy";
