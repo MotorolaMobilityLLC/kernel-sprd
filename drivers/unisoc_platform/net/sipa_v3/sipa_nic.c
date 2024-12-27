@@ -498,8 +498,8 @@ void sipa_nic_set_bypass_mode(bool is_bypass)
 	 */
 	int sipa_nic_usb_origin = SIPA_NIC_MAX;
 
+	sipa_set_enabled(true);
 	if (!is_bypass) {
-		sipa_set_enabled(true);
 		ipa->is_bypass = is_bypass;
 
 		/* mode_state:
@@ -516,8 +516,8 @@ void sipa_nic_set_bypass_mode(bool is_bypass)
 		ipa->mode_state &= ~(1 << sipa_nic_usb_origin);
 		ipa->glb_ops.set_work_mode(ipa->glb_virt_base,
 					   is_bypass);
-		sipa_set_enabled(false);
 	}
+	sipa_set_enabled(false);
 }
 EXPORT_SYMBOL(sipa_nic_set_bypass_mode);
 
