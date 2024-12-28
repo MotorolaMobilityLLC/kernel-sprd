@@ -3333,7 +3333,7 @@ static bool sprd_fgu_cap_track_is_meet_end_conditon(struct sprd_fgu_data *data)
 		if (ret)
 			return false;
 
-		if (cur_now <= 0 || cur_now > data->track.end_cur || vol_now < data->track.end_vol)
+		if (cur_now < 0 || cur_now > data->track.end_cur || vol_now < data->track.end_vol)
 			return false;
 	}
 
@@ -3346,7 +3346,7 @@ static void sprd_fgu_cap_track_state_init(struct sprd_fgu_data *data, int *cycle
 	int design_mah, learned_mah, charge_full_mah;
 
 	design_mah = data->design_mah;
-	learned_mah = data->track.learned_mah;
+	learned_mah = data->track.learned_mah/1000;
 	charge_full_mah = data->charge_full_mah;
 
 	data->track.state = CAP_TRACK_IDLE;
@@ -3477,8 +3477,8 @@ static void sprd_fgu_cap_track_state_updating(struct sprd_fgu_data *data, int *c
 	}
 
 	if (vbat_avg_mv > data->track.end_vol &&
-	    (ibat_avg_ma > 0 && ibat_avg_ma < data->track.end_cur) &&
-	    (ibat_now_ma > 0 && ibat_now_ma < data->track.end_cur)) {
+	    (ibat_avg_ma >= 0 && ibat_avg_ma < data->track.end_cur) &&
+	    (ibat_now_ma >= 0 && ibat_now_ma < data->track.end_cur)) {
 		dev_info(data->dev, "capacity track finish condition is met!!!\n");
 		pm_wakeup_event(data->dev, SPRD_FGU_TRACK_DONE_WAKE_UP_MS);
 		data->track.state = CAP_TRACK_DONE;
@@ -3543,8 +3543,8 @@ static void sprd_fgu_cap_track_state_done(struct sprd_fgu_data *data, int *cycle
 
 	if (!sprd_fgu_cap_track_is_meet_end_conditon(data)) {
 		if (vbat_avg_mv > data->track.end_vol &&
-		    (ibat_avg_ma > 0 && ibat_avg_ma < data->track.end_cur) &&
-		    (ibat_now_ma > 0 && ibat_now_ma < data->track.end_cur)) {
+		    (ibat_avg_ma >= 0 && ibat_avg_ma < data->track.end_cur) &&
+		    (ibat_now_ma >= 0 && ibat_now_ma < data->track.end_cur)) {
 			*cycle = SPRD_FGU_CAPACITY_TRACK_3S;
 		} else {
 			*cycle = SPRD_FGU_CAPACITY_TRACK_15S;
@@ -3818,6 +3818,11 @@ static int sprd_fgu_cap_track_register_usb_notify(struct sprd_fgu_data *data)
 		}
 		INIT_WORK(&data->typec_extcon_work, sprd_fgu_typec_extcon_work);
 		data->extcon_nb.notifier_call = sprd_fgu_extcon_event;
+		ret = devm_extcon_register_notifier_all(data->dev, data->edev, &data->extcon_nb);
+		if (ret) {
+			dev_err(data->dev, "Can't register extcon, ret = %d\n", ret);
+			return ret;
+		}
 	} else {
 		data->usb_notify.notifier_call = sprd_fgu_usb_change;
 		ret = usb_register_notifier(data->usb_phy, &data->usb_notify);
