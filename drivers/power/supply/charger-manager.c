@@ -2000,6 +2000,10 @@ static bool cm_is_reach_fchg_threshold(struct charger_manager *cm)
 	}
 
 	cm->desc->fchg_voltage_check_count = 0;
+
+	if(cm->desc->fast_charge_exit_count > 4)
+		return false;
+
 	if (get_batt_ocv(cm, &batt_ocv)) {
 		dev_err(cm->dev, "get_batt_ocv error.\n");
 		return false;
@@ -2281,8 +2285,13 @@ static bool cm_is_disable_fixed_fchg_check(struct charger_manager *cm, int *dela
 	if (cm->desc->fast_charge_disable_count < CM_FIXED_FCHG_DISABLE_COUNT)
 		return false;
 
-	dev_info(cm->dev, "%s, vbat: %d, ibat: %d, vbus: %d, exit fixed fchg\n",
-		 __func__, batt_uV, batt_uA, chg_vol);
+	if(!ret && chg_vol < CM_FIXED_FCHG_VOLTAGE_5V_THRESHOLD)
+		cm->desc->fast_charge_exit_count++;
+	else
+		cm->desc->fast_charge_exit_count = 0;
+
+	dev_info(cm->dev, "%s, vbat: %d, ibat: %d, vbus: %d,%d; exit fixed fchg\n",
+		 __func__, batt_uV, batt_uA, chg_vol,cm->desc->fast_charge_exit_count);
 	return true;
 }
 
@@ -5718,7 +5727,6 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 				cm->desc->fast_charger_type = 0;
 				cm->desc->usb_charge_en = false;
 				cm->desc->charger_type = 0;
-				cm->desc->reach_fchg_first = true;
 			}
 
 			ret = get_wireless_charger_type(cm, &cm->desc->charger_type);
@@ -5744,6 +5752,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 			}
 
 			cm->desc->usb_charge_en = true;
+			cm->desc->reach_fchg_first = true;
 		}
 
 		cm_update_charge_info(cm, (CM_CHARGE_INFO_CHARGE_LIMIT |
@@ -5772,6 +5781,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->fchg_voltage_check_count = 0;
 		cm->desc->fast_charge_enable_count = 0;
 		cm->desc->fast_charge_disable_count = 0;
+		cm->desc->fast_charge_exit_count = 0;
 		cm->desc->fixed_fchg_running = false;
 		cm->desc->wait_vbus_stable = false;
 		cm->desc->cp_sm.running = false;
@@ -5795,7 +5805,7 @@ static void misc_event_handler(struct charger_manager *cm, enum cm_event_types t
 		cm->desc->xts_limit_cur = false;
 		cm->desc->adapter_max_vbus = 0;
 		cm->desc->charge_type_poll_count = 0;
-		cm->desc->reach_fchg_first = true;
+		cm->desc->reach_fchg_first = false;
 	}
 
 	cm_update_charger_type_status(cm);

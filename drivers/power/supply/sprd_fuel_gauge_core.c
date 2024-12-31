@@ -986,6 +986,7 @@ static int sprd_fgu_temp2full_percent(struct sprd_fgu_data *data, int *cap)
 static void sprd_fgu_smooth_to_soc(struct sprd_fgu_data *data, int *cap, int normal_cap_diff)
 {
 	int smooth_cap_diff, adjust_step = 10, cap_info;
+		return;
 
 	if (data->cap_table_len <= 0)
 		return;
