@@ -5592,9 +5592,6 @@ void page_should_be_protected_hook(void *data, struct page* page,
         if (!hybridswap_core_enabled())
                 return;
 
-        if(in_interrupt())
-                return;
-
         if(current_is_kswapd())
                 return;
         
