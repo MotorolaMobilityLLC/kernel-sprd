@@ -1095,10 +1095,15 @@ static DEVICE_ATTR_RO(bd_stat);
 #endif
 static DEVICE_ATTR_RO(debug_stat);
 
+//ontim
+extern bool get_hybridswap_reboot(void);
 static void zram_meta_free(struct zram *zram, u64 disksize)
 {
 	size_t num_pages = disksize >> PAGE_SHIFT;
 	size_t index;
+    
+	if(get_hybridswap_reboot())
+	    return;
 
 	/* Free all pages that are still in this zram device */
 	for (index = 0; index < num_pages; index++)
@@ -1845,6 +1850,8 @@ static DEVICE_ATTR_RW(hybridswap_enable);
 #endif
 #ifdef CONFIG_HYBRIDSWAP_SWAPD
 static DEVICE_ATTR_RW(hybridswap_swapd_pause);
+//ontim
+static DEVICE_ATTR_RW(hybridswap_reboot);
 #endif
 #ifdef CONFIG_HYBRIDSWAP_CORE
 static DEVICE_ATTR_RW(hybridswap_core_enable);
@@ -1886,6 +1893,8 @@ static struct attribute *zram_disk_attrs[] = {
 #endif
 #ifdef CONFIG_HYBRIDSWAP_SWAPD
 	&dev_attr_hybridswap_swapd_pause.attr,
+	//ontim
+	&dev_attr_hybridswap_reboot.attr,
 #endif
 #ifdef CONFIG_HYBRIDSWAP_CORE
 	&dev_attr_hybridswap_core_enable.attr,

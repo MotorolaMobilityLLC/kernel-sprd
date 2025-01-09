@@ -19,7 +19,7 @@
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
 #include <linux/sched/task_stack.h>
 #endif
-
+//ontim
 #include <linux/mm_inline.h>
 
 #include "hybridswap_internal.h"
@@ -787,6 +787,7 @@ static void hybridswap_wait_io_finish(struct hybridswap_io_req *req)
 	if (req->io_para.class == HYB_FAULT_OUT) {
 		hybp(HYB_DEBUG, "fault out wait finish start\n");
 		if (!wait_for_completion_io_timeout(&req->io_end_flag,
+//ontim
 //#if IS_ENABLED(CONFIG_SPRD_UNISOC_MANUFACTURER_MODULE)
 //				msecs_to_jiffies(MAX_FAULT_OUT_TIMEOUT)))
 //#else
@@ -5576,15 +5577,22 @@ void hybridswap_force_reclaim(struct mem_cgroup *mcg)
 	mutex_unlock(&hybs->swap_lock);
 }
 
+//ontim
+extern bool get_hybridswap_reboot(void);
 void mem_cgroup_id_remove_hook(void *data, struct mem_cgroup *memcg)
 {
 	if (!MEMCG_OEM_DATA(memcg))
 		return;
+//ontim
+	hybp(HYB_ERR, "hybridswap remove mcg id = %d\n", memcg->id.id);
+        if(get_hybridswap_reboot())
+	    return;
 
 	hybridswap_mem_cgroup_deinit(memcg);
-	hybp(HYB_DEBUG, "hybridswap remove mcg id = %d\n", memcg->id.id);
+
 }
 
+//ontim
 void page_should_be_protected_hook(void *data, struct page* page,
                                 bool *should_protect)
 {

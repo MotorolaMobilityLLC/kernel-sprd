@@ -98,6 +98,9 @@ static atomic64_t swapd_shrink_enabled = ATOMIC_LONG_INIT(0);
 static atomic_t swapd_enabled = ATOMIC_INIT(0);
 static unsigned long swapd_nap_jiffies = 1;
 
+//ontim
+static atomic_t hybridswap_reboot = ATOMIC_INIT(0);
+
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
 extern unsigned long try_to_free_mem_cgroup_pages(struct mem_cgroup *memcg,
 		unsigned long nr_pages,
@@ -1379,6 +1382,11 @@ static void wakeup_swapd(pg_data_t *pgdat)
 		return;
 	}
 
+//ontim
+	if (atomic_read(&hybridswap_reboot)) {
+		return;
+	}
+
 	if (!waitqueue_active(&hyb_task->swapd_wait))
 		return;
 
@@ -1517,8 +1525,8 @@ static unsigned long swapd_shrink_anon(pg_data_t *pgdat,
 		while ((memcg = fetch_next_memcg(memcg))) {
 			unsigned long memcg_nr_reclaimed, memcg_to_reclaim;
 			memcg_hybs_t *hybs;
-
-			if (high_buffer_is_suitable() || atomic_read(&swapd_pause)) {
+            //ontim
+			if (high_buffer_is_suitable() || atomic_read(&swapd_pause) || atomic_read(&hybridswap_reboot)) {
 				fetch_next_memcg_break(memcg);
 				exit = true;
 				break;
@@ -1670,8 +1678,8 @@ do_eswap:
 				&& jiffies_to_msecs(jiffies - last_reclaimin_jiffies) >= 100) {
 			wmhigh = fetch_high_mem_watermark_value();
 			available = system_cur_usable_mem();
-
-			if (available < wmhigh && !atomic_read(&swapd_pause)) {
+            //ontim
+			if (available < wmhigh && !atomic_read(&swapd_pause) && !atomic_read(&hybridswap_reboot)) {
 				to_swapout = (wmhigh - available) * SZ_1M;
 				to_swapout = min_t(u64, to_swapout, max_reclaimin_size);
 #ifdef CONFIG_HYBRIDSWAP_CORE
@@ -1890,6 +1898,37 @@ ssize_t hybridswap_swapd_pause_show(struct device *dev,
 			"%d\n", atomic_read(&swapd_pause));
 
 	return size;
+}
+
+//ontim
+ssize_t hybridswap_reboot_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t len)
+{
+	char *type_buf = NULL;
+	bool val;
+
+	type_buf = strstrip((char *)buf);
+	if (kstrtobool(type_buf, &val))
+		return -EINVAL;
+	atomic_set(&hybridswap_reboot, val);
+
+	return len;
+}
+
+ssize_t hybridswap_reboot_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	ssize_t size = 0;
+
+	size += scnprintf(buf + size, PAGE_SIZE - size,
+			"%d\n", atomic_read(&hybridswap_reboot));
+
+	return size;
+}
+
+bool get_hybridswap_reboot(void)
+{
+	return !!atomic_read(&hybridswap_reboot);
 }
 
 void __init swapd_pre_init(void)
