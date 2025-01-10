@@ -8,6 +8,7 @@ extern void sdhci_sprd_del_debug_timer(struct sdhci_host *host);
 extern void sdhci_sprd_del_debug_timer_sync(struct sdhci_host *host);
 extern void sdhci_sprd_debug_timer_setup(struct sdhci_host *host);
 extern void sdhci_sprd_debug_init(struct sdhci_host *host);
+extern void sdhci_sprd_remove_sd_work_init(struct sdhci_host *host);
 
 #endif
 

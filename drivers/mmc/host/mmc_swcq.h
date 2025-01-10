@@ -220,6 +220,8 @@ struct mmc_blk_data {
 #define mmc_card_cmdq(c)        ((c)->ext_csd.cmdq_en)
 #define HOST_IS_EMMC_TYPE(c) (((c)->caps2 & (MMC_CAP2_NO_SDIO | MMC_CAP2_NO_SD)) \
 						== (MMC_CAP2_NO_SDIO | MMC_CAP2_NO_SD))
+#define HOST_IS_SD_TYPE(c) (((c)->caps2 & (MMC_CAP2_NO_MMC | MMC_CAP2_NO_SDIO)) \
+						== (MMC_CAP2_NO_MMC | MMC_CAP2_NO_SDIO))
 
 int mmc_swcq_init(struct mmc_swcq *swcq, struct mmc_host *mmc);
 void mmc_swcq_suspend(struct mmc_host *mmc);

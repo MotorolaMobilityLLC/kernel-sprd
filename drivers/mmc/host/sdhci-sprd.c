@@ -50,15 +50,14 @@
 #include "sdhci-sprd-health.h"
 #include "sdhci-sprd-health.c"
 
+#include "sdhci-sprd-debug.h"
+
 #define CREATE_TRACE_POINTS
 #include "trace_mmc_sprd.h"
 
 #define DRIVER_NAME "sprd-sdhci"
 #define SDHCI_SPRD_DUMP(f, x...) \
 	pr_err("%s: " DRIVER_NAME ": " f, mmc_hostname(host->mmc), ## x)
-
-#define HOST_IS_SD_TYPE(c) (((c)->caps2 & (MMC_CAP2_NO_MMC | MMC_CAP2_NO_SDIO)) \
-					== (MMC_CAP2_NO_MMC | MMC_CAP2_NO_SDIO))
 
 #define SEND_SD_SWITCH		6
 #define SEND_SD_READ_EXTR_SINGLE		48
@@ -2492,6 +2491,9 @@ static int sdhci_sprd_probe(struct platform_device *pdev)
 
 	sdhci_sprd_add_host_debugfs(host);
 	sdhci_sprd_debug_init(host);
+
+	if (HOST_IS_SD_TYPE(host->mmc))
+		sdhci_sprd_remove_sd_work_init(host);
 
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_autosuspend(&pdev->dev);

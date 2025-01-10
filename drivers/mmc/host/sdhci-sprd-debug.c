@@ -34,9 +34,25 @@
 #include "mmc_swcq.h"
 #include <linux/mmc/sdio_func.h>
 
+#define ANOMALY_WARNING_LEVEL 3
+#define ANOMALY_REMOVED_LEVEL 4
+#define HOT_PLUG_MAX_TIMES 5
+
+#define SD_SPEED_LIMIT 1
+#define SD_VALID_CALC_CNT 100
+
 #define MMC_ARRAY_SIZE 14	/* 2^(14-2) = 4096ms/blocks */
 #define MMC_SPEED_0M 0
 #define MMC_SPEED_1M 100
+
+static u32 sd_hotplug_cnt = 0;
+
+/* Store anomaly information of mmc every 10 seconds */
+struct sd_anomaly_info {
+	int rd_err_times; /* durations(us) of data read timeout error occurrance */
+	int wr_err_times; /* durations(us) of data write timeout error occurrance */
+};
+
 /*
  * convert ms to index: (ilog2(ms) + 1)
  * array[6]++ means the time is: 32ms <= time < 64ms
@@ -58,6 +74,7 @@ struct mmc_debug_info {
 	u64 read_total_blocks;
 	u64 write_total_blocks;
 	struct mmc_request *mrq;
+	struct sd_anomaly_info ano_info;
 	ktime_t cnt_time;
 	ktime_t start_time;
 	ktime_t end_time;
@@ -81,6 +98,11 @@ struct mmc_debug_worker {
 	struct work_struct print_work;
 };
 
+struct sd_remove_work_data{
+	struct sdhci_host *host;
+	struct delayed_work sd_remove_work;
+};
+
 #define rq_log(array, fmt, ...) \
 	pr_err(fmt ":%5ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld %4ld\n", \
 		##__VA_ARGS__, array[0], array[1], array[2], array[3], \
@@ -88,8 +110,26 @@ struct mmc_debug_worker {
 		array[9], array[10], array[11], array[12], array[13])
 
 static struct mmc_debug_info mmc_debug[3];
-struct mmc_debug_timer mmc_timer[3];
-struct mmc_debug_worker mmc_worker[3];
+static struct mmc_debug_timer mmc_timer[3];
+static struct mmc_debug_worker mmc_worker[3];
+static struct sd_remove_work_data sd_test_data;
+
+static int is_rw_cmd(struct sdhci_host *host, u32 cmd, u32 arg)
+{
+	/* judge sdio read/write cmd type */
+	if ((host->mmc->index == 2) && (cmd == SD_IO_RW_DIRECT || cmd == SD_IO_RW_EXTENDED))
+		cmd = arg >> 31 ? MMC_EXECUTE_WRITE_TASK : MMC_EXECUTE_READ_TASK;
+
+	/* READ return 0, WRITE return 1, others return -EINVAL */
+	if (cmd == MMC_READ_MULTIPLE_BLOCK || cmd == MMC_EXECUTE_READ_TASK ||
+		cmd == MMC_READ_SINGLE_BLOCK)
+		return 0;
+	else if (cmd == MMC_WRITE_BLOCK || cmd == MMC_EXECUTE_WRITE_TASK ||
+		cmd == MMC_WRITE_MULTIPLE_BLOCK)
+		return 1;
+	else
+		return -EINVAL;
+}
 
 static void mmc_debug_is_emmc(struct sdhci_host *host, struct mmc_debug_info *info)
 {
@@ -100,11 +140,141 @@ static void mmc_debug_is_emmc(struct sdhci_host *host, struct mmc_debug_info *in
 		host->mmc->cqe_ops->cqe_timeout(host->mmc, info->mrq, &flag);
 }
 
+static void mmc_debug_info_print(struct sdhci_host *host, struct mmc_debug_info *info)
+{
+	const char *name = mmc_hostname(host->mmc);
+
+	pr_err("|__time%8s: r= %ldus, w= %ldus\n",
+		name, info->read_total_time, info->write_total_time);
+	pr_err("|__timeout%5s: r= %dus, w= %dus\n",
+		name, info->ano_info.rd_err_times, info->ano_info.wr_err_times);
+}
+
+static int mmc_schedule_delayed_work(struct delayed_work *work, unsigned long delay)
+{
+	/*
+	 * We use the system_freezable_wq, because of two reasons.
+	 * First, it allows several works (not the same work item) to be
+	 * executed simultaneously. Second, the queue becomes frozen when
+	 * userspace becomes frozen during system PM.
+	 */
+	return queue_delayed_work(system_freezable_wq, work, delay);
+}
+
+static void sd_power_off(struct mmc_host *host)
+{
+	if (host->ios.power_mode == MMC_POWER_OFF)
+		return;
+
+	host->ios.clock = 0;
+	host->ios.vdd = 0;
+	host->ios.power_mode = MMC_POWER_OFF;
+	host->ios.chip_select = MMC_CS_DONTCARE;
+	host->ios.bus_mode = MMC_BUSMODE_PUSHPULL;
+	host->ios.bus_width = MMC_BUS_WIDTH_1;
+	host->ios.timing = MMC_TIMING_LEGACY;
+	host->ios.drv_type = 0;
+	host->ios.enhanced_strobe = false;
+
+	host->ops->set_ios(host, &(host->ios));
+}
+
+static void mmc_remove_anomaly_sd(struct work_struct *work)
+{
+	struct sd_remove_work_data *sd_anomaly_work_data =
+		container_of(work, struct sd_remove_work_data, sd_remove_work.work);
+
+	sd_anomaly_work_data->host->mmc->bus_ops->remove(sd_anomaly_work_data->host->mmc);
+	mmc_claim_host(sd_anomaly_work_data->host->mmc);
+	sd_anomaly_work_data->host->mmc->bus_ops = NULL;
+	sd_power_off(sd_anomaly_work_data->host->mmc);
+	mmc_release_host(sd_anomaly_work_data->host->mmc);
+}
+
+static void sd_anomaly_check_handle(struct mmc_debug_info *info,
+	struct sdhci_host *host, int sd_anomaly_level)
+{
+	if (sd_anomaly_level >= ANOMALY_REMOVED_LEVEL && host->mmc->card) {
+		if (sd_hotplug_cnt < HOT_PLUG_MAX_TIMES) {
+			//SD HOT PLUG
+			sd_hotplug_cnt ++;
+			pr_info("%s: sd_hotplug_cnt %d\n",
+				mmc_hostname(host->mmc), sd_hotplug_cnt);
+			mmc_card_set_removed(host->mmc->card);
+			//detect sd card
+			mmc_schedule_delayed_work(&(host->mmc->detect), 100);
+		}else{
+			sd_hotplug_cnt = 0;
+			mmc_card_set_removed(host->mmc->card);
+			pr_info("%s: remove anomaly sd card\n",mmc_hostname(host->mmc));
+			//remove sd card
+			mmc_schedule_delayed_work(&(sd_test_data.sd_remove_work), 100);
+		}
+	}
+}
+
+/* anomaly check for T-Cards */
+static void sd_anomaly_check(struct mmc_debug_info *info, struct sdhci_host *host,
+	u64 rspeed, u64 wspeed)
+{
+	char ecode[20] = "ERRCODE=";
+	int anomaly_durations;
+	u64 total_time;
+	int level = 0; /* anomaly level */
+	u32 polling_time = mmc_debug_polling_times * 1000000; /*us*/
+
+	/* The anomaly level increase for each condition matched */
+	/* ANOMALY 1: DATA TIME OUT ERR */
+	anomaly_durations = info->ano_info.rd_err_times + info->ano_info.wr_err_times;
+	if (anomaly_durations && anomaly_durations < polling_time / 2) {
+		level += 1;
+		strcat(ecode, "1");
+	} else if (anomaly_durations >= polling_time / 2) {
+		level += 2;
+		strcat(ecode, "2");
+	} else
+		strcat(ecode, "0");
+
+	/* ANOMALY 2: DATA RSP OVER 0.5S */
+
+	/* ANOMALY 3: READ SPEED BELOW SPEED_LIMIT */
+	if ((info->read_total_blocks > SD_VALID_CALC_CNT || info->ano_info.rd_err_times)
+			&& rspeed < SD_SPEED_LIMIT) {
+		level += 1;
+		strcat(ecode, "1");
+	} else
+		strcat(ecode, "0");
+
+	/* ANOMALY 4: WRIET SPEED BELOW SPEED_LIMIT */
+	if ((info->write_total_blocks > SD_VALID_CALC_CNT || info->ano_info.wr_err_times)
+			&& wspeed < SD_SPEED_LIMIT) {
+		level += 1;
+		strcat(ecode, "1");
+	} else
+		strcat(ecode, "0");
+
+	/* ANOMALY 5: HEAVY LOAD */
+	total_time = info->read_total_time + info->write_total_time;
+	if (total_time >= polling_time * 9 / 10) {
+		level += 1;
+		strcat(ecode, "1");
+	} else
+		strcat(ecode, "0");
+
+	if (level >= ANOMALY_WARNING_LEVEL) {
+		//show sd anomaly check result
+		mmc_debug_info_print(host, info);
+		pr_info("%s: identify anomaly level %d, %s\n",
+			mmc_hostname(host->mmc), level, ecode);
+		pr_err("%s: manufacturing date = %d-%d\n", mmc_hostname(host->mmc),
+			host->mmc->card->cid.year, host->mmc->card->cid.month);
+		sd_anomaly_check_handle(info, host, level);
+	}
+}
+
 static void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host)
 {
-	u64 read_speed = 0;
-	u64 write_speed = 0;
-	u64 wspeed_temp = 0, rspeed_temp = 0;
+	u64 read_speed = 0, write_speed = 0;
 	u64 wspeed_mod = 0, rspeed_mod = 0;
 	const char *name = mmc_hostname(host->mmc);
 
@@ -122,17 +292,17 @@ static void mmc_debug_print(struct mmc_debug_info *info, struct sdhci_host *host
 	rq_log(info->cmd_2_end, "|__c2e%9s", name);
 	rq_log(info->data_2_end, "|__d2e%9s", name);
 	rq_log(info->block_len, "|__blocks%6s", name);
-	rspeed_temp = read_speed;
-	wspeed_temp = write_speed;
-	rspeed_mod = do_div(rspeed_temp, 100);
-	wspeed_mod = do_div(wspeed_temp, 100);
+	rspeed_mod = do_div(read_speed, 100);
+	wspeed_mod = do_div(write_speed, 100);
 	pr_err("|__speed%7s: r= %lld.%lldM/s, w= %lld.%lldM/s, r_blk= %lld, w_blk= %lld\n",
-		name, rspeed_temp, rspeed_mod, wspeed_temp, wspeed_mod,
+		name, read_speed, rspeed_mod, write_speed, wspeed_mod,
 		info->read_total_blocks, info->write_total_blocks);
 
-	sdhci_sprd_mmc_update_throughput(host, rspeed_temp, wspeed_temp,
-		info->read_total_blocks, info->write_total_blocks);
-
+	if (HOST_IS_EMMC_TYPE(host->mmc))
+		sdhci_sprd_mmc_update_throughput(host, read_speed, write_speed,
+			info->read_total_blocks, info->write_total_blocks);
+	else if (HOST_IS_SD_TYPE(host->mmc))
+		sd_anomaly_check(info, host, read_speed, write_speed);
 }
 
 static void mmc_debug_print_handler(struct work_struct *work)
@@ -150,20 +320,13 @@ static void mmc_debug_print_handler(struct work_struct *work)
 
 static void mmc_debug_calc(struct sdhci_host *host, struct mmc_debug_info *info)
 {
-	u32 cmd = info->cmd;
-
-	/* judge sdio read/write cmd type */
-	if ((host->mmc->index == 2) &&
-		(cmd == SD_IO_RW_DIRECT || cmd == SD_IO_RW_EXTENDED))
-		cmd = info->arg >> 31 ? MMC_EXECUTE_WRITE_TASK : MMC_EXECUTE_READ_TASK;
+	int rw = is_rw_cmd(host, info->cmd, info->arg);
 
 	/* record read/write info */
-	if (cmd == MMC_READ_MULTIPLE_BLOCK || cmd == MMC_EXECUTE_READ_TASK ||
-		cmd == MMC_READ_SINGLE_BLOCK) {
+	if (rw == 0) {
 		info->read_total_blocks += info->blocks;
 		info->read_total_time += ktime_to_us(info->end_time - info->start_time);
-	} else if (cmd == MMC_WRITE_BLOCK || cmd == MMC_EXECUTE_WRITE_TASK ||
-		cmd == MMC_WRITE_MULTIPLE_BLOCK) {
+	} else if (rw == 1) {
 		info->write_total_blocks += info->blocks;
 		info->write_total_time += ktime_to_us(info->end_time - info->start_time);
 	}
@@ -178,6 +341,7 @@ static void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info 
 	unsigned long flags;
 	const char *name = mmc_hostname(host->mmc);
 
+	int rw = is_rw_cmd(host, info->cmd, info->arg);
 	if (info->intmask & SDHCI_INT_RESPONSE) {
 		/* cmd interrupt respond */
 		info->end_time = ktime_get();
@@ -185,14 +349,14 @@ static void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info 
 		index = msecs > 0 ? min((MMC_ARRAY_SIZE - 1), ilog2(msecs) + 1) : 0;
 		info->cmd_2_end[index]++;
 		if (index >= 11) {
-			pr_err("%s: cmd rsp over 1s! cmd= %d blk= %d arg= %x mrq= %p rsp= %x\n",
-			name, info->cmd, info->blocks, info->arg,
-			info->mrq, sdhci_readl(host, SDHCI_RESPONSE));
+			pr_err("%s: cmd rsp is %d ms! cmd= %d blk= %d arg= %x mrq= %p rsp= %x\n",
+				name, msecs, info->cmd, info->blocks, info->arg,
+				info->mrq, sdhci_readl(host, SDHCI_RESPONSE));
 			mmc_debug_is_emmc(host, info);
 		}
 	}
 
-	if (info->intmask & SDHCI_INT_DATA_END) {
+	if (info->intmask & SDHCI_INT_DATA_END || info->intmask & SDHCI_INT_DATA_TIMEOUT) {
 		/* data interrupt respond */
 		info->end_time = ktime_get();
 		msecs = ktime_to_ms(info->end_time - info->start_time);
@@ -200,9 +364,15 @@ static void mmc_debug_handle_rsp(struct sdhci_host *host, struct mmc_debug_info 
 		info->block_len[index]++;
 		index = msecs > 0 ? min((MMC_ARRAY_SIZE - 1), ilog2(msecs) + 1) : 0;
 		info->data_2_end[index]++;
-		if (index >= 11) {
-			pr_err("%s: data rsp over 1s! cmd= %d blk= %d arg= %x mrq= 0x%p\n",
-				name, info->cmd, info->blocks, info->arg, info->mrq);
+		if (info->intmask & SDHCI_INT_DATA_TIMEOUT) {
+			info->blocks = 0;
+			if (rw == 0)
+				info->ano_info.rd_err_times += msecs * 1000;
+			else if (rw == 1)
+				info->ano_info.wr_err_times += msecs * 1000;
+		} else if (index >= 11) {
+			pr_err("%s: data rsp is %d ms! cmd= %d blk= %d arg= %x mrq= 0x%p\n",
+				name, msecs, info->cmd, info->blocks, info->arg, info->mrq);
 			mmc_debug_is_emmc(host, info);
 		}
 		mmc_debug_calc(host, info);
@@ -242,10 +412,18 @@ void mmc_debug_update(struct sdhci_host *host, struct mmc_command *cmd, u32 intm
 
 	/* handle mmc interrupt */
 	info->intmask = intmask;
-	if (!(intmask & SDHCI_INT_ERROR_MASK) && info->start_time)
+	if ((!(intmask & SDHCI_INT_ERROR_MASK) || (intmask & SDHCI_INT_DATA_TIMEOUT))
+	       && info->start_time)
 		mmc_debug_handle_rsp(host, info);
 }
 EXPORT_SYMBOL(mmc_debug_update);
+
+void sdhci_sprd_remove_sd_work_init(struct sdhci_host *host)
+{
+	sd_test_data.host = host;
+	INIT_DELAYED_WORK(&(sd_test_data.sd_remove_work), mmc_remove_anomaly_sd);
+}
+EXPORT_SYMBOL(sdhci_sprd_remove_sd_work_init);
 
 /* add mmc debug timer to check whether the hardware times out */
 static void sdhci_timeout_debug_timer(struct timer_list *t)
