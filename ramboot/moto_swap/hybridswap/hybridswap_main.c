@@ -246,19 +246,18 @@ static void tune_scan_type_hook(void *data, char *scan_balance)
 	if (unlikely(!hybridswap_core_enabled()))
 		return;
 
-        //ontim
-        if(get_hybridswap_reboot()) {
+    //ontim
+    if(get_hybridswap_reboot()) {
 		*scan_balance = SCAN_FILE;
 		return;
-        }
+    }
 
-#if 0		
-//ontim
-        if(!current_is_kswapd() && hybridswap_reclaim_work_running()) {
-                *scan_balance = SCAN_FILE;
-                return;
-        }
-#endif
+    //ontim
+    if(!current_is_kswapd() && hybridswap_reclaim_work_running()) {
+        *scan_balance = SCAN_FILE;
+        return;
+    }
+
 	/*real zram full, scan file only*/
 	if (!free_zram_is_ok()) {
 		*scan_balance = SCAN_FILE;

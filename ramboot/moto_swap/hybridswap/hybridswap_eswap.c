@@ -5596,6 +5596,7 @@ void mem_cgroup_id_remove_hook(void *data, struct mem_cgroup *memcg)
 void page_should_be_protected_hook(void *data, struct page* page,
                                 bool *should_protect)
 {
+	    *should_protect = false;
 
         if (!hybridswap_core_enabled())
                 return;
