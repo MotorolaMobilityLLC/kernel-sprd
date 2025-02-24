@@ -11,6 +11,7 @@
  */
 
 #include <linux/sprd_iommu.h>
+#include <linux/proc_fs.h>
 #include <linux/dma-buf.h>
 #include <linux/dma-mapping.h>
 #include <linux/dma-heap.h>
@@ -19,18 +20,18 @@
 #include <linux/mm.h>
 #include <linux/module.h>
 #include <linux/scatterlist.h>
+#include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
 #include <linux/mm/emem.h>
 
 #include "page_pool.h"
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 #include <linux/rbtree.h>
 #include <linux/kthread.h>
 #include <linux/sched/task.h>
+#include <linux/miscdevice.h>
 
 static DEFINE_MUTEX(system_heap_lock);
-#endif
 
 static struct dma_heap *sys_heap;
 static struct dma_heap *sys_uncached_heap;
@@ -47,23 +48,24 @@ struct system_heap_buffer {
 	void *vaddr;
 
 	bool uncached;
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	struct rb_node node;
 	pid_t pid;
 	char task_name[TASK_COMM_LEN];
 	struct timespec64 alloc_ts;
 	struct dmabuf_map_info mappers[MAX_MAP_USER];
-#endif
+
+	struct dmabuf_map_info mmap[MAX_MAP_USER];
 };
 
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 struct system_device {
 	struct rb_root buffers;
 	struct mutex buffer_lock;
 };
 
 static struct system_device *internal_dev;
-#endif
+#define EGL_MEMTRACK_MAP _IOW('e', 0, int)
+#define EGL_MEMTRACK_UNMAP _IOW('e', 1, int)
+#define MMAP_USER 15
 
 struct dma_heap_attachment {
 	struct device *dev;
@@ -382,12 +384,10 @@ static void system_heap_dma_buf_release(struct dma_buf *dmabuf)
 	struct scatterlist *sg;
 	int i, j;
 
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	struct system_device *dev = internal_dev;
 	mutex_lock(&dev->buffer_lock);
 	rb_erase(&buffer->node, &dev->buffers);
 	mutex_unlock(&dev->buffer_lock);
-#endif
 	/* Zero the buffer pages before adding back to the pool */
 	system_heap_zero_buffer(buffer);
 
@@ -438,7 +438,6 @@ static struct page *alloc_largest_available(unsigned long size,
 	return NULL;
 }
 
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 static void dmabuf_sysbuffer_add(struct system_device *dev, struct system_heap_buffer *buffer)
 {
 	struct rb_node **p = &dev->buffers.rb_node;
@@ -461,7 +460,6 @@ static void dmabuf_sysbuffer_add(struct system_device *dev, struct system_heap_b
 	rb_link_node(&buffer->node, parent, p);
 	rb_insert_color(&buffer->node, &dev->buffers);
 }
-#endif
 
 static struct dma_buf *system_heap_do_allocate(struct dma_heap *heap,
 					       unsigned long len,
@@ -479,10 +477,9 @@ static struct dma_buf *system_heap_do_allocate(struct dma_heap *heap,
 	struct list_head pages;
 	struct page *page, *tmp_page;
 	int i, ret = -ENOMEM;
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	struct system_device *dev = internal_dev;
 	struct timespec64 ts;
-#endif
+
 	buffer = kzalloc(sizeof(*buffer), GFP_KERNEL);
 	if (!buffer)
 		return ERR_PTR(-ENOMEM);
@@ -526,7 +523,6 @@ static struct dma_buf *system_heap_do_allocate(struct dma_heap *heap,
 		list_del(&page->lru);
 	}
 
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	mutex_lock(&dev->buffer_lock);
 	dmabuf_sysbuffer_add(dev, buffer);
 	mutex_unlock(&dev->buffer_lock);
@@ -535,7 +531,7 @@ static struct dma_buf *system_heap_do_allocate(struct dma_heap *heap,
 	ktime_get_real_ts64(&ts);
 	ts.tv_sec -= sys_tz.tz_minuteswest * 60;
 	buffer->alloc_ts = ts;
-#endif
+
 	/* create the dmabuf */
 	exp_info.exp_name = dma_heap_get_name(heap);
 	exp_info.ops = &system_heap_buf_ops;
@@ -718,11 +714,141 @@ static struct dma_heap_ops system_uncached_heap_ops = {
 	.allocate = system_uncached_heap_not_initialized,
 };
 
+static int egl_mtrack_mmap(int fd, bool is_mapping)
+{
+	int i;
+	struct system_heap_buffer *buffer;
+	struct task_struct *task = current->group_leader;
+	pid_t pid = task_pid_nr(task);
+	struct dma_buf *dmabuf;
+	int ret = 0;
+
+	dmabuf = dma_buf_get(fd);
+	if (IS_ERR_OR_NULL(dmabuf))
+		return -ENOENT;
+
+	if (strcmp(dmabuf->exp_name, "system") && strcmp(dmabuf->exp_name, "system-uncached")) {
+		dma_buf_put(dmabuf);
+		return -EFAULT;
+	}
+
+	buffer = dmabuf->priv;
+
+	if (is_mapping) { // Map operation
+		for (i = 0; i < MAX_MAP_USER; i++) {
+			if (pid == buffer->mmap[i].pid) // Mapping already exists
+				goto out;
+		}
+
+		for (i = 0; i < MAX_MAP_USER; i++) { // If no mapping found, add a new mapping
+			if (!buffer->mmap[i].pid) {
+				buffer->mmap[i].pid = pid;
+				get_task_comm(buffer->mmap[i].task_name, task);
+				break;
+			}
+		}
+	} else { // Unmap operation
+		for (i = 0; i < MAX_MAP_USER; i++) {
+			if (buffer->mmap[i].pid == pid) {
+				memset((void *)(&buffer->mmap[i]), 0x0,
+					   sizeof(struct dmabuf_map_info)); // Clear mapping info
+				break;
+			}
+		}
+	}
+
+out:
+	dma_buf_put(dmabuf);
+	return ret;
+}
+
+static int egl_mtrack_show(struct seq_file *m, void *v)
+{
+	int i;
+	int p_num;
+	struct system_device *dev = internal_dev;
+	struct rb_node *n;
+
+	mutex_lock(&dev->buffer_lock);
+	for (n = rb_first(&dev->buffers); n; n = rb_next(n)) {
+		struct system_heap_buffer *buffer = rb_entry(n,
+				struct system_heap_buffer, node);
+		if (!strncmp(buffer->task_name, "allocator", strlen("allocator"))) {
+			p_num = 0;
+			for (i = 0; i < MMAP_USER; i++) {
+				if (buffer->mmap[i].pid != 0)
+					p_num++; // Count number of mapped processes
+			}
+			// If no processes are mapped to this buffer, skip to the next buffer
+			if (p_num == 0)
+				continue; // Skip to the next iteration of the loop
+
+			for (i = 0; i < MMAP_USER; i++) {
+				seq_printf(m, "%d %zu %s\n", buffer->mmap[i].pid,
+					(buffer->len) / p_num, buffer->mmap[i].task_name);
+			}
+		}
+	}
+	mutex_unlock(&dev->buffer_lock);
+	return 0;
+}
+
+static int egl_mtrack_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, egl_mtrack_show, NULL);
+}
+
+static struct proc_ops egl_mtrack_ops = {
+	.proc_open = egl_mtrack_open,
+	.proc_read = seq_read,
+	.proc_release = single_release,
+};
+
+static long systemheap_ioctl(struct file *filp, unsigned int ioctl,
+				unsigned long arg)
+{
+	int ret, fd;
+
+	if (copy_from_user(&fd, (void __user *)arg, sizeof(int)))
+		return -EFAULT;
+
+	switch (ioctl) {
+	case EGL_MEMTRACK_MAP:
+	{
+		ret = egl_mtrack_mmap(fd, true);
+		break;
+	}
+	case EGL_MEMTRACK_UNMAP:
+	{
+		ret = egl_mtrack_mmap(fd, false);
+		break;
+	}
+	default:
+		ret = -EINVAL;
+		break;
+	}
+	return ret;
+}
+
+static const struct file_operations systemheap_fops = {
+	.owner = THIS_MODULE,
+	.unlocked_ioctl = systemheap_ioctl,
+#ifdef CONFIG_COMPAT
+	.compat_ioctl = systemheap_ioctl,
+#endif
+};
+
+static struct miscdevice system_heap = {
+	.minor = MISC_DYNAMIC_MINOR,
+	.name = "systemheap",
+	.fops = &systemheap_fops,
+};
+
 static int system_heap_create(void)
 {
+	struct proc_dir_entry *proc_root;
 	struct dma_heap_export_info exp_info;
-	int i;
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
+	int i, ret;
 	struct system_device *sysdev;
 
 	sysdev = kzalloc(sizeof(*sysdev), GFP_KERNEL);
@@ -730,7 +856,6 @@ static int system_heap_create(void)
 		kfree(sysdev);
 		return -ENOMEM;
 	}
-#endif
 
 	for (i = 0; i < NUM_ORDERS; i++) {
 		pools[i] = dmabuf_page_pool_create(order_flags[i], orders[i]);
@@ -761,11 +886,10 @@ static int system_heap_create(void)
 	if (IS_ERR(sys_uncached_heap))
 		return PTR_ERR(sys_uncached_heap);
 
-#if (IS_ENABLED(CONFIG_UNISOC_MM_ENHANCE_MEMINFO)) || (IS_ENABLED(CONFIG_E_SHOW_MEM))
 	sysdev->buffers = RB_ROOT;
 	mutex_init(&sysdev->buffer_lock);
 	internal_dev = sysdev;
-#endif
+
 	dma_coerce_mask_and_coherent(dma_heap_get_dev(sys_uncached_heap), DMA_BIT_MASK(64));
 	mb(); /* make sure we only set allocate after dma_mask is set */
 	system_uncached_heap_ops.allocate = system_uncached_heap_allocate;
@@ -774,6 +898,14 @@ static int system_heap_create(void)
 	register_e_show_mem_notifier(&dmabuf_e_show_mem_notifier);
 #endif
 	register_unisoc_show_mem_notifier(&dmabuf_e_show_mem_notifier);
+
+	ret = misc_register(&system_heap);
+	if (ret < 0) {
+		pr_err("could not initialize system_heap device");
+		return ret;
+	}
+	proc_root = proc_mkdir("mtrack", NULL);
+	proc_create("EGL_MTRACK", 0444, proc_root, &egl_mtrack_ops);
 
 	return 0;
 }
