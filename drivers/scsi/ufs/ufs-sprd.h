@@ -120,6 +120,7 @@ static inline unsigned int ms_to_index(unsigned int ms)
 
 #define PWM_MODE_VAL    0x22
 #define HS_MODE_VAL     0x11
+#define PA_PeerRxHsAdaptInitial	0x15d3
 
 int ufs_sprd_get_syscon_reg(struct device_node *np,
 			    struct syscon_ufs *reg, const char *name);

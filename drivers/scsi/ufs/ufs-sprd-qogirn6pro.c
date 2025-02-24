@@ -685,11 +685,6 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	if (ret)
 		return ret;
 
-	regmap_update_bits(priv->phy_sram_ext_ld_done.regmap,
-			   priv->phy_sram_ext_ld_done.reg,
-			   priv->phy_sram_ext_ld_done.mask,
-			   0);
-
 	ufshcd_dme_set(hba, UIC_ARG_MIB(VS_MPHYCFGUPDT), 0x01);
 
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8116), 0xb0);
@@ -867,8 +862,14 @@ static int ufs_sprd_phy_init(struct ufs_hba *hba)
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x8119), 0x00);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0x811c), 0x01);
 	ufshcd_dme_set(hba, UIC_ARG_MIB(0xd085), 0x01);
+
+	regmap_update_bits(priv->phy_sram_ext_ld_done.regmap,
+			   priv->phy_sram_ext_ld_done.reg,
+			   priv->phy_sram_ext_ld_done.mask,
+			   0);
+
+	/* add ultra low power H8 function */
 	if (hba->caps & UFSHCD_CAP_H8_ULP)
-		/* add ultra low power H8 function */
 		ufshcd_dme_set(hba, UIC_ARG_MIB(CBUPLH8), ULP_H8_EN);
 
 	ufshcd_dme_set(hba, UIC_ARG_MIB(VS_MPHYDISABLE), 0x0);
@@ -938,8 +939,11 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 	case PRE_CHANGE:
 		memcpy(final_params, desired_pwr_mode,
 			sizeof(struct ufs_pa_layer_attr));
-		if (final_params->gear_rx == UFS_HS_G4)
-			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), 0x0);
+		if (final_params->gear_rx == UFS_HS_G4) {
+			ufshcd_dme_peer_set(hba, UIC_ARG_MIB(PA_PeerRxHsAdaptInitial), 0x10);
+			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), PA_INITIAL_ADAPT);
+		} else
+			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), PA_NO_ADAPT);
 		/* err==0 using dev_req_params,err!=0 using dev_max_params */
 		err = -EPERM;
 		break;

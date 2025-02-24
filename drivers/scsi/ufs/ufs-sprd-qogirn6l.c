@@ -951,9 +951,10 @@ static int ufs_sprd_pwr_change_notify(struct ufs_hba *hba,
 	case PRE_CHANGE:
 		memcpy(final_params, desired_pwr_mode,
 		       sizeof(struct ufs_pa_layer_attr));
-		if (final_params->gear_rx >= UFS_HS_G4)
-			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), PA_REFRESH_ADAPT);
-		else
+		if (final_params->gear_rx >= UFS_HS_G4) {
+			ufshcd_dme_peer_set(hba, UIC_ARG_MIB(PA_PeerRxHsAdaptInitial), 0x10);
+			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), PA_INITIAL_ADAPT);
+		} else
 			ufshcd_dme_set(hba, UIC_ARG_MIB(PA_TXHSADAPTTYPE), PA_NO_ADAPT);
 		/* err==0 using dev_req_params,err!=0 using dev_max_params */
 		err = -EPERM;
