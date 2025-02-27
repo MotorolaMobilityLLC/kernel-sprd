@@ -55,6 +55,11 @@ extern ssize_t hybridswap_swapd_pause_store(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t len);
 extern ssize_t hybridswap_swapd_pause_show(struct device *dev,
 		struct device_attribute *attr, char *buf);
+//ontim
+extern ssize_t hybridswap_reboot_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t len);
+extern ssize_t hybridswap_reboot_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 #endif
 static inline bool current_is_mswapd(void)
 {

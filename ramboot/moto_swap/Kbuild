@@ -1,4 +1,5 @@
 ZRAM_SRC = zram-5.15
+
 $(warning moto_swap - zram src folder = $(ZRAM_SRC))
 
 EXTRA_CFLAGS += -DCONFIG_ZRAM_5_15
