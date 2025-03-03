@@ -286,6 +286,30 @@ void sysdump_callback_unregister(void)
 EXPORT_SYMBOL(sysdump_callback_unregister);
 #endif
 
+static int crash_key_enabled = 1;
+
+static void update_crash_key_enabled(void)
+{
+#if IS_ENABLED(CONFIG_USER_SW)
+	struct device_node *np;
+	const char *str;
+	int ret = 0;
+
+	np = of_find_node_by_path("/firmware/android");
+	if (!np)
+		return;
+
+	ret = of_property_read_string(np, "hwinfo.securefuse", &str);
+	if (ret < 0)
+		return;
+
+	if (!strcmp(str, "true"))
+		crash_key_enabled = 0;
+
+#endif
+	return;
+}
+
 void sprd_debug_check_crash_key(unsigned int code, int value)
 {
 	static unsigned int volup_p;
@@ -894,7 +918,7 @@ EXPORT_SYMBOL(sysdump_ipi);
 static void sysdump_event(struct input_handle *handle,
 	unsigned int type, unsigned int code, int value)
 {
-	if (type == EV_KEY && code != BTN_TOUCH)
+	if (crash_key_enabled && type == EV_KEY && code != BTN_TOUCH)
 		sprd_debug_check_crash_key(code, value);
 }
 
@@ -1785,6 +1809,7 @@ static int per_cpu_funcs_init(void)
 static int sysdump_sysctl_init(void)
 {
 	struct proc_dir_entry *sysdump_proc;
+
 	sysdump_sysctl_hdr =
 	    register_sysctl_table((struct ctl_table *)sysdump_sysctl_root);
 	if (!sysdump_sysctl_hdr)
@@ -1804,6 +1829,9 @@ static int sysdump_sysctl_init(void)
 		pr_err("sprd_sysdump proc create failed.\n");
 
 	sprd_sysdump_enable_prepare();
+	update_crash_key_enabled();
+	pr_info("crash_key_enabled=%d\n", crash_key_enabled);
+
 #if defined(CONFIG_SPRD_DEBUG)
 //	pr_info("userdebug enable sysdump in default !!!\n");
 	set_sysdump_enable(1);
