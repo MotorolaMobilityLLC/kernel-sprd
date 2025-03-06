@@ -22,7 +22,6 @@
 #include <linux/slab.h>
 #include <linux/stat.h>
 #include <linux/string.h>
-#include <linux/suspend.h>
 #include <linux/trusty/smcall.h>
 #include "sm_err.h"
 #include "trusty.h"
@@ -35,7 +34,6 @@
 #define pr_fmt(fmt) "sprd-trusty-core: " fmt
 
 struct trusty_state;
-static struct platform_driver trusty_driver;
 
 struct trusty_work {
 	struct trusty_state *ts;
@@ -47,8 +45,6 @@ struct trusty_state {
 	struct atomic_notifier_head notifier;
 	struct completion cpu_idle_completion;
 	char *version_str;
-	bool trusty_panicked;
-	struct completion panic_wait_completion;
 	u32 api_version;
 	struct device *dev;
 	struct workqueue_struct *nop_wq;
@@ -209,11 +205,9 @@ static ulong trusty_std_call_helper_reschedule(void *param)
 		atomic_notifier_call_chain(&s->notifier, TRUSTY_CALL_PREPARE,
 					   NULL);
 		ret = trusty_std_call_inner(dev, smcnr, a0, a1, a2);
-		if (ret == SM_ERR_PANIC) {
-			s->trusty_panicked = true;
+		if (ret == SM_ERR_PANIC)
 			atomic_notifier_call_chain(&s->notifier, TRUSTY_CALL_PANIC,
 						   NULL);
-		}
 		else
 			atomic_notifier_call_chain(&s->notifier, TRUSTY_CALL_RETURNED,
 						   NULL);
@@ -296,14 +290,6 @@ static void trusty_std_call_cpu_idle(struct trusty_state *s)
 	}
 }
 
-void trusty_panic_wait_do_completion(struct device *dev)
-{
-	struct trusty_state *s = platform_get_drvdata(to_platform_device(dev));
-
-	complete(&s->panic_wait_completion);
-}
-EXPORT_SYMBOL(trusty_panic_wait_do_completion);
-
 s32 trusty_std_call32(struct device *dev, u32 smcnr, u32 a0, u32 a1, u32 a2)
 {
 	int ret;
@@ -332,15 +318,8 @@ s32 trusty_std_call32(struct device *dev, u32 smcnr, u32 a0, u32 a1, u32 a2)
 		__func__, smcnr, a0, a1, a2, ret);
 
 	WARN_ONCE(ret == SM_ERR_PANIC, "trusty crashed");
-	if (ret == SM_ERR_PANIC) {
-		if (!wait_for_completion_timeout(&s->panic_wait_completion,
-						 msecs_to_jiffies(10000))) {
-			pr_warn("%s: timed out waiting for panic\n",
-				__func__);
-		}
-		ksys_sync_helper();
+	if (ret == SM_ERR_PANIC)
 		panic("tospanic");
-	}
 
 	if (smcnr == SMC_SC_NOP)
 		complete(&s->cpu_idle_completion);
@@ -435,16 +414,6 @@ u32 trusty_get_api_version(struct device *dev)
 	return s->api_version;
 }
 EXPORT_SYMBOL(trusty_get_api_version);
-
-bool trusty_get_panic_status(struct device *dev)
-{
-	struct trusty_state *s = platform_get_drvdata(to_platform_device(dev));
-
-	if (WARN_ON(dev->driver != &trusty_driver.driver))
-		return false;
-	return s->trusty_panicked;
-}
-EXPORT_SYMBOL(trusty_get_panic_status);
 
 static int trusty_init_api_version(struct trusty_state *s, struct device *dev)
 {
@@ -606,7 +575,6 @@ static int trusty_probe(struct platform_device *pdev)
 	mutex_init(&s->smc_lock);
 	ATOMIC_INIT_NOTIFIER_HEAD(&s->notifier);
 	init_completion(&s->cpu_idle_completion);
-	init_completion(&s->panic_wait_completion);
 	platform_set_drvdata(pdev, s);
 
 	trusty_init_version(s, &pdev->dev);
