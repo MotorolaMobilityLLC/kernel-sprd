@@ -225,7 +225,7 @@ static void modem_get_base_range(struct modem_device *modem,
 			break;
 
 		default:
-			if (index < modem->load->region_cnt) {
+			if ((index < modem->load->region_cnt) && (index < MAX_REGION_CNT)) {
 				region = &modem->load->regions[index];
 				base = region->address;
 				size = region->size;
@@ -906,6 +906,9 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case MODEM_SET_LOAD_INFO_CMD:
+		if (strcmp(current->comm, "modem_control"))
+			return -EPERM;
+
 		ret = modem_set_something(modem, modem->load,
 					  cmd, arg);
 		if (!ret) {
@@ -974,6 +977,8 @@ static long modem_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 
 	case MODEM_ASSERT_CMD:
+		if (strcmp(current->comm, "modem_control"))
+			return -EPERM;
 		ret = modem_assert(modem);
 		break;
 
