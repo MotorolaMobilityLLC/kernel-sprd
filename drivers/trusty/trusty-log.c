@@ -269,8 +269,8 @@ static void trusty_log_show(struct trusty_log_state *s,
 	u32 alloc, put, get;
 	int read_chars;
 
-	if (sink->sfile && sink == &s->klog_sink)
-		dev_warn(s->dev, "klog_sink has seq_file\n");
+	//if (sink->sfile && sink == &s->klog_sink)
+		//dev_warn(s->dev, "klog_sink has seq_file\n");
 
 	/*
 	 * For this ring buffer, at any given point, alloc >= put >= get.

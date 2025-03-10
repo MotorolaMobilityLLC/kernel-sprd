@@ -337,12 +337,12 @@ void sprd_debug_check_crash_key(unsigned int code, int value)
 				if (time_before(jiffies, vol_pressed + 5 * HZ)) {
 #if (!defined CONFIG_SPRD_DEBUG && defined CONFIG_SPRD_CLOSE_CRASH_KEY)
 					if ((loopcount == 2) && (atomic_read(&sysdump_status) == 1))
-						BUG_ON(1);
+						panic("Crash Key");
 					else
 						pr_info("On user version and sysdump is disabled, crash key do not trigger panic.\n");
 #else
 					if (loopcount == 2)
-						BUG_ON(1);
+						panic("Crash Key");
 #endif
 				} else {
 					pr_info("%s: exceed 5s(%u) between power key and volup/voldn key\n",
