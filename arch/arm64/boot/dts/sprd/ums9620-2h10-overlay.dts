@@ -148,30 +148,13 @@
 				const-offset = <1000>;
 			};
 
-			env_sensor: env-sensor {
-				compatible = "sprd,shell-thermal";
-				#thermal-sensor-cells = <0>;
-				sensor-names = "chg-thmzone",
-						"pa-thmzone",
-						"board-thmzone",
-						"battery";
-				temp-coeff = <88434 86056 89451 90002 93103 93856 90891
-						28750 79653 85395 85323 84382 87994 125132
-						71347 69498 67250 65976 63148 60212 71661
-						425 73750 73214 74213 87331 89947 173603>;
-				coeff-offset = <80000>;
-				temp-const = <681>;
-				const-offset = <3000>;
-			};
- 
 			skin_sensor: skin-sensor {
 				compatible = "sprd, skin-thermal";
 				#thermal-sensor-cells = <0>;
 				sensor-names = "back-thmzone",
-						"front-thmzone",
-						"left-thmzone",
-						"right-thmzone";
+						"front-thmzone";
 			};
+
 
 			/*fingerprint@0 {
 				compatible = "microarray,afs121";
@@ -238,11 +221,6 @@
 &back_thmzone {
 	status = "okay";
 	thermal-sensors = <&back_sensor>;
-};
-
-&env_thmzone {
-	status = "okay";
-	thermal-sensors = <&env_sensor>;
 };
 
 &adi_bus {
