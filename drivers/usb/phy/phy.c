@@ -230,7 +230,6 @@ static int usb_phy_get_charger_type(struct notifier_block *nb,
  */
 void usb_phy_set_charger_current(struct usb_phy *usb_phy, unsigned int mA)
 {
-	pr_info("%s %d %d", __func__, __LINE__, mA);
 	switch (usb_phy->chg_type) {
 	case SDP_TYPE:
 		if (usb_phy->chg_cur.sdp_max == mA)
@@ -629,7 +628,7 @@ void devm_usb_put_phy(struct device *dev, struct usb_phy *phy)
 {
 	int r;
 
-	r = devres_destroy(dev, devm_usb_phy_release, devm_usb_phy_match, phy);
+	r = devres_release(dev, devm_usb_phy_release, devm_usb_phy_match, phy);
 	dev_WARN_ONCE(dev, r, "couldn't find PHY resource\n");
 }
 EXPORT_SYMBOL_GPL(devm_usb_put_phy);
