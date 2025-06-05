@@ -212,9 +212,7 @@
                                 compatible = "sprd, skin-thermal";
                                 #thermal-sensor-cells = <0>;
                                 sensor-names = "back-thmzone",
-                                                "front-thmzone",
-                                                "left-thmzone",
-                                                "right-thmzone";
+                                                "front-thmzone";
                         };
 
 
