@@ -82,6 +82,11 @@
 			nvmem-cell-names = "typec_cc1_cal", "typec_cc2_cal";
 		};
 
+		pmic_dump {
+			compatible = "sprd,pmic-dump";
+			sprd,pmic-dump-mem = <&pmic_reserved>;
+		};
+
 		pmic_fchg: fchg@400 {
 			compatible = "sprd,ump9620-fast-chg", "sprd,sc27xx-fast-chg";
 			reg = <0x400>;

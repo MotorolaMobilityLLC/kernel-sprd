@@ -11,6 +11,7 @@ obj-$(CONFIG_PREEMPT_WARN) 	+= preemptirq_warn/
 obj-$(CONFIG_PRINTK_CPUID)	+= printk_cpuid/
 obj-$(CONFIG_SPRD_DEBUG)	+= debug/
 obj-$(CONFIG_SPRD_MODEM_DEBUG)	+= debug_log/
+obj-$(CONFIG_SPRD_PMIC_DUMP)	+= sprd_pmic_dump.o
 obj-$(CONFIG_SPRD_PMIC_SMPL)	+= sprd_pmic_smpl.o
 obj-$(CONFIG_SPRD_PMIC_SYSCON)  += sprd_pmic_syscon.o
 obj-$(CONFIG_SPRD_SFP_SUPPORT)	+= sfp/

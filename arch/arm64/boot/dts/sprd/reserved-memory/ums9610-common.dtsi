@@ -21,5 +21,8 @@
 
 #include "modem-5g-common.dtsi"
 / {
+    pmic_reserved: pmic-mem@80005000 {
+			reg = <0x0 0x80005000 0x0 0x00001000>;
+	};
 };
 

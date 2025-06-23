@@ -24,6 +24,10 @@
 #include "modem-4g-common.dtsi"
 
 &reserved_memory {
+
+    pmic_reserved: pmic-mem@80005000 {
+			reg = <0x0 0x80005000 0x0 0x00001000>;
+	};
 	audio_reserved: audio-mem@87500000 {
 		reg = <0x0 0x87500000 0x0 0x00300000>;
 	};

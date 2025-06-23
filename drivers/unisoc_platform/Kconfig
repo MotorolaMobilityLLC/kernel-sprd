@@ -9,6 +9,16 @@ config SPRD_PMIC_SMPL
         help
           Say Y here to enable smpl module.
 
+config SPRD_PMIC_DUMP
+	tristate "Spreadtrum PMIC DUMP driver"
+	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST
+        help
+          Say Y here to include support for the UNISOC pmic dump controller.
+	  This driver is used to control ordinary rotor motors.
+
+	  To compile this driver as a module, choose M here. The module will
+	  be called sprd_pmic_dump.
+
 config SPRD_PMIC_SYSCON
 	tristate "Unisoc PMIC global driver"
 	depends on MFD_SC27XX_PMIC || MFD_UMP96XX_PMIC || COMPILE_TEST

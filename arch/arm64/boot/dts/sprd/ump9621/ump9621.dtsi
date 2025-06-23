@@ -19,6 +19,10 @@
 			reg = <0x2000>;
 		};
 
+		pmic_dump {
+			compatible = "sprd,pmic-dump";
+			sprd,pmic-dump-mem = <&pmic_reserved>;
+		};
 	};
 };
 

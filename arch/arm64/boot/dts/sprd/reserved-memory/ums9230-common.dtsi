@@ -6,6 +6,11 @@
 #include "modem-4g-common.dtsi"
 
 &reserved_memory {
+
+    pmic_reserved: pmic-mem@80005000 {
+			reg = <0x0 0x80005000 0x0 0x00001000>;
+	};
+
 	wcn_reserved: wcn-mem@87000000 {
 		reg = <0x0 0x87000000 0x0 0x00800000>;
 	};
