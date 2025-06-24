@@ -55,7 +55,7 @@
 				/*0:Default,rst optimize off  1:rst optimize on*/
 				/*2:1K8PullUp                 4:4K7PullUp*/
 				/* CP2 support from W23.10.4*/
-				sprd,rstpad-setting = <1>;
+				sprd,rstpad-setting = <4>;
 				/* for btwf: cpu addr 0 map to ddr 0m */
 				sprd,apcp-sync-addr = <0x007fdc00>;
 				sprd,wcn-sipc-ver = <1>;
@@ -131,7 +131,7 @@
 				/*0:Default,rst optimize off  1:rst optimize on*/
 				/*2:1K8PullUp                 4:4K7PullUp*/
 				/* CP2 support from W23.10.4*/
-				sprd,rstpad-setting = <1>;
+				sprd,rstpad-setting = <4>;
 				/* for gnss: cpu addr 0 map to ddr 6m */
 				sprd,apcp-sync-addr = <0x1ffc00>;
 				sprd,wcn-sipc-ver = <1>;
