@@ -149,10 +149,9 @@
 			};
 
 			skin_sensor: skin-sensor {
-				compatible = "sprd, skin-thermal";
+				compatible = "sprd,virt-thm";
 				#thermal-sensor-cells = <0>;
-				sensor-names = "back-thmzone",
-						"front-thmzone";
+				thmzone-cells = <&front_thmzone>, <&back_thmzone>;
 			};
 
 
