@@ -289,14 +289,13 @@ static int exfat_map_new_buffer(struct exfat_inode_info *ei,
 	return 0;
 }
 
-#ifdef CONFIG_SPRD_DEBUG
 static int exfat_block_device_ejected(struct super_block *sb)
 {
 	struct backing_dev_info *bdi = sb->s_bdi;
 
 	return bdi->dev == NULL;
 }
-#endif
+
 static int exfat_get_block(struct inode *inode, sector_t iblock,
 		struct buffer_head *bh_result, int create)
 {
@@ -404,10 +403,9 @@ static int exfat_write_begin(struct file *file, struct address_space *mapping,
 {
 	int ret;
 
-#ifdef CONFIG_SPRD_DEBUG
 	if (exfat_block_device_ejected(mapping->host->i_sb))
 		return -EIO;
-#endif
+
 	*pagep = NULL;
 	ret = cont_write_begin(file, mapping, pos, len, flags, pagep, fsdata,
 			       exfat_get_block,
