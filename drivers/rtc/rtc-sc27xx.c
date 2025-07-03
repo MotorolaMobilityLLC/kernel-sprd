@@ -176,6 +176,7 @@ static int sprd_rtc_lock_alarm(struct sprd_rtc *rtc, bool lock)
 {
 	int ret;
 	u32 val;
+	u32 spg_val;
 
 	ret = regmap_read(rtc->regmap, rtc->base + SPRD_RTC_SPG_VALUE, &val);
 	if (ret)
@@ -183,6 +184,13 @@ static int sprd_rtc_lock_alarm(struct sprd_rtc *rtc, bool lock)
 
 	SPRD_RTCDBG_INFO("set alarm lock: %u, process pid: %u, name: %s\n",
 			 (u32)lock, current->pid, current->comm);
+
+	spg_val = val & SPRD_RTC_ALMLOCK_MASK;
+	if ((lock && (spg_val == SPRD_RTC_ALM_LOCK)) ||
+		(!lock && (spg_val == SPRD_RTC_ALM_UNLOCK))) {
+		SPRD_RTCDBG_INFO("alarm lock keep up with the prev\n");
+		return ret;
+	}
 
 	val &= ~SPRD_RTC_ALMLOCK_MASK;
 	if (lock)
@@ -211,10 +219,6 @@ static int sprd_rtc_lock_alarm(struct sprd_rtc *rtc, bool lock)
 	 * poweroff alarm, so we should wait until the register is updated
 	 * successfully before system shutdown.
 	 */
-	if (lock) {
-		usleep_range(5000, 6000);
-		return 0;
-	}
 
 	ret = regmap_read_poll_timeout(rtc->regmap,
 				       rtc->base + SPRD_RTC_INT_RAW_STS, val,
@@ -520,6 +524,7 @@ static int sprd_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 static int sprd_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 {
 	struct sprd_rtc *rtc = dev_get_drvdata(dev);
+	time64_t secs_alarm;
 	time64_t secs = rtc_tm_to_time64(&alrm->time);
 	struct rtc_time aie_time =
 		rtc_ktime_to_tm(rtc->rtc->aie_timer.node.expires);
@@ -553,9 +558,15 @@ static int sprd_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alrm)
 	if (ret)
 		return ret;
 
-	ret = sprd_rtc_set_secs(rtc, SPRD_RTC_ALARM, secs);
+	ret = sprd_rtc_get_secs(rtc, SPRD_RTC_ALARM, &secs_alarm);
 	if (ret)
 		return ret;
+
+	if (secs_alarm != secs) {
+		ret = sprd_rtc_set_secs(rtc, SPRD_RTC_ALARM, secs);
+		if (ret)
+			return ret;
+	}
 
 	if (alrm->enabled) {
 		ret = regmap_update_bits(rtc->regmap,
@@ -671,6 +682,8 @@ static int sprd_rtc_check_power_down(struct sprd_rtc *rtc)
 	if (val == SPRD_RTC_POWER_RESET_VALUE) {
 		SPRD_RTCDBG_ERROR("RTC hardware has been reset, then init time\n");
 		ret = sprd_rtc_set_time(rtc->dev, &tm);
+		if (!ret)
+			ret = sprd_rtc_set_secs(rtc, SPRD_RTC_ALARM, 0);
 	} else {
 		rtc->valid = true;
 	}
