@@ -4,6 +4,14 @@
  */
 
 / {
+	sprd_deepbuffer: sprd-deepbuffer-audio {
+		compatible = "unisoc,qogirl6-deepbuffer-platform";
+		#sound-dai-cells = <0>;
+		sprd,deepbuffer-dst-id = <1>;
+		sprd,stream_channel = <31>;
+		sprd,usedmem_type = <0x5>;
+	};
+
 	sprd_pcm: sprd-pcm-audio {
 		compatible = "unisoc,qogirl6-pcm-platform";
 		#sound-dai-cells = <0>;
