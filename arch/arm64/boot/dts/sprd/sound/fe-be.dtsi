@@ -1437,8 +1437,6 @@
 				sound-dai = <0 0>;
 			};
 		};
-		/* dai-link@110 ~ dai-link@115 are reserved
-		   for deepbuffer function */
 	};
 
 	sprd_pcm_iis: sprd-pcm-iis {

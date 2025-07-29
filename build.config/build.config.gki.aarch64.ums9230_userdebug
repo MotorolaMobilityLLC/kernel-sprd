@@ -63,7 +63,6 @@ EXT_MODULES="
 ../modules/kernel5.15/audio/sprd_audio/usb_offload
 ../modules/kernel5.15/audio/sprd/machine/sprd_card
 ../modules/kernel5.15/audio/sprd/platform/platform_routing
-../modules/kernel5.15/audio/sprd/platform/deepbuffer
 ../modules/kernel5.15/audio/sprd/platform/dmaengine_pcm
 ../modules/kernel5.15/audio/sprd/platform/compr_2stage_dma
 ../modules/kernel5.15/audio/sprd/dai/vbc/v4/vbc_dai
