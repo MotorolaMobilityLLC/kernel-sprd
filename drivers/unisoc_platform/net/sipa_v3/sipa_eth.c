@@ -138,9 +138,10 @@ static netdev_tx_t sipa_eth_start_xmit(struct sk_buff *skb,
 	 * the IPv6 forwarding packet is without ethernet header
 	 */
 	if (likely(skb_headroom(skb) >= ETH_HLEN)) {
-		if (skb->mac_header == skb->network_header)
+		if (skb->mac_header == skb->network_header) {
 			skb_push(skb, ETH_HLEN);
-	}
+			skb_reset_mac_header(skb);
+        }
 
 	ret = sipa_nic_tx(sipa_eth->nic_id, pdata->src_id, netid, skb);
 	if (unlikely(ret != 0)) {
@@ -441,8 +442,8 @@ static int sipa_eth_probe(struct platform_device *pdev)
 	sipa_eth->stats = &netdev->stats;
 	netdev->netdev_ops = &sipa_eth_ops;
 	netdev->watchdog_timeo = 1 * HZ;
-	netdev->header_ops = NULL;
-	netdev->addr_len = 0;  //without ethernet header
+	//netdev->header_ops = NULL;
+	//netdev->addr_len = 0;  //without ethernet header
 	netdev->hard_header_len = 0;
 
 	random_ether_addr(netdev->dev_addr);
