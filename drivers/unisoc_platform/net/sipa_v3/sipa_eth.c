@@ -141,6 +141,7 @@ static netdev_tx_t sipa_eth_start_xmit(struct sk_buff *skb,
 		if (skb->mac_header == skb->network_header) {
 			skb_push(skb, ETH_HLEN);
 			skb_reset_mac_header(skb);
+		}
         }
 
 	ret = sipa_nic_tx(sipa_eth->nic_id, pdata->src_id, netid, skb);
