@@ -69,8 +69,8 @@ static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
 {
 	int ret = 0;
 	u32 val = 0;
-	int cnt = 5;
-	int fail_round = 5;
+	int cnt = 8;
+	int fail_round = 8;
 
 	if (!reg_info->rmap) {
 		dev_err(drv->dev, "ipa-sys state rmap not exit\n");
@@ -86,7 +86,7 @@ static int sipa_sys_wait_power_on(struct sipa_sys_pd_drv *drv,
 					       SPRD_IPA_POWERON_POLL_US,
 					       SPRD_IPA_POWERON_TIMEOUT);
 		if (ret) {
-			cnt = 5;
+			cnt = 8;
 			usleep_range((SPRD_IPA_POWERON_ROUND_TIMEOUT >> 2) + 1,
 					SPRD_IPA_POWERON_ROUND_TIMEOUT);
 			fail_round--;
