@@ -27,6 +27,14 @@
 		reg = <0x0 0x65006400 0x0 0x1000>;
 	};
 
+	sprd_deepbuffer: sprd-deepbuffer-audio {
+		compatible = "unisoc,qogirn6pro-deepbuffer-platform";
+		#sound-dai-cells = <0>;
+		sprd,deepbuffer-dst-id = <1>;
+		sprd,stream_channel = <31>;
+		sprd,usedmem_type = <0x5>;
+	};
+
 	sprd_pcm: sprd-pcm-audio {
 		compatible = "unisoc,qogirn6pro-pcm-platform";
 		#sound-dai-cells = <0>;
