@@ -5009,7 +5009,9 @@ static void cm_manager_set_ffs(struct charger_manager *cm, int cur_temp)
 {
 	struct charger_desc *desc = cm->desc;
 	struct cm_jeita_info *jeita_info = &desc->jeita_info;
+	int chg_limit_cur;
 
+	ret = get_input_current_limit(cm, &chg_limit_cur);
 	if (cm->desc->is_fast_charge)
 	{
 		if( jeita_info->jeita_status == 4)
@@ -5022,6 +5024,9 @@ static void cm_manager_set_ffs(struct charger_manager *cm, int cur_temp)
 				ffs_status = TERM_855MA;
 			else
 				ffs_status = TERM_NORMAL;
+
+			if(chg_limit_cur < 600000)	
+				ffs_status = TERM_NORMAL;				
 		}
 		else
 			ffs_status = TERM_NORMAL;
