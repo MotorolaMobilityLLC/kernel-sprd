@@ -450,7 +450,7 @@
 		<&pdref_calib>, <&aud_pabst_vcal>, <&neg_cp_efuse>, <&fgu_calib>;
 	nvmem-cell-names = "hp_adc_fir_calib_1","hp_adc_fir_calib_2", "hp_adc_sec_calib",
 		"aud_impd_cal2", "aud_impd_cal0", "aud_impd_cal1", "impd_sel";
-	sprd,impd-en = <1>;
+	sprd,impd-en = <0>;
 };
 
 &sound_vbc_v4_sprd_codec {
