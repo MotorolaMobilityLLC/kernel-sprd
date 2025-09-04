@@ -2896,7 +2896,6 @@ static void sprd_fgu_batt_ovp_notfiy(struct sprd_fgu_data *data)
 	if (ret)
 		dev_err(data->dev, "failed to disable high overload int\n");
 
-	cm_notify_event(data->battery, CM_EVENT_BATT_OVERVOLTAGE, NULL);
 }
 
 static void sprd_fgu_update_alarm_cap(struct sprd_fgu_data *data)
@@ -2965,8 +2964,11 @@ static irqreturn_t sprd_fgu_interrupt(int irq, void *dev_id)
 
 	if (status & BIT(SPRD_FGU_VOLT_HIGH_INT_EVENT)) {
 		sprd_fgu_batt_ovp_notfiy(data);
-		dev_info(data->dev, "volt_high_int ocurred!!\n");
 		fgu_info->ops->clr_fgu_int_bit(fgu_info, SPRD_FGU_VOLT_HIGH_INT_CMD);
+		mutex_unlock(&data->lock);
+		cm_notify_event(data->battery, CM_EVENT_BATT_OVERVOLTAGE, NULL);
+		dev_info(data->dev, "%s, volt_high_int ocurred!!\n", __func__);
+		mutex_lock(&data->lock);
 	}
 
 	/*
