@@ -1109,6 +1109,8 @@ static void dwc3_sprd_hotplug_sm_work(struct work_struct *work)
 		/* put controller and phy in suspend if no cable connected */
 		if (test_bit(ID, &sdwc->inputs) &&
 				!test_bit(B_SESS_VLD, &sdwc->inputs)) {
+			msleep(3*1000);
+			dev_info(sdwc->dev, "%s state;delay 3s;\n", state);
 			dwc3_sprd_detect_cable(sdwc);
 			sdwc->drd_state = DRD_STATE_IDLE;
 			break;
