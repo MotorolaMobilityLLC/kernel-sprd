@@ -63,7 +63,7 @@ static const char * const log_to_dmesg_opt_names[] = {
 	"never", "always", "until_first_reader"
 };
 
-static int log_to_dmesg_param = ALWAYS;
+static int log_to_dmesg_param = NEVER;
 
 static int trusty_log_mode_set(const char *val, const struct kernel_param *kp)
 {
